@@ -1,2 +1,2 @@
 # amazingLabyrinth
-A ball in a maze game for Android
+A ball in a maze game for Android.
