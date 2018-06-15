@@ -168,15 +168,16 @@ void Maze::updateData() {
         ball.position.y = cellCenterY;
     }
 
-    float delta = 0.01;
+    float delta = 2.0f/numberColumns/20.0f;
     if (ball.position.x > cellCenterX + delta || ball.position.x < cellCenterX - delta) {
         ball.position.y = cellCenterY;
-        ball.velocity.y = 0.0;
+        ball.velocity.y = 0.0f;
     }
 
+    delta = 2.0f/numberRows/20.0f;
     if (ball.position.y > cellCenterY + delta || ball.position.y < cellCenterY - delta) {
         ball.position.x = cellCenterX;
-        ball.velocity.x = 0.0;
+        ball.velocity.x = 0.0f;
     }
 
     float deltax = ball.position.x - cellCenterX;
@@ -196,7 +197,9 @@ void Maze::updateData() {
         ball.col--;
     }
 
-    modelMatrixBall = glm::translate(ball.position) * scaleBall;
+    glm::quat q = glm::angleAxis(glm::length(ball.velocity), glm::cross(glm::vec3(0.0f, 0.0f, 1.0f), ball.velocity));
+    ball.totalRotated = glm::normalize(q*ball.totalRotated);
+    modelMatrixBall = glm::translate(ball.position) * glm::toMat4(ball.totalRotated) * scaleBall;
 }
 
 void Maze::updatePerspectiveMatrix(int surfaceWidth, int surfaceHeight) {

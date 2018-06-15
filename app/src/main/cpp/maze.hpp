@@ -100,6 +100,7 @@ private:
         glm::vec3 position;
         glm::vec3 velocity;
         glm::vec3 acceleration;
+        glm::quat totalRotated;
     } ball;
     std::vector<std::vector<Cell> > cells;
 
@@ -145,9 +146,12 @@ public:
         ball.acceleration = {0.0f, 0.0f, 0.0f};
         ball.velocity = {0.0f, 0.0f, 0.0f};
         lightingSource = glm::vec3(0.0f, 0.0f, 1.28f/*0.01-1.28*/);
-        scaleBall  = glm::scale(glm::vec3(2.0f/numberColumns/4.0f,
-                                          2.0f/numberRows/4.0f,
-                                          2.0f/(numberRows+numberColumns)/8.0f));
+        scaleBall  = glm::scale(glm::vec3(4.0f/(numberRows+numberColumns)/4.0f,
+                                          4.0f/(numberRows+numberColumns)/4.0f,
+                                          4.0f/(numberRows+numberColumns)/4.0f));
+        //scaleBall  = glm::scale(glm::vec3(2.0f/numberColumns/4.0f,
+        //                                  2.0f/numberRows/4.0f,
+        //                                  2.0f/(numberRows+numberColumns)/8.0f));
     }
 
     void loadModels();
