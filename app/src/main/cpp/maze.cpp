@@ -168,13 +168,16 @@ void Maze::updateData() {
         ball.position.y = cellCenterY;
     }
 
-    float delta = 2.0f/numberColumns/20.0f;
+    float cellHeight = 2.0f / numberRows;
+    float cellWidth = 2.0f / numberColumns;
+
+    float delta = cellWidth/5.0f;
     if (ball.position.x > cellCenterX + delta || ball.position.x < cellCenterX - delta) {
         ball.position.y = cellCenterY;
         ball.velocity.y = 0.0f;
     }
 
-    delta = 2.0f/numberRows/20.0f;
+    delta = cellHeight/5.0f;
     if (ball.position.y > cellCenterY + delta || ball.position.y < cellCenterY - delta) {
         ball.position.x = cellCenterX;
         ball.velocity.x = 0.0f;
@@ -182,8 +185,10 @@ void Maze::updateData() {
 
     float deltax = ball.position.x - cellCenterX;
     float deltay = ball.position.y - cellCenterY;
-    float cellHeight = 2.0f / numberRows;
-    float cellWidth = 2.0f / numberColumns;
+
+    if (deltay > cellHeight || deltay < -cellHeight || deltax > cellWidth || deltax < -cellWidth) {
+        deltax +=0.00001;
+    }
 
     if (deltay > cellHeight/2.0f && ball.row != numberRows - 1) {
         ball.row++;
@@ -197,8 +202,13 @@ void Maze::updateData() {
         ball.col--;
     }
 
-    glm::quat q = glm::angleAxis(glm::length(ball.velocity), glm::cross(glm::vec3(0.0f, 0.0f, 1.0f), ball.velocity));
-    ball.totalRotated = glm::normalize(q*ball.totalRotated);
+    glm::vec3 axis = glm::cross(glm::vec3(0.0f, 0.0f, 1.0f), ball.velocity);
+    if (glm::length(axis) != 0) {
+        float scaleFactor = 10.0f;
+        glm::quat q = glm::angleAxis(glm::length(ball.velocity)*time*scaleFactor, glm::normalize(axis));
+
+        ball.totalRotated = glm::normalize(q * ball.totalRotated);
+    }
     modelMatrixBall = glm::translate(ball.position) * glm::toMat4(ball.totalRotated) * scaleBall;
 }
 

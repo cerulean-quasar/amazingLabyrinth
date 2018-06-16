@@ -141,6 +141,8 @@ Java_com_quasar_cerulean_amazinglabyrinth_Draw_draw(
         }
         std::vector<std::string> results;
         while (!stopDrawing.load()) {
+            timeval tv = {0, 1000};
+            select(0, nullptr, nullptr,nullptr, &tv);
             rc = ASensorEventQueue_hasEvents(eventQueue);
             if (rc > 0) {
                 std::vector<ASensorEvent> events;
