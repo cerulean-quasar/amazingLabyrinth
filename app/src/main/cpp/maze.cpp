@@ -132,7 +132,7 @@ void Maze::updateAcceleration(float x, float y, float z) {
     ball.acceleration = glm::vec3(-x,-y,0.0f);
 }
 
-void Maze::updateData() {
+bool Maze::updateData() {
     auto currentTime = std::chrono::high_resolution_clock::now();
     float time = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - prevTime).count();
     prevTime = currentTime;
@@ -210,6 +210,10 @@ void Maze::updateData() {
         ball.totalRotated = glm::normalize(q * ball.totalRotated);
     }
     modelMatrixBall = glm::translate(ball.position) * glm::toMat4(ball.totalRotated) * scaleBall;
+
+    bool drawingNecessary = glm::length(ball.position - ball.prevPosition) > 0.00005;
+    ball.prevPosition = ball.position;
+    return drawingNecessary;
 }
 
 void Maze::updatePerspectiveMatrix(int surfaceWidth, int surfaceHeight) {
@@ -405,23 +409,20 @@ void Maze::generateModelMatrices() {
     for (unsigned int i = 0; i < numberRows*4; i+=4) {
         for (unsigned int j = 0; j < numberColumns*4; j+=4) {
             Cell const &cell = getCell(i/4, j/4);
-            trans = glm::translate(glm::mat4(1.0f),
-                                   glm::vec3(2.0f/numberColumns/4.0f*j-1.0f,
+            trans = glm::translate(glm::vec3(2.0f/numberColumns/4.0f*j-1.0f,
                                              2.0f/numberRows/4.0f*i-1.0f,
                                              -1.0f));
             modelMatricesMaze.push_back(trans * rotate * scale);
             if (cell.topWallExists()) {
                 for (unsigned int k=1; k < 4; k++) {
-                    trans = glm::translate(glm::mat4(1.0f),
-                                           glm::vec3(2.0f / numberColumns / 4.0f * (j + k) - 1.0f,
+                    trans = glm::translate(glm::vec3(2.0f / numberColumns / 4.0f * (j + k) - 1.0f,
                                                      2.0f / numberRows / 4.0f * i - 1.0f, -1.0f));
                     modelMatricesMaze.push_back(trans * rotate * scale);
                 }
             }
             if (cell.leftWallExists()) {
                 for (unsigned int k = 1; k < 4; k++) {
-                    trans = glm::translate(glm::mat4(1.0f),
-                                           glm::vec3(2.0f / numberColumns / 4.0f * j - 1.0f,
+                    trans = glm::translate(glm::vec3(2.0f / numberColumns / 4.0f * j - 1.0f,
                                                      2.0f / numberRows / 4.0f * (i + k) - 1.0f,
                                                      -1.0f));
                     modelMatricesMaze.push_back(trans * rotate * scale);
@@ -436,14 +437,16 @@ void Maze::generateModelMatrices() {
                                           2.0f / numberRows / 4.0f * (i + 3) - 1.0f,
                                           -1.0f - 3.0/10);
 
-                trans = glm::translate(glm::mat4(1.0f), ball.position);
+                // cause the frame to be drawn when the program comes up for the first time.
+                ball.prevPosition = {-10.0,0.0,0.0};
+
+                trans = glm::translate(ball.position);
                 modelMatrixBall = trans*scaleBall;
             }
 
             // the hole
             if (cell.isEnd()) {
-                trans = glm::translate(glm::mat4(1.0f),
-                                       glm::vec3(2.0f / numberColumns / 4.0f * (j + 2) - 1.0f,
+                trans = glm::translate(glm::vec3(2.0f / numberColumns / 4.0f * (j + 2) - 1.0f,
                                                  2.0f / numberRows / 4.0f * (i + 3) - 1.0f,
                                                  -1.0f - 2.9/10));
                 modelMatrixHole = trans*scaleBall;

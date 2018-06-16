@@ -47,7 +47,7 @@ public:
 
     virtual void drawFrame()=0;
 
-    virtual void updateData()=0;
+    virtual bool updateData()=0;
 
     virtual void destroyWindow()=0;
 

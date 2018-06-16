@@ -35,7 +35,11 @@ public:
 
     virtual void cleanup();
 
+    virtual bool updateData();
+
     virtual void drawFrame();
+
+    virtual void updateAcceleration(float x, float y, float z);
 
     virtual void destroyWindow();
 
@@ -80,6 +84,4 @@ private:
     void createDepthTexture();
     void drawObject(GLuint programID, bool needsNormal, GLuint vertex, GLuint index,
                     unsigned long nbrIndices, glm::mat4 const &modelMatrix);
-    void updateAcceleration(float x, float y, float z);
-    void updateData();
 };

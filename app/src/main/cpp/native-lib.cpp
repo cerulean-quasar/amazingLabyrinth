@@ -142,7 +142,7 @@ Java_com_quasar_cerulean_amazinglabyrinth_Draw_draw(
         std::vector<std::string> results;
         while (!stopDrawing.load()) {
             timeval tv = {0, 1000};
-            select(0, nullptr, nullptr,nullptr, &tv);
+            select(0, nullptr, nullptr, nullptr, &tv);
             rc = ASensorEventQueue_hasEvents(eventQueue);
             if (rc > 0) {
                 std::vector<ASensorEvent> events;
@@ -155,16 +155,21 @@ Java_com_quasar_cerulean_amazinglabyrinth_Draw_draw(
                     return env->NewStringUTF("error: Error on retrieving sensor events.");
                 }
 
+                float x = 0;
+                float y = 0;
+                float z = 0;
                 for (int i = 0; i < nbrEvents; i++) {
-                    float x = events[i].acceleration.x;
-                    float y = events[i].acceleration.y;
-                    float z = events[i].acceleration.z;
-                    graphics->updateAcceleration(x, y, z);
+                    x += events[i].acceleration.x;
+                    y += events[i].acceleration.y;
+                    z += events[i].acceleration.z;
                 }
+                graphics->updateAcceleration(x/nbrEvents, y/nbrEvents, z/nbrEvents);
 
             }
-            graphics->updateData();
-            graphics->drawFrame();
+            bool drawingNecessary = graphics->updateData();
+            if (drawingNecessary) {
+                graphics->drawFrame();
+            }
         }
     } catch (std::runtime_error &e) {
         // no need to draw another frame - we are failing.

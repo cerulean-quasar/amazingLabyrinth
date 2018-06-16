@@ -1506,7 +1506,10 @@ void GraphicsVulkan::drawFrame() {
         throw std::runtime_error("failed to present swap chain image!");
     }
 
-    vkQueueWaitIdle(presentQueue);
+    result = vkQueueWaitIdle(presentQueue);
+    if (result != VK_SUCCESS) {
+        throw std::runtime_error("Failed to wait on present queue.");
+    }
 }
 
 
@@ -2045,8 +2048,12 @@ void GraphicsVulkan::destroyWindow() {
     }
 }
 
-void GraphicsVulkan::updateData() {
-    maze.updateData();
+bool GraphicsVulkan::updateData() {
+    bool drawingNecessary = maze.updateData();
+
+    if (!drawingNecessary) {
+        return false;
+    }
 
     UniformBufferObject ubo = {};
     ubo.proj = maze.getProjectionMatrix();
@@ -2061,6 +2068,8 @@ void GraphicsVulkan::updateData() {
     vkMapMemory(logicalDevice, uniformBufferMemoryBall, 0, sizeof(ubo), 0, &data);
     memcpy(data, &ubo, sizeof(ubo));
     vkUnmapMemory(logicalDevice, uniformBufferMemoryBall);
+
+    return true;
 }
 
 void GraphicsVulkan::updateAcceleration(float x, float y, float z) {

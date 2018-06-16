@@ -97,6 +97,7 @@ private:
     struct {
         uint32_t row;
         uint32_t col;
+        glm::vec3 prevPosition;
         glm::vec3 position;
         glm::vec3 velocity;
         glm::vec3 acceleration;
@@ -149,9 +150,6 @@ public:
         scaleBall  = glm::scale(glm::vec3(4.0f/(numberRows+numberColumns)/4.0f,
                                           4.0f/(numberRows+numberColumns)/4.0f,
                                           4.0f/(numberRows+numberColumns)/4.0f));
-        //scaleBall  = glm::scale(glm::vec3(2.0f/numberColumns/4.0f,
-        //                                  2.0f/numberRows/4.0f,
-        //                                  2.0f/(numberRows+numberColumns)/8.0f));
     }
 
     void loadModels();
@@ -160,7 +158,7 @@ public:
     Cell const &getCell(unsigned int row, unsigned int column);
     void generate();
     void updateAcceleration(float x, float y, float z);
-    void updateData();
+    bool updateData();
     void generateModelMatrices();
 
     std::vector<Vertex> const &getFloorVertices() { return floorVertices; }

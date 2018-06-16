@@ -72,7 +72,7 @@ public:
 
     virtual void cleanup();
 
-    virtual void updateData();
+    virtual bool updateData();
 
     virtual void updateAcceleration(float x, float y, float z);
 

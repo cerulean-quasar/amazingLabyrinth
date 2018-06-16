@@ -581,6 +581,6 @@ void GraphicsGL::updateAcceleration(float x, float y, float z) {
     maze.updateAcceleration(x,y,z);
 }
 
-void GraphicsGL::updateData() {
-    maze.updateData();
+bool GraphicsGL::updateData() {
+    return maze.updateData();
 }
