@@ -401,7 +401,7 @@ glm::vec3 Maze::getCellCenterPosition(unsigned int row, unsigned int col) {
 
 void Maze::generateModelMatrices() {
     glm::mat4 trans;
-    glm::mat4 scale  = glm::scale(glm::mat4(1.0f), glm::vec3(2.0f/numberColumns/4.0f, 2.0f/numberRows/4.0f, 1.0f/10.0f));
+    glm::mat4 scale  = glm::scale(glm::mat4(1.0f), glm::vec3(2.0f/numberColumns/4.0f, 2.0f/numberRows/4.0f, 1.0f/(numberRows+numberColumns)));
     //glm::quat quaternian = glm::angleAxis(glm::radians(90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
     glm::mat4 rotate = glm::mat4(1.0f); //glm::toMat4(quaternian);
 
@@ -435,7 +435,7 @@ void Maze::generateModelMatrices() {
                 ball.col = j/4;
                 ball.position = glm::vec3(2.0f / numberColumns / 4.0f * (j + 2) - 1.0f,
                                           2.0f / numberRows / 4.0f * (i + 3) - 1.0f,
-                                          -1.0f - 3.0/10);
+                                          -1.0f - 3.0/(numberRows+numberColumns));
 
                 // cause the frame to be drawn when the program comes up for the first time.
                 ball.prevPosition = {-10.0,0.0,0.0};
@@ -448,7 +448,7 @@ void Maze::generateModelMatrices() {
             if (cell.isEnd()) {
                 trans = glm::translate(glm::vec3(2.0f / numberColumns / 4.0f * (j + 2) - 1.0f,
                                                  2.0f / numberRows / 4.0f * (i + 3) - 1.0f,
-                                                 -1.0f - 2.9/10));
+                                                 -1.0f - 2.9/(numberRows+numberColumns)));
                 modelMatrixHole = trans*scaleBall;
             }
 
@@ -470,7 +470,7 @@ void Maze::generateModelMatrices() {
     }
 
     // the floor.
-    floorModelMatrix = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, -1.0f -3.0f/10.0f));
+    floorModelMatrix = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, -1.0f -3.0f/(numberRows+numberColumns)));
 }
 
 Random::~Random() {
