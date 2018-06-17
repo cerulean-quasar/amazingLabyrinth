@@ -386,11 +386,15 @@ void Maze::loadModel(std::string const & modelFile, std::vector<Vertex> &vertice
 }
 
 float Maze::getRowCenterPosition(unsigned int row) {
-    return 2.0f / numberRows / 4.0f * (row*4 + 3) - 1.0f;
+    unsigned int numberBlocksPerCell = 2;
+    return 2.0f / (numberRows * numberBlocksPerCell+1) * (row*2 + 1.5f) - 1.0f;
+    //return 2.0f / numberRows / 4.0f * (row*4 + 3) - 1.0f;
 }
 
 float Maze::getColumnCenterPosition(unsigned int col) {
-    return 2.0f / numberColumns / 4.0f * (col*4 + 2) - 1.0f;
+    unsigned int numberBlocksPerCell = 2;
+    return 2.0f / (numberColumns * numberBlocksPerCell+1) * (col*2 + 1) - 1.0f;
+    //return 2.0f / numberColumns / 4.0f * (col*4 + 2) - 1.0f;
 }
 
 glm::vec3 Maze::getCellCenterPosition(unsigned int row, unsigned int col) {
@@ -401,29 +405,33 @@ glm::vec3 Maze::getCellCenterPosition(unsigned int row, unsigned int col) {
 
 void Maze::generateModelMatrices() {
     glm::mat4 trans;
-    glm::mat4 scale  = glm::scale(glm::mat4(1.0f), glm::vec3(2.0f/numberColumns/4.0f, 2.0f/numberRows/4.0f, 1.0f/(numberRows+numberColumns)));
+    unsigned int numberBlocksPerCell = 2;
+    glm::mat4 scale  = glm::scale(glm::vec3(1.0f/(numberColumns*numberBlocksPerCell),
+                                            1.0f/(numberRows*numberBlocksPerCell),
+                                            1.0f/(numberRows+numberColumns)));
     //glm::quat quaternian = glm::angleAxis(glm::radians(90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
     glm::mat4 rotate = glm::mat4(1.0f); //glm::toMat4(quaternian);
 
     // print
-    for (unsigned int i = 0; i < numberRows*4; i+=4) {
-        for (unsigned int j = 0; j < numberColumns*4; j+=4) {
-            Cell const &cell = getCell(i/4, j/4);
-            trans = glm::translate(glm::vec3(2.0f/numberColumns/4.0f*j-1.0f,
-                                             2.0f/numberRows/4.0f*i-1.0f,
+    for (unsigned int i = 0; i < numberRows*numberBlocksPerCell; i+=numberBlocksPerCell) {
+        for (unsigned int j = 0; j < numberColumns*numberBlocksPerCell; j+=numberBlocksPerCell) {
+            Cell const &cell = getCell(i/numberBlocksPerCell, j/numberBlocksPerCell);
+/*
+            trans = glm::translate(glm::vec3(2.0f/(numberColumns*numberBlocksPerCell+1)*j-1.0f,
+                                             2.0f/(numberRows*numberBlocksPerCell+1)*i-1.0f,
                                              -1.0f));
-            modelMatricesMaze.push_back(trans * rotate * scale);
+            modelMatricesMaze.push_back(trans * rotate * scale);*/
             if (cell.topWallExists()) {
-                for (unsigned int k=1; k < 4; k++) {
-                    trans = glm::translate(glm::vec3(2.0f / numberColumns / 4.0f * (j + k) - 1.0f,
-                                                     2.0f / numberRows / 4.0f * i - 1.0f, -1.0f));
+                for (unsigned int k=0; k < numberBlocksPerCell+1; k++) {
+                    trans = glm::translate(glm::vec3(2.0f / (numberColumns * numberBlocksPerCell+1) * (j + k) - 1.0f,
+                                                     2.0f / (numberRows * numberBlocksPerCell+1) * i - 1.0f, -1.0f));
                     modelMatricesMaze.push_back(trans * rotate * scale);
                 }
             }
             if (cell.leftWallExists()) {
-                for (unsigned int k = 1; k < 4; k++) {
-                    trans = glm::translate(glm::vec3(2.0f / numberColumns / 4.0f * j - 1.0f,
-                                                     2.0f / numberRows / 4.0f * (i + k) - 1.0f,
+                for (unsigned int k = 0; k < numberBlocksPerCell+1; k++) {
+                    trans = glm::translate(glm::vec3(2.0f / (numberColumns * numberBlocksPerCell+1) * j - 1.0f,
+                                                     2.0f / (numberRows*numberBlocksPerCell+1) * (i + k) - 1.0f,
                                                      -1.0f));
                     modelMatricesMaze.push_back(trans * rotate * scale);
                 }
@@ -431,10 +439,10 @@ void Maze::generateModelMatrices() {
 
             // the ball
             if (cell.isStart()) {
-                ball.row = i/4;
-                ball.col = j/4;
-                ball.position = glm::vec3(2.0f / numberColumns / 4.0f * (j + 2) - 1.0f,
-                                          2.0f / numberRows / 4.0f * (i + 3) - 1.0f,
+                ball.row = i/numberBlocksPerCell;
+                ball.col = j/numberBlocksPerCell;
+                ball.position = glm::vec3(2.0f / (numberColumns * numberBlocksPerCell+1) * (j + 1) - 1.0f,
+                                          2.0f / (numberRows * numberBlocksPerCell+1) * (i + 1.5f) - 1.0f,
                                           -1.0f - 3.0/(numberRows+numberColumns));
 
                 // cause the frame to be drawn when the program comes up for the first time.
@@ -446,31 +454,31 @@ void Maze::generateModelMatrices() {
 
             // the hole
             if (cell.isEnd()) {
-                trans = glm::translate(glm::vec3(2.0f / numberColumns / 4.0f * (j + 2) - 1.0f,
-                                                 2.0f / numberRows / 4.0f * (i + 3) - 1.0f,
-                                                 -1.0f - 2.9/(numberRows+numberColumns)));
+                trans = glm::translate(glm::vec3(2.0f / (numberColumns * numberBlocksPerCell+1) * (j + 1) - 1.0f,
+                                                 2.0f / (numberRows * numberBlocksPerCell+1) * (i + 1.5f) - 1.0f,
+                                                 -1.0f - 2.9f/(numberRows+numberColumns)));
                 modelMatrixHole = trans*scaleBall;
             }
 
         }
 
         // right border
-        for (unsigned int k = 0; k < 4; k++) {
-            trans = glm::translate(glm::mat4(1.0f), glm::vec3(1.0f,
-                                                              2.0f / numberRows / 4.0f * (i + k) - 1.0f,
-                                                              -1.0f));
+        for (unsigned int k = 0; k < numberBlocksPerCell+1; k++) {
+            trans = glm::translate(glm::vec3(1.0f-2.0f/(numberColumns*numberBlocksPerCell+1),
+                                             2.0f / (numberRows * numberBlocksPerCell+1) * (i + k) - 1.0f,
+                                             -1.0f));
             modelMatricesMaze.push_back(trans * rotate * scale);
         }
     }
 
     // bottom wall.
-    for (int i = 0; i < numberColumns*4+1; i++) {
-        trans = glm::translate(glm::mat4(1.0f), glm::vec3(2.0f/numberColumns/4.0f*i-1.0f, 1.0f, -1.0f));
+    for (int i = 0; i < numberColumns*numberBlocksPerCell+1; i++) {
+        trans = glm::translate(glm::vec3(2.0f/(numberColumns*numberBlocksPerCell+1)*i-1.0f, 1.0f-2.0f/(numberRows*numberBlocksPerCell+1), -1.0f));
         modelMatricesMaze.push_back(trans * rotate * scale);
     }
 
     // the floor.
-    floorModelMatrix = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, -1.0f -3.0f/(numberRows+numberColumns)));
+    floorModelMatrix = glm::translate(glm::vec3(0.0f, 0.0f, -1.0f -3.0f/(numberRows+numberColumns)));
 }
 
 Random::~Random() {
