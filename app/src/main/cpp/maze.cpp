@@ -386,99 +386,99 @@ void Maze::loadModel(std::string const & modelFile, std::vector<Vertex> &vertice
 }
 
 float Maze::getRowCenterPosition(unsigned int row) {
-    unsigned int numberBlocksPerCell = 2;
-    return 2.0f / (numberRows * numberBlocksPerCell+1) * (row*2 + 1.5f) - 1.0f;
-    //return 2.0f / numberRows / 4.0f * (row*4 + 3) - 1.0f;
+    return 2.0f / (numberRows * numberBlocksPerCell) * (row*numberBlocksPerCell +1.5f) - 1.0f;
 }
 
 float Maze::getColumnCenterPosition(unsigned int col) {
-    unsigned int numberBlocksPerCell = 2;
-    return 2.0f / (numberColumns * numberBlocksPerCell+1) * (col*2 + 1) - 1.0f;
-    //return 2.0f / numberColumns / 4.0f * (col*4 + 2) - 1.0f;
+    return 2.0f / (numberColumns * numberBlocksPerCell) * (col*numberBlocksPerCell+1.0f) - 1.0f;
 }
 
 glm::vec3 Maze::getCellCenterPosition(unsigned int row, unsigned int col) {
    return glm::vec3(getColumnCenterPosition(col),
-             getRowCenterPosition(row),
-             -1.0f - 3.0/10);
+                    getRowCenterPosition(row),
+                    -1.0f - 3.0f/(2.0f*(numberRows+numberColumns)));
 }
 
 void Maze::generateModelMatrices() {
-    glm::mat4 trans;
-    unsigned int numberBlocksPerCell = 2;
-    glm::mat4 scale  = glm::scale(glm::vec3(1.0f/(numberColumns*numberBlocksPerCell),
-                                            1.0f/(numberRows*numberBlocksPerCell),
-                                            1.0f/(numberRows+numberColumns)));
-    //glm::quat quaternian = glm::angleAxis(glm::radians(90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
-    glm::mat4 rotate = glm::mat4(1.0f); //glm::toMat4(quaternian);
-
     // print
+    unsigned int rowEnd;
+    unsigned int colEnd;
+    bool wallsExist[numberRows*numberBlocksPerCell+1][numberColumns*numberBlocksPerCell+1];
+    memset(wallsExist, '\0', sizeof (wallsExist));
     for (unsigned int i = 0; i < numberRows*numberBlocksPerCell; i+=numberBlocksPerCell) {
-        for (unsigned int j = 0; j < numberColumns*numberBlocksPerCell; j+=numberBlocksPerCell) {
-            Cell const &cell = getCell(i/numberBlocksPerCell, j/numberBlocksPerCell);
-/*
-            trans = glm::translate(glm::vec3(2.0f/(numberColumns*numberBlocksPerCell+1)*j-1.0f,
-                                             2.0f/(numberRows*numberBlocksPerCell+1)*i-1.0f,
-                                             -1.0f));
-            modelMatricesMaze.push_back(trans * rotate * scale);*/
+        for (unsigned int j = 0; j < numberColumns * numberBlocksPerCell; j += numberBlocksPerCell) {
+            Cell const &cell = getCell(i / numberBlocksPerCell, j / numberBlocksPerCell);
             if (cell.topWallExists()) {
-                for (unsigned int k=0; k < numberBlocksPerCell+1; k++) {
-                    trans = glm::translate(glm::vec3(2.0f / (numberColumns * numberBlocksPerCell+1) * (j + k) - 1.0f,
-                                                     2.0f / (numberRows * numberBlocksPerCell+1) * i - 1.0f, -1.0f));
-                    modelMatricesMaze.push_back(trans * rotate * scale);
+                for (unsigned int k = 0; k <= numberBlocksPerCell; k++) {
+                    wallsExist[i][j + k] = true;
                 }
             }
+
             if (cell.leftWallExists()) {
                 for (unsigned int k = 0; k < numberBlocksPerCell+1; k++) {
-                    trans = glm::translate(glm::vec3(2.0f / (numberColumns * numberBlocksPerCell+1) * j - 1.0f,
-                                                     2.0f / (numberRows*numberBlocksPerCell+1) * (i + k) - 1.0f,
-                                                     -1.0f));
-                    modelMatricesMaze.push_back(trans * rotate * scale);
+                    wallsExist[i+k][j] = true;
                 }
             }
 
             // the ball
             if (cell.isStart()) {
-                ball.row = i/numberBlocksPerCell;
-                ball.col = j/numberBlocksPerCell;
-                ball.position = glm::vec3(2.0f / (numberColumns * numberBlocksPerCell+1) * (j + 1) - 1.0f,
-                                          2.0f / (numberRows * numberBlocksPerCell+1) * (i + 1.5f) - 1.0f,
-                                          -1.0f - 3.0/(numberRows+numberColumns));
-
-                // cause the frame to be drawn when the program comes up for the first time.
-                ball.prevPosition = {-10.0,0.0,0.0};
-
-                trans = glm::translate(ball.position);
-                modelMatrixBall = trans*scaleBall;
+                ball.row = i / numberBlocksPerCell;
+                ball.col = j / numberBlocksPerCell;
             }
 
             // the hole
             if (cell.isEnd()) {
-                trans = glm::translate(glm::vec3(2.0f / (numberColumns * numberBlocksPerCell+1) * (j + 1) - 1.0f,
-                                                 2.0f / (numberRows * numberBlocksPerCell+1) * (i + 1.5f) - 1.0f,
-                                                 -1.0f - 2.9f/(numberRows+numberColumns)));
-                modelMatrixHole = trans*scaleBall;
+                rowEnd = i/numberBlocksPerCell;
+                colEnd = j/numberBlocksPerCell;
             }
-
         }
-
         // right border
-        for (unsigned int k = 0; k < numberBlocksPerCell+1; k++) {
-            trans = glm::translate(glm::vec3(1.0f-2.0f/(numberColumns*numberBlocksPerCell+1),
-                                             2.0f / (numberRows * numberBlocksPerCell+1) * (i + k) - 1.0f,
-                                             -1.0f));
-            modelMatricesMaze.push_back(trans * rotate * scale);
+        for (unsigned int k = 0; k < numberBlocksPerCell; k++) {
+            wallsExist[i+k][numberColumns * numberBlocksPerCell] = true;
         }
     }
 
     // bottom wall.
-    for (int i = 0; i < numberColumns*numberBlocksPerCell+1; i++) {
-        trans = glm::translate(glm::vec3(2.0f/(numberColumns*numberBlocksPerCell+1)*i-1.0f, 1.0f-2.0f/(numberRows*numberBlocksPerCell+1), -1.0f));
-        modelMatricesMaze.push_back(trans * rotate * scale);
+    for (unsigned int i = 0; i < numberColumns*numberBlocksPerCell+1; i++) {
+        wallsExist[numberRows*numberBlocksPerCell][i] = true;
     }
 
+
+    glm::mat4 trans;
+    glm::mat4 scale  = glm::scale(glm::vec3(1.0f/(numberColumns*numberBlocksPerCell),
+                                            1.0f/(numberRows*numberBlocksPerCell),
+                                            1.0f/(numberRows+numberColumns)));
+
+    // Create the model matrices.
+
+    // the walls.
+    for (unsigned int i = 0; i < numberRows*numberBlocksPerCell+1; i++) {
+        for (unsigned int j = 0; j < numberColumns*numberBlocksPerCell+1; j++) {
+            if (wallsExist[i][j]) {
+                trans = glm::translate(
+                        glm::vec3(2.0f / (numberColumns * numberBlocksPerCell) * j - 1.0f,
+                                  2.0f / (numberRows * numberBlocksPerCell) * i - 1.0f,
+                                  -1.0f));
+                modelMatricesMaze.push_back(trans * scale);
+            }
+        }
+    }
+
+    // the ball
+    ball.position = getCellCenterPosition(ball.row, ball.col);
+
+    // cause the frame to be drawn when the program comes up for the first time.
+    ball.prevPosition = {-10.0,0.0,0.0};
+
+    trans = glm::translate(ball.position);
+    modelMatrixBall = trans*scaleBall;
+
+    // the hole
+    trans = glm::translate(getCellCenterPosition(rowEnd, colEnd));
+    modelMatrixHole = trans*scaleBall;
+
     // the floor.
-    floorModelMatrix = glm::translate(glm::vec3(0.0f, 0.0f, -1.0f -3.0f/(numberRows+numberColumns)));
+    floorModelMatrix = glm::translate(glm::vec3(0.0f, 0.0f, -1.0f -3.0f/(2.0f*(numberRows+numberColumns))));
 }
 
 Random::~Random() {

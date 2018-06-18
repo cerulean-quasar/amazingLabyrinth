@@ -88,6 +88,7 @@ public:
 
 class Maze {
 private:
+    unsigned int const numberBlocksPerCell = 2;
     glm::vec3 lightingSource;
     unsigned int numberRows;
     unsigned int numberColumns;
@@ -147,9 +148,10 @@ public:
         ball.acceleration = {0.0f, 0.0f, 0.0f};
         ball.velocity = {0.0f, 0.0f, 0.0f};
         lightingSource = glm::vec3(0.0f, 0.0f, 1.28f/*0.01-1.28*/);
-        scaleBall  = glm::scale(glm::vec3(4.0f/(numberRows+numberColumns)/4.0f,
-                                          4.0f/(numberRows+numberColumns)/4.0f,
-                                          4.0f/(numberRows+numberColumns)/4.0f));
+        unsigned int i = std::max(numberRows, numberColumns);
+        scaleBall = glm::scale(glm::vec3(1.0f/(i*2.0f + 1),
+                                          1.0f/(i*2.0f + 1),
+                                          1.0f/(i*2.0f + 1)));
     }
 
     void loadModels();
