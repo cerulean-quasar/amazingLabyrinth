@@ -1,7 +1,7 @@
 /**
  * Copyright 2018 Cerulean Quasar. All Rights Reserved.
  *
- *  This file is part of RainbowDice.
+ *  This file is part of AmazingLabyrinth.
  *
  *  AmazingLabyrinth is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
