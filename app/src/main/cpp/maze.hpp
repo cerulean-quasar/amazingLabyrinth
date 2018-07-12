@@ -33,32 +33,9 @@
 #include <array>
 
 #include "vulkanWrapper.hpp"
+#include "graphics.hpp"
+#include "levelFinish.hpp"
 
-class Random {
-private:
-    int fd;
-public:
-    Random() : fd(-1) { }
-    unsigned int getUInt(unsigned int lowerBound, unsigned int upperBound);
-    ~Random();
-};
-
-struct Vertex {
-    glm::vec3 pos;
-    glm::vec3 color;
-    glm::vec2 texCoord;
-    glm::vec3 normal;
-
-    static VkVertexInputBindingDescription getBindingDescription();
-    static std::array<VkVertexInputAttributeDescription, 4> getAttributeDescriptions();
-    bool operator==(const Vertex& other) const;
-};
-
-struct UniformBufferObject {
-    glm::mat4 model;
-    glm::mat4 view;
-    glm::mat4 proj;
-};
 
 class Maze;
 
@@ -92,6 +69,7 @@ private:
     glm::vec3 lightingSource;
     unsigned int numberRows;
     unsigned int numberColumns;
+    bool finished;
     std::chrono::high_resolution_clock::time_point prevTime;
 
     // data on where the ball is, how fast it is moving, etc.
@@ -138,7 +116,7 @@ private:
     glm::vec3 getCellCenterPosition(unsigned int row, unsigned int col);
 public:
     Maze(unsigned int inNumberRows, unsigned int inNumberColumns)
-        :numberRows(inNumberRows), numberColumns(inNumberColumns)
+        :numberRows(inNumberRows), numberColumns(inNumberColumns), finished(false)
     {
         cells.resize(numberRows);
         for (unsigned int i = 0; i < numberRows; i++) {
@@ -162,27 +140,17 @@ public:
     void updateAcceleration(float x, float y, float z);
     bool updateData();
     void generateModelMatrices();
+    bool isFinished() { return finished; }
+    std::shared_ptr<LevelFinish> getLevelFinisher()
+        { return std::shared_ptr<LevelFinish>(new ManyQuadCoverUpLevelFinish()); }
 
-    std::vector<Vertex> const &getFloorVertices() { return floorVertices; }
-    std::vector<uint32_t> const &getFloorIndices() { return floorIndices; }
-    glm::mat4 const &getFloorModelMatrix() { return floorModelMatrix; }
-
-    std::vector<Vertex> const &getBallVertices() { return ballVertices; }
-    std::vector<uint32_t> const &getBallIndices() { return ballIndices; }
-    glm::mat4 const &getBallModelMatrix() { return modelMatrixBall; }
-
-    std::vector<Vertex> const &getHoleVertices() { return holeVertices; }
-    std::vector<uint32_t> const &getHoleIndices() { return holeIndices; }
-    glm::mat4 const &getHoleModelMatrix() { return modelMatrixHole; }
-
-    std::vector<Vertex> const &getVertices() { return vertices; }
-    std::vector<uint32_t> const &getIndices() { return indices; }
-    std::vector<glm::mat4> const &getModelMatricesMaze() { return modelMatricesMaze; }
-    uint32_t getNumberWalls() { return modelMatricesMaze.size(); }
     glm::mat4 getProjectionMatrix() { return proj; }
     glm::mat4 getViewMatrix() { return view; }
     glm::vec3 getLightingSource() { return lightingSource; }
     glm::mat4 getViewLightSource();
+
+    std::vector<DrawObject> getStaticDrawObjects();
+    std::vector<DrawObject> getDynamicDrawObjects();
 
     ~Maze() {}
 };

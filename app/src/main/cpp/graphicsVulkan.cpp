@@ -79,96 +79,42 @@ void GraphicsVulkan::init(WindowType *inWindow) {
     createGraphicsPipeline();
     createCommandPool();
 
-    createTextureImage(TEXTURE_PATH_WALLS, textureImageMazeWall, textureImageMemoryMazeWall);
-    textureImageViewMazeWall = createImageView(textureImageMazeWall, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_ASPECT_COLOR_BIT);
-    createTextureSampler(textureSamplerMazeWall);
+    maze.reset(new Maze(MAZE_ROWS, MAZE_COLS));
+    maze->loadModels();
+    maze->setView();
+    maze->updatePerspectiveMatrix(swapChainExtent.width, swapChainExtent.height);
+    maze->generate();
+    maze->generateModelMatrices();
+    levelFinisher = maze->getLevelFinisher();
 
-    createTextureImage(TEXTURE_PATH_FLOOR, textureImageMazeFloor, textureImageMemoryMazeFloor);
-    textureImageViewMazeFloor = createImageView(textureImageMazeFloor, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_ASPECT_COLOR_BIT);
-    createTextureSampler(textureSamplerMazeFloor);
+    std::vector<DrawObject> staticObjs = maze->getStaticDrawObjects();
+    std::vector<DrawObject> dynObjs = maze->getDynamicDrawObjects();
+    addTextures(staticObjs);
+    addTextures(dynObjs);
 
-    createTextureImage(TEXTURE_PATH_BALL, textureImageBall, textureImageMemoryBall);
-    textureImageViewBall = createImageView(textureImageBall, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_ASPECT_COLOR_BIT);
-    createTextureSampler(textureSamplerBall);
+    uint32_t nbrObjs = 0;
+    for (auto &&obj : staticObjs) {
+        for (auto &&model: obj.modelMatrices) {
+            nbrObjs++;
+        }
+    }
+    for (auto &&obj : dynObjs) {
+        for (auto &&model: obj.modelMatrices) {
+            nbrObjs++;
+        }
+    }
+    createDescriptorPool(nbrObjs + levelFinisher->getTotalNumberObjects());
 
-    createTextureImage(TEXTURE_PATH_HOLE, textureImageHole, textureImageMemoryHole);
-    textureImageViewHole = createImageView(textureImageHole, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_ASPECT_COLOR_BIT);
-    createTextureSampler(textureSamplerHole);
-
-    maze.loadModels();
-    maze.setView();
-    maze.updatePerspectiveMatrix(swapChainExtent.width, swapChainExtent.height);
-    maze.generate();
-    maze.generateModelMatrices();
-    createDescriptorPool();
-
-    createVertexBuffer(maze.getVertices(), vertexBufferWall, vertexBufferMemoryWall);
-    createIndexBuffer(maze.getIndices(), indexBufferWall, indexBufferMemoryWall);
-
-    createVertexBuffer(maze.getFloorVertices(), vertexBufferFloor, vertexBufferMemoryFloor);
-    createIndexBuffer(maze.getFloorIndices(), indexBufferFloor, indexBufferMemoryFloor);
-
-    createVertexBuffer(maze.getBallVertices(), vertexBufferBall, vertexBufferMemoryBall);
-    createIndexBuffer(maze.getBallIndices(), indexBufferBall, indexBufferMemoryBall);
-
-    createVertexBuffer(maze.getHoleVertices(), vertexBufferHole, vertexBufferMemoryHole);
-    createIndexBuffer(maze.getHoleIndices(), indexBufferHole, indexBufferMemoryHole);
-
-    VkBuffer uniformBufferLighting;
-    VkDeviceMemory uniformBufferMemoryLighting;
     createUniformBuffer(uniformBufferLighting, uniformBufferMemoryLighting);
     void* data;
-    glm::vec3 lightingVector = maze.getLightingSource();
+    glm::vec3 lightingVector = maze->getLightingSource();
     vkMapMemory(logicalDevice, uniformBufferMemoryLighting, 0, sizeof(lightingVector), 0, &data);
     memcpy(data, &lightingVector, sizeof(lightingVector));
     vkUnmapMemory(logicalDevice, uniformBufferMemoryLighting);
 
-    UniformBufferObject ubo = {};
-    ubo.proj = maze.getProjectionMatrix();
-    /* GLM has the y axis inverted from Vulkan's perspective, invert the y-axis on the
-     * projection matrix.
-     */
-    ubo.proj[1][1] *= -1;
-    ubo.view = maze.getViewMatrix();
+    addObjects(staticObjs, staticObjsData);
+    addObjects(dynObjs, dynObjsData);
 
-    VkBuffer uniformBuffer;
-    VkDeviceMemory uniformBufferMemory;
-
-    ubo.model = maze.getFloorModelMatrix();
-    createUniformBuffer(uniformBufferFloor, uniformBufferMemoryFloor);
-    vkMapMemory(logicalDevice, uniformBufferMemoryFloor, 0, sizeof(ubo), 0, &data);
-    memcpy(data, &ubo, sizeof(ubo));
-    vkUnmapMemory(logicalDevice, uniformBufferMemoryFloor);
-    createDescriptorSet(uniformBufferFloor, textureImageViewMazeFloor, textureSamplerMazeFloor, uniformBufferLighting, descriptorSetFloor);
-
-    ubo.model = maze.getBallModelMatrix();
-    createUniformBuffer(uniformBufferBall, uniformBufferMemoryBall);
-    vkMapMemory(logicalDevice, uniformBufferMemoryBall, 0, sizeof(ubo), 0, &data);
-    memcpy(data, &ubo, sizeof(ubo));
-    vkUnmapMemory(logicalDevice, uniformBufferMemoryBall);
-    createDescriptorSet(uniformBufferBall, textureImageViewBall, textureSamplerBall, uniformBufferLighting, descriptorSetBall);
-
-    ubo.model = maze.getHoleModelMatrix();
-    createUniformBuffer(uniformBufferHole, uniformBufferMemoryHole);
-    vkMapMemory(logicalDevice, uniformBufferMemoryHole, 0, sizeof(ubo), 0, &data);
-    memcpy(data, &ubo, sizeof(ubo));
-    vkUnmapMemory(logicalDevice, uniformBufferMemoryHole);
-    createDescriptorSet(uniformBufferHole, textureImageViewHole, textureSamplerHole, uniformBufferLighting, descriptorSetHole);
-
-    std::vector<glm::mat4> const &modelMatricesMaze = maze.getModelMatricesMaze();
-    for (auto&& modelMatrixMaze : modelMatricesMaze) {
-        VkDescriptorSet descriptorSet;
-        ubo.model = modelMatrixMaze;
-        createUniformBuffer(uniformBuffer, uniformBufferMemory);
-        vkMapMemory(logicalDevice, uniformBufferMemory, 0, sizeof(ubo), 0, &data);
-        memcpy(data, &ubo, sizeof(ubo));
-        vkUnmapMemory(logicalDevice, uniformBufferMemory);
-
-        createDescriptorSet(uniformBuffer, textureImageViewMazeWall, textureSamplerMazeWall, uniformBufferLighting, descriptorSet);
-
-        std::shared_ptr<MazeWallWrapper> wall(new MazeWallWrapper(descriptorSet, uniformBuffer, uniformBufferMemory));
-        mazeWalls.push_back(wall);
-    }
     createDepthResources();
     createFramebuffers();
 
@@ -176,65 +122,87 @@ void GraphicsVulkan::init(WindowType *inWindow) {
     createSemaphores();
 }
 
+void GraphicsVulkan::addTextures(std::vector<DrawObject> const &objs) {
+    for (auto&& obj : objs) {
+        addTexture(obj);
+    }
+}
+
+void GraphicsVulkan::addTexture(DrawObject const &obj) {
+    std::map<std::string, std::shared_ptr<TextureObject> >::iterator it = textures.find(obj.imagePath);
+    if (it == textures.end()) {
+        std::shared_ptr<TextureObject> texture(new TextureObject());
+        createTextureImage(obj.imagePath, texture->image, texture->memory);
+        texture->imageView = createImageView(texture->image, VK_FORMAT_R8G8B8A8_UNORM,
+                                             VK_IMAGE_ASPECT_COLOR_BIT);
+        createTextureSampler(texture->sampler);
+        textures.insert(std::make_pair(obj.imagePath, texture));
+    }
+}
+
+void GraphicsVulkan::addObjects(std::vector<DrawObject> const &objs,
+                                std::vector<std::shared_ptr<DrawObjectData> > &objsData) {
+    for (auto &&obj : objs) {
+        addObject(obj, objsData);
+    }
+}
+
+void GraphicsVulkan::addObject(DrawObject const &obj, std::vector<std::shared_ptr<DrawObjectData> > &objsData) {
+    std::shared_ptr<DrawObjectData> objData(new DrawObjectData());
+    createVertexBuffer(obj.vertices, objData->vertexBuffer, objData->vertexBufferMemory);
+    createIndexBuffer(obj.indices, objData->indexBuffer, objData->indexBufferMemory);
+    objData->numberIndices = obj.indices.size();
+
+    addUniforms(obj, *objData);
+    objsData.push_back(objData);
+}
+
+void GraphicsVulkan::addUniforms(DrawObject const &obj, DrawObjectData &objData) {
+    UniformBufferObject ubo = {};
+    ubo.proj = maze->getProjectionMatrix();
+    /* GLM has the y axis inverted from Vulkan's perspective, invert the y-axis on the
+     * projection matrix.
+     */
+    ubo.proj[1][1] *= -1;
+    ubo.view = maze->getViewMatrix();
+
+    for (auto &&modelMatrixMaze : obj.modelMatrices) {
+        VkBuffer uniformBuffer;
+        VkDeviceMemory uniformBufferMemory;
+
+        VkDescriptorSet descriptorSet;
+        ubo.model = modelMatrixMaze;
+        createUniformBuffer(uniformBuffer, uniformBufferMemory);
+        void *data;
+        vkMapMemory(logicalDevice, uniformBufferMemory, 0, sizeof(ubo), 0, &data);
+        memcpy(data, &ubo, sizeof(ubo));
+        vkUnmapMemory(logicalDevice, uniformBufferMemory);
+
+        TextureIterator it = textures.find(obj.imagePath);
+        if (it == textures.end()) {
+            throw std::runtime_error("Could not find texture in texture map.");
+        }
+        createDescriptorSet(uniformBuffer, it->second->imageView, it->second->sampler,
+                            uniformBufferLighting, descriptorSet);
+
+        std::shared_ptr<UniformWrapper> uniform(new UniformWrapper(descriptorSet, uniformBuffer,
+                                                                   uniformBufferMemory));
+        objData.uniforms.push_back(uniform);
+    }
+}
+
 void GraphicsVulkan::cleanup() {
     cleanupSwapChain();
 
-    // trigger destruction of the maze walls here so that it happens in the correct order.
-    mazeWalls.clear();
+    // trigger destruction of the objects to draw here so that it happens in the correct order.
+    staticObjsData.clear();
+    dynObjsData.clear();
+    levelFinisherObjsData.clear();
+    textures.clear();
 
     if (logicalDevice != VK_NULL_HANDLE) {
-        vkDestroyBuffer(logicalDevice, vertexBufferWall, nullptr);
-        vkFreeMemory(logicalDevice, vertexBufferMemoryWall, nullptr);
-
-        vkDestroyBuffer(logicalDevice, indexBufferWall, nullptr);
-        vkFreeMemory(logicalDevice, indexBufferMemoryWall, nullptr);
-
-        vkDestroyBuffer(logicalDevice, vertexBufferFloor, nullptr);
-        vkFreeMemory(logicalDevice, vertexBufferMemoryFloor, nullptr);
-
-        vkDestroyBuffer(logicalDevice, indexBufferFloor, nullptr);
-        vkFreeMemory(logicalDevice, indexBufferMemoryFloor, nullptr);
-
-        vkDestroyBuffer(logicalDevice, uniformBufferFloor, nullptr);
-        vkFreeMemory(logicalDevice, uniformBufferMemoryFloor, nullptr);
-
-        vkDestroyBuffer(logicalDevice, vertexBufferBall, nullptr);
-        vkFreeMemory(logicalDevice, vertexBufferMemoryBall, nullptr);
-
-        vkDestroyBuffer(logicalDevice, indexBufferBall, nullptr);
-        vkFreeMemory(logicalDevice, indexBufferMemoryBall, nullptr);
-
-        vkDestroyBuffer(logicalDevice, uniformBufferBall, nullptr);
-        vkFreeMemory(logicalDevice, uniformBufferMemoryBall, nullptr);
-
-        vkDestroyBuffer(logicalDevice, vertexBufferHole, nullptr);
-        vkFreeMemory(logicalDevice, vertexBufferMemoryHole, nullptr);
-
-        vkDestroyBuffer(logicalDevice, indexBufferHole, nullptr);
-        vkFreeMemory(logicalDevice, indexBufferMemoryHole, nullptr);
-
-        vkDestroyBuffer(logicalDevice, uniformBufferHole, nullptr);
-        vkFreeMemory(logicalDevice, uniformBufferMemoryHole, nullptr);
-
-        vkDestroySampler(logicalDevice, textureSamplerMazeWall, nullptr);
-        vkDestroyImageView(logicalDevice, textureImageViewMazeWall, nullptr);
-        vkDestroyImage(logicalDevice, textureImageMazeWall, nullptr);
-        vkFreeMemory(logicalDevice, textureImageMemoryMazeWall, nullptr);
-
-        vkDestroySampler(logicalDevice, textureSamplerMazeFloor, nullptr);
-        vkDestroyImageView(logicalDevice, textureImageViewMazeFloor, nullptr);
-        vkDestroyImage(logicalDevice, textureImageMazeFloor, nullptr);
-        vkFreeMemory(logicalDevice, textureImageMemoryMazeFloor, nullptr);
-
-        vkDestroySampler(logicalDevice, textureSamplerBall, nullptr);
-        vkDestroyImageView(logicalDevice, textureImageViewBall, nullptr);
-        vkDestroyImage(logicalDevice, textureImageBall, nullptr);
-        vkFreeMemory(logicalDevice, textureImageMemoryBall, nullptr);
-
-        vkDestroySampler(logicalDevice, textureSamplerHole, nullptr);
-        vkDestroyImageView(logicalDevice, textureImageViewHole, nullptr);
-        vkDestroyImage(logicalDevice, textureImageHole, nullptr);
-        vkFreeMemory(logicalDevice, textureImageMemoryHole, nullptr);
+        vkDestroyBuffer(logicalDevice, uniformBufferLighting, nullptr);
+        vkFreeMemory(logicalDevice, uniformBufferMemoryLighting, nullptr);
 
         vkDestroyDescriptorPool(logicalDevice, descriptorPool, nullptr);
         vkDestroyDescriptorSetLayout(logicalDevice, descriptorSetLayout, nullptr);
@@ -322,7 +290,7 @@ void GraphicsVulkan::createIndexBuffer(std::vector<uint32_t> const &indices, VkB
 }
 
 void GraphicsVulkan::updatePerspectiveMatrix() {
-    maze.updatePerspectiveMatrix(swapChainExtent.width, swapChainExtent.height);
+    maze->updatePerspectiveMatrix(swapChainExtent.width, swapChainExtent.height);
 }
 
 void GraphicsVulkan::cleanupSwapChain() {
@@ -1319,77 +1287,83 @@ void GraphicsVulkan::createCommandBuffers() {
 
     /* begin recording commands into each comand buffer */
     for (size_t i = 0; i < commandBuffers.size(); i++) {
-        VkCommandBufferBeginInfo beginInfo = {};
-        beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-        beginInfo.flags = VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT;
-        /* pInheritanceInfo is only used if flags includes:
-         * VK_COMMAND_BUFFER_USAGE_RENDER_PASS_CONTINUE_BIT
-         * because that would mean that there is a secondary command buffer that will be used
-         * in a single render pass
-         */
-        beginInfo.pInheritanceInfo = nullptr; // Optional
+        initializeCommandBuffer(commandBuffers[i], i);
+    }
+}
 
-        /* this call will reset the command buffer.  its not possible to append commands at
-         * a later time.
-         */
-        vkBeginCommandBuffer(commandBuffers[i], &beginInfo);
+void GraphicsVulkan::initializeCommandBuffer(VkCommandBuffer &commandBuffer, size_t index) {
+    VkCommandBufferBeginInfo beginInfo = {};
+    beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+    beginInfo.flags = VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT;
+    /* pInheritanceInfo is only used if flags includes:
+     * VK_COMMAND_BUFFER_USAGE_RENDER_PASS_CONTINUE_BIT
+     * because that would mean that there is a secondary command buffer that will be used
+     * in a single render pass
+     */
+    beginInfo.pInheritanceInfo = nullptr; // Optional
 
-        /* begin the render pass: drawing starts here*/
-        VkRenderPassBeginInfo renderPassInfo = {};
-        renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-        renderPassInfo.renderPass = renderPass;
-        renderPassInfo.framebuffer = swapChainFramebuffers[i];
-        /* size of the render area */
-        renderPassInfo.renderArea.offset = {0, 0};
-        renderPassInfo.renderArea.extent = swapChainExtent;
+    /* this call will reset the command buffer.  its not possible to append commands at
+     * a later time.
+     */
+    vkBeginCommandBuffer(commandBuffer, &beginInfo);
 
-        /* the color value to use when clearing the image with VK_ATTACHMENT_LOAD_OP_CLEAR,
-         * using black with 0% opacity
-         */
-        std::array<VkClearValue, 2> clearValues = {};
-        clearValues[0].color = {0.0f, 0.0f, 0.0f, 0.0f};
-        clearValues[1].depthStencil = {1.0, 0};
-        renderPassInfo.clearValueCount = static_cast<uint32_t>(clearValues.size());
-        renderPassInfo.pClearValues = clearValues.data();
+    /* begin the render pass: drawing starts here*/
+    VkRenderPassBeginInfo renderPassInfo = {};
+    renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
+    renderPassInfo.renderPass = renderPass;
+    renderPassInfo.framebuffer = swapChainFramebuffers[index];
+    /* size of the render area */
+    renderPassInfo.renderArea.offset = {0, 0};
+    renderPassInfo.renderArea.extent = swapChainExtent;
 
-        /* begin recording commands - start by beginning the render pass.
-         * none of these functions returns an error (they return void).  There will be no error
-         * handling until recording is done.
-         */
-        vkCmdBeginRenderPass(commandBuffers[i], &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
+    /* the color value to use when clearing the image with VK_ATTACHMENT_LOAD_OP_CLEAR,
+     * using black with 0% opacity
+     */
+    std::array<VkClearValue, 2> clearValues = {};
+    clearValues[0].color = {0.0f, 0.0f, 0.0f, 0.0f};
+    clearValues[1].depthStencil = {1.0, 0};
+    renderPassInfo.clearValueCount = static_cast<uint32_t>(clearValues.size());
+    renderPassInfo.pClearValues = clearValues.data();
 
-        /* bind the graphics pipeline to the command buffer, the second parameter tells Vulkan
-         * that we are binding to a graphics pipeline.
-         */
-        vkCmdBindPipeline(commandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, graphicsPipeline);
+    /* begin recording commands - start by beginning the render pass.
+     * none of these functions returns an error (they return void).  There will be no error
+     * handling until recording is done.
+     */
+    vkCmdBeginRenderPass(commandBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
 
-        VkDeviceSize offsets[1] = {0};
+    /* bind the graphics pipeline to the command buffer, the second parameter tells Vulkan
+     * that we are binding to a graphics pipeline.
+     */
+    vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, graphicsPipeline);
 
-        // the maze floor
-        vkCmdBindVertexBuffers(commandBuffers[i], 0, 1, &vertexBufferFloor, offsets);
-        vkCmdBindIndexBuffer(commandBuffers[i], indexBufferFloor, 0, VK_INDEX_TYPE_UINT32);
-        vkCmdBindDescriptorSets(commandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSetFloor, 0, nullptr);
-        vkCmdDrawIndexed(commandBuffers[i], maze.getFloorIndices().size(), 1, 0, 0, 0);
+    // the objects that stay static.
+    initializeCommandBufferDrawObjects(commandBuffer, staticObjsData);
 
-        // the ball
-        vkCmdBindVertexBuffers(commandBuffers[i], 0, 1, &vertexBufferBall, offsets);
-        vkCmdBindIndexBuffer(commandBuffers[i], indexBufferBall, 0, VK_INDEX_TYPE_UINT32);
-        vkCmdBindDescriptorSets(commandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSetBall, 0, nullptr);
-        vkCmdDrawIndexed(commandBuffers[i], maze.getBallIndices().size(), 1, 0, 0, 0);
+    // the objects that move.
+    initializeCommandBufferDrawObjects(commandBuffer, dynObjsData);
 
-        // the hole
-        vkCmdBindVertexBuffers(commandBuffers[i], 0, 1, &vertexBufferHole, offsets);
-        vkCmdBindIndexBuffer(commandBuffers[i], indexBufferHole, 0, VK_INDEX_TYPE_UINT32);
-        vkCmdBindDescriptorSets(commandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSetHole, 0, nullptr);
-        vkCmdDrawIndexed(commandBuffers[i], maze.getHoleIndices().size(), 1, 0, 0, 0);
+    // the level finisher objects.
+    if (maze->isFinished()) {
+        initializeCommandBufferDrawObjects(commandBuffer, levelFinisherObjsData);
+    }
 
-        // the maze walls
-        vkCmdBindVertexBuffers(commandBuffers[i], 0, 1, &vertexBufferWall, offsets);
-        vkCmdBindIndexBuffer(commandBuffers[i], indexBufferWall, 0, VK_INDEX_TYPE_UINT32);
-        for (auto mazeWall : mazeWalls) {
+    vkCmdEndRenderPass(commandBuffer);
 
+    if (vkEndCommandBuffer(commandBuffer) != VK_SUCCESS) {
+        throw std::runtime_error("failed to record command buffer!");
+    }
+}
+
+void GraphicsVulkan::initializeCommandBufferDrawObjects(VkCommandBuffer &commandBuffer, std::vector<std::shared_ptr<DrawObjectData> > objs) {
+    VkDeviceSize offsets[1] = {0};
+
+    for (auto &&obj : objs) {
+        vkCmdBindVertexBuffers(commandBuffer, 0, 1, &(obj->vertexBuffer), offsets);
+        vkCmdBindIndexBuffer(commandBuffer, obj->indexBuffer, 0, VK_INDEX_TYPE_UINT32);
+        for (auto &&uniform : obj->uniforms) {
             /* The MVP matrix and texture samplers */
-            vkCmdBindDescriptorSets(commandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &mazeWall->descriptorSet, 0, nullptr);
+            vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
+                                    pipelineLayout, 0, 1, &(uniform->descriptorSet), 0, nullptr);
 
             /* indexed draw command:
              * parameter 1 - Command buffer for the draw command
@@ -1399,13 +1373,7 @@ void GraphicsVulkan::createCommandBuffers() {
              * parameter 5 - offset to add to the indices in the index buffer
              * parameter 6 - offset for instance rendering
              */
-            vkCmdDrawIndexed(commandBuffers[i], maze.getIndices().size(), 1, 0, 0, 0);
-        }
-
-        vkCmdEndRenderPass(commandBuffers[i]);
-
-        if (vkEndCommandBuffer(commandBuffers[i]) != VK_SUCCESS) {
-            throw std::runtime_error("failed to record command buffer!");
+            vkCmdDrawIndexed(commandBuffer, obj->numberIndices, 1, 0, 0, 0);
         }
     }
 }
@@ -1435,6 +1403,13 @@ void GraphicsVulkan::drawFrame() {
     VkResult result = vkAcquireNextImageKHR(logicalDevice, swapChain,
         std::numeric_limits<uint64_t>::max(), imageAvailableSemaphore, VK_NULL_HANDLE,
         &imageIndex);
+
+    if (maze->isFinished()) {
+        // The user completed the maze.  We need to display the level finished animation.  Since
+        // there are additional objects, we need to rewrite the command buffer to display the new
+        // objects.
+        initializeCommandBuffer(commandBuffers[imageIndex], imageIndex);
+    }
 
     /* If the window surface is no longer compatible with the swap chain, then we need to
      * recreate the swap chain and let the next call draw the image.
@@ -1631,22 +1606,21 @@ void GraphicsVulkan::createDescriptorSet(VkBuffer uniformBuffer, VkImageView ima
 
 
 /* descriptor pool for the MVP matrix and image sampler */
-void GraphicsVulkan::createDescriptorPool() {
-    uint32_t nbrWalls = maze.getNumberWalls();
+void GraphicsVulkan::createDescriptorPool(uint32_t nbrObjs) {
     std::array<VkDescriptorPoolSize, 3> poolSizes = {};
 
     // one for each wall and +3 for the floor, ball, and hole.
     poolSizes[0].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-    poolSizes[0].descriptorCount = nbrWalls + 3;
+    poolSizes[0].descriptorCount = nbrObjs;
     poolSizes[1].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-    poolSizes[1].descriptorCount = nbrWalls + 3;
+    poolSizes[1].descriptorCount = nbrObjs;
     poolSizes[2].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-    poolSizes[2].descriptorCount = nbrWalls + 3;
+    poolSizes[2].descriptorCount = nbrObjs;
     VkDescriptorPoolCreateInfo poolInfo = {};
     poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
     poolInfo.poolSizeCount = static_cast<uint32_t>(poolSizes.size());
     poolInfo.pPoolSizes = poolSizes.data();
-    poolInfo.maxSets = nbrWalls;
+    poolInfo.maxSets = nbrObjs;
 
     if (vkCreateDescriptorPool(logicalDevice, &poolInfo, nullptr, &descriptorPool) != VK_SUCCESS) {
         throw std::runtime_error("failed to create descriptor pool!");
@@ -2054,29 +2028,53 @@ void GraphicsVulkan::destroyWindow() {
 }
 
 bool GraphicsVulkan::updateData() {
-    bool drawingNecessary = maze.updateData();
+    bool drawingNecessary = maze->updateData();
 
-    if (!drawingNecessary) {
+    if (!drawingNecessary  && !maze->isFinished()) {
         return false;
     }
 
-    UniformBufferObject ubo = {};
-    ubo.proj = maze.getProjectionMatrix();
-    /* GLM has the y axis inverted from Vulkan's perspective, invert the y-axis on the
-     * projection matrix.
-     */
-    ubo.proj[1][1] *= -1;
-    ubo.view = maze.getViewMatrix();
+    if (maze->isFinished()) {
+        if (levelFinisher->isDone()) {
+            return false;
+        }
 
-    void *data;
-    ubo.model = maze.getBallModelMatrix();
-    vkMapMemory(logicalDevice, uniformBufferMemoryBall, 0, sizeof(ubo), 0, &data);
-    memcpy(data, &ubo, sizeof(ubo));
-    vkUnmapMemory(logicalDevice, uniformBufferMemoryBall);
+        std::shared_ptr<DrawObject> obj = levelFinisher->getNextDrawObject();
+        if (obj.get() == nullptr) {
+            return false;
+        }
+
+        addTexture(*(obj.get()));
+        if (levelFinisherObjsData.size() == 0) {
+            addObject(*obj, levelFinisherObjsData);
+        } else {
+            addUniforms(*obj, *(levelFinisherObjsData[0]));
+        }
+    } else {
+        UniformBufferObject ubo = {};
+        ubo.proj = maze->getProjectionMatrix();
+        /* GLM has the y axis inverted from Vulkan's perspective, invert the y-axis on the
+         * projection matrix.
+         */
+        ubo.proj[1][1] *= -1;
+        ubo.view = maze->getViewMatrix();
+
+        std::vector<DrawObject> objs = maze->getDynamicDrawObjects();
+        for (size_t i = 0; i < objs.size(); i++) {
+            for (size_t j = 0; j < objs[i].modelMatrices.size(); j++) {
+                void *data;
+                ubo.model = objs[i].modelMatrices[j];
+                vkMapMemory(logicalDevice, dynObjsData[i]->uniforms[j]->uniformBufferMemory, 0,
+                            sizeof(ubo), 0, &data);
+                memcpy(data, &ubo, sizeof(ubo));
+                vkUnmapMemory(logicalDevice, dynObjsData[i]->uniforms[j]->uniformBufferMemory);
+            }
+        }
+    }
 
     return true;
 }
 
 void GraphicsVulkan::updateAcceleration(float x, float y, float z) {
-    maze.updateAcceleration(x,y,z);
+    maze->updateAcceleration(x,y,z);
 }

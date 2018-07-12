@@ -39,9 +39,11 @@
 #include <glm/gtc/quaternion.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtx/transform.hpp>
+#include <map>
 
 #include "graphics.hpp"
 #include "maze.hpp"
+#include "levelFinish.hpp"
 
 const std::vector<const char*> validationLayers = {
     /* required for checking for errors and getting error messages */
@@ -63,7 +65,7 @@ const std::vector<const char*> validationLayers = {
 
 class GraphicsVulkan : public Graphics {
 public:
-    GraphicsVulkan(WindowType *window) : maze(MAZE_ROWS, MAZE_COLS) {  }
+    GraphicsVulkan(WindowType *window) {}
     virtual void init(WindowType *window);
 
     virtual void initThread() { }
@@ -108,25 +110,21 @@ private:
     VkSurfaceKHR surface = VK_NULL_HANDLE;
     VkSwapchainKHR swapChain = VK_NULL_HANDLE;
 
-    VkImage textureImageMazeWall = VK_NULL_HANDLE;
-    VkDeviceMemory textureImageMemoryMazeWall = VK_NULL_HANDLE;
-    VkImageView textureImageViewMazeWall = VK_NULL_HANDLE;
-    VkSampler textureSamplerMazeWall = VK_NULL_HANDLE;
+    struct TextureObject {
+        VkImage image;
+        VkDeviceMemory memory;
+        VkImageView imageView;
+        VkSampler sampler;
 
-    VkImage textureImageMazeFloor = VK_NULL_HANDLE;
-    VkDeviceMemory textureImageMemoryMazeFloor = VK_NULL_HANDLE;
-    VkImageView textureImageViewMazeFloor = VK_NULL_HANDLE;
-    VkSampler textureSamplerMazeFloor = VK_NULL_HANDLE;
-
-    VkImage textureImageBall = VK_NULL_HANDLE;
-    VkDeviceMemory textureImageMemoryBall = VK_NULL_HANDLE;
-    VkImageView textureImageViewBall = VK_NULL_HANDLE;
-    VkSampler textureSamplerBall = VK_NULL_HANDLE;
-
-    VkImage textureImageHole = VK_NULL_HANDLE;
-    VkDeviceMemory textureImageMemoryHole = VK_NULL_HANDLE;
-    VkImageView textureImageViewHole = VK_NULL_HANDLE;
-    VkSampler textureSamplerHole = VK_NULL_HANDLE;
+        ~TextureObject() {
+            vkDestroySampler(logicalDevice, sampler, nullptr);
+            vkDestroyImageView(logicalDevice, imageView, nullptr);
+            vkDestroyImage(logicalDevice, image, nullptr);
+            vkFreeMemory(logicalDevice, memory, nullptr);
+        }
+    };
+    std::map<std::string, std::shared_ptr<TextureObject> > textures;
+    typedef std::map<std::string, std::shared_ptr<TextureObject> >::iterator TextureIterator;
 
     /* for passing data other than the vertex data to the vertex shader */
     VkDescriptorSetLayout descriptorSetLayout = VK_NULL_HANDLE;
@@ -139,20 +137,22 @@ private:
     VkExtent2D swapChainExtent;
     VkRenderPass renderPass = VK_NULL_HANDLE;
 
-    struct MazeWallWrapper {
+    VkBuffer uniformBufferLighting;
+    VkDeviceMemory uniformBufferMemoryLighting;
 
+    struct UniformWrapper {
         /* for passing data other than the vertex data to the vertex shader */
         VkDescriptorSet descriptorSet;
         VkBuffer uniformBuffer;
         VkDeviceMemory uniformBufferMemory;
 
-        MazeWallWrapper(VkDescriptorSet inDescriptorSet, VkBuffer inUniformBuffer, VkDeviceMemory inUniformBufferMemory) {
+        UniformWrapper(VkDescriptorSet inDescriptorSet, VkBuffer inUniformBuffer, VkDeviceMemory inUniformBufferMemory) {
             uniformBuffer = inUniformBuffer;
             uniformBufferMemory = inUniformBufferMemory;
             descriptorSet = inDescriptorSet;
         }
 
-        ~MazeWallWrapper() {
+        ~UniformWrapper() {
             /* free the memory after the buffer has been destroyed because the buffer is bound to 
              * the memory, so the buffer is still using the memory until the buffer is destroyed.
              */
@@ -165,40 +165,29 @@ private:
      * the specified order.  Note, vertices can be listed twice if they should be part of more
      * than one triangle.
      */
-    VkBuffer vertexBufferWall;
-    VkDeviceMemory vertexBufferMemoryWall;
-    VkBuffer indexBufferWall;
-    VkDeviceMemory indexBufferMemoryWall;
-    std::vector<std::shared_ptr<MazeWallWrapper> > mazeWalls;
+    struct DrawObjectData {
+        VkBuffer vertexBuffer;
+        VkDeviceMemory vertexBufferMemory;
+        VkBuffer indexBuffer;
+        VkDeviceMemory indexBufferMemory;
+        uint32_t numberIndices;
+        std::vector<std::shared_ptr<UniformWrapper> > uniforms;
 
-    Maze maze;
+        ~DrawObjectData() {
+            vkDestroyBuffer(logicalDevice, vertexBuffer, nullptr);
+            vkFreeMemory(logicalDevice, vertexBufferMemory, nullptr);
 
-    // vertex buffer, index buffer, uniform buffer, and descriptor set for the maze floor.
-    VkBuffer vertexBufferFloor;
-    VkDeviceMemory vertexBufferMemoryFloor;
-    VkBuffer indexBufferFloor;
-    VkDeviceMemory indexBufferMemoryFloor;
-    VkDescriptorSet descriptorSetFloor;
-    VkBuffer uniformBufferFloor;
-    VkDeviceMemory uniformBufferMemoryFloor;
+            vkDestroyBuffer(logicalDevice, indexBuffer, nullptr);
+            vkFreeMemory(logicalDevice, indexBufferMemory, nullptr);
+        }
+    };
 
-    // vertex buffer, index buffer, uniform buffer, and descriptor set for the ball.
-    VkBuffer vertexBufferBall;
-    VkDeviceMemory vertexBufferMemoryBall;
-    VkBuffer indexBufferBall;
-    VkDeviceMemory indexBufferMemoryBall;
-    VkDescriptorSet descriptorSetBall;
-    VkBuffer uniformBufferBall;
-    VkDeviceMemory uniformBufferMemoryBall;
+    std::vector<std::shared_ptr<DrawObjectData> > staticObjsData;
+    std::vector<std::shared_ptr<DrawObjectData> > dynObjsData;
+    std::vector<std::shared_ptr<DrawObjectData> > levelFinisherObjsData;
 
-    // vertex buffer, index buffer, uniform buffer, and descriptor set for the hole.
-    VkBuffer vertexBufferHole;
-    VkDeviceMemory vertexBufferMemoryHole;
-    VkBuffer indexBufferHole;
-    VkDeviceMemory indexBufferMemoryHole;
-    VkDescriptorSet descriptorSetHole;
-    VkBuffer uniformBufferHole;
-    VkDeviceMemory uniformBufferMemoryHole;
+    std::shared_ptr<Maze> maze;
+    std::shared_ptr<LevelFinish> levelFinisher;
 
     VkPipelineLayout pipelineLayout;
     VkPipeline graphicsPipeline;
@@ -241,6 +230,11 @@ private:
 
     void createSurface();
 
+    void addTextures(std::vector<DrawObject> const &objs);
+    void addTexture(DrawObject const &obj);
+    void addObjects(std::vector<DrawObject> const &objs, std::vector<std::shared_ptr<DrawObjectData> > &objsData);
+    void addObject(DrawObject const &obj, std::vector<std::shared_ptr<DrawObjectData> > &objsData);
+    void addUniforms(DrawObject const &obj, DrawObjectData &objData);
     void createUniformBuffer(VkBuffer &uniformBuffer, VkDeviceMemory &uniformBufferMemory);
     void createVertexBuffer(std::vector<Vertex> const &vertices, VkBuffer &vertexBuffer, VkDeviceMemory &vertexBufferMemory);
     void createIndexBuffer(std::vector<uint32_t> const &indices, VkBuffer &indexBuffer, VkDeviceMemory &indexBufferMemory);
@@ -274,13 +268,15 @@ private:
     uint32_t findMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties);
     void createCommandPool();
     void createCommandBuffers();
+    void initializeCommandBuffer(VkCommandBuffer &commandBuffer, size_t index);
+    void initializeCommandBufferDrawObjects(VkCommandBuffer &commandBuffer, std::vector<std::shared_ptr<DrawObjectData> > objs);
     void createSemaphores();
     void createDepthResources();
     VkFormat findDepthFormat();
     VkFormat findSupportedFormat(const std::vector<VkFormat>& candidates, VkImageTiling tiling, VkFormatFeatureFlags features);
     bool hasStencilComponent(VkFormat format);
     void createDescriptorSet(VkBuffer uniformBuffer, VkImageView imageView, VkSampler textureSampler, VkBuffer lightingSource, VkDescriptorSet &descriptorSet);
-    void createDescriptorPool();
+    void createDescriptorPool(uint32_t nbrWalls);
     void createDescriptorSetLayout();
     void createTextureImage(std::string const &path, VkImage &textureImage, VkDeviceMemory &textureImageMemory);
     void createTextureSampler(VkSampler &textureSampler);

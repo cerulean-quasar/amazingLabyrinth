@@ -23,7 +23,9 @@ add_library( # Sets the name of the library.
              src/main/cpp/graphicsGL.cpp
              src/main/cpp/graphicsVulkan.cpp
              src/main/cpp/maze.cpp
-             src/main/cpp/vulkanWrapper.cpp)
+             src/main/cpp/vulkanWrapper.cpp
+             src/main/cpp/random.cpp
+             src/main/cpp/levelFinish.cpp)
 
 # Searches for a specified prebuilt library and stores the path as a
 # variable. Because CMake includes system libraries in the search path by

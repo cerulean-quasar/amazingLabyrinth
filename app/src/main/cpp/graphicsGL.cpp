@@ -139,64 +139,20 @@ void GraphicsGL::initPipeline() {
 
     int32_t w = ANativeWindow_getWidth(window);
     int32_t h = ANativeWindow_getHeight(window);
-    maze.loadModels();
-    maze.setView();
-    maze.updatePerspectiveMatrix(w, h);
-    maze.generate();
-    maze.generateModelMatrices();
+    maze.reset(new Maze(MAZE_ROWS, MAZE_COLS));
+    maze->loadModels();
+    maze->setView();
+    maze->updatePerspectiveMatrix(w, h);
+    maze->generate();
+    maze->generateModelMatrices();
+    levelFinisher = maze->getLevelFinisher();
 
-    // the vertex buffer for a maze wall segment (to be drawn many times to get the full maze).
-    glGenBuffers(1, &vertexBufferMazeWall);
-    glBindBuffer(GL_ARRAY_BUFFER, vertexBufferMazeWall);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(Vertex) * maze.getVertices().size(),
-                 maze.getVertices().data(), GL_STATIC_DRAW);
+    std::vector<DrawObject> staticObjs = maze->getStaticDrawObjects();
+    std::vector<DrawObject> dynObjs = maze->getDynamicDrawObjects();
 
-    // the index buffer for a maze wall segment
-    glGenBuffers(1, &indexBufferMazeWall);
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, indexBufferMazeWall);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(uint32_t) * maze.getIndices().size(),
-                 maze.getIndices().data(), GL_STATIC_DRAW);
-
-    // the vertex buffer for the maze floor
-    glGenBuffers(1, &vertexBufferMazeFloor);
-    glBindBuffer(GL_ARRAY_BUFFER, vertexBufferMazeFloor);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(Vertex) * maze.getFloorVertices().size(),
-                 maze.getFloorVertices().data(), GL_STATIC_DRAW);
-
-    // the index buffer for the maze floor
-    glGenBuffers(1, &indexBufferMazeFloor);
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, indexBufferMazeFloor);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(uint32_t) * maze.getFloorIndices().size(),
-                 maze.getFloorIndices().data(), GL_STATIC_DRAW);
-
-    // the vertex buffer for the ball
-    glGenBuffers(1, &vertexBufferBall);
-    glBindBuffer(GL_ARRAY_BUFFER, vertexBufferBall);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(Vertex) * maze.getBallVertices().size(),
-                 maze.getBallVertices().data(), GL_STATIC_DRAW);
-
-    // the index buffer for the ball
-    glGenBuffers(1, &indexBufferBall);
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, indexBufferBall);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(uint32_t) * maze.getBallIndices().size(),
-                 maze.getBallIndices().data(), GL_STATIC_DRAW);
-
-    // the vertex buffer for the hole
-    glGenBuffers(1, &vertexBufferHole);
-    glBindBuffer(GL_ARRAY_BUFFER, vertexBufferHole);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(Vertex) * maze.getHoleVertices().size(),
-                 maze.getHoleVertices().data(), GL_STATIC_DRAW);
-
-    // the index buffer for the hole
-    glGenBuffers(1, &indexBufferHole);
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, indexBufferHole);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(uint32_t) * maze.getHoleIndices().size(),
-                 maze.getHoleIndices().data(), GL_STATIC_DRAW);
-
-    loadTexture(TEXTURE_PATH_WALLS, textureWall);
-    loadTexture(TEXTURE_PATH_FLOOR, textureFloor);
-    loadTexture(TEXTURE_PATH_BALL, textureBall);
-    loadTexture(TEXTURE_PATH_HOLE, textureHole);
+    std::map<std::string, std::shared_ptr<TextureData> > textures;
+    addObjects(staticObjs, staticObjsData, textures);
+    addObjects(dynObjs, dynObjsData, textures);
 
     // for shadow mapping.
     glGenFramebuffers(1, &depthMapFBO);
@@ -253,10 +209,49 @@ void GraphicsGL::initPipeline() {
     }
 }
 
+void GraphicsGL::addObjects(std::vector<DrawObject> const &objs,
+                            std::vector<std::shared_ptr<DrawObjectData> > &objsData,
+                            std::map<std::string, std::shared_ptr<TextureData> > &textures) {
+    for (auto &&obj : objs) {
+        addObject(obj, objsData, textures);
+    }
+}
+
+void GraphicsGL::addObject(DrawObject const &obj,
+                            std::vector<std::shared_ptr<DrawObjectData> > &objsData,
+                            std::map<std::string, std::shared_ptr<TextureData> > &textures) {
+    std::shared_ptr<DrawObjectData> data(new DrawObjectData());
+
+    // the index buffer
+    glGenBuffers(1, &(data->indexBuffer));
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, data->indexBuffer);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof (uint32_t) * obj.indices.size(),
+                 obj.indices.data(), GL_STATIC_DRAW);
+
+    // the vertex buffer
+    glGenBuffers(1, &(data->vertexBuffer));
+    glBindBuffer(GL_ARRAY_BUFFER, data->vertexBuffer);
+    glBufferData(GL_ARRAY_BUFFER, sizeof (Vertex) * obj.vertices.size(),
+                 obj.vertices.data(), GL_STATIC_DRAW);
+
+    data->numberIndices = obj.indices.size();
+    data->modelMatrices = obj.modelMatrices;
+    std::map<std::string, std::shared_ptr<TextureData> >::iterator it =
+            textures.find(obj.imagePath);
+    if (it == textures.end()) {
+        std::shared_ptr<TextureData> texture(new TextureData());
+        loadTexture(obj.imagePath, texture->handle);
+        textures.insert(std::make_pair(obj.imagePath, texture));
+        data->texture = texture;
+    } else {
+        data->texture = it->second;
+    }
+    objsData.push_back(data);
+}
+
 void GraphicsGL::loadTexture(std::string const &texturePath, GLuint &texture) {
     // load the textures
     glGenTextures(1, &texture);
-    //glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, texture);
 
     // when sampling outside of the texture
@@ -302,21 +297,10 @@ void GraphicsGL::cleanupThread() {
 }
 
 void GraphicsGL::cleanup() {
-    glDeleteBuffers(1, &vertexBufferMazeWall);
-    glDeleteBuffers(1, &indexBufferMazeWall);
-    glDeleteTextures(1, &textureWall);
-
-    glDeleteBuffers(1, &vertexBufferMazeFloor);
-    glDeleteBuffers(1, &indexBufferMazeFloor);
-    glDeleteTextures(1, &textureFloor);
-
-    glDeleteBuffers(1, &vertexBufferBall);
-    glDeleteBuffers(1, &indexBufferBall);
-    glDeleteTextures(1, &textureBall);
-
-    glDeleteBuffers(1, &vertexBufferHole);
-    glDeleteBuffers(1, &indexBufferHole);
-    glDeleteTextures(1, &textureHole);
+    staticObjsData.clear();
+    dynObjsData.clear();
+    levelfinisherObjsData.clear();
+    levelFinisherTextures.clear();
 
     glDeleteFramebuffers(1, &depthMapFBO);
     glDeleteTextures(1, &colorImage);
@@ -333,19 +317,26 @@ void GraphicsGL::createDepthTexture() {
     glCullFace(GL_FRONT);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-    glm::mat4 proj = maze.getProjectionMatrix();
-    glm::mat4 view = maze.getViewLightSource();
+    glm::mat4 proj = maze->getProjectionMatrix();
+    glm::mat4 view = maze->getViewLightSource();
     GLint MatrixID;
     MatrixID = glGetUniformLocation(depthProgramID, "view");
     glUniformMatrix4fv(MatrixID, 1, GL_FALSE, &view[0][0]);
     MatrixID = glGetUniformLocation(depthProgramID, "proj");
     glUniformMatrix4fv(MatrixID, 1, GL_FALSE, &proj[0][0]);
 
-    //drawObject(depthProgramID, false, vertexBufferMazeFloor, indexBufferMazeFloor, maze.getFloorIndices().size(), maze.getFloorModelMatrix());
-    drawObject(depthProgramID, false, vertexBufferBall, indexBufferBall, maze.getBallIndices().size(), maze.getBallModelMatrix());
-    //drawObject(depthProgramID, false, vertexBufferHole, indexBufferHole, maze.getHoleIndices().size(), maze.getHoleModelMatrix());
-    for (auto&& model : maze.getModelMatricesMaze()) {
-        drawObject(depthProgramID, false, vertexBufferMazeWall, indexBufferMazeWall, maze.getIndices().size(), model);
+    for (auto &&obj : staticObjsData) {
+        for (auto &&model : obj->modelMatrices) {
+            drawObject(depthProgramID, false, obj->vertexBuffer, obj->indexBuffer,
+                       obj->numberIndices, model);
+        }
+    }
+
+    for (auto &&obj : dynObjsData) {
+        for (auto &&model : obj->modelMatrices) {
+            drawObject(depthProgramID, false, obj->vertexBuffer, obj->indexBuffer,
+                       obj->numberIndices, model);
+        }
     }
 
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
@@ -359,9 +350,9 @@ void GraphicsGL::drawFrame() {
     glCullFace(GL_BACK);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-    glm::mat4 proj = maze.getProjectionMatrix();
-    glm::mat4 view = maze.getViewMatrix();
-    glm::mat4 lightSpaceMatrix = maze.getProjectionMatrix() * maze.getViewLightSource();
+    glm::mat4 proj = maze->getProjectionMatrix();
+    glm::mat4 view = maze->getViewMatrix();
+    glm::mat4 lightSpaceMatrix = maze->getProjectionMatrix() * maze->getViewLightSource();
     GLint MatrixID;
     MatrixID = glGetUniformLocation(programID, "view");
     glUniformMatrix4fv(MatrixID, 1, GL_FALSE, &view[0][0]);
@@ -371,7 +362,7 @@ void GraphicsGL::drawFrame() {
     glUniformMatrix4fv(MatrixID, 1, GL_FALSE, &lightSpaceMatrix[0][0]);
 
     GLint lightPosID = glGetUniformLocation(programID, "lightPos");
-    glm::vec3 lightPos = maze.getLightingSource();
+    glm::vec3 lightPos = maze->getLightingSource();
     glUniform3fv(lightPosID, 1, &lightPos[0]);
 
     GLint textureID = glGetUniformLocation(programID, "texShadowMap");
@@ -379,15 +370,22 @@ void GraphicsGL::drawFrame() {
     glBindTexture(GL_TEXTURE_2D, depthMap);
     glUniform1i(textureID, 0);
 
-    drawObject(programID, true, vertexBufferMazeFloor, indexBufferMazeFloor, maze.getFloorIndices().size(), textureFloor, maze.getFloorModelMatrix());
-    drawObject(programID, true, vertexBufferBall, indexBufferBall, maze.getBallIndices().size(), textureBall, maze.getBallModelMatrix());
-    drawObject(programID, true, vertexBufferHole, indexBufferHole, maze.getHoleIndices().size(), textureHole, maze.getHoleModelMatrix());
-    for (auto&& model : maze.getModelMatricesMaze()) {
-        drawObject(programID, true, vertexBufferMazeWall, indexBufferMazeWall, maze.getIndices().size(), textureWall, model);
+    drawObjects(staticObjsData);
+    drawObjects(dynObjsData);
+    if (maze->isFinished()) {
+        drawObjects(levelfinisherObjsData);
     }
     eglSwapBuffers(display, surface);
 }
 
+void GraphicsGL::drawObjects(ObjsData const &objsData) {
+    for (auto&& obj : objsData) {
+        for (auto &&model : obj->modelMatrices) {
+            drawObject(programID, true, obj->vertexBuffer, obj->indexBuffer, obj->numberIndices,
+                       obj->texture->handle, model);
+        }
+    }
+}
 void GraphicsGL::drawObject(GLuint programID, bool needsNormal, GLuint vertex, GLuint index,
                             unsigned long nbrIndices, GLuint texture, glm::mat4 const &modelMatrix) {
     GLint textureID = glGetUniformLocation(programID, "texSampler");
@@ -581,9 +579,40 @@ void GraphicsGL::recreateSwapChain() {
 }
 
 void GraphicsGL::updateAcceleration(float x, float y, float z) {
-    maze.updateAcceleration(x,y,z);
+    maze->updateAcceleration(x,y,z);
 }
 
 bool GraphicsGL::updateData() {
-    return maze.updateData();
+    bool drawingNecessary = maze->updateData();
+
+    if (!drawingNecessary && !maze->isFinished()) {
+        return false;
+    }
+
+    if (maze->isFinished()) {
+        std::shared_ptr<DrawObject> obj = levelFinisher->getNextDrawObject();
+        if (obj.get() == nullptr) {
+            return false;
+        }
+
+        TextureDataMap::iterator it = levelFinisherTextures.find(obj->imagePath);
+        if (it == levelFinisherTextures.end()) {
+            addObject(*obj, levelfinisherObjsData, levelFinisherTextures);
+        } else {
+            for (auto &&data : levelfinisherObjsData) {
+                if (data->texture == it->second) {
+                    for (auto &&modelMatrix : obj->modelMatrices) {
+                        data->modelMatrices.push_back(modelMatrix);
+                    }
+                }
+            }
+        }
+    } else {
+        std::vector<DrawObject> objs = maze->getDynamicDrawObjects();
+        for (size_t i = 0; i < objs.size(); i++) {
+            dynObjsData[i]->modelMatrices = objs[i].modelMatrices;
+        }
+    }
+
+    return true;
 }

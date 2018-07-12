@@ -22,16 +22,41 @@
 #include <set>
 #include <vector>
 
+#include <glm/glm.hpp>
+#include "vulkanWrapper.hpp"
+
 #include "android.hpp"
+
+struct Vertex {
+    glm::vec3 pos;
+    glm::vec3 color;
+    glm::vec2 texCoord;
+    glm::vec3 normal;
+
+    static VkVertexInputBindingDescription getBindingDescription();
+    static std::array<VkVertexInputAttributeDescription, 4> getAttributeDescriptions();
+    bool operator==(const Vertex& other) const;
+};
+
+struct DrawObject {
+    std::vector<Vertex> vertices;
+    std::vector<uint32_t> indices;
+    std::string imagePath;
+    std::vector<glm::mat4> modelMatrices;
+};
+
+struct UniformBufferObject {
+    glm::mat4 model;
+    glm::mat4 view;
+    glm::mat4 proj;
+};
+
+void getQuad(std::vector<Vertex> &vertices, std::vector<uint32_t> &indices);
 
 int istreamRead(void *userData, char *data, int size);
 void istreamSkip(void *userData, int n);
 int istreamEof(void *userData);
 
-extern std::string const TEXTURE_PATH_WALLS;
-extern std::string const TEXTURE_PATH_FLOOR;
-extern std::string const TEXTURE_PATH_BALL;
-extern std::string const TEXTURE_PATH_HOLE;
 extern unsigned int const MAZE_COLS;
 extern unsigned int const MAZE_ROWS;
 

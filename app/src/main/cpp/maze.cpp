@@ -42,7 +42,13 @@
 
 #include "maze.hpp"
 #include "android.hpp"
+#include "random.hpp"
 #include "vulkanWrapper.hpp"
+
+std::string const TEXTURE_PATH_WALLS("textures/wall.png");
+std::string const TEXTURE_PATH_FLOOR("textures/floor.png");
+std::string const TEXTURE_PATH_BALL("textures/ball.png");
+std::string const TEXTURE_PATH_HOLE("textures/hole.png");
 
 static std::string const MODEL_WALL("models/wall.obj");
 static std::string const MODEL_BALL("models/ball.obj");
@@ -133,6 +139,11 @@ void Maze::updateAcceleration(float x, float y, float z) {
 }
 
 bool Maze::updateData() {
+    if (finished) {
+        // the maze is finished, do nothing and return false (drawing is not necessary).
+        return false;
+    }
+
     auto currentTime = std::chrono::high_resolution_clock::now();
     float time = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - prevTime).count();
     prevTime = currentTime;
@@ -143,6 +154,13 @@ bool Maze::updateData() {
     auto cell = getCell(ball.row, ball.col);
     float cellCenterX = getColumnCenterPosition(ball.col);
     float cellCenterY = getRowCenterPosition(ball.row);
+    if (cell.isEnd()) {
+        finished = true;
+        ball.position.x = cellCenterX;
+        ball.position.y = cellCenterY;
+        ball.velocity = {0.0f, 0.0f, 0.0f};
+        return true;
+    }
     if (cell.leftWallExists() && ball.position.x < cellCenterX) {
         if (ball.velocity.x < 0.0f) {
             ball.velocity.x = 0.0f;
@@ -312,33 +330,7 @@ void Maze::loadModels() {
 }
 
 void Maze::loadModelFloor() {
-    Vertex vertex = {};
-    vertex.color = {0.2f, 0.2f, 0.2f };
-    vertex.normal = {0.0f, 0.0f, 1.0f };
-
-    vertex.pos = { -1.0f, 1.0f, 0.0f };
-    vertex.texCoord = {0.0f, 0.0f };
-    floorVertices.push_back(vertex);
-
-    vertex.pos = { -1.0f, -1.0f, 0.0f };
-    vertex.texCoord = {1.0f, 0.0f };
-    floorVertices.push_back(vertex);
-
-    vertex.pos = { 1.0f, -1.0f, 0.0f };
-    vertex.texCoord = {1.0f, 1.0f };
-    floorVertices.push_back(vertex);
-
-    vertex.pos = { 1.0f, 1.0f, 0.0f };
-    vertex.texCoord = {0.0f, 1.0f };
-    floorVertices.push_back(vertex);
-
-    floorIndices.push_back(0);
-    floorIndices.push_back(1);
-    floorIndices.push_back(2);
-
-    floorIndices.push_back(0);
-    floorIndices.push_back(2);
-    floorIndices.push_back(3);
+    getQuad(floorVertices, floorIndices);
 }
 
 void Maze::loadModel(std::string const & modelFile, std::vector<Vertex> &vertices, std::vector<uint32_t> &indices) {
@@ -481,33 +473,47 @@ void Maze::generateModelMatrices() {
     floorModelMatrix = glm::translate(glm::vec3(0.0f, 0.0f, -1.0f -3.0f/(2.0f*(numberRows+numberColumns))));
 }
 
-Random::~Random() {
-    if (fd != -1) {
-        close(fd);
-    }
+std::vector<DrawObject> Maze::getStaticDrawObjects() {
+    std::vector<DrawObject> objs;
+
+    // the floor
+    DrawObject floor = {};
+    floor.indices = floorIndices;
+    floor.vertices = floorVertices;
+    floor.imagePath = TEXTURE_PATH_FLOOR;
+    floor.modelMatrices.push_back(floorModelMatrix);
+    objs.push_back(floor);
+
+    // the hole
+    DrawObject hole = {};
+    hole.indices = holeIndices;
+    hole.vertices = holeVertices;
+    hole.imagePath = TEXTURE_PATH_HOLE;
+    hole.modelMatrices.push_back(modelMatrixHole);
+    objs.push_back(hole);
+
+    // the walls
+    DrawObject wall = {};
+    wall.indices = indices;
+    wall.vertices = vertices;
+    wall.imagePath = TEXTURE_PATH_WALLS;
+    wall.modelMatrices = modelMatricesMaze;
+    objs.push_back(wall);
+
+    return objs;
 }
 
-unsigned int Random::getUInt(unsigned int lowerBound, unsigned int upperBound) {
-    if (fd == -1) {
-        fd = open("/dev/urandom", O_RDONLY);
-    }
+std::vector<DrawObject> Maze::getDynamicDrawObjects() {
+    std::vector<DrawObject> objs;
 
-    if (fd == -1) {
-        throw std::runtime_error("Could not open /dev/urandom");
-    }
+    // the ball
+    DrawObject ball1 = {};
+    ball1.indices = ballIndices;
+    ball1.vertices = ballVertices;
+    ball1.imagePath = TEXTURE_PATH_BALL;
+    ball1.modelMatrices.push_back(modelMatrixBall);
+    objs.push_back(ball1);
 
-    unsigned int range = upperBound - lowerBound + 1;
-    unsigned int too_big = std::numeric_limits<unsigned int>::max() / range * range;
-
-    unsigned int random;
-
-    do {
-        ssize_t readlen = read(fd, &random, sizeof (random));
-
-        if (readlen != sizeof (random)) {
-            throw std::runtime_error("Could not read enough random data");
-        }
-    } while (random >= too_big);
-
-    return random % range + lowerBound;
+    return objs;
 }
+

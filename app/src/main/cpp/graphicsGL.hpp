@@ -22,12 +22,13 @@
 #include <GLES3/gl3ext.h>
 #include <EGL/egl.h>
 #include <EGL/eglext.h>
+#include <map>
 #include "graphics.hpp"
 #include "maze.hpp"
 
 class GraphicsGL : public Graphics {
 public:
-    GraphicsGL(WindowType *window): maze(MAZE_ROWS, MAZE_COLS) { }
+    GraphicsGL(WindowType *window) { }
     virtual void init(WindowType *window);
     virtual void initThread();
 
@@ -54,33 +55,53 @@ private:
     EGLDisplay display;
     GLuint programID;
     GLuint depthProgramID;
-    GLuint textureWall;
-    GLuint textureFloor;
-    GLuint textureBall;
-    GLuint textureHole;
+
+    struct TextureData {
+        GLuint handle;
+        ~TextureData() {
+            glDeleteTextures(1, &handle);
+        }
+    };
+    typedef std::map<std::string, std::shared_ptr<TextureData> > TextureDataMap;
+    TextureDataMap levelFinisherTextures;
+
     GLuint depthMapFBO;
     GLuint depthMap;
     GLuint colorImage;
-    Maze maze;
+    std::shared_ptr<Maze> maze;
+    std::shared_ptr<LevelFinish> levelFinisher;
 
-    GLuint vertexBufferMazeWall;
-    GLuint indexBufferMazeWall;
+    struct DrawObjectData {
+        GLuint vertexBuffer;
+        GLuint indexBuffer;
+        uint32_t numberIndices;
+        std::vector<glm::mat4> modelMatrices;
+        std::shared_ptr<TextureData> texture;
 
-    GLuint vertexBufferMazeFloor;
-    GLuint indexBufferMazeFloor;
+        ~DrawObjectData() {
+            glDeleteBuffers(1, &vertexBuffer);
+            glDeleteBuffers(1, &indexBuffer);
+        }
+    };
 
-    GLuint vertexBufferBall;
-    GLuint indexBufferBall;
-
-    GLuint vertexBufferHole;
-    GLuint indexBufferHole;
+    typedef std::vector<std::shared_ptr<DrawObjectData> > ObjsData;
+    ObjsData staticObjsData;
+    ObjsData dynObjsData;
+    ObjsData levelfinisherObjsData;
 
     GLuint loadShaders(std::string const &vertexShaderFile, std::string const &fragmentShaderFile);
     void initWindow(WindowType *window);
     void initPipeline();
+    void drawObjects(ObjsData const &objsData);
     void drawObject(GLuint programID, bool needsNormal, GLuint vertex, GLuint index,
                     unsigned long nbrIndices, GLuint texture, glm::mat4 const &modelMatrix);
     void loadTexture(std::string const &texturePath, GLuint &texture);
+    void addObjects(std::vector<DrawObject> const &objs,
+                    std::vector<std::shared_ptr<DrawObjectData> > &objsData,
+                    std::map<std::string, std::shared_ptr<TextureData> > &textures);
+    void addObject(DrawObject const &objs,
+                    std::vector<std::shared_ptr<DrawObjectData> > &objsData,
+                    std::map<std::string, std::shared_ptr<TextureData> > &textures);
     void createDepthTexture();
     void drawObject(GLuint programID, bool needsNormal, GLuint vertex, GLuint index,
                     unsigned long nbrIndices, glm::mat4 const &modelMatrix);
