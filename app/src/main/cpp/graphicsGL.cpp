@@ -108,16 +108,19 @@ void GraphicsGL::initWindow(WindowType *inWindow){
         throw std::runtime_error("Could not set the surface to current");
     }
 
-    int width;
-    int height;
     if (!eglQuerySurface(display, surface, EGL_WIDTH, &width) ||
         !eglQuerySurface(display, surface, EGL_HEIGHT, &height)) {
         destroyWindow();
         throw std::runtime_error("Could not get width and height of surface");
     }
 
-    // The clear background color is transparent black.
-    glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
+    levelTracker.setParameters(width, height);
+    maze = levelTracker.getLevel();
+    levelFinisher = levelTracker.getLevelFinisher();
+
+    // The clear background color
+    glm::vec4 bgColor = maze->getBackgroundColor();
+    glClearColor(bgColor.r, bgColor.g, bgColor.b, bgColor.a);
 
     // Enable depth test
     glEnable(GL_DEPTH_TEST);
@@ -137,22 +140,11 @@ void GraphicsGL::initPipeline() {
     programID = loadShaders(SHADER_VERT_FILE, SHADER_FRAG_FILE);
     depthProgramID = loadShaders(DEPTH_VERT_FILE, DEPTH_FRAG_FILE);
 
-    int32_t w = ANativeWindow_getWidth(window);
-    int32_t h = ANativeWindow_getHeight(window);
-    maze.reset(new Maze(MAZE_ROWS, MAZE_COLS));
-    maze->loadModels();
-    maze->setView();
-    maze->updatePerspectiveMatrix(w, h);
-    maze->generate();
-    maze->generateModelMatrices();
-    levelFinisher = maze->getLevelFinisher();
+    maze->updateStaticDrawObjects(staticObjsData);
+    maze->updateDynamicDrawObjects(dynObjsData);
 
-    std::vector<DrawObject> staticObjs = maze->getStaticDrawObjects();
-    std::vector<DrawObject> dynObjs = maze->getDynamicDrawObjects();
-
-    std::map<std::string, std::shared_ptr<TextureData> > textures;
-    addObjects(staticObjs, staticObjsData, textures);
-    addObjects(dynObjs, dynObjsData, textures);
+    addObjects(staticObjsData);
+    addObjects(dynObjsData);
 
     // for shadow mapping.
     glGenFramebuffers(1, &depthMapFBO);
@@ -161,7 +153,7 @@ void GraphicsGL::initPipeline() {
     glGenTextures(1, &colorImage);
     glBindTexture(GL_TEXTURE_2D, colorImage);
     glActiveTexture(GL_TEXTURE0);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, w, h, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
@@ -170,7 +162,7 @@ void GraphicsGL::initPipeline() {
     glGenTextures(1, &depthMap);
     glBindTexture(GL_TEXTURE_2D, depthMap);
     glActiveTexture(GL_TEXTURE0);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT32F, w, h, 0, GL_DEPTH_COMPONENT, GL_FLOAT, NULL);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT32F, width, height, 0, GL_DEPTH_COMPONENT, GL_FLOAT, NULL);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
@@ -209,44 +201,38 @@ void GraphicsGL::initPipeline() {
     }
 }
 
-void GraphicsGL::addObjects(std::vector<DrawObject> const &objs,
-                            std::vector<std::shared_ptr<DrawObjectData> > &objsData,
-                            std::map<std::string, std::shared_ptr<TextureData> > &textures) {
-    for (auto &&obj : objs) {
-        addObject(obj, objsData, textures);
+void GraphicsGL::addObjects(DrawObjectTable &objsData) {
+    for (auto &&obj : objsData) {
+        addObject(obj);
     }
 }
 
-void GraphicsGL::addObject(DrawObject const &obj,
-                            std::vector<std::shared_ptr<DrawObjectData> > &objsData,
-                            std::map<std::string, std::shared_ptr<TextureData> > &textures) {
-    std::shared_ptr<DrawObjectData> data(new DrawObjectData());
+void GraphicsGL::addObject(DrawObjectEntry &objData) {
+    std::shared_ptr<DrawObjectDataGL> data(new DrawObjectDataGL());
 
     // the index buffer
     glGenBuffers(1, &(data->indexBuffer));
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, data->indexBuffer);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof (uint32_t) * obj.indices.size(),
-                 obj.indices.data(), GL_STATIC_DRAW);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof (uint32_t) * objData.first->indices.size(),
+                 objData.first->indices.data(), GL_STATIC_DRAW);
 
     // the vertex buffer
     glGenBuffers(1, &(data->vertexBuffer));
     glBindBuffer(GL_ARRAY_BUFFER, data->vertexBuffer);
-    glBufferData(GL_ARRAY_BUFFER, sizeof (Vertex) * obj.vertices.size(),
-                 obj.vertices.data(), GL_STATIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, sizeof (Vertex) * objData.first->vertices.size(),
+                 objData.first->vertices.data(), GL_STATIC_DRAW);
 
-    data->numberIndices = obj.indices.size();
-    data->modelMatrices = obj.modelMatrices;
     std::map<std::string, std::shared_ptr<TextureData> >::iterator it =
-            textures.find(obj.imagePath);
+            textures.find(objData.first->imagePath);
     if (it == textures.end()) {
         std::shared_ptr<TextureData> texture(new TextureData());
-        loadTexture(obj.imagePath, texture->handle);
-        textures.insert(std::make_pair(obj.imagePath, texture));
+        loadTexture(objData.first->imagePath, texture->handle);
+        textures.insert(std::make_pair(objData.first->imagePath, texture));
         data->texture = texture;
     } else {
         data->texture = it->second;
     }
-    objsData.push_back(data);
+    objData.second = data;
 }
 
 void GraphicsGL::loadTexture(std::string const &texturePath, GLuint &texture) {
@@ -300,7 +286,6 @@ void GraphicsGL::cleanup() {
     staticObjsData.clear();
     dynObjsData.clear();
     levelfinisherObjsData.clear();
-    levelFinisherTextures.clear();
 
     glDeleteFramebuffers(1, &depthMapFBO);
     glDeleteTextures(1, &colorImage);
@@ -326,16 +311,18 @@ void GraphicsGL::createDepthTexture() {
     glUniformMatrix4fv(MatrixID, 1, GL_FALSE, &proj[0][0]);
 
     for (auto &&obj : staticObjsData) {
-        for (auto &&model : obj->modelMatrices) {
-            drawObject(depthProgramID, false, obj->vertexBuffer, obj->indexBuffer,
-                       obj->numberIndices, model);
+        for (auto &&model : obj.first->modelMatrices) {
+            DrawObjectDataGL *data = dynamic_cast<DrawObjectDataGL*> (obj.second.get());
+            drawObject(depthProgramID, false, data->vertexBuffer, data->indexBuffer,
+                       obj.first->indices.size(), model);
         }
     }
 
     for (auto &&obj : dynObjsData) {
-        for (auto &&model : obj->modelMatrices) {
-            drawObject(depthProgramID, false, obj->vertexBuffer, obj->indexBuffer,
-                       obj->numberIndices, model);
+        for (auto &&model : obj.first->modelMatrices) {
+            DrawObjectDataGL *data = dynamic_cast<DrawObjectDataGL*> (obj.second.get());
+            drawObject(depthProgramID, false, data->vertexBuffer, data->indexBuffer,
+                       obj.first->indices.size(), model);
         }
     }
 
@@ -372,17 +359,18 @@ void GraphicsGL::drawFrame() {
 
     drawObjects(staticObjsData);
     drawObjects(dynObjsData);
-    if (maze->isFinished()) {
+    if (maze->isFinished() || levelFinisher->isUnveiling()) {
         drawObjects(levelfinisherObjsData);
     }
     eglSwapBuffers(display, surface);
 }
 
-void GraphicsGL::drawObjects(ObjsData const &objsData) {
+void GraphicsGL::drawObjects(DrawObjectTable const &objsData) {
     for (auto&& obj : objsData) {
-        for (auto &&model : obj->modelMatrices) {
-            drawObject(programID, true, obj->vertexBuffer, obj->indexBuffer, obj->numberIndices,
-                       obj->texture->handle, model);
+        for (auto &&model : obj.first->modelMatrices) {
+            DrawObjectDataGL *data = dynamic_cast<DrawObjectDataGL*> (obj.second.get());
+            drawObject(programID, true, data->vertexBuffer, data->indexBuffer,
+                       obj.first->indices.size(), data->texture->handle, model);
         }
     }
 }
@@ -583,35 +571,51 @@ void GraphicsGL::updateAcceleration(float x, float y, float z) {
 }
 
 bool GraphicsGL::updateData() {
-    bool drawingNecessary = maze->updateData();
+    if (maze->isFinished() || levelFinisher->isUnveiling()) {
+        if (levelFinisher->isUnveiling()) {
+            if (levelFinisher->isDone()) {
+                levelFinisher = levelTracker.getLevelFinisher();
+                levelfinisherObjsData.clear();
+                return false;
+            }
+        } else {
+            if (levelFinisher->isDone()) {
+                levelTracker.gotoNextLevel();
+                maze = levelTracker.getLevel();
 
-    if (!drawingNecessary && !maze->isFinished()) {
-        return false;
-    }
+                // The clear background color
+                glm::vec4 bgColor = maze->getBackgroundColor();
+                glClearColor(bgColor.r, bgColor.g, bgColor.b, bgColor.a);
 
-    if (maze->isFinished()) {
-        std::shared_ptr<DrawObject> obj = levelFinisher->getNextDrawObject();
-        if (obj.get() == nullptr) {
+                dynObjsData.clear();
+                staticObjsData.clear();
+                maze->updateStaticDrawObjects(staticObjsData);
+                maze->updateDynamicDrawObjects(dynObjsData);
+                addObjects(staticObjsData);
+                addObjects(dynObjsData);
+                levelFinisher->unveilNewLevel();
+                return false;
+            }
+        }
+
+        bool drawingNecessary = levelFinisher->updateDrawObjects(levelfinisherObjsData);
+        if (!drawingNecessary) {
             return false;
         }
 
-        TextureDataMap::iterator it = levelFinisherTextures.find(obj->imagePath);
-        if (it == levelFinisherTextures.end()) {
-            addObject(*obj, levelfinisherObjsData, levelFinisherTextures);
-        } else {
-            for (auto &&data : levelfinisherObjsData) {
-                if (data->texture == it->second) {
-                    for (auto &&modelMatrix : obj->modelMatrices) {
-                        data->modelMatrices.push_back(modelMatrix);
-                    }
-                }
+        for (auto &&obj : levelfinisherObjsData) {
+            if (obj.second.get() == nullptr) {
+                addObject(obj);
             }
         }
     } else {
-        std::vector<DrawObject> objs = maze->getDynamicDrawObjects();
-        for (size_t i = 0; i < objs.size(); i++) {
-            dynObjsData[i]->modelMatrices = objs[i].modelMatrices;
+        bool drawingNecessary = maze->updateData();
+
+        if (!drawingNecessary) {
+            return false;
         }
+
+        maze->updateDynamicDrawObjects(dynObjsData);
     }
 
     return true;

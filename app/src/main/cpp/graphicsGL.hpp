@@ -24,7 +24,9 @@
 #include <EGL/eglext.h>
 #include <map>
 #include "graphics.hpp"
-#include "maze.hpp"
+#include "level.hpp"
+#include "levelFinish.hpp"
+#include "levelTracker.hpp"
 
 class GraphicsGL : public Graphics {
 public:
@@ -63,45 +65,42 @@ private:
         }
     };
     typedef std::map<std::string, std::shared_ptr<TextureData> > TextureDataMap;
-    TextureDataMap levelFinisherTextures;
+    TextureDataMap textures;
+
+    int width;
+    int height;
 
     GLuint depthMapFBO;
     GLuint depthMap;
     GLuint colorImage;
-    std::shared_ptr<Maze> maze;
+    std::shared_ptr<Level> maze;
     std::shared_ptr<LevelFinish> levelFinisher;
+    LevelTracker levelTracker;
 
-    struct DrawObjectData {
+    struct DrawObjectDataGL : public DrawObjectData {
         GLuint vertexBuffer;
         GLuint indexBuffer;
-        uint32_t numberIndices;
-        std::vector<glm::mat4> modelMatrices;
         std::shared_ptr<TextureData> texture;
 
-        ~DrawObjectData() {
+        virtual ~DrawObjectDataGL() {
             glDeleteBuffers(1, &vertexBuffer);
             glDeleteBuffers(1, &indexBuffer);
         }
     };
 
-    typedef std::vector<std::shared_ptr<DrawObjectData> > ObjsData;
-    ObjsData staticObjsData;
-    ObjsData dynObjsData;
-    ObjsData levelfinisherObjsData;
+    DrawObjectTable staticObjsData;
+    DrawObjectTable dynObjsData;
+    DrawObjectTable levelfinisherObjsData;
 
     GLuint loadShaders(std::string const &vertexShaderFile, std::string const &fragmentShaderFile);
     void initWindow(WindowType *window);
     void initPipeline();
-    void drawObjects(ObjsData const &objsData);
+    void drawObjects(DrawObjectTable const &objsData);
     void drawObject(GLuint programID, bool needsNormal, GLuint vertex, GLuint index,
                     unsigned long nbrIndices, GLuint texture, glm::mat4 const &modelMatrix);
     void loadTexture(std::string const &texturePath, GLuint &texture);
-    void addObjects(std::vector<DrawObject> const &objs,
-                    std::vector<std::shared_ptr<DrawObjectData> > &objsData,
-                    std::map<std::string, std::shared_ptr<TextureData> > &textures);
-    void addObject(DrawObject const &objs,
-                    std::vector<std::shared_ptr<DrawObjectData> > &objsData,
-                    std::map<std::string, std::shared_ptr<TextureData> > &textures);
+    void addObjects(DrawObjectTable &objsData);
+    void addObject(DrawObjectEntry &objData);
     void createDepthTexture();
     void drawObject(GLuint programID, bool needsNormal, GLuint vertex, GLuint index,
                     unsigned long nbrIndices, glm::mat4 const &modelMatrix);

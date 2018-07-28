@@ -35,6 +35,7 @@
 #include "vulkanWrapper.hpp"
 #include "graphics.hpp"
 #include "levelFinish.hpp"
+#include "level.hpp"
 
 
 class Maze;
@@ -63,13 +64,16 @@ public:
     bool rightWallExists() const { return mRightWallExists; }
 };
 
-class Maze {
+class Maze : public Level {
 private:
+    Random random;
+    std::vector<std::string> wallTextures;
+    std::string ballTexture;
+    std::string floorTexture;
+    std::string holeTexture;
     unsigned int const numberBlocksPerCell = 2;
-    glm::vec3 lightingSource;
     unsigned int numberRows;
     unsigned int numberColumns;
-    bool finished;
     std::chrono::high_resolution_clock::time_point prevTime;
 
     // data on where the ball is, how fast it is moving, etc.
@@ -84,8 +88,6 @@ private:
     } ball;
     std::vector<std::vector<Cell> > cells;
 
-    glm::mat4 view;
-    glm::mat4 proj;
     glm::mat4 scaleBall;
     std::vector<glm::mat4> modelMatricesMaze;
     glm::mat4 floorModelMatrix;
@@ -109,49 +111,45 @@ private:
     std::vector<uint32_t> ballIndices;
 
     void addCellOption(unsigned int r, unsigned int c, std::vector<std::pair<unsigned int, unsigned int> > &options);
-    void loadModel(std::string const &modelFile, std::vector<Vertex> &vertices, std::vector<uint32_t> &indices);
     void loadModelFloor();
     float getRowCenterPosition(unsigned int row);
     float getColumnCenterPosition(unsigned int col);
     glm::vec3 getCellCenterPosition(unsigned int row, unsigned int col);
+    Cell const &getCell(unsigned int row, unsigned int column);
 public:
     Maze(unsigned int inNumberRows, unsigned int inNumberColumns)
-        :numberRows(inNumberRows), numberColumns(inNumberColumns), finished(false)
+        :numberRows(inNumberRows), numberColumns(inNumberColumns)
     {
         cells.resize(numberRows);
         for (unsigned int i = 0; i < numberRows; i++) {
             cells[i].resize(numberColumns);
         }
 
+        prevTime = std::chrono::high_resolution_clock::now();
+        ball.totalRotated = glm::quat();
         ball.acceleration = {0.0f, 0.0f, 0.0f};
         ball.velocity = {0.0f, 0.0f, 0.0f};
-        lightingSource = glm::vec3(0.0f, 0.0f, 1.28f/*0.01-1.28*/);
         unsigned int i = std::max(numberRows, numberColumns);
         scaleBall = glm::scale(glm::vec3(1.0f/(i*2.0f + 1),
                                           1.0f/(i*2.0f + 1),
                                           1.0f/(i*2.0f + 1)));
     }
 
-    void loadModels();
-    void setView();
-    void updatePerspectiveMatrix(int surfaceWidth, int surfaceHeight);
-    Cell const &getCell(unsigned int row, unsigned int column);
-    void generate();
-    void updateAcceleration(float x, float y, float z);
-    bool updateData();
-    void generateModelMatrices();
-    bool isFinished() { return finished; }
-    std::shared_ptr<LevelFinish> getLevelFinisher()
-        { return std::shared_ptr<LevelFinish>(new ManyQuadCoverUpLevelFinish()); }
+    virtual void loadModels();
+    virtual void generate();
+    virtual glm::vec4 getBackgroundColor() { return {0.0f, 0.0f, 0.0f, 0.0f}; }
+    virtual void updateAcceleration(float x, float y, float z);
+    virtual bool updateData();
+    virtual void generateModelMatrices();
 
-    glm::mat4 getProjectionMatrix() { return proj; }
-    glm::mat4 getViewMatrix() { return view; }
-    glm::vec3 getLightingSource() { return lightingSource; }
-    glm::mat4 getViewLightSource();
+    virtual bool updateStaticDrawObjects(DrawObjectTable &objs);
+    virtual bool updateDynamicDrawObjects(DrawObjectTable &objs);
 
-    std::vector<DrawObject> getStaticDrawObjects();
-    std::vector<DrawObject> getDynamicDrawObjects();
+    void initAddWallTexture(std::string const &texturePath) { wallTextures.push_back(texturePath); }
+    void initSetFloorTexture(std::string const &texturePath) { floorTexture = texturePath; }
+    void initSetHoleTexture(std::string const &texturePath) { holeTexture = texturePath; }
+    void initSetBallTexture(std::string const &texturePath) { ballTexture = texturePath; }
 
-    ~Maze() {}
+    virtual ~Maze() {}
 };
 #endif

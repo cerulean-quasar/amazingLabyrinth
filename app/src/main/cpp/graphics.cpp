@@ -1,11 +1,66 @@
 #include <string>
 #include <istream>
+#include <array>
+#include <unordered_map>
 #include "graphics.hpp"
+#include "vulkanWrapper.hpp"
 #define STB_IMAGE_IMPLEMENTATION
 #include <stb_image.h>
 
+#define TINYOBJLOADER_IMPLEMENTATION
+#include <tiny_obj_loader.h>
+
 unsigned int const MAZE_COLS = 5;
 unsigned int const MAZE_ROWS = 5;
+
+
+VkVertexInputBindingDescription Vertex::getBindingDescription() {
+    VkVertexInputBindingDescription bindingDescription = {};
+
+    bindingDescription.binding = 0;
+    bindingDescription.stride = sizeof(Vertex);
+
+    /* move to the next data entry after each vertex.  VK_VERTEX_INPUT_RATE_INSTANCE
+     * moves to the next data entry after each instance, but we are not using instanced
+     * rendering
+     */
+    bindingDescription.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
+
+    return bindingDescription;
+}
+
+std::array<VkVertexInputAttributeDescription, 4> Vertex::getAttributeDescriptions() {
+    std::array<VkVertexInputAttributeDescription, 4> attributeDescriptions = {};
+
+    /* position */
+    attributeDescriptions[0].binding = 0; /* binding description to use */
+    attributeDescriptions[0].location = 0; /* matches the location in the vertex shader */
+    attributeDescriptions[0].format = VK_FORMAT_R32G32B32_SFLOAT;
+    attributeDescriptions[0].offset = offsetof(Vertex, pos);
+
+    /* color */
+    attributeDescriptions[1].binding = 0; /* binding description to use */
+    attributeDescriptions[1].location = 1;
+    attributeDescriptions[1].format = VK_FORMAT_R32G32B32_SFLOAT;
+    attributeDescriptions[1].offset = offsetof(Vertex, color);
+
+    /* texture coordinate */
+    attributeDescriptions[2].binding = 0;
+    attributeDescriptions[2].location = 2;
+    attributeDescriptions[2].format = VK_FORMAT_R32G32_SFLOAT;
+    attributeDescriptions[2].offset = offsetof(Vertex, texCoord);
+
+    /* normal vector */
+    attributeDescriptions[3].binding = 0;
+    attributeDescriptions[3].location = 3;
+    attributeDescriptions[3].format = VK_FORMAT_R32G32B32_SFLOAT;
+    attributeDescriptions[3].offset = offsetof(Vertex, normal);
+    return attributeDescriptions;
+}
+
+bool Vertex::operator==(const Vertex& other) const {
+    return pos == other.pos && color == other.color && texCoord == other.texCoord && normal == other.normal;
+}
 
 void getQuad(std::vector<Vertex> &vertices, std::vector<uint32_t> &indices) {
     Vertex vertex = {};
@@ -36,6 +91,50 @@ void getQuad(std::vector<Vertex> &vertices, std::vector<uint32_t> &indices) {
     indices.push_back(2);
     indices.push_back(3);
 
+}
+
+void loadModel(std::string const & modelFile, std::vector<Vertex> &vertices, std::vector<uint32_t> &indices) {
+    tinyobj::attrib_t attrib;
+    std::vector<tinyobj::shape_t> shapes;
+    std::vector<tinyobj::material_t> materials;
+    std::string err;
+
+    AssetStreambuf assetStreambuf(assetWrapper->getAsset(modelFile));
+    std::istream assetIstream(&assetStreambuf);
+
+    if (!tinyobj::LoadObj(&attrib, &shapes, &materials, &err, &assetIstream)) {
+        throw std::runtime_error(err);
+    }
+
+    std::unordered_map<Vertex, uint32_t> uniqueVertices = {};
+    for (const auto& shape : shapes) {
+        for (const auto& index : shape.mesh.indices) {
+            Vertex vertex = {};
+            vertex.pos = {
+                    attrib.vertices[3 * index.vertex_index + 0],
+                    attrib.vertices[3 * index.vertex_index + 1],
+                    attrib.vertices[3 * index.vertex_index + 2]
+            };
+
+            vertex.texCoord = {
+                    attrib.texcoords[2 * index.texcoord_index + 0],
+                    1.0f - attrib.texcoords[2 * index.texcoord_index + 1]
+            };
+
+            vertex.color = {0.2f, 0.2f, 0.2f};
+
+            vertex.normal = { attrib.normals[3 * index.normal_index +0],
+                              attrib.normals[3 * index.normal_index +1],
+                              attrib.normals[3 * index.normal_index +2] };
+
+            if (uniqueVertices.count(vertex) == 0) {
+                uniqueVertices[vertex] = static_cast<uint32_t>(vertices.size());
+                vertices.push_back(vertex);
+            }
+
+            indices.push_back(uniqueVertices[vertex]);
+        }
+    }
 }
 
 int istreamRead(void *userData, char *data, int size) {

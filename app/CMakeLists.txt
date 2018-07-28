@@ -25,7 +25,10 @@ add_library( # Sets the name of the library.
              src/main/cpp/maze.cpp
              src/main/cpp/vulkanWrapper.cpp
              src/main/cpp/random.cpp
-             src/main/cpp/levelFinish.cpp)
+             src/main/cpp/levelFinish.cpp
+             src/main/cpp/level.cpp
+             src/main/cpp/openAreaLevel.cpp
+             src/main/cpp/levelTracker.cpp)
 
 # Searches for a specified prebuilt library and stores the path as a
 # variable. Because CMake includes system libraries in the search path by

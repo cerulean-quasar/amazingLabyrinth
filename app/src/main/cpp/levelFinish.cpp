@@ -1,5 +1,26 @@
+/**
+ * Copyright 2018 Cerulean Quasar. All Rights Reserved.
+ *
+ *  This file is part of AmazingLabyrinth.
+ *
+ *  AmazingLabyrinth is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 3 of the License, or
+ *  (at your option) any later version.
+ *
+ *  AmazingLabyrinth is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with AmazingLabyrinth.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ */
+
 #include <list>
 #define GLM_FORCE_RADIANS
+#define GLM_FORCE_DEPTH_ZERO_TO_ONE
 #include <glm/gtx/transform.hpp>
 #include "levelFinish.hpp"
 
@@ -35,34 +56,116 @@ uint32_t ManyQuadCoverUpLevelFinish::getTotalNumberObjects() {
     return totalNumberObjects;
 }
 
-std::shared_ptr<DrawObject> ManyQuadCoverUpLevelFinish::getNextDrawObject() {
-    if (totalNumberReturned >= totalNumberObjects) {
-        return std::shared_ptr<DrawObject>();
+bool ManyQuadCoverUpLevelFinish::updateDrawObjects(DrawObjectTable &drawObjects) {
+    auto currentTime = std::chrono::high_resolution_clock::now();
+    float time = std::chrono::duration<float, std::chrono::seconds::period>(
+            currentTime - prevTime).count();
+
+    if (time < timeThreshold) {
+        return false;
+    }
+    prevTime = currentTime;
+
+    if (shouldUnveil) {
+        if (totalNumberReturned == 0) {
+            finished = true;
+            return false;
+        }
+
+        uint32_t i = random.getUInt(0, drawObjects.size() - 1);
+        drawObjects[i].first->modelMatrices.pop_back();
+        if (drawObjects[i].first->modelMatrices.size() == 0) {
+            drawObjects.erase(drawObjects.begin()+i);
+        }
+        totalNumberReturned --;
+    } else {
+        if (totalNumberReturned >= totalNumberObjects) {
+            finished = true;
+            return false;
+        }
+
+        float sideLength = random.getFloat(0.2f, 0.4f);
+        glm::mat4 scale = glm::scale(glm::vec3(sideLength, sideLength, 1.0f));
+        glm::vec3 translateVector = translateVectors.back();
+        translateVectors.pop_back();
+        translateVector.z = 0.1f + totalNumberReturned * 0.01f;
+        glm::mat4 trans = glm::translate(translateVector);
+
+        std::string const &image = imagePaths[random.getUInt(0, imagePaths.size() - 1)];
+
+        bool found = false;
+        for (auto &&drawObject : drawObjects) {
+            if (drawObject.first->imagePath == image) {
+                found = true;
+                drawObject.first->modelMatrices.push_back(trans * scale);
+                break;
+            }
+        }
+
+        if (!found) {
+            std::shared_ptr<DrawObject> obj(new DrawObject());
+            obj->modelMatrices.push_back(trans * scale);
+            obj->imagePath = image;
+            getQuad(obj->vertices, obj->indices);
+
+            drawObjects.push_back(std::make_pair(obj, std::shared_ptr<DrawObjectData>()));
+        }
+
+        totalNumberReturned++;
+    }
+
+    return true;
+}
+
+GrowingQuadLevelFinish::GrowingQuadLevelFinish() {
+    prevTime = std::chrono::high_resolution_clock::now();
+    timeSoFar = 0.0f;
+    imagePath = "textures/starField.png";
+}
+
+bool GrowingQuadLevelFinish::updateDrawObjects(DrawObjectTable &drawObjects) {
+    if (finished) {
+        return false;
     }
 
     auto currentTime = std::chrono::high_resolution_clock::now();
     float time = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - prevTime).count();
 
     if (time < timeThreshold) {
-        return std::shared_ptr<DrawObject>();
+        return false;
     }
+
     prevTime = currentTime;
 
-    float sideLength = random.getFloat(0.2f, 0.4f);
-    glm::mat4 scale = glm::scale(glm::vec3(sideLength, sideLength, 1.0f));
-    glm::vec3 translateVector = translateVectors.back();
-    translateVectors.pop_back();
-    translateVector.z = 0.1f+totalNumberReturned*0.01f;
-    glm::mat4 trans = glm::translate(translateVector);
+    int multiplier = 1;
+    float size = minSize;
+    if (shouldUnveil) {
+        size = finalSize;
+        multiplier = -1;
+    }
 
-    std::string const &image = imagePaths[random.getUInt(0, imagePaths.size()-1)];
+    if (drawObjects.size() == 0) {
+        timeSoFar = 0;
+        scaleVector = {minSize, minSize, minSize};
+        std::shared_ptr<DrawObject> obj(new DrawObject());
 
+        getQuad(obj->vertices, obj->indices);
+        obj->imagePath = imagePath;
+        obj->modelMatrices.push_back(glm::scale(scaleVector));
+        drawObjects.push_back(std::make_pair(obj, std::shared_ptr<DrawObjectData>()));
+    } else {
+        timeSoFar += time;
+        size = size + multiplier * timeSoFar / totalTime * (finalSize - minSize);
+        scaleVector = {size, size, size};
+        drawObjects[0].first->modelMatrices[0] = glm::scale(scaleVector);
+        if (size >= finalSize && !shouldUnveil) {
+            timeSoFar = 0.0f;
+            finished = true;
+        }
+        if (size <= minSize && shouldUnveil) {
+            finished = true;
+        }
+    }
 
-    std::shared_ptr<DrawObject> obj(new DrawObject());
-    obj->modelMatrices.push_back(trans*scale);
-    obj->imagePath = image;
-    getQuad(obj->vertices, obj->indices);
-
-    totalNumberReturned++;
-    return obj;
+    return true;
 }

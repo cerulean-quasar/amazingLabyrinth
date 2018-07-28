@@ -38,6 +38,29 @@ struct Vertex {
     bool operator==(const Vertex& other) const;
 };
 
+namespace std {
+    template<> struct hash<glm::vec3> {
+        size_t operator()(glm::vec3 vector) const {
+            return ((hash<float>()(vector.x) ^
+                     (hash<float>()(vector.y) << 1)) >> 1) ^
+                   (hash<float>()(vector.z) << 1);
+        }
+    };
+
+    template<> struct hash<glm::vec2> {
+        size_t operator()(glm::vec2 vector) const {
+            return (hash<float>()(vector.x) ^ (hash<float>()(vector.y) << 1));
+        }
+    };
+
+    template<> struct hash<Vertex> {
+        size_t operator()(Vertex const& vertex) const {
+            return ((((hash<glm::vec3>()(vertex.pos) ^ (hash<glm::vec3>()(vertex.color) << 1)) >> 1) ^
+                     (hash<glm::vec2>()(vertex.texCoord) << 1)) >> 1) ^ (hash<glm::vec3>()(vertex.normal) << 1);
+        }
+    };
+}
+
 struct DrawObject {
     std::vector<Vertex> vertices;
     std::vector<uint32_t> indices;
@@ -45,6 +68,11 @@ struct DrawObject {
     std::vector<glm::mat4> modelMatrices;
 };
 
+struct DrawObjectData {
+    virtual ~DrawObjectData() {}
+};
+typedef std::pair<std::shared_ptr<DrawObject>, std::shared_ptr<DrawObjectData> > DrawObjectEntry;
+typedef std::vector<DrawObjectEntry> DrawObjectTable;
 struct UniformBufferObject {
     glm::mat4 model;
     glm::mat4 view;
@@ -52,6 +80,7 @@ struct UniformBufferObject {
 };
 
 void getQuad(std::vector<Vertex> &vertices, std::vector<uint32_t> &indices);
+void loadModel(std::string const & modelFile, std::vector<Vertex> &vertices, std::vector<uint32_t> &indices);
 
 int istreamRead(void *userData, char *data, int size);
 void istreamSkip(void *userData, int n);

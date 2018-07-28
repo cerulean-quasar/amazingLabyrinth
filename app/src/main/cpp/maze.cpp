@@ -29,9 +29,6 @@
 #include <unordered_map>
 #include <istream>
 
-#define TINYOBJLOADER_IMPLEMENTATION
-#include <tiny_obj_loader.h>
-
 #define GLM_FORCE_RADIANS
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
 #include <glm/glm.hpp>
@@ -39,100 +36,16 @@
 #include <glm/gtc/quaternion.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtx/transform.hpp>
+#include <cstring>
 
 #include "maze.hpp"
 #include "android.hpp"
 #include "random.hpp"
-#include "vulkanWrapper.hpp"
-
-std::string const TEXTURE_PATH_WALLS("textures/wall.png");
-std::string const TEXTURE_PATH_FLOOR("textures/floor.png");
-std::string const TEXTURE_PATH_BALL("textures/ball.png");
-std::string const TEXTURE_PATH_HOLE("textures/hole.png");
+#include "graphics.hpp"
 
 static std::string const MODEL_WALL("models/wall.obj");
 static std::string const MODEL_BALL("models/ball.obj");
 static std::string const MODEL_HOLE("models/hole.obj");
-
-namespace std {
-    template<> struct hash<glm::vec3> {
-        size_t operator()(glm::vec3 vector) const {
-            return ((hash<float>()(vector.x) ^
-                     (hash<float>()(vector.y) << 1)) >> 1) ^
-                   (hash<float>()(vector.z) << 1);
-        }
-    };
-
-    template<> struct hash<glm::vec2> {
-        size_t operator()(glm::vec2 vector) const {
-            return (hash<float>()(vector.x) ^ (hash<float>()(vector.y) << 1));
-        }
-    };
-
-    template<> struct hash<Vertex> {
-        size_t operator()(Vertex const& vertex) const {
-            return ((((hash<glm::vec3>()(vertex.pos) ^ (hash<glm::vec3>()(vertex.color) << 1)) >> 1) ^
-                   (hash<glm::vec2>()(vertex.texCoord) << 1)) >> 1) ^ (hash<glm::vec3>()(vertex.normal) << 1);
-        }
-    };
-}
-
-VkVertexInputBindingDescription Vertex::getBindingDescription() {
-    VkVertexInputBindingDescription bindingDescription = {};
-
-    bindingDescription.binding = 0;
-    bindingDescription.stride = sizeof(Vertex);
-
-    /* move to the next data entry after each vertex.  VK_VERTEX_INPUT_RATE_INSTANCE
-     * moves to the next data entry after each instance, but we are not using instanced
-     * rendering
-     */
-    bindingDescription.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
-
-    return bindingDescription;
-}
-
-std::array<VkVertexInputAttributeDescription, 4> Vertex::getAttributeDescriptions() {
-    std::array<VkVertexInputAttributeDescription, 4> attributeDescriptions = {};
-
-    /* position */
-    attributeDescriptions[0].binding = 0; /* binding description to use */
-    attributeDescriptions[0].location = 0; /* matches the location in the vertex shader */
-    attributeDescriptions[0].format = VK_FORMAT_R32G32B32_SFLOAT;
-    attributeDescriptions[0].offset = offsetof(Vertex, pos);
-
-    /* color */
-    attributeDescriptions[1].binding = 0; /* binding description to use */
-    attributeDescriptions[1].location = 1;
-    attributeDescriptions[1].format = VK_FORMAT_R32G32B32_SFLOAT;
-    attributeDescriptions[1].offset = offsetof(Vertex, color);
-
-    /* texture coordinate */
-    attributeDescriptions[2].binding = 0;
-    attributeDescriptions[2].location = 2;
-    attributeDescriptions[2].format = VK_FORMAT_R32G32_SFLOAT;
-    attributeDescriptions[2].offset = offsetof(Vertex, texCoord);
-
-    /* normal vector */
-    attributeDescriptions[3].binding = 0;
-    attributeDescriptions[3].location = 3;
-    attributeDescriptions[3].format = VK_FORMAT_R32G32B32_SFLOAT;
-    attributeDescriptions[3].offset = offsetof(Vertex, normal);
-    return attributeDescriptions;
-}
-
-bool Vertex::operator==(const Vertex& other) const {
-    return pos == other.pos && color == other.color && texCoord == other.texCoord && normal == other.normal;
-}
-
-void Maze::setView() {
-    /* glm::lookAt takes the eye position, the center position, and the up axis as parameters */
-    view = glm::lookAt(glm::vec3(0.0f, 0.0f, 3.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
-}
-
-glm::mat4 Maze::getViewLightSource() {
-    return glm::lookAt(getLightingSource(), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
-}
 
 void Maze::updateAcceleration(float x, float y, float z) {
     ball.acceleration = glm::vec3(-x,-y,0.0f);
@@ -154,7 +67,10 @@ bool Maze::updateData() {
     auto cell = getCell(ball.row, ball.col);
     float cellCenterX = getColumnCenterPosition(ball.col);
     float cellCenterY = getRowCenterPosition(ball.row);
-    if (cell.isEnd()) {
+    float errDistance = 0.01f;
+    if (cell.isEnd() &&
+            ball.position.x < cellCenterX + errDistance && ball.position.x > cellCenterX - errDistance &&
+            ball.position.y < cellCenterY + errDistance && ball.position.y > cellCenterY - errDistance) {
         finished = true;
         ball.position.x = cellCenterX;
         ball.position.y = cellCenterY;
@@ -230,19 +146,13 @@ bool Maze::updateData() {
     modelMatrixBall = glm::translate(ball.position) * glm::toMat4(ball.totalRotated) * scaleBall;
 
     bool drawingNecessary = glm::length(ball.position - ball.prevPosition) > 0.00005;
-    ball.prevPosition = ball.position;
+    if (drawingNecessary) {
+        ball.prevPosition = ball.position;
+    }
     return drawingNecessary;
 }
 
-void Maze::updatePerspectiveMatrix(int surfaceWidth, int surfaceHeight) {
-    /* perspective matrix: takes the perspective projection, the aspect ratio, near and far
-     * view planes.
-     */
-    proj = glm::perspective(glm::radians(45.0f), surfaceWidth / (float) surfaceHeight, 0.1f, 100.0f);
-}
-
 void Maze::generate() {
-    Random random;
     std::vector<std::pair<unsigned int, unsigned int> > path;
     unsigned int rowStart, columnStart;
     unsigned int rowEnd, columnEnd;
@@ -333,50 +243,6 @@ void Maze::loadModelFloor() {
     getQuad(floorVertices, floorIndices);
 }
 
-void Maze::loadModel(std::string const & modelFile, std::vector<Vertex> &vertices, std::vector<uint32_t> &indices) {
-    tinyobj::attrib_t attrib;
-    std::vector<tinyobj::shape_t> shapes;
-    std::vector<tinyobj::material_t> materials;
-    std::string err;
-
-    AssetStreambuf assetStreambuf(assetWrapper->getAsset(modelFile));
-    std::istream assetIstream(&assetStreambuf);
-
-    if (!tinyobj::LoadObj(&attrib, &shapes, &materials, &err, &assetIstream)) {
-        throw std::runtime_error(err);
-    }
-
-    std::unordered_map<Vertex, uint32_t> uniqueVertices = {};
-    for (const auto& shape : shapes) {
-        for (const auto& index : shape.mesh.indices) {
-            Vertex vertex = {};
-            vertex.pos = {
-                attrib.vertices[3 * index.vertex_index + 0],
-                attrib.vertices[3 * index.vertex_index + 1],
-                attrib.vertices[3 * index.vertex_index + 2]
-            };
-
-            vertex.texCoord = {
-                attrib.texcoords[2 * index.texcoord_index + 0],
-                1.0f - attrib.texcoords[2 * index.texcoord_index + 1]
-            };
-
-            vertex.color = {0.2f, 0.2f, 0.2f};
-
-            vertex.normal = { attrib.normals[3 * index.normal_index +0],
-                              attrib.normals[3 * index.normal_index +1],
-                              attrib.normals[3 * index.normal_index +2] };
-
-            if (uniqueVertices.count(vertex) == 0) {
-                uniqueVertices[vertex] = static_cast<uint32_t>(vertices.size());
-                vertices.push_back(vertex);
-            }
-
-            indices.push_back(uniqueVertices[vertex]);
-        }
-    }
-}
-
 float Maze::getRowCenterPosition(unsigned int row) {
     return 2.0f / (numberRows * numberBlocksPerCell) * (row*numberBlocksPerCell +1.5f) - 1.0f;
 }
@@ -392,7 +258,6 @@ glm::vec3 Maze::getCellCenterPosition(unsigned int row, unsigned int col) {
 }
 
 void Maze::generateModelMatrices() {
-    // print
     unsigned int rowEnd;
     unsigned int colEnd;
     bool wallsExist[numberRows*numberBlocksPerCell+1][numberColumns*numberBlocksPerCell+1];
@@ -460,7 +325,7 @@ void Maze::generateModelMatrices() {
     ball.position = getCellCenterPosition(ball.row, ball.col);
 
     // cause the frame to be drawn when the program comes up for the first time.
-    ball.prevPosition = {-10.0,0.0,0.0};
+    ball.prevPosition = {-10.0f,0.0f,0.0f};
 
     trans = glm::translate(ball.position);
     modelMatrixBall = trans*scaleBall;
@@ -473,47 +338,74 @@ void Maze::generateModelMatrices() {
     floorModelMatrix = glm::translate(glm::vec3(0.0f, 0.0f, -1.0f -3.0f/(2.0f*(numberRows+numberColumns))));
 }
 
-std::vector<DrawObject> Maze::getStaticDrawObjects() {
-    std::vector<DrawObject> objs;
+bool Maze::updateStaticDrawObjects(DrawObjectTable &objs) {
+    if (objs.size() > 0) {
+        // The objects were already updated, add nothing, update nothing.
+        // These objects do not change or move.
+        return false;
+    }
 
     // the floor
-    DrawObject floor = {};
-    floor.indices = floorIndices;
-    floor.vertices = floorVertices;
-    floor.imagePath = TEXTURE_PATH_FLOOR;
-    floor.modelMatrices.push_back(floorModelMatrix);
-    objs.push_back(floor);
+    std::shared_ptr<DrawObject> floor(new DrawObject());
+    floor->indices = floorIndices;
+    floor->vertices = floorVertices;
+    floor->imagePath = floorTexture;
+    floor->modelMatrices.push_back(floorModelMatrix);
+    objs.push_back(std::make_pair(floor, std::shared_ptr<DrawObjectData>()));
 
     // the hole
-    DrawObject hole = {};
-    hole.indices = holeIndices;
-    hole.vertices = holeVertices;
-    hole.imagePath = TEXTURE_PATH_HOLE;
-    hole.modelMatrices.push_back(modelMatrixHole);
-    objs.push_back(hole);
+    std::shared_ptr<DrawObject> hole(new DrawObject());
+    hole->indices = holeIndices;
+    hole->vertices = holeVertices;
+    hole->imagePath = holeTexture;
+    hole->modelMatrices.push_back(modelMatrixHole);
+    objs.push_back(std::make_pair(hole, std::shared_ptr<DrawObjectData>()));
+
+    if (wallTextures.size() == 0) {
+        throw std::runtime_error("Maze wall textures not initialized.");
+    }
 
     // the walls
-    DrawObject wall = {};
-    wall.indices = indices;
-    wall.vertices = vertices;
-    wall.imagePath = TEXTURE_PATH_WALLS;
-    wall.modelMatrices = modelMatricesMaze;
-    objs.push_back(wall);
+    std::vector<std::shared_ptr<DrawObject> > wallObjs;
 
-    return objs;
+    for (size_t i = 0; i < wallTextures.size(); i++) {
+        std::shared_ptr<DrawObject> wall(new DrawObject());
+        wallObjs.push_back(wall);
+    }
+
+    for (auto && modelMatrixMaze : modelMatricesMaze) {
+        uint32_t index = random.getUInt(0, wallTextures.size() - 1);
+        wallObjs[index]->modelMatrices.push_back(modelMatrixMaze);
+    }
+
+    for (size_t i = 0; i < wallObjs.size(); i++) {
+        if (wallObjs[i]->modelMatrices.size() > 0) {
+            wallObjs[i]->indices = indices;
+            wallObjs[i]->vertices = vertices;
+            wallObjs[i]->imagePath = wallTextures[i];
+            objs.push_back(std::make_pair(wallObjs[i], std::shared_ptr<DrawObjectData>()));
+        }
+    }
+
+    return true;
 }
 
-std::vector<DrawObject> Maze::getDynamicDrawObjects() {
-    std::vector<DrawObject> objs;
+bool Maze::updateDynamicDrawObjects(DrawObjectTable &objs) {
+    if (objs.size() == 0) {
+        objs.push_back(std::make_pair(std::shared_ptr<DrawObject>(new DrawObject()), std::shared_ptr<DrawObjectData>()));
+        DrawObject *ballObj = objs[0].first.get();
+        ballObj->indices = ballIndices;
+        ballObj->vertices = ballVertices;
+        ballObj->imagePath = ballTexture;
+    }
 
     // the ball
-    DrawObject ball1 = {};
-    ball1.indices = ballIndices;
-    ball1.vertices = ballVertices;
-    ball1.imagePath = TEXTURE_PATH_BALL;
-    ball1.modelMatrices.push_back(modelMatrixBall);
-    objs.push_back(ball1);
+    DrawObject *ballObj = objs[0].first.get();
+    if (ballObj->modelMatrices.size() == 0) {
+        ballObj->modelMatrices.push_back(modelMatrixBall);
+    } else {
+        ballObj->modelMatrices[0] = modelMatrixBall;
+    }
 
-    return objs;
+    return true;
 }
-
