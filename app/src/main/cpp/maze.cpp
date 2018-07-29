@@ -145,7 +145,7 @@ bool Maze::updateData() {
     }
     modelMatrixBall = glm::translate(ball.position) * glm::toMat4(ball.totalRotated) * scaleBall;
 
-    bool drawingNecessary = glm::length(ball.position - ball.prevPosition) > 0.00005;
+    bool drawingNecessary = glm::length(ball.position - ball.prevPosition) > 0.01;
     if (drawingNecessary) {
         ball.prevPosition = ball.position;
     }
