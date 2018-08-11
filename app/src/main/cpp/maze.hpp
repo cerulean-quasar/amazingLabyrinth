@@ -142,8 +142,11 @@ public:
     virtual bool updateData();
     virtual void generateModelMatrices();
 
-    virtual bool updateStaticDrawObjects(DrawObjectTable &objs);
-    virtual bool updateDynamicDrawObjects(DrawObjectTable &objs);
+    virtual bool updateStaticDrawObjects(DrawObjectTable &objs, TextureMap &textures);
+    virtual bool updateDynamicDrawObjects(DrawObjectTable &objs, TextureMap &textures, bool &texturesChanged);
+    virtual void start() {
+        prevTime = std::chrono::high_resolution_clock::now();
+    }
 
     void initAddWallTexture(std::string const &texturePath) { wallTextures.push_back(texturePath); }
     void initSetFloorTexture(std::string const &texturePath) { floorTexture = texturePath; }

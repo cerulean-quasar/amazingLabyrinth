@@ -22,10 +22,31 @@
 #include "maze.hpp"
 #include "openAreaLevel.hpp"
 
+std::shared_ptr<LevelStarter> getLevelStarter0() {
+    std::shared_ptr<LevelStarter> levelStarter(new  LevelStarter());
+    levelStarter->addTextString("In the\nbeginning of\nthe universe\nof mazes...");
+    levelStarter->addTextString("...there was nothing\nexcept for\na ball and\na strange\nspacial anomaly.");
+    return levelStarter;
+}
+
+std::shared_ptr<LevelStarter> getLevelStarter1() {
+    std::shared_ptr<LevelStarter> levelStarter(new LevelStarter());
+    levelStarter->addTextString("Then came an age\nwhen flowers\ncovered\nthe planet...");
+    levelStarter->addTextString("...and one roller\nbee seeks out\nthe nectar\nof a large flower.");
+    return levelStarter;
+}
+
+std::shared_ptr<LevelStarter> getLevelStarter2() {
+    std::shared_ptr<LevelStarter> levelStarter(new LevelStarter());
+    levelStarter->addTextString("The plants\nbecame more\nnumerous\nand the\nroller bee...");
+    levelStarter->addTextString("...has to search\nlong and hard\nfor the\nlarge flower.");
+    return levelStarter;
+}
+
 std::shared_ptr<Level> getLevel0(uint32_t width, uint32_t height) {
     std::shared_ptr<OpenAreaLevel> openAreaLevel(new OpenAreaLevel());
     openAreaLevel->init(width, height);
-    openAreaLevel->initSetBallTexture("textures/ball.png");
+    openAreaLevel->initSetBallTexture("textures/ballWhite.png");
     openAreaLevel->initSetHoleTexture("textures/holeAnomaly.png");
     return openAreaLevel;
 }
@@ -37,7 +58,7 @@ std::shared_ptr<Level> getLevel1(uint32_t width, uint32_t height) {
     maze->initAddWallTexture("textures/wallFlower2.png");
     maze->initAddWallTexture("textures/wallFlower3.png");
     maze->initAddWallTexture("textures/wallFlower4.png");
-    maze->initSetBallTexture("textures/ball.png");
+    maze->initSetBallTexture("textures/ballBee.png");
     maze->initSetFloorTexture("textures/floor.png");
     maze->initSetHoleTexture("textures/hole.png");
     return maze;
@@ -50,41 +71,45 @@ std::shared_ptr<Level> getLevel2(uint32_t width, uint32_t height) {
     maze->initAddWallTexture("textures/wallFlower2.png");
     maze->initAddWallTexture("textures/wallFlower3.png");
     maze->initAddWallTexture("textures/wallFlower4.png");
-    maze->initSetBallTexture("textures/ball.png");
+    maze->initSetBallTexture("textures/ballBee.png");
     maze->initSetFloorTexture("textures/floor.png");
     maze->initSetHoleTexture("textures/hole.png");
     return maze;
 }
 
-std::shared_ptr<LevelFinish> getLevelFinisher0() {
-    std::shared_ptr<GrowingQuadLevelFinish> levelFinish(new GrowingQuadLevelFinish());
+std::shared_ptr<LevelFinish> getLevelFinisher0(float x, float y) {
+    std::shared_ptr<GrowingQuadLevelFinish> levelFinish(new GrowingQuadLevelFinish(x,y));
     return levelFinish;
 }
 
-std::shared_ptr<LevelFinish> getLevelFinisher1() {
+std::shared_ptr<LevelFinish> getLevelFinisher1(float x, float y) {
     std::shared_ptr<ManyQuadCoverUpLevelFinish> levelFinish(new ManyQuadCoverUpLevelFinish());
     return levelFinish;
 }
 
-std::shared_ptr<LevelFinish> getLevelFinisher2() {
+std::shared_ptr<LevelFinish> getLevelFinisher2(float x, float y) {
     std::shared_ptr<ManyQuadCoverUpLevelFinish> levelFinish(new ManyQuadCoverUpLevelFinish());
     return levelFinish;
 }
 
 LevelTracker::LevelTracker() :currentLevel(0), width(0), height(0) {
-    levelTable[0] = {getLevel0, getLevelFinisher0};
-    levelTable[1] = {getLevel1, getLevelFinisher1};
-    levelTable[2] = {getLevel2, getLevelFinisher2};
+    levelTable[0] = {getLevelStarter0, getLevel0, getLevelFinisher0};
+    levelTable[1] = {getLevelStarter1, getLevel1, getLevelFinisher1};
+    levelTable[2] = {getLevelStarter2, getLevel2, getLevelFinisher2};
 }
 
 void LevelTracker::gotoNextLevel() {
     currentLevel = (currentLevel + 1) % levelTable.size();
 }
 
-std::shared_ptr<Level> LevelTracker::getLevel() {
-    return levelTable[currentLevel].first(width, height);
+std::shared_ptr<LevelStarter> LevelTracker::getLevelStarter() {
+    return levelTable[currentLevel].starter();
 }
 
-std::shared_ptr<LevelFinish> LevelTracker::getLevelFinisher() {
-    return levelTable[currentLevel].second();
-};
+std::shared_ptr<Level> LevelTracker::getLevel() {
+    return levelTable[currentLevel].level(width, height);
+}
+
+std::shared_ptr<LevelFinish> LevelTracker::getLevelFinisher(float centerX = 0.0f, float centerY = 0.0f) {
+    return levelTable[currentLevel].finisher(centerX, centerY);
+}

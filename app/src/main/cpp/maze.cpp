@@ -28,6 +28,7 @@
 #include <stdexcept>
 #include <unordered_map>
 #include <istream>
+#include <cstring>
 
 #define GLM_FORCE_RADIANS
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
@@ -36,15 +37,12 @@
 #include <glm/gtc/quaternion.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtx/transform.hpp>
-#include <cstring>
 
 #include "maze.hpp"
 #include "android.hpp"
 #include "random.hpp"
 #include "graphics.hpp"
 
-static std::string const MODEL_WALL("models/wall.obj");
-static std::string const MODEL_BALL("models/ball.obj");
 static std::string const MODEL_HOLE("models/hole.obj");
 
 void Maze::updateAcceleration(float x, float y, float z) {
@@ -338,7 +336,7 @@ void Maze::generateModelMatrices() {
     floorModelMatrix = glm::translate(glm::vec3(0.0f, 0.0f, -1.0f -3.0f/(2.0f*(numberRows+numberColumns))));
 }
 
-bool Maze::updateStaticDrawObjects(DrawObjectTable &objs) {
+bool Maze::updateStaticDrawObjects(DrawObjectTable &objs, TextureMap &textures) {
     if (objs.size() > 0) {
         // The objects were already updated, add nothing, update nothing.
         // These objects do not change or move.
@@ -349,7 +347,8 @@ bool Maze::updateStaticDrawObjects(DrawObjectTable &objs) {
     std::shared_ptr<DrawObject> floor(new DrawObject());
     floor->indices = floorIndices;
     floor->vertices = floorVertices;
-    floor->imagePath = floorTexture;
+    floor->texture.reset(new TextureDescriptionPath(floorTexture));
+    textures.insert(std::make_pair(floor->texture, std::shared_ptr<TextureData>()));
     floor->modelMatrices.push_back(floorModelMatrix);
     objs.push_back(std::make_pair(floor, std::shared_ptr<DrawObjectData>()));
 
@@ -357,7 +356,8 @@ bool Maze::updateStaticDrawObjects(DrawObjectTable &objs) {
     std::shared_ptr<DrawObject> hole(new DrawObject());
     hole->indices = holeIndices;
     hole->vertices = holeVertices;
-    hole->imagePath = holeTexture;
+    hole->texture.reset(new TextureDescriptionPath(holeTexture));
+    textures.insert(std::make_pair(hole->texture, std::shared_ptr<TextureData>()));
     hole->modelMatrices.push_back(modelMatrixHole);
     objs.push_back(std::make_pair(hole, std::shared_ptr<DrawObjectData>()));
 
@@ -382,7 +382,8 @@ bool Maze::updateStaticDrawObjects(DrawObjectTable &objs) {
         if (wallObjs[i]->modelMatrices.size() > 0) {
             wallObjs[i]->indices = indices;
             wallObjs[i]->vertices = vertices;
-            wallObjs[i]->imagePath = wallTextures[i];
+            wallObjs[i]->texture.reset(new TextureDescriptionPath(wallTextures[i]));
+            textures.insert(std::make_pair(wallObjs[i]->texture, std::shared_ptr<TextureData>()));
             objs.push_back(std::make_pair(wallObjs[i], std::shared_ptr<DrawObjectData>()));
         }
     }
@@ -390,13 +391,17 @@ bool Maze::updateStaticDrawObjects(DrawObjectTable &objs) {
     return true;
 }
 
-bool Maze::updateDynamicDrawObjects(DrawObjectTable &objs) {
+bool Maze::updateDynamicDrawObjects(DrawObjectTable &objs, TextureMap &textures, bool &texturesChanged) {
     if (objs.size() == 0) {
+        texturesChanged = true;
         objs.push_back(std::make_pair(std::shared_ptr<DrawObject>(new DrawObject()), std::shared_ptr<DrawObjectData>()));
         DrawObject *ballObj = objs[0].first.get();
         ballObj->indices = ballIndices;
         ballObj->vertices = ballVertices;
-        ballObj->imagePath = ballTexture;
+        ballObj->texture.reset(new TextureDescriptionPath(ballTexture));
+        textures.insert(std::make_pair(ballObj->texture, std::shared_ptr<TextureData>()));
+    } else {
+        texturesChanged = false;
     }
 
     // the ball

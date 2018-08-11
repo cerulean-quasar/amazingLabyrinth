@@ -36,8 +36,7 @@ public:
     void unveilNewLevel() { shouldUnveil = true; finished = false; }
     bool isUnveiling() { return shouldUnveil; }
 
-    virtual uint32_t getTotalNumberObjects() = 0;
-    virtual bool updateDrawObjects(DrawObjectTable &drawObjects) = 0;
+    virtual bool updateDrawObjects(DrawObjectTable &drawObjects, TextureMap &textures, bool &texturesUpdated) = 0;
     virtual bool isDone() = 0;
     virtual ~LevelFinish() {}
 };
@@ -57,8 +56,7 @@ private:
     std::chrono::high_resolution_clock::time_point prevTime;
     std::vector<std::string> imagePaths;
 public:
-    virtual uint32_t getTotalNumberObjects();
-    virtual bool updateDrawObjects(DrawObjectTable &drawObjects);
+    virtual bool updateDrawObjects(DrawObjectTable &drawObjects, TextureMap &textures, bool &texturesUpdated);
     virtual bool isDone() { return finished; }
     ManyQuadCoverUpLevelFinish();
 };
@@ -70,15 +68,17 @@ private:
     float const totalTime = 2.0f; // seconds
     float const finalSize = 1.5f;
     float const minSize = 0.005f;
+    float const transZ = 0.5f;
 
     float timeSoFar;
     std::string imagePath;
     glm::vec3 scaleVector;
+
+    glm::vec3 transVector;
 public:
-    virtual uint32_t getTotalNumberObjects() { return 1; }
-    virtual bool updateDrawObjects(DrawObjectTable &drawObjects);
+    virtual bool updateDrawObjects(DrawObjectTable &drawObjects, TextureMap &textures, bool &texturesUpdated);
     virtual bool isDone() { return finished; }
 
-    GrowingQuadLevelFinish();
+    GrowingQuadLevelFinish(float x = 0.0f, float y = 0.0f);
 };
 #endif

@@ -23,9 +23,13 @@
 #include <vector>
 
 #include <glm/glm.hpp>
+#include <map>
 #include "vulkanWrapper.hpp"
 
 #include "android.hpp"
+
+static std::string const MODEL_WALL("models/wall.obj");
+static std::string const MODEL_BALL("models/ball.obj");
 
 struct Vertex {
     glm::vec3 pos;
@@ -61,18 +65,83 @@ namespace std {
     };
 }
 
+class TextureDescriptionPtrLess;
+
+class TextureDescription {
+    friend TextureDescriptionPtrLess;
+protected:
+    virtual bool compare(TextureDescription *) = 0;
+public:
+    virtual std::vector<char> getData(uint32_t &texWidth, uint32_t &texHeight, uint32_t &texChannels) = 0;
+    virtual ~TextureDescription() {}
+};
+
+class TextureDescriptionPath : public TextureDescription {
+    std::string imagePath;
+protected:
+    virtual bool compare(TextureDescription *other) {
+        TextureDescriptionPath *otherPath = static_cast<TextureDescriptionPath*>(other);
+        return imagePath < otherPath->imagePath;
+    }
+public:
+    TextureDescriptionPath(std::string const &inImagePath) {
+        imagePath = inImagePath;
+    }
+    virtual std::vector<char> getData(uint32_t &texWidth, uint32_t &texHeight, uint32_t &texChannels);
+};
+
+class TextureDescriptionText : public TextureDescription {
+    std::string textString;
+protected:
+    bool compare(TextureDescription *other) {
+        TextureDescriptionText *otherPath = static_cast<TextureDescriptionText*>(other);
+        return textString < otherPath->textString;
+    }
+public:
+    TextureDescriptionText(std::string const &inTextString) {
+        textString = inTextString;
+    }
+    virtual std::vector<char> getData(uint32_t &texWidth, uint32_t &texHeight, uint32_t &texChannels);
+};
+
+class TextureData {
+public:
+    virtual ~TextureData() { }
+};
+
+class TextureDescriptionPtrLess {
+public:
+    bool operator() (std::shared_ptr<TextureDescription> const &p1,
+                     std::shared_ptr<TextureDescription> const &p2) const {
+        std::type_info const &c1 = typeid(p1.get());
+        std::type_info const &c2 = typeid(p2.get());
+        if (c1 != c2) {
+            return c1.before(c2);
+        } else if (p1.get() == p2.get()) {
+            return false;
+        } else {
+            return p1->compare(p2.get());
+        }
+    }
+};
+
+typedef std::map<std::shared_ptr<TextureDescription>, std::shared_ptr<TextureData>,
+                 TextureDescriptionPtrLess > TextureMap;
+
 struct DrawObject {
     std::vector<Vertex> vertices;
     std::vector<uint32_t> indices;
-    std::string imagePath;
     std::vector<glm::mat4> modelMatrices;
+    std::shared_ptr<TextureDescription> texture;
 };
 
 struct DrawObjectData {
     virtual ~DrawObjectData() {}
 };
+
 typedef std::pair<std::shared_ptr<DrawObject>, std::shared_ptr<DrawObjectData> > DrawObjectEntry;
 typedef std::vector<DrawObjectEntry> DrawObjectTable;
+
 struct UniformBufferObject {
     glm::mat4 model;
     glm::mat4 view;

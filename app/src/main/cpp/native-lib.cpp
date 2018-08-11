@@ -57,7 +57,7 @@ ASensorManager *sensorManager = nullptr;
 ASensor const *sensor = nullptr;
 ASensorEventQueue *eventQueue = nullptr;
 ALooper *looper = nullptr;
-
+JNIEnv *gEnv = nullptr;
 std::unique_ptr<Graphics> graphics;
 
 extern "C" JNIEXPORT jstring JNICALL
@@ -68,6 +68,7 @@ Java_com_quasar_cerulean_amazinglabyrinth_MainActivity_initPipeline(
         jobject drawingSurface,
         jobject assetManager)
 {
+    gEnv = env;
     sensorManager = ASensorManager_getInstance();
     sensor = ASensorManager_getDefaultSensor(sensorManager, ASENSOR_TYPE_ACCELEROMETER);
     if (sensor == nullptr) {
@@ -108,6 +109,7 @@ Java_com_quasar_cerulean_amazinglabyrinth_MainActivity_initPipeline(
         graphics->init(window);
     } catch (std::runtime_error &e) {
         graphics->cleanup();
+        graphics.reset();
         return env->NewStringUTF(e.what());
     }
 
@@ -124,6 +126,7 @@ Java_com_quasar_cerulean_amazinglabyrinth_Draw_draw(
         return env->NewStringUTF("");
     }
 
+    gEnv = env;
     try {
         graphics->initThread();
         int rc = ASensorEventQueue_enableSensor(eventQueue, sensor);
@@ -197,4 +200,51 @@ Java_com_quasar_cerulean_amazinglabyrinth_MainActivity_destroyNativeSurface(
         jobject thisptr)
 {
     graphics->cleanup();
+}
+
+std::vector<char> getTextImage(std::string text, uint32_t &width, uint32_t &height, uint32_t &channels) {
+    jclass imageLoaderClass = gEnv->FindClass("com/quasar/cerulean/amazinglabyrinth/TextImageLoader");
+    jmethodID mid = gEnv->GetMethodID(imageLoaderClass, "<init>", "(Ljava/lang/String;)V");
+    if (mid == 0) {
+        throw (std::runtime_error("Could not find method in fetching the image for text"));
+    }
+    jstring jtext = gEnv->NewStringUTF(text.c_str());
+    jobject imageLoader = gEnv->NewObject(imageLoaderClass, mid, jtext);
+
+    mid = gEnv->GetMethodID(imageLoaderClass, "getImageSize", "()I");
+    if (mid == 0) {
+        throw (std::runtime_error("Could not find method in fetching the image for text"));
+    }
+    jint jsize = gEnv->CallIntMethod(imageLoader, mid);
+
+    mid = gEnv->GetMethodID(imageLoaderClass, "getImageWidth", "()I");
+    if (mid == 0) {
+        throw (std::runtime_error("Could not find method in fetching the image for text"));
+    }
+    jint jwidth = gEnv->CallIntMethod(imageLoader, mid);
+    width = static_cast<uint32_t> (jwidth);
+
+    mid = gEnv->GetMethodID(imageLoaderClass, "getImageHeight", "()I");
+    if (mid == 0) {
+        throw (std::runtime_error("Could not find method in fetching the image for text"));
+    }
+    jint jheight = gEnv->CallIntMethod(imageLoader, mid);
+    height = static_cast<uint32_t> (jheight);
+
+    jbyteArray jimageData = gEnv->NewByteArray(jsize);
+    mid = gEnv->GetMethodID(imageLoaderClass, "getImageData", "([B)V");
+    if (mid == 0) {
+        throw (std::runtime_error("Could not find method in fetching the image for text"));
+    }
+    gEnv->CallVoidMethod(imageLoader, mid, jimageData);
+
+    std::vector<char> imageData;
+    size_t size = static_cast<size_t> (jsize);
+    imageData.resize(size);
+    jbyte *bytes = gEnv->GetByteArrayElements(jimageData, nullptr);
+    memcpy(imageData.data(), bytes, size);
+    gEnv->ReleaseByteArrayElements(jimageData, bytes, JNI_ABORT);
+
+    channels = 4;
+    return imageData;
 }

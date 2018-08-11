@@ -52,11 +52,8 @@ ManyQuadCoverUpLevelFinish::ManyQuadCoverUpLevelFinish() : totalNumberReturned(0
     }
 }
 
-uint32_t ManyQuadCoverUpLevelFinish::getTotalNumberObjects() {
-    return totalNumberObjects;
-}
-
-bool ManyQuadCoverUpLevelFinish::updateDrawObjects(DrawObjectTable &drawObjects) {
+bool ManyQuadCoverUpLevelFinish::updateDrawObjects(DrawObjectTable &drawObjects, TextureMap &textures, bool &texturesUpdated) {
+    texturesUpdated = false;
     auto currentTime = std::chrono::high_resolution_clock::now();
     float time = std::chrono::duration<float, std::chrono::seconds::period>(
             currentTime - prevTime).count();
@@ -91,24 +88,23 @@ bool ManyQuadCoverUpLevelFinish::updateDrawObjects(DrawObjectTable &drawObjects)
         translateVector.z = 0.1f + totalNumberReturned * 0.01f;
         glm::mat4 trans = glm::translate(translateVector);
 
-        std::string const &image = imagePaths[random.getUInt(0, imagePaths.size() - 1)];
-
-        bool found = false;
-        for (auto &&drawObject : drawObjects) {
-            if (drawObject.first->imagePath == image) {
-                found = true;
-                drawObject.first->modelMatrices.push_back(trans * scale);
-                break;
-            }
-        }
-
-        if (!found) {
+        // the first imagePaths.size() objects are the linear order of objects in imagePaths,
+        // then a texture image is selected at random.
+        size_t index;
+        if (totalNumberReturned < imagePaths.size()) {
+            index = drawObjects.size();
             std::shared_ptr<DrawObject> obj(new DrawObject());
             obj->modelMatrices.push_back(trans * scale);
-            obj->imagePath = image;
+            obj->texture.reset(new TextureDescriptionPath(imagePaths[index]));
+            textures.insert(std::make_pair(obj->texture, std::shared_ptr<TextureData>()));
             getQuad(obj->vertices, obj->indices);
+            obj->modelMatrices.push_back(trans * scale);
 
             drawObjects.push_back(std::make_pair(obj, std::shared_ptr<DrawObjectData>()));
+            texturesUpdated = true;
+        } else {
+            index = random.getUInt(0, imagePaths.size() - 1);
+            drawObjects[index].first->modelMatrices.push_back(trans * scale);
         }
 
         totalNumberReturned++;
@@ -117,13 +113,15 @@ bool ManyQuadCoverUpLevelFinish::updateDrawObjects(DrawObjectTable &drawObjects)
     return true;
 }
 
-GrowingQuadLevelFinish::GrowingQuadLevelFinish() {
+GrowingQuadLevelFinish::GrowingQuadLevelFinish(float x, float y) {
+    transVector = {x, y, transZ};
     prevTime = std::chrono::high_resolution_clock::now();
     timeSoFar = 0.0f;
     imagePath = "textures/starField.png";
 }
 
-bool GrowingQuadLevelFinish::updateDrawObjects(DrawObjectTable &drawObjects) {
+bool GrowingQuadLevelFinish::updateDrawObjects(DrawObjectTable &drawObjects, TextureMap &textures, bool &texturesUpdated) {
+    texturesUpdated = false;
     if (finished) {
         return false;
     }
@@ -150,14 +148,16 @@ bool GrowingQuadLevelFinish::updateDrawObjects(DrawObjectTable &drawObjects) {
         std::shared_ptr<DrawObject> obj(new DrawObject());
 
         getQuad(obj->vertices, obj->indices);
-        obj->imagePath = imagePath;
-        obj->modelMatrices.push_back(glm::scale(scaleVector));
+        obj->texture.reset(new TextureDescriptionPath(imagePath));
+        textures.insert(std::make_pair(obj->texture, std::shared_ptr<TextureData>()));
+        obj->modelMatrices.push_back(glm::translate(transVector) * glm::scale(scaleVector));
         drawObjects.push_back(std::make_pair(obj, std::shared_ptr<DrawObjectData>()));
+        texturesUpdated = true;
     } else {
         timeSoFar += time;
         size = size + multiplier * timeSoFar / totalTime * (finalSize - minSize);
         scaleVector = {size, size, size};
-        drawObjects[0].first->modelMatrices[0] = glm::scale(scaleVector);
+        drawObjects[0].first->modelMatrices[0] = glm::translate(transVector) * glm::scale(scaleVector);
         if (size >= finalSize && !shouldUnveil) {
             timeSoFar = 0.0f;
             finished = true;

@@ -92,11 +92,19 @@ public:
     virtual glm::vec4 getBackgroundColor() { return {0.0f, 0.0f, 0.0f, 1.0f}; }
     virtual bool updateData();
     virtual void generateModelMatrices();
-    virtual bool updateStaticDrawObjects(DrawObjectTable &objs);
-    virtual bool updateDynamicDrawObjects(DrawObjectTable &objs);
+    virtual bool updateStaticDrawObjects(DrawObjectTable &objs, TextureMap &textures);
+    virtual bool updateDynamicDrawObjects(DrawObjectTable &objs, TextureMap &textures, bool &texturesChanged);
+    virtual void start() {
+        prevTime = std::chrono::high_resolution_clock::now();
+    }
 
     void initSetHoleTexture(std::string const &texture) { holeTexture = texture; }
     void initSetBallTexture(std::string const &texture) { ballTexture = texture; }
+
+    void getLevelFinisherCenter(float &x, float &y) {
+        x = holePosition.x;
+        y = holePosition.y;
+    }
 
     virtual ~OpenAreaLevel() {}
 };

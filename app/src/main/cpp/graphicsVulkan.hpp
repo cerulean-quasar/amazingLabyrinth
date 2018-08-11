@@ -45,6 +45,7 @@
 #include "maze.hpp"
 #include "levelFinish.hpp"
 #include "levelTracker.hpp"
+#include "levelStarter.hpp"
 
 const std::vector<const char*> validationLayers = {
     /* required for checking for errors and getting error messages */
@@ -230,23 +231,23 @@ private:
     };
     DescriptorPools descriptorPools;
 
-    struct TextureObject {
+    struct TextureDataVulkan : public TextureData {
         VkImage image;
         VkDeviceMemory memory;
         VkImageView imageView;
         VkSampler sampler;
 
-        ~TextureObject() {
+        virtual ~TextureDataVulkan() {
             vkDestroySampler(logicalDevice, sampler, nullptr);
             vkDestroyImageView(logicalDevice, imageView, nullptr);
             vkDestroyImage(logicalDevice, image, nullptr);
             vkFreeMemory(logicalDevice, memory, nullptr);
         }
     };
-    typedef std::map<std::string, std::shared_ptr<TextureObject> > TextureTable;
-    TextureTable texturesLevel;
-    TextureTable texturesLevelFinisher;
-    typedef TextureTable::iterator TextureIterator;
+    TextureMap texturesLevel;
+    TextureMap texturesLevelStarter;
+    TextureMap texturesLevelFinisher;
+    bool texturesChanged = false;
 
     std::vector<VkImage> swapChainImages;
     std::vector<VkImageView> swapChainImageViews;
@@ -255,8 +256,8 @@ private:
     VkExtent2D swapChainExtent;
     VkRenderPass renderPass = VK_NULL_HANDLE;
 
-    VkBuffer uniformBufferLighting;
-    VkDeviceMemory uniformBufferMemoryLighting;
+    VkBuffer uniformBufferLighting = VK_NULL_HANDLE;
+    VkDeviceMemory uniformBufferMemoryLighting = VK_NULL_HANDLE;
 
     struct UniformWrapper {
         /* for passing data other than the vertex data to the vertex shader */
@@ -306,9 +307,12 @@ private:
     DrawObjectTable staticObjsData;
     DrawObjectTable dynObjsData;
     DrawObjectTable levelFinisherObjsData;
+    DrawObjectTable levelStarterStaticObjsData;
+    DrawObjectTable levelStarterDynObjsData;
 
     std::shared_ptr<Level> maze;
     std::shared_ptr<LevelFinish> levelFinisher;
+    std::shared_ptr<LevelStarter> levelStarter;
     LevelTracker levelTracker;
 
     VkPipelineLayout pipelineLayout;
@@ -352,11 +356,14 @@ private:
 
     void createSurface();
 
-    void addTextures(DrawObjectTable const &objs, TextureTable &texture);
-    void addTexture(DrawObjectEntry const &obj, TextureTable &texture);
-    void addObjects(DrawObjectTable &objs, TextureTable &texture);
-    void addObject(DrawObjectEntry &obj, TextureTable &texture);
-    void addUniforms(DrawObjectEntry &obj, TextureTable &texture);
+    void addTextures(TextureMap &texture);
+    UniformBufferObject getViewPerspectiveMatrix();
+    void addObjects(DrawObjectTable &objs, TextureMap &texture);
+    void addObject(DrawObjectEntry &obj, TextureMap &texture);
+    void addUniforms(DrawObjectEntry &obj, TextureMap &texture);
+    bool updateLevelData(Level *level, DrawObjectTable &objsData, TextureMap &textures);
+    void initializeLevelData(Level *level, DrawObjectTable &staticObjsData,
+                             DrawObjectTable &dynObjsData, TextureMap &textures);
     void createUniformBuffer(VkBuffer &uniformBuffer, VkDeviceMemory &uniformBufferMemory);
     void createVertexBuffer(std::vector<Vertex> const &vertices, VkBuffer &vertexBuffer, VkDeviceMemory &vertexBufferMemory);
     void createIndexBuffer(std::vector<uint32_t> const &indices, VkBuffer &indexBuffer, VkDeviceMemory &indexBufferMemory);
@@ -399,7 +406,7 @@ private:
     bool hasStencilComponent(VkFormat format);
     void updateDescriptorSet(VkBuffer uniformBuffer, VkImageView imageView, VkSampler textureSampler, VkBuffer lightingSource, VkDescriptorSet &descriptorSet);
     void createDescriptorSetLayout(VkDescriptorSetLayout &descriptorSetLayout);
-    void createTextureImage(std::string const &path, VkImage &textureImage, VkDeviceMemory &textureImageMemory);
+    void createTextureImage(TextureDescription *texture, VkImage &textureImage, VkDeviceMemory &textureImageMemory);
     void createTextureSampler(VkSampler &textureSampler);
     VkImageView createImageView(VkImage image, VkFormat format, VkImageAspectFlags aspectFlags);
     void createImage(uint32_t width, uint32_t height, VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage, VkMemoryPropertyFlags properties, VkImage& image, VkDeviceMemory& imageMemory);

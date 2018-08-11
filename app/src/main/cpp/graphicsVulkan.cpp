@@ -83,21 +83,20 @@ void GraphicsVulkan::init(WindowType *inWindow) {
     createCommandPool();
 
     levelTracker.setParameters(swapChainExtent.width, swapChainExtent.height);
+    levelStarter = levelTracker.getLevelStarter();
     maze = levelTracker.getLevel();
-    levelFinisher = levelTracker.getLevelFinisher();
+    float x, y;
+    maze->getLevelFinisherCenter(x, y);
+    levelFinisher = levelTracker.getLevelFinisher(x,y);
 
-    maze->updateStaticDrawObjects(staticObjsData);
-    maze->updateDynamicDrawObjects(dynObjsData);
-    addTextures(staticObjsData, texturesLevel);
-    addTextures(dynObjsData, texturesLevel);
+    bool tc;
+    maze->updateStaticDrawObjects(staticObjsData, texturesLevel);
+    maze->updateDynamicDrawObjects(dynObjsData, texturesLevel, tc);
+    addTextures(texturesLevel);
 
-    uint32_t nbrObjs = 0;
-    for (auto &&obj : staticObjsData) {
-        nbrObjs += obj.first->modelMatrices.size();
-    }
-    for (auto &&obj : dynObjsData) {
-        nbrObjs += obj.first->modelMatrices.size();
-    }
+    levelStarter->updateStaticDrawObjects(levelStarterStaticObjsData, texturesLevelStarter);
+    levelStarter->updateDynamicDrawObjects(levelStarterDynObjsData, texturesLevelStarter, tc);
+    addTextures(texturesLevelStarter);
 
     createUniformBuffer(uniformBufferLighting, uniformBufferMemoryLighting);
     void* data;
@@ -109,6 +108,9 @@ void GraphicsVulkan::init(WindowType *inWindow) {
     addObjects(staticObjsData, texturesLevel);
     addObjects(dynObjsData, texturesLevel);
 
+    addObjects(levelStarterStaticObjsData, texturesLevelStarter);
+    addObjects(levelStarterDynObjsData, texturesLevelStarter);
+
     createDepthResources();
     createFramebuffers();
 
@@ -116,31 +118,26 @@ void GraphicsVulkan::init(WindowType *inWindow) {
     createSemaphores();
 }
 
-void GraphicsVulkan::addTextures(DrawObjectTable const &objs, TextureTable &textures) {
-    for (auto&& obj : objs) {
-        addTexture(obj, textures);
+void GraphicsVulkan::addTextures(TextureMap &textures) {
+    for (TextureMap::iterator it = textures.begin(); it != textures.end(); it++) {
+        if (it->second.get() == nullptr) {
+            std::shared_ptr<TextureDataVulkan> texture(new TextureDataVulkan());
+            createTextureImage(it->first.get(), texture->image, texture->memory);
+            texture->imageView = createImageView(texture->image, VK_FORMAT_R8G8B8A8_UNORM,
+                                                 VK_IMAGE_ASPECT_COLOR_BIT);
+            createTextureSampler(texture->sampler);
+            it->second = texture;
+        }
     }
 }
 
-void GraphicsVulkan::addTexture(DrawObjectEntry const &obj, TextureTable &textures) {
-    TextureIterator it = textures.find(obj.first->imagePath);
-    if (it == textures.end()) {
-        std::shared_ptr<TextureObject> texture(new TextureObject());
-        createTextureImage(obj.first->imagePath, texture->image, texture->memory);
-        texture->imageView = createImageView(texture->image, VK_FORMAT_R8G8B8A8_UNORM,
-                                             VK_IMAGE_ASPECT_COLOR_BIT);
-        createTextureSampler(texture->sampler);
-        textures.insert(std::make_pair(obj.first->imagePath, texture));
-    }
-}
-
-void GraphicsVulkan::addObjects(DrawObjectTable &objs, TextureTable &textures) {
+void GraphicsVulkan::addObjects(DrawObjectTable &objs, TextureMap &textures) {
     for (auto &&obj : objs) {
         addObject(obj, textures);
     }
 }
 
-void GraphicsVulkan::addObject(DrawObjectEntry &obj, TextureTable &textures) {
+void GraphicsVulkan::addObject(DrawObjectEntry &obj, TextureMap &textures) {
     std::shared_ptr<DrawObjectDataVulkan> objData(new DrawObjectDataVulkan());
     createVertexBuffer(obj.first->vertices, objData->vertexBuffer, objData->vertexBufferMemory);
     createIndexBuffer(obj.first->indices, objData->indexBuffer, objData->indexBufferMemory);
@@ -150,19 +147,13 @@ void GraphicsVulkan::addObject(DrawObjectEntry &obj, TextureTable &textures) {
     addUniforms(obj, textures);
 }
 
-void GraphicsVulkan::addUniforms(DrawObjectEntry &obj, TextureTable &textures) {
+void GraphicsVulkan::addUniforms(DrawObjectEntry &obj, TextureMap &textures) {
     DrawObjectDataVulkan *data = dynamic_cast<DrawObjectDataVulkan*> (obj.second.get());
     if (obj.first->modelMatrices.size() == data->uniforms.size()) {
         return;
     }
 
-    UniformBufferObject ubo = {};
-    ubo.proj = maze->getProjectionMatrix();
-    /* GLM has the y axis inverted from Vulkan's perspective, invert the y-axis on the
-     * projection matrix.
-     */
-    ubo.proj[1][1] *= -1;
-    ubo.view = maze->getViewMatrix();
+    UniformBufferObject ubo = getViewPerspectiveMatrix();
 
     for (size_t i = data->uniforms.size(); i < obj.first->modelMatrices.size(); i++) {
         VkBuffer uniformBuffer;
@@ -175,12 +166,13 @@ void GraphicsVulkan::addUniforms(DrawObjectEntry &obj, TextureTable &textures) {
         memcpy(ptr, &ubo, sizeof(ubo));
         vkUnmapMemory(logicalDevice, uniformBufferMemory);
 
-        TextureIterator it = textures.find(obj.first->imagePath);
+        TextureMap::iterator it = textures.find(obj.first->texture);
         if (it == textures.end()) {
             throw std::runtime_error("Could not find texture in texture map.");
         }
         VkDescriptorSet descriptorSet = descriptorPools.allocateDescriptor();
-        updateDescriptorSet(uniformBuffer, it->second->imageView, it->second->sampler,
+        TextureDataVulkan *textureData = static_cast<TextureDataVulkan*> (it->second.get());
+        updateDescriptorSet(uniformBuffer, textureData->imageView, textureData->sampler,
                             uniformBufferLighting, descriptorSet);
 
         std::shared_ptr<UniformWrapper> uniform(new UniformWrapper(descriptorSet, uniformBuffer,
@@ -198,6 +190,7 @@ void GraphicsVulkan::cleanup() {
     levelFinisherObjsData.clear();
     texturesLevel.clear();
     texturesLevelFinisher.clear();
+    texturesLevelStarter.clear();
 
     if (logicalDevice != VK_NULL_HANDLE) {
         vkDestroyBuffer(logicalDevice, uniformBufferLighting, nullptr);
@@ -1341,6 +1334,12 @@ void GraphicsVulkan::initializeCommandBuffer(VkCommandBuffer &commandBuffer, siz
     // the objects that move.
     initializeCommandBufferDrawObjects(commandBuffer, dynObjsData);
 
+    // the level starter
+    if (levelStarter.get() != nullptr) {
+        initializeCommandBufferDrawObjects(commandBuffer, levelStarterStaticObjsData);
+        initializeCommandBufferDrawObjects(commandBuffer, levelStarterDynObjsData);
+    }
+
     // the level finisher objects.
     if (maze->isFinished() || levelFinisher->isUnveiling()) {
         initializeCommandBufferDrawObjects(commandBuffer, levelFinisherObjsData);
@@ -1405,12 +1404,14 @@ void GraphicsVulkan::drawFrame() {
         std::numeric_limits<uint64_t>::max(), imageAvailableSemaphore, VK_NULL_HANDLE,
         &imageIndex);
 
-    if (maze->isFinished() || levelFinisher->isUnveiling()) {
-        // The user completed the maze.  We need to display the level finished animation.  Since
-        // there are additional objects, we need to rewrite the command buffer to display the new
-        // objects.
+    //if (maze->isFinished() || levelFinisher->isUnveiling() || texturesChanged) {
+        // The user completed the maze or the textures changed.  If the maze is completed, we need
+        // to display the level finished animation.  Since there are additional objects, we need to
+        // rewrite the command buffer to display the new objects.  If the textures changed, then we
+        // need to update the descriptor sets, so the command buffers need to be rewritten.
         initializeCommandBuffer(commandBuffers[imageIndex], imageIndex);
-    }
+        texturesChanged = false;
+    //}
 
     /* If the window surface is no longer compatible with the swap chain, then we need to
      * recreate the swap chain and let the next call draw the image.
@@ -1535,20 +1536,6 @@ bool GraphicsVulkan::hasStencilComponent(VkFormat format) {
 void GraphicsVulkan::updateDescriptorSet(VkBuffer uniformBuffer, VkImageView imageView,
                                          VkSampler textureSampler, VkBuffer lightingSource,
                                          VkDescriptorSet &descriptorSet) {
-    /*
-    VkDescriptorSetLayout layouts[] = {descriptorSetLayout};
-    VkDescriptorSetAllocateInfo allocInfo = {};
-    allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
-    allocInfo.descriptorPool = descriptorPool;
-    allocInfo.descriptorSetCount = 1;
-    allocInfo.pSetLayouts = layouts;
-
-    int rc = vkAllocateDescriptorSets(logicalDevice, &allocInfo, &descriptorSet);
-    if (rc != VK_SUCCESS) {
-        throw std::runtime_error("failed to allocate descriptor set!");
-    }
-     */
-
     VkDescriptorBufferInfo bufferInfo = {};
     bufferInfo.buffer = uniformBuffer;
     bufferInfo.offset = 0;
@@ -1606,31 +1593,6 @@ void GraphicsVulkan::updateDescriptorSet(VkBuffer uniformBuffer, VkImageView ima
     vkUpdateDescriptorSets(logicalDevice, static_cast<uint32_t>(descriptorWrites.size()), descriptorWrites.data(), 0, nullptr);
 }
 
-
-/* descriptor pool for the MVP matrix and image sampler */
-/*
-void GraphicsVulkan::createDescriptorPool(uint32_t nbrObjs) {
-    std::array<VkDescriptorPoolSize, 3> poolSizes = {};
-
-    // one for each wall and +3 for the floor, ball, and hole.
-    poolSizes[0].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-    poolSizes[0].descriptorCount = nbrObjs;
-    poolSizes[1].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-    poolSizes[1].descriptorCount = nbrObjs;
-    poolSizes[2].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-    poolSizes[2].descriptorCount = nbrObjs;
-    VkDescriptorPoolCreateInfo poolInfo = {};
-    poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
-    poolInfo.poolSizeCount = static_cast<uint32_t>(poolSizes.size());
-    poolInfo.pPoolSizes = poolSizes.data();
-    poolInfo.maxSets = nbrObjs;
-
-    if (vkCreateDescriptorPool(logicalDevice, &poolInfo, nullptr, &descriptorPool) != VK_SUCCESS) {
-        throw std::runtime_error("failed to create descriptor pool!");
-    }
-}
-*/
-
 /* for accessing data other than the vertices from the shaders */
 void GraphicsVulkan::createDescriptorSetLayout(VkDescriptorSetLayout &descriptorSetLayout) {
     /* MVP matrix */
@@ -1670,20 +1632,12 @@ void GraphicsVulkan::createDescriptorSetLayout(VkDescriptorSetLayout &descriptor
     }
 }
 
-void GraphicsVulkan::createTextureImage(std::string const &path, VkImage &textureImage, VkDeviceMemory &textureImageMemory) {
-    int texHeight;
-    int texWidth;
-    int texChannels;
+void GraphicsVulkan::createTextureImage(TextureDescription *texture, VkImage &textureImage, VkDeviceMemory &textureImageMemory) {
+    uint32_t texHeight;
+    uint32_t texWidth;
+    uint32_t texChannels;
 
-    AssetStreambuf imageStreambuf(assetWrapper->getAsset(path));
-    std::istream imageStream(&imageStreambuf);
-
-    stbi_io_callbacks clbk;
-    clbk.read = istreamRead;
-    clbk.skip = istreamSkip;
-    clbk.eof = istreamEof;
-
-    stbi_uc *pixels = stbi_load_from_callbacks(&clbk, &imageStream, &texWidth, &texHeight, &texChannels, STBI_rgb_alpha);
+    std::vector<char> pixels = texture->getData(texWidth, texHeight, texChannels);
 
     VkDeviceSize imageSize = texWidth*texHeight*texChannels;
 
@@ -1697,11 +1651,8 @@ void GraphicsVulkan::createTextureImage(std::string const &path, VkImage &textur
 
     void* data;
     vkMapMemory(logicalDevice, stagingBufferMemory, 0, imageSize, 0, &data);
-    memcpy(data, pixels, static_cast<size_t>(imageSize));
+    memcpy(data, pixels.data(), static_cast<size_t>(imageSize));
     vkUnmapMemory(logicalDevice, stagingBufferMemory);
-
-    /* free the CPU memory for the image */
-    stbi_image_free(pixels);
 
     VkFormat format = VK_FORMAT_R8G8B8A8_UNORM;//VK_FORMAT_R8_UNORM;
     createImage(texWidth, texHeight, format, VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, textureImage, textureImageMemory);
@@ -2031,9 +1982,7 @@ void GraphicsVulkan::destroyWindow() {
     }
 }
 
-bool GraphicsVulkan::updateData() {
-    bool drawingNecessary = false;
-
+UniformBufferObject GraphicsVulkan::getViewPerspectiveMatrix() {
     UniformBufferObject ubo = {};
     ubo.proj = maze->getProjectionMatrix();
     /* GLM has the y axis inverted from Vulkan's perspective, invert the y-axis on the
@@ -2041,46 +1990,61 @@ bool GraphicsVulkan::updateData() {
      */
     ubo.proj[1][1] *= -1;
     ubo.view = maze->getViewMatrix();
+    return ubo;
+}
 
+bool GraphicsVulkan::updateData() {
+    bool drawingNecessary = false;
+
+    UniformBufferObject ubo = getViewPerspectiveMatrix();
     if (maze->isFinished() || levelFinisher->isUnveiling()) {
         if (levelFinisher->isUnveiling()) {
             if (levelFinisher->isDone()) {
                 levelFinisherObjsData.clear();
                 texturesLevelFinisher.clear();
-                levelFinisher = levelTracker.getLevelFinisher();
+                float x, y;
+                maze->getLevelFinisherCenter(x, y);
+                levelFinisher = levelTracker.getLevelFinisher(x, y);
+                levelStarter->start();
                 return false;
             }
         } else {
             if (levelFinisher->isDone()) {
-                staticObjsData.clear();
-                dynObjsData.clear();
-                texturesLevel.clear();
 
                 levelTracker.gotoNextLevel();
 
+                levelStarter = levelTracker.getLevelStarter();
+                initializeLevelData(levelStarter.get(), levelStarterStaticObjsData,
+                                    levelStarterDynObjsData, texturesLevelStarter);
+
                 maze = levelTracker.getLevel();
-                maze->updateStaticDrawObjects(staticObjsData);
-                maze->updateDynamicDrawObjects(dynObjsData);
-                addTextures(staticObjsData, texturesLevel);
-                addTextures(dynObjsData, texturesLevel);
-                addObjects(staticObjsData, texturesLevel);
-                addObjects(dynObjsData, texturesLevel);
+                initializeLevelData(maze.get(), staticObjsData, dynObjsData, texturesLevel);
 
                 levelFinisher->unveilNewLevel();
                 return false;
             }
         }
 
-        drawingNecessary = levelFinisher->updateDrawObjects(levelFinisherObjsData);
+        drawingNecessary = levelFinisher->updateDrawObjects(levelFinisherObjsData,
+                                                            texturesLevelFinisher, texturesChanged);
         if (!drawingNecessary) {
             return false;
         }
 
+        if (texturesChanged) {
+            addTextures(texturesLevelFinisher);
+            for (auto &&obj : levelFinisherObjsData) {
+                DrawObjectDataVulkan *objData = static_cast<DrawObjectDataVulkan *> (obj.second.get());
+                if (objData != nullptr) {
+                    objData->uniforms.clear();
+                }
+            }
+        }
+
         for (auto &&objData : levelFinisherObjsData) {
-            DrawObjectDataVulkan *data = dynamic_cast<DrawObjectDataVulkan*> (objData.second.get());
+            DrawObjectDataVulkan *data = static_cast<DrawObjectDataVulkan *> (objData.second.get());
             if (data == nullptr) {
                 // a completely new entry
-                addTexture(objData, texturesLevelFinisher);
                 addObject(objData, texturesLevelFinisher);
             } else if (data->uniforms.size() < objData.first->modelMatrices.size()) {
                 // a new model matrix (new object but same texture, vertices and indices).
@@ -2101,19 +2065,58 @@ bool GraphicsVulkan::updateData() {
                 }
             }
         }
-    } else {
-        drawingNecessary = maze->updateData();
-
-        if (!drawingNecessary) {
+    } else if (levelStarter.get() != nullptr) {
+        drawingNecessary = updateLevelData(levelStarter.get(), levelStarterDynObjsData, texturesLevelStarter);
+        if (levelStarter->isFinished()) {
+            levelStarter.reset();
+            levelStarterDynObjsData.clear();
+            levelStarterStaticObjsData.clear();
+            texturesLevelStarter.clear();
+            maze->start();
             return false;
         }
+    } else {
+        drawingNecessary = updateLevelData(maze.get(), dynObjsData, texturesLevel);
+    }
 
-        maze->updateDynamicDrawObjects(dynObjsData);
-        for (auto &&obj : dynObjsData) {
+    return drawingNecessary;
+}
+
+void GraphicsVulkan::initializeLevelData(Level *level, DrawObjectTable &staticObjsData,
+                                         DrawObjectTable &dynObjsData, TextureMap &textures) {
+    staticObjsData.clear();
+    dynObjsData.clear();
+    textures.clear();
+    level->updateStaticDrawObjects(staticObjsData, textures);
+    bool texturesChanged;
+    level->updateDynamicDrawObjects(dynObjsData, textures, texturesChanged);
+    addTextures(textures);
+    addObjects(staticObjsData, textures);
+    addObjects(dynObjsData, textures);
+}
+
+bool GraphicsVulkan::updateLevelData(Level *level, DrawObjectTable &objsData, TextureMap &textures) {
+    UniformBufferObject ubo = getViewPerspectiveMatrix();
+    bool drawingNecessary = level->updateData();
+
+    if (!drawingNecessary) {
+        return false;
+    }
+
+    level->updateDynamicDrawObjects(objsData, textures, texturesChanged);
+    if (texturesChanged) {
+        addTextures(textures);
+        for (auto &&obj : objsData) {
+            DrawObjectDataVulkan *objData = static_cast<DrawObjectDataVulkan *> (obj.second.get());
+            objData->uniforms.clear();
+            addUniforms(obj, textures);
+        }
+    } else {
+        for (auto &&obj : objsData) {
+            DrawObjectDataVulkan *objData = static_cast<DrawObjectDataVulkan *> (obj.second.get());
             for (size_t j = 0; j < obj.first->modelMatrices.size(); j++) {
                 void *data;
                 ubo.model = obj.first->modelMatrices[j];
-                DrawObjectDataVulkan *objData = dynamic_cast<DrawObjectDataVulkan*> (obj.second.get());
                 vkMapMemory(logicalDevice, objData->uniforms[j]->uniformBufferMemory, 0,
                             sizeof(ubo), 0, &data);
                 memcpy(data, &ubo, sizeof(ubo));
@@ -2121,10 +2124,13 @@ bool GraphicsVulkan::updateData() {
             }
         }
     }
-
     return true;
 }
 
 void GraphicsVulkan::updateAcceleration(float x, float y, float z) {
-    maze->updateAcceleration(x,y,z);
+    if (levelStarter.get() != nullptr) {
+        levelStarter->updateAcceleration(x, y, z);
+    } else {
+        maze->updateAcceleration(x, y, z);
+    }
 }

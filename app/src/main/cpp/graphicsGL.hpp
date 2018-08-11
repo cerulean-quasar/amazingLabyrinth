@@ -17,6 +17,8 @@
  *  along with AmazingLabyrinth.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
+#ifndef AMAZING_LABYRINTH_GRAPHICS_GL_HPP
+#define AMAZING_LABYRINTH_GRAPHICS_GL_HPP
 
 #include <GLES3/gl3.h>
 #include <GLES3/gl3ext.h>
@@ -58,14 +60,17 @@ private:
     GLuint programID;
     GLuint depthProgramID;
 
-    struct TextureData {
+    class TextureDataGL : public TextureData {
+    public:
         GLuint handle;
-        ~TextureData() {
+        virtual ~TextureDataGL() {
             glDeleteTextures(1, &handle);
         }
     };
-    typedef std::map<std::string, std::shared_ptr<TextureData> > TextureDataMap;
-    TextureDataMap textures;
+
+    TextureMap levelTextures;
+    TextureMap levelStarterTextures;
+    TextureMap levelFinisherTextures;
 
     int width;
     int height;
@@ -75,12 +80,12 @@ private:
     GLuint colorImage;
     std::shared_ptr<Level> maze;
     std::shared_ptr<LevelFinish> levelFinisher;
+    std::shared_ptr<LevelStarter> levelStarter;
     LevelTracker levelTracker;
 
     struct DrawObjectDataGL : public DrawObjectData {
         GLuint vertexBuffer;
         GLuint indexBuffer;
-        std::shared_ptr<TextureData> texture;
 
         virtual ~DrawObjectDataGL() {
             glDeleteBuffers(1, &vertexBuffer);
@@ -88,6 +93,8 @@ private:
         }
     };
 
+    DrawObjectTable levelStarterStaticObjsData;
+    DrawObjectTable levelStarterDynObjsData;
     DrawObjectTable staticObjsData;
     DrawObjectTable dynObjsData;
     DrawObjectTable levelfinisherObjsData;
@@ -95,13 +102,18 @@ private:
     GLuint loadShaders(std::string const &vertexShaderFile, std::string const &fragmentShaderFile);
     void initWindow(WindowType *window);
     void initPipeline();
-    void drawObjects(DrawObjectTable const &objsData);
+    void drawObjects(DrawObjectTable const &objsData, TextureMap const &textures);
     void drawObject(GLuint programID, bool needsNormal, GLuint vertex, GLuint index,
                     unsigned long nbrIndices, GLuint texture, glm::mat4 const &modelMatrix);
-    void loadTexture(std::string const &texturePath, GLuint &texture);
+    void loadTextures(TextureMap &textures);
     void addObjects(DrawObjectTable &objsData);
     void addObject(DrawObjectEntry &objData);
+    bool updateLevelData(Level *level, DrawObjectTable &objsData, TextureMap &textures);
+    void initializeLevelData(Level *level, DrawObjectTable &staticObjsData,
+                             DrawObjectTable &dynObjsData, TextureMap &textures);
     void createDepthTexture();
     void drawObject(GLuint programID, bool needsNormal, GLuint vertex, GLuint index,
                     unsigned long nbrIndices, glm::mat4 const &modelMatrix);
 };
+
+#endif

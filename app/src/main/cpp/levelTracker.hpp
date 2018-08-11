@@ -22,16 +22,24 @@
 #include <array>
 #include "levelFinish.hpp"
 #include "level.hpp"
+#include "levelStarter.hpp"
 
 typedef std::shared_ptr<Level> (*getLevel)(uint32_t width, uint32_t height);
-typedef std::shared_ptr<LevelFinish> (*getLevelFinisher)();
+typedef std::shared_ptr<LevelFinish> (*getLevelFinisher)(float centerX, float centerY);
+typedef std::shared_ptr<LevelStarter> (*getLevelStarter)();
+
+struct LevelEntry {
+    getLevelStarter starter;
+    getLevel level;
+    getLevelFinisher finisher;
+};
 
 class LevelTracker {
 private:
     uint32_t currentLevel;
     uint32_t width;
     uint32_t height;
-    std::array<std::pair<getLevel, getLevelFinisher>, 3> levelTable;
+    std::array<LevelEntry, 3> levelTable;
 public:
     LevelTracker();
 
@@ -40,8 +48,9 @@ public:
         height = inHeight;
     }
 
+    std::shared_ptr<LevelStarter> getLevelStarter();
     std::shared_ptr<Level> getLevel();
-    std::shared_ptr<LevelFinish> getLevelFinisher();
+    std::shared_ptr<LevelFinish> getLevelFinisher(float centerX, float centerY);
     void gotoNextLevel();
 };
 #endif
