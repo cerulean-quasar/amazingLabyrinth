@@ -17,8 +17,13 @@
  *  along with AmazingLabyrinth.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
-#ifndef AMAZING_LABYRINTH_OPEN_AREA_LEVEL_HPP
-#define AMAZING_LABYRINTH_OPEN_AREA_LEVEL_HPP
+
+#ifndef AMAZING_LABYRINTH_AVOID_VORTEX_LEVEL_HPP
+#define AMAZING_LABYRINTH_AVOID_VORTEX_LEVEL_HPP
+
+#include <cstdint>
+#include <vector>
+#include <list>
 
 #define GLM_FORCE_RADIANS
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
@@ -28,31 +33,51 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtx/transform.hpp>
 
-#include "levelFinish.hpp"
+#include "graphics.hpp"
+#include "random.hpp"
 #include "level.hpp"
 
-class OpenAreaLevel : public Level {
+class AvoidVortexLevel : public Level {
 private:
+    static constexpr uint32_t numberOfVortexes = 8;
+    static constexpr float scaleFactor = 1.0f/16.0f;
+
     std::string holeTexture;
     std::string ballTexture;
+    std::string vortexTexture;
+    std::string startVortexTexture;
 
-    float const viscosity = 0.005f;
+    static constexpr float viscosity = 0.01f;
+    static constexpr float maxX = 0.8f;
+    static constexpr float maxY = 1.0f;
     Random random;
     std::chrono::high_resolution_clock::time_point prevTime;
 
     glm::vec3 holePosition;
+
+    // the start position of the ball.  The ball goes back here if it touches a vortex.
+    glm::vec3 startPosition;
+
+    // the position of the quad being displayed to designate the start position of the ball.
+    glm::vec3 startPositionQuad;
+
+    // if the ball touches these vortexes, it goes back to startPosition.
+    std::vector<glm::vec3> vortexPositions;
 
     /* vertex and index data for drawing the ball. */
     std::vector<Vertex> ballVertices;
     std::vector<uint32_t> ballIndices;
 
     /* vertex and index data for drawing the hole. */
-    std::vector<Vertex> holeVertices;
-    std::vector<uint32_t> holeIndices;
+    std::vector<Vertex> quadVertices;
+    std::vector<uint32_t> quadIndices;
 
     glm::mat4 modelMatrixHole;
     glm::mat4 modelMatrixBall;
+    glm::mat4 modelMatrixStartVortex;
+    std::vector<glm::mat4> modelMatrixVortexes;
 
+    // the scale matrix for the ball.
     glm::mat4 scale;
 
     // data on where the ball is, how fast it is moving, etc.
@@ -64,32 +89,12 @@ private:
         glm::quat totalRotated;
     } ball;
 
+    bool ballProximity(glm::vec3 const &objPosition);
 public:
-    OpenAreaLevel() : prevTime(std::chrono::high_resolution_clock::now()) {}
     virtual void loadModels();
-    virtual void generate() {
-        unsigned int i = 2;
-        float pos = 1.0f/(i*2.0f + 1);
-        scale = glm::scale(glm::vec3(pos, pos, pos));
-
-        ball.totalRotated = glm::quat();
-        ball.acceleration = {0.0f, 0.0f, 0.0f};
-        ball.velocity = {0.0f, 0.0f, 0.0f};
-        ball.prevPosition = {-10.0f, 0.0f, -pos};
-        ball.position.z = -pos;
-        holePosition.z = -pos - pos/2;
-
-        float smallestDistance = 0.5f;
-        do {
-            holePosition.x = random.getFloat(-0.7f, 0.7f);
-            holePosition.y = random.getFloat(-0.7f, 0.7f);
-
-            ball.position.x = random.getFloat(-0.7f, 0.7f);
-            ball.position.y = random.getFloat(-0.7f, 0.7f);
-        } while (glm::length(ball.position - holePosition) < smallestDistance);
-    }
-    virtual void updateAcceleration(float x, float y, float z);
-    virtual glm::vec4 getBackgroundColor() { return {0.0f, 0.0f, 0.0f, 1.0f}; }
+    virtual void generate();
+    virtual glm::vec4 getBackgroundColor() { return glm::vec4(0.0, 0.0, 0.0, 1.0); }
+    virtual void updateAcceleration(float x, float y, float z) { ball.acceleration = {-x, -y, 0.0f}; }
     virtual bool updateData();
     virtual void generateModelMatrices();
     virtual bool updateStaticDrawObjects(DrawObjectTable &objs, TextureMap &textures);
@@ -98,14 +103,17 @@ public:
         prevTime = std::chrono::high_resolution_clock::now();
     }
 
-    void initSetHoleTexture(std::string const &texture) { holeTexture = texture; }
-    void initSetBallTexture(std::string const &texture) { ballTexture = texture; }
-
-    void getLevelFinisherCenter(float &x, float &y) {
-        x = holePosition.x;
-        y = holePosition.y;
+    virtual void getLevelFinisherCenter(float &x, float &y) {
+        x = 0.0f;
+        y = 0.0f;
     }
 
-    virtual ~OpenAreaLevel() {}
+    void initSetHoleTexture(std::string const &texture) { holeTexture = texture; }
+    void initSetVortexTexture(std::string const &texture) { vortexTexture = texture; }
+    void initSetStartVortexTexture(std::string const &texture) { startVortexTexture = texture; }
+    void initSetBallTexture(std::string const &texture) { ballTexture = texture; }
+
+    AvoidVortexLevel() : prevTime(std::chrono::high_resolution_clock::now()) { }
+    virtual ~AvoidVortexLevel() {}
 };
 #endif

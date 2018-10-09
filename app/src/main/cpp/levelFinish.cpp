@@ -26,11 +26,6 @@
 
 ManyQuadCoverUpLevelFinish::ManyQuadCoverUpLevelFinish() : totalNumberReturned(0) {
     prevTime = std::chrono::high_resolution_clock::now();
-    imagePaths =
-            {"textures/flower1.png",
-             "textures/flower2.png",
-             "textures/flower3.png",
-             "textures/flower4.png"};
     float range = 1.5f;
     for (uint32_t i = 0; i < totalNumberObjectsForSide; i++) {
         for (uint32_t j = 0; j < totalNumberObjectsForSide; j++) {
@@ -117,7 +112,6 @@ GrowingQuadLevelFinish::GrowingQuadLevelFinish(float x, float y) {
     transVector = {x, y, transZ};
     prevTime = std::chrono::high_resolution_clock::now();
     timeSoFar = 0.0f;
-    imagePath = "textures/starField.png";
 }
 
 bool GrowingQuadLevelFinish::updateDrawObjects(DrawObjectTable &drawObjects, TextureMap &textures, bool &texturesUpdated) {

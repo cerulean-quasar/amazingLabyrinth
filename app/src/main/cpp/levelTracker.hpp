@@ -32,16 +32,19 @@ struct LevelEntry {
     getLevelStarter starter;
     getLevel level;
     getLevelFinisher finisher;
+    std::string levelDescription;
 };
+
+typedef std::array<LevelEntry, 4> LevelTable;
 
 class LevelTracker {
 private:
     uint32_t currentLevel;
     uint32_t width;
     uint32_t height;
-    std::array<LevelEntry, 3> levelTable;
+    static LevelTable levelTable;
 public:
-    LevelTracker();
+    LevelTracker(uint32_t level);
 
     void setParameters(uint32_t inWidth, uint32_t inHeight) {
         width = inWidth;
@@ -52,5 +55,7 @@ public:
     std::shared_ptr<Level> getLevel();
     std::shared_ptr<LevelFinish> getLevelFinisher(float centerX, float centerY);
     void gotoNextLevel();
+    static std::vector<std::string> getLevelDescriptions();
+    static bool validLevel(uint32_t level) { return level < levelTable.size() - 1; }
 };
 #endif

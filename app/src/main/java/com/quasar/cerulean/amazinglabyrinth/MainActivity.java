@@ -19,21 +19,33 @@
  */
 package com.quasar.cerulean.amazinglabyrinth;
 
+import android.content.Intent;
 import android.content.res.AssetManager;
 import android.graphics.PixelFormat;
 import android.os.Handler;
 import android.os.Message;
+import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
+import android.view.LayoutInflater;
+import android.view.Menu;
+import android.view.MenuInflater;
+import android.view.MenuItem;
 import android.view.Surface;
 import android.view.SurfaceHolder;
 import android.view.SurfaceView;
+import android.view.View;
+import android.widget.AdapterView;
+import android.widget.ArrayAdapter;
+import android.widget.EditText;
+import android.widget.LinearLayout;
+import android.widget.Spinner;
 import android.widget.TextView;
 
 import java.io.IOException;
 import java.io.InputStream;
 
-public class MainActivity extends AppCompatActivity {
+public class MainActivity extends AppCompatActivity implements AdapterView.OnItemSelectedListener {
 
     // Used to load the 'native-lib' library on application startup.
     static {
@@ -41,9 +53,10 @@ public class MainActivity extends AppCompatActivity {
     }
 
     public static final String ERROR_STRING_KEY = "errorKey";
-    boolean surfaceReady = false;
+    private boolean surfaceReady = false;
     private Thread game = null;
     private AssetManager manager = null;
+    private AlertDialog selectLevelDialog = null;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -79,6 +92,58 @@ public class MainActivity extends AppCompatActivity {
         destroySurface();
     }
 
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        MenuInflater inflater = getMenuInflater();
+        inflater.inflate(R.menu.main_menu, menu);
+        return true;
+    }
+
+    public void onItemSelected(AdapterView<?> parent, View view, int pos, long id) {
+        /* do nothing */
+    }
+
+    public void onNothingSelected(AdapterView<?> parent) {
+        /* do nothing */
+    }
+
+    public void onSelectLevel(MenuItem item) {
+        LinearLayout layout = findViewById(R.id.mainLayout);
+        LayoutInflater inflater = getLayoutInflater();
+
+        LinearLayout selectLevelLayout = (LinearLayout) inflater.inflate(R.layout.select_level_dialog,
+                layout, false);
+        Spinner spinner = selectLevelLayout.findViewById(R.id.select_level_spinner);
+        ArrayAdapter<String> adapter = new ArrayAdapter<String>(this,
+                android.R.layout.simple_spinner_item, getLevelList());
+        // Specify the layout to use when the list of choices appears
+        adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        // Apply the adapter to the spinner
+        spinner.setAdapter(adapter);
+        selectLevelDialog = new AlertDialog.Builder(this).setTitle(R.string.select_level).setView(selectLevelLayout).show();
+    }
+
+    public void onSelect(View view) {
+        Spinner spinner = selectLevelDialog.findViewById(R.id.select_level_spinner);
+        int pos = spinner.getSelectedItemPosition();
+        if (pos == Spinner.INVALID_POSITION) {
+            selectLevelDialog.dismiss();
+            selectLevelDialog = null;
+        } else {
+            joinDrawer();
+            destroySurface();
+            SurfaceView surfaceView = findViewById(R.id.mainDrawingSurface);
+            startDrawing(surfaceView.getHolder(), pos);
+        }
+        selectLevelDialog.dismiss();
+        selectLevelDialog = null;
+    }
+
+    public void onCancel(View view) {
+        selectLevelDialog.dismiss();
+        selectLevelDialog = null;
+    }
+
     public void destroySurface() {
         if (surfaceReady) {
             surfaceReady = false;
@@ -99,14 +164,17 @@ public class MainActivity extends AppCompatActivity {
         game = null;
     }
 
-    public void startDrawing(SurfaceHolder holder) {
+    public void startDrawing(SurfaceHolder holder, int level) {
+        if (level < 0) {
+            level = 0;
+        }
         boolean usingVulkan = false;
         Surface drawSurface = holder.getSurface();
-        String err = initPipeline(usingVulkan, drawSurface, manager);
+        String err = initPipeline(usingVulkan, drawSurface, manager, level);
         if (err != null && err.length() != 0) {
             usingVulkan = false;
             // Vulkan failed, try with OpenGL instead
-            err = initPipeline(usingVulkan, drawSurface, manager);
+            err = initPipeline(usingVulkan, drawSurface, manager, level);
             if (err != null && err.length() != 0) {
                 publishError(err);
                 return;
@@ -144,7 +212,8 @@ public class MainActivity extends AppCompatActivity {
     /**
      * Native methods.
      */
-    public native String initPipeline(boolean usingVulkan, Surface drawingSurface, AssetManager manager);
+    public native String initPipeline(boolean usingVulkan, Surface drawingSurface, AssetManager manager, int level);
     public native void tellDrawerStop();
+    public native String[] getLevelList();
     public native void destroyNativeSurface();
 }

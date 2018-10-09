@@ -58,6 +58,9 @@ private:
 public:
     virtual bool updateDrawObjects(DrawObjectTable &drawObjects, TextureMap &textures, bool &texturesUpdated);
     virtual bool isDone() { return finished; }
+    void initAddTexture(std::string const &inImagePath) {
+        imagePaths.push_back(inImagePath);
+    }
     ManyQuadCoverUpLevelFinish();
 };
 
@@ -78,7 +81,9 @@ private:
 public:
     virtual bool updateDrawObjects(DrawObjectTable &drawObjects, TextureMap &textures, bool &texturesUpdated);
     virtual bool isDone() { return finished; }
-
+    void initTexture(std::string const &inImagePath) {
+        imagePath = inImagePath;
+    }
     GrowingQuadLevelFinish(float x = 0.0f, float y = 0.0f);
 };
 #endif

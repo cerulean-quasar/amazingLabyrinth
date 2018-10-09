@@ -32,7 +32,32 @@
 
 class GraphicsGL : public Graphics {
 public:
-    GraphicsGL(WindowType *window) { }
+    GraphicsGL(WindowType *window, uint32_t level)
+        :window{},
+        context{},
+        config{},
+        surface{},
+        display{},
+        programID{},
+        depthProgramID{},
+        levelTextures{},
+        levelStarterTextures{},
+        levelFinisherTextures{},
+        width{},
+        height{},
+        depthMapFBO{},
+        depthMap{},
+        colorImage{},
+        maze{},
+        levelFinisher{},
+        levelStarter{},
+        levelTracker{level},
+        levelStarterStaticObjsData{},
+        levelStarterDynObjsData{},
+        staticObjsData{},
+        dynObjsData{},
+        levelfinisherObjsData{}
+    { }
     virtual void init(WindowType *window);
     virtual void initThread();
 

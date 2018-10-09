@@ -66,7 +66,47 @@ const std::vector<const char*> validationLayers = {
 
 class GraphicsVulkan : public Graphics {
 public:
-    GraphicsVulkan(WindowType *window) {}
+    GraphicsVulkan(WindowType *window, uint32_t level)
+        :instance{VK_NULL_HANDLE},
+        callback{VK_NULL_HANDLE},
+        physicalDevice{VK_NULL_HANDLE},
+        graphicsQueue{VK_NULL_HANDLE},
+        presentQueue{VK_NULL_HANDLE},
+        surface{VK_NULL_HANDLE},
+        swapChain{VK_NULL_HANDLE},
+        descriptorPools{},
+        texturesLevel{},
+        texturesLevelStarter{},
+        texturesLevelFinisher{},
+        texturesChanged{false},
+        swapChainImages{},
+        swapChainImageViews{},
+        swapChainImageFormat{},
+        swapChainExtent{},
+        renderPass{VK_NULL_HANDLE},
+        uniformBufferLighting{VK_NULL_HANDLE},
+        uniformBufferMemoryLighting{VK_NULL_HANDLE},
+        staticObjsData{},
+        dynObjsData{},
+        levelFinisherObjsData{},
+        levelStarterStaticObjsData{},
+        levelStarterDynObjsData{},
+        maze{},
+        levelFinisher{},
+        levelStarter{},
+        levelTracker{level},
+        pipelineLayout{},
+        graphicsPipeline{},
+        swapChainFramebuffers{},
+        commandPool{},
+        commandBuffers{},
+        imageAvailableSemaphore{},
+        renderFinishedSemaphore{},
+        depthImage{VK_NULL_HANDLE},
+        depthImageMemory{VK_NULL_HANDLE},
+        depthImageView{VK_NULL_HANDLE},
+        window{nullptr}
+    {}
     virtual void init(WindowType *window);
 
     virtual void initThread() { }
@@ -103,13 +143,13 @@ private:
     };
 
     static VkDevice logicalDevice;
-    VkInstance instance = VK_NULL_HANDLE;
-    VkDebugReportCallbackEXT callback = VK_NULL_HANDLE;
-    VkPhysicalDevice physicalDevice = VK_NULL_HANDLE;
-    VkQueue graphicsQueue = VK_NULL_HANDLE;
-    VkQueue presentQueue = VK_NULL_HANDLE;
-    VkSurfaceKHR surface = VK_NULL_HANDLE;
-    VkSwapchainKHR swapChain = VK_NULL_HANDLE;
+    VkInstance instance;
+    VkDebugReportCallbackEXT callback;
+    VkPhysicalDevice physicalDevice;
+    VkQueue graphicsQueue;
+    VkQueue presentQueue;
+    VkSurfaceKHR surface;
+    VkSwapchainKHR swapChain;
 
     class DescriptorPools;
     class DescriptorPool {
@@ -247,17 +287,17 @@ private:
     TextureMap texturesLevel;
     TextureMap texturesLevelStarter;
     TextureMap texturesLevelFinisher;
-    bool texturesChanged = false;
+    bool texturesChanged;
 
     std::vector<VkImage> swapChainImages;
     std::vector<VkImageView> swapChainImageViews;
 
     VkFormat swapChainImageFormat;
     VkExtent2D swapChainExtent;
-    VkRenderPass renderPass = VK_NULL_HANDLE;
+    VkRenderPass renderPass;
 
-    VkBuffer uniformBufferLighting = VK_NULL_HANDLE;
-    VkDeviceMemory uniformBufferMemoryLighting = VK_NULL_HANDLE;
+    VkBuffer uniformBufferLighting;
+    VkDeviceMemory uniformBufferMemoryLighting;
 
     struct UniformWrapper {
         /* for passing data other than the vertex data to the vertex shader */
@@ -330,10 +370,10 @@ private:
     VkSemaphore renderFinishedSemaphore;
 
     /* depth buffer image */
-    VkImage depthImage = VK_NULL_HANDLE;
-    VkDeviceMemory depthImageMemory = VK_NULL_HANDLE;
-    VkImageView depthImageView = VK_NULL_HANDLE;
-    WindowType *window = nullptr;
+    VkImage depthImage;
+    VkDeviceMemory depthImageMemory;
+    VkImageView depthImageView;
+    WindowType *window;
 
     const std::vector<const char*> deviceExtensions = {
         VK_KHR_SWAPCHAIN_EXTENSION_NAME

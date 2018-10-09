@@ -66,9 +66,14 @@ Java_com_quasar_cerulean_amazinglabyrinth_MainActivity_initPipeline(
         jobject thisptr,
         jboolean useVulkan,
         jobject drawingSurface,
-        jobject assetManager)
+        jobject assetManager,
+        jint level)
 {
     gEnv = env;
+    if (level < 0 || ! LevelTracker::validLevel(static_cast<uint32_t>(level))) {
+        return env->NewStringUTF("Invalid level");
+    }
+
     sensorManager = ASensorManager_getInstance();
     sensor = ASensorManager_getDefaultSensor(sensorManager, ASENSOR_TYPE_ACCELEROMETER);
     if (sensor == nullptr) {
@@ -100,11 +105,9 @@ Java_com_quasar_cerulean_amazinglabyrinth_MainActivity_initPipeline(
     try {
         stopDrawing.store(false);
         if (useVulkan) {
-            Graphics *g = new GraphicsVulkan(window);
-            graphics.reset(g);
+            graphics.reset(new GraphicsVulkan(window, level));
         } else {
-            Graphics *g = new GraphicsGL(window);
-            graphics.reset(g);
+            graphics.reset(new GraphicsGL(window, level));
         }
         graphics->init(window);
     } catch (std::runtime_error &e) {
@@ -200,6 +203,21 @@ Java_com_quasar_cerulean_amazinglabyrinth_MainActivity_destroyNativeSurface(
         jobject thisptr)
 {
     graphics->cleanup();
+    graphics.reset();
+}
+
+extern "C" JNIEXPORT jobjectArray JNICALL
+Java_com_quasar_cerulean_amazinglabyrinth_MainActivity_getLevelList(
+        JNIEnv *env,
+        jobject thisptr)
+{
+    std::vector<std::string> levels = LevelTracker::getLevelDescriptions();
+    jobjectArray ret = (jobjectArray)env->NewObjectArray(levels.size(), env->FindClass("java/lang/String"), nullptr);
+    for (int i = 0; i < levels.size(); i++) {
+        env->SetObjectArrayElement(ret, i, env->NewStringUTF(levels[i].c_str()));
+    }
+
+    return ret;
 }
 
 std::vector<char> getTextImage(std::string text, uint32_t &width, uint32_t &height, uint32_t &channels) {
@@ -248,3 +266,4 @@ std::vector<char> getTextImage(std::string text, uint32_t &width, uint32_t &heig
     channels = 4;
     return imageData;
 }
+
