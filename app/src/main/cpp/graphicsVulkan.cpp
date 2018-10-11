@@ -45,10 +45,39 @@ VkResult CreateDebugReportCallbackEXT(VkInstance instance,
     }
 }
 
+/* find supported image formats for depth buffering */
+VkFormat findSupportedFormat(std::shared_ptr<DeviceVulkan> &device, const std::vector<VkFormat>& candidates,
+                             VkImageTiling tiling, VkFormatFeatureFlags features) {
+    for (VkFormat format : candidates) {
+        VkFormatProperties props;
+        vkGetPhysicalDeviceFormatProperties(device->physicalDevice, format, &props);
+
+        if (tiling == VK_IMAGE_TILING_LINEAR && (props.linearTilingFeatures & features) == features) {
+            return format;
+        } else if (tiling == VK_IMAGE_TILING_OPTIMAL && (props.optimalTilingFeatures & features) == features) {
+            return format;
+        }
+    }
+
+    throw std::runtime_error("failed to find supported format!");
+}
+
+VkFormat findDepthFormat(std::shared_ptr<DeviceVulkan> &device) {
+    return findSupportedFormat(device,
+                               {VK_FORMAT_D32_SFLOAT, VK_FORMAT_D32_SFLOAT_S8_UINT, VK_FORMAT_D24_UNORM_S8_UINT},
+                               VK_IMAGE_TILING_OPTIMAL,
+                               VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT
+    );
+}
+
+bool hasStencilComponent(VkFormat format) {
+    return format == VK_FORMAT_D32_SFLOAT_S8_UINT || format == VK_FORMAT_D24_UNORM_S8_UINT;
+}
+
 /**
  * Destroy the debug report callback created in CreateDebugReportCallbackEXT
  */
-void DestroyDebugReportCallbackEXT(VkInstance instance,
+void InstanceVulkan::DestroyDebugReportCallbackEXT(VkInstance instance,
     VkDebugReportCallbackEXT callback,
     const VkAllocationCallbacks* pAllocator)
 {
@@ -60,18 +89,9 @@ void DestroyDebugReportCallbackEXT(VkInstance instance,
 }
 
 void GraphicsVulkan::init(WindowType *inWindow) {
-    window = inWindow;
     if (!loadVulkan()) {
         throw std::runtime_error("Could not find vulkan library.");
     }
-    createInstance();
-
-    setupDebugCallback();
-
-    createSurface();
-    pickPhysicalDevice();
-    createLogicalDevice();
-    createSwapChain();
     createImageViews();
     createRenderPass();
 
@@ -200,14 +220,11 @@ void GraphicsVulkan::cleanup() {
         vkDestroySemaphore(logicalDevice, renderFinishedSemaphore, nullptr);
         vkDestroySemaphore(logicalDevice, imageAvailableSemaphore, nullptr);
         vkDestroyCommandPool(logicalDevice, commandPool, nullptr);
-        vkDestroyDevice(logicalDevice, nullptr);
+
+        device.reset();
     }
 
-    if (instance != VK_NULL_HANDLE) {
-        DestroyDebugReportCallbackEXT(instance, callback, nullptr);
-        vkDestroySurfaceKHR(instance, surface, nullptr);
-        vkDestroyInstance(instance, nullptr);
-    }
+    instance.reset();
 
     destroyWindow();
 }
@@ -323,7 +340,7 @@ void GraphicsVulkan::cleanupSwapChain() {
     }
 }
 
-std::vector<const char *> GraphicsVulkan::getRequiredExtensions() {
+std::vector<const char *> InstanceVulkan::getRequiredExtensions() {
     std::vector<const char *> extensions;
 
     extensions.push_back("VK_KHR_surface");
@@ -337,7 +354,7 @@ std::vector<const char *> GraphicsVulkan::getRequiredExtensions() {
     return extensions;
 }
 
-void GraphicsVulkan::createInstance() {
+void InstanceVulkan::createInstance() {
     VkApplicationInfo appInfo = {};
     appInfo.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
     appInfo.pApplicationName = "AmazingLabyrinth";
@@ -373,7 +390,7 @@ void GraphicsVulkan::createInstance() {
     }
 }
 
-void GraphicsVulkan::setupDebugCallback() {
+void InstanceVulkan::setupDebugCallback() {
     if (!enableValidationLayers) return;
 
     VkDebugReportCallbackCreateInfoEXT createInfo = {};
@@ -388,7 +405,7 @@ void GraphicsVulkan::setupDebugCallback() {
     }
 }
 
-bool GraphicsVulkan::checkExtensionSupport() {
+bool InstanceVulkan::checkExtensionSupport() {
     uint32_t extensionCount = 0;
     vkEnumerateInstanceExtensionProperties(nullptr, &extensionCount, nullptr);
     std::vector<VkExtensionProperties> extensions(extensionCount);
@@ -416,7 +433,7 @@ bool GraphicsVulkan::checkExtensionSupport() {
     return true;
 }
 
-bool GraphicsVulkan::checkValidationLayerSupport() {
+bool InstanceVulkan::checkValidationLayerSupport() {
     uint32_t layerCount;
     vkEnumerateInstanceLayerProperties(&layerCount, nullptr);
 
@@ -447,15 +464,15 @@ bool GraphicsVulkan::checkValidationLayerSupport() {
     return true;
 }
 
-void GraphicsVulkan::pickPhysicalDevice() {
+void DeviceVulkan::pickPhysicalDevice() {
     uint32_t deviceCount = 0;
-    vkEnumeratePhysicalDevices(instance, &deviceCount, nullptr);
+    vkEnumeratePhysicalDevices(instance->instance, &deviceCount, nullptr);
     if (deviceCount == 0) {
         throw std::runtime_error("failed to find GPUs with Vulkan support!");
     }
 
     std::vector<VkPhysicalDevice> devices(deviceCount);
-    vkEnumeratePhysicalDevices(instance, &deviceCount, devices.data());
+    vkEnumeratePhysicalDevices(instance->instance, &deviceCount, devices.data());
     for (const auto& device : devices) {
         if (isDeviceSuitable(device)) {
             physicalDevice = device;
@@ -476,9 +493,9 @@ void GraphicsVulkan::pickPhysicalDevice() {
     }
 }
 
-bool GraphicsVulkan::isDeviceSuitable(VkPhysicalDevice device) {
-    QueueFamilyIndices indices = findQueueFamilies(device);
-    bool extensionsSupported = checkDeviceExtensionSupport(device);
+bool DeviceVulkan::isDeviceSuitable(VkPhysicalDevice device) {
+    QueueFamilyIndices indices = findQueueFamilies();
+    bool extensionsSupported = checkDeviceExtensionSupport();
 
     VkPhysicalDeviceProperties deviceProperties;
     VkPhysicalDeviceFeatures deviceFeatures;
@@ -487,7 +504,7 @@ bool GraphicsVulkan::isDeviceSuitable(VkPhysicalDevice device) {
 
     bool swapChainAdequate = false;
     if (extensionsSupported) {
-        GraphicsVulkan::SwapChainSupportDetails swapChainSupport = querySwapChainSupport(device);
+        DeviceVulkan::SwapChainSupportDetails swapChainSupport = querySwapChainSupport(device);
         swapChainAdequate = !swapChainSupport.formats.empty() && !swapChainSupport.presentModes.empty();
     }
 
@@ -503,12 +520,12 @@ bool GraphicsVulkan::isDeviceSuitable(VkPhysicalDevice device) {
     }
 }
 
-bool GraphicsVulkan::checkDeviceExtensionSupport(VkPhysicalDevice device) {
+bool DeviceVulkan::checkDeviceExtensionSupport() {
     uint32_t extensionCount;
-    vkEnumerateDeviceExtensionProperties(device, nullptr, &extensionCount, nullptr);
+    vkEnumerateDeviceExtensionProperties(physicalDevice, nullptr, &extensionCount, nullptr);
 
     std::vector<VkExtensionProperties> availableExtensions(extensionCount);
-    vkEnumerateDeviceExtensionProperties(device, nullptr, &extensionCount, availableExtensions.data());
+    vkEnumerateDeviceExtensionProperties(physicalDevice, nullptr, &extensionCount, availableExtensions.data());
 
     std::set<std::string> requiredExtensions(deviceExtensions.begin(), deviceExtensions.end());
 
@@ -519,7 +536,7 @@ bool GraphicsVulkan::checkDeviceExtensionSupport(VkPhysicalDevice device) {
     return requiredExtensions.empty();
 }
 
-GraphicsVulkan::QueueFamilyIndices GraphicsVulkan::findQueueFamilies(VkPhysicalDevice device) {
+DeviceVulkan::QueueFamilyIndices DeviceVulkan::findQueueFamilies(VkPhysicalDevice device) {
     QueueFamilyIndices indices;
 
     uint32_t queueFamilyCount = 0;
@@ -533,7 +550,7 @@ GraphicsVulkan::QueueFamilyIndices GraphicsVulkan::findQueueFamilies(VkPhysicalD
     int i = 0;
     for (const auto& queueFamily : queueFamilies) {
         VkBool32 presentSupport = false;
-        vkGetPhysicalDeviceSurfaceSupportKHR(device, i, surface, &presentSupport);
+        vkGetPhysicalDeviceSurfaceSupportKHR(device, i, instance->surface, &presentSupport);
         if (queueFamily.queueCount > 0 && presentSupport) {
             indices.presentFamily = i;
         }
@@ -555,7 +572,7 @@ GraphicsVulkan::QueueFamilyIndices GraphicsVulkan::findQueueFamilies(VkPhysicalD
 /**
  * Choose the image format.  We want SRGB color space and RGB format.
  */
-VkSurfaceFormatKHR GraphicsVulkan::chooseSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& availableFormats) {
+VkSurfaceFormatKHR SwapChainVulkan::chooseSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& availableFormats) {
     if (availableFormats.size() == 1 && availableFormats[0].format == VK_FORMAT_UNDEFINED) {
         return {VK_FORMAT_B8G8R8A8_UNORM, VK_COLOR_SPACE_SRGB_NONLINEAR_KHR};
     }
@@ -579,7 +596,7 @@ VkSurfaceFormatKHR GraphicsVulkan::chooseSwapSurfaceFormat(const std::vector<VkS
  * VK_PRESENT_MODE_FIFO_KHR is guaranteed to be available, not all video
  * cards implement it correctly.
  */
-VkPresentModeKHR GraphicsVulkan::chooseSwapPresentMode(const std::vector<VkPresentModeKHR> availablePresentModes) {
+VkPresentModeKHR SwapChainVulkan::chooseSwapPresentMode(const std::vector<VkPresentModeKHR> availablePresentModes) {
     VkPresentModeKHR bestMode = VK_PRESENT_MODE_FIFO_KHR;
 
     for (const auto& availablePresentMode : availablePresentModes) {
@@ -593,30 +610,30 @@ VkPresentModeKHR GraphicsVulkan::chooseSwapPresentMode(const std::vector<VkPrese
     return bestMode;
 }
 
-GraphicsVulkan::SwapChainSupportDetails GraphicsVulkan::querySwapChainSupport(VkPhysicalDevice device) {
-    GraphicsVulkan::SwapChainSupportDetails details;
+DeviceVulkan::SwapChainSupportDetails DeviceVulkan::querySwapChainSupport(VkPhysicalDevice device) {
+    DeviceVulkan::SwapChainSupportDetails details;
 
-    vkGetPhysicalDeviceSurfaceCapabilitiesKHR(device, surface, &details.capabilities);
+    vkGetPhysicalDeviceSurfaceCapabilitiesKHR(device, instance->surface, &details.capabilities);
 
     uint32_t formatCount;
-    vkGetPhysicalDeviceSurfaceFormatsKHR(device, surface, &formatCount, nullptr);
+    vkGetPhysicalDeviceSurfaceFormatsKHR(device, instance->surface, &formatCount, nullptr);
     if (formatCount != 0) {
         details.formats.resize(formatCount);
-        vkGetPhysicalDeviceSurfaceFormatsKHR(device, surface, &formatCount, details.formats.data());
+        vkGetPhysicalDeviceSurfaceFormatsKHR(device, instance->surface, &formatCount, details.formats.data());
     }
 
     uint32_t presentModeCount;
-    vkGetPhysicalDeviceSurfacePresentModesKHR(device, surface, &presentModeCount, nullptr);
+    vkGetPhysicalDeviceSurfacePresentModesKHR(device, instance->surface, &presentModeCount, nullptr);
     if (presentModeCount != 0) {
         details.presentModes.resize(presentModeCount);
-        vkGetPhysicalDeviceSurfacePresentModesKHR(device, surface, &presentModeCount, details.presentModes.data());
+        vkGetPhysicalDeviceSurfacePresentModesKHR(device, instance->surface, &presentModeCount, details.presentModes.data());
     }
 
     return details;
 }
 
-void GraphicsVulkan::createLogicalDevice() {
-    QueueFamilyIndices indices = findQueueFamilies(physicalDevice);
+void DeviceVulkan::createLogicalDevice() {
+    QueueFamilyIndices indices = findQueueFamilies();
     std::vector<VkDeviceQueueCreateInfo> queueCreateInfos;
     std::set<int> uniqueQueueFamilies = {indices.graphicsFamily, indices.presentFamily};
 
@@ -663,9 +680,9 @@ void GraphicsVulkan::createLogicalDevice() {
 /**
  * create the swap chain.
  */
-void GraphicsVulkan::createSwapChain() {
+void SwapChainVulkan::createSwapChain() {
     /* chose details of the swap chain and get information about what is supported */
-    GraphicsVulkan::SwapChainSupportDetails swapChainSupport = querySwapChainSupport(physicalDevice);
+    DeviceVulkan::SwapChainSupportDetails swapChainSupport = device->querySwapChainSupport();
 
     VkSurfaceFormatKHR surfaceFormat = chooseSwapSurfaceFormat(swapChainSupport.formats);
     VkPresentModeKHR presentMode = chooseSwapPresentMode(swapChainSupport.presentModes);
@@ -683,7 +700,7 @@ void GraphicsVulkan::createSwapChain() {
     /* set the create structure up. */
     VkSwapchainCreateInfoKHR createInfo = {};
     createInfo.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
-    createInfo.surface = surface;
+    createInfo.surface = device->instance->surface;
     createInfo.minImageCount = imageCount;
     createInfo.imageFormat = surfaceFormat.format;
     createInfo.imageColorSpace = surfaceFormat.colorSpace;
@@ -695,7 +712,7 @@ void GraphicsVulkan::createSwapChain() {
      * queue is different from the graphics queue (not usually the case), use the concurrent
      * mode to avoid having to transfer ownership. (too hard for right now)
      */
-    QueueFamilyIndices indices = findQueueFamilies(physicalDevice);
+    DeviceVulkan::QueueFamilyIndices indices = device->findQueueFamilies();
     uint32_t queueFamilyIndices[] = {(uint32_t) indices.graphicsFamily, (uint32_t)indices.presentFamily};
     if (indices.graphicsFamily != indices.presentFamily) {
         createInfo.imageSharingMode = VK_SHARING_MODE_CONCURRENT;
@@ -733,7 +750,7 @@ void GraphicsVulkan::createSwapChain() {
      */
     createInfo.oldSwapchain = VK_NULL_HANDLE;
 
-    if (vkCreateSwapchainKHR(logicalDevice, &createInfo, nullptr, &swapChain) != VK_SUCCESS) {
+    if (vkCreateSwapchainKHR(device->logicalDevice, &createInfo, nullptr, &swapChain) != VK_SUCCESS) {
         throw std::runtime_error("failed to create swap chain!");
     }
 
@@ -741,20 +758,18 @@ void GraphicsVulkan::createSwapChain() {
      * Note: Vulkan may have chosen to create more images than specified in minImageCount,
      * so we have to requery the image count here.
      */
-    vkGetSwapchainImagesKHR(logicalDevice, swapChain, &imageCount, nullptr);
+    vkGetSwapchainImagesKHR(device->logicalDevice, swapChain, &imageCount, nullptr);
+    std::vector<VkImage> swapChainImages;
     swapChainImages.resize(imageCount);
-    vkGetSwapchainImagesKHR(logicalDevice, swapChain, &imageCount, swapChainImages.data());
+    vkGetSwapchainImagesKHR(device->logicalDevice, swapChain, &imageCount, swapChainImages.data());
+    for (auto swapChainImage : swapChainImages) {
+        std::shared_ptr<ImageVulkan> img(new ImageVulkan(device, swapChainImage));
+        std::shared_ptr<ImageViewVulkan> imgView(new ImageViewVulkan(img, swapChainImageFormat, VK_IMAGE_ASPECT_COLOR_BIT));
+        imageViews.push_back(imgView);
+    }
 
     swapChainImageFormat = surfaceFormat.format;
     swapChainExtent = extent;
-}
-
-void GraphicsVulkan::createImageViews() {
-    swapChainImageViews.resize(swapChainImages.size());
-
-    for (size_t i=0; i < swapChainImages.size(); i++) {
-        swapChainImageViews[i] = createImageView(swapChainImages[i], swapChainImageFormat, VK_IMAGE_ASPECT_COLOR_BIT);
-    }
 }
 
 VkShaderModule GraphicsVulkan::createShaderModule(const std::vector<char>& code) {
@@ -773,12 +788,12 @@ VkShaderModule GraphicsVulkan::createShaderModule(const std::vector<char>& code)
     return shaderModule;
 }
 
-void GraphicsVulkan::createRenderPass() {
+void RenderPass::createRenderPass(std::shared_ptr<SwapChainVulkan> &swapchain) {
     /* color buffer attachment descriptions: use a single attachment represented by
      * one of the images from the swap chain.
      */
     VkAttachmentDescription colorAttachment = {};
-    colorAttachment.format = swapChainImageFormat;
+    colorAttachment.format = swapchain->swapChainImageFormat;
     /* stick to one sample since we are not using multisampling */
     colorAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
     /* clear the contents of the attachment to a constant at the start */
@@ -810,7 +825,7 @@ void GraphicsVulkan::createRenderPass() {
 
     /* depth attachment */
     VkAttachmentDescription depthAttachment = {};
-    depthAttachment.format = findDepthFormat();
+    depthAttachment.format = findDepthFormat(device);
     depthAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
     depthAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
 
@@ -875,7 +890,7 @@ void GraphicsVulkan::createRenderPass() {
     renderPassInfo.dependencyCount = 1;
     renderPassInfo.pDependencies = &dependency;
 
-    if (vkCreateRenderPass(logicalDevice, &renderPassInfo, nullptr, &renderPass) != VK_SUCCESS) {
+    if (vkCreateRenderPass(device->logicalDevice, &renderPassInfo, nullptr, &renderPass) != VK_SUCCESS) {
         throw std::runtime_error("failed to create render pass!");
     }
 }
@@ -1122,11 +1137,11 @@ void GraphicsVulkan::createGraphicsPipeline() {
     vkDestroyShaderModule(logicalDevice, fragShaderModule, nullptr);
 }
 
-void GraphicsVulkan::createFramebuffers() {
-    swapChainFramebuffers.resize(swapChainImageViews.size());
-    for (size_t i = 0; i < swapChainImageViews.size(); i++) {
+void SwapChainVulkan::createFramebuffers() {
+    swapChainFramebuffers.resize(imageViews.size());
+    for (size_t i = 0; i < imageViews.size(); i++) {
         std::array<VkImageView, 2> attachments = {
-            swapChainImageViews[i],
+            imageViews[i]->imageView,
             depthImageView
         };
 
@@ -1139,13 +1154,19 @@ void GraphicsVulkan::createFramebuffers() {
         framebufferInfo.height = swapChainExtent.height;
         framebufferInfo.layers = 1;
 
-        if (vkCreateFramebuffer(logicalDevice, &framebufferInfo, nullptr, &swapChainFramebuffers[i]) != VK_SUCCESS) {
+        VkFramebuffer framebuffer;
+        if (vkCreateFramebuffer(device->logicalDevice, &framebufferInfo, nullptr, &framebuffer) != VK_SUCCESS) {
             throw std::runtime_error("failed to create framebuffer!");
         }
+        auto deleter = [device](VkFramebuffer frameBuffer) {
+            vkDestroyFramebuffer(device->logicalDevice, frameBuffer, nullptr);
+        };
+        swapChainFramebuffers.push_back(std::shared_ptr<VkFramebuffer>(framebuffer, deleter));
     }
 }
 
-void GraphicsVulkan::createBuffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties, VkBuffer& buffer, VkDeviceMemory& bufferMemory) {
+void BufferVulkan::createBuffer(VkDeviceSize size, VkBufferUsageFlags usage,
+                                  VkMemoryPropertyFlags properties) {
     VkBufferCreateInfo bufferInfo = {};
     bufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
     bufferInfo.size = size;
@@ -1156,23 +1177,37 @@ void GraphicsVulkan::createBuffer(VkDeviceSize size, VkBufferUsageFlags usage, V
     /* the buffer will only be used by the graphics queue, so use exclusive sharing mode */
     bufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 
-    if (vkCreateBuffer(logicalDevice, &bufferInfo, nullptr, &buffer) != VK_SUCCESS) {
-        throw std::runtime_error("failed to create vertex buffer!");
+    VkBuffer buf;
+    if (vkCreateBuffer(device->logicalDevice, &bufferInfo, nullptr, &buf) != VK_SUCCESS) {
+        throw std::runtime_error("failed to create buffer!");
     }
 
+    auto bufdeleter = [device](VkBuffer buf) {
+        vkDestroyBuffer(device->logicalDevice, buf, nullptr);
+    };
+
+    buffer.reset(buf, bufdeleter);
+
     VkMemoryRequirements memRequirements;
-    vkGetBufferMemoryRequirements(logicalDevice, buffer, &memRequirements);
+    vkGetBufferMemoryRequirements(device->logicalDevice, buffer, &memRequirements);
 
     VkMemoryAllocateInfo allocInfo = {};
     allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
     allocInfo.allocationSize = memRequirements.size;
-    allocInfo.memoryTypeIndex = findMemoryType(memRequirements.memoryTypeBits, properties);
+    allocInfo.memoryTypeIndex = findMemoryType(device->physicalDevice, memRequirements.memoryTypeBits, properties);
 
-    if (vkAllocateMemory(logicalDevice, &allocInfo, nullptr, &bufferMemory) != VK_SUCCESS) {
-        throw std::runtime_error("failed to allocate vertex buffer memory!");
+    VkDeviceMemory bufmem;
+    if (vkAllocateMemory(device->logicalDevice, &allocInfo, nullptr, &bufmem) != VK_SUCCESS) {
+        throw std::runtime_error("failed to allocate buffer memory!");
     }
 
-    vkBindBufferMemory(logicalDevice, buffer, bufferMemory, 0 /* offset into the memory */);
+    auto bufmemdeleter = [device](VkDeviceMemory bufmem) {
+        vkFreeMemory(device->logicalDevice, bufmem, nullptr);
+    };
+
+    bufferMemory.reset(bufmem, bufmemdeleter);
+
+    vkBindBufferMemory(device->logicalDevice, *buffer.get(), *bufferMemory.get(), 0 /* offset into the memory */);
 }
 
 /* copy the data from CPU readable memory in the graphics card to non-CPU readable memory */
@@ -1186,26 +1221,23 @@ void GraphicsVulkan::copyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDevice
     endSingleTimeCommands(commandBuffer);
 }
 
-VkCommandBuffer GraphicsVulkan::beginSingleTimeCommands() {
+void SingleTimeCommands::begin() {
     VkCommandBufferAllocateInfo allocInfo = {};
     allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
     allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-    allocInfo.commandPool = commandPool;
+    allocInfo.commandPool = pool->commands;
     allocInfo.commandBufferCount = 1;
 
-    VkCommandBuffer commandBuffer;
-    vkAllocateCommandBuffers(logicalDevice, &allocInfo, &commandBuffer);
+    vkAllocateCommandBuffers(device->logicalDevice, &allocInfo, &commandBuffer);
 
     VkCommandBufferBeginInfo beginInfo = {};
     beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
     beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
 
     vkBeginCommandBuffer(commandBuffer, &beginInfo);
-
-    return commandBuffer;
 }
 
-void GraphicsVulkan::endSingleTimeCommands(VkCommandBuffer commandBuffer) {
+void SingleTimeCommands::end() {
     vkEndCommandBuffer(commandBuffer);
 
     VkSubmitInfo submitInfo = {};
@@ -1213,14 +1245,14 @@ void GraphicsVulkan::endSingleTimeCommands(VkCommandBuffer commandBuffer) {
     submitInfo.commandBufferCount = 1;
     submitInfo.pCommandBuffers = &commandBuffer;
 
-    vkQueueSubmit(graphicsQueue, 1, &submitInfo, VK_NULL_HANDLE);
+    vkQueueSubmit(device->graphicsQueue, 1, &submitInfo, VK_NULL_HANDLE);
     /* wait for the command to be done. */
-    vkQueueWaitIdle(graphicsQueue);
+    vkQueueWaitIdle(device->graphicsQueue);
 
-    vkFreeCommandBuffers(logicalDevice, commandPool, 1, &commandBuffer);
+    vkFreeCommandBuffers(device->logicalDevice, pool->commands, 1, &commandBuffer);
 }
 
-uint32_t GraphicsVulkan::findMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties) {
+uint32_t findMemoryType(VkPhysicalDevice physicalDevice, uint32_t typeFilter, VkMemoryPropertyFlags properties) {
     VkPhysicalDeviceMemoryProperties memProperties;
     vkGetPhysicalDeviceMemoryProperties(physicalDevice, &memProperties);
 
@@ -1236,8 +1268,8 @@ uint32_t GraphicsVulkan::findMemoryType(uint32_t typeFilter, VkMemoryPropertyFla
 /* command pools are used to retrieve command buffers.  Command buffers is where the drawing
  * commands are written.
  */
-void GraphicsVulkan::createCommandPool() {
-    QueueFamilyIndices queueFamilyIndices = findQueueFamilies(physicalDevice);
+void CommandPool::createCommandPool() {
+    DeviceVulkan::QueueFamilyIndices queueFamilyIndices = device->findQueueFamilies();
     VkCommandPoolCreateInfo poolInfo = {};
     poolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
 
@@ -1254,7 +1286,7 @@ void GraphicsVulkan::createCommandPool() {
      */
     poolInfo.flags = 0;
 
-    if (vkCreateCommandPool(logicalDevice, &poolInfo, nullptr, &commandPool) != VK_SUCCESS) {
+    if (vkCreateCommandPool(device->logicalDevice, &poolInfo, nullptr, &commands) != VK_SUCCESS) {
         throw std::runtime_error("failed to create command pool!");
     }
 }
@@ -1504,34 +1536,6 @@ void GraphicsVulkan::createDepthResources() {
     transitionImageLayout(depthImage, depthFormat, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL);
 }
 
-VkFormat GraphicsVulkan::findDepthFormat() {
-    return findSupportedFormat(
-        {VK_FORMAT_D32_SFLOAT, VK_FORMAT_D32_SFLOAT_S8_UINT, VK_FORMAT_D24_UNORM_S8_UINT},
-        VK_IMAGE_TILING_OPTIMAL,
-        VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT
-    );
-}
-
-/* find supported image formats for depth buffering */
-VkFormat GraphicsVulkan::findSupportedFormat(const std::vector<VkFormat>& candidates, VkImageTiling tiling, VkFormatFeatureFlags features) {
-    for (VkFormat format : candidates) {
-        VkFormatProperties props;
-        vkGetPhysicalDeviceFormatProperties(physicalDevice, format, &props);
-
-        if (tiling == VK_IMAGE_TILING_LINEAR && (props.linearTilingFeatures & features) == features) {
-            return format;
-        } else if (tiling == VK_IMAGE_TILING_OPTIMAL && (props.optimalTilingFeatures & features) == features) {
-            return format;
-        }
-    }
-
-    throw std::runtime_error("failed to find supported format!");
-}
-
-bool GraphicsVulkan::hasStencilComponent(VkFormat format) {
-    return format == VK_FORMAT_D32_SFLOAT_S8_UINT || format == VK_FORMAT_D24_UNORM_S8_UINT;
-}
-
 /* descriptor set for the MVP matrix and texture samplers */
 void GraphicsVulkan::updateDescriptorSet(VkBuffer uniformBuffer, VkImageView imageView,
                                          VkSampler textureSampler, VkBuffer lightingSource,
@@ -1594,7 +1598,7 @@ void GraphicsVulkan::updateDescriptorSet(VkBuffer uniformBuffer, VkImageView ima
 }
 
 /* for accessing data other than the vertices from the shaders */
-void GraphicsVulkan::createDescriptorSetLayout(VkDescriptorSetLayout &descriptorSetLayout) {
+void DescriptorPools::createDescriptorSetLayout() {
     /* MVP matrix */
     VkDescriptorSetLayoutBinding uboLayoutBinding = {};
     uboLayoutBinding.binding = 0;
@@ -1627,12 +1631,13 @@ void GraphicsVulkan::createDescriptorSetLayout(VkDescriptorSetLayout &descriptor
     layoutInfo.bindingCount = static_cast<uint32_t>(bindings.size());
     layoutInfo.pBindings = bindings.data();
 
-    if (vkCreateDescriptorSetLayout(logicalDevice, &layoutInfo, nullptr, &descriptorSetLayout) != VK_SUCCESS) {
+    if (vkCreateDescriptorSetLayout(device->logicalDevice, &layoutInfo, nullptr, &descriptorSetLayout) != VK_SUCCESS) {
         throw std::runtime_error("failed to create descriptor set layout!");
     }
 }
 
-void GraphicsVulkan::createTextureImage(TextureDescription *texture, VkImage &textureImage, VkDeviceMemory &textureImageMemory) {
+void TextureDataVulkan::createTextureImage(std::shared_ptr<TextureDescription> &texture,
+        std::shared_ptr<CommandPool> &pool) {
     uint32_t texHeight;
     uint32_t texWidth;
     uint32_t texChannels;
@@ -1641,37 +1646,36 @@ void GraphicsVulkan::createTextureImage(TextureDescription *texture, VkImage &te
 
     VkDeviceSize imageSize = texWidth*texHeight*texChannels;
 
-    VkBuffer stagingBuffer;
-    VkDeviceMemory stagingBufferMemory;
-
     /* copy the image to CPU accessable memory in the graphics card.  Make sure that it has the
      * VK_BUFFER_USAGE_TRANSFER_SRC_BIT set so that we can copy from it to an image later
      */
-    createBuffer(imageSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, stagingBuffer, stagingBufferMemory);
+    BufferVulkan staging(imageSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+                         VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
 
     void* data;
-    vkMapMemory(logicalDevice, stagingBufferMemory, 0, imageSize, 0, &data);
+    vkMapMemory(device->logicalDevice, *staging.bufferMemory.get(), 0, imageSize, 0, &data);
     memcpy(data, pixels.data(), static_cast<size_t>(imageSize));
-    vkUnmapMemory(logicalDevice, stagingBufferMemory);
+    vkUnmapMemory(device->logicalDevice, *staging.bufferMemory.get());
 
     VkFormat format = VK_FORMAT_R8G8B8A8_UNORM;//VK_FORMAT_R8_UNORM;
-    createImage(texWidth, texHeight, format, VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, textureImage, textureImageMemory);
+    std::shared_ptr<ImageMemoryVulkan> image(new ImageMemoryVulkan(device, texWidth, texHeight, format,
+        VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
+        VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT));
 
     /* transition the image to VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL. The image was created with
      * layout: VK_IMAGE_LAYOUT_UNDEFINED, so we use that to specify the old layout.
      */
-    transitionImageLayout(textureImage,  format, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
+    SingleTimeCommands cmds{device, pool};
+    image->transitionImageLayout(format, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, pool);
 
-    copyBufferToImage(stagingBuffer, textureImage, static_cast<uint32_t>(texWidth), static_cast<uint32_t>(texHeight));
+    image->copyBufferToImage(staging, pool);
 
     /* transition the image to VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL so that the
      * shader can read from it.
      */
-    transitionImageLayout(textureImage,  format, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+    image->transitionImageLayout(format, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, pool);
 
-    /* free staging buffer */
-    vkDestroyBuffer(logicalDevice, stagingBuffer, nullptr);
-    vkFreeMemory(logicalDevice, stagingBufferMemory, nullptr);
+    img.reset(new ImageViewVulkan(image, VK_FORMAT_R8_UNORM, VK_IMAGE_ASPECT_COLOR_BIT));
 }
 
 void GraphicsVulkan::createTextureSampler(VkSampler &textureSampler) {
@@ -1736,10 +1740,10 @@ void GraphicsVulkan::createTextureSampler(VkSampler &textureSampler) {
 
 }
 
-VkImageView GraphicsVulkan::createImageView(VkImage image, VkFormat format, VkImageAspectFlags aspectFlags) {
+VkImageView ImageViewVulkan::createImageView(VkFormat format, VkImageAspectFlags aspectFlags) {
     VkImageViewCreateInfo createInfo = {};
     createInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
-    createInfo.image = image;
+    createInfo.image = image->image;
 
     /* specify how the image data should be interpreted. viewType allows you
      * to treat images as 1D textures, 2D textures 3D textures and cube maps.
@@ -1767,14 +1771,15 @@ VkImageView GraphicsVulkan::createImageView(VkImage image, VkFormat format, VkIm
 
     /* create the image view: destroy when done. */
     VkImageView imageView;
-    if (vkCreateImageView(logicalDevice, &createInfo, nullptr, &imageView) != VK_SUCCESS) {
+    if (vkCreateImageView(image->device->logicalDevice, &createInfo, nullptr, &imageView) != VK_SUCCESS) {
         throw std::runtime_error("failed to create image views");
     }
 
     return imageView;
 }
 
-void GraphicsVulkan::createImage(uint32_t width, uint32_t height, VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage, VkMemoryPropertyFlags properties, VkImage& image, VkDeviceMemory& imageMemory) {
+void ImageMemoryVulkan::createImage(uint32_t width, uint32_t height, VkFormat format, VkImageTiling tiling,
+                              VkImageUsageFlags usage, VkMemoryPropertyFlags properties) {
 
     /* copy the data to an image object because it will be easier and faster to access the
      * image from the shader.  One advantage of using an image object is that using one will
@@ -1819,28 +1824,30 @@ void GraphicsVulkan::createImage(uint32_t width, uint32_t height, VkFormat forma
     /* for sparse images.  We don't use it here. */
     imageInfo.flags = 0; // Optional
 
-    if (vkCreateImage(logicalDevice, &imageInfo, nullptr, &image) != VK_SUCCESS) {
+    if (vkCreateImage(device->logicalDevice, &imageInfo, nullptr, &image) != VK_SUCCESS) {
         throw std::runtime_error("failed to create image!");
     }
 
     VkMemoryRequirements memRequirements;
-    vkGetImageMemoryRequirements(logicalDevice, image, &memRequirements);
+    vkGetImageMemoryRequirements(device->logicalDevice, image, &memRequirements);
 
     VkMemoryAllocateInfo allocInfo = {};
     allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
     allocInfo.allocationSize = memRequirements.size;
-    allocInfo.memoryTypeIndex = findMemoryType(memRequirements.memoryTypeBits, properties);
+    allocInfo.memoryTypeIndex = findMemoryType(device->physicalDevice, memRequirements.memoryTypeBits, properties);
 
-    if (vkAllocateMemory(logicalDevice, &allocInfo, nullptr, &imageMemory) != VK_SUCCESS) {
+    if (vkAllocateMemory(device->logicalDevice, &allocInfo, nullptr, &imageMemory) != VK_SUCCESS) {
         throw std::runtime_error("failed to allocate image memory!");
     }
 
-    vkBindImageMemory(logicalDevice, image, imageMemory, 0);
+    vkBindImageMemory(device->logicalDevice, image, imageMemory, 0);
 }
 
 /* get the image in the right layout before we execute a copy command */
-void GraphicsVulkan::transitionImageLayout(VkImage image, VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout) {
-    VkCommandBuffer commandBuffer = beginSingleTimeCommands();
+void ImageMemoryVulkan::transitionImageLayout(VkFormat format, VkImageLayout oldLayout,
+        VkImageLayout newLayout, std::shared_ptr<CommandPool> &pool) {
+    SingleTimeCommands cmds{device, pool};
+    cmds.begin();
 
     /* use an image barrier to transition the layout */
     VkImageMemoryBarrier barrier = {};
@@ -1907,7 +1914,7 @@ void GraphicsVulkan::transitionImageLayout(VkImage image, VkFormat format, VkIma
     }
 
     vkCmdPipelineBarrier(
-        commandBuffer,
+        cmds.commandBuffer,
         sourceStage, destinationStage,
         0,
         0, nullptr,
@@ -1915,11 +1922,12 @@ void GraphicsVulkan::transitionImageLayout(VkImage image, VkFormat format, VkIma
         1, &barrier
     );
 
-    endSingleTimeCommands(commandBuffer);
+    cmds.end();
 }
 
-void GraphicsVulkan::copyBufferToImage(VkBuffer buffer, VkImage image, uint32_t width, uint32_t height) {
-    VkCommandBuffer commandBuffer = beginSingleTimeCommands();
+void ImageMemoryVulkan::copyBufferToImage(BufferVulkan &buffer, std::shared_ptr<CommandPool> &pool) {
+    SingleTimeCommands cmds{device, pool};
+    cmds.begin();
 
     VkBufferImageCopy region = {};
 
@@ -1947,26 +1955,26 @@ void GraphicsVulkan::copyBufferToImage(VkBuffer buffer, VkImage image, uint32_t 
     };
 
     vkCmdCopyBufferToImage(
-        commandBuffer,
-        buffer,
+        cmds.commandBuffer,
+        *buffer.buffer,
         image,
         VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
         1,
         &region
     );
 
-    endSingleTimeCommands(commandBuffer);
+    cmds.end();
 }
 
 /**
  * Choose the resolution of the swap images in the frame buffer.  Just return
  * the current extent (same resolution as the window).
  */
-VkExtent2D GraphicsVulkan::chooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabilities) {
+VkExtent2D SwapChainVulkan::chooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabilities) {
     return capabilities.currentExtent;
 }
 
-void GraphicsVulkan::createSurface() {
+void InstanceVulkan::createSurface() {
     VkAndroidSurfaceCreateInfoKHR createInfo = {};
     createInfo.sType = VK_STRUCTURE_TYPE_ANDROID_SURFACE_CREATE_INFO_KHR;
     createInfo.window = window;
@@ -1975,7 +1983,7 @@ void GraphicsVulkan::createSurface() {
     }
 }
 
-void GraphicsVulkan::destroyWindow() {
+void InstanceVulkan::destroyWindow() {
     /* release the java window object */
     if (window != nullptr) {
         ANativeWindow_release(window);
