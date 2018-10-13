@@ -67,31 +67,36 @@ const std::vector<const char*> validationLayers = {
 uint32_t findMemoryType(VkPhysicalDevice physicalDevice, uint32_t typeFilter, VkMemoryPropertyFlags properties);
 
 struct InstanceVulkan {
-    std::shared_ptr<VkInstance_T> instance;
-    std::shared_ptr<VkSurfaceKHR_T> surface;
-    VkDebugReportCallbackEXT callback;
-    std::shared_ptr<WindowType> window;
     InstanceVulkan(WindowType *inWindow)
-        :instance{},
-        surface{},
-        callback{},
-        window{inWindow}
+        :m_window{},
+        m_instance{},
+        m_callback{},
+        m_surface{}
     {
+        auto deleter = [](WindowType *windowRaw) {
+            /* release the java window object */
+            if (windowRaw != nullptr) {
+                ANativeWindow_release(windowRaw);
+            }
+        };
+
+        m_window.reset(inWindow, deleter);
+
         createInstance();
         setupDebugCallback();
         createSurface();
     }
 
-    ~InstanceVulkan() {
-        if (instance != VK_NULL_HANDLE) {
-            vkDestroySurfaceKHR(instance, surface, nullptr);
-            DestroyDebugReportCallbackEXT(instance, callback, nullptr);
-            instance.reset();
-        }
+    inline std::shared_ptr<VkInstance_T> const &instance() { return m_instance; }
+    inline std::shared_ptr<VkSurfaceKHR_T> const &surface() { return m_surface; }
+    inline std::shared_ptr<VkDebugReportCallbackEXT_T> const &callback() { return m_callback; }
 
-        destroyWindow();
-    }
 private:
+    std::shared_ptr<WindowType> m_window;
+    std::shared_ptr<VkInstance_T> m_instance;
+    std::shared_ptr<VkDebugReportCallbackEXT_T> m_callback;
+    std::shared_ptr<VkSurfaceKHR_T> m_surface;
+
     static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(
             VkDebugReportFlagsEXT flags,
             VkDebugReportObjectTypeEXT objType,
@@ -116,7 +121,6 @@ private:
     void DestroyDebugReportCallbackEXT(VkInstance instance,
         VkDebugReportCallbackEXT callback,
         const VkAllocationCallbacks* pAllocator);
-    void destroyWindow();
 };
 
 struct DeviceVulkan {
@@ -135,36 +139,39 @@ struct DeviceVulkan {
         std::vector<VkPresentModeKHR> presentModes;
     };
 
-    /* ensure that the instance is not destroyed before the device by holding a shared
-     * pointer to the instance here.
-     */
-    std::shared_ptr<InstanceVulkan> instance;
-
-    VkPhysicalDevice physicalDevice;
-    VkDevice logicalDevice;
-
-    VkQueue graphicsQueue;
-    VkQueue presentQueue;
-
     DeviceVulkan(std::shared_ptr<InstanceVulkan> inInstance)
-        : instance(inInstance),
-        physicalDevice{VK_NULL_HANDLE},
-        logicalDevice{VK_NULL_HANDLE},
-        graphicsQueue{VK_NULL_HANDLE},
-        presentQueue{VK_NULL_HANDLE}
+        : m_instance(inInstance),
+        m_physicalDevice{VK_NULL_HANDLE},
+        m_logicalDevice{},
+        m_graphicsQueue{VK_NULL_HANDLE},
+        m_presentQueue{VK_NULL_HANDLE}
     {
         pickPhysicalDevice();
         createLogicalDevice();
     }
 
-    QueueFamilyIndices findQueueFamilies(VkPhysicalDevice device = physicalDevice);
-    SwapChainSupportDetails querySwapChainSupport(VkPhysicalDevice device = physicalDevice);
+    QueueFamilyIndices findQueueFamilies(VkPhysicalDevice device = m_physicalDevice);
+    SwapChainSupportDetails querySwapChainSupport(VkPhysicalDevice device = m_physicalDevice);
 
-    ~DeviceVulkan() {
-        vkDestroyDevice(logicalDevice, nullptr);
-    }
-
+    inline std::shared_ptr<VkDevice_T> const &logicalDevice() { return m_logicalDevice; }
+    inline VkPhysicalDevice physicalDevice() {return m_physicalDevice; }
+    inline VkQueue graphicsQueue() { return m_graphicsQueue; }
+    inline VkQueue presentQueue() { return m_presentQueue; }
 private:
+    /* ensure that the instance is not destroyed before the device by holding a shared
+     * pointer to the instance here.
+     */
+    std::shared_ptr<InstanceVulkan> m_instance;
+
+    // the physical device does not need to be freed.
+    VkPhysicalDevice m_physicalDevice;
+
+    std::shared_ptr<VkDevice_T> m_logicalDevice;
+
+    // the graphics and present queues are really part of the logical device and don't need to be freed.
+    VkQueue m_graphicsQueue;
+    VkQueue m_presentQueue;
+
     const std::vector<const char*> deviceExtensions = {
             VK_KHR_SWAPCHAIN_EXTENSION_NAME
     };
@@ -172,7 +179,7 @@ private:
     void pickPhysicalDevice();
     void createLogicalDevice();
     bool isDeviceSuitable(VkPhysicalDevice device);
-    bool checkDeviceExtensionSupport();
+    bool checkDeviceExtensionSupport(VkPhysicalDevice device);
 };
 
 struct CommandPool;
@@ -252,11 +259,11 @@ struct ImageMemoryVulkan : public ImageVulkan {
         std::shared_ptr<CommandPool> &pool);
     virtual ~ImageMemoryVulkan() {
         if (image != VK_NULL_HANDLE) {
-            vkDestroyImage(device->logicalDevice, image, nullptr);
+            vkDestroyImage(device->logicalDevice().get(), image, nullptr);
         }
 
         if (imageMemory != VK_NULL_HANDLE) {
-            vkFreeMemory(device->logicalDevice, imageMemory, nullptr);
+            vkFreeMemory(device->logicalDevice().get(), imageMemory, nullptr);
         }
 
     }

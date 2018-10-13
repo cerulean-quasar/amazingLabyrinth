@@ -378,7 +378,7 @@ void InstanceVulkan::createInstance() {
         vkDestroyInstance(instanceRaw, nullptr);
     };
 
-    instance.reset(instanceRaw, deleter);
+    m_instance.reset(instanceRaw, deleter);
 }
 
 void InstanceVulkan::setupDebugCallback() {
@@ -391,9 +391,34 @@ void InstanceVulkan::setupDebugCallback() {
         VK_DEBUG_REPORT_ERROR_BIT_EXT | VK_DEBUG_REPORT_WARNING_BIT_EXT;
     createInfo.pfnCallback = debugCallback;
 
-    if (CreateDebugReportCallbackEXT(instance, &createInfo, nullptr, &callback) != VK_SUCCESS) {
+    VkDebugReportCallbackEXT callbackRaw;
+    if (CreateDebugReportCallbackEXT(m_instance.get(), &createInfo, nullptr, &callbackRaw) != VK_SUCCESS) {
         throw std::runtime_error("failed to set up debug callback!");
     }
+
+    auto deleter = [m_instance](VkDebugReportCallbackEXT callbackRaw) {
+        DestroyDebugReportCallbackEXT(m_instance.get(), callbackRaw, nullptr);
+    };
+
+    m_callback.reset(callbackRaw, deleter);
+}
+
+void InstanceVulkan::createSurface() {
+    VkAndroidSurfaceCreateInfoKHR createInfo = {};
+    createInfo.sType = VK_STRUCTURE_TYPE_ANDROID_SURFACE_CREATE_INFO_KHR;
+    createInfo.window = m_window.get();
+
+    VkSurfaceKHR surfaceRaw;
+    if (vkCreateAndroidSurfaceKHR(m_instance.get(), &createInfo, nullptr, &surfaceRaw) != VK_SUCCESS) {
+        throw std::runtime_error("failed to create window surface!");
+    }
+
+    // the surface requires the window, so, pass it into the deleter.
+    auto deleter = [m_instance, m_window](VkSurfaceKHR surfaceRaw) {
+        vkDestroySurfaceKHR(m_instance.get(), surfaceRaw, nullptr);
+    };
+
+    m_surface.reset(surfaceRaw, deleter);
 }
 
 bool InstanceVulkan::checkExtensionSupport() {
@@ -457,16 +482,16 @@ bool InstanceVulkan::checkValidationLayerSupport() {
 
 void DeviceVulkan::pickPhysicalDevice() {
     uint32_t deviceCount = 0;
-    vkEnumeratePhysicalDevices(instance->instance, &deviceCount, nullptr);
+    vkEnumeratePhysicalDevices(m_instance->instance().get(), &deviceCount, nullptr);
     if (deviceCount == 0) {
         throw std::runtime_error("failed to find GPUs with Vulkan support!");
     }
 
     std::vector<VkPhysicalDevice> devices(deviceCount);
-    vkEnumeratePhysicalDevices(instance->instance, &deviceCount, devices.data());
+    vkEnumeratePhysicalDevices(m_instance->instance().get(), &deviceCount, devices.data());
     for (const auto& device : devices) {
         if (isDeviceSuitable(device)) {
-            physicalDevice = device;
+            m_physicalDevice = device;
             break;
         }
     }
@@ -479,14 +504,14 @@ void DeviceVulkan::pickPhysicalDevice() {
         std::cout << "Device name: " << deviceProperties.deviceName << "\n";
     }
 
-    if (physicalDevice == VK_NULL_HANDLE) {
+    if (m_physicalDevice == VK_NULL_HANDLE) {
         throw std::runtime_error("failed to find a suitable GPU!");
     }
 }
 
 bool DeviceVulkan::isDeviceSuitable(VkPhysicalDevice device) {
     QueueFamilyIndices indices = findQueueFamilies();
-    bool extensionsSupported = checkDeviceExtensionSupport();
+    bool extensionsSupported = checkDeviceExtensionSupport(device);
 
     VkPhysicalDeviceProperties deviceProperties;
     VkPhysicalDeviceFeatures deviceFeatures;
@@ -511,12 +536,12 @@ bool DeviceVulkan::isDeviceSuitable(VkPhysicalDevice device) {
     }
 }
 
-bool DeviceVulkan::checkDeviceExtensionSupport() {
+bool DeviceVulkan::checkDeviceExtensionSupport(VkPhysicalDevice device) {
     uint32_t extensionCount;
-    vkEnumerateDeviceExtensionProperties(physicalDevice, nullptr, &extensionCount, nullptr);
+    vkEnumerateDeviceExtensionProperties(device, nullptr, &extensionCount, nullptr);
 
     std::vector<VkExtensionProperties> availableExtensions(extensionCount);
-    vkEnumerateDeviceExtensionProperties(physicalDevice, nullptr, &extensionCount, availableExtensions.data());
+    vkEnumerateDeviceExtensionProperties(device, nullptr, &extensionCount, availableExtensions.data());
 
     std::set<std::string> requiredExtensions(deviceExtensions.begin(), deviceExtensions.end());
 
@@ -541,7 +566,7 @@ DeviceVulkan::QueueFamilyIndices DeviceVulkan::findQueueFamilies(VkPhysicalDevic
     int i = 0;
     for (const auto& queueFamily : queueFamilies) {
         VkBool32 presentSupport = false;
-        vkGetPhysicalDeviceSurfaceSupportKHR(device, i, instance->surface, &presentSupport);
+        vkGetPhysicalDeviceSurfaceSupportKHR(device, i, m_instance->surface().get(), &presentSupport);
         if (queueFamily.queueCount > 0 && presentSupport) {
             indices.presentFamily = i;
         }
@@ -578,46 +603,23 @@ VkSurfaceFormatKHR SwapChain::chooseSwapSurfaceFormat(const std::vector<VkSurfac
 
 }
 
-/**
- * Choose the swap change present mode.
- *
- * We prefer VK_PRESENT_MODE_MAILBOX_KHR because it uses triple
- * buffering and avoids tearing.  If we can't get that, we look for
- * VK_PRESENT_MODE_IMMEDIATE_KHR next because although
- * VK_PRESENT_MODE_FIFO_KHR is guaranteed to be available, not all video
- * cards implement it correctly.
- */
-VkPresentModeKHR SwapChain::chooseSwapPresentMode(const std::vector<VkPresentModeKHR> availablePresentModes) {
-    VkPresentModeKHR bestMode = VK_PRESENT_MODE_FIFO_KHR;
-
-    for (const auto& availablePresentMode : availablePresentModes) {
-        if (availablePresentMode == VK_PRESENT_MODE_MAILBOX_KHR) {
-            return availablePresentMode;
-        } else if (availablePresentMode == VK_PRESENT_MODE_IMMEDIATE_KHR) {
-            bestMode = availablePresentMode;
-        }
-    }
-
-    return bestMode;
-}
-
 DeviceVulkan::SwapChainSupportDetails DeviceVulkan::querySwapChainSupport(VkPhysicalDevice device) {
     DeviceVulkan::SwapChainSupportDetails details;
 
-    vkGetPhysicalDeviceSurfaceCapabilitiesKHR(device, instance->surface, &details.capabilities);
+    vkGetPhysicalDeviceSurfaceCapabilitiesKHR(device, m_instance->surface().get(), &details.capabilities);
 
     uint32_t formatCount;
-    vkGetPhysicalDeviceSurfaceFormatsKHR(device, instance->surface, &formatCount, nullptr);
+    vkGetPhysicalDeviceSurfaceFormatsKHR(device, m_instance->surface().get(), &formatCount, nullptr);
     if (formatCount != 0) {
         details.formats.resize(formatCount);
-        vkGetPhysicalDeviceSurfaceFormatsKHR(device, instance->surface, &formatCount, details.formats.data());
+        vkGetPhysicalDeviceSurfaceFormatsKHR(device, m_instance->surface().get(), &formatCount, details.formats.data());
     }
 
     uint32_t presentModeCount;
-    vkGetPhysicalDeviceSurfacePresentModesKHR(device, instance->surface, &presentModeCount, nullptr);
+    vkGetPhysicalDeviceSurfacePresentModesKHR(device, m_instance->surface().get(), &presentModeCount, nullptr);
     if (presentModeCount != 0) {
         details.presentModes.resize(presentModeCount);
-        vkGetPhysicalDeviceSurfacePresentModesKHR(device, instance->surface, &presentModeCount, details.presentModes.data());
+        vkGetPhysicalDeviceSurfacePresentModesKHR(device, m_instance->surface().get(), &presentModeCount, details.presentModes.data());
     }
 
     return details;
@@ -660,12 +662,42 @@ void DeviceVulkan::createLogicalDevice() {
         createInfo.enabledLayerCount = 0;
     }
 
-    if (vkCreateDevice(physicalDevice, &createInfo, nullptr, &logicalDevice) != VK_SUCCESS) {
+    VkDevice logicalDeviceRaw;
+    if (vkCreateDevice(m_physicalDevice, &createInfo, nullptr, &logicalDeviceRaw) != VK_SUCCESS) {
         throw std::runtime_error("failed to create logical device!");
     }
 
-    vkGetDeviceQueue(logicalDevice, indices.graphicsFamily, 0, &graphicsQueue);
-    vkGetDeviceQueue(logicalDevice, indices.presentFamily, 0, &presentQueue);
+    auto deleter = [](VkDevice logicalDeviceRaw) {
+        vkDestroyDevice(logicalDeviceRaw, nullptr);
+    };
+
+    m_logicalDevice.reset(logicalDeviceRaw, deleter);
+
+    vkGetDeviceQueue(m_logicalDevice.get(), indices.graphicsFamily, 0, &m_graphicsQueue);
+    vkGetDeviceQueue(m_logicalDevice.get(), indices.presentFamily, 0, &m_presentQueue);
+}
+
+/**
+ * Choose the swap change present mode.
+ *
+ * We prefer VK_PRESENT_MODE_MAILBOX_KHR because it uses triple
+ * buffering and avoids tearing.  If we can't get that, we look for
+ * VK_PRESENT_MODE_IMMEDIATE_KHR next because although
+ * VK_PRESENT_MODE_FIFO_KHR is guaranteed to be available, not all video
+ * cards implement it correctly.
+ */
+VkPresentModeKHR SwapChain::chooseSwapPresentMode(const std::vector<VkPresentModeKHR> availablePresentModes) {
+    VkPresentModeKHR bestMode = VK_PRESENT_MODE_FIFO_KHR;
+
+    for (const auto& availablePresentMode : availablePresentModes) {
+        if (availablePresentMode == VK_PRESENT_MODE_MAILBOX_KHR) {
+            return availablePresentMode;
+        } else if (availablePresentMode == VK_PRESENT_MODE_IMMEDIATE_KHR) {
+            bestMode = availablePresentMode;
+        }
+    }
+
+    return bestMode;
 }
 
 /**
@@ -692,7 +724,7 @@ void SwapChain::createSwapChain() {
     /* set the create structure up. */
     VkSwapchainCreateInfoKHR createInfo = {};
     createInfo.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
-    createInfo.surface = device->instance->surface;
+    createInfo.surface = device->instance->surface().get();
     createInfo.minImageCount = imageCount;
     createInfo.imageFormat = surfaceFormat.format;
     createInfo.imageColorSpace = surfaceFormat.colorSpace;
@@ -743,7 +775,7 @@ void SwapChain::createSwapChain() {
      */
     createInfo.oldSwapchain = VK_NULL_HANDLE;
 
-    if (vkCreateSwapchainKHR(device->logicalDevice, &createInfo, nullptr, &swapChain) !=
+    if (vkCreateSwapchainKHR(device->logicalDevice().get(), &createInfo, nullptr, &swapChain) !=
         VK_SUCCESS) {
         throw std::runtime_error("failed to create swap chain!");
     }
@@ -2006,22 +2038,6 @@ void ImageMemoryVulkan::copyBufferToImage(BufferVulkan &buffer, std::shared_ptr<
  */
 VkExtent2D SwapChain::chooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabilities) {
     return capabilities.currentExtent;
-}
-
-void InstanceVulkan::createSurface() {
-    VkAndroidSurfaceCreateInfoKHR createInfo = {};
-    createInfo.sType = VK_STRUCTURE_TYPE_ANDROID_SURFACE_CREATE_INFO_KHR;
-    createInfo.window = window;
-    if (vkCreateAndroidSurfaceKHR(instance, &createInfo, nullptr, &surface) != VK_SUCCESS) {
-        throw std::runtime_error("failed to create window surface!");
-    }
-}
-
-void InstanceVulkan::destroyWindow() {
-    /* release the java window object */
-    if (window != nullptr) {
-        ANativeWindow_release(window);
-    }
 }
 
 UniformBufferObject GraphicsVulkan::getViewPerspectiveMatrix() {
