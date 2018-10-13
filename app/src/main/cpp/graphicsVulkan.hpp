@@ -67,14 +67,14 @@ const std::vector<const char*> validationLayers = {
 uint32_t findMemoryType(VkPhysicalDevice physicalDevice, uint32_t typeFilter, VkMemoryPropertyFlags properties);
 
 struct InstanceVulkan {
-    VkInstance instance;
-    VkSurfaceKHR surface;
+    std::shared_ptr<VkInstance_T> instance;
+    std::shared_ptr<VkSurfaceKHR_T> surface;
     VkDebugReportCallbackEXT callback;
-    WindowType *window;
+    std::shared_ptr<WindowType> window;
     InstanceVulkan(WindowType *inWindow)
-        :instance{VK_NULL_HANDLE},
-        surface{VK_NULL_HANDLE},
-        callback{VK_NULL_HANDLE},
+        :instance{},
+        surface{},
+        callback{},
         window{inWindow}
     {
         createInstance();
@@ -86,7 +86,7 @@ struct InstanceVulkan {
         if (instance != VK_NULL_HANDLE) {
             vkDestroySurfaceKHR(instance, surface, nullptr);
             DestroyDebugReportCallbackEXT(instance, callback, nullptr);
-            vkDestroyInstance(instance, nullptr);
+            instance.reset();
         }
 
         destroyWindow();
@@ -175,10 +175,12 @@ private:
     bool checkDeviceExtensionSupport();
 };
 
+struct CommandPool;
 struct BufferVulkan {
     std::shared_ptr<DeviceVulkan> device;
-    std::shared_ptr<VkBuffer> buffer;
-    std::shared_ptr<VkDeviceMemory> bufferMemory;
+
+    std::shared_ptr<VkBuffer_T> buffer;
+    std::shared_ptr<VkDeviceMemory_T> bufferMemory;
 
     BufferVulkan(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties)
             :buffer{},
@@ -186,9 +188,14 @@ struct BufferVulkan {
     {
         createBuffer(size, usage, properties);
     }
-
+    void copyTo(std::shared_ptr<CommandPool> cmds, std::shared_ptr<BufferVulkan> const &srcBuffer, VkDeviceSize size);
+    void copyTo(std::shared_ptr<CommandPool> cmds, BufferVulkan const &srcBuffer, VkDeviceSize size);
+    void copyRawTo(void *dataRaw, size_t size);
     ~BufferVulkan() {
-        // ensure order of destruction.
+        /* ensure order of destruction.
+         * free the memory after the buffer has been destroyed because the buffer is bound to
+         * the memory, so the buffer is still using the memory until the buffer is destroyed.
+         */
         buffer.reset();
         bufferMemory.reset();
     }
@@ -196,16 +203,20 @@ private:
     void createBuffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties);
 };
 
-struct CommandPool {
-    std::shared_ptr<DeviceVulkan> device;
-    VkCommandPool commands;
+class CommandPool {
+public:
     CommandPool(std::shared_ptr<DeviceVulkan> inDevice)
-            : device{inDevice}
+            : device{inDevice},
+              commands{}
     {
         createCommandPool();
     }
 
+    inline std::shared_ptr<VkCommandPool_T> const &commandPool() { return commands; }
 private:
+    std::shared_ptr<DeviceVulkan> device;
+    std::shared_ptr<VkCommandPool_T> commands;
+
     void createCommandPool();
 };
 
@@ -219,15 +230,11 @@ struct ImageVulkan {
               image(inImage)
     {
     }
-
-    virtual ~ImageVulkan() {
-    }
 };
 
 struct ImageMemoryVulkan : public ImageVulkan {
     // ImageVulkan of this subclass have memory management
     VkDeviceMemory imageMemory;
-    VkImageView imageView;
     uint32_t width;
     uint32_t height;
     ImageMemoryVulkan(std::shared_ptr<DeviceVulkan> inDevice, uint32_t inWidth, uint32_t inHeight, VkFormat format,
@@ -235,7 +242,6 @@ struct ImageMemoryVulkan : public ImageVulkan {
         :ImageVulkan{inDevice, VK_NULL_HANDLE},
         imageMemory{},
         image{},
-        imageView{},
         width{inWidth},
         height{inHeight}
     {
@@ -278,27 +284,22 @@ private:
     VkImageView createImageView(VkFormat format, VkImageAspectFlags aspectFlags);
 };
 
-struct SwapChainVulkan {
+struct SwapChain {
     std::shared_ptr<DeviceVulkan> device;
     VkSwapchainKHR swapChain;
-    std::vector<std::shared_ptr<ImageViewVulkan>> imageViews;
-    std::vector<std::shared_ptr<VkFramebuffer>> swapChainFramebuffers;
     VkFormat swapChainImageFormat;
     VkExtent2D swapChainExtent;
 
-    SwapChainVulkan(std::shared_ptr<DeviceVulkan> inDevice)
+    SwapChain(std::shared_ptr<DeviceVulkan> inDevice)
             :device(inDevice),
              swapChain{VK_NULL_HANDLE},
-             imageViews{},
-             swapChainFramebuffers{},
              swapChainImageFormat{},
              swapChainExtent{}
     {
         createSwapChain();
     }
-    void createFramebuffers();
 
-    ~SwapChainVulkan() {
+    ~SwapChain() {
         if (swapChain != VK_NULL_HANDLE) {
             vkDestroySwapchainKHR(device->logicalDevice, swapChain, nullptr);
         }
@@ -310,21 +311,49 @@ private:
     VkExtent2D chooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabilities);
 };
 
+VkFormat findDepthFormat(std::shared_ptr<DeviceVulkan> &device);
+struct ImageViewDepth : public ImageViewVulkan {
+    ImageViewDepth(std::shared_ptr<SwapChain> inSwapChain, std::shared_ptr<CommandPool> cmds)
+            : ImageViewVulkan(std::shared_ptr(new ImageMemoryVulkan{inSwapChain->device, inSwapChain->swapChainExtent.width,
+                                  inSwapChain->swapChainExtent.height, findDepthFormat(inSwapChain->device),
+                                  VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT,
+                                  VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT}),
+                              findDepthFormat(inSwapChain->device), VK_IMAGE_ASPECT_DEPTH_BIT),
+    {
+        static_cast<ImageMemoryVulkan*>(image.get())->transitionImageLayout(
+            findDepthFormat(inSwapChain->device), VK_IMAGE_LAYOUT_UNDEFINED,
+            VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL, cmds);
+    }
+};
+
 struct RenderPass {
     std::shared_ptr<DeviceVulkan> device;
 
     VkRenderPass renderPass;
 
-    RenderPass(std::shared_ptr<DeviceVulkan> inDevice, std::shared_ptr<SwapChainVulkan> &swapchain)
+    RenderPass(std::shared_ptr<DeviceVulkan> inDevice, std::shared_ptr<SwapChain> &swapchain)
             : device{inDevice},
               renderPass{VK_NULL_HANDLE} {
         createRenderPass(swapchain);
     }
 private:
-    void createRenderPass(std::shared_ptr<SwapChainVulkan> &swapchain);
+    void createRenderPass(std::shared_ptr<SwapChain> &swapchain);
 };
 
 class DescriptorPools;
+
+class DescriptorSet {
+    friend DescriptorPools;
+private:
+    std::shared_ptr<VkDescriptorSet_T> m_descriptorSet;
+    DescriptorSet(std::shared_ptr<VkDescriptorSet_T> inDsc)
+         : m_descriptorSet{inDsc}
+    {
+    }
+public:
+    std::shared_ptr<VkDescriptorSet_T> const &descriptorSet() { return m_descriptorSet; }
+};
+
 class DescriptorPool {
     friend DescriptorPools;
 private:
@@ -334,10 +363,10 @@ private:
     uint32_t totalDescriptorsAllocated;
 
     DescriptorPool(std::shared_ptr<DeviceVulkan> inDevice, uint32_t totalDescriptors)
-        : device{inDevice},
-        descriptorPool{},
-        totalDescriptorsInPool{totalDescriptors},
-        totalDescriptorsAllocated{0}
+            : device{inDevice},
+              descriptorPool{},
+              totalDescriptorsInPool{totalDescriptors},
+              totalDescriptorsAllocated{0}
     {
         // no more descriptors in all the descriptor pools.  create another descriptor pool...
         std::array<VkDescriptorPoolSize, 3> poolSizes = {};
@@ -414,10 +443,10 @@ private:
     }
 public:
     DescriptorPools(std::shared_ptr<DeviceVulkan> inDevice)
-        : device{inDevice},
-          descriptorSetLayout(VK_NULL_HANDLE),
-          descriptorPools{},
-          unusedDescriptors{}
+            : device{inDevice},
+              descriptorSetLayout(VK_NULL_HANDLE),
+              descriptorPools{},
+              unusedDescriptors{}
     {
         createDescriptorSetLayout();
     }
@@ -432,28 +461,154 @@ public:
         unusedDescriptors.push_back(descriptorSet);
     }
 
-    VkDescriptorSet allocateDescriptor() {
+    DescriptorSet allocateDescriptor() {
         if (descriptorSetLayout == VK_NULL_HANDLE) {
             throw (std::runtime_error("DescriptorPool::allocateDescriptor - no descriptor set layout"));
         }
 
+        auto deleter = [&unusedDescriptors](VkDescriptorSet descSet) {
+            unusedDescriptors.push_back(descSet);
+        };
+
         if (unusedDescriptors.size() > 0) {
             VkDescriptorSet descriptorSet = unusedDescriptors.back();
             unusedDescriptors.pop_back();
-            return descriptorSet;
+
+            return DescriptorSet(std::shared_ptr(descriptorSet, deleter));
         } else {
             for (auto &&descriptorPool : descriptorPools) {
                 if (descriptorPool.hasAvailableDescriptorSets()) {
-                    return descriptorPool.allocateDescriptor(descriptorSetLayout);
+                    VkDescriptorSet descriptorSet = descriptorPool.allocateDescriptor(descriptorSetLayout);
+                    return DescriptorSet(std::shared_ptr(descriptorSet, deleter));
                 }
             }
 
 
             DescriptorPool newDescriptorPool(device, numberOfDescriptorSetsInPool);
             descriptorPools.push_back(newDescriptorPool);
-            return newDescriptorPool.allocateDescriptor(descriptorSetLayout);
+            VkDescriptorSet descriptorSet = newDescriptorPool.allocateDescriptor(descriptorSetLayout);
+            return DescriptorSet(std::shared_ptr(descriptorSet, deleter));
         }
     }
+};
+class Semaphore {
+    std::shared_ptr<DeviceVulkan> device;
+
+    std::shared_ptr<VkSemaphore_T> semaphore;
+
+    void createSemaphore();
+
+public:
+    Semaphore(std::shared_ptr<DeviceVulkan> &inDevice)
+        : device{inDevice},
+          semaphore{} {
+        createSemaphore();
+    }
+};
+
+class Shader {
+    std::shared_ptr<DeviceVulkan> device;
+
+    std::shared_ptr<VkShaderModule_T> shaderModule;
+
+    void createShaderModule(std::string const &codeFile);
+
+public:
+    Shader(std::shared_ptr<DeviceVulkan> const &inDevice, std::string const &codeFile)
+        : device(inDevice) {
+        createShaderModule(codeFile);
+    }
+
+    inline std::shared_ptr<VkShaderModule_T> const &shader() {return shaderModule;}
+};
+
+struct Pipeline {
+    std::shared_ptr<VkPipelineLayout_T> pipelineLayout;
+    std::shared_ptr<VkPipeline_T> pipeline;
+
+    Pipeline(std::shared_ptr<SwapChain> &inSwapChain, std::shared_ptr<RenderPass> &inRenderPass,
+        std::shared_ptr<DescriptorPools> &inDescriptorPools)
+            : pipelineLayout{},
+              pipeline{},
+              device{inSwapChain->device},
+              swapChain{inSwapChain},
+              renderPass{inRenderPass},
+              descriptorPools{inDescriptorPools}
+    {
+        createGraphicsPipeline();
+    }
+
+    ~Pipeline() {
+        pipeline.reset();
+        pipelineLayout.reset();
+    }
+private:
+    std::shared_ptr<DeviceVulkan> device;
+    std::shared_ptr<SwapChain> swapChain;
+    std::shared_ptr<RenderPass> renderPass;
+    std::shared_ptr<DescriptorPools> descriptorPools;
+
+    void createGraphicsPipeline();
+};
+
+struct SwapChainCommands {
+    std::vector<ImageViewVulkan> imageViews;
+    std::vector<std::shared_ptr<VkFramebuffer_T>> framebuffers;
+    std::vector<VkCommandBuffer> commandBuffers;
+
+    SwapChainCommands(std::shared_ptr<SwapChain> &inSwapChain,
+                     std::shared_ptr<CommandPool> inPool,
+                     std::shared_ptr<RenderPass> &inRenderPass,
+                     std::shared_ptr<ImageViewVulkan> &inDepthImage,
+                     glm::vec4 &bgColor)
+            : swapChain{inSwapChain},
+              pool{inPool},
+              renderPass{inRenderPass},
+              depthImage{inDepthImage},
+              imageViews{},
+              framebuffers{},
+              commandBuffers{} {
+        /* retrieve the image handles from the swap chain. - handles cleaned up by Vulkan
+         * Note: Vulkan may have chosen to create more images than specified in minImageCount,
+         * so we have to requery the image count here.
+         */
+        uint32_t imageCount;
+        vkGetSwapchainImagesKHR(swapChain->device->logicalDevice, swapChain->swapChain, &imageCount, nullptr);
+        std::vector<VkImage> swapChainImages;
+        swapChainImages.resize(imageCount);
+        vkGetSwapchainImagesKHR(swapChain->device->logicalDevice, swapChain->swapChain, &imageCount, swapChainImages.data());
+        for (auto &img : swapChainImages) {
+            std::shared_ptr<ImageVulkan> image(img);
+            ImageViewVulkan imageView{image, swapChain->swapChainImageFormat, VK_IMAGE_ASPECT_COLOR_BIT};
+            imageViews.push_back(imageView);
+        }
+        createFramebuffers(renderPass, depthImage);
+        createCommandBuffers(bgColor);
+    }
+    void initializeCommandBuffers(std::shared_ptr<Pipeline> &graphicsPipeline,
+        std::shared_ptr<Level> &maze, DrawObjectTable &staticObjsData, DrawObjectTable &dynObjsData,
+        std::shared_ptr<LevelStarter> &levelStarter, DrawObjectTable &levelStarterStaticObjsData, DrawObjectTable &levelStarterDynObjsData,
+        std::shared_ptr<LevelFinish> &levelFinisher, DrawObjectTable &levelFinisherObjsData);
+
+    ~SwapChainCommands() {
+        vkFreeCommandBuffers(swapChain->device->logicalDevice, pool->commands,
+                             commandBuffers.size(), commandBuffers.data());
+        framebuffers.clear();
+        imageViews.clear();
+    }
+private:
+    std::shared_ptr<SwapChain> swapChain;
+    std::shared_ptr<CommandPool> pool;
+    std::shared_ptr<RenderPass> renderPass;
+    std::shared_ptr<ImageViewVulkan> depthImage;
+
+    void initializeCommandBufferDrawObjects(std::shared_ptr<Pipeline> &pipeline, VkCommandBuffer &commandBuffer, DrawObjectTable const &objs);
+    void createFramebuffers(std::shared_ptr<RenderPass> &renderPass, std::shared_ptr<ImageViewVulkan> &depthImage);
+    void createCommandBuffers(glm::vec4 &bgColor);
+    void initializeCommandBuffer(size_t index, std::shared_ptr<Pipeline> &graphicsPipeline,
+        std::shared_ptr<Level> &maze, DrawObjectTable &staticObjsData, DrawObjectTable &dynObjsData,
+        std::shared_ptr<LevelStarter> &levelStarter, DrawObjectTable &levelStarterStaticObjsData, DrawObjectTable &levelStarterDynObjsData,
+        std::shared_ptr<LevelFinish> &levelFinisher, DrawObjectTable &levelFinisherObjsData);
 };
 
 class SingleTimeCommands {
@@ -502,30 +657,14 @@ private:
 
 struct UniformWrapper {
     /* for passing data other than the vertex data to the vertex shader */
-    std::shared_ptr<DeviceVulkan> device;
-    VkDescriptorSet descriptorSet;
-    VkBuffer uniformBuffer;
-    VkDeviceMemory uniformBufferMemory;
-    std::shared_ptr<DescriptorPools> pools;
+    DescriptorSet descriptorSet;
+    BufferVulkan uniformBuffer;
 
-    UniformWrapper(std::shared_ptr<DeviceVulkan> inDevice, VkDescriptorSet inDescriptorSet,
-                   VkBuffer inUniformBuffer, VkDeviceMemory inUniformBufferMemory,
-                   std::shared_ptr<DescriptorPools> inPools)
-        : device{inDevice}
+    UniformWrapper(DescriptorSet inDescriptorSet,
+                   BufferVulkan inUniformBuffer)
+        : uniformBuffer{inUniformBuffer},
+        descriptorSet{inDescriptorSet}
     {
-        uniformBuffer = inUniformBuffer;
-        uniformBufferMemory = inUniformBufferMemory;
-        descriptorSet = inDescriptorSet;
-        pools = inPools;
-    }
-
-    ~UniformWrapper() {
-        pools->freeDescriptor(descriptorSet);
-        /* free the memory after the buffer has been destroyed because the buffer is bound to
-         * the memory, so the buffer is still using the memory until the buffer is destroyed.
-         */
-        vkDestroyBuffer(device->logicalDevice, uniformBuffer, nullptr);
-        vkFreeMemory(device->logicalDevice, uniformBufferMemory, nullptr);
     }
 };
 
@@ -533,20 +672,34 @@ struct UniformWrapper {
  * the specified order.  Note, vertices can be listed twice if they should be part of more
  * than one triangle.
  */
-struct DrawObjectDataVulkan : public DrawObjectData {
-    VkBuffer vertexBuffer;
-    VkDeviceMemory vertexBufferMemory;
-    VkBuffer indexBuffer;
-    VkDeviceMemory indexBufferMemory;
+class DrawObjectDataVulkan : public DrawObjectData {
+    std::shared_ptr<DeviceVulkan> device;
+    BufferVulkan vertexBuffer
+    BufferVulkan indexBuffer;
     std::vector<std::shared_ptr<UniformWrapper> > uniforms;
 
-    ~DrawObjectDataVulkan() {
-        vkDestroyBuffer(logicalDevice, vertexBuffer, nullptr);
-        vkFreeMemory(logicalDevice, vertexBufferMemory, nullptr);
+    void copyVerticesToBuffer(std::shared_ptr<CommandPool> const &cmdpool,
+                              std::shared_ptr<DrawObject> const &drawObj);
+    void copyIndicesToBuffer(std::shared_ptr<CommandPool> const &cmdpool,
+                             std::shared_ptr<DrawObject> const &drawObj);
 
-        vkDestroyBuffer(logicalDevice, indexBuffer, nullptr);
-        vkFreeMemory(logicalDevice, indexBufferMemory, nullptr);
+public:
+    DrawObjectDataVulkan(std::shared_ptr<DeviceVulkan> const &inDevice,
+                         std::shared_ptr<CommandPool> const &inPool,
+                         std::shared_ptr<DrawObject> const &drawObj)
+        : device(inDevice),
+        vertexBuffer{sizeof (drawObj->vertices[0]) * drawObj->vertices.size(),
+                     VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
+                     VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT},
+        indexBuffer{sizeof(drawObj->indices[0]) * drawObj->indices.size(),
+                    VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT,
+                    VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT}
+        {
+        copyVerticesToBuffer(inPool, drawObj);
+        copyIndicesToBuffer(inPool, drawObj);
     }
+
+    void addUniforms(std::shared_ptr<DrawObject> const &obj, TextureMap &textures);
 };
 
 class GraphicsVulkan : public Graphics {
@@ -604,7 +757,7 @@ private:
 
     std::shared_ptr<InstanceVulkan> instance;
     std::shared_ptr<DeviceVulkan> device;
-    std::shared_ptr<SwapChainVulkan> swapchain;
+    std::shared_ptr<SwapChain> swapchain;
 
     DescriptorPools descriptorPools;
 
