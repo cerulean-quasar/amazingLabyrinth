@@ -62,13 +62,6 @@ namespace vk {
         throw std::runtime_error("failed to find supported format!");
     }
 
-    VkFormat Device::findDepthFormat() {
-        return findSupportedFormat({VK_FORMAT_D32_SFLOAT, VK_FORMAT_D32_SFLOAT_S8_UINT,
-                                    VK_FORMAT_D24_UNORM_S8_UINT},
-                                   VK_IMAGE_TILING_OPTIMAL,
-                                   VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT
-        );
-    }
 
     bool hasStencilComponent(VkFormat format) {
         return format == VK_FORMAT_D32_SFLOAT_S8_UINT || format == VK_FORMAT_D24_UNORM_S8_UINT;
@@ -725,7 +718,7 @@ namespace vk {
  */
     void SwapChain::createSwapChain() {
         /* chose details of the swap chain and get information about what is supported */
-        DeviceVulkan::SwapChainSupportDetails swapChainSupport = device->querySwapChainSupport();
+        Device::SwapChainSupportDetails swapChainSupport = m_device->querySwapChainSupport();
 
         VkSurfaceFormatKHR surfaceFormat = chooseSwapSurfaceFormat(swapChainSupport.formats);
         VkPresentModeKHR presentMode = chooseSwapPresentMode(swapChainSupport.presentModes);
@@ -744,7 +737,7 @@ namespace vk {
         /* set the create structure up. */
         VkSwapchainCreateInfoKHR createInfo = {};
         createInfo.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
-        createInfo.surface = device->instance->surface().get();
+        createInfo.surface = m_device->instance()->surface().get();
         createInfo.minImageCount = imageCount;
         createInfo.imageFormat = surfaceFormat.format;
         createInfo.imageColorSpace = surfaceFormat.colorSpace;
@@ -756,7 +749,7 @@ namespace vk {
          * queue is different from the graphics queue (not usually the case), use the concurrent
          * mode to avoid having to transfer ownership. (too hard for right now)
          */
-        DeviceVulkan::QueueFamilyIndices indices = device->findQueueFamilies();
+        Device::QueueFamilyIndices indices = m_device->findQueueFamilies();
         uint32_t queueFamilyIndices[] = {(uint32_t) indices.graphicsFamily,
                                          (uint32_t) indices.presentFamily};
         if (indices.graphicsFamily != indices.presentFamily) {
@@ -795,13 +788,20 @@ namespace vk {
          */
         createInfo.oldSwapchain = VK_NULL_HANDLE;
 
-        if (vkCreateSwapchainKHR(device->logicalDevice().get(), &createInfo, nullptr, &swapChain) !=
+        VkSwapchainKHR swapChainRaw;
+        if (vkCreateSwapchainKHR(m_device->logicalDevice().get(), &createInfo, nullptr, &swapChainRaw) !=
             VK_SUCCESS) {
             throw std::runtime_error("failed to create swap chain!");
         }
 
-        swapChainImageFormat = surfaceFormat.format;
-        swapChainExtent = extent;
+        auto deleter = [m_device](VkSwapchainKHR swapChainRaw) {
+            vkDestroySwapchainKHR(m_device->logicalDevice().get(), swapChainRaw, nullptr);
+        };
+
+        m_swapChain.reset(swapChainRaw, deleter);
+
+        m_imageFormat = surfaceFormat.format;
+        m_extent = extent;
     }
 
     void Shader::createShaderModule(std::string const &codeFile) {
@@ -815,24 +815,24 @@ namespace vk {
         createInfo.pCode = reinterpret_cast<const uint32_t *>(code.data());
 
         VkShaderModule shaderModuleRaw;
-        if (vkCreateShaderModule(device->logicalDevice, &createInfo, nullptr, &shaderModuleRaw) !=
+        if (vkCreateShaderModule(m_device->logicalDevice().get(), &createInfo, nullptr, &shaderModuleRaw) !=
             VK_SUCCESS) {
             throw std::runtime_error("failed to create shader module!");
         }
 
-        auto deleter = [device](VkShaderModule shaderModule) {
-            vkDestroyShaderModule(device->logicalDevice, shaderModule, nullptr);
+        auto deleter = [m_device](VkShaderModule shaderModule) {
+            vkDestroyShaderModule(m_device->logicalDevice().get(), shaderModule, nullptr);
         };
 
-        shaderModule.reset(shaderModuleRaw, deleter);
+        m_shaderModule.reset(shaderModuleRaw, deleter);
     }
 
-    void RenderPass::createRenderPass(std::shared_ptr<SwapChain> &swapchain) {
+    void RenderPass::createRenderPass(std::shared_ptr<SwapChain> const &swapchain) {
         /* color buffer attachment descriptions: use a single attachment represented by
          * one of the images from the swap chain.
          */
         VkAttachmentDescription colorAttachment = {};
-        colorAttachment.format = swapchain->swapChainImageFormat;
+        colorAttachment.format = swapchain->imageFormat();
         /* stick to one sample since we are not using multisampling */
         colorAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
         /* clear the contents of the attachment to a constant at the start */
@@ -864,7 +864,7 @@ namespace vk {
 
         /* depth attachment */
         VkAttachmentDescription depthAttachment = {};
-        depthAttachment.format = device->findDepthFormat();
+        depthAttachment.format = m_device->depthFormat();
         depthAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
         depthAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
 
@@ -930,10 +930,17 @@ namespace vk {
         renderPassInfo.dependencyCount = 1;
         renderPassInfo.pDependencies = &dependency;
 
-        if (vkCreateRenderPass(device->logicalDevice, &renderPassInfo, nullptr, &renderPass) !=
+        VkRenderPass renderPassRaw;
+        if (vkCreateRenderPass(m_device->logicalDevice().get(), &renderPassInfo, nullptr, &renderPassRaw) !=
             VK_SUCCESS) {
             throw std::runtime_error("failed to create render pass!");
         }
+
+        auto deleter = [m_device](VkRenderPass renderPassRaw) {
+            vkDestroyRenderPass(m_device->logicalDevice().get(), renderPassRaw, nullptr);
+        };
+
+        m_renderPass.reset(renderPassRaw, deleter);
     }
 
     void Pipeline::createGraphicsPipeline() {
@@ -1503,16 +1510,16 @@ namespace vk {
         VkSemaphoreCreateInfo semaphoreInfo = {};
         semaphoreInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
         VkSemaphore semaphoreRaw;
-        if (vkCreateSemaphore(device->logicalDevice, &semaphoreInfo, nullptr, &semaphoreRaw) !=
+        if (vkCreateSemaphore(m_device->logicalDevice().get(), &semaphoreInfo, nullptr, &semaphoreRaw) !=
             VK_SUCCESS) {
             throw std::runtime_error("failed to create semaphores!");
         }
 
-        auto deleter = [device](VkSemaphore semaphoreRaw) {
-            vkDestroySemaphore(device->logicalDevice, semaphoreRaw, nullptr);
+        auto deleter = [m_device](VkSemaphore semaphoreRaw) {
+            vkDestroySemaphore(m_device->logicalDevice().get(), semaphoreRaw, nullptr);
         };
 
-        semaphore.reset(semaphoreRaw, deleter);
+        m_semaphore.reset(semaphoreRaw, deleter);
     }
 
     void SwapChainCommands::initializeCommandBufferDrawObjects(std::shared_ptr<Pipeline> &pipeline,
@@ -1653,7 +1660,7 @@ namespace vk {
 
 
     void GraphicsVulkan::createDepthResources() {
-        VkFormat depthFormat = findDepthFormat();
+        VkFormat depthFormat = device->depthFormat();
 
         createImage(swapChainExtent.width, swapChainExtent.height, depthFormat,
                     VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT,
@@ -1762,10 +1769,17 @@ namespace vk {
         layoutInfo.bindingCount = static_cast<uint32_t>(bindings.size());
         layoutInfo.pBindings = bindings.data();
 
-        if (vkCreateDescriptorSetLayout(device->logicalDevice, &layoutInfo, nullptr,
-                                        &descriptorSetLayout) != VK_SUCCESS) {
+        VkDescriptorSetLayout descriptorSetLayoutRaw;
+        if (vkCreateDescriptorSetLayout(m_device->logicalDevice().get(), &layoutInfo, nullptr,
+                                        &descriptorSetLayoutRaw) != VK_SUCCESS) {
             throw std::runtime_error("failed to create descriptor set layout!");
         }
+
+        auto deleter = [m_device](VkDescriptorSetLayout descriptorSetLayoutRaw) {
+            vkDestroyDescriptorSetLayout(m_device->logicalDevice().get(), descriptorSetLayoutRaw, nullptr);
+        };
+
+        m_descriptorSetLayout.reset(descriptorSetLayoutRaw, deleter);
     }
 
     void TextureDataVulkan::createTextureImage(std::shared_ptr<TextureDescription> &texture,
@@ -1877,10 +1891,10 @@ namespace vk {
 
     }
 
-    VkImageView ImageView::createImageView(VkFormat format, VkImageAspectFlags aspectFlags) {
+    void ImageView::createImageView(VkFormat format, VkImageAspectFlags aspectFlags) {
         VkImageViewCreateInfo createInfo = {};
         createInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
-        createInfo.image = image->image;
+        createInfo.image = m_image->image().get();
 
         /* specify how the image data should be interpreted. viewType allows you
          * to treat images as 1D textures, 2D textures 3D textures and cube maps.
@@ -1907,13 +1921,17 @@ namespace vk {
         createInfo.subresourceRange.layerCount = 1;
 
         /* create the image view: destroy when done. */
-        VkImageView imageView;
-        if (vkCreateImageView(image->device->logicalDevice, &createInfo, nullptr, &imageView) !=
+        VkImageView imageViewRaw;
+        if (vkCreateImageView(logicalDevice(), &createInfo, nullptr, &imageViewRaw) !=
             VK_SUCCESS) {
             throw std::runtime_error("failed to create image views");
         }
 
-        return imageView;
+        auto deleter = [m_image] (VkImageView imageViewRaw) {
+            vkDestroyImageView(m_image->device()->logicalDevice().get(), imageViewRaw, nullptr);
+        };
+
+        m_imageView.reset(imageViewRaw, deleter);
     }
 
     void Image::createImage(VkFormat format, VkImageTiling tiling,

@@ -158,9 +158,15 @@ namespace vk {
                 m_physicalDevice{VK_NULL_HANDLE},
                 m_logicalDevice{},
                 m_graphicsQueue{VK_NULL_HANDLE},
-                m_presentQueue{VK_NULL_HANDLE} {
+                m_presentQueue{VK_NULL_HANDLE},
+                m_depthFormat{} {
             pickPhysicalDevice();
             createLogicalDevice();
+            m_depthFormat = findSupportedFormat({VK_FORMAT_D32_SFLOAT, VK_FORMAT_D32_SFLOAT_S8_UINT,
+                                                 VK_FORMAT_D24_UNORM_S8_UINT},
+                                                VK_IMAGE_TILING_OPTIMAL,
+                                                VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT);
+
         }
 
         uint32_t findMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties);
@@ -169,6 +175,8 @@ namespace vk {
 
         SwapChainSupportDetails querySwapChainSupport(VkPhysicalDevice device = m_physicalDevice);
 
+        VkFormat depthFormat() { return m_depthFormat; }
+
         inline std::shared_ptr<VkDevice_T> const &logicalDevice() { return m_logicalDevice; }
 
         inline VkPhysicalDevice physicalDevice() { return m_physicalDevice; }
@@ -176,6 +184,8 @@ namespace vk {
         inline VkQueue graphicsQueue() { return m_graphicsQueue; }
 
         inline VkQueue presentQueue() { return m_presentQueue; }
+
+        inline std::shared_ptr<Instance> const &instance() { return m_instance; }
 
     private:
         /* ensure that the instance is not destroyed before the device by holding a shared
@@ -192,14 +202,15 @@ namespace vk {
         VkQueue m_graphicsQueue;
         VkQueue m_presentQueue;
 
+        VkFormat m_depthFormat;
+        bool m_depthFormatInitialized;
+
         const std::vector<const char *> deviceExtensions = {
                 VK_KHR_SWAPCHAIN_EXTENSION_NAME
         };
 
         VkFormat findSupportedFormat(const std::vector<VkFormat> &candidates,
                             VkImageTiling tiling, VkFormatFeatureFlags features);
-
-        VkFormat findDepthFormat();
 
         void pickPhysicalDevice();
 
@@ -293,6 +304,7 @@ namespace vk {
         }
 
         inline std::shared_ptr<Device> const &device() { return m_device; }
+        inline std::shared_ptr<VkImage_T> const &image() { return m_image; }
     private:
         std::shared_ptr<Device> m_device;
 
@@ -309,47 +321,43 @@ namespace vk {
     public:
         ImageView(std::shared_ptr<Image> inImage, VkFormat format,
                   VkImageAspectFlags aspectFlags)
-                : image{inImage},
-                  imageView{} {
-            imageView = createImageView(format, aspectFlags);
+                : m_image{inImage},
+                  m_imageView{} {
+            createImageView(format, aspectFlags);
         }
 
-        ~ImageView() {
-            if (imageView != VK_NULL_HANDLE) {
-                vkDestroyImageView(logicalDevice(), imageView, nullptr);
-            }
-        }
+        inline std::shared_ptr<VkImageView_T> const &imageView() { return m_imageView; }
+
+    protected:
+        std::shared_ptr<Image> m_image;
+        std::shared_ptr<VkImageView_T> m_imageView;
 
     private:
-        std::shared_ptr<Image> image;
-        VkImageView imageView;
+        inline VkDevice logicalDevice() { return m_image->device()->logicalDevice().get(); }
 
-        inline VkDevice logicalDevice() { return image->device()->logicalDevice().get(); }
-
-        VkImageView createImageView(VkFormat format, VkImageAspectFlags aspectFlags);
+        void createImageView(VkFormat format, VkImageAspectFlags aspectFlags);
     };
 
-    struct SwapChain {
-        std::shared_ptr<DeviceVulkan> device;
-        VkSwapchainKHR swapChain;
-        VkFormat swapChainImageFormat;
-        VkExtent2D swapChainExtent;
-
-        SwapChain(std::shared_ptr<DeviceVulkan> inDevice)
-                : device(inDevice),
-                  swapChain{VK_NULL_HANDLE},
-                  swapChainImageFormat{},
-                  swapChainExtent{} {
+    class SwapChain {
+    public:
+        SwapChain(std::shared_ptr<Device> inDevice)
+                : m_device(inDevice),
+                  m_swapChain{VK_NULL_HANDLE},
+                  m_imageFormat{},
+                  m_extent{} {
             createSwapChain();
         }
 
-        ~SwapChain() {
-            if (swapChain != VK_NULL_HANDLE) {
-                vkDestroySwapchainKHR(device->logicalDevice, swapChain, nullptr);
-            }
-        }
-
+        inline std::shared_ptr<Device> const &device() { return m_device; }
+        inline std::shared_ptr<VkSwapchainKHR_T> const &swapChain() {return m_swapChain; }
+        inline VkFormat imageFormat() { return m_imageFormat; }
+        inline VkExtent2D extent() { return m_extent; }
     private:
+        std::shared_ptr<Device> m_device;
+        std::shared_ptr<VkSwapchainKHR_T> m_swapChain;
+        VkFormat m_imageFormat;
+        VkExtent2D m_extent;
+
         void createSwapChain();
 
         VkSurfaceFormatKHR
@@ -361,36 +369,36 @@ namespace vk {
         VkExtent2D chooseSwapExtent(const VkSurfaceCapabilitiesKHR &capabilities);
     };
 
-    struct ImageViewDepth : public ImageViewVulkan {
+    struct ImageViewDepth : public ImageView {
         ImageViewDepth(std::shared_ptr<SwapChain> inSwapChain, std::shared_ptr<CommandPool> cmds)
-                : ImageViewVulkan(std::shared_ptr(
-                new ImageMemoryVulkan{inSwapChain->device, inSwapChain->swapChainExtent.width,
-                                      inSwapChain->swapChainExtent.height,
-                                      findDepthFormat(inSwapChain->device),
+                : ImageView(std::shared_ptr(
+                new Image{inSwapChain->device(), inSwapChain->extent().width,
+                                      inSwapChain->extent().height,
+                          inSwapChain->device()->depthFormat(),
                                       VK_IMAGE_TILING_OPTIMAL,
                                       VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT,
                                       VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT}),
-                                  findDepthFormat(inSwapChain->device),
-                                  VK_IMAGE_ASPECT_DEPTH_BIT), {
-            static_cast<ImageMemoryVulkan *>(image.get())->transitionImageLayout(
-                    findDepthFormat(inSwapChain->device), VK_IMAGE_LAYOUT_UNDEFINED,
+                            inSwapChain->device()->depthFormat(),
+                                  VK_IMAGE_ASPECT_DEPTH_BIT) {
+            m_image->transitionImageLayout(
+                    inSwapChain->device()->depthFormat(), VK_IMAGE_LAYOUT_UNDEFINED,
                     VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL, cmds);
         }
     };
 
     struct RenderPass {
-        std::shared_ptr<DeviceVulkan> device;
+        std::shared_ptr<Device> m_device;
 
-        VkRenderPass renderPass;
+        std::shared_ptr<VkRenderPass_T> m_renderPass;
 
-        RenderPass(std::shared_ptr<DeviceVulkan> inDevice, std::shared_ptr<SwapChain> &swapchain)
-                : device{inDevice},
-                  renderPass{VK_NULL_HANDLE} {
-            createRenderPass(swapchain);
+        RenderPass(std::shared_ptr<Device> const &inDevice, std::shared_ptr<SwapChain> const &swapChain)
+                : m_device{inDevice},
+                  m_renderPass{} {
+            createRenderPass(swapChain);
         }
 
     private:
-        void createRenderPass(std::shared_ptr<SwapChain> &swapchain);
+        void createRenderPass(std::shared_ptr<SwapChain> const &swapChain);
     };
 
     class DescriptorPools;
@@ -411,179 +419,165 @@ namespace vk {
     class DescriptorPool {
         friend DescriptorPools;
     private:
-        std::shared_ptr<DeviceVulkan> device;
-        VkDescriptorPool descriptorPool;
-        uint32_t totalDescriptorsInPool;
-        uint32_t totalDescriptorsAllocated;
+        std::shared_ptr<Device> m_device;
+        std::shared_ptr<VkDescriptorPool_T> m_descriptorPool;
+        uint32_t m_totalDescriptorsInPool;
+        uint32_t m_totalDescriptorsAllocated;
 
-        DescriptorPool(std::shared_ptr<DeviceVulkan> inDevice, uint32_t totalDescriptors)
-                : device{inDevice},
-                  descriptorPool{},
-                  totalDescriptorsInPool{totalDescriptors},
-                  totalDescriptorsAllocated{0} {
+        DescriptorPool(std::shared_ptr<Device> inDevice, uint32_t totalDescriptors)
+                : m_device{inDevice},
+                  m_descriptorPool{},
+                  m_totalDescriptorsInPool{totalDescriptors},
+                  m_totalDescriptorsAllocated{0} {
             // no more descriptors in all the descriptor pools.  create another descriptor pool...
             std::array<VkDescriptorPoolSize, 3> poolSizes = {};
 
             // one for each wall and +3 for the floor, ball, and hole.
             poolSizes[0].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-            poolSizes[0].descriptorCount = totalDescriptorsInPool;
+            poolSizes[0].descriptorCount = m_totalDescriptorsInPool;
             poolSizes[1].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-            poolSizes[1].descriptorCount = totalDescriptorsInPool;
+            poolSizes[1].descriptorCount = m_totalDescriptorsInPool;
             poolSizes[2].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-            poolSizes[2].descriptorCount = totalDescriptorsInPool;
+            poolSizes[2].descriptorCount = m_totalDescriptorsInPool;
             VkDescriptorPoolCreateInfo poolInfo = {};
             poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
             poolInfo.poolSizeCount = static_cast<uint32_t>(poolSizes.size());
             poolInfo.pPoolSizes = poolSizes.data();
-            poolInfo.maxSets = totalDescriptorsInPool;
+            poolInfo.maxSets = m_totalDescriptorsInPool;
 
-            VkDescriptorPool descriptorPool;
-            if (vkCreateDescriptorPool(device->logicalDevice, &poolInfo, nullptr,
-                                       &descriptorPool) != VK_SUCCESS) {
+            VkDescriptorPool descriptorPoolRaw;
+            if (vkCreateDescriptorPool(m_device->logicalDevice().get(), &poolInfo, nullptr,
+                                       &descriptorPoolRaw) != VK_SUCCESS) {
                 throw std::runtime_error("failed to create descriptor pool!");
             }
+
+            auto deleter = [m_device](VkDescriptorPool descriptorPoolRaw) {
+                vkDestroyDescriptorPool(m_device->logicalDevice().get(), descriptorPoolRaw, nullptr);
+            };
+
+            m_descriptorPool.reset(descriptorPoolRaw, deleter);
         }
 
-        VkDescriptorSet allocateDescriptor(VkDescriptorSetLayout layout) {
-            if (totalDescriptorsAllocated == totalDescriptorsInPool) {
+        VkDescriptorSet allocateDescriptor(std::shared_ptr<VkDescriptorSetLayout_T> const &layout) {
+            if (m_totalDescriptorsAllocated == m_totalDescriptorsInPool) {
                 return VK_NULL_HANDLE;
             } else {
                 VkDescriptorSet descriptorSet;
-                VkDescriptorSetLayout layouts[] = {layout};
+                VkDescriptorSetLayout layouts[] = {layout.get()};
                 VkDescriptorSetAllocateInfo allocInfo = {};
                 allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
-                allocInfo.descriptorPool = descriptorPool;
+                allocInfo.descriptorPool = m_descriptorPool.get();
                 allocInfo.descriptorSetCount = 1;
                 allocInfo.pSetLayouts = layouts;
 
                 /* the descriptor sets don't need to be freed because they are freed when the
                  * descriptor pool is freed
                  */
-                int rc = vkAllocateDescriptorSets(device->logicalDevice, &allocInfo,
+                int rc = vkAllocateDescriptorSets(m_device->logicalDevice().get(), &allocInfo,
                                                   &descriptorSet);
                 if (rc != VK_SUCCESS) {
                     throw std::runtime_error("failed to allocate descriptor set!");
                 }
-                totalDescriptorsAllocated++;
+                m_totalDescriptorsAllocated++;
                 return descriptorSet;
             }
         }
 
         bool hasAvailableDescriptorSets() {
-            return totalDescriptorsAllocated < totalDescriptorsInPool;
-        }
-
-        ~DescriptorPool() {
-            vkDestroyDescriptorPool(device->logicalDevice, descriptorPool, nullptr);
+            return m_totalDescriptorsAllocated < m_totalDescriptorsInPool;
         }
     };
 
 /* for passing data other than the vertex data to the vertex shader */
     class DescriptorPools {
     private:
-        std::shared_ptr<DeviceVulkan> device;
-        uint32_t constexpr numberOfDescriptorSetsInPool = 1024;
-        VkDescriptorSetLayout descriptorSetLayout = VK_NULL_HANDLE;
-        std::vector<DescriptorPool> descriptorPools;
-        std::vector<VkDescriptorSet> unusedDescriptors;
+        std::shared_ptr<Device> m_device;
+        uint32_t constexpr m_numberOfDescriptorSetsInPool = 1024;
+        std::shared_ptr<VkDescriptorSetLayout_T> m_descriptorSetLayout;
+        std::vector<DescriptorPool> m_descriptorPools;
+        std::vector<VkDescriptorSet> m_unusedDescriptors;
 
         void createDescriptorSetLayout();
 
-        void destroyResources() {
-            unusedDescriptors.clear();
-            descriptorPools.clear();
-
-            if (descriptorSetLayout != VK_NULL_HANDLE) {
-                vkDestroyDescriptorSetLayout(device->logicalDevice, descriptorSetLayout, nullptr);
-                descriptorSetLayout = VK_NULL_HANDLE;
-            }
-
-        }
-
     public:
-        DescriptorPools(std::shared_ptr<DeviceVulkan> inDevice)
-                : device{inDevice},
-                  descriptorSetLayout(VK_NULL_HANDLE),
-                  descriptorPools{},
-                  unusedDescriptors{} {
+        DescriptorPools(std::shared_ptr<Device> const &inDevice)
+                : m_device{inDevice},
+                  m_descriptorSetLayout{},
+                  m_descriptorPools{},
+                  m_unusedDescriptors{} {
             createDescriptorSetLayout();
         }
 
-        ~DescriptorPools() { destroyResources(); }
-
         void setDescriptorSetLayout(VkDescriptorSetLayout layout) {
-            descriptorSetLayout = layout;
+            m_descriptorSetLayout = layout;
         }
 
-        VkDescriptorSetLayout getDescriptorSetLayout() { return descriptorSetLayout; }
-
-        void freeDescriptor(VkDescriptorSet descriptorSet) {
-            unusedDescriptors.push_back(descriptorSet);
-        }
+        std::shared_ptr<VkDescriptorSetLayout_T> const &descriptorSetLayout() { return m_descriptorSetLayout; }
 
         DescriptorSet allocateDescriptor() {
-            if (descriptorSetLayout == VK_NULL_HANDLE) {
+            if (m_descriptorSetLayout == VK_NULL_HANDLE) {
                 throw (std::runtime_error(
                         "DescriptorPool::allocateDescriptor - no descriptor set layout"));
             }
 
-            auto deleter = [&unusedDescriptors](VkDescriptorSet descSet) {
-                unusedDescriptors.push_back(descSet);
+            auto deleter = [&m_unusedDescriptors](VkDescriptorSet descSet) {
+                m_unusedDescriptors.push_back(descSet);
             };
 
-            if (unusedDescriptors.size() > 0) {
-                VkDescriptorSet descriptorSet = unusedDescriptors.back();
-                unusedDescriptors.pop_back();
+            if (m_unusedDescriptors.size() > 0) {
+                VkDescriptorSet descriptorSet = m_unusedDescriptors.back();
+                m_unusedDescriptors.pop_back();
 
                 return DescriptorSet(std::shared_ptr(descriptorSet, deleter));
             } else {
-                for (auto &&descriptorPool : descriptorPools) {
+                for (auto &&descriptorPool : m_descriptorPools) {
                     if (descriptorPool.hasAvailableDescriptorSets()) {
                         VkDescriptorSet descriptorSet = descriptorPool.allocateDescriptor(
-                                descriptorSetLayout);
+                                m_descriptorSetLayout);
                         return DescriptorSet(std::shared_ptr(descriptorSet, deleter));
                     }
                 }
 
 
-                DescriptorPool newDescriptorPool(device, numberOfDescriptorSetsInPool);
-                descriptorPools.push_back(newDescriptorPool);
+                DescriptorPool newDescriptorPool(m_device, m_numberOfDescriptorSetsInPool);
+                m_descriptorPools.push_back(newDescriptorPool);
                 VkDescriptorSet descriptorSet = newDescriptorPool.allocateDescriptor(
-                        descriptorSetLayout);
+                        m_descriptorSetLayout);
                 return DescriptorSet(std::shared_ptr(descriptorSet, deleter));
             }
         }
     };
 
     class Semaphore {
-        std::shared_ptr<DeviceVulkan> device;
+        std::shared_ptr<Device> m_device;
 
-        std::shared_ptr<VkSemaphore_T> semaphore;
+        std::shared_ptr<VkSemaphore_T> m_semaphore;
 
         void createSemaphore();
 
     public:
-        Semaphore(std::shared_ptr<DeviceVulkan> &inDevice)
-                : device{inDevice},
-                  semaphore{} {
+        Semaphore(std::shared_ptr<Device> const &inDevice)
+                : m_device{inDevice},
+                  m_semaphore{} {
             createSemaphore();
         }
     };
 
     class Shader {
-        std::shared_ptr<DeviceVulkan> device;
+        std::shared_ptr<Device> m_device;
 
-        std::shared_ptr<VkShaderModule_T> shaderModule;
+        std::shared_ptr<VkShaderModule_T> m_shaderModule;
 
         void createShaderModule(std::string const &codeFile);
 
     public:
-        Shader(std::shared_ptr<DeviceVulkan> const &inDevice, std::string const &codeFile)
-                : device(inDevice) {
+        Shader(std::shared_ptr<Device> const &inDevice, std::string const &codeFile)
+                : m_device(inDevice),
+                m_shaderModule{} {
             createShaderModule(codeFile);
         }
 
-        inline std::shared_ptr<VkShaderModule_T> const &shader() { return shaderModule; }
+        inline std::shared_ptr<VkShaderModule_T> const &shader() { return m_shaderModule; }
     };
 
     struct Pipeline {
@@ -594,7 +588,7 @@ namespace vk {
                  std::shared_ptr<DescriptorPools> &inDescriptorPools)
                 : pipelineLayout{},
                   pipeline{},
-                  device{inSwapChain->device},
+                  device{inSwapChain->device()},
                   swapChain{inSwapChain},
                   renderPass{inRenderPass},
                   descriptorPools{inDescriptorPools} {
@@ -607,7 +601,7 @@ namespace vk {
         }
 
     private:
-        std::shared_ptr<DeviceVulkan> device;
+        std::shared_ptr<Device> device;
         std::shared_ptr<SwapChain> swapChain;
         std::shared_ptr<RenderPass> renderPass;
         std::shared_ptr<DescriptorPools> descriptorPools;
