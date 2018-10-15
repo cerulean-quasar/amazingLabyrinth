@@ -281,7 +281,7 @@ namespace vk {
 
     class Image {
     public:
-        Image(std::shared_ptr<Device> inDevice, uint32_t inWidth,
+        Image(std::shared_ptr<Device> const &inDevice, uint32_t inWidth,
                           uint32_t inHeight, VkFormat format,
                           VkImageTiling tiling, VkImageUsageFlags usage,
                           VkMemoryPropertyFlags properties)
@@ -291,6 +291,16 @@ namespace vk {
                   m_width{inWidth},
                   m_height{inHeight} {
             createImage(format, tiling, usage, properties);
+        }
+
+        // Image was created by another object, but we are to manage it.
+        Image(std::shared_ptr<Device> const &inDevice, std::shared_ptr<VkImage_T> &inImage,
+              uint32_t inWidth, uint32_t inHeight)
+                : m_device{inDevice},
+                  m_image{inImage},
+                  m_imageMemory{},
+                  m_width{inWidth},
+                  m_height{inHeight} {
         }
 
         void copyBufferToImage(Buffer &buffer, std::shared_ptr<CommandPool> &pool);
@@ -396,6 +406,8 @@ namespace vk {
                   m_renderPass{} {
             createRenderPass(swapChain);
         }
+
+        inline std::shared_ptr<VkRenderPass_T> const &renderPass() { return m_renderPass; }
 
     private:
         void createRenderPass(std::shared_ptr<SwapChain> const &swapChain);
@@ -580,112 +592,127 @@ namespace vk {
         inline std::shared_ptr<VkShaderModule_T> const &shader() { return m_shaderModule; }
     };
 
-    struct Pipeline {
-        std::shared_ptr<VkPipelineLayout_T> pipelineLayout;
-        std::shared_ptr<VkPipeline_T> pipeline;
-
+    class Pipeline {
+    public:
         Pipeline(std::shared_ptr<SwapChain> &inSwapChain, std::shared_ptr<RenderPass> &inRenderPass,
                  std::shared_ptr<DescriptorPools> &inDescriptorPools)
-                : pipelineLayout{},
-                  pipeline{},
-                  device{inSwapChain->device()},
-                  swapChain{inSwapChain},
-                  renderPass{inRenderPass},
-                  descriptorPools{inDescriptorPools} {
+                : m_pipelineLayout{},
+                  m_pipeline{},
+                  m_device{inSwapChain->device()},
+                  m_swapChain{inSwapChain},
+                  m_renderPass{inRenderPass},
+                  m_descriptorPools{inDescriptorPools} {
             createGraphicsPipeline();
         }
 
+        inline std::shared_ptr<VkPipeline_T> const &pipeline() { return m_pipeline; }
+        inline std::shared_ptr<VkPipelineLayout_T> const &layout() { return m_pipelineLayout; }
+
         ~Pipeline() {
-            pipeline.reset();
-            pipelineLayout.reset();
+            m_pipeline.reset();
+            m_pipelineLayout.reset();
         }
 
     private:
-        std::shared_ptr<Device> device;
-        std::shared_ptr<SwapChain> swapChain;
-        std::shared_ptr<RenderPass> renderPass;
-        std::shared_ptr<DescriptorPools> descriptorPools;
+        std::shared_ptr<Device> m_device;
+        std::shared_ptr<SwapChain> m_swapChain;
+        std::shared_ptr<RenderPass> m_renderPass;
+        std::shared_ptr<DescriptorPools> m_descriptorPools;
+
+        std::shared_ptr<VkPipeline_T> m_pipeline;
+        std::shared_ptr<VkPipelineLayout_T> m_pipelineLayout;
 
         void createGraphicsPipeline();
     };
 
-    struct SwapChainCommands {
-        std::vector<ImageViewVulkan> imageViews;
-        std::vector<std::shared_ptr<VkFramebuffer_T>> framebuffers;
-        std::vector<VkCommandBuffer> commandBuffers;
-
-        SwapChainCommands(std::shared_ptr<SwapChain> &inSwapChain,
-                          std::shared_ptr<CommandPool> inPool,
-                          std::shared_ptr<RenderPass> &inRenderPass,
-                          std::shared_ptr<ImageViewVulkan> &inDepthImage,
-                          glm::vec4 &bgColor)
-                : swapChain{inSwapChain},
-                  pool{inPool},
-                  renderPass{inRenderPass},
-                  depthImage{inDepthImage},
-                  imageViews{},
-                  framebuffers{},
-                  commandBuffers{} {
+    class SwapChainCommands {
+    public:
+        SwapChainCommands(std::shared_ptr<SwapChain> const &inSwapChain,
+                          std::shared_ptr<CommandPool> const &inPool,
+                          std::shared_ptr<RenderPass> const &inRenderPass,
+                          std::shared_ptr<ImageView> const &inDepthImage)
+                : m_swapChain{inSwapChain},
+                  m_pool{inPool},
+                  m_renderPass{inRenderPass},
+                  m_depthImage{inDepthImage},
+                  m_images{},
+                  m_imageViews{},
+                  m_framebuffers{},
+                  m_commandBuffers{} {
             /* retrieve the image handles from the swap chain. - handles cleaned up by Vulkan
              * Note: Vulkan may have chosen to create more images than specified in minImageCount,
              * so we have to requery the image count here.
              */
             uint32_t imageCount;
-            vkGetSwapchainImagesKHR(swapChain->device->logicalDevice, swapChain->swapChain,
+            vkGetSwapchainImagesKHR(m_swapChain->device()->logicalDevice().get(), m_swapChain->swapChain().get(),
                                     &imageCount, nullptr);
-            std::vector<VkImage> swapChainImages;
-            swapChainImages.resize(imageCount);
-            vkGetSwapchainImagesKHR(swapChain->device->logicalDevice, swapChain->swapChain,
-                                    &imageCount, swapChainImages.data());
-            for (auto &img : swapChainImages) {
-                std::shared_ptr<ImageVulkan> image(img);
-                ImageViewVulkan imageView{image, swapChain->swapChainImageFormat,
-                                          VK_IMAGE_ASPECT_COLOR_BIT};
-                imageViews.push_back(imageView);
+            m_images.resize(imageCount);
+            vkGetSwapchainImagesKHR(m_swapChain->device()->logicalDevice().get(), m_swapChain->swapChain().get(),
+                                    &imageCount, m_images.data());
+
+            // The swap chain images are owned by the swap chain.  They go away when the swap chain
+            // is destroyed.  So make sure the swap chain hangs around until all the images are
+            // deleted.  So add it as a capture in the deleter.
+            auto deleter = [m_swapChain](VkImage imageRaw) {
+                // do nothing
+            };
+
+            for (auto &img : m_images) {
+                std::shared_ptr<VkImage_T> imgptr(img, deleter);
+                VkExtent2D ext = m_swapChain->extent();
+                ImageView imageView{
+                    std::shared_ptr<Image>(new Image(m_swapChain->device(), imgptr, ext.width, ext.height)),
+                            m_swapChain->imageFormat(), VK_IMAGE_ASPECT_COLOR_BIT};
+                m_imageViews.push_back(imageView);
             }
-            createFramebuffers(renderPass, depthImage);
-            createCommandBuffers(bgColor);
+            createFramebuffers(m_renderPass, m_depthImage);
+            createCommandBuffers();
         }
 
-        void initializeCommandBuffers(std::shared_ptr<Pipeline> &graphicsPipeline,
-                                      std::shared_ptr<Level> &maze, DrawObjectTable &staticObjsData,
-                                      DrawObjectTable &dynObjsData,
-                                      std::shared_ptr<LevelStarter> &levelStarter,
-                                      DrawObjectTable &levelStarterStaticObjsData,
-                                      DrawObjectTable &levelStarterDynObjsData,
-                                      std::shared_ptr<LevelFinish> &levelFinisher,
-                                      DrawObjectTable &levelFinisherObjsData);
+        void initializeCommandBuffers(std::shared_ptr<Pipeline> const &graphicsPipeline,
+                                      std::shared_ptr<Level> const &maze,
+                                      DrawObjectTable const &staticObjsData,
+                                      DrawObjectTable const &dynObjsData,
+                                      std::shared_ptr<LevelStarter> const &levelStarter,
+                                      DrawObjectTable const &levelStarterStaticObjsData,
+                                      DrawObjectTable const &levelStarterDynObjsData,
+                                      std::shared_ptr<LevelFinish> const &levelFinisher,
+                                      DrawObjectTable const &levelFinisherObjsData);
 
         ~SwapChainCommands() {
-            vkFreeCommandBuffers(swapChain->device->logicalDevice, pool->commands,
-                                 commandBuffers.size(), commandBuffers.data());
-            framebuffers.clear();
-            imageViews.clear();
+            vkFreeCommandBuffers(m_swapChain->device()->logicalDevice().get(), m_pool->commandPool().get(),
+                                 m_commandBuffers.size(), m_commandBuffers.data());
+            m_framebuffers.clear();
+            m_imageViews.clear();
         }
 
     private:
-        std::shared_ptr<SwapChain> swapChain;
-        std::shared_ptr<CommandPool> pool;
-        std::shared_ptr<RenderPass> renderPass;
-        std::shared_ptr<ImageViewVulkan> depthImage;
+        std::shared_ptr<SwapChain> m_swapChain;
+        std::shared_ptr<CommandPool> m_pool;
+        std::shared_ptr<RenderPass> m_renderPass;
+        std::shared_ptr<ImageView> m_depthImage;
 
-        void initializeCommandBufferDrawObjects(std::shared_ptr<Pipeline> &pipeline,
-                                                VkCommandBuffer &commandBuffer,
-                                                DrawObjectTable const &objs);
+        std::vector<VkImage> m_images;
+        std::vector<ImageView> m_imageViews;
+        std::vector<std::shared_ptr<VkFramebuffer_T>> m_framebuffers;
+        std::vector<VkCommandBuffer> m_commandBuffers;
+
+        void initializeCommandBufferDrawObjects(std::shared_ptr<Pipeline> const &pipeline,
+                                                size_t index, DrawObjectTable const &objs);
 
         void createFramebuffers(std::shared_ptr<RenderPass> &renderPass,
-                                std::shared_ptr<ImageViewVulkan> &depthImage);
+                                std::shared_ptr<ImageView> &depthImage);
 
-        void createCommandBuffers(glm::vec4 &bgColor);
+        void createCommandBuffers();
 
-        void initializeCommandBuffer(size_t index, std::shared_ptr<Pipeline> &graphicsPipeline,
-                                     std::shared_ptr<Level> &maze, DrawObjectTable &staticObjsData,
-                                     DrawObjectTable &dynObjsData,
-                                     std::shared_ptr<LevelStarter> &levelStarter,
-                                     DrawObjectTable &levelStarterStaticObjsData,
-                                     DrawObjectTable &levelStarterDynObjsData,
-                                     std::shared_ptr<LevelFinish> &levelFinisher,
-                                     DrawObjectTable &levelFinisherObjsData);
+        void initializeCommandBuffer(size_t index, std::shared_ptr<Pipeline> const &graphicsPipeline,
+                                     std::shared_ptr<Level> const &maze, DrawObjectTable const &staticObjsData,
+                                     DrawObjectTable const &dynObjsData,
+                                     std::shared_ptr<LevelStarter> const &levelStarter,
+                                     DrawObjectTable const &levelStarterStaticObjsData,
+                                     DrawObjectTable const &levelStarterDynObjsData,
+                                     std::shared_ptr<LevelFinish> const &levelFinisher,
+                                     DrawObjectTable const &levelFinisherObjsData);
     };
 
     class SingleTimeCommands {
@@ -710,12 +737,12 @@ namespace vk {
     };
 
     struct TextureDataVulkan : public TextureData {
-        std::shared_ptr<DeviceVulkan> device;
-        std::shared_ptr<ImageViewVulkan> img;
+        std::shared_ptr<Device> device;
+        std::shared_ptr<ImageView> img;
         VkSampler sampler;
 
-        TextureDataVulkan(std::shared_ptr<DeviceVulkan> inDevice,
-                          std::shared_ptr<TextureDescription> textureDescription
+        TextureDataVulkan(std::shared_ptr<Device> inDevice,
+                          std::shared_ptr<TextureDescription> textureDescription,
                           std::shared_ptr<CommandPool> &pool)
                 : device{inDevice},
                   img{},
@@ -726,7 +753,7 @@ namespace vk {
         }
 
         virtual ~TextureDataVulkan() {
-            vkDestroySampler(device->logicalDevice, sampler, nullptr);
+            vkDestroySampler(device->logicalDevice().get(), sampler, nullptr);
         }
 
     private:

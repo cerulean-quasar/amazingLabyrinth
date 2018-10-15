@@ -944,8 +944,8 @@ namespace vk {
     }
 
     void Pipeline::createGraphicsPipeline() {
-        Shader vertShaderModule(device, SHADER_VERT_FILE);
-        Shader fragShaderModule(device, SHADER_FRAG_FILE);
+        Shader vertShaderModule(m_device, SHADER_VERT_FILE);
+        Shader fragShaderModule(m_device, SHADER_FRAG_FILE);
 
         /* assign shaders to stages in the graphics pipeline */
         VkPipelineShaderStageCreateInfo vertShaderStageInfo = {};
@@ -994,8 +994,8 @@ namespace vk {
         VkViewport viewport = {};
         viewport.x = 0.0f;
         viewport.y = 0.0f;
-        viewport.width = (float) swapChain->swapChainExtent.width;
-        viewport.height = (float) swapChain->swapChainExtent.height;
+        viewport.width = (float) m_swapChain->extent().width;
+        viewport.height = (float) m_swapChain->extent().height;
         viewport.minDepth = 0.0f;
         viewport.maxDepth = 1.0f;
 
@@ -1004,7 +1004,7 @@ namespace vk {
          */
         VkRect2D scissor = {};
         scissor.offset = {0, 0};
-        scissor.extent = swapChain->swapChainExtent;
+        scissor.extent = m_swapChain->extent();
 
         /* can specify multiple viewports and scissors here */
         VkPipelineViewportStateCreateInfo viewportState = {};
@@ -1142,23 +1142,23 @@ namespace vk {
 
         /* the descriptor set layout for the MVP matrix */
         pipelineLayoutInfo.setLayoutCount = 1;
-        VkDescriptorSetLayout descriptorSetLayout = descriptorPools->getDescriptorSetLayout();
+        VkDescriptorSetLayout descriptorSetLayout = m_descriptorPools->descriptorSetLayout().get();
         pipelineLayoutInfo.pSetLayouts = &descriptorSetLayout;
 
         pipelineLayoutInfo.pushConstantRangeCount = 0; // Optional
         pipelineLayoutInfo.pPushConstantRanges = 0; // Optional
 
         VkPipelineLayout pipelineLayoutRaw;
-        if (vkCreatePipelineLayout(device->logicalDevice, &pipelineLayoutInfo, nullptr,
+        if (vkCreatePipelineLayout(m_device->logicalDevice().get(), &pipelineLayoutInfo, nullptr,
                                    &pipelineLayoutRaw) != VK_SUCCESS) {
             throw std::runtime_error("failed to create pipeline layout!");
         }
 
-        auto layoutDeleter = [device](VkPipelineLayout pipelineLayoutRaw) {
-            vkDestroyPipelineLayout(device->logicalDevice, pipelineLayoutRaw, nullptr);
+        auto layoutDeleter = [m_device](VkPipelineLayout pipelineLayoutRaw) {
+            vkDestroyPipelineLayout(m_device->logicalDevice().get(), pipelineLayoutRaw, nullptr);
         };
 
-        pipelineLayout.reset(pipelineLayoutRaw, layoutDeleter);
+        m_pipelineLayout.reset(pipelineLayoutRaw, layoutDeleter);
 
         VkGraphicsPipelineCreateInfo pipelineInfo = {};
         pipelineInfo.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
@@ -1171,8 +1171,8 @@ namespace vk {
         pipelineInfo.pMultisampleState = &multisampling;
         pipelineInfo.pDepthStencilState = &depthStencil;
         pipelineInfo.pColorBlendState = &colorBlending;
-        pipelineInfo.layout = pipelineLayout.get();
-        pipelineInfo.renderPass = renderPass->renderPass;
+        pipelineInfo.layout = m_pipelineLayout.get();
+        pipelineInfo.renderPass = m_renderPass->renderPass().get();
         pipelineInfo.subpass = 0; // index of the subpass
 
         /* if you want to create a pipeline from an already existing pipeline use these.
@@ -1182,47 +1182,47 @@ namespace vk {
         pipelineInfo.basePipelineIndex = -1; // Optional
 
         VkPipeline pipelineRaw;
-        if (vkCreateGraphicsPipelines(device->logicalDevice, VK_NULL_HANDLE/*pipeline cache*/, 1,
+        if (vkCreateGraphicsPipelines(m_device->logicalDevice().get(), VK_NULL_HANDLE/*pipeline cache*/, 1,
                                       &pipelineInfo, nullptr, &pipelineRaw) != VK_SUCCESS) {
             throw std::runtime_error("failed to create graphics pipeline!");
         }
 
-        auto pipelineDeleter = [device](VkPipeline pipelineRaw) {
-            vkDestroyPipeline(device->logicalDevice, pipelineRaw, nullptr);
+        auto pipelineDeleter = [m_device](VkPipeline pipelineRaw) {
+            vkDestroyPipeline(m_device->logicalDevice().get(), pipelineRaw, nullptr);
         };
 
-        pipeline.reset(pipelineRaw, pipelineDeleter);
+        m_pipeline.reset(pipelineRaw, pipelineDeleter);
     }
 
     void SwapChainCommands::createFramebuffers(std::shared_ptr<RenderPass> &renderPass,
-                                               std::shared_ptr<ImageViewVulkan> &depthImage) {
-        for (size_t i = 0; i < imageViews.size(); i++) {
+                                               std::shared_ptr<ImageView> &depthImage) {
+        for (size_t i = 0; i < m_imageViews.size(); i++) {
             std::array<VkImageView, 2> attachments = {
-                    imageViews[i].imageView,
-                    depthImage->imageView
+                    m_imageViews[i].imageView().get(),
+                    depthImage->imageView().get()
             };
 
             VkFramebufferCreateInfo framebufferInfo = {};
             framebufferInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
-            framebufferInfo.renderPass = renderPass->renderPass;
+            framebufferInfo.renderPass = renderPass->renderPass().get();
             framebufferInfo.attachmentCount = static_cast<uint32_t>(attachments.size());
             framebufferInfo.pAttachments = attachments.data();
-            framebufferInfo.width = swapChain->swapChainExtent.width;
-            framebufferInfo.height = swapChain->swapChainExtent.height;
+            framebufferInfo.width = m_swapChain->extent().width;
+            framebufferInfo.height = m_swapChain->extent().height;
             framebufferInfo.layers = 1;
 
             VkFramebuffer framebuf;
-            if (vkCreateFramebuffer(swapChain->device->logicalDevice, &framebufferInfo, nullptr,
+            if (vkCreateFramebuffer(m_swapChain->device()->logicalDevice().get(), &framebufferInfo, nullptr,
                                     &framebuf) != VK_SUCCESS) {
                 throw std::runtime_error("failed to create framebuffer!");
             }
-            auto device = swapChain->device;
-            auto deleter = [device](VkFramebuffer frameBuf) {
-                vkDestroyFramebuffer(device->logicalDevice, frameBuf, nullptr);
+            auto device = m_swapChain->device;
+            auto deleter = [m_swapChain](VkFramebuffer frameBuf) {
+                vkDestroyFramebuffer(m_swapChain->device()->logicalDevice().get(), frameBuf, nullptr);
             };
 
             std::shared_ptr<VkFramebuffer_T> framebuffer(framebuf, deleter);
-            framebuffers.push_back(framebuffer);
+            m_framebuffers.push_back(framebuffer);
         }
     }
 
@@ -1387,35 +1387,35 @@ namespace vk {
     }
 
 /* Allocate and record commands for each swap chain immage */
-    void SwapChainCommands::createCommandBuffers(glm::vec4 &bgColor) {
-        commandBuffers.resize(framebuffers.size());
+    void SwapChainCommands::createCommandBuffers() {
+        m_commandBuffers.resize(m_framebuffers.size());
 
         /* allocate the command buffer from the command pool, freed by Vulkan when the command
          * pool is freed
          */
         VkCommandBufferAllocateInfo allocInfo = {};
         allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
-        allocInfo.commandPool = pool->commands;
+        allocInfo.commandPool = m_pool->commandPool().get();
         allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-        allocInfo.commandBufferCount = (uint32_t) commandBuffers.size();
+        allocInfo.commandBufferCount = (uint32_t) m_commandBuffers.size();
 
-        if (vkAllocateCommandBuffers(swapChain->device->logicalDevice, &allocInfo,
-                                     commandBuffers.data()) != VK_SUCCESS) {
+        if (vkAllocateCommandBuffers(m_swapChain->device()->logicalDevice().get(), &allocInfo,
+                                     m_commandBuffers.data()) != VK_SUCCESS) {
             throw std::runtime_error("failed to allocate command buffers!");
         }
     }
 
-    void SwapChainCommands::initializeCommandBuffers(std::shared_ptr<Pipeline> &graphicsPipeline,
-                                                     std::shared_ptr<Level> &maze,
-                                                     DrawObjectTable &staticObjsData,
-                                                     DrawObjectTable &dynObjsData,
-                                                     std::shared_ptr<LevelStarter> &levelStarter,
-                                                     DrawObjectTable &levelStarterStaticObjsData,
-                                                     DrawObjectTable &levelStarterDynObjsData,
-                                                     std::shared_ptr<LevelFinish> &levelFinisher,
-                                                     DrawObjectTable &levelFinisherObjsData) {
+    void SwapChainCommands::initializeCommandBuffers(std::shared_ptr<Pipeline> const &graphicsPipeline,
+                                                     std::shared_ptr<Level> const &maze,
+                                                     DrawObjectTable const &staticObjsData,
+                                                     DrawObjectTable const &dynObjsData,
+                                                     std::shared_ptr<LevelStarter> const &levelStarter,
+                                                     DrawObjectTable const &levelStarterStaticObjsData,
+                                                     DrawObjectTable const &levelStarterDynObjsData,
+                                                     std::shared_ptr<LevelFinish> const &levelFinisher,
+                                                     DrawObjectTable const &levelFinisherObjsData) {
         /* begin recording commands into each comand buffer */
-        for (size_t i = 0; i < commandBuffers.size(); i++) {
+        for (size_t i = 0; i < m_commandBuffers.size(); i++) {
             initializeCommandBuffer(i, graphicsPipeline, maze, staticObjsData, dynObjsData,
                                     levelStarter, levelStarterStaticObjsData,
                                     levelStarterDynObjsData,
@@ -1424,15 +1424,15 @@ namespace vk {
     }
 
     void SwapChainCommands::initializeCommandBuffer(size_t index,
-                                                    std::shared_ptr<Pipeline> &graphicsPipeline,
-                                                    std::shared_ptr<Level> &maze,
-                                                    DrawObjectTable &staticObjsData,
-                                                    DrawObjectTable &dynObjsData,
-                                                    std::shared_ptr<LevelStarter> &levelStarter,
-                                                    DrawObjectTable &levelStarterStaticObjsData,
-                                                    DrawObjectTable &levelStarterDynObjsData,
-                                                    std::shared_ptr<LevelFinish> &levelFinisher,
-                                                    DrawObjectTable &levelFinisherObjsData) {
+                                                    std::shared_ptr<Pipeline> const &graphicsPipeline,
+                                                    std::shared_ptr<Level> const &maze,
+                                                    DrawObjectTable const &staticObjsData,
+                                                    DrawObjectTable const &dynObjsData,
+                                                    std::shared_ptr<LevelStarter> const &levelStarter,
+                                                    DrawObjectTable const &levelStarterStaticObjsData,
+                                                    DrawObjectTable const &levelStarterDynObjsData,
+                                                    std::shared_ptr<LevelFinish> const &levelFinisher,
+                                                    DrawObjectTable const &levelFinisherObjsData) {
         VkCommandBufferBeginInfo beginInfo = {};
         beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
         beginInfo.flags = VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT;
@@ -1446,16 +1446,16 @@ namespace vk {
         /* this call will reset the command buffer.  its not possible to append commands at
          * a later time.
          */
-        vkBeginCommandBuffer(commandBuffers[index], &beginInfo);
+        vkBeginCommandBuffer(m_commandBuffers[index], &beginInfo);
 
         /* begin the render pass: drawing starts here*/
         VkRenderPassBeginInfo renderPassInfo = {};
         renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-        renderPassInfo.renderPass = renderPass->renderPass;
-        renderPassInfo.framebuffer = framebuffers[index].get();
+        renderPassInfo.renderPass = m_renderPass->renderPass().get();
+        renderPassInfo.framebuffer = m_framebuffers[index].get();
         /* size of the render area */
         renderPassInfo.renderArea.offset = {0, 0};
-        renderPassInfo.renderArea.extent = swapChain->swapChainExtent;
+        renderPassInfo.renderArea.extent = m_swapChain->extent();
 
         /* the color value to use when clearing the image with VK_ATTACHMENT_LOAD_OP_CLEAR,
          * using black with 0% opacity
@@ -1471,37 +1471,34 @@ namespace vk {
          * none of these functions returns an error (they return void).  There will be no error
          * handling until recording is done.
          */
-        vkCmdBeginRenderPass(commandBuffers[index], &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
+        vkCmdBeginRenderPass(m_commandBuffers[index], &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
 
         /* bind the graphics pipeline to the command buffer, the second parameter tells Vulkan
          * that we are binding to a graphics pipeline.
          */
-        vkCmdBindPipeline(commandBuffers[index], VK_PIPELINE_BIND_POINT_GRAPHICS,
-                          graphicsPipeline->pipeline.get());
+        vkCmdBindPipeline(m_commandBuffers[index], VK_PIPELINE_BIND_POINT_GRAPHICS,
+                          graphicsPipeline->pipeline().get());
 
         // the objects that stay static.
-        initializeCommandBufferDrawObjects(graphicsPipeline, commandBuffers[index], staticObjsData);
+        initializeCommandBufferDrawObjects(graphicsPipeline, index, staticObjsData);
 
         // the objects that move.
-        initializeCommandBufferDrawObjects(graphicsPipeline, commandBuffers[index], dynObjsData);
+        initializeCommandBufferDrawObjects(graphicsPipeline, index, dynObjsData);
 
         // the level starter
         if (levelStarter.get() != nullptr) {
-            initializeCommandBufferDrawObjects(graphicsPipeline, commandBuffers[index],
-                                               levelStarterStaticObjsData);
-            initializeCommandBufferDrawObjects(graphicsPipeline, commandBuffers[index],
-                                               levelStarterDynObjsData);
+            initializeCommandBufferDrawObjects(graphicsPipeline, index, levelStarterStaticObjsData);
+            initializeCommandBufferDrawObjects(graphicsPipeline, index, levelStarterDynObjsData);
         }
 
         // the level finisher objects.
         if (maze->isFinished() || levelFinisher->isUnveiling()) {
-            initializeCommandBufferDrawObjects(graphicsPipeline, commandBuffers[index],
-                                               levelFinisherObjsData);
+            initializeCommandBufferDrawObjects(graphicsPipeline, index, levelFinisherObjsData);
         }
 
-        vkCmdEndRenderPass(commandBuffers[index]);
+        vkCmdEndRenderPass(m_commandBuffers[index]);
 
-        if (vkEndCommandBuffer(commandBuffers[index]) != VK_SUCCESS) {
+        if (vkEndCommandBuffer(m_commandBuffers[index]) != VK_SUCCESS) {
             throw std::runtime_error("failed to record command buffer!");
         }
     }
@@ -1522,20 +1519,20 @@ namespace vk {
         m_semaphore.reset(semaphoreRaw, deleter);
     }
 
-    void SwapChainCommands::initializeCommandBufferDrawObjects(std::shared_ptr<Pipeline> &pipeline,
-                                                               VkCommandBuffer &commandBuffer,
+    void SwapChainCommands::initializeCommandBufferDrawObjects(std::shared_ptr<Pipeline> const &pipeline,
+                                                               size_t index,
                                                                DrawObjectTable const &objs) {
         VkDeviceSize offsets[1] = {0};
 
         for (auto &&obj : objs) {
             DrawObjectDataVulkan *objData = dynamic_cast<DrawObjectDataVulkan *> (obj.second.get());
 
-            vkCmdBindVertexBuffers(commandBuffer, 0, 1, &(objData->vertexBuffer), offsets);
-            vkCmdBindIndexBuffer(commandBuffer, objData->indexBuffer, 0, VK_INDEX_TYPE_UINT32);
+            vkCmdBindVertexBuffers(m_commandBuffers[index], 0, 1, &(objData->vertexBuffer), offsets);
+            vkCmdBindIndexBuffer(m_commandBuffers[index], objData->indexBuffer, 0, VK_INDEX_TYPE_UINT32);
             for (auto &&uniform : objData->uniforms) {
                 /* The MVP matrix and texture samplers */
-                vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
-                                        pipeline->pipelineLayout, 0, 1, &(uniform->descriptorSet),
+                vkCmdBindDescriptorSets(m_commandBuffers[index], VK_PIPELINE_BIND_POINT_GRAPHICS,
+                                        pipeline->layout().get(), 0, 1, &(uniform->descriptorSet),
                                         0, nullptr);
 
                 /* indexed draw command:
@@ -1546,7 +1543,7 @@ namespace vk {
                  * parameter 5 - offset to add to the indices in the index buffer
                  * parameter 6 - offset for instance rendering
                  */
-                vkCmdDrawIndexed(commandBuffer, obj.first->indices.size(), 1, 0, 0, 0);
+                vkCmdDrawIndexed(m_commandBuffers[index], obj.first->indices.size(), 1, 0, 0, 0);
             }
         }
     }
