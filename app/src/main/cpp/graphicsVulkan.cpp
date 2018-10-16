@@ -1779,8 +1779,9 @@ namespace vk {
         m_descriptorSetLayout.reset(descriptorSetLayoutRaw, deleter);
     }
 
-    void TextureDataVulkan::createTextureImage(std::shared_ptr<TextureDescription> &texture,
-                                               std::shared_ptr<CommandPool> &pool) {
+    std::shared_ptr<Image> ImageFactory::createTextureImage(std::shared_ptr<Device> const &device,
+            std::shared_ptr<TextureDescription> const &texture,
+            std::shared_ptr<CommandPool> const &cmdPool) {
         uint32_t texHeight;
         uint32_t texWidth;
         uint32_t texChannels;
@@ -1792,18 +1793,18 @@ namespace vk {
         /* copy the image to CPU accessable memory in the graphics card.  Make sure that it has the
          * VK_BUFFER_USAGE_TRANSFER_SRC_BIT set so that we can copy from it to an image later
          */
-        BufferVulkan staging(imageSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+        Buffer staging(device, imageSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
                              VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
                              VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
 
         void *data;
-        vkMapMemory(device->logicalDevice, staging.bufferMemory.get(), 0, imageSize, 0, &data);
+        vkMapMemory(device->logicalDevice().get(), staging.memory().get(), 0, imageSize, 0, &data);
         memcpy(data, pixels.data(), static_cast<size_t>(imageSize));
-        vkUnmapMemory(device->logicalDevice, staging.bufferMemory.get());
+        vkUnmapMemory(device->logicalDevice().get(), staging.memory().get());
 
         VkFormat format = VK_FORMAT_R8G8B8A8_UNORM;//VK_FORMAT_R8_UNORM;
-        std::shared_ptr<ImageMemoryVulkan> image(
-                new ImageMemoryVulkan(device, texWidth, texHeight, format,
+        std::shared_ptr<Image> image(
+                new Image(device, texWidth, texHeight, format,
                                       VK_IMAGE_TILING_OPTIMAL,
                                       VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
                                       VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT));
@@ -1811,22 +1812,20 @@ namespace vk {
         /* transition the image to VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL. The image was created with
          * layout: VK_IMAGE_LAYOUT_UNDEFINED, so we use that to specify the old layout.
          */
-        SingleTimeCommands cmds{device, pool};
+        SingleTimeCommands cmds{device, cmdPool};
         image->transitionImageLayout(format, VK_IMAGE_LAYOUT_UNDEFINED,
-                                     VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, pool);
+                                     VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, cmdPool);
 
-        image->copyBufferToImage(staging, pool);
+        image->copyBufferToImage(staging, cmdPool);
 
         /* transition the image to VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL so that the
          * shader can read from it.
          */
         image->transitionImageLayout(format, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-                                     VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, pool);
-
-        img.reset(new ImageViewVulkan(image, VK_FORMAT_R8_UNORM, VK_IMAGE_ASPECT_COLOR_BIT));
+                                     VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, cmdPool);
     }
 
-    void GraphicsVulkan::createTextureSampler(VkSampler &textureSampler) {
+    void ImageSampler::createTextureSampler() {
         VkSamplerCreateInfo samplerInfo = {};
         samplerInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
 
@@ -1882,10 +1881,16 @@ namespace vk {
         samplerInfo.minLod = 0.0f;
         samplerInfo.maxLod = 0.0f;
 
-        if (vkCreateSampler(logicalDevice, &samplerInfo, nullptr, &textureSampler) != VK_SUCCESS) {
+        VkSampler textureSamplerRaw;
+        if (vkCreateSampler(m_device->logicalDevice().get(), &samplerInfo, nullptr, &textureSamplerRaw) != VK_SUCCESS) {
             throw std::runtime_error("failed to create texture sampler!");
         }
 
+        auto deleter = [m_device](VkSampler textureSamplerRaw) {
+            vkDestroySampler(m_device->logicalDevice().get(), textureSamplerRaw, nullptr);
+        };
+
+        m_sampler.reset(textureSamplerRaw, deleter);
     }
 
     void ImageView::createImageView(VkFormat format, VkImageAspectFlags aspectFlags) {
@@ -2013,7 +2018,7 @@ namespace vk {
 
 /* get the image in the right layout before we execute a copy command */
     void Image::transitionImageLayout(VkFormat format, VkImageLayout oldLayout,
-                                      VkImageLayout newLayout, std::shared_ptr<CommandPool> &pool) {
+                                      VkImageLayout newLayout, std::shared_ptr<CommandPool> const &pool) {
         SingleTimeCommands cmds{m_device, pool};
         cmds.begin();
 
@@ -2086,7 +2091,7 @@ namespace vk {
         }
 
         vkCmdPipelineBarrier(
-                cmds.commandBuffer,
+                cmds.commandBuffer().get(),
                 sourceStage, destinationStage,
                 0,
                 0, nullptr,
@@ -2097,7 +2102,7 @@ namespace vk {
         cmds.end();
     }
 
-    void Image::copyBufferToImage(Buffer &buffer, std::shared_ptr<CommandPool> &pool) {
+    void Image::copyBufferToImage(Buffer &buffer, std::shared_ptr<CommandPool> const &pool) {
         SingleTimeCommands cmds{m_device, pool};
         cmds.begin();
 
@@ -2126,7 +2131,7 @@ namespace vk {
                 1
         };
 
-        vkCmdCopyBufferToImage(cmds.commandBuffer, buffer.buffer().get(),
+        vkCmdCopyBufferToImage(cmds.commandBuffer().get(), buffer.buffer().get(),
                 m_image.get(), VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &region);
 
         cmds.end();

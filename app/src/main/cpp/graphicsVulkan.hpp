@@ -243,6 +243,7 @@ namespace vk {
         void copyRawTo(void *dataRaw, size_t size);
 
         inline std::shared_ptr<VkBuffer_T> const &buffer() { return m_buffer; }
+        inline std::shared_ptr<VkDeviceMemory_T> const &memory() { return m_bufferMemory; }
 
         ~Buffer() {
             /* ensure order of destruction.
@@ -294,7 +295,7 @@ namespace vk {
         }
 
         // Image was created by another object, but we are to manage it.
-        Image(std::shared_ptr<Device> const &inDevice, std::shared_ptr<VkImage_T> &inImage,
+        Image(std::shared_ptr<Device> const &inDevice, std::shared_ptr<VkImage_T> const &inImage,
               uint32_t inWidth, uint32_t inHeight)
                 : m_device{inDevice},
                   m_image{inImage},
@@ -303,10 +304,10 @@ namespace vk {
                   m_height{inHeight} {
         }
 
-        void copyBufferToImage(Buffer &buffer, std::shared_ptr<CommandPool> &pool);
+        void copyBufferToImage(Buffer &buffer, std::shared_ptr<CommandPool> const &pool);
 
         void transitionImageLayout(VkFormat format, VkImageLayout oldLayout,
-                                   VkImageLayout newLayout, std::shared_ptr<CommandPool> &pool);
+                                   VkImageLayout newLayout, std::shared_ptr<CommandPool> const &pool);
 
         virtual ~Image() {
             m_image.reset();
@@ -315,7 +316,7 @@ namespace vk {
 
         inline std::shared_ptr<Device> const &device() { return m_device; }
         inline std::shared_ptr<VkImage_T> const &image() { return m_image; }
-    private:
+    protected:
         std::shared_ptr<Device> m_device;
 
         std::shared_ptr<VkImage_T> m_image;
@@ -377,23 +378,6 @@ namespace vk {
         chooseSwapPresentMode(const std::vector<VkPresentModeKHR> availablePresentModes);
 
         VkExtent2D chooseSwapExtent(const VkSurfaceCapabilitiesKHR &capabilities);
-    };
-
-    struct ImageViewDepth : public ImageView {
-        ImageViewDepth(std::shared_ptr<SwapChain> inSwapChain, std::shared_ptr<CommandPool> cmds)
-                : ImageView(std::shared_ptr(
-                new Image{inSwapChain->device(), inSwapChain->extent().width,
-                                      inSwapChain->extent().height,
-                          inSwapChain->device()->depthFormat(),
-                                      VK_IMAGE_TILING_OPTIMAL,
-                                      VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT,
-                                      VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT}),
-                            inSwapChain->device()->depthFormat(),
-                                  VK_IMAGE_ASPECT_DEPTH_BIT) {
-            m_image->transitionImageLayout(
-                    inSwapChain->device()->depthFormat(), VK_IMAGE_LAYOUT_UNDEFINED,
-                    VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL, cmds);
-        }
     };
 
     struct RenderPass {
@@ -736,42 +720,90 @@ namespace vk {
         std::shared_ptr<VkCommandBuffer_T> m_commandBuffer;
     };
 
-    struct TextureDataVulkan : public TextureData {
-        std::shared_ptr<Device> device;
-        std::shared_ptr<ImageView> img;
-        VkSampler sampler;
+    struct ImageViewDepth : public ImageView {
+        ImageViewDepth(std::shared_ptr<SwapChain> inSwapChain, std::shared_ptr<CommandPool> cmds)
+                : ImageView(std::shared_ptr(
+                new Image{inSwapChain->device(), inSwapChain->extent().width,
+                          inSwapChain->extent().height,
+                          inSwapChain->device()->depthFormat(),
+                          VK_IMAGE_TILING_OPTIMAL,
+                          VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT,
+                          VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT}),
+                            inSwapChain->device()->depthFormat(),
+                            VK_IMAGE_ASPECT_DEPTH_BIT) {
+            m_image->transitionImageLayout(
+                    inSwapChain->device()->depthFormat(), VK_IMAGE_LAYOUT_UNDEFINED,
+                    VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL, cmds);
+        }
+    };
 
-        TextureDataVulkan(std::shared_ptr<Device> inDevice,
+    class ImageFactory {
+    public:
+        static std::shared_ptr<Image> createTextureImage(
+                std::shared_ptr<Device> const &inDevice,
+                std::shared_ptr<TextureDescription> const &texture,
+                std::shared_ptr<CommandPool> const &cmdPool);
+
+        static std::shared_ptr<Image> &createDeptImage(std::shared_ptr<SwapChain> inSwapChain,
+                                                       std::shared_ptr<CommandPool> cmdPool) {
+            VkExtent2D extent = inSwapChain->extent();
+            std::shared_ptr<Image> img{new Image{inSwapChain->device(), extent.width,
+                      extent.height,
+                      inSwapChain->device()->depthFormat(),
+                      VK_IMAGE_TILING_OPTIMAL,
+                      VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT,
+                      VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT}};
+
+            img->transitionImageLayout(
+                    inSwapChain->device()->depthFormat(), VK_IMAGE_LAYOUT_UNDEFINED,
+                    VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL, cmdPool);
+
+            return img;
+        }
+    };
+
+    class ImageSampler {
+    public:
+        ImageSampler(std::shared_ptr<Device> inDevice,
                           std::shared_ptr<TextureDescription> textureDescription,
                           std::shared_ptr<CommandPool> &pool)
-                : device{inDevice},
-                  img{},
-                  sampler{} {
-            createTextureImage(textureDescription, pool);
-            createTextureSampler(sampler);
+                : m_device{inDevice},
+                  m_image{},
+                  m_imageView{},
+                  m_sampler{} {
+            m_image = ImageFactory::createTextureImage(m_device, textureDescription, pool);
 
+            m_imageView.reset(new ImageView(m_image, VK_FORMAT_R8_UNORM, VK_IMAGE_ASPECT_COLOR_BIT));
+
+            createTextureSampler();
         }
 
-        virtual ~TextureDataVulkan() {
-            vkDestroySampler(device->logicalDevice().get(), sampler, nullptr);
-        }
+        inline std::shared_ptr<VkSampler_T> const &sampler() { return m_sampler; }
+        inline std::shared_ptr<Image> const &image() { return m_image; }
+        inline std::shared_ptr<ImageView> const &imageView() { return m_imageView; }
 
     private:
-        void createTextureSampler(VkSampler &textureSampler);
+        std::shared_ptr<Device> m_device;
+        std::shared_ptr<Image> m_image;
+        std::shared_ptr<ImageView> m_imageView;
+        std::shared_ptr<VkSampler_T> m_sampler;
 
-        void createTextureImage(std::shared_ptr<TextureDescription> &texture,
-                                std::shared_ptr<CommandPool> &pool);
+        void createTextureSampler();
+    };
+
+    struct TextureDataVulkan : public TextureData {
+        std::shared_ptr<ImageSampler> m_sampler;
     };
 
     struct UniformWrapper {
         /* for passing data other than the vertex data to the vertex shader */
-        DescriptorSet descriptorSet;
-        BufferVulkan uniformBuffer;
+        std::shared_ptr<DescriptorSet> m_descriptorSet;
+        std::shared_ptr<Buffer> m_uniformBuffer;
 
         UniformWrapper(DescriptorSet inDescriptorSet,
-                       BufferVulkan inUniformBuffer)
-                : uniformBuffer{inUniformBuffer},
-                  descriptorSet{inDescriptorSet} {
+                       Buffer inUniformBuffer)
+                : m_uniformBuffer{inUniformBuffer},
+                  m_descriptorSet{inDescriptorSet} {
         }
     };
 
@@ -780,9 +812,9 @@ namespace vk {
  * than one triangle.
  */
     class DrawObjectDataVulkan : public DrawObjectData {
-        std::shared_ptr<DeviceVulkan> device;
-        BufferVulkan vertexBuffer
-        BufferVulkan indexBuffer;
+        std::shared_ptr<Device> device;
+        Buffer vertexBuffer;
+        Buffer indexBuffer;
         std::vector<std::shared_ptr<UniformWrapper> > uniforms;
 
         void copyVerticesToBuffer(std::shared_ptr<CommandPool> const &cmdpool,
@@ -792,14 +824,14 @@ namespace vk {
                                  std::shared_ptr<DrawObject> const &drawObj);
 
     public:
-        DrawObjectDataVulkan(std::shared_ptr<DeviceVulkan> const &inDevice,
+        DrawObjectDataVulkan(std::shared_ptr<Device> const &inDevice,
                              std::shared_ptr<CommandPool> const &inPool,
                              std::shared_ptr<DrawObject> const &drawObj)
                 : device(inDevice),
-                  vertexBuffer{sizeof(drawObj->vertices[0]) * drawObj->vertices.size(),
+                  vertexBuffer{device, sizeof(drawObj->vertices[0]) * drawObj->vertices.size(),
                                VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
                                VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT},
-                  indexBuffer{sizeof(drawObj->indices[0]) * drawObj->indices.size(),
+                  indexBuffer{device, sizeof(drawObj->indices[0]) * drawObj->indices.size(),
                               VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT,
                               VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT} {
             copyVerticesToBuffer(inPool, drawObj);
