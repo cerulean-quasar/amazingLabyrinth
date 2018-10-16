@@ -240,7 +240,7 @@ namespace vk {
 
         void copyTo(std::shared_ptr<CommandPool> cmds, Buffer const &srcBuffer, VkDeviceSize size);
 
-        void copyRawTo(void *dataRaw, size_t size);
+        void copyRawTo(void const *dataRaw, size_t size);
 
         inline std::shared_ptr<VkBuffer_T> const &buffer() { return m_buffer; }
         inline std::shared_ptr<VkDeviceMemory_T> const &memory() { return m_bufferMemory; }
@@ -272,6 +272,7 @@ namespace vk {
         }
 
         inline std::shared_ptr<VkCommandPool_T> const &commandPool() { return m_commandPool; }
+        inline std::shared_ptr<Device> const &device() { return m_device; }
 
     private:
         std::shared_ptr<Device> m_device;
@@ -510,7 +511,7 @@ namespace vk {
 
         std::shared_ptr<VkDescriptorSetLayout_T> const &descriptorSetLayout() { return m_descriptorSetLayout; }
 
-        DescriptorSet allocateDescriptor() {
+        std::shared_ptr<DescriptorSet> allocateDescriptor() {
             if (m_descriptorSetLayout == VK_NULL_HANDLE) {
                 throw (std::runtime_error(
                         "DescriptorPool::allocateDescriptor - no descriptor set layout"));
@@ -539,7 +540,7 @@ namespace vk {
                 m_descriptorPools.push_back(newDescriptorPool);
                 VkDescriptorSet descriptorSet = newDescriptorPool.allocateDescriptor(
                         m_descriptorSetLayout);
-                return DescriptorSet(std::shared_ptr(descriptorSet, deleter));
+                return std::shared_ptr(new DescriptorSet(std::shared_ptr(descriptorSet, deleter)));
             }
         }
     };
@@ -791,20 +792,40 @@ namespace vk {
         void createTextureSampler();
     };
 
-    struct TextureDataVulkan : public TextureData {
+    class TextureDataVulkan : public TextureData {
+    public:
+        inline std::shared_ptr<ImageSampler> const &sampler() { return m_sampler; }
+    private:
         std::shared_ptr<ImageSampler> m_sampler;
     };
 
-    struct UniformWrapper {
+    class UniformWrapper {
+    public:
         /* for passing data other than the vertex data to the vertex shader */
         std::shared_ptr<DescriptorSet> m_descriptorSet;
         std::shared_ptr<Buffer> m_uniformBuffer;
+        std::shared_ptr<Buffer> m_uniformBufferLighting;
+        std::shared_ptr<ImageSampler> m_sampler;
 
-        UniformWrapper(DescriptorSet inDescriptorSet,
-                       Buffer inUniformBuffer)
-                : m_uniformBuffer{inUniformBuffer},
-                  m_descriptorSet{inDescriptorSet} {
+        UniformWrapper::UniformWrapper(std::shared_ptr<Device> const &inDevice,
+                                       std::shared_ptr<DescriptorPools> const &descriptorPools,
+                                       std::shared_ptr<ImageSampler> const &inSampler,
+                                       std::shared_ptr<Buffer> const &inUniformBufferLighting,
+                                       UniformBufferObject const &ubo) {
+            VkBuffer uniformBuffer;
+            VkDeviceMemory uniformBufferMemory;
+
+            m_uniformBuffer = createUniformBuffer(inDevice);
+            m_uniformBuffer->copyRawTo(&ubo, sizeof (ubo));
+
+            m_descriptorSet = descriptorPools->allocateDescriptor();
+            updateDescriptorSet(inDevice);
         }
+
+        static std::shared_ptr<Buffer> createUniformBuffer(std::shared_ptr<Device> const &device);
+
+    private:
+        void updateDescriptorSet(std::shared_ptr<Device> const &inDevice);
     };
 
 /* vertex buffer and index buffer. the index buffer indicates which vertices to draw and in
@@ -812,10 +833,13 @@ namespace vk {
  * than one triangle.
  */
     class DrawObjectDataVulkan : public DrawObjectData {
-        std::shared_ptr<Device> device;
-        Buffer vertexBuffer;
-        Buffer indexBuffer;
-        std::vector<std::shared_ptr<UniformWrapper> > uniforms;
+        std::shared_ptr<Device> m_device;
+        std::shared_ptr<DescriptorPools> m_descriptorPools;
+
+        Buffer m_vertexBuffer;
+        Buffer m_indexBuffer;
+        std::shared_ptr<Buffer> m_uniformBufferLighting;
+        std::vector<std::shared_ptr<UniformWrapper> > m_uniforms;
 
         void copyVerticesToBuffer(std::shared_ptr<CommandPool> const &cmdpool,
                                   std::shared_ptr<DrawObject> const &drawObj);
@@ -826,14 +850,20 @@ namespace vk {
     public:
         DrawObjectDataVulkan(std::shared_ptr<Device> const &inDevice,
                              std::shared_ptr<CommandPool> const &inPool,
-                             std::shared_ptr<DrawObject> const &drawObj)
-                : device(inDevice),
-                  vertexBuffer{device, sizeof(drawObj->vertices[0]) * drawObj->vertices.size(),
+                             std::shared_ptr<DescriptorPools> const &inDescriptorPools,
+                             std::shared_ptr<DrawObject> const &drawObj,
+                             glm::vec3 const &lightingPosition)
+                : m_device{inDevice},
+                  m_descriptorPools{inDescriptorPools},
+                  m_vertexBuffer{m_device, sizeof(drawObj->vertices[0]) * drawObj->vertices.size(),
                                VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
                                VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT},
-                  indexBuffer{device, sizeof(drawObj->indices[0]) * drawObj->indices.size(),
+                  m_indexBuffer{m_device, sizeof(drawObj->indices[0]) * drawObj->indices.size(),
                               VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT,
-                              VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT} {
+                              VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT},
+                  m_uniformBufferLighting{UniformWrapper::createUniformBuffer(inDevice)},
+                  m_uniforms{} {
+            m_uniformBufferLighting->copyRawTo(&lightingPosition, sizeof (lightingPosition));
             copyVerticesToBuffer(inPool, drawObj);
             copyIndicesToBuffer(inPool, drawObj);
         }

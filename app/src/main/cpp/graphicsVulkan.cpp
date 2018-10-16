@@ -161,38 +161,30 @@ namespace vk {
 
     void DrawObjectDataVulkan::addUniforms(std::shared_ptr<DrawObject> const &obj,
                                            TextureMap &textures) {
-        DrawObjectDataVulkan *data = dynamic_cast<DrawObjectDataVulkan *> (obj.second.get());
         if (obj->modelMatrices.size() == uniforms.size()) {
             return;
         }
 
         UniformBufferObject ubo = getViewPerspectiveMatrix();
 
-        for (size_t i = data->uniforms.size(); i < obj->modelMatrices.size(); i++) {
-            VkBuffer uniformBuffer;
-            VkDeviceMemory uniformBufferMemory;
-
+        for (size_t i = uniforms.size(); i < obj->modelMatrices.size(); i++) {
             ubo.model = obj->modelMatrices[i];
-            createUniformBuffer(uniformBuffer, uniformBufferMemory);
-            void *ptr;
-            vkMapMemory(logicalDevice, uniformBufferMemory, 0, sizeof(ubo), 0, &ptr);
-            memcpy(ptr, &ubo, sizeof(ubo));
-            vkUnmapMemory(logicalDevice, uniformBufferMemory);
-
             TextureMap::iterator it = textures.find(obj->texture);
             if (it == textures.end()) {
                 throw std::runtime_error("Could not find texture in texture map.");
             }
-            VkDescriptorSet descriptorSet = descriptorPools.allocateDescriptor();
             TextureDataVulkan *textureData = static_cast<TextureDataVulkan *> (it->second.get());
-            updateDescriptorSet(uniformBuffer, textureData->imageView, textureData->sampler,
-                                uniformBufferLighting, descriptorSet);
-
-            std::shared_ptr<UniformWrapper> uniform(new UniformWrapper(descriptorSet, uniformBuffer,
-                                                                       uniformBufferMemory,
-                                                                       &descriptorPools));
-            data->uniforms.push_back(uniform);
+            std::shared_ptr<UniformWrapper> uniform(new UniformWrapper(m_device, m_descriptorPools,
+                textureData->sampler(), m_uniformBufferLighting, ubo));
+            m_uniforms.push_back(uniform);
         }
+    }
+
+    /* buffer for the MVP matrix - updated every frame so don't copy in the data here */
+    std::shared_ptr<Buffer> UniformWrapper::createUniformBuffer(std::shared_ptr<Device> const &device) {
+        VkDeviceSize bufferSize = sizeof(UniformBufferObject);
+        return std::shared_ptr<Buffer>{new Buffer{device, bufferSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
+                     VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT}};
     }
 
     void GraphicsVulkan::cleanup() {
@@ -237,15 +229,6 @@ namespace vk {
         createCommandBuffers();
     }
 
-/* buffer for the MVP matrix - updated every frame so don't copy in the data here */
-    void GraphicsVulkan::createUniformBuffer(VkBuffer &uniformBuffer,
-                                             VkDeviceMemory &uniformBufferMemory) {
-        VkDeviceSize bufferSize = sizeof(UniformBufferObject);
-        createBuffer(bufferSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
-                     VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-                     uniformBuffer, uniformBufferMemory);
-    }
-
     void DrawObjectDataVulkan::copyVerticesToBuffer(std::shared_ptr<CommandPool> const &cmdpool,
                                                     std::shared_ptr<DrawObject> const &drawObj) {
         VkDeviceSize bufferSize = sizeof(drawObj->vertices[0]) * drawObj->vertices.size();
@@ -253,13 +236,12 @@ namespace vk {
         /* use a staging buffer in the CPU accessable memory to copy the data into graphics card
          * memory.  Then use a copy command to copy the data into fast graphics card only memory.
          */
-        BufferVulkan stagingBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
-                                   VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
-                                   VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+        Buffer stagingBuffer(cmdpool->device().get(), bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+            VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
 
         stagingBuffer.copyRawTo(drawObj->vertices.data(), bufferSize);
 
-        vertexBuffer.copyTo(cmdpool, stagingBuffer, bufferSize);
+        m_vertexBuffer.copyTo(cmdpool, stagingBuffer, bufferSize);
     }
 
 /* buffer for the indices - used to reference which vertex in the vertex array (by index) to
@@ -270,13 +252,12 @@ namespace vk {
                                                    std::shared_ptr<DrawObject> const &drawObj) {
         VkDeviceSize bufferSize = sizeof(drawObj->indices[0]) * drawObj->indices.size();
 
-        BufferVulkan stagingBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
-                                   VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
-                                   VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+        Buffer stagingBuffer(cmdpool->device().get(), bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+            VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
 
         stagingBuffer.copyRawTo(drawObj->indices.data(), bufferSize);
 
-        indexBuffer.copyTo(cmdpool, stagingBuffer, bufferSize);
+        m_indexBuffer.copyTo(cmdpool, stagingBuffer, bufferSize);
     }
 
     void GraphicsVulkan::updatePerspectiveMatrix() {
@@ -1286,7 +1267,7 @@ namespace vk {
         cmds.end();
     }
 
-    void Buffer::copyRawTo(void *dataRaw, size_t size) {
+    void Buffer::copyRawTo(void const *dataRaw, size_t size) {
         void *data;
         vkMapMemory(m_device->logicalDevice().get(), m_bufferMemory.get(), 0, size, 0, &data);
         memcpy(data, dataRaw, size);
@@ -1669,17 +1650,15 @@ namespace vk {
     }
 
 /* descriptor set for the MVP matrix and texture samplers */
-    void GraphicsVulkan::updateDescriptorSet(VkBuffer uniformBuffer, VkImageView imageView,
-                                             VkSampler textureSampler, VkBuffer lightingSource,
-                                             VkDescriptorSet &descriptorSet) {
+    void UniformWrapper::updateDescriptorSet(std::shared_ptr<Device> const &inDevice) {
         VkDescriptorBufferInfo bufferInfo = {};
-        bufferInfo.buffer = uniformBuffer;
+        bufferInfo.buffer = m_uniformBuffer->buffer().get();
         bufferInfo.offset = 0;
         bufferInfo.range = sizeof(UniformBufferObject);
 
         std::array<VkWriteDescriptorSet, 3> descriptorWrites = {};
         descriptorWrites[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-        descriptorWrites[0].dstSet = descriptorSet;
+        descriptorWrites[0].dstSet = m_descriptorSet->descriptorSet().get();
 
         /* must be the same as the binding in the vertex shader */
         descriptorWrites[0].dstBinding = 0;
@@ -1702,11 +1681,11 @@ namespace vk {
 
         VkDescriptorImageInfo imageInfo = {};
         imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-        imageInfo.imageView = imageView;
-        imageInfo.sampler = textureSampler;
+        imageInfo.imageView = m_sampler->imageView()->imageView().get();
+        imageInfo.sampler = m_sampler->sampler().get();
 
         descriptorWrites[1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-        descriptorWrites[1].dstSet = descriptorSet;
+        descriptorWrites[1].dstSet = m_descriptorSet->descriptorSet().get();
         descriptorWrites[1].dstBinding = 1;
         descriptorWrites[1].dstArrayElement = 0;
         descriptorWrites[1].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
@@ -1714,19 +1693,19 @@ namespace vk {
         descriptorWrites[1].pImageInfo = &imageInfo;
 
         VkDescriptorBufferInfo bufferLightingSource = {};
-        bufferLightingSource.buffer = lightingSource;
+        bufferLightingSource.buffer = m_uniformBufferLighting->buffer().get();
         bufferLightingSource.offset = 0;
         bufferLightingSource.range = sizeof(glm::vec3);
 
         descriptorWrites[2].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-        descriptorWrites[2].dstSet = descriptorSet;
+        descriptorWrites[2].dstSet = m_descriptorSet->descriptorSet().get();
         descriptorWrites[2].dstBinding = 2;
         descriptorWrites[2].dstArrayElement = 0;
         descriptorWrites[2].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
         descriptorWrites[2].descriptorCount = 1;
         descriptorWrites[2].pBufferInfo = &bufferLightingSource;
 
-        vkUpdateDescriptorSets(logicalDevice, static_cast<uint32_t>(descriptorWrites.size()),
+        vkUpdateDescriptorSets(inDevice->logicalDevice().get(), static_cast<uint32_t>(descriptorWrites.size()),
                                descriptorWrites.data(), 0, nullptr);
     }
 
