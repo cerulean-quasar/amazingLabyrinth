@@ -153,7 +153,7 @@ namespace vk {
             std::vector<VkPresentModeKHR> presentModes;
         };
 
-        Device(std::shared_ptr<Instance> inInstance)
+        Device(std::shared_ptr<Instance> const &inInstance)
                 : m_instance (inInstance),
                 m_physicalDevice{VK_NULL_HANDLE},
                 m_logicalDevice{},
@@ -525,13 +525,13 @@ namespace vk {
                 VkDescriptorSet descriptorSet = m_unusedDescriptors.back();
                 m_unusedDescriptors.pop_back();
 
-                return DescriptorSet(std::shared_ptr(descriptorSet, deleter));
+                return std::shared_ptr<DescriptorSet>{new DescriptorSet{std::shared_ptr{descriptorSet, deleter}}};
             } else {
                 for (auto &&descriptorPool : m_descriptorPools) {
                     if (descriptorPool.hasAvailableDescriptorSets()) {
                         VkDescriptorSet descriptorSet = descriptorPool.allocateDescriptor(
                                 m_descriptorSetLayout);
-                        return DescriptorSet(std::shared_ptr(descriptorSet, deleter));
+                        return std::shared_ptr<DescriptorSet>{new DescriptorSet{std::shared_ptr{descriptorSet, deleter}}};
                     }
                 }
 
@@ -792,269 +792,286 @@ namespace vk {
         void createTextureSampler();
     };
 
-    class TextureDataVulkan : public TextureData {
-    public:
-        inline std::shared_ptr<ImageSampler> const &sampler() { return m_sampler; }
-    private:
-        std::shared_ptr<ImageSampler> m_sampler;
-    };
-
-    class UniformWrapper {
-    public:
-        /* for passing data other than the vertex data to the vertex shader */
-        std::shared_ptr<DescriptorSet> m_descriptorSet;
-        std::shared_ptr<Buffer> m_uniformBuffer;
-        std::shared_ptr<Buffer> m_uniformBufferLighting;
-        std::shared_ptr<ImageSampler> m_sampler;
-
-        UniformWrapper::UniformWrapper(std::shared_ptr<Device> const &inDevice,
-                                       std::shared_ptr<DescriptorPools> const &descriptorPools,
-                                       std::shared_ptr<ImageSampler> const &inSampler,
-                                       std::shared_ptr<Buffer> const &inUniformBufferLighting,
-                                       UniformBufferObject const &ubo) {
-            VkBuffer uniformBuffer;
-            VkDeviceMemory uniformBufferMemory;
-
-            m_uniformBuffer = createUniformBuffer(inDevice);
-            m_uniformBuffer->copyRawTo(&ubo, sizeof (ubo));
-
-            m_descriptorSet = descriptorPools->allocateDescriptor();
-            updateDescriptorSet(inDevice);
-        }
-
-        static std::shared_ptr<Buffer> createUniformBuffer(std::shared_ptr<Device> const &device);
-
-    private:
-        void updateDescriptorSet(std::shared_ptr<Device> const &inDevice);
-    };
-
-/* vertex buffer and index buffer. the index buffer indicates which vertices to draw and in
- * the specified order.  Note, vertices can be listed twice if they should be part of more
- * than one triangle.
- */
-    class DrawObjectDataVulkan : public DrawObjectData {
-        std::shared_ptr<Device> m_device;
-        std::shared_ptr<DescriptorPools> m_descriptorPools;
-
-        Buffer m_vertexBuffer;
-        Buffer m_indexBuffer;
-        std::shared_ptr<Buffer> m_uniformBufferLighting;
-        std::vector<std::shared_ptr<UniformWrapper> > m_uniforms;
-
-        void copyVerticesToBuffer(std::shared_ptr<CommandPool> const &cmdpool,
-                                  std::shared_ptr<DrawObject> const &drawObj);
-
-        void copyIndicesToBuffer(std::shared_ptr<CommandPool> const &cmdpool,
-                                 std::shared_ptr<DrawObject> const &drawObj);
-
-    public:
-        DrawObjectDataVulkan(std::shared_ptr<Device> const &inDevice,
-                             std::shared_ptr<CommandPool> const &inPool,
-                             std::shared_ptr<DescriptorPools> const &inDescriptorPools,
-                             std::shared_ptr<DrawObject> const &drawObj,
-                             glm::vec3 const &lightingPosition)
-                : m_device{inDevice},
-                  m_descriptorPools{inDescriptorPools},
-                  m_vertexBuffer{m_device, sizeof(drawObj->vertices[0]) * drawObj->vertices.size(),
-                               VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
-                               VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT},
-                  m_indexBuffer{m_device, sizeof(drawObj->indices[0]) * drawObj->indices.size(),
-                              VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT,
-                              VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT},
-                  m_uniformBufferLighting{UniformWrapper::createUniformBuffer(inDevice)},
-                  m_uniforms{} {
-            m_uniformBufferLighting->copyRawTo(&lightingPosition, sizeof (lightingPosition));
-            copyVerticesToBuffer(inPool, drawObj);
-            copyIndicesToBuffer(inPool, drawObj);
-        }
-
-        void addUniforms(std::shared_ptr<DrawObject> const &obj, TextureMap &textures);
-    };
-
-    class GraphicsVulkan : public Graphics {
-    public:
-        GraphicsVulkan(WindowType *window, uint32_t level)
-                : instance{window},
-                  device{instance},
-                  descriptorPools{device},
-                  texturesLevel{device},
-                  texturesLevelStarter{device},
-                  texturesLevelFinisher{device},
-                  texturesChanged{false},
-                  renderPass{VK_NULL_HANDLE},
-                  uniformBufferLighting{VK_NULL_HANDLE},
-                  uniformBufferMemoryLighting{VK_NULL_HANDLE},
-                  staticObjsData{},
-                  dynObjsData{},
-                  levelFinisherObjsData{},
-                  levelStarterStaticObjsData{},
-                  levelStarterDynObjsData{},
-                  maze{},
-                  levelFinisher{},
-                  levelStarter{},
-                  levelTracker{level},
-                  pipelineLayout{},
-                  graphicsPipeline{},
-                  commandPool{},
-                  commandBuffers{},
-                  imageAvailableSemaphore{},
-                  renderFinishedSemaphore{},
-                  depthImage{VK_NULL_HANDLE},
-                  depthImageMemory{VK_NULL_HANDLE},
-                  depthImageView{VK_NULL_HANDLE} {}
-
-        virtual void init(WindowType *window);
-
-        virtual void initThread() {}
-
-        virtual void cleanupThread() {}
-
-        virtual void cleanup();
-
-        virtual bool updateData();
-
-        virtual void updateAcceleration(float x, float y, float z);
-
-        virtual void drawFrame();
-
-        virtual void destroyWindow();
-
-        virtual void recreateSwapChain();
-
-        virtual ~GraphicsVulkan() {}
-
-    private:
-
-        std::shared_ptr<InstanceVulkan> instance;
-        std::shared_ptr<DeviceVulkan> device;
-        std::shared_ptr<SwapChain> swapchain;
-
-        DescriptorPools descriptorPools;
-
-        TextureMap texturesLevel;
-        TextureMap texturesLevelStarter;
-        TextureMap texturesLevelFinisher;
-        bool texturesChanged;
-
-
-        VkBuffer uniformBufferLighting;
-        VkDeviceMemory uniformBufferMemoryLighting;
-
-
-        DrawObjectTable staticObjsData;
-        DrawObjectTable dynObjsData;
-        DrawObjectTable levelFinisherObjsData;
-        DrawObjectTable levelStarterStaticObjsData;
-        DrawObjectTable levelStarterDynObjsData;
-
-        std::shared_ptr<Level> maze;
-        std::shared_ptr<LevelFinish> levelFinisher;
-        std::shared_ptr<LevelStarter> levelStarter;
-        LevelTracker levelTracker;
-
-        VkPipelineLayout pipelineLayout;
-        VkPipeline graphicsPipeline;
-
-        VkCommandPool commandPool;
-        std::vector<VkCommandBuffer> commandBuffers;
-
-        /* use semaphores to coordinate the rendering and presentation. Could also use fences
-         * but fences are more for coordinating in our program itself and not for internal
-         * Vulkan coordination of resource usage.
-         */
-        VkSemaphore imageAvailableSemaphore;
-        VkSemaphore renderFinishedSemaphore;
-
-        /* depth buffer image */
-        VkImage depthImage;
-        VkDeviceMemory depthImageMemory;
-        VkImageView depthImageView;
-        WindowType *window;
-
-
-        void addTextures(TextureMap &texture);
-
-        UniformBufferObject getViewPerspectiveMatrix();
-
-        void addObjects(DrawObjectTable &objs, TextureMap &texture);
-
-        void addObject(DrawObjectEntry &obj, TextureMap &texture);
-
-        void addUniforms(DrawObjectEntry &obj, TextureMap &texture);
-
-        bool updateLevelData(Level *level, DrawObjectTable &objsData, TextureMap &textures);
-
-        void initializeLevelData(Level *level, DrawObjectTable &staticObjsData,
-                                 DrawObjectTable &dynObjsData, TextureMap &textures);
-
-        void createUniformBuffer(VkBuffer &uniformBuffer, VkDeviceMemory &uniformBufferMemory);
-
-        void createVertexBuffer(std::vector<Vertex> const &vertices, VkBuffer &vertexBuffer,
-                                VkDeviceMemory &vertexBufferMemory);
-
-        void createIndexBuffer(std::vector<uint32_t> const &indices, VkBuffer &indexBuffer,
-                               VkDeviceMemory &indexBufferMemory);
-
-        void updatePerspectiveMatrix();
-
-        void cleanupSwapChain();
-
-        VkShaderModule createShaderModule(const std::vector<char> &code);
-
-        void createRenderPass();
-
-        void createGraphicsPipeline();
-
-        void createFramebuffers();
-
-        void
-        createBuffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties,
-                     VkBuffer &buffer, VkDeviceMemory &bufferMemory);
-
-        void copyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size);
-
-        VkCommandBuffer beginSingleTimeCommands();
-
-        void endSingleTimeCommands(VkCommandBuffer commandBuffer);
-
-        uint32_t findMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties);
-
-        void createCommandPool();
-
-        void createCommandBuffers();
-
-        void initializeCommandBuffer(VkCommandBuffer &commandBuffer, size_t index);
-
-        void initializeCommandBufferDrawObjects(VkCommandBuffer &commandBuffer,
-                                                DrawObjectTable const &objs);
-
-        void createSemaphores();
-
-        void createDepthResources();
-
-        VkFormat findDepthFormat();
-
-        VkFormat findSupportedFormat(const std::vector<VkFormat> &candidates, VkImageTiling tiling,
-                                     VkFormatFeatureFlags features);
-
-        bool hasStencilComponent(VkFormat format);
-
-        void
-        updateDescriptorSet(VkBuffer uniformBuffer, VkImageView imageView, VkSampler textureSampler,
-                            VkBuffer lightingSource, VkDescriptorSet &descriptorSet);
-
-        void createDescriptorSetLayout(VkDescriptorSetLayout &descriptorSetLayout);
-
-        void createTextureImage(TextureDescription *texture, VkImage &textureImage,
-                                VkDeviceMemory &textureImageMemory);
-
-        void createTextureSampler(VkSampler &textureSampler);
-
-        void transitionImageLayout(VkImage image, VkFormat format, VkImageLayout oldLayout,
-                                   VkImageLayout newLayout);
-
-        void copyBufferToImage(VkBuffer buffer, VkImage image, uint32_t width, uint32_t height);
-    };
-
 } // namespace vk
+
+class TextureDataVulkan : public TextureData {
+public:
+    inline std::shared_ptr<vk::ImageSampler> const &sampler() { return m_sampler; }
+private:
+    std::shared_ptr<vk::ImageSampler> m_sampler;
+};
+
+class UniformWrapper {
+public:
+    /* for passing data other than the vertex data to the vertex shader */
+    std::shared_ptr<vk::DescriptorSet> m_descriptorSet;
+    std::shared_ptr<vk::Buffer> m_uniformBuffer;
+    std::shared_ptr<vk::Buffer> m_uniformBufferLighting;
+    std::shared_ptr<vk::ImageSampler> m_sampler;
+
+    UniformWrapper::UniformWrapper(std::shared_ptr<vk::Device> const &inDevice,
+                                   std::shared_ptr<vk::DescriptorPools> const &descriptorPools,
+                                   std::shared_ptr<vk::ImageSampler> const &inSampler,
+                                   std::shared_ptr<vk::Buffer> const &inUniformBufferLighting,
+                                   UniformBufferObject const &ubo) {
+        VkBuffer uniformBuffer;
+        VkDeviceMemory uniformBufferMemory;
+
+        m_uniformBuffer = createUniformBuffer(inDevice, sizeof (UniformBufferObject));
+        m_uniformBuffer->copyRawTo(&ubo, sizeof (ubo));
+
+        m_descriptorSet = descriptorPools->allocateDescriptor();
+        updateDescriptorSet(inDevice);
+    }
+
+    static std::shared_ptr<vk::Buffer> createUniformBuffer(
+            std::shared_ptr<vk::Device> const &device, size_t bufferSize);
+
+private:
+    void updateDescriptorSet(std::shared_ptr<vk::Device> const &inDevice);
+};
+
+class DrawObjectDataVulkan : public DrawObjectData {
+    std::shared_ptr<vk::Device> m_device;
+    std::shared_ptr<vk::DescriptorPools> m_descriptorPools;
+
+    /* vertex buffer and index buffer. the index buffer indicates which vertices to draw and in
+     * the specified order.  Note, vertices can be listed twice if they should be part of more
+     * than one triangle.
+     */
+    vk::Buffer m_vertexBuffer;
+    vk::Buffer m_indexBuffer;
+
+    std::shared_ptr<vk::Buffer> m_uniformBufferLighting;
+    std::vector<std::shared_ptr<UniformWrapper> > m_uniforms;
+
+    void copyVerticesToBuffer(std::shared_ptr<vk::CommandPool> const &cmdpool,
+                              std::shared_ptr<DrawObject> const &drawObj);
+
+    void copyIndicesToBuffer(std::shared_ptr<vk::CommandPool> const &cmdpool,
+                             std::shared_ptr<DrawObject> const &drawObj);
+
+public:
+    DrawObjectDataVulkan(std::shared_ptr<vk::Device> const &inDevice,
+                         std::shared_ptr<vk::CommandPool> const &inPool,
+                         std::shared_ptr<vk::DescriptorPools> const &inDescriptorPools,
+                         std::shared_ptr<DrawObject> const &drawObj,
+                         std::shared_ptr<vk::Buffer> const &inLightingPosition)
+            : m_device{inDevice},
+              m_descriptorPools{inDescriptorPools},
+              m_vertexBuffer{m_device, sizeof(drawObj->vertices[0]) * drawObj->vertices.size(),
+                           VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
+                           VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT},
+              m_indexBuffer{m_device, sizeof(drawObj->indices[0]) * drawObj->indices.size(),
+                          VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT,
+                          VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT},
+              m_uniformBufferLighting{inLightingPosition},
+              m_uniforms{} {
+        copyVerticesToBuffer(inPool, drawObj);
+        copyIndicesToBuffer(inPool, drawObj);
+    }
+
+    void addUniforms(std::shared_ptr<DrawObject> const &obj, TextureMap &textures);
+};
+
+class LevelSequence {
+public:
+    LevelSequence(std::shared_ptr<vk::Device> const &inDevice,
+                  std::shared_ptr<vk::CommandPool> const &inPool,
+                  std::shared_ptr<vk::DescriptorPools> const &inDescriptorPools,
+                  uint32_t level)
+        :m_levelTracker{level},
+         m_texturesLevel{},
+         m_texturesLevelStarter{},
+         m_texturesLevelFinisher{},
+         m_texturesChanged{false},
+         m_uniformBufferLighting{UniformWrapper::createUniformBuffer(inDevice, sizeof (glm::vec3))},
+         m_staticObjsData{},
+         m_dynObjsData{},
+         m_levelFinisherObjsData{},
+         m_levelStarterStaticObjsData{},
+         m_levelStarterDynObjsData{},
+         m_level{m_levelTracker.getLevel()},
+         m_levelFinisher{}, /* needs to be empty until the player finishes the level */
+         m_levelStarter{m_levelTracker.getLevelStarter()}
+    {
+        glm::vec3 lightingVector = glm::vec3(0.0f, 0.0f, 1.28f/*0.01-1.28*/);
+        m_uniformBufferLighting->copyRawTo(&lightingVector, sizeof (glm::vec3));
+    }
+
+    bool updateData();
+    void updateAcceleration(float x, float y, float z);
+private:
+    LevelTracker m_levelTracker;
+    TextureMap m_texturesLevel;
+    TextureMap m_texturesLevelStarter;
+    TextureMap m_texturesLevelFinisher;
+    bool m_texturesChanged;
+
+    std::shared_ptr<vk::Buffer> m_uniformBufferLighting;
+
+    DrawObjectTable m_staticObjsData;
+    DrawObjectTable m_dynObjsData;
+    DrawObjectTable m_levelFinisherObjsData;
+    DrawObjectTable m_levelStarterStaticObjsData;
+    DrawObjectTable m_levelStarterDynObjsData;
+
+    std::shared_ptr<Level> m_level;
+    std::shared_ptr<LevelFinish> m_levelFinisher;
+    std::shared_ptr<LevelStarter> m_levelStarter;
+
+    void initializeLevelData(std::shared_ptr<Level> const &level, DrawObjectTable &staticObjsData,
+                             DrawObjectTable &dynObjsData, TextureMap &textures);
+    bool updateLevelData(std::shared_ptr<Level> const &level, DrawObjectTable &objsData, TextureMap &textures);
+    UniformBufferObject getViewPerspectiveMatrix();
+};
+
+class GraphicsVulkan : public Graphics {
+public:
+    GraphicsVulkan(WindowType *window, uint32_t level)
+            : instance{new vk::Instance{window}},
+              device{new vk::Device{instance}},
+              descriptorPools{device},
+              renderPass{VK_NULL_HANDLE},
+              uniformBufferLighting{VK_NULL_HANDLE},
+              uniformBufferMemoryLighting{VK_NULL_HANDLE},
+              levelTracker{level},
+              pipelineLayout{},
+              graphicsPipeline{},
+              commandPool{},
+              commandBuffers{},
+              imageAvailableSemaphore{},
+              renderFinishedSemaphore{},
+              depthImage{VK_NULL_HANDLE},
+              depthImageMemory{VK_NULL_HANDLE},
+              depthImageView{VK_NULL_HANDLE} {}
+
+    virtual void init(WindowType *window);
+
+    virtual void initThread() {}
+
+    virtual void cleanupThread() {}
+
+    virtual void cleanup();
+
+    virtual bool updateData();
+
+    virtual void updateAcceleration(float x, float y, float z);
+
+    virtual void drawFrame();
+
+    virtual void destroyWindow();
+
+    virtual void recreateSwapChain();
+
+    virtual ~GraphicsVulkan() {}
+
+private:
+
+    std::shared_ptr<vk::Instance> instance;
+    std::shared_ptr<vk::Device> device;
+    std::shared_ptr<vk::SwapChain> swapchain;
+    std::shared_ptr<vk::RenderPass> renderPass;
+    std::shared_ptr<vk::DescriptorPools> descriptorPools;
+    std::shared_ptr<vk::Pipeline> graphicsPipeline;
+    std::shared_ptr<vk::CommandPool> commandPool;
+
+    LevelSequence level;
+
+    /* depth buffer image */
+    std::shared_ptr<vk::ImageView> depthImageView;
+
+    std::shared_ptr<vk::SwapChainCommands> swapChainCommands;
+
+    /* use semaphores to coordinate the rendering and presentation. Could also use fences
+     * but fences are more for coordinating in our program itself and not for internal
+     * Vulkan coordination of resource usage.
+     */
+    vk::Semaphore imageAvailableSemaphore;
+    vk::Semaphore renderFinishedSemaphore;
+
+
+    void addTextures(TextureMap &texture);
+
+    UniformBufferObject getViewPerspectiveMatrix();
+
+    void addObjects(DrawObjectTable &objs, TextureMap &texture);
+
+    void addObject(DrawObjectEntry &obj, TextureMap &texture);
+
+    void addUniforms(DrawObjectEntry &obj, TextureMap &texture);
+
+    bool updateLevelData(Level *level, DrawObjectTable &objsData, TextureMap &textures);
+
+    void initializeLevelData(Level *level, DrawObjectTable &staticObjsData,
+                             DrawObjectTable &dynObjsData, TextureMap &textures);
+
+    void createUniformBuffer(VkBuffer &uniformBuffer, VkDeviceMemory &uniformBufferMemory);
+
+    void createVertexBuffer(std::vector<Vertex> const &vertices, VkBuffer &vertexBuffer,
+                            VkDeviceMemory &vertexBufferMemory);
+
+    void createIndexBuffer(std::vector<uint32_t> const &indices, VkBuffer &indexBuffer,
+                           VkDeviceMemory &indexBufferMemory);
+
+    void updatePerspectiveMatrix();
+
+    void cleanupSwapChain();
+
+    VkShaderModule createShaderModule(const std::vector<char> &code);
+
+    void createRenderPass();
+
+    void createGraphicsPipeline();
+
+    void createFramebuffers();
+
+    void
+    createBuffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties,
+                 VkBuffer &buffer, VkDeviceMemory &bufferMemory);
+
+    void copyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size);
+
+    VkCommandBuffer beginSingleTimeCommands();
+
+    void endSingleTimeCommands(VkCommandBuffer commandBuffer);
+
+    uint32_t findMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties);
+
+    void createCommandPool();
+
+    void createCommandBuffers();
+
+    void initializeCommandBuffer(VkCommandBuffer &commandBuffer, size_t index);
+
+    void initializeCommandBufferDrawObjects(VkCommandBuffer &commandBuffer,
+                                            DrawObjectTable const &objs);
+
+    void createSemaphores();
+
+    void createDepthResources();
+
+    VkFormat findDepthFormat();
+
+    VkFormat findSupportedFormat(const std::vector<VkFormat> &candidates, VkImageTiling tiling,
+                                 VkFormatFeatureFlags features);
+
+    bool hasStencilComponent(VkFormat format);
+
+    void
+    updateDescriptorSet(VkBuffer uniformBuffer, VkImageView imageView, VkSampler textureSampler,
+                        VkBuffer lightingSource, VkDescriptorSet &descriptorSet);
+
+    void createDescriptorSetLayout(VkDescriptorSetLayout &descriptorSetLayout);
+
+    void createTextureImage(TextureDescription *texture, VkImage &textureImage,
+                            VkDeviceMemory &textureImageMemory);
+
+    void createTextureSampler(VkSampler &textureSampler);
+
+    void transitionImageLayout(VkImage image, VkFormat format, VkImageLayout oldLayout,
+                               VkImageLayout newLayout);
+
+    void copyBufferToImage(VkBuffer buffer, VkImage image, uint32_t width, uint32_t height);
+};
 #endif
