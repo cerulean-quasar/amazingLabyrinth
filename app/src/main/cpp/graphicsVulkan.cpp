@@ -1951,53 +1951,31 @@ bool LevelSequence::updateData() {
             return false;
         }
 
-        if (m_texturesChanged) {
-            addTextures(m_texturesLevelFinisher);
-            for (auto &&obj : m_levelFinisherObjsData) {
-                DrawObjectDataVulkan *objData = static_cast<DrawObjectDataVulkan *> (obj.second.get());
-                if (objData != nullptr) {
-                    objData->uniforms.clear();
-                }
-            }
-        }
+        updateLevelData(m_levelFinisherObjsData, m_texturesLevelFinisher);
+    } else if (m_levelStarter.get() != nullptr) {
+        drawingNecessary = m_levelStarter->updateData();
 
-        for (auto &&objData : m_levelFinisherObjsData) {
-            DrawObjectDataVulkan *data = static_cast<DrawObjectDataVulkan *> (objData.second.get());
-            if (data == nullptr) {
-                // a completely new entry
-                addObject(objData, m_texturesLevelFinisher);
-            } else if (data->uniforms.size() < objData.first->modelMatrices.size()) {
-                // a new model matrix (new object but same texture, vertices and indices).
-                addUniforms(objData, m_texturesLevelFinisher);
-            } else if (data->uniforms.size() > objData.first->modelMatrices.size()) {
-                // a model matrix got removed...
-                data->uniforms.pop_back();
-            } else {
-                // just copy over the model matrices into the graphics card memory... they might
-                // have changed.
-                for (size_t j = 0; j < objData.first->modelMatrices.size(); j++) {
-                    void *ptr;
-                    ubo.model = objData.first->modelMatrices[j];
-                    vkMapMemory(logicalDevice, data->uniforms[j]->uniformBufferMemory, 0,
-                                sizeof(ubo), 0, &ptr);
-                    memcpy(ptr, &ubo, sizeof(ubo));
-                    vkUnmapMemory(logicalDevice, data->uniforms[j]->uniformBufferMemory);
-                }
-            }
-        }
-    } else if (levelStarter.get() != nullptr) {
-        drawingNecessary = updateLevelData(levelStarter.get(), levelStarterDynObjsData,
-                                           texturesLevelStarter);
-        if (levelStarter->isFinished()) {
-            levelStarter.reset();
-            levelStarterDynObjsData.clear();
-            levelStarterStaticObjsData.clear();
-            texturesLevelStarter.clear();
-            maze->start();
+        if (m_levelStarter->isFinished()) {
+            m_levelStarter.reset();
+            m_levelStarterDynObjsData.clear();
+            m_levelStarterStaticObjsData.clear();
+            m_texturesLevelStarter.clear();
+            m_level->start();
             return false;
         }
+
+        if (drawingNecessary) {
+            m_levelStarter->updateDynamicDrawObjects(m_levelStarterDynObjsData,
+                                                     m_texturesLevelStarter, m_texturesChanged);
+            updateLevelData(m_levelStarterDynObjsData, m_texturesLevelStarter);
+        }
     } else {
-        drawingNecessary = updateLevelData(maze.get(), dynObjsData, texturesLevel);
+        drawingNecessary = m_level->updateData();
+
+        if (drawingNecessary) {
+            m_level->updateDynamicDrawObjects(m_dynObjsData, m_texturesLevel, m_texturesChanged);
+            updateLevelData(m_dynObjsData, m_texturesLevel);
+        }
     }
 
     return drawingNecessary;
@@ -2016,37 +1994,48 @@ void LevelSequence::initializeLevelData(std::shared_ptr<Level> const &level, Dra
     addObjects(dynObjsData, textures);
 }
 
-bool LevelSequence::updateLevelData(std::shared_ptr<Level> const &level,
-                               DrawObjectTable &objsData, TextureMap &textures) {
-    UniformBufferObject ubo = getViewPerspectiveMatrix();
-    bool drawingNecessary = level->updateData();
-
-    if (!drawingNecessary) {
-        return false;
-    }
-
-    level->updateDynamicDrawObjects(objsData, textures, texturesChanged);
-    if (texturesChanged) {
-        addTextures(textures);
-        for (auto &&obj : objsData) {
+void LevelSequence::updateLevelData(DrawObjectTable &objsData, TextureMap &textures) {
+    if (m_texturesChanged) {
+        addTextures(m_texturesLevelFinisher);
+        for (auto &&obj : m_levelFinisherObjsData) {
             DrawObjectDataVulkan *objData = static_cast<DrawObjectDataVulkan *> (obj.second.get());
-            objData->uniforms.clear();
-            addUniforms(obj, textures);
-        }
-    } else {
-        for (auto &&obj : objsData) {
-            DrawObjectDataVulkan *objData = static_cast<DrawObjectDataVulkan *> (obj.second.get());
-            for (size_t j = 0; j < obj.first->modelMatrices.size(); j++) {
-                void *data;
-                ubo.model = obj.first->modelMatrices[j];
-                vkMapMemory(logicalDevice, objData->uniforms[j]->uniformBufferMemory, 0,
-                            sizeof(ubo), 0, &data);
-                memcpy(data, &ubo, sizeof(ubo));
-                vkUnmapMemory(logicalDevice, objData->uniforms[j]->uniformBufferMemory);
+            if (objData != nullptr) {
+                objData->clearUniforms();
             }
         }
     }
-    return true;
+
+    for (auto &&objData : m_levelFinisherObjsData) {
+        DrawObjectDataVulkan *data = static_cast<DrawObjectDataVulkan *> (objData.second.get());
+        if (data == nullptr) {
+            // a completely new entry
+            addObject(objData, m_texturesLevelFinisher);
+        } else {
+            data->update(objData.first, ubo.proj, ubo.view, m_texturesLevelFinisher);
+        }
+    }
+}
+
+void DrawObjectDataVulkan::update(std::shared_ptr<DrawObject> const &obj, glm::mat4 const &perspective,
+                                  glm::mat4 const &view, TextureMap &textures) {
+    if (m_uniforms.size() < obj->modelMatrices.size()) {
+        // a new model matrix (new object but same texture, vertices and indices).
+        addUniforms(obj, perspective, view, textures);
+    } else if (m_uniforms.size() > obj->modelMatrices.size()) {
+        // a model matrix got removed...
+        m_uniforms.pop_back();
+    } else {
+        UniformBufferObject ubo;
+        ubo.proj = perspective;
+        ubo.view = view;
+        // just copy over the model matrices into the graphics card memory... they might
+        // have changed.
+        for (size_t j = 0; j < obj->modelMatrices.size(); j++) {
+            void *ptr;
+            ubo.model = obj->modelMatrices[j];
+            m_uniforms[j]->uniformBuffer()->copyRawTo(&ubo, sizeof (ubo));
+        }
+    }
 }
 
 void LevelSequence::updateAcceleration(float x, float y, float z) {
@@ -2142,12 +2131,16 @@ void GraphicsVulkan::addObject(DrawObjectEntry &obj, TextureMap &textures) {
 }
 
 void DrawObjectDataVulkan::addUniforms(std::shared_ptr<DrawObject> const &obj,
+                                       glm::mat4 const &perspective,
+                                       glm::mat4 const &view,
                                        TextureMap &textures) {
     if (obj->modelMatrices.size() == m_uniforms.size()) {
         return;
     }
 
-    UniformBufferObject ubo = getViewPerspectiveMatrix();
+    UniformBufferObject ubo;
+    ubo.proj = perspective;
+    ubo.view = view;
 
     for (size_t i = m_uniforms.size(); i < obj->modelMatrices.size(); i++) {
         ubo.model = obj->modelMatrices[i];
@@ -2162,7 +2155,6 @@ void DrawObjectDataVulkan::addUniforms(std::shared_ptr<DrawObject> const &obj,
     }
 }
 
-/* buffer for the MVP matrix - updated every frame so don't copy in the data here */
 std::shared_ptr<vk::Buffer> UniformWrapper::createUniformBuffer(std::shared_ptr<vk::Device> const &device,
                                                                 size_t bufferSize) {
     return std::shared_ptr<vk::Buffer>{new vk::Buffer{device, bufferSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,

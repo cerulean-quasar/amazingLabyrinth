@@ -813,7 +813,12 @@ public:
                                    std::shared_ptr<vk::DescriptorPools> const &descriptorPools,
                                    std::shared_ptr<vk::ImageSampler> const &inSampler,
                                    std::shared_ptr<vk::Buffer> const &inUniformBufferLighting,
-                                   UniformBufferObject const &ubo) {
+                                   UniformBufferObject const &ubo)
+            : m_descriptorSet{},
+              m_uniformBuffer{},
+              m_uniformBufferLighting{},
+              m_sampler{}
+    {
         VkBuffer uniformBuffer;
         VkDeviceMemory uniformBufferMemory;
 
@@ -824,6 +829,10 @@ public:
         updateDescriptorSet(inDevice);
     }
 
+    inline std::shared_ptr<vk::DescriptorSet> const &descriptorSet() { return m_descriptorSet; }
+    inline std::shared_ptr<vk::Buffer> const &uniformBuffer() { return m_uniformBuffer; }
+    inline std::shared_ptr<vk::Buffer> const &uniformBufferLighting() { return m_uniformBufferLighting; }
+    inline std::shared_ptr<vk::ImageSampler> const &imageSampler() { return m_sampler; }
     static std::shared_ptr<vk::Buffer> createUniformBuffer(
             std::shared_ptr<vk::Device> const &device, size_t bufferSize);
 
@@ -871,7 +880,14 @@ public:
         copyIndicesToBuffer(inPool, drawObj);
     }
 
-    void addUniforms(std::shared_ptr<DrawObject> const &obj, TextureMap &textures);
+    void addUniforms(std::shared_ptr<DrawObject> const &obj,
+                     glm::mat4 const &perspective,
+                     glm::mat4 const &view,
+                     TextureMap &textures);
+    void update(std::shared_ptr<DrawObject> const &obj, glm::mat4 const &perspective,
+                glm::mat4 const &view, TextureMap &textures);
+
+    inline void clearUniforms() { m_uniforms.clear(); }
 };
 
 class LevelSequence {
@@ -897,6 +913,10 @@ public:
     {
         glm::vec3 lightingVector = glm::vec3(0.0f, 0.0f, 1.28f/*0.01-1.28*/);
         m_uniformBufferLighting->copyRawTo(&lightingVector, sizeof (glm::vec3));
+
+        initializeLevelData(m_levelStarter, m_levelStarterStaticObjsData,
+                            m_levelStarterDynObjsData, m_texturesLevelStarter);
+        initializeLevelData(m_level, m_staticObjsData, m_dynObjsData, m_texturesLevel);
     }
 
     bool updateData();
@@ -922,7 +942,7 @@ private:
 
     void initializeLevelData(std::shared_ptr<Level> const &level, DrawObjectTable &staticObjsData,
                              DrawObjectTable &dynObjsData, TextureMap &textures);
-    bool updateLevelData(std::shared_ptr<Level> const &level, DrawObjectTable &objsData, TextureMap &textures);
+    void updateLevelData(DrawObjectTable &objsData, TextureMap &textures);
     UniformBufferObject getViewPerspectiveMatrix();
 };
 
