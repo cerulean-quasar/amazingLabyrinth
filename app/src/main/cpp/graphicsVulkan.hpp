@@ -68,10 +68,20 @@ namespace vk {
     uint32_t findMemoryType(VkPhysicalDevice physicalDevice, uint32_t typeFilter,
                             VkMemoryPropertyFlags properties);
 
+    class VulkanLibrary {
+    public:
+        VulkanLibrary() {
+            if (!loadVulkan()) {
+                throw std::runtime_error("Could not find vulkan library.");
+            }
+        }
+    };
+
     class Instance {
     public:
         Instance(WindowType *inWindow)
-                : m_window{},
+                : m_loader{},
+                  m_window{},
                   m_instance{},
                   m_callback{},
                   m_surface{} {
@@ -96,6 +106,7 @@ namespace vk {
         inline std::shared_ptr<VkDebugReportCallbackEXT_T> const &callback() { return m_callback; }
 
     private:
+        VulkanLibrary m_loader;
         std::shared_ptr<WindowType> m_window;
         std::shared_ptr<VkInstance_T> m_instance;
         std::shared_ptr<VkDebugReportCallbackEXT_T> m_callback;
@@ -242,8 +253,8 @@ namespace vk {
 
         void copyRawTo(void const *dataRaw, size_t size);
 
-        inline std::shared_ptr<VkBuffer_T> const &buffer() { return m_buffer; }
-        inline std::shared_ptr<VkDeviceMemory_T> const &memory() { return m_bufferMemory; }
+        inline std::shared_ptr<VkBuffer_T> const &buffer() const { return m_buffer; }
+        inline std::shared_ptr<VkDeviceMemory_T> const &memory() const { return m_bufferMemory; }
 
         ~Buffer() {
             /* ensure order of destruction.
@@ -558,6 +569,8 @@ namespace vk {
                   m_semaphore{} {
             createSemaphore();
         }
+
+        inline std::shared_ptr<VkSemaphore_T> const &semaphore() { return m_semaphore; }
     };
 
     class Shader {
@@ -654,15 +667,10 @@ namespace vk {
             createCommandBuffers();
         }
 
-        void initializeCommandBuffers(std::shared_ptr<Pipeline> const &graphicsPipeline,
-                                      std::shared_ptr<Level> const &maze,
-                                      DrawObjectTable const &staticObjsData,
-                                      DrawObjectTable const &dynObjsData,
-                                      std::shared_ptr<LevelStarter> const &levelStarter,
-                                      DrawObjectTable const &levelStarterStaticObjsData,
-                                      DrawObjectTable const &levelStarterDynObjsData,
-                                      std::shared_ptr<LevelFinish> const &levelFinisher,
-                                      DrawObjectTable const &levelFinisherObjsData);
+        inline size_t size() { return m_images.size(); }
+        inline std::vector<ImageView> const &imageViews() { return m_imageViews; }
+        inline std::vector<std::shared_ptr<VkFramebuffer_T>> const &frameBuffers() { return m_framebuffers; }
+        inline std::vector<VkCommandBuffer> const &commandBuffers() { return m_commandBuffers; }
 
         ~SwapChainCommands() {
             vkFreeCommandBuffers(m_swapChain->device()->logicalDevice().get(), m_pool->commandPool().get(),
@@ -682,22 +690,10 @@ namespace vk {
         std::vector<std::shared_ptr<VkFramebuffer_T>> m_framebuffers;
         std::vector<VkCommandBuffer> m_commandBuffers;
 
-        void initializeCommandBufferDrawObjects(std::shared_ptr<Pipeline> const &pipeline,
-                                                size_t index, DrawObjectTable const &objs);
-
         void createFramebuffers(std::shared_ptr<RenderPass> &renderPass,
                                 std::shared_ptr<ImageView> &depthImage);
 
         void createCommandBuffers();
-
-        void initializeCommandBuffer(size_t index, std::shared_ptr<Pipeline> const &graphicsPipeline,
-                                     std::shared_ptr<Level> const &maze, DrawObjectTable const &staticObjsData,
-                                     DrawObjectTable const &dynObjsData,
-                                     std::shared_ptr<LevelStarter> const &levelStarter,
-                                     DrawObjectTable const &levelStarterStaticObjsData,
-                                     DrawObjectTable const &levelStarterDynObjsData,
-                                     std::shared_ptr<LevelFinish> const &levelFinisher,
-                                     DrawObjectTable const &levelFinisherObjsData);
     };
 
     class SingleTimeCommands {
@@ -721,29 +717,12 @@ namespace vk {
         std::shared_ptr<VkCommandBuffer_T> m_commandBuffer;
     };
 
-    struct ImageViewDepth : public ImageView {
-        ImageViewDepth(std::shared_ptr<SwapChain> inSwapChain, std::shared_ptr<CommandPool> cmds)
-                : ImageView(std::shared_ptr(
-                new Image{inSwapChain->device(), inSwapChain->extent().width,
-                          inSwapChain->extent().height,
-                          inSwapChain->device()->depthFormat(),
-                          VK_IMAGE_TILING_OPTIMAL,
-                          VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT,
-                          VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT}),
-                            inSwapChain->device()->depthFormat(),
-                            VK_IMAGE_ASPECT_DEPTH_BIT) {
-            m_image->transitionImageLayout(
-                    inSwapChain->device()->depthFormat(), VK_IMAGE_LAYOUT_UNDEFINED,
-                    VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL, cmds);
-        }
-    };
-
     class ImageFactory {
     public:
         static std::shared_ptr<Image> createTextureImage(
                 std::shared_ptr<Device> const &inDevice,
-                std::shared_ptr<TextureDescription> const &texture,
-                std::shared_ptr<CommandPool> const &cmdPool);
+                std::shared_ptr<CommandPool> const &cmdPool,
+                std::shared_ptr<TextureDescription> const &texture);
 
         static std::shared_ptr<Image> &createDeptImage(std::shared_ptr<SwapChain> inSwapChain,
                                                        std::shared_ptr<CommandPool> cmdPool) {
@@ -765,14 +744,14 @@ namespace vk {
 
     class ImageSampler {
     public:
-        ImageSampler(std::shared_ptr<Device> inDevice,
-                          std::shared_ptr<TextureDescription> textureDescription,
-                          std::shared_ptr<CommandPool> &pool)
+        ImageSampler(std::shared_ptr<Device> const &inDevice,
+                     std::shared_ptr<CommandPool> const &pool,
+                     std::shared_ptr<TextureDescription> const &textureDescription)
                 : m_device{inDevice},
                   m_image{},
                   m_imageView{},
                   m_sampler{} {
-            m_image = ImageFactory::createTextureImage(m_device, textureDescription, pool);
+            m_image = ImageFactory::createTextureImage(m_device, pool, textureDescription);
 
             m_imageView.reset(new ImageView(m_image, VK_FORMAT_R8_UNORM, VK_IMAGE_ASPECT_COLOR_BIT));
 
@@ -796,6 +775,11 @@ namespace vk {
 
 class TextureDataVulkan : public TextureData {
 public:
+    TextureDataVulkan(std::shared_ptr<vk::Device> const &inDevice,
+                      std::shared_ptr<vk::CommandPool> const &inCommandPool,
+                      std::shared_ptr<TextureDescription> const &inTextureDescription)
+        : m_sampler{new vk::ImageSampler{inDevice, inCommandPool, inTextureDescription}}
+    {}
     inline std::shared_ptr<vk::ImageSampler> const &sampler() { return m_sampler; }
 private:
     std::shared_ptr<vk::ImageSampler> m_sampler;
@@ -841,25 +825,6 @@ private:
 };
 
 class DrawObjectDataVulkan : public DrawObjectData {
-    std::shared_ptr<vk::Device> m_device;
-    std::shared_ptr<vk::DescriptorPools> m_descriptorPools;
-
-    /* vertex buffer and index buffer. the index buffer indicates which vertices to draw and in
-     * the specified order.  Note, vertices can be listed twice if they should be part of more
-     * than one triangle.
-     */
-    vk::Buffer m_vertexBuffer;
-    vk::Buffer m_indexBuffer;
-
-    std::shared_ptr<vk::Buffer> m_uniformBufferLighting;
-    std::vector<std::shared_ptr<UniformWrapper> > m_uniforms;
-
-    void copyVerticesToBuffer(std::shared_ptr<vk::CommandPool> const &cmdpool,
-                              std::shared_ptr<DrawObject> const &drawObj);
-
-    void copyIndicesToBuffer(std::shared_ptr<vk::CommandPool> const &cmdpool,
-                             std::shared_ptr<DrawObject> const &drawObj);
-
 public:
     DrawObjectDataVulkan(std::shared_ptr<vk::Device> const &inDevice,
                          std::shared_ptr<vk::CommandPool> const &inPool,
@@ -867,6 +832,7 @@ public:
                          std::shared_ptr<DrawObject> const &drawObj,
                          std::shared_ptr<vk::Buffer> const &inLightingPosition)
             : m_device{inDevice},
+              m_commandPool{inPool},
               m_descriptorPools{inDescriptorPools},
               m_vertexBuffer{m_device, sizeof(drawObj->vertices[0]) * drawObj->vertices.size(),
                            VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
@@ -881,13 +847,35 @@ public:
     }
 
     void addUniforms(std::shared_ptr<DrawObject> const &obj,
-                     glm::mat4 const &perspective,
-                     glm::mat4 const &view,
+                     std::tuple<glm::mat4, glm::mat4> const &projView,
                      TextureMap &textures);
-    void update(std::shared_ptr<DrawObject> const &obj, glm::mat4 const &perspective,
-                glm::mat4 const &view, TextureMap &textures);
+    void update(std::shared_ptr<DrawObject> const &obj,
+                std::tuple<glm::mat4, glm::mat4> const &projView, TextureMap &textures);
 
+    inline vk::Buffer const &vertexBuffer() { return m_vertexBuffer; }
+    inline vk::Buffer const &indexBuffer() { return m_indexBuffer; }
+    inline std::vector<std::shared_ptr<UniformWrapper>> const &uniforms() { return m_uniforms; }
     inline void clearUniforms() { m_uniforms.clear(); }
+private:
+    std::shared_ptr<vk::Device> m_device;
+    std::shared_ptr<vk::CommandPool> m_commandPool;
+    std::shared_ptr<vk::DescriptorPools> m_descriptorPools;
+
+    /* vertex buffer and index buffer. the index buffer indicates which vertices to draw and in
+     * the specified order.  Note, vertices can be listed twice if they should be part of more
+     * than one triangle.
+     */
+    vk::Buffer m_vertexBuffer;
+    vk::Buffer m_indexBuffer;
+
+    std::shared_ptr<vk::Buffer> m_uniformBufferLighting;
+    std::vector<std::shared_ptr<UniformWrapper>> m_uniforms;
+
+    void copyVerticesToBuffer(std::shared_ptr<vk::CommandPool> const &cmdpool,
+                              std::shared_ptr<DrawObject> const &drawObj);
+
+    void copyIndicesToBuffer(std::shared_ptr<vk::CommandPool> const &cmdpool,
+                             std::shared_ptr<DrawObject> const &drawObj);
 };
 
 class LevelSequence {
@@ -895,8 +883,13 @@ public:
     LevelSequence(std::shared_ptr<vk::Device> const &inDevice,
                   std::shared_ptr<vk::CommandPool> const &inPool,
                   std::shared_ptr<vk::DescriptorPools> const &inDescriptorPools,
-                  uint32_t level)
-        :m_levelTracker{level},
+                  uint32_t level,
+                  uint32_t width,
+                  uint32_t height)
+        :m_device{inDevice},
+         m_commandPool{inPool},
+         m_descriptorPools{inDescriptorPools},
+         m_levelTracker{level},
          m_texturesLevel{},
          m_texturesLevelStarter{},
          m_texturesLevelFinisher{},
@@ -908,11 +901,17 @@ public:
          m_levelStarterStaticObjsData{},
          m_levelStarterDynObjsData{},
          m_level{m_levelTracker.getLevel()},
-         m_levelFinisher{}, /* needs to be empty until the player finishes the level */
+         m_levelFinisher{},
          m_levelStarter{m_levelTracker.getLevelStarter()}
     {
+        m_levelTracker.setParameters(width, height);
+
         glm::vec3 lightingVector = glm::vec3(0.0f, 0.0f, 1.28f/*0.01-1.28*/);
         m_uniformBufferLighting->copyRawTo(&lightingVector, sizeof (glm::vec3));
+
+        float x, y;
+        m_level->getLevelFinisherCenter(x, y);
+        m_levelFinisher = m_levelTracker.getLevelFinisher(x, y);
 
         initializeLevelData(m_levelStarter, m_levelStarterStaticObjsData,
                             m_levelStarterDynObjsData, m_texturesLevelStarter);
@@ -921,7 +920,21 @@ public:
 
     bool updateData();
     void updateAcceleration(float x, float y, float z);
+    glm::vec4 getBackgroundColor() { return m_level->getBackgroundColor(); }
+    bool needFinisherObjs() { return m_level->isFinished() || m_levelFinisher->isUnveiling(); }
+    inline bool needsInitializeCommandBuffers() { return m_level->isFinished() ||
+                                             m_levelFinisher->isUnveiling() || m_texturesChanged; }
+    inline void doneInitializingCommandBuffers() { m_texturesChanged = false; }
+
+    inline DrawObjectTable const &levelStaticObjsData() { return m_staticObjsData; }
+    inline DrawObjectTable const &levelDynObjsData() { return m_dynObjsData; }
+    inline DrawObjectTable const &finisherObjsData() { return m_levelFinisherObjsData; }
+    inline DrawObjectTable const &starterStaticObjsData() { return m_levelStarterStaticObjsData; }
+    inline DrawObjectTable const &starterDynObjsData() { return m_levelStarterDynObjsData; }
 private:
+    std::shared_ptr<vk::Device> m_device;
+    std::shared_ptr<vk::CommandPool> m_commandPool;
+    std::shared_ptr<vk::DescriptorPools> m_descriptorPools;
     LevelTracker m_levelTracker;
     TextureMap m_texturesLevel;
     TextureMap m_texturesLevelStarter;
@@ -942,29 +955,32 @@ private:
 
     void initializeLevelData(std::shared_ptr<Level> const &level, DrawObjectTable &staticObjsData,
                              DrawObjectTable &dynObjsData, TextureMap &textures);
-    void updateLevelData(DrawObjectTable &objsData, TextureMap &textures);
-    UniformBufferObject getViewPerspectiveMatrix();
+    void updateLevelData(DrawObjectTable &objsData,
+                         std::tuple<glm::mat4, glm::mat4> const &projView, TextureMap &textures);
+    std::tuple<glm::mat4, glm::mat4>  getViewPerspectiveMatrix();
+    void addTextures(TextureMap &textures);
+    void addObjects(DrawObjectTable &objs, TextureMap &textures);
+    void addObject(DrawObjectEntry &obj, TextureMap &textures);
 };
 
 class GraphicsVulkan : public Graphics {
 public:
     GraphicsVulkan(WindowType *window, uint32_t level)
-            : instance{new vk::Instance{window}},
-              device{new vk::Device{instance}},
-              descriptorPools{device},
-              renderPass{VK_NULL_HANDLE},
-              uniformBufferLighting{VK_NULL_HANDLE},
-              uniformBufferMemoryLighting{VK_NULL_HANDLE},
-              levelTracker{level},
-              pipelineLayout{},
-              graphicsPipeline{},
-              commandPool{},
-              commandBuffers{},
-              imageAvailableSemaphore{},
-              renderFinishedSemaphore{},
-              depthImage{VK_NULL_HANDLE},
-              depthImageMemory{VK_NULL_HANDLE},
-              depthImageView{VK_NULL_HANDLE} {}
+            : m_instance{new vk::Instance{window}},
+              m_device{new vk::Device{m_instance}},
+              m_swapChain{new vk::SwapChain{m_device}},
+              m_renderPass{new vk::RenderPass{m_device, m_swapChain}},
+              m_descriptorPools{new vk::DescriptorPools{m_device}},
+              m_graphicsPipeline{new vk::Pipeline{m_swapChain, m_renderPass, m_descriptorPools}},
+              m_commandPool{new vk::CommandPool{m_device}},
+              m_level{m_device, m_commandPool, m_descriptorPools, level,
+                      m_swapChain->extent().width, m_swapChain->extent().height},
+              m_depthImageView{new vk::ImageView{vk::ImageFactory::createDeptImage(m_swapChain, m_commandPool),
+                                                 m_device->depthFormat(),
+                                                 VK_IMAGE_ASPECT_DEPTH_BIT}},
+              m_swapChainCommands{new vk::SwapChainCommands{m_swapChain, m_commandPool, m_renderPass, m_depthImageView}},
+              m_imageAvailableSemaphore{m_device},
+              m_renderFinishedSemaphore{m_device} {}
 
     virtual void init(WindowType *window);
 
@@ -988,27 +1004,34 @@ public:
 
 private:
 
-    std::shared_ptr<vk::Instance> instance;
-    std::shared_ptr<vk::Device> device;
-    std::shared_ptr<vk::SwapChain> swapchain;
-    std::shared_ptr<vk::RenderPass> renderPass;
-    std::shared_ptr<vk::DescriptorPools> descriptorPools;
-    std::shared_ptr<vk::Pipeline> graphicsPipeline;
-    std::shared_ptr<vk::CommandPool> commandPool;
+    std::shared_ptr<vk::Instance> m_instance;
+    std::shared_ptr<vk::Device> m_device;
+    std::shared_ptr<vk::SwapChain> m_swapChain;
+    std::shared_ptr<vk::RenderPass> m_renderPass;
+    std::shared_ptr<vk::DescriptorPools> m_descriptorPools;
+    std::shared_ptr<vk::Pipeline> m_graphicsPipeline;
+    std::shared_ptr<vk::CommandPool> m_commandPool;
 
-    LevelSequence level;
+    LevelSequence m_level;
 
     /* depth buffer image */
-    std::shared_ptr<vk::ImageView> depthImageView;
+    std::shared_ptr<vk::ImageView> m_depthImageView;
 
-    std::shared_ptr<vk::SwapChainCommands> swapChainCommands;
+    std::shared_ptr<vk::SwapChainCommands> m_swapChainCommands;
 
     /* use semaphores to coordinate the rendering and presentation. Could also use fences
      * but fences are more for coordinating in our program itself and not for internal
      * Vulkan coordination of resource usage.
      */
-    vk::Semaphore imageAvailableSemaphore;
-    vk::Semaphore renderFinishedSemaphore;
+    vk::Semaphore m_imageAvailableSemaphore;
+    vk::Semaphore m_renderFinishedSemaphore;
+
+    void initializeCommandBuffer(size_t index);
+
+    void initializeCommandBufferDrawObjects(size_t index, DrawObjectTable const &objs);
+
+    void initializeCommandBuffers();
+
 
 
     void addTextures(TextureMap &texture);
@@ -1061,11 +1084,6 @@ private:
     void createCommandPool();
 
     void createCommandBuffers();
-
-    void initializeCommandBuffer(VkCommandBuffer &commandBuffer, size_t index);
-
-    void initializeCommandBufferDrawObjects(VkCommandBuffer &commandBuffer,
-                                            DrawObjectTable const &objs);
 
     void createSemaphores();
 

@@ -1161,104 +1161,6 @@ namespace vk {
         }
     }
 
-    void SwapChainCommands::initializeCommandBuffers(std::shared_ptr<Pipeline> const &graphicsPipeline,
-                                                     std::shared_ptr<Level> const &maze,
-                                                     DrawObjectTable const &staticObjsData,
-                                                     DrawObjectTable const &dynObjsData,
-                                                     std::shared_ptr<LevelStarter> const &levelStarter,
-                                                     DrawObjectTable const &levelStarterStaticObjsData,
-                                                     DrawObjectTable const &levelStarterDynObjsData,
-                                                     std::shared_ptr<LevelFinish> const &levelFinisher,
-                                                     DrawObjectTable const &levelFinisherObjsData) {
-        /* begin recording commands into each comand buffer */
-        for (size_t i = 0; i < m_commandBuffers.size(); i++) {
-            initializeCommandBuffer(i, graphicsPipeline, maze, staticObjsData, dynObjsData,
-                                    levelStarter, levelStarterStaticObjsData,
-                                    levelStarterDynObjsData,
-                                    levelFinisher, levelFinisherObjsData);
-        }
-    }
-
-    void SwapChainCommands::initializeCommandBuffer(size_t index,
-                                                    std::shared_ptr<Pipeline> const &graphicsPipeline,
-                                                    std::shared_ptr<Level> const &maze,
-                                                    DrawObjectTable const &staticObjsData,
-                                                    DrawObjectTable const &dynObjsData,
-                                                    std::shared_ptr<LevelStarter> const &levelStarter,
-                                                    DrawObjectTable const &levelStarterStaticObjsData,
-                                                    DrawObjectTable const &levelStarterDynObjsData,
-                                                    std::shared_ptr<LevelFinish> const &levelFinisher,
-                                                    DrawObjectTable const &levelFinisherObjsData) {
-        VkCommandBufferBeginInfo beginInfo = {};
-        beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-        beginInfo.flags = VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT;
-        /* pInheritanceInfo is only used if flags includes:
-         * VK_COMMAND_BUFFER_USAGE_RENDER_PASS_CONTINUE_BIT
-         * because that would mean that there is a secondary command buffer that will be used
-         * in a single render pass
-         */
-        beginInfo.pInheritanceInfo = nullptr; // Optional
-
-        /* this call will reset the command buffer.  its not possible to append commands at
-         * a later time.
-         */
-        vkBeginCommandBuffer(m_commandBuffers[index], &beginInfo);
-
-        /* begin the render pass: drawing starts here*/
-        VkRenderPassBeginInfo renderPassInfo = {};
-        renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-        renderPassInfo.renderPass = m_renderPass->renderPass().get();
-        renderPassInfo.framebuffer = m_framebuffers[index].get();
-        /* size of the render area */
-        renderPassInfo.renderArea.offset = {0, 0};
-        renderPassInfo.renderArea.extent = m_swapChain->extent();
-
-        /* the color value to use when clearing the image with VK_ATTACHMENT_LOAD_OP_CLEAR,
-         * using black with 0% opacity
-         */
-        std::array<VkClearValue, 2> clearValues = {};
-        glm::vec4 bgColor = maze->getBackgroundColor();
-        clearValues[0].color = {bgColor.r, bgColor.g, bgColor.b, bgColor.a};
-        clearValues[1].depthStencil = {1.0, 0};
-        renderPassInfo.clearValueCount = static_cast<uint32_t>(clearValues.size());
-        renderPassInfo.pClearValues = clearValues.data();
-
-        /* begin recording commands - start by beginning the render pass.
-         * none of these functions returns an error (they return void).  There will be no error
-         * handling until recording is done.
-         */
-        vkCmdBeginRenderPass(m_commandBuffers[index], &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
-
-        /* bind the graphics pipeline to the command buffer, the second parameter tells Vulkan
-         * that we are binding to a graphics pipeline.
-         */
-        vkCmdBindPipeline(m_commandBuffers[index], VK_PIPELINE_BIND_POINT_GRAPHICS,
-                          graphicsPipeline->pipeline().get());
-
-        // the objects that stay static.
-        initializeCommandBufferDrawObjects(graphicsPipeline, index, staticObjsData);
-
-        // the objects that move.
-        initializeCommandBufferDrawObjects(graphicsPipeline, index, dynObjsData);
-
-        // the level starter
-        if (levelStarter.get() != nullptr) {
-            initializeCommandBufferDrawObjects(graphicsPipeline, index, levelStarterStaticObjsData);
-            initializeCommandBufferDrawObjects(graphicsPipeline, index, levelStarterDynObjsData);
-        }
-
-        // the level finisher objects.
-        if (maze->isFinished() || levelFinisher->isUnveiling()) {
-            initializeCommandBufferDrawObjects(graphicsPipeline, index, levelFinisherObjsData);
-        }
-
-        vkCmdEndRenderPass(m_commandBuffers[index]);
-
-        if (vkEndCommandBuffer(m_commandBuffers[index]) != VK_SUCCESS) {
-            throw std::runtime_error("failed to record command buffer!");
-        }
-    }
-
     void Semaphore::createSemaphore() {
         VkSemaphoreCreateInfo semaphoreInfo = {};
         semaphoreInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
@@ -1276,7 +1178,7 @@ namespace vk {
     }
 
 /* descriptor set for the MVP matrix and texture samplers */
-    void UniformWrapper::updateDescriptorSet(std::shared_ptr<Device> const &inDevice) {
+    void UniformWrapper::updateDescriptorSet(std::shared_ptr<vk::Device> const &inDevice) {
         VkDescriptorBufferInfo bufferInfo = {};
         bufferInfo.buffer = m_uniformBuffer->buffer().get();
         bufferInfo.offset = 0;
@@ -1385,8 +1287,8 @@ namespace vk {
     }
 
     std::shared_ptr<Image> ImageFactory::createTextureImage(std::shared_ptr<Device> const &device,
-                                                            std::shared_ptr<TextureDescription> const &texture,
-                                                            std::shared_ptr<CommandPool> const &cmdPool) {
+                                                            std::shared_ptr<CommandPool> const &cmdPool,
+                                                            std::shared_ptr<TextureDescription> const &texture) {
         uint32_t texHeight;
         uint32_t texWidth;
         uint32_t texChannels;
@@ -1428,6 +1330,7 @@ namespace vk {
          */
         image->transitionImageLayout(format, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
                                      VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, cmdPool);
+        return image;
     }
 
     void ImageSampler::createTextureSampler() {
@@ -1749,24 +1652,103 @@ namespace vk {
     VkExtent2D SwapChain::chooseSwapExtent(const VkSurfaceCapabilitiesKHR &capabilities) {
         return capabilities.currentExtent;
     }
-
 } // namespace vk
 
-void SwapChainCommands::initializeCommandBufferDrawObjects(std::shared_ptr<Pipeline> const &pipeline,
-                                                           size_t index,
-                                                           DrawObjectTable const &objs) {
+void GraphicsVulkan::initializeCommandBuffers() {
+    /* begin recording commands into each comand buffer */
+    for (size_t i = 0; i < m_swapChainCommands->size(); i++) {
+        initializeCommandBuffer(i);
+    }
+}
+
+void GraphicsVulkan::initializeCommandBuffer(size_t index) {
+    std::vector<VkCommandBuffer> const &commandBuffers = m_swapChainCommands->commandBuffers();
+    std::vector<std::shared_ptr<VkFramebuffer_T>> const &frameBuffers = m_swapChainCommands->frameBuffers();
+    VkCommandBufferBeginInfo beginInfo = {};
+    beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+    beginInfo.flags = VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT;
+    /* pInheritanceInfo is only used if flags includes:
+     * VK_COMMAND_BUFFER_USAGE_RENDER_PASS_CONTINUE_BIT
+     * because that would mean that there is a secondary command buffer that will be used
+     * in a single render pass
+     */
+    beginInfo.pInheritanceInfo = nullptr; // Optional
+
+    /* this call will reset the command buffer.  its not possible to append commands at
+     * a later time.
+     */
+    vkBeginCommandBuffer(commandBuffers[index], &beginInfo);
+
+    /* begin the render pass: drawing starts here*/
+    VkRenderPassBeginInfo renderPassInfo = {};
+    renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
+    renderPassInfo.renderPass = m_renderPass->renderPass().get();
+    renderPassInfo.framebuffer = frameBuffers[index].get();
+    /* size of the render area */
+    renderPassInfo.renderArea.offset = {0, 0};
+    renderPassInfo.renderArea.extent = m_swapChain->extent();
+
+    /* the color value to use when clearing the image with VK_ATTACHMENT_LOAD_OP_CLEAR,
+     * using black with 0% opacity
+     */
+    std::array<VkClearValue, 2> clearValues = {};
+    glm::vec4 bgColor = m_level.getBackgroundColor();
+    clearValues[0].color = {bgColor.r, bgColor.g, bgColor.b, bgColor.a};
+    clearValues[1].depthStencil = {1.0, 0};
+    renderPassInfo.clearValueCount = static_cast<uint32_t>(clearValues.size());
+    renderPassInfo.pClearValues = clearValues.data();
+
+    /* begin recording commands - start by beginning the render pass.
+     * none of these functions returns an error (they return void).  There will be no error
+     * handling until recording is done.
+     */
+    vkCmdBeginRenderPass(commandBuffers[index], &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
+
+    /* bind the graphics pipeline to the command buffer, the second parameter tells Vulkan
+     * that we are binding to a graphics pipeline.
+     */
+    vkCmdBindPipeline(commandBuffers[index], VK_PIPELINE_BIND_POINT_GRAPHICS,
+                      m_graphicsPipeline->pipeline().get());
+
+    // the objects that stay static.
+    initializeCommandBufferDrawObjects(index, m_level.levelStaticObjsData());
+
+    // the objects that move.
+    initializeCommandBufferDrawObjects(index, m_level.levelDynObjsData());
+
+    // the level starter
+    initializeCommandBufferDrawObjects(index, m_level.starterStaticObjsData());
+    initializeCommandBufferDrawObjects(index, m_level.starterDynObjsData());
+
+    // the level finisher objects.
+    if (m_level.needFinisherObjs()) {
+        initializeCommandBufferDrawObjects(index, m_level.finisherObjsData());
+    }
+
+    vkCmdEndRenderPass(commandBuffers[index]);
+
+    if (vkEndCommandBuffer(commandBuffers[index]) != VK_SUCCESS) {
+        throw std::runtime_error("failed to record command buffer!");
+    }
+}
+
+void GraphicsVulkan::initializeCommandBufferDrawObjects(size_t index, DrawObjectTable const &objs) {
+    std::vector<VkCommandBuffer> const &commandBuffers = m_swapChainCommands->commandBuffers();
     VkDeviceSize offsets[1] = {0};
 
     for (auto &&obj : objs) {
-        DrawObjectDataVulkan *objData = dynamic_cast<DrawObjectDataVulkan *> (obj.second.get());
+        DrawObjectDataVulkan *objData = static_cast<DrawObjectDataVulkan *> (obj.second.get());
 
-        vkCmdBindVertexBuffers(m_commandBuffers[index], 0, 1, &(objData->vertexBuffer), offsets);
-        vkCmdBindIndexBuffer(m_commandBuffers[index], objData->indexBuffer, 0, VK_INDEX_TYPE_UINT32);
-        for (auto &&uniform : objData->uniforms) {
+        VkBuffer vertexBuffer = objData->vertexBuffer().buffer().get();
+        vkCmdBindVertexBuffers(commandBuffers[index], 0, 1, &vertexBuffer, offsets);
+        vkCmdBindIndexBuffer(commandBuffers[index], objData->indexBuffer().buffer().get(), 0,
+                             VK_INDEX_TYPE_UINT32);
+        for (auto &&uniform : objData->uniforms()) {
             /* The MVP matrix and texture samplers */
-            vkCmdBindDescriptorSets(m_commandBuffers[index], VK_PIPELINE_BIND_POINT_GRAPHICS,
-                                    pipeline->layout().get(), 0, 1, &(uniform->descriptorSet),
-                                    0, nullptr);
+            VkDescriptorSet descriptorSet = uniform->descriptorSet()->descriptorSet().get();
+            vkCmdBindDescriptorSets(commandBuffers[index], VK_PIPELINE_BIND_POINT_GRAPHICS,
+                                    m_graphicsPipeline->layout().get(), 0, 1,
+                                    &descriptorSet,0, nullptr);
 
             /* indexed draw command:
              * parameter 1 - Command buffer for the draw command
@@ -1776,7 +1758,7 @@ void SwapChainCommands::initializeCommandBufferDrawObjects(std::shared_ptr<Pipel
              * parameter 5 - offset to add to the indices in the index buffer
              * parameter 6 - offset for instance rendering
              */
-            vkCmdDrawIndexed(m_commandBuffers[index], obj.first->indices.size(), 1, 0, 0, 0);
+            vkCmdDrawIndexed(commandBuffers[index], obj.first->indices.size(), 1, 0, 0, 0);
         }
     }
 }
@@ -1785,7 +1767,7 @@ void GraphicsVulkan::drawFrame() {
     /* update the app state here */
 
     /* wait for presentation to finish before drawing the next frame.  Avoids a memory leak */
-    vkQueueWaitIdle(presentQueue);
+    vkQueueWaitIdle(m_device->presentQueue());
 
     uint32_t imageIndex;
     /* the third parameter is a timeout indicating how much time in nanoseconds we want to
@@ -1793,19 +1775,19 @@ void GraphicsVulkan::drawFrame() {
      * an error from this function does not necessarily mean that we need to terminate
      * the program
      */
-    VkResult result = vkAcquireNextImageKHR(logicalDevice, swapChain,
+    VkResult result = vkAcquireNextImageKHR(m_device->logicalDevice().get(), m_swapChain->swapChain().get(),
                                             std::numeric_limits<uint64_t>::max(),
-                                            imageAvailableSemaphore, VK_NULL_HANDLE,
+                                            m_imageAvailableSemaphore.semaphore().get(), VK_NULL_HANDLE,
                                             &imageIndex);
 
-    //if (maze->isFinished() || levelFinisher->isUnveiling() || texturesChanged) {
-    // The user completed the maze or the textures changed.  If the maze is completed, we need
-    // to display the level finished animation.  Since there are additional objects, we need to
-    // rewrite the command buffer to display the new objects.  If the textures changed, then we
-    // need to update the descriptor sets, so the command buffers need to be rewritten.
-    initializeCommandBuffer(commandBuffers[imageIndex], imageIndex);
-    texturesChanged = false;
-    //}
+    if (m_level.needsInitializeCommandBuffers()) {
+        // The user completed the maze or the textures changed.  If the maze is completed, we need
+        // to display the level finished animation.  Since there are additional objects, we need to
+        // rewrite the command buffer to display the new objects.  If the textures changed, then we
+        // need to update the descriptor sets, so the command buffers need to be rewritten.
+        initializeCommandBuffers();
+        m_level.doneInitializingCommandBuffers();
+    }
 
     /* If the window surface is no longer compatible with the swap chain, then we need to
      * recreate the swap chain and let the next call draw the image.
@@ -1825,7 +1807,7 @@ void GraphicsVulkan::drawFrame() {
     /* wait for the semaphore before writing to the color attachment.  This means that we
      * could start executing the vertex shader before the image is available.
      */
-    VkSemaphore waitSemaphores[] = {imageAvailableSemaphore};
+    VkSemaphore waitSemaphores[] = {m_imageAvailableSemaphore.semaphore().get()};
     VkPipelineStageFlags waitStages[] = {VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT};
     submitInfo.waitSemaphoreCount = 1;
     submitInfo.pWaitSemaphores = waitSemaphores;
@@ -1833,17 +1815,18 @@ void GraphicsVulkan::drawFrame() {
 
     /* use the command buffer that corresponds to the image we just acquired */
     submitInfo.commandBufferCount = 1;
-    submitInfo.pCommandBuffers = &commandBuffers[imageIndex];
+    VkCommandBuffer commandBuffer = m_swapChainCommands->commandBuffers()[imageIndex];
+    submitInfo.pCommandBuffers = &commandBuffer;
 
     /* indicate which semaphore to signal when execution is done */
-    VkSemaphore signalSemaphores[] = {renderFinishedSemaphore};
+    VkSemaphore signalSemaphores[] = {m_renderFinishedSemaphore.semaphore().get()};
     submitInfo.signalSemaphoreCount = 1;
     submitInfo.pSignalSemaphores = signalSemaphores;
 
     /* the last parameter is a fence to indicate when execution is done, but we are using
      * semaphores instead so pass VK_NULL_HANDLE
      */
-    if (vkQueueSubmit(graphicsQueue, 1, &submitInfo, VK_NULL_HANDLE) != VK_SUCCESS) {
+    if (vkQueueSubmit(m_device->graphicsQueue(), 1, &submitInfo, VK_NULL_HANDLE) != VK_SUCCESS) {
         throw std::runtime_error("failed to submit draw command buffer!");
     }
 
@@ -1858,7 +1841,7 @@ void GraphicsVulkan::drawFrame() {
     /* which swap chains to present the image to and the index of the image for
      * each swap chain
      */
-    VkSwapchainKHR swapChains[] = {swapChain};
+    VkSwapchainKHR swapChains[] = {m_swapChain->swapChain().get()};
     presentInfo.swapchainCount = 1;
     presentInfo.pSwapchains = swapChains;
     presentInfo.pImageIndices = &imageIndex;
@@ -1868,7 +1851,7 @@ void GraphicsVulkan::drawFrame() {
      */
     presentInfo.pResults = nullptr; // Optional
 
-    result = vkQueuePresentKHR(presentQueue, &presentInfo);
+    result = vkQueuePresentKHR(m_device->presentQueue(), &presentInfo);
 
     /* If the window surface is no longer compatible with the swap chain
      * (VK_ERROR_OUT_OF_DATE_KHR), then we need to recreate the swap chain and let the next
@@ -1882,7 +1865,7 @@ void GraphicsVulkan::drawFrame() {
         throw std::runtime_error("failed to present swap chain image!");
     }
 
-    result = vkQueueWaitIdle(presentQueue);
+    result = vkQueueWaitIdle(m_device->presentQueue());
     if (result != VK_SUCCESS) {
         throw std::runtime_error("Failed to wait on present queue.");
     }
@@ -1901,21 +1884,20 @@ void GraphicsVulkan::createDepthResources() {
 }
 */
 
-UniformBufferObject LevelSequence::getViewPerspectiveMatrix() {
-    UniformBufferObject ubo = {};
-    ubo.proj = m_level->getProjectionMatrix();
+std::tuple<glm::mat4, glm::mat4> LevelSequence::getViewPerspectiveMatrix() {
+    glm::mat4 proj = m_level->getProjectionMatrix();
     /* GLM has the y axis inverted from Vulkan's perspective, invert the y-axis on the
      * projection matrix.
      */
-    ubo.proj[1][1] *= -1;
-    ubo.view = m_level->getViewMatrix();
-    return ubo;
+    proj[1][1] *= -1;
+    glm::mat4 view = m_level->getViewMatrix();
+    return std::make_tuple(proj, view);
 }
 
 bool LevelSequence::updateData() {
     bool drawingNecessary = false;
 
-    UniformBufferObject ubo = getViewPerspectiveMatrix();
+    std::tuple<glm::mat4, glm::mat4> projView = getViewPerspectiveMatrix();
     if (m_level->isFinished() || m_levelFinisher->isUnveiling()) {
         if (m_levelFinisher->isUnveiling()) {
             if (m_levelFinisher->isDone()) {
@@ -1951,7 +1933,7 @@ bool LevelSequence::updateData() {
             return false;
         }
 
-        updateLevelData(m_levelFinisherObjsData, m_texturesLevelFinisher);
+        updateLevelData(m_levelFinisherObjsData, projView, m_texturesLevelFinisher);
     } else if (m_levelStarter.get() != nullptr) {
         drawingNecessary = m_levelStarter->updateData();
 
@@ -1967,14 +1949,14 @@ bool LevelSequence::updateData() {
         if (drawingNecessary) {
             m_levelStarter->updateDynamicDrawObjects(m_levelStarterDynObjsData,
                                                      m_texturesLevelStarter, m_texturesChanged);
-            updateLevelData(m_levelStarterDynObjsData, m_texturesLevelStarter);
+            updateLevelData(m_levelStarterDynObjsData, projView, m_texturesLevelStarter);
         }
     } else {
         drawingNecessary = m_level->updateData();
 
         if (drawingNecessary) {
             m_level->updateDynamicDrawObjects(m_dynObjsData, m_texturesLevel, m_texturesChanged);
-            updateLevelData(m_dynObjsData, m_texturesLevel);
+            updateLevelData(m_dynObjsData, projView, m_texturesLevel);
         }
     }
 
@@ -1994,10 +1976,11 @@ void LevelSequence::initializeLevelData(std::shared_ptr<Level> const &level, Dra
     addObjects(dynObjsData, textures);
 }
 
-void LevelSequence::updateLevelData(DrawObjectTable &objsData, TextureMap &textures) {
+void LevelSequence::updateLevelData(DrawObjectTable &objsData,
+                                    std::tuple<glm::mat4, glm::mat4> const &projView, TextureMap &textures) {
     if (m_texturesChanged) {
-        addTextures(m_texturesLevelFinisher);
-        for (auto &&obj : m_levelFinisherObjsData) {
+        addTextures(textures);
+        for (auto &&obj : objsData) {
             DrawObjectDataVulkan *objData = static_cast<DrawObjectDataVulkan *> (obj.second.get());
             if (objData != nullptr) {
                 objData->clearUniforms();
@@ -2005,29 +1988,28 @@ void LevelSequence::updateLevelData(DrawObjectTable &objsData, TextureMap &textu
         }
     }
 
-    for (auto &&objData : m_levelFinisherObjsData) {
+    for (auto &&objData : objsData) {
         DrawObjectDataVulkan *data = static_cast<DrawObjectDataVulkan *> (objData.second.get());
         if (data == nullptr) {
             // a completely new entry
-            addObject(objData, m_texturesLevelFinisher);
+            addObject(objData, textures);
         } else {
-            data->update(objData.first, ubo.proj, ubo.view, m_texturesLevelFinisher);
+            data->update(objData.first, projView, textures);
         }
     }
 }
 
-void DrawObjectDataVulkan::update(std::shared_ptr<DrawObject> const &obj, glm::mat4 const &perspective,
-                                  glm::mat4 const &view, TextureMap &textures) {
+void DrawObjectDataVulkan::update(std::shared_ptr<DrawObject> const &obj,
+                                  std::tuple<glm::mat4, glm::mat4> const &projView, TextureMap &textures) {
     if (m_uniforms.size() < obj->modelMatrices.size()) {
         // a new model matrix (new object but same texture, vertices and indices).
-        addUniforms(obj, perspective, view, textures);
+        addUniforms(obj, projView, textures);
     } else if (m_uniforms.size() > obj->modelMatrices.size()) {
         // a model matrix got removed...
         m_uniforms.pop_back();
     } else {
         UniformBufferObject ubo;
-        ubo.proj = perspective;
-        ubo.view = view;
+        std::tie(ubo.proj, ubo.view) = projView;
         // just copy over the model matrices into the graphics card memory... they might
         // have changed.
         for (size_t j = 0; j < obj->modelMatrices.size(); j++) {
@@ -2047,9 +2029,94 @@ void LevelSequence::updateAcceleration(float x, float y, float z) {
 }
 
 void GraphicsVulkan::updateAcceleration(float x, float y, float z) {
-    level.updateAcceleration(x, y, z);
+    m_level.updateAcceleration(x, y, z);
 }
 
+void LevelSequence::addTextures(TextureMap &textures) {
+    for (TextureMap::iterator it = textures.begin(); it != textures.end(); it++) {
+        if (it->second.get() == nullptr) {
+            it->second.reset(new TextureDataVulkan(m_device, m_commandPool, it->first));
+        }
+    }
+}
+
+void LevelSequence::addObjects(DrawObjectTable &objs, TextureMap &textures) {
+    for (auto &&obj : objs) {
+        addObject(obj, textures);
+    }
+}
+
+void LevelSequence::addObject(DrawObjectEntry &obj, TextureMap &textures) {
+    std::shared_ptr<DrawObjectDataVulkan> objData(new DrawObjectDataVulkan(m_device, m_commandPool,
+        m_descriptorPools, obj.first, m_uniformBufferLighting));
+
+    obj.second = objData;
+
+    std::tuple<glm::mat4, glm::mat4> projView = getViewPerspectiveMatrix();
+    objData->addUniforms(obj.first, projView, textures);
+}
+
+void DrawObjectDataVulkan::addUniforms(std::shared_ptr<DrawObject> const &obj,
+                                       std::tuple<glm::mat4, glm::mat4> const &projView,
+                                       TextureMap &textures) {
+    if (obj->modelMatrices.size() == m_uniforms.size()) {
+        return;
+    }
+
+    UniformBufferObject ubo;
+    std::tie(ubo.proj, ubo.view) = projView;
+
+    for (size_t i = m_uniforms.size(); i < obj->modelMatrices.size(); i++) {
+        ubo.model = obj->modelMatrices[i];
+        TextureMap::iterator it = textures.find(obj->texture);
+        if (it == textures.end()) {
+            throw std::runtime_error("Could not find texture in texture map.");
+        }
+        TextureDataVulkan *textureData = static_cast<TextureDataVulkan *> (it->second.get());
+        std::shared_ptr<UniformWrapper> uniform(new UniformWrapper(m_device, m_descriptorPools,
+                                                                   textureData->sampler(), m_uniformBufferLighting, ubo));
+        m_uniforms.push_back(uniform);
+    }
+}
+
+std::shared_ptr<vk::Buffer> UniformWrapper::createUniformBuffer(std::shared_ptr<vk::Device> const &device,
+                                                                size_t bufferSize) {
+    return std::shared_ptr<vk::Buffer>{new vk::Buffer{device, bufferSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
+                                                      VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT}};
+}
+
+void DrawObjectDataVulkan::copyVerticesToBuffer(std::shared_ptr<vk::CommandPool> const &cmdpool,
+                                                std::shared_ptr<DrawObject> const &drawObj) {
+    VkDeviceSize bufferSize = sizeof(drawObj->vertices[0]) * drawObj->vertices.size();
+
+    /* use a staging buffer in the CPU accessable memory to copy the data into graphics card
+     * memory.  Then use a copy command to copy the data into fast graphics card only memory.
+     */
+    vk::Buffer stagingBuffer(cmdpool->device().get(), bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+                             VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+
+    stagingBuffer.copyRawTo(drawObj->vertices.data(), bufferSize);
+
+    m_vertexBuffer.copyTo(cmdpool, stagingBuffer, bufferSize);
+}
+
+/* buffer for the indices - used to reference which vertex in the vertex array (by index) to
+ * draw.  This way normally duplicated vertices would not need to be specified twice.
+ * Only one index buffer per pipeline is allowed.  Put all dice in the same index buffer.
+ */
+void DrawObjectDataVulkan::copyIndicesToBuffer(std::shared_ptr<vk::CommandPool> const &cmdpool,
+                                               std::shared_ptr<DrawObject> const &drawObj) {
+    VkDeviceSize bufferSize = sizeof(drawObj->indices[0]) * drawObj->indices.size();
+
+    vk::Buffer stagingBuffer(cmdpool->device().get(), bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+                             VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+
+    stagingBuffer.copyRawTo(drawObj->indices.data(), bufferSize);
+
+    m_indexBuffer.copyTo(cmdpool, stagingBuffer, bufferSize);
+}
+
+/*
 void GraphicsVulkan::init(WindowType *inWindow) {
     if (!loadVulkan()) {
         throw std::runtime_error("Could not find vulkan library.");
@@ -2101,70 +2168,9 @@ void GraphicsVulkan::init(WindowType *inWindow) {
     createSemaphores();
 }
 
-void GraphicsVulkan::addTextures(TextureMap &textures) {
-    for (TextureMap::iterator it = textures.begin(); it != textures.end(); it++) {
-        if (it->second.get() == nullptr) {
-            std::shared_ptr<TextureDataVulkan> texture(new TextureDataVulkan());
-            createTextureImage(it->first.get(), texture->image, texture->memory);
-            texture->imageView = createImageView(texture->image, VK_FORMAT_R8G8B8A8_UNORM,
-                                                 VK_IMAGE_ASPECT_COLOR_BIT);
-            createTextureSampler(texture->sampler);
-            it->second = texture;
-        }
-    }
-}
-
-void GraphicsVulkan::addObjects(DrawObjectTable &objs, TextureMap &textures) {
-    for (auto &&obj : objs) {
-        addObject(obj, textures);
-    }
-}
-
-void GraphicsVulkan::addObject(DrawObjectEntry &obj, TextureMap &textures) {
-    std::shared_ptr<DrawObjectDataVulkan> objData(new DrawObjectDataVulkan());
-    createVertexBuffer(obj.first->vertices, objData->vertexBuffer, objData->vertexBufferMemory);
-    createIndexBuffer(obj.first->indices, objData->indexBuffer, objData->indexBufferMemory);
-
-    obj.second = objData;
-
-    addUniforms(obj, textures);
-}
-
-void DrawObjectDataVulkan::addUniforms(std::shared_ptr<DrawObject> const &obj,
-                                       glm::mat4 const &perspective,
-                                       glm::mat4 const &view,
-                                       TextureMap &textures) {
-    if (obj->modelMatrices.size() == m_uniforms.size()) {
-        return;
-    }
-
-    UniformBufferObject ubo;
-    ubo.proj = perspective;
-    ubo.view = view;
-
-    for (size_t i = m_uniforms.size(); i < obj->modelMatrices.size(); i++) {
-        ubo.model = obj->modelMatrices[i];
-        TextureMap::iterator it = textures.find(obj->texture);
-        if (it == textures.end()) {
-            throw std::runtime_error("Could not find texture in texture map.");
-        }
-        TextureDataVulkan *textureData = static_cast<TextureDataVulkan *> (it->second.get());
-        std::shared_ptr<UniformWrapper> uniform(new UniformWrapper(m_device, m_descriptorPools,
-                                                                   textureData->sampler(), m_uniformBufferLighting, ubo));
-        m_uniforms.push_back(uniform);
-    }
-}
-
-std::shared_ptr<vk::Buffer> UniformWrapper::createUniformBuffer(std::shared_ptr<vk::Device> const &device,
-                                                                size_t bufferSize) {
-    return std::shared_ptr<vk::Buffer>{new vk::Buffer{device, bufferSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
-                                                      VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT}};
-}
-
 void GraphicsVulkan::cleanup() {
     cleanupSwapChain();
 
-    // trigger destruction of the objects to draw here so that it happens in the correct order.
     staticObjsData.clear();
     dynObjsData.clear();
     levelFinisherObjsData.clear();
@@ -2201,37 +2207,6 @@ void GraphicsVulkan::recreateSwapChain() {
     createGraphicsPipeline();
     createFramebuffers();
     createCommandBuffers();
-}
-
-void DrawObjectDataVulkan::copyVerticesToBuffer(std::shared_ptr<vk::CommandPool> const &cmdpool,
-                                                std::shared_ptr<DrawObject> const &drawObj) {
-    VkDeviceSize bufferSize = sizeof(drawObj->vertices[0]) * drawObj->vertices.size();
-
-    /* use a staging buffer in the CPU accessable memory to copy the data into graphics card
-     * memory.  Then use a copy command to copy the data into fast graphics card only memory.
-     */
-    vk::Buffer stagingBuffer(cmdpool->device().get(), bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
-                             VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
-
-    stagingBuffer.copyRawTo(drawObj->vertices.data(), bufferSize);
-
-    m_vertexBuffer.copyTo(cmdpool, stagingBuffer, bufferSize);
-}
-
-/* buffer for the indices - used to reference which vertex in the vertex array (by index) to
- * draw.  This way normally duplicated vertices would not need to be specified twice.
- * Only one index buffer per pipeline is allowed.  Put all dice in the same index buffer.
- */
-void DrawObjectDataVulkan::copyIndicesToBuffer(std::shared_ptr<vk::CommandPool> const &cmdpool,
-                                               std::shared_ptr<DrawObject> const &drawObj) {
-    VkDeviceSize bufferSize = sizeof(drawObj->indices[0]) * drawObj->indices.size();
-
-    vk::Buffer stagingBuffer(cmdpool->device().get(), bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
-                             VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
-
-    stagingBuffer.copyRawTo(drawObj->indices.data(), bufferSize);
-
-    m_indexBuffer.copyTo(cmdpool, stagingBuffer, bufferSize);
 }
 
 void GraphicsVulkan::updatePerspectiveMatrix() {
@@ -2277,3 +2252,4 @@ void GraphicsVulkan::cleanupSwapChain() {
         vkDestroySwapchainKHR(logicalDevice, swapChain, nullptr);
     }
 }
+*/
