@@ -143,7 +143,7 @@ namespace vk {
                 const VkDebugReportCallbackCreateInfoEXT *pCreateInfo,
                 const VkAllocationCallbacks *pAllocator,
                 VkDebugReportCallbackEXT *pCallback);
-        void DestroyDebugReportCallbackEXT(VkInstance instance, VkDebugReportCallbackEXT callback,
+        static void DestroyDebugReportCallbackEXT(VkInstance instance, VkDebugReportCallbackEXT callback,
                                            const VkAllocationCallbacks *pAllocator);
     };
 
@@ -182,9 +182,15 @@ namespace vk {
 
         uint32_t findMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties);
 
-        QueueFamilyIndices findQueueFamilies(VkPhysicalDevice device = m_physicalDevice);
+        QueueFamilyIndices findQueueFamilies(VkPhysicalDevice device);
+        inline QueueFamilyIndices findQueueFamilies() {
+            return findQueueFamilies(m_physicalDevice);
+        }
 
-        SwapChainSupportDetails querySwapChainSupport(VkPhysicalDevice device = m_physicalDevice);
+        SwapChainSupportDetails querySwapChainSupport(VkPhysicalDevice device);
+        inline SwapChainSupportDetails querySwapChainSupport() {
+            return querySwapChainSupport(m_physicalDevice);
+        }
 
         VkFormat depthFormat() { return m_depthFormat; }
 
@@ -414,14 +420,17 @@ namespace vk {
     class DescriptorSet {
         friend DescriptorPools;
     private:
+        std::shared_ptr<DescriptorPools> m_descriptorPools;
         std::shared_ptr<VkDescriptorSet_T> m_descriptorSet;
 
-        DescriptorSet(std::shared_ptr<VkDescriptorSet_T> inDsc)
-                : m_descriptorSet{inDsc} {
+        DescriptorSet(std::shared_ptr<DescriptorPools> inDescriptorPools,
+                      std::shared_ptr<VkDescriptorSet_T> const &inDsc)
+                : m_descriptorPools{inDescriptorPools},
+                  m_descriptorSet{inDsc} {
         }
 
     public:
-        std::shared_ptr<VkDescriptorSet_T> const &descriptorSet() { return m_descriptorSet; }
+        inline std::shared_ptr<VkDescriptorSet_T> const &descriptorSet() { return m_descriptorSet; }
     };
 
     class DescriptorPool {
@@ -432,7 +441,7 @@ namespace vk {
         uint32_t m_totalDescriptorsInPool;
         uint32_t m_totalDescriptorsAllocated;
 
-        DescriptorPool(std::shared_ptr<Device> inDevice, uint32_t totalDescriptors)
+        DescriptorPool(std::shared_ptr<Device> const &inDevice, uint32_t totalDescriptors)
                 : m_device{inDevice},
                   m_descriptorPool{},
                   m_totalDescriptorsInPool{totalDescriptors},
@@ -459,8 +468,8 @@ namespace vk {
                 throw std::runtime_error("failed to create descriptor pool!");
             }
 
-            auto deleter = [m_device](VkDescriptorPool descriptorPoolRaw) {
-                vkDestroyDescriptorPool(m_device->logicalDevice().get(), descriptorPoolRaw, nullptr);
+            auto deleter = [inDevice](VkDescriptorPool descriptorPoolRaw) {
+                vkDestroyDescriptorPool(inDevice->logicalDevice().get(), descriptorPoolRaw, nullptr);
             };
 
             m_descriptorPool.reset(descriptorPoolRaw, deleter);
@@ -497,10 +506,11 @@ namespace vk {
     };
 
 /* for passing data other than the vertex data to the vertex shader */
-    class DescriptorPools {
+class DescriptorPools : public std::enable_shared_from_this<DescriptorPools> {
+        friend DescriptorSet;
     private:
         std::shared_ptr<Device> m_device;
-        uint32_t constexpr m_numberOfDescriptorSetsInPool = 1024;
+        static uint32_t constexpr m_numberOfDescriptorSetsInPool = 1024;
         std::shared_ptr<VkDescriptorSetLayout_T> m_descriptorSetLayout;
         std::vector<DescriptorPool> m_descriptorPools;
         std::vector<VkDescriptorSet> m_unusedDescriptors;
@@ -516,10 +526,6 @@ namespace vk {
             createDescriptorSetLayout();
         }
 
-        void setDescriptorSetLayout(VkDescriptorSetLayout layout) {
-            m_descriptorSetLayout = layout;
-        }
-
         std::shared_ptr<VkDescriptorSetLayout_T> const &descriptorSetLayout() { return m_descriptorSetLayout; }
 
         std::shared_ptr<DescriptorSet> allocateDescriptor() {
@@ -528,7 +534,7 @@ namespace vk {
                         "DescriptorPool::allocateDescriptor - no descriptor set layout"));
             }
 
-            auto deleter = [&m_unusedDescriptors](VkDescriptorSet descSet) {
+            auto deleter = [this](VkDescriptorSet descSet) {
                 m_unusedDescriptors.push_back(descSet);
             };
 
@@ -536,13 +542,15 @@ namespace vk {
                 VkDescriptorSet descriptorSet = m_unusedDescriptors.back();
                 m_unusedDescriptors.pop_back();
 
-                return std::shared_ptr<DescriptorSet>{new DescriptorSet{std::shared_ptr{descriptorSet, deleter}}};
+                return std::shared_ptr<DescriptorSet>{new DescriptorSet{shared_from_this(),
+                                std::shared_ptr<VkDescriptorSet_T>{descriptorSet, deleter}}};
             } else {
                 for (auto &&descriptorPool : m_descriptorPools) {
                     if (descriptorPool.hasAvailableDescriptorSets()) {
                         VkDescriptorSet descriptorSet = descriptorPool.allocateDescriptor(
                                 m_descriptorSetLayout);
-                        return std::shared_ptr<DescriptorSet>{new DescriptorSet{std::shared_ptr{descriptorSet, deleter}}};
+                        return std::shared_ptr<DescriptorSet>{new DescriptorSet{shared_from_this(),
+                                std::shared_ptr<VkDescriptorSet_T>{descriptorSet, deleter}}};
                     }
                 }
 
@@ -551,7 +559,8 @@ namespace vk {
                 m_descriptorPools.push_back(newDescriptorPool);
                 VkDescriptorSet descriptorSet = newDescriptorPool.allocateDescriptor(
                         m_descriptorSetLayout);
-                return std::shared_ptr(new DescriptorSet(std::shared_ptr(descriptorSet, deleter)));
+                return std::shared_ptr<DescriptorSet>(new DescriptorSet(shared_from_this(),
+                                 std::shared_ptr<VkDescriptorSet_T>(descriptorSet, deleter)));
             }
         }
     };
@@ -651,7 +660,7 @@ namespace vk {
             // The swap chain images are owned by the swap chain.  They go away when the swap chain
             // is destroyed.  So make sure the swap chain hangs around until all the images are
             // deleted.  So add it as a capture in the deleter.
-            auto deleter = [m_swapChain](VkImage imageRaw) {
+            auto deleter = [inSwapChain](VkImage imageRaw) {
                 // do nothing
             };
 
@@ -724,7 +733,7 @@ namespace vk {
                 std::shared_ptr<CommandPool> const &cmdPool,
                 std::shared_ptr<TextureDescription> const &texture);
 
-        static std::shared_ptr<Image> &createDeptImage(std::shared_ptr<SwapChain> inSwapChain,
+        static std::shared_ptr<Image> createDeptImage(std::shared_ptr<SwapChain> inSwapChain,
                                                        std::shared_ptr<CommandPool> cmdPool) {
             VkExtent2D extent = inSwapChain->extent();
             std::shared_ptr<Image> img{new Image{inSwapChain->device(), extent.width,
@@ -793,11 +802,11 @@ public:
     std::shared_ptr<vk::Buffer> m_uniformBufferLighting;
     std::shared_ptr<vk::ImageSampler> m_sampler;
 
-    UniformWrapper::UniformWrapper(std::shared_ptr<vk::Device> const &inDevice,
-                                   std::shared_ptr<vk::DescriptorPools> const &descriptorPools,
-                                   std::shared_ptr<vk::ImageSampler> const &inSampler,
-                                   std::shared_ptr<vk::Buffer> const &inUniformBufferLighting,
-                                   UniformBufferObject const &ubo)
+    UniformWrapper(std::shared_ptr<vk::Device> const &inDevice,
+                   std::shared_ptr<vk::DescriptorPools> const &descriptorPools,
+                   std::shared_ptr<vk::ImageSampler> const &inSampler,
+                   std::shared_ptr<vk::Buffer> const &inUniformBufferLighting,
+                   UniformBufferObject const &ubo)
             : m_descriptorSet{},
               m_uniformBuffer{},
               m_uniformBufferLighting{},
@@ -982,13 +991,13 @@ public:
               m_imageAvailableSemaphore{m_device},
               m_renderFinishedSemaphore{m_device} {}
 
-    virtual void init(WindowType *window);
+    virtual void init(WindowType *window){}
 
     virtual void initThread() {}
 
     virtual void cleanupThread() {}
 
-    virtual void cleanup();
+    virtual void cleanup(){}
 
     virtual bool updateData();
 
@@ -996,7 +1005,7 @@ public:
 
     virtual void drawFrame();
 
-    virtual void destroyWindow();
+    virtual void destroyWindow(){}
 
     virtual void recreateSwapChain();
 
@@ -1033,7 +1042,7 @@ private:
     void initializeCommandBuffers();
 
 
-
+/*
     void addTextures(TextureMap &texture);
 
     UniformBufferObject getViewPerspectiveMatrix();
@@ -1111,5 +1120,6 @@ private:
                                VkImageLayout newLayout);
 
     void copyBufferToImage(VkBuffer buffer, VkImage image, uint32_t width, uint32_t height);
+    */
 };
 #endif

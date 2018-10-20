@@ -152,8 +152,10 @@ namespace vk {
             throw std::runtime_error("failed to set up debug callback!");
         }
 
-        auto deleter = [m_instance](VkDebugReportCallbackEXT callbackRaw) {
-            DestroyDebugReportCallbackEXT(m_instance.get(), callbackRaw, nullptr);
+        auto &capInstance = m_instance;
+        auto capDestroyDebugCallback = DestroyDebugReportCallbackEXT;
+        auto deleter = [capInstance, capDestroyDebugCallback](VkDebugReportCallbackEXT callbackRaw) {
+            capDestroyDebugCallback(capInstance.get(), callbackRaw, nullptr);
         };
 
         m_callback.reset(callbackRaw, deleter);
@@ -171,8 +173,10 @@ namespace vk {
         }
 
         // the surface requires the window, so, pass it into the deleter.
-        auto deleter = [m_instance, m_window](VkSurfaceKHR surfaceRaw) {
-            vkDestroySurfaceKHR(m_instance.get(), surfaceRaw, nullptr);
+        std::shared_ptr<VkInstance_T> const &capInstance = m_instance;
+        std::shared_ptr<WindowType> const &capWindow = m_window;
+        auto deleter = [capInstance, capWindow](VkSurfaceKHR surfaceRaw) {
+            vkDestroySurfaceKHR(capInstance.get(), surfaceRaw, nullptr);
         };
 
         m_surface.reset(surfaceRaw, deleter);
@@ -550,8 +554,9 @@ namespace vk {
             throw std::runtime_error("failed to create swap chain!");
         }
 
-        auto deleter = [m_device](VkSwapchainKHR swapChainRaw) {
-            vkDestroySwapchainKHR(m_device->logicalDevice().get(), swapChainRaw, nullptr);
+        auto const &capDevice = m_device;
+        auto deleter = [capDevice](VkSwapchainKHR swapChainRaw) {
+            vkDestroySwapchainKHR(capDevice->logicalDevice().get(), swapChainRaw, nullptr);
         };
 
         m_swapChain.reset(swapChainRaw, deleter);
@@ -576,8 +581,9 @@ namespace vk {
             throw std::runtime_error("failed to create shader module!");
         }
 
-        auto deleter = [m_device](VkShaderModule shaderModule) {
-            vkDestroyShaderModule(m_device->logicalDevice().get(), shaderModule, nullptr);
+        auto const &capDevice = m_device;
+        auto deleter = [capDevice](VkShaderModule shaderModule) {
+            vkDestroyShaderModule(capDevice->logicalDevice().get(), shaderModule, nullptr);
         };
 
         m_shaderModule.reset(shaderModuleRaw, deleter);
@@ -692,8 +698,9 @@ namespace vk {
             throw std::runtime_error("failed to create render pass!");
         }
 
-        auto deleter = [m_device](VkRenderPass renderPassRaw) {
-            vkDestroyRenderPass(m_device->logicalDevice().get(), renderPassRaw, nullptr);
+        auto const &capDevice = m_device;
+        auto deleter = [capDevice](VkRenderPass renderPassRaw) {
+            vkDestroyRenderPass(capDevice->logicalDevice().get(), renderPassRaw, nullptr);
         };
 
         m_renderPass.reset(renderPassRaw, deleter);
@@ -910,8 +917,9 @@ namespace vk {
             throw std::runtime_error("failed to create pipeline layout!");
         }
 
-        auto layoutDeleter = [m_device](VkPipelineLayout pipelineLayoutRaw) {
-            vkDestroyPipelineLayout(m_device->logicalDevice().get(), pipelineLayoutRaw, nullptr);
+        auto const &capDevice = m_device;
+        auto layoutDeleter = [capDevice](VkPipelineLayout pipelineLayoutRaw) {
+            vkDestroyPipelineLayout(capDevice->logicalDevice().get(), pipelineLayoutRaw, nullptr);
         };
 
         m_pipelineLayout.reset(pipelineLayoutRaw, layoutDeleter);
@@ -943,8 +951,8 @@ namespace vk {
             throw std::runtime_error("failed to create graphics pipeline!");
         }
 
-        auto pipelineDeleter = [m_device](VkPipeline pipelineRaw) {
-            vkDestroyPipeline(m_device->logicalDevice().get(), pipelineRaw, nullptr);
+        auto pipelineDeleter = [capDevice](VkPipeline pipelineRaw) {
+            vkDestroyPipeline(capDevice->logicalDevice().get(), pipelineRaw, nullptr);
         };
 
         m_pipeline.reset(pipelineRaw, pipelineDeleter);
@@ -972,9 +980,10 @@ namespace vk {
                                     &framebuf) != VK_SUCCESS) {
                 throw std::runtime_error("failed to create framebuffer!");
             }
-            auto device = m_swapChain->device;
-            auto deleter = [m_swapChain](VkFramebuffer frameBuf) {
-                vkDestroyFramebuffer(m_swapChain->device()->logicalDevice().get(), frameBuf, nullptr);
+
+            auto const &capDevice = m_swapChain->device();
+            auto deleter = [capDevice](VkFramebuffer frameBuf) {
+                vkDestroyFramebuffer(capDevice->logicalDevice().get(), frameBuf, nullptr);
             };
 
             std::shared_ptr<VkFramebuffer_T> framebuffer(framebuf, deleter);
@@ -999,8 +1008,9 @@ namespace vk {
             throw std::runtime_error("failed to create buffer!");
         }
 
-        auto bufdeleter = [m_device](VkBuffer buf) {
-            vkDestroyBuffer(m_device->logicalDevice().get(), buf, nullptr);
+        auto const &capDevice = m_device;
+        auto bufdeleter = [capDevice](VkBuffer buf) {
+            vkDestroyBuffer(capDevice->logicalDevice().get(), buf, nullptr);
         };
 
         m_buffer.reset(buf, bufdeleter);
@@ -1018,8 +1028,8 @@ namespace vk {
             throw std::runtime_error("failed to allocate buffer memory!");
         }
 
-        auto bufmemdeleter = [m_device](VkDeviceMemory bufmem) {
-            vkFreeMemory(m_device->logicalDevice().get(), bufmem, nullptr);
+        auto bufmemdeleter = [capDevice](VkDeviceMemory bufmem) {
+            vkFreeMemory(capDevice->logicalDevice().get(), bufmem, nullptr);
         };
 
         m_bufferMemory.reset(bufmem, bufmemdeleter);
@@ -1059,9 +1069,11 @@ namespace vk {
         VkCommandBuffer commandBufferRaw;
         vkAllocateCommandBuffers(m_device->logicalDevice().get(), &allocInfo, &commandBufferRaw);
 
-        auto deleter = [m_device](VkCommandBuffer commandBufferRaw) {
-            vkFreeCommandBuffers(m_device->logicalDevice().get(), m_pool->commandPool().get(), 1,
-                                 &commandBufferRaw);
+        auto const &capDevice = m_device;
+        auto const &capCommandPool = m_pool;
+        auto deleter = [capDevice, capCommandPool](VkCommandBuffer commandBufferRaw) {
+            vkFreeCommandBuffers(capDevice->logicalDevice().get(),
+                                 capCommandPool->commandPool().get(), 1, &commandBufferRaw);
         };
 
         m_commandBuffer.reset(commandBufferRaw, deleter);
@@ -1135,8 +1147,9 @@ namespace vk {
             throw std::runtime_error("failed to create command pool!");
         }
 
-        auto deleter = [m_device](VkCommandPool commandsRaw) {
-            vkDestroyCommandPool(m_device->logicalDevice().get(), commandsRaw, nullptr);
+        auto const &capDevice = m_device;
+        auto deleter = [capDevice](VkCommandPool commandsRaw) {
+            vkDestroyCommandPool(capDevice->logicalDevice().get(), commandsRaw, nullptr);
         };
 
         m_commandPool.reset(commandsRaw, deleter);
@@ -1170,71 +1183,12 @@ namespace vk {
             throw std::runtime_error("failed to create semaphores!");
         }
 
-        auto deleter = [m_device](VkSemaphore semaphoreRaw) {
-            vkDestroySemaphore(m_device->logicalDevice().get(), semaphoreRaw, nullptr);
+        auto const &capDevice = m_device;
+        auto deleter = [capDevice](VkSemaphore semaphoreRaw) {
+            vkDestroySemaphore(capDevice->logicalDevice().get(), semaphoreRaw, nullptr);
         };
 
         m_semaphore.reset(semaphoreRaw, deleter);
-    }
-
-/* descriptor set for the MVP matrix and texture samplers */
-    void UniformWrapper::updateDescriptorSet(std::shared_ptr<vk::Device> const &inDevice) {
-        VkDescriptorBufferInfo bufferInfo = {};
-        bufferInfo.buffer = m_uniformBuffer->buffer().get();
-        bufferInfo.offset = 0;
-        bufferInfo.range = sizeof(UniformBufferObject);
-
-        std::array<VkWriteDescriptorSet, 3> descriptorWrites = {};
-        descriptorWrites[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-        descriptorWrites[0].dstSet = m_descriptorSet->descriptorSet().get();
-
-        /* must be the same as the binding in the vertex shader */
-        descriptorWrites[0].dstBinding = 0;
-
-        /* index into the array of descriptors */
-        descriptorWrites[0].dstArrayElement = 0;
-
-        descriptorWrites[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-
-        /* how many array elements you want to update */
-        descriptorWrites[0].descriptorCount = 1;
-
-        /* which one of these pointers needs to be used depends on which descriptorType we are
-         * using.  pBufferInfo is for buffer based data, pImageInfo is used for image data, and
-         * pTexelBufferView is used for decriptors that refer to buffer views.
-         */
-        descriptorWrites[0].pBufferInfo = &bufferInfo;
-        descriptorWrites[0].pImageInfo = nullptr; // Optional
-        descriptorWrites[0].pTexelBufferView = nullptr; // Optional
-
-        VkDescriptorImageInfo imageInfo = {};
-        imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-        imageInfo.imageView = m_sampler->imageView()->imageView().get();
-        imageInfo.sampler = m_sampler->sampler().get();
-
-        descriptorWrites[1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-        descriptorWrites[1].dstSet = m_descriptorSet->descriptorSet().get();
-        descriptorWrites[1].dstBinding = 1;
-        descriptorWrites[1].dstArrayElement = 0;
-        descriptorWrites[1].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-        descriptorWrites[1].descriptorCount = 1;
-        descriptorWrites[1].pImageInfo = &imageInfo;
-
-        VkDescriptorBufferInfo bufferLightingSource = {};
-        bufferLightingSource.buffer = m_uniformBufferLighting->buffer().get();
-        bufferLightingSource.offset = 0;
-        bufferLightingSource.range = sizeof(glm::vec3);
-
-        descriptorWrites[2].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-        descriptorWrites[2].dstSet = m_descriptorSet->descriptorSet().get();
-        descriptorWrites[2].dstBinding = 2;
-        descriptorWrites[2].dstArrayElement = 0;
-        descriptorWrites[2].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-        descriptorWrites[2].descriptorCount = 1;
-        descriptorWrites[2].pBufferInfo = &bufferLightingSource;
-
-        vkUpdateDescriptorSets(inDevice->logicalDevice().get(), static_cast<uint32_t>(descriptorWrites.size()),
-                               descriptorWrites.data(), 0, nullptr);
     }
 
 /* for accessing data other than the vertices from the shaders */
@@ -1279,8 +1233,9 @@ namespace vk {
             throw std::runtime_error("failed to create descriptor set layout!");
         }
 
-        auto deleter = [m_device](VkDescriptorSetLayout descriptorSetLayoutRaw) {
-            vkDestroyDescriptorSetLayout(m_device->logicalDevice().get(), descriptorSetLayoutRaw, nullptr);
+        auto const &capDevice = m_device;
+        auto deleter = [capDevice](VkDescriptorSetLayout descriptorSetLayoutRaw) {
+            vkDestroyDescriptorSetLayout(capDevice->logicalDevice().get(), descriptorSetLayoutRaw, nullptr);
         };
 
         m_descriptorSetLayout.reset(descriptorSetLayoutRaw, deleter);
@@ -1394,8 +1349,9 @@ namespace vk {
             throw std::runtime_error("failed to create texture sampler!");
         }
 
-        auto deleter = [m_device](VkSampler textureSamplerRaw) {
-            vkDestroySampler(m_device->logicalDevice().get(), textureSamplerRaw, nullptr);
+        auto const &capDevice = m_device;
+        auto deleter = [capDevice](VkSampler textureSamplerRaw) {
+            vkDestroySampler(capDevice->logicalDevice().get(), textureSamplerRaw, nullptr);
         };
 
         m_sampler.reset(textureSamplerRaw, deleter);
@@ -1437,8 +1393,9 @@ namespace vk {
             throw std::runtime_error("failed to create image views");
         }
 
-        auto deleter = [m_image] (VkImageView imageViewRaw) {
-            vkDestroyImageView(m_image->device()->logicalDevice().get(), imageViewRaw, nullptr);
+        auto const &capImage = m_image;
+        auto deleter = [capImage] (VkImageView imageViewRaw) {
+            vkDestroyImageView(capImage->device()->logicalDevice().get(), imageViewRaw, nullptr);
         };
 
         m_imageView.reset(imageViewRaw, deleter);
@@ -1495,8 +1452,9 @@ namespace vk {
             throw std::runtime_error("failed to create image!");
         }
 
-        auto imageDeleter = [m_device](VkImage imageRaw) {
-            vkDestroyImage(m_device->logicalDevice().get(), imageRaw, nullptr);
+        auto const &capDevice = m_device;
+        auto imageDeleter = [capDevice](VkImage imageRaw) {
+            vkDestroyImage(capDevice->logicalDevice().get(), imageRaw, nullptr);
         };
 
         m_image.reset(imageRaw, imageDeleter);
@@ -1515,8 +1473,8 @@ namespace vk {
             throw std::runtime_error("failed to allocate image memory!");
         }
 
-        auto memoryDeleter = [m_device](VkDeviceMemory imageMemoryRaw) {
-            vkFreeMemory(m_device->logicalDevice().get(), imageMemoryRaw, nullptr);
+        auto memoryDeleter = [capDevice](VkDeviceMemory imageMemoryRaw) {
+            vkFreeMemory(capDevice->logicalDevice().get(), imageMemoryRaw, nullptr);
         };
 
         m_imageMemory.reset(imageMemoryRaw, memoryDeleter);
@@ -1870,19 +1828,43 @@ void GraphicsVulkan::drawFrame() {
         throw std::runtime_error("Failed to wait on present queue.");
     }
 }
-/*
-void GraphicsVulkan::createDepthResources() {
-    VkFormat depthFormat = device->depthFormat();
+void GraphicsVulkan::recreateSwapChain() {
+    vkDeviceWaitIdle(m_device->logicalDevice().get());
 
-    createImage(swapChainExtent.width, swapChainExtent.height, depthFormat,
-                VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT,
-                VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, depthImage, depthImageMemory);
-    depthImageView = createImageView(depthImage, depthFormat, VK_IMAGE_ASPECT_DEPTH_BIT);
+    if (graphicsPipeline != VK_NULL_HANDLE) {
+        vkDestroyPipeline(logicalDevice, graphicsPipeline, nullptr);
+    }
 
-    transitionImageLayout(depthImage, depthFormat, VK_IMAGE_LAYOUT_UNDEFINED,
-                          VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL);
+    if (pipelineLayout != VK_NULL_HANDLE) {
+        vkDestroyPipelineLayout(logicalDevice, pipelineLayout, nullptr);
+    }
+
+    if (renderPass != VK_NULL_HANDLE) {
+        vkDestroyRenderPass(logicalDevice, renderPass, nullptr);
+    }
+
+    if (depthImageView != VK_NULL_HANDLE) {
+        vkDestroyImageView(logicalDevice, depthImageView, nullptr);
+    }
+
+    if (depthImage != VK_NULL_HANDLE) {
+        vkDestroyImage(logicalDevice, depthImage, nullptr);
+    }
+
+    if (depthImageMemory != VK_NULL_HANDLE) {
+        vkFreeMemory(logicalDevice, depthImageMemory, nullptr);
+    }
+
+    m_swapChainCommands.reset();
+
+    createSwapChain();
+    createImageViews();
+    createDepthResources();
+    createRenderPass();
+    createGraphicsPipeline();
+    createFramebuffers();
+    createCommandBuffers();
 }
-*/
 
 std::tuple<glm::mat4, glm::mat4> LevelSequence::getViewPerspectiveMatrix() {
     glm::mat4 proj = m_level->getProjectionMatrix();
@@ -2079,6 +2061,66 @@ void DrawObjectDataVulkan::addUniforms(std::shared_ptr<DrawObject> const &obj,
     }
 }
 
+/* descriptor set for the MVP matrix and texture samplers */
+void UniformWrapper::updateDescriptorSet(std::shared_ptr<vk::Device> const &inDevice) {
+    VkDescriptorBufferInfo bufferInfo = {};
+    bufferInfo.buffer = m_uniformBuffer->buffer().get();
+    bufferInfo.offset = 0;
+    bufferInfo.range = sizeof(UniformBufferObject);
+
+    std::array<VkWriteDescriptorSet, 3> descriptorWrites = {};
+    descriptorWrites[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+    descriptorWrites[0].dstSet = m_descriptorSet->descriptorSet().get();
+
+    /* must be the same as the binding in the vertex shader */
+    descriptorWrites[0].dstBinding = 0;
+
+    /* index into the array of descriptors */
+    descriptorWrites[0].dstArrayElement = 0;
+
+    descriptorWrites[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+
+    /* how many array elements you want to update */
+    descriptorWrites[0].descriptorCount = 1;
+
+    /* which one of these pointers needs to be used depends on which descriptorType we are
+     * using.  pBufferInfo is for buffer based data, pImageInfo is used for image data, and
+     * pTexelBufferView is used for decriptors that refer to buffer views.
+     */
+    descriptorWrites[0].pBufferInfo = &bufferInfo;
+    descriptorWrites[0].pImageInfo = nullptr; // Optional
+    descriptorWrites[0].pTexelBufferView = nullptr; // Optional
+
+    VkDescriptorImageInfo imageInfo = {};
+    imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+    imageInfo.imageView = m_sampler->imageView()->imageView().get();
+    imageInfo.sampler = m_sampler->sampler().get();
+
+    descriptorWrites[1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+    descriptorWrites[1].dstSet = m_descriptorSet->descriptorSet().get();
+    descriptorWrites[1].dstBinding = 1;
+    descriptorWrites[1].dstArrayElement = 0;
+    descriptorWrites[1].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+    descriptorWrites[1].descriptorCount = 1;
+    descriptorWrites[1].pImageInfo = &imageInfo;
+
+    VkDescriptorBufferInfo bufferLightingSource = {};
+    bufferLightingSource.buffer = m_uniformBufferLighting->buffer().get();
+    bufferLightingSource.offset = 0;
+    bufferLightingSource.range = sizeof(glm::vec3);
+
+    descriptorWrites[2].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+    descriptorWrites[2].dstSet = m_descriptorSet->descriptorSet().get();
+    descriptorWrites[2].dstBinding = 2;
+    descriptorWrites[2].dstArrayElement = 0;
+    descriptorWrites[2].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+    descriptorWrites[2].descriptorCount = 1;
+    descriptorWrites[2].pBufferInfo = &bufferLightingSource;
+
+    vkUpdateDescriptorSets(inDevice->logicalDevice().get(), static_cast<uint32_t>(descriptorWrites.size()),
+                           descriptorWrites.data(), 0, nullptr);
+}
+
 std::shared_ptr<vk::Buffer> UniformWrapper::createUniformBuffer(std::shared_ptr<vk::Device> const &device,
                                                                 size_t bufferSize) {
     return std::shared_ptr<vk::Buffer>{new vk::Buffer{device, bufferSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
@@ -2092,7 +2134,7 @@ void DrawObjectDataVulkan::copyVerticesToBuffer(std::shared_ptr<vk::CommandPool>
     /* use a staging buffer in the CPU accessable memory to copy the data into graphics card
      * memory.  Then use a copy command to copy the data into fast graphics card only memory.
      */
-    vk::Buffer stagingBuffer(cmdpool->device().get(), bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+    vk::Buffer stagingBuffer(cmdpool->device(), bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
                              VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
 
     stagingBuffer.copyRawTo(drawObj->vertices.data(), bufferSize);
@@ -2108,13 +2150,27 @@ void DrawObjectDataVulkan::copyIndicesToBuffer(std::shared_ptr<vk::CommandPool> 
                                                std::shared_ptr<DrawObject> const &drawObj) {
     VkDeviceSize bufferSize = sizeof(drawObj->indices[0]) * drawObj->indices.size();
 
-    vk::Buffer stagingBuffer(cmdpool->device().get(), bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+    vk::Buffer stagingBuffer(cmdpool->device(), bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
                              VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
 
     stagingBuffer.copyRawTo(drawObj->indices.data(), bufferSize);
 
     m_indexBuffer.copyTo(cmdpool, stagingBuffer, bufferSize);
 }
+
+/*
+void GraphicsVulkan::createDepthResources() {
+    VkFormat depthFormat = device->depthFormat();
+
+    createImage(swapChainExtent.width, swapChainExtent.height, depthFormat,
+                VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT,
+                VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, depthImage, depthImageMemory);
+    depthImageView = createImageView(depthImage, depthFormat, VK_IMAGE_ASPECT_DEPTH_BIT);
+
+    transitionImageLayout(depthImage, depthFormat, VK_IMAGE_LAYOUT_UNDEFINED,
+                          VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL);
+}
+*/
 
 /*
 void GraphicsVulkan::init(WindowType *inWindow) {
