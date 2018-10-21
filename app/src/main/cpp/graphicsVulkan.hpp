@@ -602,14 +602,15 @@ class DescriptorPools : public std::enable_shared_from_this<DescriptorPools> {
     class Pipeline {
     public:
         Pipeline(std::shared_ptr<SwapChain> &inSwapChain, std::shared_ptr<RenderPass> &inRenderPass,
-                 std::shared_ptr<DescriptorPools> &inDescriptorPools)
+                 std::shared_ptr<DescriptorPools> &inDescriptorPools,VkVertexInputBindingDescription bindingDescription,
+                 std::vector<VkVertexInputAttributeDescription> attributeDescription)
                 : m_pipelineLayout{},
                   m_pipeline{},
                   m_device{inSwapChain->device()},
                   m_swapChain{inSwapChain},
                   m_renderPass{inRenderPass},
                   m_descriptorPools{inDescriptorPools} {
-            createGraphicsPipeline();
+            createGraphicsPipeline(bindingDescription, attributeDescription);
         }
 
         inline std::shared_ptr<VkPipeline_T> const &pipeline() { return m_pipeline; }
@@ -629,7 +630,8 @@ class DescriptorPools : public std::enable_shared_from_this<DescriptorPools> {
         std::shared_ptr<VkPipeline_T> m_pipeline;
         std::shared_ptr<VkPipelineLayout_T> m_pipelineLayout;
 
-        void createGraphicsPipeline();
+        void createGraphicsPipeline(VkVertexInputBindingDescription const &bindingDescription,
+                                    std::vector<VkVertexInputAttributeDescription> const &attributeDescriptions);
     };
 
     class SwapChainCommands {
@@ -781,6 +783,9 @@ class DescriptorPools : public std::enable_shared_from_this<DescriptorPools> {
     };
 
 } // namespace vk
+
+VkVertexInputBindingDescription getBindingDescription();
+std::vector<VkVertexInputAttributeDescription> getAttributeDescriptions();
 
 class TextureDataVulkan : public TextureData {
 public:
@@ -980,7 +985,8 @@ public:
               m_swapChain{new vk::SwapChain{m_device}},
               m_renderPass{new vk::RenderPass{m_device, m_swapChain}},
               m_descriptorPools{new vk::DescriptorPools{m_device}},
-              m_graphicsPipeline{new vk::Pipeline{m_swapChain, m_renderPass, m_descriptorPools}},
+              m_graphicsPipeline{new vk::Pipeline{m_swapChain, m_renderPass, m_descriptorPools,
+                                                  getBindingDescription(), getAttributeDescriptions()}},
               m_commandPool{new vk::CommandPool{m_device}},
               m_level{m_device, m_commandPool, m_descriptorPools, level,
                       m_swapChain->extent().width, m_swapChain->extent().height},
@@ -999,13 +1005,13 @@ public:
 
     virtual void cleanup(){}
 
-    virtual bool updateData();
+    virtual bool updateData() { return m_level.updateData(); }
 
     virtual void updateAcceleration(float x, float y, float z);
 
     virtual void drawFrame();
 
-    virtual void destroyWindow(){}
+    virtual void destroyWindow() {}
 
     virtual void recreateSwapChain();
 

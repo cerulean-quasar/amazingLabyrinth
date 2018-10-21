@@ -32,7 +32,10 @@
 
 #include "graphics.hpp"
 #include "graphicsGL.hpp"
+
+#ifdef CQ_ENABLE_VULKAN
 #include "graphicsVulkan.hpp"
+#endif
 
 /* Used to communicate between the gui thread and the drawing thread.  When the GUI thread wants
  * the drawer to stop drawing, cleanup, and exit, it sets this value to true.  The GUI will set
@@ -104,11 +107,15 @@ Java_com_quasar_cerulean_amazinglabyrinth_MainActivity_initPipeline(
 
     try {
         stopDrawing.store(false);
+#ifdef CQ_ENABLE_VULKAN
         if (useVulkan) {
             graphics.reset(new GraphicsVulkan(window, level));
         } else {
             graphics.reset(new GraphicsGL(window, level));
         }
+#else
+        graphics.reset(new GraphicsGL(window, level));
+#endif
         graphics->init(window);
     } catch (std::runtime_error &e) {
         graphics->cleanup();

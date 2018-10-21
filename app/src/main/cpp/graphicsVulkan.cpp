@@ -706,7 +706,8 @@ namespace vk {
         m_renderPass.reset(renderPassRaw, deleter);
     }
 
-    void Pipeline::createGraphicsPipeline() {
+    void Pipeline::createGraphicsPipeline(VkVertexInputBindingDescription const &bindingDescription,
+                                          std::vector<VkVertexInputAttributeDescription> const &attributeDescriptions) {
         Shader vertShaderModule(m_device, SHADER_VERT_FILE);
         Shader fragShaderModule(m_device, SHADER_FRAG_FILE);
 
@@ -735,8 +736,6 @@ namespace vk {
         VkPipelineVertexInputStateCreateInfo vertexInputInfo = {};
         vertexInputInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
 
-        auto bindingDescription = Vertex::getBindingDescription();
-        auto attributeDescriptions = Vertex::getAttributeDescriptions();
         vertexInputInfo.vertexBindingDescriptionCount = 1;
         vertexInputInfo.pVertexBindingDescriptions = &bindingDescription;
         vertexInputInfo.vertexAttributeDescriptionCount = static_cast<uint32_t>(attributeDescriptions.size());
@@ -1831,39 +1830,29 @@ void GraphicsVulkan::drawFrame() {
 void GraphicsVulkan::recreateSwapChain() {
     vkDeviceWaitIdle(m_device->logicalDevice().get());
 
-    if (graphicsPipeline != VK_NULL_HANDLE) {
-        vkDestroyPipeline(logicalDevice, graphicsPipeline, nullptr);
-    }
+    m_graphicsPipeline.reset();
 
-    if (pipelineLayout != VK_NULL_HANDLE) {
-        vkDestroyPipelineLayout(logicalDevice, pipelineLayout, nullptr);
-    }
+    m_renderPass.reset();
 
-    if (renderPass != VK_NULL_HANDLE) {
-        vkDestroyRenderPass(logicalDevice, renderPass, nullptr);
-    }
-
-    if (depthImageView != VK_NULL_HANDLE) {
-        vkDestroyImageView(logicalDevice, depthImageView, nullptr);
-    }
-
-    if (depthImage != VK_NULL_HANDLE) {
-        vkDestroyImage(logicalDevice, depthImage, nullptr);
-    }
-
-    if (depthImageMemory != VK_NULL_HANDLE) {
-        vkFreeMemory(logicalDevice, depthImageMemory, nullptr);
-    }
+    m_depthImageView.reset();
 
     m_swapChainCommands.reset();
 
-    createSwapChain();
-    createImageViews();
-    createDepthResources();
-    createRenderPass();
-    createGraphicsPipeline();
-    createFramebuffers();
-    createCommandBuffers();
+    m_swapChain.reset();
+
+    m_swapChain.reset(new vk::SwapChain(m_device));
+    m_depthImageView.reset(new vk::ImageView(
+            std::shared_ptr<vk::Image>{vk::ImageFactory::createDeptImage(m_swapChain, m_commandPool)},
+            m_device->depthFormat(), VK_IMAGE_ASPECT_DEPTH_BIT));
+    m_renderPass.reset(new vk::RenderPass{m_device, m_swapChain});
+    m_graphicsPipeline.reset(new vk::Pipeline{m_swapChain, m_renderPass, m_descriptorPools,
+        getBindingDescription(), getAttributeDescriptions()});
+    m_swapChainCommands.reset(new vk::SwapChainCommands{m_swapChain, m_commandPool, m_renderPass,
+                                                        m_depthImageView});
+}
+
+void GraphicsVulkan::updateAcceleration(float x, float y, float z) {
+    m_level.updateAcceleration(x, y, z);
 }
 
 std::tuple<glm::mat4, glm::mat4> LevelSequence::getViewPerspectiveMatrix() {
@@ -2010,10 +1999,6 @@ void LevelSequence::updateAcceleration(float x, float y, float z) {
     }
 }
 
-void GraphicsVulkan::updateAcceleration(float x, float y, float z) {
-    m_level.updateAcceleration(x, y, z);
-}
-
 void LevelSequence::addTextures(TextureMap &textures) {
     for (TextureMap::iterator it = textures.begin(); it != textures.end(); it++) {
         if (it->second.get() == nullptr) {
@@ -2156,6 +2141,52 @@ void DrawObjectDataVulkan::copyIndicesToBuffer(std::shared_ptr<vk::CommandPool> 
     stagingBuffer.copyRawTo(drawObj->indices.data(), bufferSize);
 
     m_indexBuffer.copyTo(cmdpool, stagingBuffer, bufferSize);
+}
+
+VkVertexInputBindingDescription getBindingDescription() {
+    VkVertexInputBindingDescription bindingDescription = {};
+
+    bindingDescription.binding = 0;
+    bindingDescription.stride = sizeof(Vertex);
+
+    /* move to the next data entry after each vertex.  VK_VERTEX_INPUT_RATE_INSTANCE
+     * moves to the next data entry after each instance, but we are not using instanced
+     * rendering
+     */
+    bindingDescription.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
+
+    return bindingDescription;
+}
+
+std::vector<VkVertexInputAttributeDescription> getAttributeDescriptions() {
+    std::vector<VkVertexInputAttributeDescription> attributeDescriptions = {};
+
+    attributeDescriptions.resize(4);
+
+    /* position */
+    attributeDescriptions[0].binding = 0; /* binding description to use */
+    attributeDescriptions[0].location = 0; /* matches the location in the vertex shader */
+    attributeDescriptions[0].format = VK_FORMAT_R32G32B32_SFLOAT;
+    attributeDescriptions[0].offset = offsetof(Vertex, pos);
+
+    /* color */
+    attributeDescriptions[1].binding = 0; /* binding description to use */
+    attributeDescriptions[1].location = 1;
+    attributeDescriptions[1].format = VK_FORMAT_R32G32B32_SFLOAT;
+    attributeDescriptions[1].offset = offsetof(Vertex, color);
+
+    /* texture coordinate */
+    attributeDescriptions[2].binding = 0;
+    attributeDescriptions[2].location = 2;
+    attributeDescriptions[2].format = VK_FORMAT_R32G32_SFLOAT;
+    attributeDescriptions[2].offset = offsetof(Vertex, texCoord);
+
+    /* normal vector */
+    attributeDescriptions[3].binding = 0;
+    attributeDescriptions[3].location = 3;
+    attributeDescriptions[3].format = VK_FORMAT_R32G32B32_SFLOAT;
+    attributeDescriptions[3].offset = offsetof(Vertex, normal);
+    return attributeDescriptions;
 }
 
 /*

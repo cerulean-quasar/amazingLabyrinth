@@ -16,50 +16,6 @@ unsigned int const MAZE_COLS = 5;
 unsigned int const MAZE_ROWS = 5;
 
 
-VkVertexInputBindingDescription Vertex::getBindingDescription() {
-    VkVertexInputBindingDescription bindingDescription = {};
-
-    bindingDescription.binding = 0;
-    bindingDescription.stride = sizeof(Vertex);
-
-    /* move to the next data entry after each vertex.  VK_VERTEX_INPUT_RATE_INSTANCE
-     * moves to the next data entry after each instance, but we are not using instanced
-     * rendering
-     */
-    bindingDescription.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
-
-    return bindingDescription;
-}
-
-std::array<VkVertexInputAttributeDescription, 4> Vertex::getAttributeDescriptions() {
-    std::array<VkVertexInputAttributeDescription, 4> attributeDescriptions = {};
-
-    /* position */
-    attributeDescriptions[0].binding = 0; /* binding description to use */
-    attributeDescriptions[0].location = 0; /* matches the location in the vertex shader */
-    attributeDescriptions[0].format = VK_FORMAT_R32G32B32_SFLOAT;
-    attributeDescriptions[0].offset = offsetof(Vertex, pos);
-
-    /* color */
-    attributeDescriptions[1].binding = 0; /* binding description to use */
-    attributeDescriptions[1].location = 1;
-    attributeDescriptions[1].format = VK_FORMAT_R32G32B32_SFLOAT;
-    attributeDescriptions[1].offset = offsetof(Vertex, color);
-
-    /* texture coordinate */
-    attributeDescriptions[2].binding = 0;
-    attributeDescriptions[2].location = 2;
-    attributeDescriptions[2].format = VK_FORMAT_R32G32_SFLOAT;
-    attributeDescriptions[2].offset = offsetof(Vertex, texCoord);
-
-    /* normal vector */
-    attributeDescriptions[3].binding = 0;
-    attributeDescriptions[3].location = 3;
-    attributeDescriptions[3].format = VK_FORMAT_R32G32B32_SFLOAT;
-    attributeDescriptions[3].offset = offsetof(Vertex, normal);
-    return attributeDescriptions;
-}
-
 bool Vertex::operator==(const Vertex& other) const {
     return pos == other.pos && color == other.color && texCoord == other.texCoord && normal == other.normal;
 }

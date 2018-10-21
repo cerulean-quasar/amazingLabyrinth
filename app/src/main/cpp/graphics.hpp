@@ -24,7 +24,6 @@
 
 #include <glm/glm.hpp>
 #include <map>
-#include "vulkanWrapper.hpp"
 
 #include "android.hpp"
 
@@ -37,8 +36,6 @@ struct Vertex {
     glm::vec2 texCoord;
     glm::vec3 normal;
 
-    static VkVertexInputBindingDescription getBindingDescription();
-    static std::array<VkVertexInputAttributeDescription, 4> getAttributeDescriptions();
     bool operator==(const Vertex& other) const;
 };
 
