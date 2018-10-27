@@ -47,7 +47,7 @@
 #include "levelTracker.hpp"
 #include "levelStarter.hpp"
 
-namespace vk {
+namespace vulkan {
     const std::vector<const char *> validationLayers = {
             /* required for checking for errors and getting error messages */
             //"VK_LAYER_LUNARG_standard_validation"
@@ -57,16 +57,6 @@ namespace vk {
             "VK_LAYER_LUNARG_core_validation",
             "VK_LAYER_GOOGLE_unique_objects"
     };
-
-#define DEBUG
-#ifdef DEBUG
-    const bool enableValidationLayers = true;
-#else
-    const bool enableValidationLayers = false;
-#endif
-
-    uint32_t findMemoryType(VkPhysicalDevice physicalDevice, uint32_t typeFilter,
-                            VkMemoryPropertyFlags properties);
 
     class VulkanLibrary {
     public:
@@ -139,12 +129,12 @@ namespace vk {
 
         std::vector<const char *> getRequiredExtensions();
 
-        VkResult CreateDebugReportCallbackEXT(
+        VkResult createDebugReportCallbackEXT(
                 const VkDebugReportCallbackCreateInfoEXT *pCreateInfo,
                 const VkAllocationCallbacks *pAllocator,
                 VkDebugReportCallbackEXT *pCallback);
-        static void DestroyDebugReportCallbackEXT(VkInstance instance, VkDebugReportCallbackEXT callback,
-                                           const VkAllocationCallbacks *pAllocator);
+        static void destroyDebugReportCallbackEXT(VkInstance instance, VkDebugReportCallbackEXT callback,
+                                                  const VkAllocationCallbacks *pAllocator);
     };
 
     class Device {
@@ -166,11 +156,11 @@ namespace vk {
 
         Device(std::shared_ptr<Instance> const &inInstance)
                 : m_instance (inInstance),
-                m_physicalDevice{VK_NULL_HANDLE},
-                m_logicalDevice{},
-                m_graphicsQueue{VK_NULL_HANDLE},
-                m_presentQueue{VK_NULL_HANDLE},
-                m_depthFormat{} {
+                  m_physicalDevice{},
+                  m_logicalDevice{},
+                  m_graphicsQueue{},
+                  m_presentQueue{},
+                  m_depthFormat{} {
             pickPhysicalDevice();
             createLogicalDevice();
             m_depthFormat = findSupportedFormat({VK_FORMAT_D32_SFLOAT, VK_FORMAT_D32_SFLOAT_S8_UINT,
@@ -220,14 +210,13 @@ namespace vk {
         VkQueue m_presentQueue;
 
         VkFormat m_depthFormat;
-        bool m_depthFormatInitialized;
 
         const std::vector<const char *> deviceExtensions = {
                 VK_KHR_SWAPCHAIN_EXTENSION_NAME
         };
 
         VkFormat findSupportedFormat(const std::vector<VkFormat> &candidates,
-                            VkImageTiling tiling, VkFormatFeatureFlags features);
+                                     VkImageTiling tiling, VkFormatFeatureFlags features);
 
         void pickPhysicalDevice();
 
@@ -237,781 +226,62 @@ namespace vk {
 
         bool checkDeviceExtensionSupport(VkPhysicalDevice device);
     };
-
-    class CommandPool;
-
-    class Buffer {
-    public:
-        Buffer(std::shared_ptr<Device> inDevice, VkDeviceSize size, VkBufferUsageFlags usage,
-                     VkMemoryPropertyFlags properties)
-                : m_device{inDevice},
-                  m_buffer{},
-                  m_bufferMemory{} {
-            createBuffer(size, usage, properties);
-        }
-
-        void copyTo(std::shared_ptr<CommandPool> cmds, std::shared_ptr<Buffer> const &srcBuffer,
-               VkDeviceSize size) {
-            copyTo(cmds, *srcBuffer, size);
-        }
-
-        void copyTo(std::shared_ptr<CommandPool> cmds, Buffer const &srcBuffer, VkDeviceSize size);
-
-        void copyRawTo(void const *dataRaw, size_t size);
-
-        inline std::shared_ptr<VkBuffer_T> const &buffer() const { return m_buffer; }
-        inline std::shared_ptr<VkDeviceMemory_T> const &memory() const { return m_bufferMemory; }
-
-        ~Buffer() {
-            /* ensure order of destruction.
-             * free the memory after the buffer has been destroyed because the buffer is bound to
-             * the memory, so the buffer is still using the memory until the buffer is destroyed.
-             */
-            m_buffer.reset();
-            m_bufferMemory.reset();
-        }
-
-    private:
-        std::shared_ptr<Device> m_device;
-
-        std::shared_ptr<VkBuffer_T> m_buffer;
-        std::shared_ptr<VkDeviceMemory_T> m_bufferMemory;
-
-        void createBuffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties);
-    };
-
-    class CommandPool {
-    public:
-        CommandPool(std::shared_ptr<Device> inDevice)
-                : m_device{inDevice},
-                  m_commandPool{} {
-            createCommandPool();
-        }
-
-        inline std::shared_ptr<VkCommandPool_T> const &commandPool() { return m_commandPool; }
-        inline std::shared_ptr<Device> const &device() { return m_device; }
-
-    private:
-        std::shared_ptr<Device> m_device;
-        std::shared_ptr<VkCommandPool_T> m_commandPool;
-
-        void createCommandPool();
-    };
-
-    class Image {
-    public:
-        Image(std::shared_ptr<Device> const &inDevice, uint32_t inWidth,
-                          uint32_t inHeight, VkFormat format,
-                          VkImageTiling tiling, VkImageUsageFlags usage,
-                          VkMemoryPropertyFlags properties)
-                : m_device{inDevice},
-                  m_image{},
-                  m_imageMemory{},
-                  m_width{inWidth},
-                  m_height{inHeight} {
-            createImage(format, tiling, usage, properties);
-        }
-
-        // Image was created by another object, but we are to manage it.
-        Image(std::shared_ptr<Device> const &inDevice, std::shared_ptr<VkImage_T> const &inImage,
-              uint32_t inWidth, uint32_t inHeight)
-                : m_device{inDevice},
-                  m_image{inImage},
-                  m_imageMemory{},
-                  m_width{inWidth},
-                  m_height{inHeight} {
-        }
-
-        void copyBufferToImage(Buffer &buffer, std::shared_ptr<CommandPool> const &pool);
-
-        void transitionImageLayout(VkFormat format, VkImageLayout oldLayout,
-                                   VkImageLayout newLayout, std::shared_ptr<CommandPool> const &pool);
-
-        virtual ~Image() {
-            m_image.reset();
-            m_imageMemory.reset();
-        }
-
-        inline std::shared_ptr<Device> const &device() { return m_device; }
-        inline std::shared_ptr<VkImage_T> const &image() { return m_image; }
-    protected:
-        std::shared_ptr<Device> m_device;
-
-        std::shared_ptr<VkImage_T> m_image;
-        std::shared_ptr<VkDeviceMemory_T> m_imageMemory;
-        uint32_t m_width;
-        uint32_t m_height;
-
-        void createImage(VkFormat format, VkImageTiling tiling,
-                         VkImageUsageFlags usage, VkMemoryPropertyFlags properties);
-    };
-
-    class ImageView {
-    public:
-        ImageView(std::shared_ptr<Image> const &inImage, VkFormat format,
-                  VkImageAspectFlags aspectFlags)
-                : m_image{inImage},
-                  m_imageView{} {
-            createImageView(format, aspectFlags);
-        }
-
-        inline std::shared_ptr<VkImageView_T> const &imageView() { return m_imageView; }
-
-    protected:
-        std::shared_ptr<Image> m_image;
-        std::shared_ptr<VkImageView_T> m_imageView;
-
-    private:
-        inline VkDevice logicalDevice() { return m_image->device()->logicalDevice().get(); }
-
-        void createImageView(VkFormat format, VkImageAspectFlags aspectFlags);
-    };
-
-    class SwapChain {
-    public:
-        SwapChain(std::shared_ptr<Device> inDevice)
-                : m_device(inDevice),
-                  m_swapChain{VK_NULL_HANDLE},
-                  m_imageFormat{},
-                  m_extent{} {
-            createSwapChain();
-        }
-
-        inline std::shared_ptr<Device> const &device() { return m_device; }
-        inline std::shared_ptr<VkSwapchainKHR_T> const &swapChain() {return m_swapChain; }
-        inline VkFormat imageFormat() { return m_imageFormat; }
-        inline VkExtent2D extent() { return m_extent; }
-    private:
-        std::shared_ptr<Device> m_device;
-        std::shared_ptr<VkSwapchainKHR_T> m_swapChain;
-        VkFormat m_imageFormat;
-        VkExtent2D m_extent;
-
-        void createSwapChain();
-
-        VkSurfaceFormatKHR
-        chooseSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR> &availableFormats);
-
-        VkPresentModeKHR
-        chooseSwapPresentMode(const std::vector<VkPresentModeKHR> availablePresentModes);
-
-        VkExtent2D chooseSwapExtent(const VkSurfaceCapabilitiesKHR &capabilities);
-    };
-
-    struct RenderPass {
-        std::shared_ptr<Device> m_device;
-
-        std::shared_ptr<VkRenderPass_T> m_renderPass;
-
-        RenderPass(std::shared_ptr<Device> const &inDevice, std::shared_ptr<SwapChain> const &swapChain)
-                : m_device{inDevice},
-                  m_renderPass{} {
-            createRenderPass(swapChain);
-        }
-
-        inline std::shared_ptr<VkRenderPass_T> const &renderPass() { return m_renderPass; }
-
-    private:
-        void createRenderPass(std::shared_ptr<SwapChain> const &swapChain);
-    };
-
-    class DescriptorPools;
-
-    class DescriptorSet {
-        friend DescriptorPools;
-    private:
-        std::shared_ptr<DescriptorPools> m_descriptorPools;
-        std::shared_ptr<VkDescriptorSet_T> m_descriptorSet;
-
-        DescriptorSet(std::shared_ptr<DescriptorPools> inDescriptorPools,
-                      std::shared_ptr<VkDescriptorSet_T> const &inDsc)
-                : m_descriptorPools{inDescriptorPools},
-                  m_descriptorSet{inDsc} {
-        }
-
-    public:
-        inline std::shared_ptr<VkDescriptorSet_T> const &descriptorSet() { return m_descriptorSet; }
-    };
-
-    class DescriptorPool {
-        friend DescriptorPools;
-    private:
-        std::shared_ptr<Device> m_device;
-        std::shared_ptr<VkDescriptorPool_T> m_descriptorPool;
-        uint32_t m_totalDescriptorsInPool;
-        uint32_t m_totalDescriptorsAllocated;
-
-        DescriptorPool(std::shared_ptr<Device> const &inDevice, uint32_t totalDescriptors)
-                : m_device{inDevice},
-                  m_descriptorPool{},
-                  m_totalDescriptorsInPool{totalDescriptors},
-                  m_totalDescriptorsAllocated{0} {
-            // no more descriptors in all the descriptor pools.  create another descriptor pool...
-            std::array<VkDescriptorPoolSize, 3> poolSizes = {};
-
-            // one for each wall and +3 for the floor, ball, and hole.
-            poolSizes[0].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-            poolSizes[0].descriptorCount = m_totalDescriptorsInPool;
-            poolSizes[1].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-            poolSizes[1].descriptorCount = m_totalDescriptorsInPool;
-            poolSizes[2].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-            poolSizes[2].descriptorCount = m_totalDescriptorsInPool;
-            VkDescriptorPoolCreateInfo poolInfo = {};
-            poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
-            poolInfo.poolSizeCount = static_cast<uint32_t>(poolSizes.size());
-            poolInfo.pPoolSizes = poolSizes.data();
-            poolInfo.maxSets = m_totalDescriptorsInPool;
-
-            VkDescriptorPool descriptorPoolRaw;
-            if (vkCreateDescriptorPool(m_device->logicalDevice().get(), &poolInfo, nullptr,
-                                       &descriptorPoolRaw) != VK_SUCCESS) {
-                throw std::runtime_error("failed to create descriptor pool!");
-            }
-
-            auto deleter = [inDevice](VkDescriptorPool descriptorPoolRaw) {
-                vkDestroyDescriptorPool(inDevice->logicalDevice().get(), descriptorPoolRaw, nullptr);
-            };
-
-            m_descriptorPool.reset(descriptorPoolRaw, deleter);
-        }
-
-        VkDescriptorSet allocateDescriptor(std::shared_ptr<VkDescriptorSetLayout_T> const &layout) {
-            if (m_totalDescriptorsAllocated == m_totalDescriptorsInPool) {
-                return VK_NULL_HANDLE;
-            } else {
-                VkDescriptorSet descriptorSet;
-                VkDescriptorSetLayout layouts[] = {layout.get()};
-                VkDescriptorSetAllocateInfo allocInfo = {};
-                allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
-                allocInfo.descriptorPool = m_descriptorPool.get();
-                allocInfo.descriptorSetCount = 1;
-                allocInfo.pSetLayouts = layouts;
-
-                /* the descriptor sets don't need to be freed because they are freed when the
-                 * descriptor pool is freed
-                 */
-                int rc = vkAllocateDescriptorSets(m_device->logicalDevice().get(), &allocInfo,
-                                                  &descriptorSet);
-                if (rc != VK_SUCCESS) {
-                    throw std::runtime_error("failed to allocate descriptor set!");
-                }
-                m_totalDescriptorsAllocated++;
-                return descriptorSet;
-            }
-        }
-
-        bool hasAvailableDescriptorSets() {
-            return m_totalDescriptorsAllocated < m_totalDescriptorsInPool;
-        }
-    };
-
-/* for passing data other than the vertex data to the vertex shader */
-    class DescriptorPools : public std::enable_shared_from_this<DescriptorPools> {
-        friend DescriptorSet;
-    private:
-        std::shared_ptr<Device> m_device;
-        static uint32_t constexpr m_numberOfDescriptorSetsInPool = 1024;
-        std::shared_ptr<VkDescriptorSetLayout_T> m_descriptorSetLayout;
-        std::vector<DescriptorPool> m_descriptorPools;
-        std::vector<VkDescriptorSet> m_unusedDescriptors;
-
-        void createDescriptorSetLayout();
-
-    public:
-        DescriptorPools(std::shared_ptr<Device> const &inDevice)
-                : m_device{inDevice},
-                  m_descriptorSetLayout{},
-                  m_descriptorPools{},
-                  m_unusedDescriptors{} {
-            createDescriptorSetLayout();
-        }
-
-        std::shared_ptr<VkDescriptorSetLayout_T> const &descriptorSetLayout() { return m_descriptorSetLayout; }
-
-        std::shared_ptr<DescriptorSet> allocateDescriptor() {
-            if (m_descriptorSetLayout == VK_NULL_HANDLE) {
-                throw (std::runtime_error(
-                        "DescriptorPool::allocateDescriptor - no descriptor set layout"));
-            }
-
-            auto deleter = [this](VkDescriptorSet descSet) {
-                m_unusedDescriptors.push_back(descSet);
-            };
-
-            if (m_unusedDescriptors.size() > 0) {
-                VkDescriptorSet descriptorSet = m_unusedDescriptors.back();
-                m_unusedDescriptors.pop_back();
-
-                return std::shared_ptr<DescriptorSet>{new DescriptorSet{shared_from_this(),
-                                std::shared_ptr<VkDescriptorSet_T>{descriptorSet, deleter}}};
-            } else {
-                for (auto &&descriptorPool : m_descriptorPools) {
-                    if (descriptorPool.hasAvailableDescriptorSets()) {
-                        VkDescriptorSet descriptorSet = descriptorPool.allocateDescriptor(
-                                m_descriptorSetLayout);
-                        return std::shared_ptr<DescriptorSet>{new DescriptorSet{shared_from_this(),
-                                std::shared_ptr<VkDescriptorSet_T>{descriptorSet, deleter}}};
-                    }
-                }
-
-
-                DescriptorPool newDescriptorPool(m_device, m_numberOfDescriptorSetsInPool);
-                m_descriptorPools.push_back(newDescriptorPool);
-                VkDescriptorSet descriptorSet = newDescriptorPool.allocateDescriptor(
-                        m_descriptorSetLayout);
-                return std::shared_ptr<DescriptorSet>(new DescriptorSet(shared_from_this(),
-                                 std::shared_ptr<VkDescriptorSet_T>(descriptorSet, deleter)));
-            }
-        }
-    };
-
-    class Semaphore {
-        std::shared_ptr<Device> m_device;
-
-        std::shared_ptr<VkSemaphore_T> m_semaphore;
-
-        void createSemaphore();
-
-    public:
-        Semaphore(std::shared_ptr<Device> const &inDevice)
-                : m_device{inDevice},
-                  m_semaphore{} {
-            createSemaphore();
-        }
-
-        inline std::shared_ptr<VkSemaphore_T> const &semaphore() { return m_semaphore; }
-    };
-
-    class Shader {
-        std::shared_ptr<Device> m_device;
-
-        std::shared_ptr<VkShaderModule_T> m_shaderModule;
-
-        void createShaderModule(std::string const &codeFile);
-
-    public:
-        Shader(std::shared_ptr<Device> const &inDevice, std::string const &codeFile)
-                : m_device(inDevice),
-                m_shaderModule{} {
-            createShaderModule(codeFile);
-        }
-
-        inline std::shared_ptr<VkShaderModule_T> const &shader() { return m_shaderModule; }
-    };
-
-    class Pipeline {
-    public:
-        Pipeline(std::shared_ptr<SwapChain> &inSwapChain, std::shared_ptr<RenderPass> &inRenderPass,
-                 std::shared_ptr<DescriptorPools> &inDescriptorPools,
-                 VkVertexInputBindingDescription const &bindingDescription,
-                 std::vector<VkVertexInputAttributeDescription> const &attributeDescription)
-                : m_device{inSwapChain->device()},
-                  m_swapChain{inSwapChain},
-                  m_renderPass{inRenderPass},
-                  m_descriptorPools{inDescriptorPools},
-                  m_pipelineLayout{},
-                  m_pipeline{} {
-            createGraphicsPipeline(bindingDescription, attributeDescription);
-        }
-
-        inline std::shared_ptr<VkPipeline_T> const &pipeline() { return m_pipeline; }
-        inline std::shared_ptr<VkPipelineLayout_T> const &layout() { return m_pipelineLayout; }
-
-        ~Pipeline() {
-            m_pipeline.reset();
-            m_pipelineLayout.reset();
-        }
-
-    private:
-        std::shared_ptr<Device> m_device;
-        std::shared_ptr<SwapChain> m_swapChain;
-        std::shared_ptr<RenderPass> m_renderPass;
-        std::shared_ptr<DescriptorPools> m_descriptorPools;
-
-        std::shared_ptr<VkPipelineLayout_T> m_pipelineLayout;
-        std::shared_ptr<VkPipeline_T> m_pipeline;
-
-        void createGraphicsPipeline(VkVertexInputBindingDescription const &bindingDescription,
-                                    std::vector<VkVertexInputAttributeDescription> const &attributeDescriptions);
-    };
-
-    class SwapChainCommands {
-    public:
-        SwapChainCommands(std::shared_ptr<SwapChain> const &inSwapChain,
-                          std::shared_ptr<CommandPool> const &inPool,
-                          std::shared_ptr<RenderPass> const &inRenderPass,
-                          std::shared_ptr<ImageView> const &inDepthImage)
-                : m_swapChain{inSwapChain},
-                  m_pool{inPool},
-                  m_renderPass{inRenderPass},
-                  m_depthImage{inDepthImage},
-                  m_images{},
-                  m_imageViews{},
-                  m_framebuffers{},
-                  m_commandBuffers{} {
-            /* retrieve the image handles from the swap chain. - handles cleaned up by Vulkan
-             * Note: Vulkan may have chosen to create more images than specified in minImageCount,
-             * so we have to requery the image count here.
-             */
-            uint32_t imageCount;
-            vkGetSwapchainImagesKHR(m_swapChain->device()->logicalDevice().get(), m_swapChain->swapChain().get(),
-                                    &imageCount, nullptr);
-            m_images.resize(imageCount);
-            vkGetSwapchainImagesKHR(m_swapChain->device()->logicalDevice().get(), m_swapChain->swapChain().get(),
-                                    &imageCount, m_images.data());
-
-            // The swap chain images are owned by the swap chain.  They go away when the swap chain
-            // is destroyed.  So make sure the swap chain hangs around until all the images are
-            // deleted.  So add it as a capture in the deleter.
-            auto deleter = [inSwapChain](VkImage imageRaw) {
-                // do nothing
-            };
-
-            for (auto &img : m_images) {
-                std::shared_ptr<VkImage_T> imgptr(img, deleter);
-                VkExtent2D ext = m_swapChain->extent();
-                ImageView imageView{
-                    std::shared_ptr<Image>(new Image(m_swapChain->device(), imgptr, ext.width, ext.height)),
-                            m_swapChain->imageFormat(), VK_IMAGE_ASPECT_COLOR_BIT};
-                m_imageViews.push_back(imageView);
-            }
-            createFramebuffers(m_renderPass, m_depthImage);
-            createCommandBuffers();
-        }
-
-        inline size_t size() { return m_images.size(); }
-        inline std::vector<ImageView> const &imageViews() { return m_imageViews; }
-        inline std::vector<std::shared_ptr<VkFramebuffer_T>> const &frameBuffers() { return m_framebuffers; }
-        inline std::vector<VkCommandBuffer> const &commandBuffers() { return m_commandBuffers; }
-
-        ~SwapChainCommands() {
-            vkFreeCommandBuffers(m_swapChain->device()->logicalDevice().get(), m_pool->commandPool().get(),
-                                 m_commandBuffers.size(), m_commandBuffers.data());
-            m_framebuffers.clear();
-            m_imageViews.clear();
-        }
-
-    private:
-        std::shared_ptr<SwapChain> m_swapChain;
-        std::shared_ptr<CommandPool> m_pool;
-        std::shared_ptr<RenderPass> m_renderPass;
-        std::shared_ptr<ImageView> m_depthImage;
-
-        std::vector<VkImage> m_images;
-        std::vector<ImageView> m_imageViews;
-        std::vector<std::shared_ptr<VkFramebuffer_T>> m_framebuffers;
-        std::vector<VkCommandBuffer> m_commandBuffers;
-
-        void createFramebuffers(std::shared_ptr<RenderPass> &renderPass,
-                                std::shared_ptr<ImageView> &depthImage);
-
-        void createCommandBuffers();
-    };
-
-    class SingleTimeCommands {
-    public:
-        SingleTimeCommands(std::shared_ptr<Device> inDevice,
-                           std::shared_ptr<CommandPool> commandPool)
-                : m_device{inDevice},
-                  m_pool{commandPool},
-                  m_commandBuffer{} {
-            create();
-        }
-
-        void create();
-        void begin();
-        void end();
-
-        inline std::shared_ptr<VkCommandBuffer_T> commandBuffer() { return m_commandBuffer; }
-    private:
-        std::shared_ptr<Device> m_device;
-        std::shared_ptr<CommandPool> m_pool;
-        std::shared_ptr<VkCommandBuffer_T> m_commandBuffer;
-    };
-
-    class ImageFactory {
-    public:
-        static std::shared_ptr<Image> createTextureImage(
-                std::shared_ptr<Device> const &inDevice,
-                std::shared_ptr<CommandPool> const &cmdPool,
-                std::shared_ptr<TextureDescription> const &texture);
-
-        static std::shared_ptr<Image> createDepthImage(std::shared_ptr<SwapChain> inSwapChain,
-                                                       std::shared_ptr<CommandPool> cmdPool) {
-            VkExtent2D extent = inSwapChain->extent();
-            std::shared_ptr<Image> img{new Image{inSwapChain->device(), extent.width,
-                      extent.height,
-                      inSwapChain->device()->depthFormat(),
-                      VK_IMAGE_TILING_OPTIMAL,
-                      VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT,
-                      VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT}};
-
-            img->transitionImageLayout(
-                    inSwapChain->device()->depthFormat(), VK_IMAGE_LAYOUT_UNDEFINED,
-                    VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL, cmdPool);
-
-            return img;
-        }
-    };
-
-    class ImageSampler {
-    public:
-        ImageSampler(std::shared_ptr<Device> const &inDevice,
-                     std::shared_ptr<CommandPool> const &pool,
-                     std::shared_ptr<TextureDescription> const &textureDescription)
-                : m_device{inDevice},
-                  m_image{},
-                  m_imageView{},
-                  m_sampler{} {
-            m_image = ImageFactory::createTextureImage(m_device, pool, textureDescription);
-
-            m_imageView.reset(new ImageView(m_image, VK_FORMAT_R8G8B8A8_UNORM/*Todo: VK_FORMAT_R8_UNORM*/, VK_IMAGE_ASPECT_COLOR_BIT));
-
-            createTextureSampler();
-        }
-
-        inline std::shared_ptr<VkSampler_T> const &sampler() { return m_sampler; }
-        inline std::shared_ptr<Image> const &image() { return m_image; }
-        inline std::shared_ptr<ImageView> const &imageView() { return m_imageView; }
-
-    private:
-        std::shared_ptr<Device> m_device;
-        std::shared_ptr<Image> m_image;
-        std::shared_ptr<ImageView> m_imageView;
-        std::shared_ptr<VkSampler_T> m_sampler;
-
-        void createTextureSampler();
-    };
-
-} // namespace vk
-
-VkVertexInputBindingDescription getBindingDescription();
-std::vector<VkVertexInputAttributeDescription> getAttributeDescriptions();
-
-class TextureDataVulkan : public TextureData {
-public:
-    TextureDataVulkan(std::shared_ptr<vk::Device> const &inDevice,
-                      std::shared_ptr<vk::CommandPool> const &inCommandPool,
-                      std::shared_ptr<TextureDescription> const &inTextureDescription)
-        : m_sampler{new vk::ImageSampler{inDevice, inCommandPool, inTextureDescription}}
-    {}
-    inline std::shared_ptr<vk::ImageSampler> const &sampler() { return m_sampler; }
-private:
-    std::shared_ptr<vk::ImageSampler> m_sampler;
-};
-
-class UniformWrapper {
-public:
-    /* for passing data other than the vertex data to the vertex shader */
-    std::shared_ptr<vk::DescriptorSet> m_descriptorSet;
-    std::shared_ptr<vk::ImageSampler> m_sampler;
-    std::shared_ptr<vk::Buffer> m_uniformBufferLighting;
-    std::shared_ptr<vk::Buffer> m_uniformBuffer;
-
-    UniformWrapper(std::shared_ptr<vk::Device> const &inDevice,
-                   std::shared_ptr<vk::DescriptorPools> const &descriptorPools,
-                   std::shared_ptr<vk::ImageSampler> const &inSampler,
-                   std::shared_ptr<vk::Buffer> const &inUniformBufferLighting,
-                   UniformBufferObject const &ubo)
-            : m_descriptorSet{},
-              m_sampler{inSampler},
-              m_uniformBufferLighting{inUniformBufferLighting},
-              m_uniformBuffer{}
-    {
-        VkBuffer uniformBuffer;
-        VkDeviceMemory uniformBufferMemory;
-
-        m_uniformBuffer = createUniformBuffer(inDevice, sizeof (UniformBufferObject));
-        m_uniformBuffer->copyRawTo(&ubo, sizeof (ubo));
-
-        m_descriptorSet = descriptorPools->allocateDescriptor();
-        updateDescriptorSet(inDevice);
-    }
-
-    inline std::shared_ptr<vk::DescriptorSet> const &descriptorSet() { return m_descriptorSet; }
-    inline std::shared_ptr<vk::Buffer> const &uniformBuffer() { return m_uniformBuffer; }
-    inline std::shared_ptr<vk::Buffer> const &uniformBufferLighting() { return m_uniformBufferLighting; }
-    inline std::shared_ptr<vk::ImageSampler> const &imageSampler() { return m_sampler; }
-    static std::shared_ptr<vk::Buffer> createUniformBuffer(
-            std::shared_ptr<vk::Device> const &device, size_t bufferSize);
-
-private:
-    void updateDescriptorSet(std::shared_ptr<vk::Device> const &inDevice);
-};
-
-class DrawObjectDataVulkan : public DrawObjectData {
-public:
-    DrawObjectDataVulkan(std::shared_ptr<vk::Device> const &inDevice,
-                         std::shared_ptr<vk::CommandPool> const &inPool,
-                         std::shared_ptr<vk::DescriptorPools> const &inDescriptorPools,
-                         std::shared_ptr<DrawObject> const &drawObj,
-                         std::shared_ptr<vk::Buffer> const &inLightingPosition)
-            : m_device{inDevice},
-              m_commandPool{inPool},
-              m_descriptorPools{inDescriptorPools},
-              m_vertexBuffer{m_device, sizeof(drawObj->vertices[0]) * drawObj->vertices.size(),
-                           VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
-                           VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT},
-              m_indexBuffer{m_device, sizeof(drawObj->indices[0]) * drawObj->indices.size(),
-                          VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT,
-                          VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT},
-              m_uniformBufferLighting{inLightingPosition},
-              m_uniforms{} {
-        copyVerticesToBuffer(inPool, drawObj);
-        copyIndicesToBuffer(inPool, drawObj);
-    }
-
-    void addUniforms(std::shared_ptr<DrawObject> const &obj,
-                     std::tuple<glm::mat4, glm::mat4> const &projView,
-                     TextureMap &textures);
-    void update(std::shared_ptr<DrawObject> const &obj,
-                std::tuple<glm::mat4, glm::mat4> const &projView, TextureMap &textures);
-
-    inline vk::Buffer const &vertexBuffer() { return m_vertexBuffer; }
-    inline vk::Buffer const &indexBuffer() { return m_indexBuffer; }
-    inline std::vector<std::shared_ptr<UniformWrapper>> const &uniforms() { return m_uniforms; }
-    inline void clearUniforms() { m_uniforms.clear(); }
-private:
-    std::shared_ptr<vk::Device> m_device;
-    std::shared_ptr<vk::CommandPool> m_commandPool;
-    std::shared_ptr<vk::DescriptorPools> m_descriptorPools;
-
-    /* vertex buffer and index buffer. the index buffer indicates which vertices to draw and in
-     * the specified order.  Note, vertices can be listed twice if they should be part of more
-     * than one triangle.
-     */
-    vk::Buffer m_vertexBuffer;
-    vk::Buffer m_indexBuffer;
-
-    std::shared_ptr<vk::Buffer> m_uniformBufferLighting;
-    std::vector<std::shared_ptr<UniformWrapper>> m_uniforms;
-
-    void copyVerticesToBuffer(std::shared_ptr<vk::CommandPool> const &cmdpool,
-                              std::shared_ptr<DrawObject> const &drawObj);
-
-    void copyIndicesToBuffer(std::shared_ptr<vk::CommandPool> const &cmdpool,
-                             std::shared_ptr<DrawObject> const &drawObj);
-};
-
-class LevelSequence {
-public:
-    LevelSequence(std::shared_ptr<vk::Device> const &inDevice,
-                  std::shared_ptr<vk::CommandPool> const &inPool,
-                  std::shared_ptr<vk::DescriptorPools> const &inDescriptorPools,
-                  uint32_t level,
-                  uint32_t width,
-                  uint32_t height)
-        :m_device{inDevice},
-         m_commandPool{inPool},
-         m_descriptorPools{inDescriptorPools},
-         m_levelTracker{level},
-         m_texturesLevel{},
-         m_texturesLevelStarter{},
-         m_texturesLevelFinisher{},
-         m_texturesChanged{false},
-         m_uniformBufferLighting{UniformWrapper::createUniformBuffer(inDevice, sizeof (glm::vec3))},
-         m_staticObjsData{},
-         m_dynObjsData{},
-         m_levelFinisherObjsData{},
-         m_levelStarterStaticObjsData{},
-         m_levelStarterDynObjsData{},
-         m_level{},
-         m_levelFinisher{},
-         m_levelStarter{}
-    {
-        m_levelTracker.setParameters(width, height);
-
-
-        m_level = m_levelTracker.getLevel();
-        m_levelStarter = m_levelTracker.getLevelStarter();
-        float x, y;
-        m_level->getLevelFinisherCenter(x, y);
-        m_levelFinisher = m_levelTracker.getLevelFinisher(x, y);
-
-        glm::vec3 lightingVector = m_level->getLightingSource();
-        m_uniformBufferLighting->copyRawTo(&lightingVector, sizeof (lightingVector));
-
-        initializeLevelData(m_levelStarter, m_levelStarterStaticObjsData,
-                            m_levelStarterDynObjsData, m_texturesLevelStarter);
-        initializeLevelData(m_level, m_staticObjsData, m_dynObjsData, m_texturesLevel);
-    }
-
-    bool updateData();
-    void updateAcceleration(float x, float y, float z);
-    glm::vec4 getBackgroundColor() { return m_level->getBackgroundColor(); }
-    bool needFinisherObjs() { return m_level->isFinished() || m_levelFinisher->isUnveiling(); }
-    inline bool needsInitializeCommandBuffers() { return m_level->isFinished() ||
-                                             m_levelFinisher->isUnveiling() || m_texturesChanged; }
-    inline void doneInitializingCommandBuffers() { m_texturesChanged = false; }
-
-    inline DrawObjectTable const &levelStaticObjsData() { return m_staticObjsData; }
-    inline DrawObjectTable const &levelDynObjsData() { return m_dynObjsData; }
-    inline DrawObjectTable const &finisherObjsData() { return m_levelFinisherObjsData; }
-    inline DrawObjectTable const &starterStaticObjsData() { return m_levelStarterStaticObjsData; }
-    inline DrawObjectTable const &starterDynObjsData() { return m_levelStarterDynObjsData; }
-private:
-    std::shared_ptr<vk::Device> m_device;
-    std::shared_ptr<vk::CommandPool> m_commandPool;
-    std::shared_ptr<vk::DescriptorPools> m_descriptorPools;
-    LevelTracker m_levelTracker;
-    TextureMap m_texturesLevel;
-    TextureMap m_texturesLevelStarter;
-    TextureMap m_texturesLevelFinisher;
-    bool m_texturesChanged;
-
-    std::shared_ptr<vk::Buffer> m_uniformBufferLighting;
-
-    DrawObjectTable m_staticObjsData;
-    DrawObjectTable m_dynObjsData;
-    DrawObjectTable m_levelFinisherObjsData;
-    DrawObjectTable m_levelStarterStaticObjsData;
-    DrawObjectTable m_levelStarterDynObjsData;
-
-    std::shared_ptr<Level> m_level;
-    std::shared_ptr<LevelFinish> m_levelFinisher;
-    std::shared_ptr<LevelStarter> m_levelStarter;
-
-    void initializeLevelData(std::shared_ptr<Level> const &level, DrawObjectTable &staticObjsData,
-                             DrawObjectTable &dynObjsData, TextureMap &textures);
-    void updateLevelData(DrawObjectTable &objsData,
-                         std::tuple<glm::mat4, glm::mat4> const &projView, TextureMap &textures);
-    std::tuple<glm::mat4, glm::mat4>  getViewPerspectiveMatrix();
-    void addTextures(TextureMap &textures);
-    void addObjects(DrawObjectTable &objs, TextureMap &textures);
-    void addObject(DrawObjectEntry &obj, TextureMap &textures);
-};
+}
+
+#define DEBUG
+#ifdef DEBUG
+    const bool enableValidationLayers = true;
+#else
+    const bool enableValidationLayers = false;
+#endif
 
 class GraphicsVulkan : public Graphics {
 public:
     GraphicsVulkan(WindowType *window, uint32_t level)
-            : m_instance{new vk::Instance{window}},
-              m_device{new vk::Device{m_instance}},
-              m_swapChain{new vk::SwapChain{m_device}},
-              m_renderPass{new vk::RenderPass{m_device, m_swapChain}},
-              m_descriptorPools{new vk::DescriptorPools{m_device}},
-              m_graphicsPipeline{new vk::Pipeline{m_swapChain, m_renderPass, m_descriptorPools,
-                                                  getBindingDescription(), getAttributeDescriptions()}},
-              m_commandPool{new vk::CommandPool{m_device}},
-              m_level{m_device, m_commandPool, m_descriptorPools, level,
-                      m_swapChain->extent().width, m_swapChain->extent().height},
-              m_depthImageView{new vk::ImageView{vk::ImageFactory::createDepthImage(m_swapChain, m_commandPool),
-                                                 m_device->depthFormat(),
-                                                 VK_IMAGE_ASPECT_DEPTH_BIT}},
-              m_swapChainCommands{new vk::SwapChainCommands{m_swapChain, m_commandPool, m_renderPass, m_depthImageView}},
-              m_imageAvailableSemaphore{m_device},
-              m_renderFinishedSemaphore{m_device} {
-        initializeCommandBuffers();
-    }
+        :m_instance{new vulkan::Instance(window)},
+        m_device{new vulkan::Device{m_instance}},
+        swapChain{VK_NULL_HANDLE},
+        descriptorPools{m_device},
+        texturesLevel{},
+        texturesLevelStarter{},
+        texturesLevelFinisher{},
+        texturesChanged{false},
+        swapChainImages{},
+        swapChainImageViews{},
+        swapChainImageFormat{},
+        swapChainExtent{},
+        renderPass{VK_NULL_HANDLE},
+        uniformBufferLighting{VK_NULL_HANDLE},
+        uniformBufferMemoryLighting{VK_NULL_HANDLE},
+        staticObjsData{},
+        dynObjsData{},
+        levelFinisherObjsData{},
+        levelStarterStaticObjsData{},
+        levelStarterDynObjsData{},
+        maze{},
+        levelFinisher{},
+        levelStarter{},
+        levelTracker{level},
+        pipelineLayout{},
+        graphicsPipeline{},
+        swapChainFramebuffers{},
+        commandPool{},
+        commandBuffers{},
+        imageAvailableSemaphore{},
+        renderFinishedSemaphore{},
+        depthImage{VK_NULL_HANDLE},
+        depthImageMemory{VK_NULL_HANDLE},
+        depthImageView{VK_NULL_HANDLE}
+    {}
+    virtual void init(WindowType *window);
 
-    virtual void init(WindowType *window){}
+    virtual void initThread() { }
 
-    virtual void initThread() {}
+    virtual void cleanupThread() { }
 
-    virtual void cleanupThread() {}
+    virtual void cleanup();
 
-    virtual void cleanup(){}
-
-    virtual bool updateData() { return m_level.updateData(); }
+    virtual bool updateData();
 
     virtual void updateAcceleration(float x, float y, float z);
 
@@ -1021,117 +291,314 @@ public:
 
     virtual void recreateSwapChain();
 
-    virtual ~GraphicsVulkan() {}
-
+    virtual ~GraphicsVulkan() { }
 private:
+    std::shared_ptr<vulkan::Instance> m_instance;
+    std::shared_ptr<vulkan::Device> m_device;
+    VkSwapchainKHR swapChain;
 
-    std::shared_ptr<vk::Instance> m_instance;
-    std::shared_ptr<vk::Device> m_device;
-    std::shared_ptr<vk::SwapChain> m_swapChain;
-    std::shared_ptr<vk::RenderPass> m_renderPass;
-    std::shared_ptr<vk::DescriptorPools> m_descriptorPools;
-    std::shared_ptr<vk::Pipeline> m_graphicsPipeline;
-    std::shared_ptr<vk::CommandPool> m_commandPool;
+    class DescriptorPools;
+    class DescriptorPool {
+        friend DescriptorPools;
+    private:
+        std::shared_ptr<vulkan::Device> m_device;
+        VkDescriptorPool descriptorPool = VK_NULL_HANDLE;
+        uint32_t totalDescriptorsAllocated;
+        uint32_t totalDescriptorsInPool;
 
-    LevelSequence m_level;
+        DescriptorPool(std::shared_ptr<vulkan::Device> inDevice,
+                       VkDescriptorPool pool, uint32_t totalDescriptors)
+                : m_device(inDevice),
+                  descriptorPool(pool), totalDescriptorsInPool(totalDescriptors),
+                  totalDescriptorsAllocated(0)
+        { }
+        VkDescriptorSet allocateDescriptor(VkDescriptorSetLayout layout) {
+            if (totalDescriptorsAllocated == totalDescriptorsInPool) {
+                return VK_NULL_HANDLE;
+            } else {
+                VkDescriptorSet descriptorSet;
+                VkDescriptorSetLayout layouts[] = {layout};
+                VkDescriptorSetAllocateInfo allocInfo = {};
+                allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
+                allocInfo.descriptorPool = descriptorPool;
+                allocInfo.descriptorSetCount = 1;
+                allocInfo.pSetLayouts = layouts;
 
-    /* depth buffer image */
-    std::shared_ptr<vk::ImageView> m_depthImageView;
+                /* the descriptor sets don't need to be freed because they are freed when the
+                 * descriptor pool is freed
+                 */
+                int rc = vkAllocateDescriptorSets(m_device->logicalDevice().get(), &allocInfo, &descriptorSet);
+                if (rc != VK_SUCCESS) {
+                    throw std::runtime_error("failed to allocate descriptor set!");
+                }
+                totalDescriptorsAllocated++;
+                return descriptorSet;
+            }
+        }
 
-    std::shared_ptr<vk::SwapChainCommands> m_swapChainCommands;
+        bool hasAvailableDescriptorSets() { return totalDescriptorsAllocated < totalDescriptorsInPool; }
+
+    };
+
+    /* for passing data other than the vertex data to the vertex shader */
+    class DescriptorPools {
+    private:
+        std::shared_ptr<vulkan::Device> m_device;
+        uint32_t const numberOfDescriptorSetsInPool = 1024;
+        VkDescriptorSetLayout descriptorSetLayout = VK_NULL_HANDLE;
+        std::vector<DescriptorPool> descriptorPools;
+        std::vector<VkDescriptorSet> unusedDescriptors;
+    public:
+        DescriptorPools(std::shared_ptr<vulkan::Device> inDevice)
+                : m_device{inDevice}, descriptorSetLayout(VK_NULL_HANDLE) { }
+        ~DescriptorPools() { destroyResources(); }
+
+        void setDescriptorSetLayout(VkDescriptorSetLayout layout) {
+            descriptorSetLayout = layout;
+        }
+        VkDescriptorSetLayout getDescriptorSetLayout() { return descriptorSetLayout; }
+        void destroyResources() {
+            unusedDescriptors.clear();
+
+            for (auto &&descriptorPool: descriptorPools) {
+                vkDestroyDescriptorPool(m_device->logicalDevice().get(), descriptorPool.descriptorPool, nullptr);
+            }
+
+            descriptorPools.clear();
+
+            if (descriptorSetLayout != VK_NULL_HANDLE) {
+                vkDestroyDescriptorSetLayout(m_device->logicalDevice().get(), descriptorSetLayout, nullptr);
+                descriptorSetLayout = VK_NULL_HANDLE;
+            }
+
+        }
+        void freeDescriptor(VkDescriptorSet descriptorSet) {
+            unusedDescriptors.push_back(descriptorSet);
+        }
+
+        VkDescriptorSet allocateDescriptor() {
+            if (descriptorSetLayout == VK_NULL_HANDLE) {
+                throw (std::runtime_error("DescriptorPool::allocateDescriptor - no descriptor set layout"));
+            }
+
+            if (unusedDescriptors.size() > 0) {
+                VkDescriptorSet descriptorSet = unusedDescriptors.back();
+                unusedDescriptors.pop_back();
+                return descriptorSet;
+            } else {
+                for (auto &&descriptorPool : descriptorPools) {
+                    if (descriptorPool.hasAvailableDescriptorSets()) {
+                        return descriptorPool.allocateDescriptor(descriptorSetLayout);
+                    }
+                }
+
+                // no more descriptors in all the descriptor pools.  create another descriptor pool...
+                std::array<VkDescriptorPoolSize, 3> poolSizes = {};
+
+                // one for each wall and +3 for the floor, ball, and hole.
+                poolSizes[0].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+                poolSizes[0].descriptorCount = numberOfDescriptorSetsInPool;
+                poolSizes[1].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+                poolSizes[1].descriptorCount = numberOfDescriptorSetsInPool;
+                poolSizes[2].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+                poolSizes[2].descriptorCount = numberOfDescriptorSetsInPool;
+                VkDescriptorPoolCreateInfo poolInfo = {};
+                poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
+                poolInfo.poolSizeCount = static_cast<uint32_t>(poolSizes.size());
+                poolInfo.pPoolSizes = poolSizes.data();
+                poolInfo.maxSets = numberOfDescriptorSetsInPool;
+
+                VkDescriptorPool descriptorPool;
+                if (vkCreateDescriptorPool(m_device->logicalDevice().get(), &poolInfo, nullptr, &descriptorPool) != VK_SUCCESS) {
+                    throw std::runtime_error("failed to create descriptor pool!");
+                }
+
+                DescriptorPool newDescriptorPool(m_device, descriptorPool, numberOfDescriptorSetsInPool);
+
+                descriptorPools.push_back(newDescriptorPool);
+                return newDescriptorPool.allocateDescriptor(descriptorSetLayout);
+            }
+        }
+    };
+    DescriptorPools descriptorPools;
+
+    struct TextureDataVulkan : public TextureData {
+        TextureDataVulkan(std::shared_ptr<vulkan::Device> inDevice)
+                : m_device{inDevice}
+        {}
+        std::shared_ptr<vulkan::Device> m_device;
+        VkImage image;
+        VkDeviceMemory memory;
+        VkImageView imageView;
+        VkSampler sampler;
+
+        virtual ~TextureDataVulkan() {
+            vkDestroySampler(m_device->logicalDevice().get(), sampler, nullptr);
+            vkDestroyImageView(m_device->logicalDevice().get(), imageView, nullptr);
+            vkDestroyImage(m_device->logicalDevice().get(), image, nullptr);
+            vkFreeMemory(m_device->logicalDevice().get(), memory, nullptr);
+        }
+    };
+    TextureMap texturesLevel;
+    TextureMap texturesLevelStarter;
+    TextureMap texturesLevelFinisher;
+    bool texturesChanged;
+
+    std::vector<VkImage> swapChainImages;
+    std::vector<VkImageView> swapChainImageViews;
+
+    VkFormat swapChainImageFormat;
+    VkExtent2D swapChainExtent;
+    VkRenderPass renderPass;
+
+    VkBuffer uniformBufferLighting;
+    VkDeviceMemory uniformBufferMemoryLighting;
+
+    struct UniformWrapper {
+        std::shared_ptr<vulkan::Device> m_device;
+        /* for passing data other than the vertex data to the vertex shader */
+        VkDescriptorSet descriptorSet;
+        VkBuffer uniformBuffer;
+        VkDeviceMemory uniformBufferMemory;
+        DescriptorPools *pools;
+
+        UniformWrapper(std::shared_ptr<vulkan::Device> inDevice,
+                       VkDescriptorSet inDescriptorSet, VkBuffer inUniformBuffer,
+                       VkDeviceMemory inUniformBufferMemory, DescriptorPools *inPools)
+        : m_device(inDevice) {
+            uniformBuffer = inUniformBuffer;
+            uniformBufferMemory = inUniformBufferMemory;
+            descriptorSet = inDescriptorSet;
+            pools = inPools;
+        }
+
+        ~UniformWrapper() {
+            pools->freeDescriptor(descriptorSet);
+            /* free the memory after the buffer has been destroyed because the buffer is bound to 
+             * the memory, so the buffer is still using the memory until the buffer is destroyed.
+             */
+            vkDestroyBuffer(m_device->logicalDevice().get(), uniformBuffer, nullptr);
+            vkFreeMemory(m_device->logicalDevice().get(), uniformBufferMemory, nullptr);
+        }
+    };
+
+    /* vertex buffer and index buffer. the index buffer indicates which vertices to draw and in
+     * the specified order.  Note, vertices can be listed twice if they should be part of more
+     * than one triangle.
+     */
+    struct DrawObjectDataVulkan : public DrawObjectData {
+        std::shared_ptr<vulkan::Device> m_device;
+        VkBuffer vertexBuffer;
+        VkDeviceMemory vertexBufferMemory;
+        VkBuffer indexBuffer;
+        VkDeviceMemory indexBufferMemory;
+        std::vector<std::shared_ptr<UniformWrapper> > uniforms;
+
+        DrawObjectDataVulkan(std::shared_ptr<vulkan::Device> inDevice)
+        : m_device{inDevice} {
+        }
+        ~DrawObjectDataVulkan() {
+            vkDestroyBuffer(m_device->logicalDevice().get(), vertexBuffer, nullptr);
+            vkFreeMemory(m_device->logicalDevice().get(), vertexBufferMemory, nullptr);
+
+            vkDestroyBuffer(m_device->logicalDevice().get(), indexBuffer, nullptr);
+            vkFreeMemory(m_device->logicalDevice().get(), indexBufferMemory, nullptr);
+        }
+    };
+
+    DrawObjectTable staticObjsData;
+    DrawObjectTable dynObjsData;
+    DrawObjectTable levelFinisherObjsData;
+    DrawObjectTable levelStarterStaticObjsData;
+    DrawObjectTable levelStarterDynObjsData;
+
+    std::shared_ptr<Level> maze;
+    std::shared_ptr<LevelFinish> levelFinisher;
+    std::shared_ptr<LevelStarter> levelStarter;
+    LevelTracker levelTracker;
+
+    VkPipelineLayout pipelineLayout;
+    VkPipeline graphicsPipeline;
+    std::vector<VkFramebuffer> swapChainFramebuffers;
+
+    VkCommandPool commandPool;
+    std::vector<VkCommandBuffer> commandBuffers;
 
     /* use semaphores to coordinate the rendering and presentation. Could also use fences
      * but fences are more for coordinating in our program itself and not for internal
      * Vulkan coordination of resource usage.
      */
-    vk::Semaphore m_imageAvailableSemaphore;
-    vk::Semaphore m_renderFinishedSemaphore;
+    VkSemaphore imageAvailableSemaphore;
+    VkSemaphore renderFinishedSemaphore;
 
-    void initializeCommandBuffer(size_t index);
+    /* depth buffer image */
+    VkImage depthImage;
+    VkDeviceMemory depthImageMemory;
+    VkImageView depthImageView;
 
-    void initializeCommandBufferDrawObjects(size_t index, DrawObjectTable const &objs);
+    const std::vector<const char*> deviceExtensions = {
+        VK_KHR_SWAPCHAIN_EXTENSION_NAME
+    };
 
-    void initializeCommandBuffers();
+    static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(
+            VkDebugReportFlagsEXT flags,
+            VkDebugReportObjectTypeEXT objType,
+            uint64_t obj,
+            size_t location,
+            int32_t code,
+            const char* layerPrefix,
+            const char* msg,
+            void* userData) {
 
+        std::cerr << "validation layer: " << msg << std::endl;
 
-/*
+        return VK_FALSE;
+    }
+
+    void createSurface();
+
     void addTextures(TextureMap &texture);
-
     UniformBufferObject getViewPerspectiveMatrix();
-
     void addObjects(DrawObjectTable &objs, TextureMap &texture);
-
     void addObject(DrawObjectEntry &obj, TextureMap &texture);
-
     void addUniforms(DrawObjectEntry &obj, TextureMap &texture);
-
     bool updateLevelData(Level *level, DrawObjectTable &objsData, TextureMap &textures);
-
     void initializeLevelData(Level *level, DrawObjectTable &staticObjsData,
                              DrawObjectTable &dynObjsData, TextureMap &textures);
-
     void createUniformBuffer(VkBuffer &uniformBuffer, VkDeviceMemory &uniformBufferMemory);
-
-    void createVertexBuffer(std::vector<Vertex> const &vertices, VkBuffer &vertexBuffer,
-                            VkDeviceMemory &vertexBufferMemory);
-
-    void createIndexBuffer(std::vector<uint32_t> const &indices, VkBuffer &indexBuffer,
-                           VkDeviceMemory &indexBufferMemory);
-
+    void createVertexBuffer(std::vector<Vertex> const &vertices, VkBuffer &vertexBuffer, VkDeviceMemory &vertexBufferMemory);
+    void createIndexBuffer(std::vector<uint32_t> const &indices, VkBuffer &indexBuffer, VkDeviceMemory &indexBufferMemory);
     void updatePerspectiveMatrix();
 
     void cleanupSwapChain();
-
-    VkShaderModule createShaderModule(const std::vector<char> &code);
-
+    VkSurfaceFormatKHR chooseSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& availableFormats);
+    VkPresentModeKHR chooseSwapPresentMode(const std::vector<VkPresentModeKHR> availablePresentModes);
+    VkExtent2D chooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabilities);
+    void createSwapChain();
+    void createImageViews();
+    VkShaderModule createShaderModule(const std::vector<char>& code);
     void createRenderPass();
-
     void createGraphicsPipeline();
-
     void createFramebuffers();
-
-    void
-    createBuffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties,
-                 VkBuffer &buffer, VkDeviceMemory &bufferMemory);
-
+    void createBuffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties, VkBuffer& buffer, VkDeviceMemory& bufferMemory);
     void copyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size);
-
     VkCommandBuffer beginSingleTimeCommands();
-
     void endSingleTimeCommands(VkCommandBuffer commandBuffer);
-
-    uint32_t findMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties);
-
     void createCommandPool();
-
     void createCommandBuffers();
-
+    void initializeCommandBuffer(VkCommandBuffer &commandBuffer, size_t index);
+    void initializeCommandBufferDrawObjects(VkCommandBuffer &commandBuffer, DrawObjectTable const & objs);
     void createSemaphores();
-
     void createDepthResources();
-
-    VkFormat findDepthFormat();
-
-    VkFormat findSupportedFormat(const std::vector<VkFormat> &candidates, VkImageTiling tiling,
-                                 VkFormatFeatureFlags features);
-
     bool hasStencilComponent(VkFormat format);
-
-    void
-    updateDescriptorSet(VkBuffer uniformBuffer, VkImageView imageView, VkSampler textureSampler,
-                        VkBuffer lightingSource, VkDescriptorSet &descriptorSet);
-
+    void updateDescriptorSet(VkBuffer uniformBuffer, VkImageView imageView, VkSampler textureSampler, VkBuffer lightingSource, VkDescriptorSet &descriptorSet);
     void createDescriptorSetLayout(VkDescriptorSetLayout &descriptorSetLayout);
-
-    void createTextureImage(TextureDescription *texture, VkImage &textureImage,
-                            VkDeviceMemory &textureImageMemory);
-
+    void createTextureImage(TextureDescription *texture, VkImage &textureImage, VkDeviceMemory &textureImageMemory);
     void createTextureSampler(VkSampler &textureSampler);
-
-    void transitionImageLayout(VkImage image, VkFormat format, VkImageLayout oldLayout,
-                               VkImageLayout newLayout);
-
+    VkImageView createImageView(VkImage image, VkFormat format, VkImageAspectFlags aspectFlags);
+    void createImage(uint32_t width, uint32_t height, VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage, VkMemoryPropertyFlags properties, VkImage& image, VkDeviceMemory& imageMemory);
+    void transitionImageLayout(VkImage image, VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout);
     void copyBufferToImage(VkBuffer buffer, VkImage image, uint32_t width, uint32_t height);
-    */
 };
 #endif
+
