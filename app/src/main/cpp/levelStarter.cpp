@@ -166,7 +166,6 @@ bool LevelStarter::updateStaticDrawObjects(DrawObjectTable &drawObjsData, Textur
         return false;
     }
     std::shared_ptr<DrawObject> obj(new DrawObject());
-    obj.reset(new DrawObject());
     obj->vertices = quadVertices;
     obj->indices = quadIndices;
     obj->texture.reset(new TextureDescriptionPath(holeImage));
@@ -185,9 +184,9 @@ bool LevelStarter::updateStaticDrawObjects(DrawObjectTable &drawObjsData, Textur
     drawObjsData.push_back(std::make_pair(obj, std::shared_ptr<DrawObjectData>()));
 
     // Side corridor
+    obj.reset(new DrawObject());
     std::shared_ptr<TextureDescription> textureCorridorV(new TextureDescriptionPath(corridorImageV));
     textures.insert(std::make_pair(textureCorridorV, std::shared_ptr<TextureData>()));
-    obj.reset(new DrawObject());
     obj->vertices = quadVertices;
     obj->indices = quadIndices;
     obj->texture = textureCorridorV;
@@ -195,9 +194,9 @@ bool LevelStarter::updateStaticDrawObjects(DrawObjectTable &drawObjsData, Textur
     drawObjsData.push_back(std::make_pair(obj, std::shared_ptr<DrawObjectData>()));
 
     // Top corridor
+    obj.reset(new DrawObject());
     std::shared_ptr<TextureDescription> textureCorridorH2(new TextureDescriptionPath(corridorImageH2));
     textures.insert(std::make_pair(textureCorridorH2, std::shared_ptr<TextureData>()));
-    obj.reset(new DrawObject());
     obj->vertices = quadVertices;
     obj->indices = quadIndices;
     obj->texture = textureCorridorH2;

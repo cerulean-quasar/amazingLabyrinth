@@ -56,6 +56,6 @@ public:
     std::shared_ptr<LevelFinish> getLevelFinisher(float centerX, float centerY);
     void gotoNextLevel();
     static std::vector<std::string> getLevelDescriptions();
-    static bool validLevel(uint32_t level) { return level < levelTable.size() - 1; }
+    static bool validLevel(uint32_t level) { return level < levelTable.size(); }
 };
 #endif

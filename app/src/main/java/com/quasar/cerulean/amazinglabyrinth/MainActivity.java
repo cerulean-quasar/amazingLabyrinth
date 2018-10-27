@@ -168,7 +168,7 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
         if (level < 0) {
             level = 0;
         }
-        boolean usingVulkan = false;
+        boolean usingVulkan = true;
         Surface drawSurface = holder.getSurface();
         String err = initPipeline(usingVulkan, drawSurface, manager, level);
         if (err != null && err.length() != 0) {

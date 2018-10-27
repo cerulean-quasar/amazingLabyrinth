@@ -348,7 +348,7 @@ namespace vk {
 
     class ImageView {
     public:
-        ImageView(std::shared_ptr<Image> inImage, VkFormat format,
+        ImageView(std::shared_ptr<Image> const &inImage, VkFormat format,
                   VkImageAspectFlags aspectFlags)
                 : m_image{inImage},
                   m_imageView{} {
@@ -506,7 +506,7 @@ namespace vk {
     };
 
 /* for passing data other than the vertex data to the vertex shader */
-class DescriptorPools : public std::enable_shared_from_this<DescriptorPools> {
+    class DescriptorPools : public std::enable_shared_from_this<DescriptorPools> {
         friend DescriptorSet;
     private:
         std::shared_ptr<Device> m_device;
@@ -602,14 +602,15 @@ class DescriptorPools : public std::enable_shared_from_this<DescriptorPools> {
     class Pipeline {
     public:
         Pipeline(std::shared_ptr<SwapChain> &inSwapChain, std::shared_ptr<RenderPass> &inRenderPass,
-                 std::shared_ptr<DescriptorPools> &inDescriptorPools,VkVertexInputBindingDescription bindingDescription,
-                 std::vector<VkVertexInputAttributeDescription> attributeDescription)
-                : m_pipelineLayout{},
-                  m_pipeline{},
-                  m_device{inSwapChain->device()},
+                 std::shared_ptr<DescriptorPools> &inDescriptorPools,
+                 VkVertexInputBindingDescription const &bindingDescription,
+                 std::vector<VkVertexInputAttributeDescription> const &attributeDescription)
+                : m_device{inSwapChain->device()},
                   m_swapChain{inSwapChain},
                   m_renderPass{inRenderPass},
-                  m_descriptorPools{inDescriptorPools} {
+                  m_descriptorPools{inDescriptorPools},
+                  m_pipelineLayout{},
+                  m_pipeline{} {
             createGraphicsPipeline(bindingDescription, attributeDescription);
         }
 
@@ -627,8 +628,8 @@ class DescriptorPools : public std::enable_shared_from_this<DescriptorPools> {
         std::shared_ptr<RenderPass> m_renderPass;
         std::shared_ptr<DescriptorPools> m_descriptorPools;
 
-        std::shared_ptr<VkPipeline_T> m_pipeline;
         std::shared_ptr<VkPipelineLayout_T> m_pipelineLayout;
+        std::shared_ptr<VkPipeline_T> m_pipeline;
 
         void createGraphicsPipeline(VkVertexInputBindingDescription const &bindingDescription,
                                     std::vector<VkVertexInputAttributeDescription> const &attributeDescriptions);
@@ -735,7 +736,7 @@ class DescriptorPools : public std::enable_shared_from_this<DescriptorPools> {
                 std::shared_ptr<CommandPool> const &cmdPool,
                 std::shared_ptr<TextureDescription> const &texture);
 
-        static std::shared_ptr<Image> createDeptImage(std::shared_ptr<SwapChain> inSwapChain,
+        static std::shared_ptr<Image> createDepthImage(std::shared_ptr<SwapChain> inSwapChain,
                                                        std::shared_ptr<CommandPool> cmdPool) {
             VkExtent2D extent = inSwapChain->extent();
             std::shared_ptr<Image> img{new Image{inSwapChain->device(), extent.width,
@@ -764,7 +765,7 @@ class DescriptorPools : public std::enable_shared_from_this<DescriptorPools> {
                   m_sampler{} {
             m_image = ImageFactory::createTextureImage(m_device, pool, textureDescription);
 
-            m_imageView.reset(new ImageView(m_image, VK_FORMAT_R8_UNORM, VK_IMAGE_ASPECT_COLOR_BIT));
+            m_imageView.reset(new ImageView(m_image, VK_FORMAT_R8G8B8A8_UNORM/*Todo: VK_FORMAT_R8_UNORM*/, VK_IMAGE_ASPECT_COLOR_BIT));
 
             createTextureSampler();
         }
@@ -803,9 +804,9 @@ class UniformWrapper {
 public:
     /* for passing data other than the vertex data to the vertex shader */
     std::shared_ptr<vk::DescriptorSet> m_descriptorSet;
-    std::shared_ptr<vk::Buffer> m_uniformBuffer;
-    std::shared_ptr<vk::Buffer> m_uniformBufferLighting;
     std::shared_ptr<vk::ImageSampler> m_sampler;
+    std::shared_ptr<vk::Buffer> m_uniformBufferLighting;
+    std::shared_ptr<vk::Buffer> m_uniformBuffer;
 
     UniformWrapper(std::shared_ptr<vk::Device> const &inDevice,
                    std::shared_ptr<vk::DescriptorPools> const &descriptorPools,
@@ -813,9 +814,9 @@ public:
                    std::shared_ptr<vk::Buffer> const &inUniformBufferLighting,
                    UniformBufferObject const &ubo)
             : m_descriptorSet{},
-              m_uniformBuffer{},
-              m_uniformBufferLighting{},
-              m_sampler{}
+              m_sampler{inSampler},
+              m_uniformBufferLighting{inUniformBufferLighting},
+              m_uniformBuffer{}
     {
         VkBuffer uniformBuffer;
         VkDeviceMemory uniformBufferMemory;
@@ -914,18 +915,21 @@ public:
          m_levelFinisherObjsData{},
          m_levelStarterStaticObjsData{},
          m_levelStarterDynObjsData{},
-         m_level{m_levelTracker.getLevel()},
+         m_level{},
          m_levelFinisher{},
-         m_levelStarter{m_levelTracker.getLevelStarter()}
+         m_levelStarter{}
     {
         m_levelTracker.setParameters(width, height);
 
-        glm::vec3 lightingVector = glm::vec3(0.0f, 0.0f, 1.28f/*0.01-1.28*/);
-        m_uniformBufferLighting->copyRawTo(&lightingVector, sizeof (glm::vec3));
 
+        m_level = m_levelTracker.getLevel();
+        m_levelStarter = m_levelTracker.getLevelStarter();
         float x, y;
         m_level->getLevelFinisherCenter(x, y);
         m_levelFinisher = m_levelTracker.getLevelFinisher(x, y);
+
+        glm::vec3 lightingVector = m_level->getLightingSource();
+        m_uniformBufferLighting->copyRawTo(&lightingVector, sizeof (lightingVector));
 
         initializeLevelData(m_levelStarter, m_levelStarterStaticObjsData,
                             m_levelStarterDynObjsData, m_texturesLevelStarter);
@@ -990,12 +994,14 @@ public:
               m_commandPool{new vk::CommandPool{m_device}},
               m_level{m_device, m_commandPool, m_descriptorPools, level,
                       m_swapChain->extent().width, m_swapChain->extent().height},
-              m_depthImageView{new vk::ImageView{vk::ImageFactory::createDeptImage(m_swapChain, m_commandPool),
+              m_depthImageView{new vk::ImageView{vk::ImageFactory::createDepthImage(m_swapChain, m_commandPool),
                                                  m_device->depthFormat(),
                                                  VK_IMAGE_ASPECT_DEPTH_BIT}},
               m_swapChainCommands{new vk::SwapChainCommands{m_swapChain, m_commandPool, m_renderPass, m_depthImageView}},
               m_imageAvailableSemaphore{m_device},
-              m_renderFinishedSemaphore{m_device} {}
+              m_renderFinishedSemaphore{m_device} {
+        initializeCommandBuffers();
+    }
 
     virtual void init(WindowType *window){}
 

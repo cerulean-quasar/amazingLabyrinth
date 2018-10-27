@@ -271,7 +271,7 @@ namespace vk {
     }
 
     bool Device::isDeviceSuitable(VkPhysicalDevice device) {
-        QueueFamilyIndices indices = findQueueFamilies();
+        QueueFamilyIndices indices = findQueueFamilies(device);
         bool extensionsSupported = checkDeviceExtensionSupport(device);
 
         VkPhysicalDeviceProperties deviceProperties;
@@ -531,7 +531,9 @@ namespace vk {
          * specifies if the alpha channel should be used for blending with other windows in the
          * window system.  Ignore the alpha channel.
          */
-        createInfo.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
+        //createInfo.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
+        // Todo: what should really go here.
+        createInfo.compositeAlpha = VK_COMPOSITE_ALPHA_INHERIT_BIT_KHR;
 
         /* set the chosen present mode */
         createInfo.presentMode = presentMode;
@@ -1024,7 +1026,7 @@ namespace vk {
 
         VkDeviceMemory bufmem;
         if (vkAllocateMemory(m_device->logicalDevice().get(), &allocInfo, nullptr, &bufmem) != VK_SUCCESS) {
-            throw std::runtime_error("failed to allocate buffer memory!");
+            throw std::runtime_error("Failed to allocate buffer memory!");
         }
 
         auto bufmemdeleter = [capDevice](VkDeviceMemory bufmem) {
@@ -1033,8 +1035,11 @@ namespace vk {
 
         m_bufferMemory.reset(bufmem, bufmemdeleter);
 
-        vkBindBufferMemory(m_device->logicalDevice().get(), m_buffer.get(), m_bufferMemory.get(),
+        VkResult result = vkBindBufferMemory(m_device->logicalDevice().get(), m_buffer.get(), m_bufferMemory.get(),
                            0 /* offset into the memory */);
+        if (result != VK_SUCCESS) {
+            throw (std::runtime_error("Failed to bind buffer to memory!"));
+        }
     }
 
 /* copy the data from CPU readable memory in the graphics card to non-CPU readable memory */
@@ -1053,7 +1058,10 @@ namespace vk {
 
     void Buffer::copyRawTo(void const *dataRaw, size_t size) {
         void *data;
-        vkMapMemory(m_device->logicalDevice().get(), m_bufferMemory.get(), 0, size, 0, &data);
+        VkResult result = vkMapMemory(m_device->logicalDevice().get(), m_bufferMemory.get(), 0, size, 0, &data);
+        if (result != VK_SUCCESS) {
+            throw (std::runtime_error("Can't map memory."));
+        }
         memcpy(data, dataRaw, size);
         vkUnmapMemory(m_device->logicalDevice().get(), m_bufferMemory.get());
     }
@@ -1066,7 +1074,11 @@ namespace vk {
         allocInfo.commandBufferCount = 1;
 
         VkCommandBuffer commandBufferRaw;
-        vkAllocateCommandBuffers(m_device->logicalDevice().get(), &allocInfo, &commandBufferRaw);
+        VkResult result = vkAllocateCommandBuffers(m_device->logicalDevice().get(), &allocInfo,
+                &commandBufferRaw);
+        if (result != VK_SUCCESS) {
+            throw (std::runtime_error("Failed to allocate command buffer"));
+        }
 
         auto const &capDevice = m_device;
         auto const &capCommandPool = m_pool;
@@ -1098,10 +1110,16 @@ namespace vk {
         VkCommandBuffer commandBufferRaw = m_commandBuffer.get();
         submitInfo.pCommandBuffers = &commandBufferRaw;
 
-        vkQueueSubmit(m_device->graphicsQueue(), 1, &submitInfo, VK_NULL_HANDLE);
+        VkResult result = vkQueueSubmit(m_device->graphicsQueue(), 1, &submitInfo, VK_NULL_HANDLE);
+        if (result != VK_SUCCESS) {
+            throw std::runtime_error("failed to submit command buffer!");
+        }
 
         /* wait for the command to be done. */
-        vkQueueWaitIdle(m_device->graphicsQueue());
+        result = vkQueueWaitIdle(m_device->graphicsQueue());
+        if (result != VK_SUCCESS) {
+            throw std::runtime_error("failed to wait on graphics queue!");
+        }
     }
 
     uint32_t Device::findMemoryType(uint32_t typeFilter,
@@ -1138,7 +1156,7 @@ namespace vk {
          *      VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT: Allow command buffers to be
          * rerecorded individually, without this flag they all have to be reset together
          */
-        poolInfo.flags = 0;
+        poolInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
 
         VkCommandPool commandsRaw;
         if (vkCreateCommandPool(m_device->logicalDevice().get(), &poolInfo, nullptr, &commandsRaw) !=
@@ -1273,7 +1291,6 @@ namespace vk {
         /* transition the image to VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL. The image was created with
          * layout: VK_IMAGE_LAYOUT_UNDEFINED, so we use that to specify the old layout.
          */
-        SingleTimeCommands cmds{device, cmdPool};
         image->transitionImageLayout(format, VK_IMAGE_LAYOUT_UNDEFINED,
                                      VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, cmdPool);
 
@@ -1691,19 +1708,20 @@ void GraphicsVulkan::initializeCommandBuffer(size_t index) {
 
 void GraphicsVulkan::initializeCommandBufferDrawObjects(size_t index, DrawObjectTable const &objs) {
     std::vector<VkCommandBuffer> const &commandBuffers = m_swapChainCommands->commandBuffers();
+    VkCommandBuffer commandBuffer = commandBuffers[index];
     VkDeviceSize offsets[1] = {0};
 
     for (auto &&obj : objs) {
         DrawObjectDataVulkan *objData = static_cast<DrawObjectDataVulkan *> (obj.second.get());
 
         VkBuffer vertexBuffer = objData->vertexBuffer().buffer().get();
-        vkCmdBindVertexBuffers(commandBuffers[index], 0, 1, &vertexBuffer, offsets);
-        vkCmdBindIndexBuffer(commandBuffers[index], objData->indexBuffer().buffer().get(), 0,
+        vkCmdBindVertexBuffers(commandBuffer, 0, 1, &vertexBuffer, offsets);
+        vkCmdBindIndexBuffer(commandBuffer, objData->indexBuffer().buffer().get(), 0,
                              VK_INDEX_TYPE_UINT32);
         for (auto &&uniform : objData->uniforms()) {
             /* The MVP matrix and texture samplers */
             VkDescriptorSet descriptorSet = uniform->descriptorSet()->descriptorSet().get();
-            vkCmdBindDescriptorSets(commandBuffers[index], VK_PIPELINE_BIND_POINT_GRAPHICS,
+            vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
                                     m_graphicsPipeline->layout().get(), 0, 1,
                                     &descriptorSet,0, nullptr);
 
@@ -1715,7 +1733,7 @@ void GraphicsVulkan::initializeCommandBufferDrawObjects(size_t index, DrawObject
              * parameter 5 - offset to add to the indices in the index buffer
              * parameter 6 - offset for instance rendering
              */
-            vkCmdDrawIndexed(commandBuffers[index], obj.first->indices.size(), 1, 0, 0, 0);
+            vkCmdDrawIndexed(commandBuffer, obj.first->indices.size(), 1, 0, 0, 0);
         }
     }
 }
@@ -1737,15 +1755,6 @@ void GraphicsVulkan::drawFrame() {
                                             m_imageAvailableSemaphore.semaphore().get(), VK_NULL_HANDLE,
                                             &imageIndex);
 
-    if (m_level.needsInitializeCommandBuffers()) {
-        // The user completed the maze or the textures changed.  If the maze is completed, we need
-        // to display the level finished animation.  Since there are additional objects, we need to
-        // rewrite the command buffer to display the new objects.  If the textures changed, then we
-        // need to update the descriptor sets, so the command buffers need to be rewritten.
-        initializeCommandBuffers();
-        m_level.doneInitializingCommandBuffers();
-    }
-
     /* If the window surface is no longer compatible with the swap chain, then we need to
      * recreate the swap chain and let the next call draw the image.
      * VK_SUBOPTIMAL_KHR means that the swap chain can still be used to present to the surface
@@ -1757,6 +1766,15 @@ void GraphicsVulkan::drawFrame() {
     } else if (result != VK_SUCCESS && result != VK_SUBOPTIMAL_KHR) {
         throw std::runtime_error("failed to acquire swap chain image!");
     }
+
+    //Todo: if (m_level.needsInitializeCommandBuffers()) {
+    // The user completed the maze or the textures changed.  If the maze is completed, we need
+    // to display the level finished animation.  Since there are additional objects, we need to
+    // rewrite the command buffer to display the new objects.  If the textures changed, then we
+    // need to update the descriptor sets, so the command buffers need to be rewritten.
+    initializeCommandBuffers();
+    m_level.doneInitializingCommandBuffers();
+    //}
 
     VkSubmitInfo submitInfo = {};
     submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
@@ -1783,7 +1801,8 @@ void GraphicsVulkan::drawFrame() {
     /* the last parameter is a fence to indicate when execution is done, but we are using
      * semaphores instead so pass VK_NULL_HANDLE
      */
-    if (vkQueueSubmit(m_device->graphicsQueue(), 1, &submitInfo, VK_NULL_HANDLE) != VK_SUCCESS) {
+    result = vkQueueSubmit(m_device->graphicsQueue(), 1, &submitInfo, VK_NULL_HANDLE);
+    if (result != VK_SUCCESS) {
         throw std::runtime_error("failed to submit draw command buffer!");
     }
 
@@ -1827,6 +1846,7 @@ void GraphicsVulkan::drawFrame() {
         throw std::runtime_error("Failed to wait on present queue.");
     }
 }
+
 void GraphicsVulkan::recreateSwapChain() {
     vkDeviceWaitIdle(m_device->logicalDevice().get());
 
@@ -1842,7 +1862,7 @@ void GraphicsVulkan::recreateSwapChain() {
 
     m_swapChain.reset(new vk::SwapChain(m_device));
     m_depthImageView.reset(new vk::ImageView(
-            std::shared_ptr<vk::Image>{vk::ImageFactory::createDeptImage(m_swapChain, m_commandPool)},
+            std::shared_ptr<vk::Image>{vk::ImageFactory::createDepthImage(m_swapChain, m_commandPool)},
             m_device->depthFormat(), VK_IMAGE_ASPECT_DEPTH_BIT));
     m_renderPass.reset(new vk::RenderPass{m_device, m_swapChain});
     m_graphicsPipeline.reset(new vk::Pipeline{m_swapChain, m_renderPass, m_descriptorPools,
@@ -1945,6 +1965,7 @@ void LevelSequence::initializeLevelData(std::shared_ptr<Level> const &level, Dra
     addTextures(textures);
     addObjects(staticObjsData, textures);
     addObjects(dynObjsData, textures);
+    m_texturesChanged = true;
 }
 
 void LevelSequence::updateLevelData(DrawObjectTable &objsData,
