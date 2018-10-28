@@ -441,7 +441,44 @@ namespace vulkan {
 
         inline std::shared_ptr<VkShaderModule_T> const &shader() { return m_shaderModule; }
     };
-}
+
+    class Pipeline {
+    public:
+        Pipeline(std::shared_ptr<SwapChain> &inSwapChain, std::shared_ptr<RenderPass> &inRenderPass,
+                 std::shared_ptr<DescriptorPools> &inDescriptorPools,
+                 VkVertexInputBindingDescription const &bindingDescription,
+                 std::vector<VkVertexInputAttributeDescription> const &attributeDescription)
+                : m_device{inSwapChain->device()},
+                  m_swapChain{inSwapChain},
+                  m_renderPass{inRenderPass},
+                  m_descriptorPools{inDescriptorPools},
+                  m_pipelineLayout{},
+                  m_pipeline{} {
+            createGraphicsPipeline(bindingDescription, attributeDescription);
+        }
+
+        inline std::shared_ptr<VkPipeline_T> const &pipeline() { return m_pipeline; }
+        inline std::shared_ptr<VkPipelineLayout_T> const &layout() { return m_pipelineLayout; }
+
+        ~Pipeline() {
+            m_pipeline.reset();
+            m_pipelineLayout.reset();
+        }
+
+    private:
+        std::shared_ptr<Device> m_device;
+        std::shared_ptr<SwapChain> m_swapChain;
+        std::shared_ptr<RenderPass> m_renderPass;
+        std::shared_ptr<DescriptorPools> m_descriptorPools;
+
+        std::shared_ptr<VkPipelineLayout_T> m_pipelineLayout;
+        std::shared_ptr<VkPipeline_T> m_pipeline;
+
+        void createGraphicsPipeline(VkVertexInputBindingDescription const &bindingDescription,
+                                    std::vector<VkVertexInputAttributeDescription> const &attributeDescriptions);
+    };
+
+} /* namespace vulkan */
 
 #define DEBUG
 #ifdef DEBUG
@@ -449,6 +486,9 @@ namespace vulkan {
 #else
     const bool enableValidationLayers = false;
 #endif
+
+std::vector<VkVertexInputAttributeDescription> getAttributeDescriptions();
+VkVertexInputBindingDescription getBindingDescription();
 
 class GraphicsVulkan : public Graphics {
 public:
@@ -458,6 +498,8 @@ public:
         m_swapChain{new vulkan::SwapChain{m_device}},
         m_renderPass{new vulkan::RenderPass{m_device, m_swapChain}},
         m_descriptorPools{new vulkan::DescriptorPools{m_device}},
+        m_graphicsPipeline{new vulkan::Pipeline{m_swapChain, m_renderPass, m_descriptorPools,
+            getBindingDescription(), getAttributeDescriptions()}},
         texturesLevel{},
         texturesLevelStarter{},
         texturesLevelFinisher{},
@@ -475,8 +517,6 @@ public:
         levelFinisher{},
         levelStarter{},
         levelTracker{level},
-        pipelineLayout{},
-        graphicsPipeline{},
         swapChainFramebuffers{},
         commandPool{},
         commandBuffers{},
@@ -513,6 +553,7 @@ private:
     std::shared_ptr<vulkan::RenderPass> m_renderPass;
 
     std::shared_ptr<vulkan::DescriptorPools> m_descriptorPools;
+    std::shared_ptr<vulkan::Pipeline> m_graphicsPipeline;
 
     struct TextureDataVulkan : public TextureData {
         TextureDataVulkan(std::shared_ptr<vulkan::Device> inDevice)
@@ -606,8 +647,6 @@ private:
     std::shared_ptr<LevelStarter> levelStarter;
     LevelTracker levelTracker;
 
-    VkPipelineLayout pipelineLayout;
-    VkPipeline graphicsPipeline;
     std::vector<VkFramebuffer> swapChainFramebuffers;
 
     VkCommandPool commandPool;
