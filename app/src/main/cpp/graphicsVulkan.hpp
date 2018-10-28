@@ -258,6 +258,22 @@ namespace vulkan {
         VkExtent2D chooseSwapExtent(const VkSurfaceCapabilitiesKHR &capabilities);
     };
 
+    class RenderPass {
+    public:
+        RenderPass(std::shared_ptr<Device> const &inDevice, std::shared_ptr<SwapChain> const &swapChain)
+                : m_device{inDevice},
+                  m_renderPass{} {
+            createRenderPass(swapChain);
+        }
+
+        inline std::shared_ptr<VkRenderPass_T> const &renderPass() { return m_renderPass; }
+
+    private:
+        std::shared_ptr<Device> m_device;
+        std::shared_ptr<VkRenderPass_T> m_renderPass;
+
+        void createRenderPass(std::shared_ptr<SwapChain> const &swapChain);
+    };
 }
 
 #define DEBUG
@@ -273,6 +289,7 @@ public:
         :m_instance{new vulkan::Instance(window)},
         m_device{new vulkan::Device{m_instance}},
         m_swapChain{new vulkan::SwapChain{m_device}},
+        m_renderPass{new vulkan::RenderPass{m_device, m_swapChain}},
         descriptorPools{m_device},
         texturesLevel{},
         texturesLevelStarter{},
@@ -280,7 +297,6 @@ public:
         texturesChanged{false},
         swapChainImages{},
         swapChainImageViews{},
-        renderPass{VK_NULL_HANDLE},
         uniformBufferLighting{VK_NULL_HANDLE},
         uniformBufferMemoryLighting{VK_NULL_HANDLE},
         staticObjsData{},
@@ -326,6 +342,8 @@ private:
     std::shared_ptr<vulkan::Instance> m_instance;
     std::shared_ptr<vulkan::Device> m_device;
     std::shared_ptr<vulkan::SwapChain> m_swapChain;
+
+    std::shared_ptr<vulkan::RenderPass> m_renderPass;
 
     class DescriptorPools;
     class DescriptorPool {
@@ -476,8 +494,6 @@ private:
 
     std::vector<VkImage> swapChainImages;
     std::vector<VkImageView> swapChainImageViews;
-
-    VkRenderPass renderPass;
 
     VkBuffer uniformBufferLighting;
     VkDeviceMemory uniformBufferMemoryLighting;

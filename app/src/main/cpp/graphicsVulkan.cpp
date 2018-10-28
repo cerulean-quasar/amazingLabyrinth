@@ -602,6 +602,123 @@ namespace vulkan {
     VkExtent2D SwapChain::chooseSwapExtent(const VkSurfaceCapabilitiesKHR &capabilities) {
         return capabilities.currentExtent;
     }
+
+    void RenderPass::createRenderPass(std::shared_ptr<SwapChain> const &swapchain) {
+        /* color buffer attachment descriptions: use a single attachment represented by
+         * one of the images from the swap chain.
+         */
+        VkAttachmentDescription colorAttachment = {};
+        colorAttachment.format = swapchain->imageFormat();
+        /* stick to one sample since we are not using multisampling */
+        colorAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
+        /* clear the contents of the attachment to a constant at the start */
+        colorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+        /* store the rendered contents in memory so they can be read later */
+        colorAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+        /* we don't care about the stencil buffer for this app */
+        colorAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+        colorAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+
+        /* we don't care which layout the image was in */
+        colorAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+
+        /* images to be presented in the swap chain */
+        colorAttachment.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+
+        /* subpasses and attachment references:
+         * a render pass may consist of many subpasses. For example, post processing tasks.
+         */
+        VkAttachmentReference colorAttachmentRef = {};
+        /* specify which attachment by its index in the attachment descriptions array */
+        colorAttachmentRef.attachment = 0;
+
+        /* specify the layout to use for the attachment during a subpass that uses this reference
+         * VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL gives the best performance for an attachment
+         * functioning as a color buffer
+         */
+        colorAttachmentRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+
+        /* depth attachment */
+        VkAttachmentDescription depthAttachment = {};
+        depthAttachment.format = m_device->depthFormat();
+        depthAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
+        depthAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+
+        /* we won't be using the depth data after the drawing has finished, so use DONT_CARE for
+         * store operation
+         */
+        depthAttachment.storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+
+        depthAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+        depthAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+
+        /* dont care about the previous contents */
+        depthAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+
+        depthAttachment.finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+
+        VkAttachmentReference depthAttachmentRef = {};
+        depthAttachmentRef.attachment = 1;
+        depthAttachmentRef.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+
+        /* render subpass */
+        VkSubpassDescription subpass = {};
+        /* specify a graphics subpass (as opposed to a compute subpass) */
+        subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
+        subpass.colorAttachmentCount = 1;
+        subpass.pColorAttachments = &colorAttachmentRef;
+        subpass.pDepthStencilAttachment = &depthAttachmentRef;
+
+        /* create a render subbass dependency because we need the render pass to wait for the
+         * VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT stage of the graphics pipeline
+         */
+        VkSubpassDependency dependency = {};
+
+        /* The following two fields specify the indices of the dependency and the dependent
+         * subpass. The special value VK_SUBPASS_EXTERNAL refers to the implicit subpass before
+         * or after the render pass depending on whether it is specified in srcSubpass or
+         * dstSubpass. The index 0 refers to our subpass, which is the first and only one. The
+         * dstSubpass must always be higher than srcSubpass to prevent cycles in the
+         * dependency graph.
+         */
+        dependency.srcSubpass = VK_SUBPASS_EXTERNAL;
+        dependency.dstSubpass = 0;
+
+        /* wait for the VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT stage */
+        dependency.srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+        dependency.srcAccessMask = 0;
+
+        /* prevent the transition from happening until when we want to start writing colors to
+         * the color attachment.
+         */
+        dependency.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+        dependency.dstAccessMask =
+                VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+
+        /* create the render pass */
+        std::array<VkAttachmentDescription, 2> attachments = {colorAttachment, depthAttachment};
+        VkRenderPassCreateInfo renderPassInfo = {};
+        renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
+        renderPassInfo.attachmentCount = static_cast<uint32_t>(attachments.size());
+        renderPassInfo.pAttachments = attachments.data();
+        renderPassInfo.subpassCount = 1;
+        renderPassInfo.pSubpasses = &subpass;
+        renderPassInfo.dependencyCount = 1;
+        renderPassInfo.pDependencies = &dependency;
+
+        VkRenderPass renderPassRaw;
+        if (vkCreateRenderPass(m_device->logicalDevice().get(), &renderPassInfo, nullptr, &renderPassRaw) !=
+            VK_SUCCESS) {
+            throw std::runtime_error("failed to create render pass!");
+        }
+
+        auto const &capDevice = m_device;
+        auto deleter = [capDevice](VkRenderPass renderPassRaw) {
+            vkDestroyRenderPass(capDevice->logicalDevice().get(), renderPassRaw, nullptr);
+        };
+
+        m_renderPass.reset(renderPassRaw, deleter);
+    }
 } /* namespace vulkan */
 
 std::vector<VkVertexInputAttributeDescription> getAttributeDescriptions() {
@@ -651,14 +768,6 @@ VkVertexInputBindingDescription getBindingDescription() {
 }
 
 void GraphicsVulkan::init(WindowType *inWindow) {
-    uint32_t imageCount;
-    vkGetSwapchainImagesKHR(m_device->logicalDevice().get(), m_swapChain->swapChain().get(), &imageCount, nullptr);
-    swapChainImages.resize(imageCount);
-    vkGetSwapchainImagesKHR(m_device->logicalDevice().get(), m_swapChain->swapChain().get(), &imageCount, swapChainImages.data());
-
-    createImageViews();
-    createRenderPass();
-
     VkDescriptorSetLayout descriptorSetLayout;
     createDescriptorSetLayout(descriptorSetLayout);
     descriptorPools.setDescriptorSetLayout(descriptorSetLayout);
@@ -696,6 +805,12 @@ void GraphicsVulkan::init(WindowType *inWindow) {
     addObjects(levelStarterDynObjsData, texturesLevelStarter);
 
     createDepthResources();
+
+    uint32_t imageCount;
+    vkGetSwapchainImagesKHR(m_device->logicalDevice().get(), m_swapChain->swapChain().get(), &imageCount, nullptr);
+    swapChainImages.resize(imageCount);
+    vkGetSwapchainImagesKHR(m_device->logicalDevice().get(), m_swapChain->swapChain().get(), &imageCount, swapChainImages.data());
+    createImageViews();
     createFramebuffers();
 
     createCommandBuffers();
@@ -784,7 +899,7 @@ void GraphicsVulkan::cleanup() {
         vkDestroySemaphore(m_device->logicalDevice().get(), renderFinishedSemaphore, nullptr);
         vkDestroySemaphore(m_device->logicalDevice().get(), imageAvailableSemaphore, nullptr);
         vkDestroyCommandPool(m_device->logicalDevice().get(), commandPool, nullptr);
-        vkDestroyDevice(m_device->logicalDevice().get(), nullptr);
+        m_device.reset();
     }
 
     m_instance.reset();
@@ -798,7 +913,7 @@ void GraphicsVulkan::recreateSwapChain() {
     m_swapChain.reset(new vulkan::SwapChain(m_device));
     createImageViews();
     createDepthResources();
-    createRenderPass();
+    m_renderPass.reset(new vulkan::RenderPass(m_device, m_swapChain));
     createGraphicsPipeline();
     createFramebuffers();
     createCommandBuffers();
@@ -876,9 +991,7 @@ void GraphicsVulkan::cleanupSwapChain() {
         vkDestroyPipelineLayout(m_device->logicalDevice().get(), pipelineLayout, nullptr);
     }
 
-    if (renderPass != VK_NULL_HANDLE) {
-        vkDestroyRenderPass(m_device->logicalDevice().get(), renderPass, nullptr);
-    }
+    m_renderPass.reset();
 
     if (depthImageView != VK_NULL_HANDLE) {
         vkDestroyImageView(m_device->logicalDevice().get(), depthImageView, nullptr);
@@ -921,113 +1034,6 @@ VkShaderModule GraphicsVulkan::createShaderModule(const std::vector<char>& code)
     }
 
     return shaderModule;
-}
-
-void GraphicsVulkan::createRenderPass() {
-    /* color buffer attachment descriptions: use a single attachment represented by
-     * one of the images from the swap chain.
-     */
-    VkAttachmentDescription colorAttachment = {};
-    colorAttachment.format = m_swapChain->imageFormat();
-    /* stick to one sample since we are not using multisampling */
-    colorAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
-    /* clear the contents of the attachment to a constant at the start */
-    colorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-    /* store the rendered contents in memory so they can be read later */
-    colorAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
-    /* we don't care about the stencil buffer for this app */
-    colorAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-    colorAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-
-    /* we don't care which layout the image was in */
-    colorAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-
-    /* images to be presented in the swap chain */
-    colorAttachment.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
-
-    /* subpasses and attachment references:
-     * a render pass may consist of many subpasses. For example, post processing tasks.
-     */
-    VkAttachmentReference colorAttachmentRef = {};
-    /* specify which attachment by its index in the attachment descriptions array */
-    colorAttachmentRef.attachment = 0;
-
-    /* specify the layout to use for the attachment during a subpass that uses this reference
-     * VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL gives the best performance for an attachment
-     * functioning as a color buffer
-     */
-    colorAttachmentRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-
-    /* depth attachment */
-    VkAttachmentDescription depthAttachment = {};
-    depthAttachment.format = m_device->depthFormat();
-    depthAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
-    depthAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-
-    /* we won't be using the depth data after the drawing has finished, so use DONT_CARE for
-     * store operation
-     */
-    depthAttachment.storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-
-    depthAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-    depthAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-
-    /* dont care about the previous contents */
-    depthAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-
-    depthAttachment.finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
-
-    VkAttachmentReference depthAttachmentRef = {};
-    depthAttachmentRef.attachment = 1;
-    depthAttachmentRef.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
-
-    /* render subpass */
-    VkSubpassDescription subpass = {};
-    /* specify a graphics subpass (as opposed to a compute subpass) */
-    subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
-    subpass.colorAttachmentCount = 1;
-    subpass.pColorAttachments = &colorAttachmentRef;
-    subpass.pDepthStencilAttachment = &depthAttachmentRef;
-
-    /* create a render subbass dependency because we need the render pass to wait for the
-     * VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT stage of the graphics pipeline
-     */
-    VkSubpassDependency dependency = {};
-
-    /* The following two fields specify the indices of the dependency and the dependent
-     * subpass. The special value VK_SUBPASS_EXTERNAL refers to the implicit subpass before
-     * or after the render pass depending on whether it is specified in srcSubpass or
-     * dstSubpass. The index 0 refers to our subpass, which is the first and only one. The
-     * dstSubpass must always be higher than srcSubpass to prevent cycles in the
-     * dependency graph.
-     */
-    dependency.srcSubpass = VK_SUBPASS_EXTERNAL;
-    dependency.dstSubpass = 0;
-
-    /* wait for the VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT stage */
-    dependency.srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-    dependency.srcAccessMask = 0;
-
-    /* prevent the transition from happening until when we want to start writing colors to 
-     * the color attachment.
-     */
-    dependency.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-    dependency.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
-
-    /* create the render pass */
-    std::array<VkAttachmentDescription, 2> attachments = {colorAttachment, depthAttachment};
-    VkRenderPassCreateInfo renderPassInfo = {};
-    renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
-    renderPassInfo.attachmentCount = static_cast<uint32_t>(attachments.size());
-    renderPassInfo.pAttachments = attachments.data();
-    renderPassInfo.subpassCount = 1;
-    renderPassInfo.pSubpasses = &subpass;
-    renderPassInfo.dependencyCount = 1;
-    renderPassInfo.pDependencies = &dependency;
-
-    if (vkCreateRenderPass(m_device->logicalDevice().get(), &renderPassInfo, nullptr, &renderPass) != VK_SUCCESS) {
-        throw std::runtime_error("failed to create render pass!");
-    }
 }
 
 void GraphicsVulkan::createGraphicsPipeline() {
@@ -1254,7 +1260,7 @@ void GraphicsVulkan::createGraphicsPipeline() {
     pipelineInfo.pDepthStencilState = &depthStencil;
     pipelineInfo.pColorBlendState = &colorBlending;
     pipelineInfo.layout = pipelineLayout;
-    pipelineInfo.renderPass = renderPass;
+    pipelineInfo.renderPass = m_renderPass->renderPass().get();
     pipelineInfo.subpass = 0; // index of the subpass
 
     /* if you want to create a pipeline from an already existing pipeline use these.
@@ -1282,7 +1288,7 @@ void GraphicsVulkan::createFramebuffers() {
 
         VkFramebufferCreateInfo framebufferInfo = {};
         framebufferInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
-        framebufferInfo.renderPass = renderPass;
+        framebufferInfo.renderPass = m_renderPass->renderPass().get();
         framebufferInfo.attachmentCount = static_cast<uint32_t>(attachments.size());
         framebufferInfo.pAttachments = attachments.data();
         framebufferInfo.width = m_swapChain->extent().width;
@@ -1438,7 +1444,7 @@ void GraphicsVulkan::initializeCommandBuffer(VkCommandBuffer &commandBuffer, siz
     /* begin the render pass: drawing starts here*/
     VkRenderPassBeginInfo renderPassInfo = {};
     renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-    renderPassInfo.renderPass = renderPass;
+    renderPassInfo.renderPass = m_renderPass->renderPass().get();
     renderPassInfo.framebuffer = swapChainFramebuffers[index];
     /* size of the render area */
     renderPassInfo.renderArea.offset = {0, 0};
