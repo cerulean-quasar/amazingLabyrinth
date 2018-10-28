@@ -226,6 +226,38 @@ namespace vulkan {
 
         bool checkDeviceExtensionSupport(VkPhysicalDevice device);
     };
+
+    class SwapChain {
+    public:
+        SwapChain(std::shared_ptr<Device> inDevice)
+                : m_device(inDevice),
+                  m_swapChain{VK_NULL_HANDLE},
+                  m_imageFormat{},
+                  m_extent{} {
+            createSwapChain();
+        }
+
+        inline std::shared_ptr<Device> const &device() { return m_device; }
+        inline std::shared_ptr<VkSwapchainKHR_T> const &swapChain() {return m_swapChain; }
+        inline VkFormat imageFormat() { return m_imageFormat; }
+        inline VkExtent2D extent() { return m_extent; }
+    private:
+        std::shared_ptr<Device> m_device;
+        std::shared_ptr<VkSwapchainKHR_T> m_swapChain;
+        VkFormat m_imageFormat;
+        VkExtent2D m_extent;
+
+        void createSwapChain();
+
+        VkSurfaceFormatKHR
+        chooseSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR> &availableFormats);
+
+        VkPresentModeKHR
+        chooseSwapPresentMode(const std::vector<VkPresentModeKHR> availablePresentModes);
+
+        VkExtent2D chooseSwapExtent(const VkSurfaceCapabilitiesKHR &capabilities);
+    };
+
 }
 
 #define DEBUG
@@ -240,7 +272,7 @@ public:
     GraphicsVulkan(WindowType *window, uint32_t level)
         :m_instance{new vulkan::Instance(window)},
         m_device{new vulkan::Device{m_instance}},
-        swapChain{VK_NULL_HANDLE},
+        m_swapChain{new vulkan::SwapChain{m_device}},
         descriptorPools{m_device},
         texturesLevel{},
         texturesLevelStarter{},
@@ -248,8 +280,6 @@ public:
         texturesChanged{false},
         swapChainImages{},
         swapChainImageViews{},
-        swapChainImageFormat{},
-        swapChainExtent{},
         renderPass{VK_NULL_HANDLE},
         uniformBufferLighting{VK_NULL_HANDLE},
         uniformBufferMemoryLighting{VK_NULL_HANDLE},
@@ -295,7 +325,7 @@ public:
 private:
     std::shared_ptr<vulkan::Instance> m_instance;
     std::shared_ptr<vulkan::Device> m_device;
-    VkSwapchainKHR swapChain;
+    std::shared_ptr<vulkan::SwapChain> m_swapChain;
 
     class DescriptorPools;
     class DescriptorPool {
@@ -447,8 +477,6 @@ private:
     std::vector<VkImage> swapChainImages;
     std::vector<VkImageView> swapChainImageViews;
 
-    VkFormat swapChainImageFormat;
-    VkExtent2D swapChainExtent;
     VkRenderPass renderPass;
 
     VkBuffer uniformBufferLighting;
@@ -555,8 +583,6 @@ private:
         return VK_FALSE;
     }
 
-    void createSurface();
-
     void addTextures(TextureMap &texture);
     UniformBufferObject getViewPerspectiveMatrix();
     void addObjects(DrawObjectTable &objs, TextureMap &texture);
@@ -571,10 +597,6 @@ private:
     void updatePerspectiveMatrix();
 
     void cleanupSwapChain();
-    VkSurfaceFormatKHR chooseSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& availableFormats);
-    VkPresentModeKHR chooseSwapPresentMode(const std::vector<VkPresentModeKHR> availablePresentModes);
-    VkExtent2D chooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabilities);
-    void createSwapChain();
     void createImageViews();
     VkShaderModule createShaderModule(const std::vector<char>& code);
     void createRenderPass();

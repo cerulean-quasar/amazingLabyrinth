@@ -456,6 +456,152 @@ namespace vulkan {
 
         return requiredExtensions.empty();
     }
+
+    /**
+     * create the swap chain.
+     */
+    void SwapChain::createSwapChain() {
+        /* chose details of the swap chain and get information about what is supported */
+        Device::SwapChainSupportDetails swapChainSupport = m_device->querySwapChainSupport();
+
+        VkSurfaceFormatKHR surfaceFormat = chooseSwapSurfaceFormat(swapChainSupport.formats);
+        VkPresentModeKHR presentMode = chooseSwapPresentMode(swapChainSupport.presentModes);
+        VkExtent2D extent = chooseSwapExtent(swapChainSupport.capabilities);
+
+        /* Decide on the number of images in the swap chain.  The implementation specifies the
+         * minimum amount, but we try to have more than that to implement triple buffering
+         * properly.
+         */
+        uint32_t imageCount = swapChainSupport.capabilities.minImageCount + 1;
+        if (swapChainSupport.capabilities.maxImageCount > 0 &&
+            imageCount > swapChainSupport.capabilities.maxImageCount) {
+            imageCount = swapChainSupport.capabilities.maxImageCount;
+        }
+
+        /* set the create structure up. */
+        VkSwapchainCreateInfoKHR createInfo = {};
+        createInfo.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
+        createInfo.surface = m_device->instance()->surface().get();
+        createInfo.minImageCount = imageCount;
+        createInfo.imageFormat = surfaceFormat.format;
+        createInfo.imageColorSpace = surfaceFormat.colorSpace;
+        createInfo.imageExtent = extent;
+        createInfo.imageArrayLayers = 1;
+        createInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
+
+        /* Prefer exclusive ownership (images are owned by just one queue).  But if the present
+         * queue is different from the graphics queue (not usually the case), use the concurrent
+         * mode to avoid having to transfer ownership. (too hard for right now)
+         */
+        Device::QueueFamilyIndices indices = m_device->findQueueFamilies();
+        uint32_t queueFamilyIndices[] = {(uint32_t) indices.graphicsFamily,
+                                         (uint32_t) indices.presentFamily};
+        if (indices.graphicsFamily != indices.presentFamily) {
+            createInfo.imageSharingMode = VK_SHARING_MODE_CONCURRENT;
+            createInfo.queueFamilyIndexCount = 2;
+            createInfo.pQueueFamilyIndices = queueFamilyIndices;
+        } else {
+            createInfo.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE;
+            createInfo.queueFamilyIndexCount = 0;
+            createInfo.pQueueFamilyIndices = nullptr;
+        }
+
+        /* Specify the transform to perform (like 90 degree clockwise rotation).  For no transform
+         * set this to current transform.
+         */
+        createInfo.preTransform = swapChainSupport.capabilities.currentTransform;
+
+        /*
+         * specifies if the alpha channel should be used for blending with other windows in the
+         * window system.  Ignore the alpha channel.
+         */
+        //createInfo.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
+        // Todo: what should really go here.
+        createInfo.compositeAlpha = VK_COMPOSITE_ALPHA_INHERIT_BIT_KHR;
+
+        /* set the chosen present mode */
+        createInfo.presentMode = presentMode;
+
+        /* enable clipping - this says that we don't care about the color of the pixels that
+         * are obsured, (e.g. another window is in front of them).
+         */
+        createInfo.clipped = VK_TRUE;
+
+        /*
+         * oldSwapchain is for recreating the swap chain if it becomes invalid or unoptimized.
+         * if recreating the swap chain, you need to pass the old one in this field.  For now,
+         * we'll assume that we'll only ever create one swap chain.
+         */
+        createInfo.oldSwapchain = VK_NULL_HANDLE;
+
+        VkSwapchainKHR swapChainRaw;
+        if (vkCreateSwapchainKHR(m_device->logicalDevice().get(), &createInfo, nullptr, &swapChainRaw) !=
+            VK_SUCCESS) {
+            throw std::runtime_error("failed to create swap chain!");
+        }
+
+        auto const &capDevice = m_device;
+        auto deleter = [capDevice](VkSwapchainKHR swapChainRaw) {
+            vkDestroySwapchainKHR(capDevice->logicalDevice().get(), swapChainRaw, nullptr);
+        };
+
+        m_swapChain.reset(swapChainRaw, deleter);
+
+        m_imageFormat = surfaceFormat.format;
+        m_extent = extent;
+    }
+
+    /**
+     * Choose the image format.  We want SRGB color space and RGB format.
+     */
+    VkSurfaceFormatKHR SwapChain::chooseSwapSurfaceFormat(
+            const std::vector<VkSurfaceFormatKHR> &availableFormats) {
+        if (availableFormats.size() == 1 && availableFormats[0].format == VK_FORMAT_UNDEFINED) {
+            return {VK_FORMAT_B8G8R8A8_UNORM, VK_COLOR_SPACE_SRGB_NONLINEAR_KHR};
+        }
+
+        for (const auto &availableFormat : availableFormats) {
+            if (availableFormat.format == VK_FORMAT_B8G8R8A8_UNORM &&
+                availableFormat.colorSpace == VK_COLOR_SPACE_SRGB_NONLINEAR_KHR) {
+                return availableFormat;
+            }
+        }
+
+        return availableFormats[0];
+
+    }
+
+    /**
+     * Choose the swap change present mode.
+     *
+     * We prefer VK_PRESENT_MODE_MAILBOX_KHR because it uses triple
+     * buffering and avoids tearing.  If we can't get that, we look for
+     * VK_PRESENT_MODE_IMMEDIATE_KHR next because although
+     * VK_PRESENT_MODE_FIFO_KHR is guaranteed to be available, not all video
+     * cards implement it correctly.
+     */
+    VkPresentModeKHR
+    SwapChain::chooseSwapPresentMode(const std::vector<VkPresentModeKHR> availablePresentModes) {
+        VkPresentModeKHR bestMode = VK_PRESENT_MODE_FIFO_KHR;
+
+        for (const auto &availablePresentMode : availablePresentModes) {
+            if (availablePresentMode == VK_PRESENT_MODE_MAILBOX_KHR) {
+                return availablePresentMode;
+            } else if (availablePresentMode == VK_PRESENT_MODE_IMMEDIATE_KHR) {
+                bestMode = availablePresentMode;
+            }
+        }
+
+        return bestMode;
+    }
+
+    /**
+     * Choose the resolution of the swap images in the frame buffer.  Just return
+     * the current extent (same resolution as the window).
+     */
+    VkExtent2D SwapChain::chooseSwapExtent(const VkSurfaceCapabilitiesKHR &capabilities) {
+        return capabilities.currentExtent;
+    }
 } /* namespace vulkan */
 
 std::vector<VkVertexInputAttributeDescription> getAttributeDescriptions() {
@@ -505,7 +651,11 @@ VkVertexInputBindingDescription getBindingDescription() {
 }
 
 void GraphicsVulkan::init(WindowType *inWindow) {
-    createSwapChain();
+    uint32_t imageCount;
+    vkGetSwapchainImagesKHR(m_device->logicalDevice().get(), m_swapChain->swapChain().get(), &imageCount, nullptr);
+    swapChainImages.resize(imageCount);
+    vkGetSwapchainImagesKHR(m_device->logicalDevice().get(), m_swapChain->swapChain().get(), &imageCount, swapChainImages.data());
+
     createImageViews();
     createRenderPass();
 
@@ -516,7 +666,7 @@ void GraphicsVulkan::init(WindowType *inWindow) {
     createGraphicsPipeline();
     createCommandPool();
 
-    levelTracker.setParameters(swapChainExtent.width, swapChainExtent.height);
+    levelTracker.setParameters(m_swapChain->extent().width, m_swapChain->extent().height);
     levelStarter = levelTracker.getLevelStarter();
     maze = levelTracker.getLevel();
     float x, y;
@@ -645,7 +795,7 @@ void GraphicsVulkan::recreateSwapChain() {
 
     cleanupSwapChain();
 
-    createSwapChain();
+    m_swapChain.reset(new vulkan::SwapChain(m_device));
     createImageViews();
     createDepthResources();
     createRenderPass();
@@ -708,7 +858,7 @@ void GraphicsVulkan::createIndexBuffer(std::vector<uint32_t> const &indices, VkB
 }
 
 void GraphicsVulkan::updatePerspectiveMatrix() {
-    maze->updatePerspectiveMatrix(swapChainExtent.width, swapChainExtent.height);
+    maze->updatePerspectiveMatrix(m_swapChain->extent().width, m_swapChain->extent().height);
 }
 
 void GraphicsVulkan::cleanupSwapChain() {
@@ -746,146 +896,14 @@ void GraphicsVulkan::cleanupSwapChain() {
         vkDestroyImageView(m_device->logicalDevice().get(), imageView, nullptr);
     }
 
-    if (swapChain != VK_NULL_HANDLE) {
-        vkDestroySwapchainKHR(m_device->logicalDevice().get(), swapChain, nullptr);
-    }
-}
-
-/**
- * Choose the image format.  We want SRGB color space and RGB format.
- */
-VkSurfaceFormatKHR GraphicsVulkan::chooseSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& availableFormats) {
-    if (availableFormats.size() == 1 && availableFormats[0].format == VK_FORMAT_UNDEFINED) {
-        return {VK_FORMAT_B8G8R8A8_UNORM, VK_COLOR_SPACE_SRGB_NONLINEAR_KHR};
-    }
-
-    for (const auto& availableFormat : availableFormats) {
-        if (availableFormat.format == VK_FORMAT_B8G8R8A8_UNORM && availableFormat.colorSpace == VK_COLOR_SPACE_SRGB_NONLINEAR_KHR) {
-            return availableFormat;
-        }
-    }
-
-    return availableFormats[0];
-
-}
-
-/**
- * Choose the swap change present mode.
- *
- * We prefer VK_PRESENT_MODE_MAILBOX_KHR because it uses triple
- * buffering and avoids tearing.  If we can't get that, we look for
- * VK_PRESENT_MODE_IMMEDIATE_KHR next because although
- * VK_PRESENT_MODE_FIFO_KHR is guaranteed to be available, not all video
- * cards implement it correctly.
- */
-VkPresentModeKHR GraphicsVulkan::chooseSwapPresentMode(const std::vector<VkPresentModeKHR> availablePresentModes) {
-    VkPresentModeKHR bestMode = VK_PRESENT_MODE_FIFO_KHR;
-
-    for (const auto& availablePresentMode : availablePresentModes) {
-        if (availablePresentMode == VK_PRESENT_MODE_MAILBOX_KHR) {
-            return availablePresentMode;
-        } else if (availablePresentMode == VK_PRESENT_MODE_IMMEDIATE_KHR) {
-            bestMode = availablePresentMode;
-        }
-    }
-
-    return bestMode;
-}
-
-/**
- * create the swap chain.
- */
-void GraphicsVulkan::createSwapChain() {
-    /* chose details of the swap chain and get information about what is supported */
-    vulkan::Device::SwapChainSupportDetails swapChainSupport = m_device->querySwapChainSupport();
-
-    VkSurfaceFormatKHR surfaceFormat = chooseSwapSurfaceFormat(swapChainSupport.formats);
-    VkPresentModeKHR presentMode = chooseSwapPresentMode(swapChainSupport.presentModes);
-    VkExtent2D extent = chooseSwapExtent(swapChainSupport.capabilities);
-
-    /* Decide on the number of images in the swap chain.  The implementation specifies the
-     * minimum amount, but we try to have more than that to implement triple buffering
-     * properly.
-     */
-    uint32_t imageCount = swapChainSupport.capabilities.minImageCount + 1;
-    if (swapChainSupport.capabilities.maxImageCount > 0 && imageCount > swapChainSupport.capabilities.maxImageCount) {
-        imageCount = swapChainSupport.capabilities.maxImageCount;
-    }
-
-    /* set the create structure up. */
-    VkSwapchainCreateInfoKHR createInfo = {};
-    createInfo.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
-    createInfo.surface = m_instance->surface().get();
-    createInfo.minImageCount = imageCount;
-    createInfo.imageFormat = surfaceFormat.format;
-    createInfo.imageColorSpace = surfaceFormat.colorSpace;
-    createInfo.imageExtent = extent;
-    createInfo.imageArrayLayers = 1;
-    createInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
-
-    /* Prefer exclusive ownership (images are owned by just one queue).  But if the present
-     * queue is different from the graphics queue (not usually the case), use the concurrent
-     * mode to avoid having to transfer ownership. (too hard for right now)
-     */
-    vulkan::Device::QueueFamilyIndices indices = m_device->findQueueFamilies();
-    uint32_t queueFamilyIndices[] = {(uint32_t) indices.graphicsFamily, (uint32_t)indices.presentFamily};
-    if (indices.graphicsFamily != indices.presentFamily) {
-        createInfo.imageSharingMode = VK_SHARING_MODE_CONCURRENT;
-        createInfo.queueFamilyIndexCount = 2;
-        createInfo.pQueueFamilyIndices = queueFamilyIndices;
-    } else {
-        createInfo.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE;
-        createInfo.queueFamilyIndexCount = 0;
-        createInfo.pQueueFamilyIndices = nullptr;
-    }
-
-    /* Specify the transform to perform (like 90 degree clockwise rotation).  For no transform
-     * set this to current transform.
-     */
-    createInfo.preTransform = swapChainSupport.capabilities.currentTransform;
-
-    /*
-     * specifies if the alpha channel should be used for blending with other windows in the
-     * window system.  Ignore the alpha channel.
-     */
-    createInfo.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
-
-    /* set the chosen present mode */
-    createInfo.presentMode = presentMode;
-
-    /* enable clipping - this says that we don't care about the color of the pixels that
-     * are obsured, (e.g. another window is in front of them).
-     */
-    createInfo.clipped = VK_TRUE;
-
-    /*
-     * oldSwapchain is for recreating the swap chain if it becomes invalid or unoptimized.
-     * if recreating the swap chain, you need to pass the old one in this field.  For now,
-     * we'll assume that we'll only ever create one swap chain.
-     */
-    createInfo.oldSwapchain = VK_NULL_HANDLE;
-
-    if (vkCreateSwapchainKHR(m_device->logicalDevice().get(), &createInfo, nullptr, &swapChain) != VK_SUCCESS) {
-        throw std::runtime_error("failed to create swap chain!");
-    }
-
-    /* retrieve the image handles from the swap chain. - handles cleaned up by Vulkan
-     * Note: Vulkan may have chosen to create more images than specified in minImageCount,
-     * so we have to requery the image count here.
-     */
-    vkGetSwapchainImagesKHR(m_device->logicalDevice().get(), swapChain, &imageCount, nullptr);
-    swapChainImages.resize(imageCount);
-    vkGetSwapchainImagesKHR(m_device->logicalDevice().get(), swapChain, &imageCount, swapChainImages.data());
-
-    swapChainImageFormat = surfaceFormat.format;
-    swapChainExtent = extent;
+    m_swapChain.reset();
 }
 
 void GraphicsVulkan::createImageViews() {
     swapChainImageViews.resize(swapChainImages.size());
 
     for (size_t i=0; i < swapChainImages.size(); i++) {
-        swapChainImageViews[i] = createImageView(swapChainImages[i], swapChainImageFormat, VK_IMAGE_ASPECT_COLOR_BIT);
+        swapChainImageViews[i] = createImageView(swapChainImages[i], m_swapChain->imageFormat(), VK_IMAGE_ASPECT_COLOR_BIT);
     }
 }
 
@@ -910,7 +928,7 @@ void GraphicsVulkan::createRenderPass() {
      * one of the images from the swap chain.
      */
     VkAttachmentDescription colorAttachment = {};
-    colorAttachment.format = swapChainImageFormat;
+    colorAttachment.format = m_swapChain->imageFormat();
     /* stick to one sample since we are not using multisampling */
     colorAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
     /* clear the contents of the attachment to a constant at the start */
@@ -1066,8 +1084,8 @@ void GraphicsVulkan::createGraphicsPipeline() {
     VkViewport viewport = {};
     viewport.x = 0.0f;
     viewport.y = 0.0f;
-    viewport.width = (float) swapChainExtent.width;
-    viewport.height = (float) swapChainExtent.height;
+    viewport.width = (float) m_swapChain->extent().width;
+    viewport.height = (float) m_swapChain->extent().height;
     viewport.minDepth = 0.0f;
     viewport.maxDepth = 1.0f;
 
@@ -1076,7 +1094,7 @@ void GraphicsVulkan::createGraphicsPipeline() {
      */
     VkRect2D scissor = {};
     scissor.offset = {0, 0};
-    scissor.extent = swapChainExtent;
+    scissor.extent = m_swapChain->extent();
 
     /* can specify multiple viewports and scissors here */
     VkPipelineViewportStateCreateInfo viewportState = {};
@@ -1267,8 +1285,8 @@ void GraphicsVulkan::createFramebuffers() {
         framebufferInfo.renderPass = renderPass;
         framebufferInfo.attachmentCount = static_cast<uint32_t>(attachments.size());
         framebufferInfo.pAttachments = attachments.data();
-        framebufferInfo.width = swapChainExtent.width;
-        framebufferInfo.height = swapChainExtent.height;
+        framebufferInfo.width = m_swapChain->extent().width;
+        framebufferInfo.height = m_swapChain->extent().height;
         framebufferInfo.layers = 1;
 
         if (vkCreateFramebuffer(m_device->logicalDevice().get(), &framebufferInfo, nullptr, &swapChainFramebuffers[i]) != VK_SUCCESS) {
@@ -1371,7 +1389,7 @@ void GraphicsVulkan::createCommandPool() {
      *      VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT: Allow command buffers to be
      * rerecorded individually, without this flag they all have to be reset together
      */
-    poolInfo.flags = 0;
+    poolInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
 
     if (vkCreateCommandPool(m_device->logicalDevice().get(), &poolInfo, nullptr, &commandPool) != VK_SUCCESS) {
         throw std::runtime_error("failed to create command pool!");
@@ -1424,7 +1442,7 @@ void GraphicsVulkan::initializeCommandBuffer(VkCommandBuffer &commandBuffer, siz
     renderPassInfo.framebuffer = swapChainFramebuffers[index];
     /* size of the render area */
     renderPassInfo.renderArea.offset = {0, 0};
-    renderPassInfo.renderArea.extent = swapChainExtent;
+    renderPassInfo.renderArea.extent = m_swapChain->extent();
 
     /* the color value to use when clearing the image with VK_ATTACHMENT_LOAD_OP_CLEAR,
      * using black with 0% opacity
@@ -1519,7 +1537,7 @@ void GraphicsVulkan::drawFrame() {
      * an error from this function does not necessarily mean that we need to terminate
      * the program
      */
-    VkResult result = vkAcquireNextImageKHR(m_device->logicalDevice().get(), swapChain,
+    VkResult result = vkAcquireNextImageKHR(m_device->logicalDevice().get(), m_swapChain->swapChain().get(),
         std::numeric_limits<uint64_t>::max(), imageAvailableSemaphore, VK_NULL_HANDLE,
         &imageIndex);
 
@@ -1583,7 +1601,7 @@ void GraphicsVulkan::drawFrame() {
     /* which swap chains to present the image to and the index of the image for
      * each swap chain
      */
-    VkSwapchainKHR swapChains[] = {swapChain};
+    VkSwapchainKHR swapChains[] = {m_swapChain->swapChain().get()};
     presentInfo.swapchainCount = 1;
     presentInfo.pSwapchains = swapChains;
     presentInfo.pImageIndices = &imageIndex;
@@ -1617,7 +1635,7 @@ void GraphicsVulkan::drawFrame() {
 void GraphicsVulkan::createDepthResources() {
     VkFormat depthFormat = m_device->depthFormat();
 
-    createImage(swapChainExtent.width, swapChainExtent.height, depthFormat, VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, depthImage, depthImageMemory);
+    createImage(m_swapChain->extent().width, m_swapChain->extent().height, depthFormat, VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, depthImage, depthImageMemory);
     depthImageView = createImageView(depthImage, depthFormat, VK_IMAGE_ASPECT_DEPTH_BIT);
 
     transitionImageLayout(depthImage, depthFormat, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL);
@@ -2051,14 +2069,6 @@ void GraphicsVulkan::copyBufferToImage(VkBuffer buffer, VkImage image, uint32_t 
     );
 
     endSingleTimeCommands(commandBuffer);
-}
-
-/**
- * Choose the resolution of the swap images in the frame buffer.  Just return
- * the current extent (same resolution as the window).
- */
-VkExtent2D GraphicsVulkan::chooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabilities) {
-    return capabilities.currentExtent;
 }
 
 UniformBufferObject GraphicsVulkan::getViewPerspectiveMatrix() {
