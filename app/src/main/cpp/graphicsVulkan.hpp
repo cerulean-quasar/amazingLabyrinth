@@ -274,6 +274,173 @@ namespace vulkan {
 
         void createRenderPass(std::shared_ptr<SwapChain> const &swapChain);
     };
+
+    class DescriptorPools;
+
+    class DescriptorSet {
+        friend DescriptorPools;
+    private:
+        std::shared_ptr<DescriptorPools> m_descriptorPools;
+        std::shared_ptr<VkDescriptorSet_T> m_descriptorSet;
+
+        DescriptorSet(std::shared_ptr<DescriptorPools> inDescriptorPools,
+                      std::shared_ptr<VkDescriptorSet_T> const &inDsc)
+                : m_descriptorPools{inDescriptorPools},
+                  m_descriptorSet{inDsc} {
+        }
+
+    public:
+        inline std::shared_ptr<VkDescriptorSet_T> const &descriptorSet() { return m_descriptorSet; }
+    };
+
+    class DescriptorPool {
+        friend DescriptorPools;
+    private:
+        std::shared_ptr<Device> m_device;
+        std::shared_ptr<VkDescriptorPool_T> m_descriptorPool;
+        uint32_t m_totalDescriptorsInPool;
+        uint32_t m_totalDescriptorsAllocated;
+
+        DescriptorPool(std::shared_ptr<Device> const &inDevice, uint32_t totalDescriptors)
+                : m_device{inDevice},
+                  m_descriptorPool{},
+                  m_totalDescriptorsInPool{totalDescriptors},
+                  m_totalDescriptorsAllocated{0} {
+            // no more descriptors in all the descriptor pools.  create another descriptor pool...
+            std::array<VkDescriptorPoolSize, 3> poolSizes = {};
+
+            // one for each wall and +3 for the floor, ball, and hole.
+            poolSizes[0].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+            poolSizes[0].descriptorCount = m_totalDescriptorsInPool;
+            poolSizes[1].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+            poolSizes[1].descriptorCount = m_totalDescriptorsInPool;
+            poolSizes[2].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+            poolSizes[2].descriptorCount = m_totalDescriptorsInPool;
+            VkDescriptorPoolCreateInfo poolInfo = {};
+            poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
+            poolInfo.poolSizeCount = static_cast<uint32_t>(poolSizes.size());
+            poolInfo.pPoolSizes = poolSizes.data();
+            poolInfo.maxSets = m_totalDescriptorsInPool;
+
+            VkDescriptorPool descriptorPoolRaw;
+            if (vkCreateDescriptorPool(m_device->logicalDevice().get(), &poolInfo, nullptr,
+                                       &descriptorPoolRaw) != VK_SUCCESS) {
+                throw std::runtime_error("failed to create descriptor pool!");
+            }
+
+            auto deleter = [inDevice](VkDescriptorPool descriptorPoolRaw) {
+                vkDestroyDescriptorPool(inDevice->logicalDevice().get(), descriptorPoolRaw, nullptr);
+            };
+
+            m_descriptorPool.reset(descriptorPoolRaw, deleter);
+        }
+
+        VkDescriptorSet allocateDescriptor(std::shared_ptr<VkDescriptorSetLayout_T> const &layout) {
+            if (m_totalDescriptorsAllocated == m_totalDescriptorsInPool) {
+                return VK_NULL_HANDLE;
+            } else {
+                VkDescriptorSet descriptorSet;
+                VkDescriptorSetLayout layouts[] = {layout.get()};
+                VkDescriptorSetAllocateInfo allocInfo = {};
+                allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
+                allocInfo.descriptorPool = m_descriptorPool.get();
+                allocInfo.descriptorSetCount = 1;
+                allocInfo.pSetLayouts = layouts;
+
+                /* the descriptor sets don't need to be freed because they are freed when the
+                 * descriptor pool is freed
+                 */
+                int rc = vkAllocateDescriptorSets(m_device->logicalDevice().get(), &allocInfo,
+                                                  &descriptorSet);
+                if (rc != VK_SUCCESS) {
+                    throw std::runtime_error("failed to allocate descriptor set!");
+                }
+                m_totalDescriptorsAllocated++;
+                return descriptorSet;
+            }
+        }
+
+        bool hasAvailableDescriptorSets() {
+            return m_totalDescriptorsAllocated < m_totalDescriptorsInPool;
+        }
+    };
+
+/* for passing data other than the vertex data to the vertex shader */
+    class DescriptorPools : public std::enable_shared_from_this<DescriptorPools> {
+        friend DescriptorSet;
+    private:
+        std::shared_ptr<Device> m_device;
+        static uint32_t constexpr m_numberOfDescriptorSetsInPool = 1024;
+        std::shared_ptr<VkDescriptorSetLayout_T> m_descriptorSetLayout;
+        std::vector<DescriptorPool> m_descriptorPools;
+        std::vector<VkDescriptorSet> m_unusedDescriptors;
+
+        void createDescriptorSetLayout();
+
+    public:
+        DescriptorPools(std::shared_ptr<Device> const &inDevice)
+                : m_device{inDevice},
+                  m_descriptorSetLayout{},
+                  m_descriptorPools{},
+                  m_unusedDescriptors{} {
+            createDescriptorSetLayout();
+        }
+
+        std::shared_ptr<VkDescriptorSetLayout_T> const &descriptorSetLayout() { return m_descriptorSetLayout; }
+
+        std::shared_ptr<DescriptorSet> allocateDescriptor() {
+            if (m_descriptorSetLayout == VK_NULL_HANDLE) {
+                throw (std::runtime_error(
+                        "DescriptorPool::allocateDescriptor - no descriptor set layout"));
+            }
+
+            auto deleter = [this](VkDescriptorSet descSet) {
+                m_unusedDescriptors.push_back(descSet);
+            };
+
+            if (m_unusedDescriptors.size() > 0) {
+                VkDescriptorSet descriptorSet = m_unusedDescriptors.back();
+                m_unusedDescriptors.pop_back();
+
+                return std::shared_ptr<DescriptorSet>{new DescriptorSet{shared_from_this(),
+                                                                        std::shared_ptr<VkDescriptorSet_T>{descriptorSet, deleter}}};
+            } else {
+                for (auto &&descriptorPool : m_descriptorPools) {
+                    if (descriptorPool.hasAvailableDescriptorSets()) {
+                        VkDescriptorSet descriptorSet = descriptorPool.allocateDescriptor(
+                                m_descriptorSetLayout);
+                        return std::shared_ptr<DescriptorSet>{new DescriptorSet{shared_from_this(),
+                                                                                std::shared_ptr<VkDescriptorSet_T>{descriptorSet, deleter}}};
+                    }
+                }
+
+
+                DescriptorPool newDescriptorPool(m_device, m_numberOfDescriptorSetsInPool);
+                m_descriptorPools.push_back(newDescriptorPool);
+                VkDescriptorSet descriptorSet = newDescriptorPool.allocateDescriptor(
+                        m_descriptorSetLayout);
+                return std::shared_ptr<DescriptorSet>(new DescriptorSet(shared_from_this(),
+                                                                        std::shared_ptr<VkDescriptorSet_T>(descriptorSet, deleter)));
+            }
+        }
+    };
+
+    class Shader {
+        std::shared_ptr<Device> m_device;
+
+        std::shared_ptr<VkShaderModule_T> m_shaderModule;
+
+        void createShaderModule(std::string const &codeFile);
+
+    public:
+        Shader(std::shared_ptr<Device> const &inDevice, std::string const &codeFile)
+                : m_device(inDevice),
+                  m_shaderModule{} {
+            createShaderModule(codeFile);
+        }
+
+        inline std::shared_ptr<VkShaderModule_T> const &shader() { return m_shaderModule; }
+    };
 }
 
 #define DEBUG
@@ -290,7 +457,7 @@ public:
         m_device{new vulkan::Device{m_instance}},
         m_swapChain{new vulkan::SwapChain{m_device}},
         m_renderPass{new vulkan::RenderPass{m_device, m_swapChain}},
-        descriptorPools{m_device},
+        m_descriptorPools{new vulkan::DescriptorPools{m_device}},
         texturesLevel{},
         texturesLevelStarter{},
         texturesLevelFinisher{},
@@ -345,130 +512,7 @@ private:
 
     std::shared_ptr<vulkan::RenderPass> m_renderPass;
 
-    class DescriptorPools;
-    class DescriptorPool {
-        friend DescriptorPools;
-    private:
-        std::shared_ptr<vulkan::Device> m_device;
-        VkDescriptorPool descriptorPool = VK_NULL_HANDLE;
-        uint32_t totalDescriptorsAllocated;
-        uint32_t totalDescriptorsInPool;
-
-        DescriptorPool(std::shared_ptr<vulkan::Device> inDevice,
-                       VkDescriptorPool pool, uint32_t totalDescriptors)
-                : m_device(inDevice),
-                  descriptorPool(pool), totalDescriptorsInPool(totalDescriptors),
-                  totalDescriptorsAllocated(0)
-        { }
-        VkDescriptorSet allocateDescriptor(VkDescriptorSetLayout layout) {
-            if (totalDescriptorsAllocated == totalDescriptorsInPool) {
-                return VK_NULL_HANDLE;
-            } else {
-                VkDescriptorSet descriptorSet;
-                VkDescriptorSetLayout layouts[] = {layout};
-                VkDescriptorSetAllocateInfo allocInfo = {};
-                allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
-                allocInfo.descriptorPool = descriptorPool;
-                allocInfo.descriptorSetCount = 1;
-                allocInfo.pSetLayouts = layouts;
-
-                /* the descriptor sets don't need to be freed because they are freed when the
-                 * descriptor pool is freed
-                 */
-                int rc = vkAllocateDescriptorSets(m_device->logicalDevice().get(), &allocInfo, &descriptorSet);
-                if (rc != VK_SUCCESS) {
-                    throw std::runtime_error("failed to allocate descriptor set!");
-                }
-                totalDescriptorsAllocated++;
-                return descriptorSet;
-            }
-        }
-
-        bool hasAvailableDescriptorSets() { return totalDescriptorsAllocated < totalDescriptorsInPool; }
-
-    };
-
-    /* for passing data other than the vertex data to the vertex shader */
-    class DescriptorPools {
-    private:
-        std::shared_ptr<vulkan::Device> m_device;
-        uint32_t const numberOfDescriptorSetsInPool = 1024;
-        VkDescriptorSetLayout descriptorSetLayout = VK_NULL_HANDLE;
-        std::vector<DescriptorPool> descriptorPools;
-        std::vector<VkDescriptorSet> unusedDescriptors;
-    public:
-        DescriptorPools(std::shared_ptr<vulkan::Device> inDevice)
-                : m_device{inDevice}, descriptorSetLayout(VK_NULL_HANDLE) { }
-        ~DescriptorPools() { destroyResources(); }
-
-        void setDescriptorSetLayout(VkDescriptorSetLayout layout) {
-            descriptorSetLayout = layout;
-        }
-        VkDescriptorSetLayout getDescriptorSetLayout() { return descriptorSetLayout; }
-        void destroyResources() {
-            unusedDescriptors.clear();
-
-            for (auto &&descriptorPool: descriptorPools) {
-                vkDestroyDescriptorPool(m_device->logicalDevice().get(), descriptorPool.descriptorPool, nullptr);
-            }
-
-            descriptorPools.clear();
-
-            if (descriptorSetLayout != VK_NULL_HANDLE) {
-                vkDestroyDescriptorSetLayout(m_device->logicalDevice().get(), descriptorSetLayout, nullptr);
-                descriptorSetLayout = VK_NULL_HANDLE;
-            }
-
-        }
-        void freeDescriptor(VkDescriptorSet descriptorSet) {
-            unusedDescriptors.push_back(descriptorSet);
-        }
-
-        VkDescriptorSet allocateDescriptor() {
-            if (descriptorSetLayout == VK_NULL_HANDLE) {
-                throw (std::runtime_error("DescriptorPool::allocateDescriptor - no descriptor set layout"));
-            }
-
-            if (unusedDescriptors.size() > 0) {
-                VkDescriptorSet descriptorSet = unusedDescriptors.back();
-                unusedDescriptors.pop_back();
-                return descriptorSet;
-            } else {
-                for (auto &&descriptorPool : descriptorPools) {
-                    if (descriptorPool.hasAvailableDescriptorSets()) {
-                        return descriptorPool.allocateDescriptor(descriptorSetLayout);
-                    }
-                }
-
-                // no more descriptors in all the descriptor pools.  create another descriptor pool...
-                std::array<VkDescriptorPoolSize, 3> poolSizes = {};
-
-                // one for each wall and +3 for the floor, ball, and hole.
-                poolSizes[0].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-                poolSizes[0].descriptorCount = numberOfDescriptorSetsInPool;
-                poolSizes[1].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-                poolSizes[1].descriptorCount = numberOfDescriptorSetsInPool;
-                poolSizes[2].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-                poolSizes[2].descriptorCount = numberOfDescriptorSetsInPool;
-                VkDescriptorPoolCreateInfo poolInfo = {};
-                poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
-                poolInfo.poolSizeCount = static_cast<uint32_t>(poolSizes.size());
-                poolInfo.pPoolSizes = poolSizes.data();
-                poolInfo.maxSets = numberOfDescriptorSetsInPool;
-
-                VkDescriptorPool descriptorPool;
-                if (vkCreateDescriptorPool(m_device->logicalDevice().get(), &poolInfo, nullptr, &descriptorPool) != VK_SUCCESS) {
-                    throw std::runtime_error("failed to create descriptor pool!");
-                }
-
-                DescriptorPool newDescriptorPool(m_device, descriptorPool, numberOfDescriptorSetsInPool);
-
-                descriptorPools.push_back(newDescriptorPool);
-                return newDescriptorPool.allocateDescriptor(descriptorSetLayout);
-            }
-        }
-    };
-    DescriptorPools descriptorPools;
+    std::shared_ptr<vulkan::DescriptorPools> m_descriptorPools;
 
     struct TextureDataVulkan : public TextureData {
         TextureDataVulkan(std::shared_ptr<vulkan::Device> inDevice)
@@ -501,14 +545,16 @@ private:
     struct UniformWrapper {
         std::shared_ptr<vulkan::Device> m_device;
         /* for passing data other than the vertex data to the vertex shader */
-        VkDescriptorSet descriptorSet;
+        std::shared_ptr<vulkan::DescriptorSet> descriptorSet;
         VkBuffer uniformBuffer;
         VkDeviceMemory uniformBufferMemory;
-        DescriptorPools *pools;
+        std::shared_ptr<vulkan::DescriptorPools> pools;
 
         UniformWrapper(std::shared_ptr<vulkan::Device> inDevice,
-                       VkDescriptorSet inDescriptorSet, VkBuffer inUniformBuffer,
-                       VkDeviceMemory inUniformBufferMemory, DescriptorPools *inPools)
+                       std::shared_ptr<vulkan::DescriptorSet> const &inDescriptorSet,
+                       VkBuffer inUniformBuffer,
+                       VkDeviceMemory inUniformBufferMemory,
+                       std::shared_ptr<vulkan::DescriptorPools> const &inPools)
         : m_device(inDevice) {
             uniformBuffer = inUniformBuffer;
             uniformBufferMemory = inUniformBufferMemory;
@@ -517,8 +563,7 @@ private:
         }
 
         ~UniformWrapper() {
-            pools->freeDescriptor(descriptorSet);
-            /* free the memory after the buffer has been destroyed because the buffer is bound to 
+            /* free the memory after the buffer has been destroyed because the buffer is bound to
              * the memory, so the buffer is still using the memory until the buffer is destroyed.
              */
             vkDestroyBuffer(m_device->logicalDevice().get(), uniformBuffer, nullptr);
@@ -615,7 +660,6 @@ private:
     void cleanupSwapChain();
     void createImageViews();
     VkShaderModule createShaderModule(const std::vector<char>& code);
-    void createRenderPass();
     void createGraphicsPipeline();
     void createFramebuffers();
     void createBuffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties, VkBuffer& buffer, VkDeviceMemory& bufferMemory);
@@ -629,8 +673,8 @@ private:
     void createSemaphores();
     void createDepthResources();
     bool hasStencilComponent(VkFormat format);
-    void updateDescriptorSet(VkBuffer uniformBuffer, VkImageView imageView, VkSampler textureSampler, VkBuffer lightingSource, VkDescriptorSet &descriptorSet);
-    void createDescriptorSetLayout(VkDescriptorSetLayout &descriptorSetLayout);
+    void updateDescriptorSet(VkBuffer uniformBuffer, VkImageView imageView, VkSampler textureSampler,
+                             VkBuffer lightingSource, std::shared_ptr<vulkan::DescriptorSet> const &descriptorSet);
     void createTextureImage(TextureDescription *texture, VkImage &textureImage, VkDeviceMemory &textureImageMemory);
     void createTextureSampler(VkSampler &textureSampler);
     VkImageView createImageView(VkImage image, VkFormat format, VkImageAspectFlags aspectFlags);

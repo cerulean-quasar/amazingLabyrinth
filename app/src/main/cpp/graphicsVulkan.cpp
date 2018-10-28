@@ -719,6 +719,80 @@ namespace vulkan {
 
         m_renderPass.reset(renderPassRaw, deleter);
     }
+
+/* for accessing data other than the vertices from the shaders */
+    void DescriptorPools::createDescriptorSetLayout() {
+        /* MVP matrix */
+        VkDescriptorSetLayoutBinding uboLayoutBinding = {};
+        uboLayoutBinding.binding = 0;
+        uboLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+        uboLayoutBinding.descriptorCount = 1;
+
+        /* only accessing the MVP matrix from the vertex shader */
+        uboLayoutBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
+        uboLayoutBinding.pImmutableSamplers = nullptr; // Optional
+
+        /* image sampler */
+        VkDescriptorSetLayoutBinding samplerLayoutBinding = {};
+        samplerLayoutBinding.binding = 1;
+        samplerLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+        samplerLayoutBinding.descriptorCount = 1;
+        samplerLayoutBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+        samplerLayoutBinding.pImmutableSamplers = nullptr;
+
+        VkDescriptorSetLayoutBinding lightingSourceBinding = {};
+        lightingSourceBinding.binding = 2;
+        lightingSourceBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+        lightingSourceBinding.descriptorCount = 1;
+        lightingSourceBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+        lightingSourceBinding.pImmutableSamplers = nullptr;
+
+        std::array<VkDescriptorSetLayoutBinding, 3> bindings = {uboLayoutBinding,
+                                                                samplerLayoutBinding,
+                                                                lightingSourceBinding};
+
+        VkDescriptorSetLayoutCreateInfo layoutInfo = {};
+        layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
+        layoutInfo.bindingCount = static_cast<uint32_t>(bindings.size());
+        layoutInfo.pBindings = bindings.data();
+
+        VkDescriptorSetLayout descriptorSetLayoutRaw;
+        if (vkCreateDescriptorSetLayout(m_device->logicalDevice().get(), &layoutInfo, nullptr,
+                                        &descriptorSetLayoutRaw) != VK_SUCCESS) {
+            throw std::runtime_error("failed to create descriptor set layout!");
+        }
+
+        auto const &capDevice = m_device;
+        auto deleter = [capDevice](VkDescriptorSetLayout descriptorSetLayoutRaw) {
+            vkDestroyDescriptorSetLayout(capDevice->logicalDevice().get(), descriptorSetLayoutRaw, nullptr);
+        };
+
+        m_descriptorSetLayout.reset(descriptorSetLayoutRaw, deleter);
+    }
+
+    void Shader::createShaderModule(std::string const &codeFile) {
+        auto code = readFile(codeFile.c_str());
+
+        VkShaderModuleCreateInfo createInfo = {};
+        createInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
+        createInfo.codeSize = code.size();
+
+        /* vector.data is 32 bit aligned as is required. */
+        createInfo.pCode = reinterpret_cast<const uint32_t *>(code.data());
+
+        VkShaderModule shaderModuleRaw;
+        if (vkCreateShaderModule(m_device->logicalDevice().get(), &createInfo, nullptr, &shaderModuleRaw) !=
+            VK_SUCCESS) {
+            throw std::runtime_error("failed to create shader module!");
+        }
+
+        auto const &capDevice = m_device;
+        auto deleter = [capDevice](VkShaderModule shaderModule) {
+            vkDestroyShaderModule(capDevice->logicalDevice().get(), shaderModule, nullptr);
+        };
+
+        m_shaderModule.reset(shaderModuleRaw, deleter);
+    }
 } /* namespace vulkan */
 
 std::vector<VkVertexInputAttributeDescription> getAttributeDescriptions() {
@@ -768,10 +842,6 @@ VkVertexInputBindingDescription getBindingDescription() {
 }
 
 void GraphicsVulkan::init(WindowType *inWindow) {
-    VkDescriptorSetLayout descriptorSetLayout;
-    createDescriptorSetLayout(descriptorSetLayout);
-    descriptorPools.setDescriptorSetLayout(descriptorSetLayout);
-
     createGraphicsPipeline();
     createCommandPool();
 
@@ -869,13 +939,14 @@ void GraphicsVulkan::addUniforms(DrawObjectEntry &obj, TextureMap &textures) {
         if (it == textures.end()) {
             throw std::runtime_error("Could not find texture in texture map.");
         }
-        VkDescriptorSet descriptorSet = descriptorPools.allocateDescriptor();
+
+        std::shared_ptr<vulkan::DescriptorSet> descriptorSet = m_descriptorPools->allocateDescriptor();
         TextureDataVulkan *textureData = static_cast<TextureDataVulkan*> (it->second.get());
         updateDescriptorSet(uniformBuffer, textureData->imageView, textureData->sampler,
                             uniformBufferLighting, descriptorSet);
 
         std::shared_ptr<UniformWrapper> uniform(new UniformWrapper(m_device, descriptorSet, uniformBuffer,
-                                                                   uniformBufferMemory, &descriptorPools));
+                                                                   uniformBufferMemory, m_descriptorPools));
         data->uniforms.push_back(uniform);
     }
 }
@@ -895,7 +966,7 @@ void GraphicsVulkan::cleanup() {
         vkDestroyBuffer(m_device->logicalDevice().get(), uniformBufferLighting, nullptr);
         vkFreeMemory(m_device->logicalDevice().get(), uniformBufferMemoryLighting, nullptr);
 
-        descriptorPools.destroyResources();
+        m_descriptorPools.reset();
         vkDestroySemaphore(m_device->logicalDevice().get(), renderFinishedSemaphore, nullptr);
         vkDestroySemaphore(m_device->logicalDevice().get(), imageAvailableSemaphore, nullptr);
         vkDestroyCommandPool(m_device->logicalDevice().get(), commandPool, nullptr);
@@ -1020,34 +1091,15 @@ void GraphicsVulkan::createImageViews() {
     }
 }
 
-VkShaderModule GraphicsVulkan::createShaderModule(const std::vector<char>& code) {
-    VkShaderModuleCreateInfo createInfo = {};
-    createInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
-    createInfo.codeSize = code.size();
-
-    /* vector.data is 32 bit aligned as is required. */
-    createInfo.pCode = reinterpret_cast<const uint32_t*>(code.data());
-
-    VkShaderModule shaderModule;
-    if (vkCreateShaderModule(m_device->logicalDevice().get(), &createInfo, nullptr, &shaderModule) != VK_SUCCESS) {
-        throw std::runtime_error("failed to create shader module!");
-    }
-
-    return shaderModule;
-}
-
 void GraphicsVulkan::createGraphicsPipeline() {
-    auto vertShaderCode = readFile(SHADER_VERT_FILE);
-    auto fragShaderCode = readFile(SHADER_FRAG_FILE);
-
-    VkShaderModule vertShaderModule = createShaderModule(vertShaderCode);
-    VkShaderModule fragShaderModule = createShaderModule(fragShaderCode);
+    vulkan::Shader vertShaderModule(m_device, SHADER_VERT_FILE);
+    vulkan::Shader fragShaderModule(m_device, SHADER_FRAG_FILE);
 
     /* assign shaders to stages in the graphics pipeline */
     VkPipelineShaderStageCreateInfo vertShaderStageInfo = {};
     vertShaderStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
     vertShaderStageInfo.stage = VK_SHADER_STAGE_VERTEX_BIT;
-    vertShaderStageInfo.module = vertShaderModule;
+    vertShaderStageInfo.module = vertShaderModule.shader().get();
     vertShaderStageInfo.pName = "main";
     /* can also use pSpecializationInfo to set constants used by the shader.  This allows
      * the usage of one shader module to be configured in different ways at pipeline creation,
@@ -1059,7 +1111,7 @@ void GraphicsVulkan::createGraphicsPipeline() {
     VkPipelineShaderStageCreateInfo fragShaderStageInfo = {};
     fragShaderStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
     fragShaderStageInfo.stage = VK_SHADER_STAGE_FRAGMENT_BIT;
-    fragShaderStageInfo.module = fragShaderModule;
+    fragShaderStageInfo.module = fragShaderModule.shader().get();
     fragShaderStageInfo.pName = "main";
     fragShaderStageInfo.pSpecializationInfo = nullptr;
     VkPipelineShaderStageCreateInfo shaderStages[] = {vertShaderStageInfo, fragShaderStageInfo};
@@ -1238,7 +1290,7 @@ void GraphicsVulkan::createGraphicsPipeline() {
 
     /* the descriptor set layout for the MVP matrix */
     pipelineLayoutInfo.setLayoutCount = 1;
-    VkDescriptorSetLayout descriptorSetLayout = descriptorPools.getDescriptorSetLayout();
+    VkDescriptorSetLayout descriptorSetLayout = m_descriptorPools->descriptorSetLayout().get();
     pipelineLayoutInfo.pSetLayouts = &descriptorSetLayout;
 
     pipelineLayoutInfo.pushConstantRangeCount = 0; // Optional
@@ -1272,10 +1324,6 @@ void GraphicsVulkan::createGraphicsPipeline() {
     if (vkCreateGraphicsPipelines(m_device->logicalDevice().get(), VK_NULL_HANDLE/*pipeline cache*/, 1, &pipelineInfo, nullptr, &graphicsPipeline) != VK_SUCCESS) {
         throw std::runtime_error("failed to create graphics pipeline!");
     }
-
-    /* clean up */
-    vkDestroyShaderModule(m_device->logicalDevice().get(), vertShaderModule, nullptr);
-    vkDestroyShaderModule(m_device->logicalDevice().get(), fragShaderModule, nullptr);
 }
 
 void GraphicsVulkan::createFramebuffers() {
@@ -1505,8 +1553,9 @@ void GraphicsVulkan::initializeCommandBufferDrawObjects(VkCommandBuffer &command
         vkCmdBindIndexBuffer(commandBuffer, objData->indexBuffer, 0, VK_INDEX_TYPE_UINT32);
         for (auto &&uniform : objData->uniforms) {
             /* The MVP matrix and texture samplers */
+            VkDescriptorSet descriptorSet = uniform->descriptorSet->descriptorSet().get();
             vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
-                                    pipelineLayout, 0, 1, &(uniform->descriptorSet), 0, nullptr);
+                                    pipelineLayout, 0, 1, &descriptorSet, 0, nullptr);
 
             /* indexed draw command:
              * parameter 1 - Command buffer for the draw command
@@ -1654,7 +1703,7 @@ bool GraphicsVulkan::hasStencilComponent(VkFormat format) {
 /* descriptor set for the MVP matrix and texture samplers */
 void GraphicsVulkan::updateDescriptorSet(VkBuffer uniformBuffer, VkImageView imageView,
                                          VkSampler textureSampler, VkBuffer lightingSource,
-                                         VkDescriptorSet &descriptorSet) {
+                                         std::shared_ptr<vulkan::DescriptorSet> const &descriptorSet) {
     VkDescriptorBufferInfo bufferInfo = {};
     bufferInfo.buffer = uniformBuffer;
     bufferInfo.offset = 0;
@@ -1662,7 +1711,7 @@ void GraphicsVulkan::updateDescriptorSet(VkBuffer uniformBuffer, VkImageView ima
 
     std::array<VkWriteDescriptorSet, 3> descriptorWrites = {};
     descriptorWrites[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-    descriptorWrites[0].dstSet = descriptorSet;
+    descriptorWrites[0].dstSet = descriptorSet->descriptorSet().get();
 
     /* must be the same as the binding in the vertex shader */
     descriptorWrites[0].dstBinding = 0;
@@ -1689,7 +1738,7 @@ void GraphicsVulkan::updateDescriptorSet(VkBuffer uniformBuffer, VkImageView ima
     imageInfo.sampler = textureSampler;
 
     descriptorWrites[1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-    descriptorWrites[1].dstSet = descriptorSet;
+    descriptorWrites[1].dstSet = descriptorSet->descriptorSet().get();
     descriptorWrites[1].dstBinding = 1;
     descriptorWrites[1].dstArrayElement = 0;
     descriptorWrites[1].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
@@ -1702,7 +1751,7 @@ void GraphicsVulkan::updateDescriptorSet(VkBuffer uniformBuffer, VkImageView ima
     bufferLightingSource.range = sizeof (glm::vec3);
 
     descriptorWrites[2].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-    descriptorWrites[2].dstSet = descriptorSet;
+    descriptorWrites[2].dstSet = descriptorSet->descriptorSet().get();
     descriptorWrites[2].dstBinding = 2;
     descriptorWrites[2].dstArrayElement = 0;
     descriptorWrites[2].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
@@ -1710,45 +1759,6 @@ void GraphicsVulkan::updateDescriptorSet(VkBuffer uniformBuffer, VkImageView ima
     descriptorWrites[2].pBufferInfo = &bufferLightingSource;
 
     vkUpdateDescriptorSets(m_device->logicalDevice().get(), static_cast<uint32_t>(descriptorWrites.size()), descriptorWrites.data(), 0, nullptr);
-}
-
-/* for accessing data other than the vertices from the shaders */
-void GraphicsVulkan::createDescriptorSetLayout(VkDescriptorSetLayout &descriptorSetLayout) {
-    /* MVP matrix */
-    VkDescriptorSetLayoutBinding uboLayoutBinding = {};
-    uboLayoutBinding.binding = 0;
-    uboLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-    uboLayoutBinding.descriptorCount = 1;
-
-    /* only accessing the MVP matrix from the vertex shader */
-    uboLayoutBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
-    uboLayoutBinding.pImmutableSamplers = nullptr; // Optional
-
-    /* image sampler */
-    VkDescriptorSetLayoutBinding samplerLayoutBinding = {};
-    samplerLayoutBinding.binding = 1;
-    samplerLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-    samplerLayoutBinding.descriptorCount = 1;
-    samplerLayoutBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
-    samplerLayoutBinding.pImmutableSamplers = nullptr;
-
-    VkDescriptorSetLayoutBinding lightingSourceBinding = {};
-    lightingSourceBinding.binding = 2;
-    lightingSourceBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-    lightingSourceBinding.descriptorCount = 1;
-    lightingSourceBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
-    lightingSourceBinding.pImmutableSamplers = nullptr;
-
-    std::array<VkDescriptorSetLayoutBinding, 3> bindings = {uboLayoutBinding, samplerLayoutBinding, lightingSourceBinding};
-
-    VkDescriptorSetLayoutCreateInfo layoutInfo = {};
-    layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
-    layoutInfo.bindingCount = static_cast<uint32_t>(bindings.size());
-    layoutInfo.pBindings = bindings.data();
-
-    if (vkCreateDescriptorSetLayout(m_device->logicalDevice().get(), &layoutInfo, nullptr, &descriptorSetLayout) != VK_SUCCESS) {
-        throw std::runtime_error("failed to create descriptor set layout!");
-    }
 }
 
 void GraphicsVulkan::createTextureImage(TextureDescription *texture, VkImage &textureImage, VkDeviceMemory &textureImageMemory) {
