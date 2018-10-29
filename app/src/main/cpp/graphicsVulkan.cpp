@@ -1210,6 +1210,23 @@ namespace vulkan {
         memcpy(data, dataRaw, size);
         vkUnmapMemory(m_device->logicalDevice().get(), m_bufferMemory.get());
     }
+
+    void Semaphore::createSemaphore() {
+        VkSemaphoreCreateInfo semaphoreInfo = {};
+        semaphoreInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
+        VkSemaphore semaphoreRaw;
+        if (vkCreateSemaphore(m_device->logicalDevice().get(), &semaphoreInfo, nullptr, &semaphoreRaw) !=
+            VK_SUCCESS) {
+            throw std::runtime_error("failed to create semaphores!");
+        }
+
+        auto const &capDevice = m_device;
+        auto deleter = [capDevice](VkSemaphore semaphoreRaw) {
+            vkDestroySemaphore(capDevice->logicalDevice().get(), semaphoreRaw, nullptr);
+        };
+
+        m_semaphore.reset(semaphoreRaw, deleter);
+    }
 } /* namespace vulkan */
 
 std::vector<VkVertexInputAttributeDescription> getAttributeDescriptions() {
@@ -1294,7 +1311,6 @@ void GraphicsVulkan::init(WindowType *inWindow) {
     createFramebuffers();
 
     createCommandBuffers();
-    createSemaphores();
 }
 
 void GraphicsVulkan::addTextures(TextureMap &textures) {
@@ -1372,13 +1388,8 @@ void GraphicsVulkan::cleanup() {
     if (m_device->logicalDevice().get() != VK_NULL_HANDLE) {
         m_uniformBufferLighting.reset();
         m_descriptorPools.reset();
-        vkDestroySemaphore(m_device->logicalDevice().get(), renderFinishedSemaphore, nullptr);
-        vkDestroySemaphore(m_device->logicalDevice().get(), imageAvailableSemaphore, nullptr);
         m_commandPool.reset();
-        m_device.reset();
     }
-
-    m_instance.reset();
 }
 
 void GraphicsVulkan::recreateSwapChain() {
@@ -1622,16 +1633,6 @@ void GraphicsVulkan::initializeCommandBufferDrawObjects(VkCommandBuffer &command
     }
 }
 
-void GraphicsVulkan::createSemaphores() {
-    VkSemaphoreCreateInfo semaphoreInfo = {};
-    semaphoreInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
-    if (vkCreateSemaphore(m_device->logicalDevice().get(), &semaphoreInfo, nullptr, &imageAvailableSemaphore) != VK_SUCCESS ||
-        vkCreateSemaphore(m_device->logicalDevice().get(), &semaphoreInfo, nullptr, &renderFinishedSemaphore) != VK_SUCCESS) {
-
-        throw std::runtime_error("failed to create semaphores!");
-    }
-}
-
 void GraphicsVulkan::drawFrame() {
     /* update the app state here */
 
@@ -1645,8 +1646,8 @@ void GraphicsVulkan::drawFrame() {
      * the program
      */
     VkResult result = vkAcquireNextImageKHR(m_device->logicalDevice().get(), m_swapChain->swapChain().get(),
-        std::numeric_limits<uint64_t>::max(), imageAvailableSemaphore, VK_NULL_HANDLE,
-        &imageIndex);
+        std::numeric_limits<uint64_t>::max(), m_imageAvailableSemaphore.semaphore().get(),
+        VK_NULL_HANDLE, &imageIndex);
 
     //if (maze->isFinished() || levelFinisher->isUnveiling() || texturesChanged) {
         // The user completed the maze or the textures changed.  If the maze is completed, we need
@@ -1675,7 +1676,7 @@ void GraphicsVulkan::drawFrame() {
     /* wait for the semaphore before writing to the color attachment.  This means that we
      * could start executing the vertex shader before the image is available.
      */
-    VkSemaphore waitSemaphores[] = {imageAvailableSemaphore};
+    VkSemaphore waitSemaphores[] = {m_imageAvailableSemaphore.semaphore().get()};
     VkPipelineStageFlags waitStages[] = {VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT};
     submitInfo.waitSemaphoreCount = 1;
     submitInfo.pWaitSemaphores = waitSemaphores;
@@ -1686,7 +1687,7 @@ void GraphicsVulkan::drawFrame() {
     submitInfo.pCommandBuffers = &commandBuffers[imageIndex];
 
     /* indicate which semaphore to signal when execution is done */
-    VkSemaphore signalSemaphores[] = {renderFinishedSemaphore};
+    VkSemaphore signalSemaphores[] = {m_renderFinishedSemaphore.semaphore().get()};
     submitInfo.signalSemaphoreCount = 1;
     submitInfo.pSignalSemaphores = signalSemaphores;
 

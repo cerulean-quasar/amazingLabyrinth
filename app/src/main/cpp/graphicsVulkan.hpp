@@ -556,6 +556,23 @@ namespace vulkan {
 
         void createBuffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties);
     };
+
+    class Semaphore {
+        std::shared_ptr<Device> m_device;
+
+        std::shared_ptr<VkSemaphore_T> m_semaphore;
+
+        void createSemaphore();
+
+    public:
+        Semaphore(std::shared_ptr<Device> const &inDevice)
+                : m_device{inDevice},
+                  m_semaphore{} {
+            createSemaphore();
+        }
+
+        inline std::shared_ptr<VkSemaphore_T> const &semaphore() { return m_semaphore; }
+    };
 } /* namespace vulkan */
 
 #define DEBUG
@@ -598,8 +615,8 @@ public:
         levelTracker{level},
         swapChainFramebuffers{},
         commandBuffers{},
-        imageAvailableSemaphore{},
-        renderFinishedSemaphore{},
+        m_imageAvailableSemaphore{m_device},
+        m_renderFinishedSemaphore{m_device},
         depthImage{VK_NULL_HANDLE},
         depthImageMemory{VK_NULL_HANDLE},
         depthImageView{VK_NULL_HANDLE}
@@ -713,8 +730,8 @@ private:
      * but fences are more for coordinating in our program itself and not for internal
      * Vulkan coordination of resource usage.
      */
-    VkSemaphore imageAvailableSemaphore;
-    VkSemaphore renderFinishedSemaphore;
+    vulkan::Semaphore m_imageAvailableSemaphore;
+    vulkan::Semaphore m_renderFinishedSemaphore;
 
     /* depth buffer image */
     VkImage depthImage;
