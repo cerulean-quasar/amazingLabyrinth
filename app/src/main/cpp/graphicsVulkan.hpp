@@ -478,6 +478,23 @@ namespace vulkan {
                                     std::vector<VkVertexInputAttributeDescription> const &attributeDescriptions);
     };
 
+    class CommandPool {
+    public:
+        CommandPool(std::shared_ptr<Device> inDevice)
+                : m_device{inDevice},
+                  m_commandPool{} {
+            createCommandPool();
+        }
+
+        inline std::shared_ptr<VkCommandPool_T> const &commandPool() { return m_commandPool; }
+        inline std::shared_ptr<Device> const &device() { return m_device; }
+
+    private:
+        std::shared_ptr<Device> m_device;
+        std::shared_ptr<VkCommandPool_T> m_commandPool;
+
+        void createCommandPool();
+    };
 } /* namespace vulkan */
 
 #define DEBUG
@@ -500,6 +517,7 @@ public:
         m_descriptorPools{new vulkan::DescriptorPools{m_device}},
         m_graphicsPipeline{new vulkan::Pipeline{m_swapChain, m_renderPass, m_descriptorPools,
             getBindingDescription(), getAttributeDescriptions()}},
+        m_commandPool{new vulkan::CommandPool{m_device}},
         texturesLevel{},
         texturesLevelStarter{},
         texturesLevelFinisher{},
@@ -518,7 +536,6 @@ public:
         levelStarter{},
         levelTracker{level},
         swapChainFramebuffers{},
-        commandPool{},
         commandBuffers{},
         imageAvailableSemaphore{},
         renderFinishedSemaphore{},
@@ -554,6 +571,7 @@ private:
 
     std::shared_ptr<vulkan::DescriptorPools> m_descriptorPools;
     std::shared_ptr<vulkan::Pipeline> m_graphicsPipeline;
+    std::shared_ptr<vulkan::CommandPool> m_commandPool;
 
     struct TextureDataVulkan : public TextureData {
         TextureDataVulkan(std::shared_ptr<vulkan::Device> inDevice)
@@ -649,7 +667,6 @@ private:
 
     std::vector<VkFramebuffer> swapChainFramebuffers;
 
-    VkCommandPool commandPool;
     std::vector<VkCommandBuffer> commandBuffers;
 
     /* use semaphores to coordinate the rendering and presentation. Could also use fences
