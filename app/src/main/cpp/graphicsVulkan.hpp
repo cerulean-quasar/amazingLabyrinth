@@ -815,6 +815,94 @@ private:
                              std::shared_ptr<DrawObject> const &drawObj);
 };
 
+class LevelSequence {
+public:
+    LevelSequence(std::shared_ptr<vulkan::Device> const &inDevice,
+                  std::shared_ptr<vulkan::CommandPool> const &inPool,
+                  std::shared_ptr<vulkan::DescriptorPools> const &inDescriptorPools,
+                  uint32_t level,
+                  uint32_t width,
+                  uint32_t height)
+            :m_device{inDevice},
+             m_commandPool{inPool},
+             m_descriptorPools{inDescriptorPools},
+             m_levelTracker{level},
+             m_texturesLevel{},
+             m_texturesLevelStarter{},
+             m_texturesLevelFinisher{},
+             m_texturesChanged{false},
+             m_uniformBufferLighting{UniformWrapper::createUniformBuffer(inDevice, sizeof (glm::vec3))},
+             m_staticObjsData{},
+             m_dynObjsData{},
+             m_levelFinisherObjsData{},
+             m_levelStarterStaticObjsData{},
+             m_levelStarterDynObjsData{},
+             m_level{},
+             m_levelFinisher{},
+             m_levelStarter{}
+    {
+        m_levelTracker.setParameters(width, height);
+
+
+        m_level = m_levelTracker.getLevel();
+        m_levelStarter = m_levelTracker.getLevelStarter();
+        float x, y;
+        m_level->getLevelFinisherCenter(x, y);
+        m_levelFinisher = m_levelTracker.getLevelFinisher(x, y);
+
+        glm::vec3 lightingVector = m_level->getLightingSource();
+        m_uniformBufferLighting->copyRawTo(&lightingVector, sizeof (lightingVector));
+
+        initializeLevelData(m_levelStarter, m_levelStarterStaticObjsData,
+                            m_levelStarterDynObjsData, m_texturesLevelStarter);
+        initializeLevelData(m_level, m_staticObjsData, m_dynObjsData, m_texturesLevel);
+    }
+
+    bool updateData();
+    void updateAcceleration(float x, float y, float z);
+    glm::vec4 backgroundColor() { return m_level->getBackgroundColor(); }
+    bool needFinisherObjs() { return m_level->isFinished() || m_levelFinisher->isUnveiling(); }
+    inline bool needsInitializeCommandBuffers() { return m_level->isFinished() ||
+                                                         m_levelFinisher->isUnveiling() || m_texturesChanged; }
+    inline void doneInitializingCommandBuffers() { m_texturesChanged = false; }
+
+    inline DrawObjectTable const &levelStaticObjsData() { return m_staticObjsData; }
+    inline DrawObjectTable const &levelDynObjsData() { return m_dynObjsData; }
+    inline DrawObjectTable const &finisherObjsData() { return m_levelFinisherObjsData; }
+    inline DrawObjectTable const &starterStaticObjsData() { return m_levelStarterStaticObjsData; }
+    inline DrawObjectTable const &starterDynObjsData() { return m_levelStarterDynObjsData; }
+private:
+    std::shared_ptr<vulkan::Device> m_device;
+    std::shared_ptr<vulkan::CommandPool> m_commandPool;
+    std::shared_ptr<vulkan::DescriptorPools> m_descriptorPools;
+    LevelTracker m_levelTracker;
+    TextureMap m_texturesLevel;
+    TextureMap m_texturesLevelStarter;
+    TextureMap m_texturesLevelFinisher;
+    bool m_texturesChanged;
+
+    std::shared_ptr<vulkan::Buffer> m_uniformBufferLighting;
+
+    DrawObjectTable m_staticObjsData;
+    DrawObjectTable m_dynObjsData;
+    DrawObjectTable m_levelFinisherObjsData;
+    DrawObjectTable m_levelStarterStaticObjsData;
+    DrawObjectTable m_levelStarterDynObjsData;
+
+    std::shared_ptr<Level> m_level;
+    std::shared_ptr<LevelFinish> m_levelFinisher;
+    std::shared_ptr<LevelStarter> m_levelStarter;
+
+    void initializeLevelData(std::shared_ptr<Level> const &level, DrawObjectTable &staticObjsData,
+                             DrawObjectTable &dynObjsData, TextureMap &textures);
+    void updateLevelData(DrawObjectTable &objsData,
+                         std::tuple<glm::mat4, glm::mat4> const &projView, TextureMap &textures);
+    std::tuple<glm::mat4, glm::mat4>  getViewPerspectiveMatrix();
+    void addTextures(TextureMap &textures);
+    void addObjects(DrawObjectTable &objs, TextureMap &textures);
+    void addObject(DrawObjectEntry &obj, TextureMap &textures);
+};
+
 class GraphicsVulkan : public Graphics {
 public:
     GraphicsVulkan(WindowType *window, uint32_t level)
@@ -826,22 +914,10 @@ public:
         m_graphicsPipeline{new vulkan::Pipeline{m_swapChain, m_renderPass, m_descriptorPools,
             getBindingDescription(), getAttributeDescriptions()}},
         m_commandPool{new vulkan::CommandPool{m_device}},
-        texturesLevel{},
-        texturesLevelStarter{},
-        texturesLevelFinisher{},
-        texturesChanged{false},
+        m_levelSequence{m_device, m_commandPool, m_descriptorPools, level,
+                        m_swapChain->extent().width, m_swapChain->extent().height},
         swapChainImages{},
         swapChainImageViews{},
-        m_uniformBufferLighting{UniformWrapper::createUniformBuffer(m_device, sizeof (glm::vec3))},
-        staticObjsData{},
-        dynObjsData{},
-        levelFinisherObjsData{},
-        levelStarterStaticObjsData{},
-        levelStarterDynObjsData{},
-        maze{},
-        levelFinisher{},
-        levelStarter{},
-        levelTracker{level},
         swapChainFramebuffers{},
         commandBuffers{},
         m_imageAvailableSemaphore{m_device},
@@ -857,7 +933,7 @@ public:
 
     virtual void cleanup();
 
-    virtual bool updateData();
+    virtual bool updateData() { return m_levelSequence.updateData(); }
 
     virtual void updateAcceleration(float x, float y, float z);
 
@@ -879,26 +955,10 @@ private:
     std::shared_ptr<vulkan::Pipeline> m_graphicsPipeline;
     std::shared_ptr<vulkan::CommandPool> m_commandPool;
 
-    TextureMap texturesLevel;
-    TextureMap texturesLevelStarter;
-    TextureMap texturesLevelFinisher;
-    bool texturesChanged;
+    LevelSequence m_levelSequence;
 
     std::vector<VkImage> swapChainImages;
     std::vector<std::shared_ptr<vulkan::ImageView>> swapChainImageViews;
-
-    std::shared_ptr<vulkan::Buffer> m_uniformBufferLighting;
-
-    DrawObjectTable staticObjsData;
-    DrawObjectTable dynObjsData;
-    DrawObjectTable levelFinisherObjsData;
-    DrawObjectTable levelStarterStaticObjsData;
-    DrawObjectTable levelStarterDynObjsData;
-
-    std::shared_ptr<Level> maze;
-    std::shared_ptr<LevelFinish> levelFinisher;
-    std::shared_ptr<LevelStarter> levelStarter;
-    LevelTracker levelTracker;
 
     std::vector<VkFramebuffer> swapChainFramebuffers;
 
@@ -913,18 +973,6 @@ private:
 
     /* depth buffer image */
     std::shared_ptr<vulkan::ImageView> m_depthImageView;
-
-    void addTextures(TextureMap &texture);
-    UniformBufferObject getViewPerspectiveMatrix();
-    void addObjects(DrawObjectTable &objs, TextureMap &texture);
-    void addObject(DrawObjectEntry &obj, TextureMap &texture);
-    void addUniforms(DrawObjectEntry &obj, TextureMap &texture);
-    bool updateLevelData(Level *level, DrawObjectTable &objsData, TextureMap &textures);
-    void initializeLevelData(Level *level, DrawObjectTable &staticObjsData,
-                             DrawObjectTable &dynObjsData, TextureMap &textures);
-    std::shared_ptr<vulkan::Buffer> createVertexBuffer(std::vector<Vertex> const &vertices);
-    std::shared_ptr<vulkan::Buffer> createIndexBuffer(std::vector<uint32_t> const &indices);
-    void updatePerspectiveMatrix();
 
     void cleanupSwapChain();
     void createImageViews();

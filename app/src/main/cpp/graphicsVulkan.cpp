@@ -1780,32 +1780,155 @@ void DrawObjectDataVulkan::update(std::shared_ptr<DrawObject> const &obj,
     }
 }
 
+void LevelSequence::initializeLevelData(std::shared_ptr<Level> const &level, DrawObjectTable &staticObjsData,
+                                        DrawObjectTable &dynObjsData, TextureMap &textures) {
+    staticObjsData.clear();
+    dynObjsData.clear();
+    textures.clear();
+    level->updateStaticDrawObjects(staticObjsData, textures);
+    bool texturesChanged;
+    level->updateDynamicDrawObjects(dynObjsData, textures, texturesChanged);
+    addTextures(textures);
+    addObjects(staticObjsData, textures);
+    addObjects(dynObjsData, textures);
+    m_texturesChanged = true;
+}
+
+void LevelSequence::updateLevelData(DrawObjectTable &objsData,
+                                    std::tuple<glm::mat4, glm::mat4> const &projView, TextureMap &textures) {
+    if (m_texturesChanged) {
+        addTextures(textures);
+        for (auto &&obj : objsData) {
+            DrawObjectDataVulkan *objData = static_cast<DrawObjectDataVulkan *> (obj.second.get());
+            if (objData != nullptr) {
+                objData->clearUniforms();
+            }
+        }
+    }
+
+    for (auto &&objData : objsData) {
+        DrawObjectDataVulkan *data = static_cast<DrawObjectDataVulkan *> (objData.second.get());
+        if (data == nullptr) {
+            // a completely new entry
+            addObject(objData, textures);
+        } else {
+            data->update(objData.first, projView, textures);
+        }
+    }
+}
+
+std::tuple<glm::mat4, glm::mat4> LevelSequence::getViewPerspectiveMatrix() {
+    glm::mat4 proj = m_level->getProjectionMatrix();
+    /* GLM has the y axis inverted from Vulkan's perspective, invert the y-axis on the
+     * projection matrix.
+     */
+    proj[1][1] *= -1;
+    glm::mat4 view = m_level->getViewMatrix();
+    return std::make_tuple(proj, view);
+}
+
+void LevelSequence::addTextures(TextureMap &textures) {
+    for (TextureMap::iterator it = textures.begin(); it != textures.end(); it++) {
+        if (it->second.get() == nullptr) {
+            it->second.reset(new TextureDataVulkan(m_device, m_commandPool, it->first));
+        }
+    }
+}
+
+void LevelSequence::addObjects(DrawObjectTable &objs, TextureMap &textures) {
+    for (auto &&obj : objs) {
+        addObject(obj, textures);
+    }
+}
+
+void LevelSequence::addObject(DrawObjectEntry &obj, TextureMap &textures) {
+    std::shared_ptr<DrawObjectDataVulkan> objData(new DrawObjectDataVulkan(m_device, m_commandPool,
+                                                                           m_descriptorPools, obj.first, m_uniformBufferLighting));
+
+    obj.second = objData;
+
+    std::tuple<glm::mat4, glm::mat4> projView = getViewPerspectiveMatrix();
+    objData->addUniforms(obj.first, projView, textures);
+}
+
+void LevelSequence::updateAcceleration(float x, float y, float z) {
+    if (m_levelStarter.get() != nullptr) {
+        m_levelStarter->updateAcceleration(x, y, z);
+    } else {
+        m_level->updateAcceleration(x, y, z);
+    }
+}
+
+bool LevelSequence::updateData() {
+    bool drawingNecessary = false;
+
+    std::tuple<glm::mat4, glm::mat4> projView = getViewPerspectiveMatrix();
+    if (m_level->isFinished() || m_levelFinisher->isUnveiling()) {
+        if (m_levelFinisher->isUnveiling()) {
+            if (m_levelFinisher->isDone()) {
+                m_levelFinisherObjsData.clear();
+                m_texturesLevelFinisher.clear();
+                float x, y;
+                m_level->getLevelFinisherCenter(x, y);
+                m_levelFinisher = m_levelTracker.getLevelFinisher(x, y);
+                m_levelStarter->start();
+                return false;
+            }
+        } else {
+            if (m_levelFinisher->isDone()) {
+
+                m_levelTracker.gotoNextLevel();
+
+                m_levelStarter = m_levelTracker.getLevelStarter();
+                initializeLevelData(m_levelStarter, m_levelStarterStaticObjsData,
+                                    m_levelStarterDynObjsData, m_texturesLevelStarter);
+
+                m_level = m_levelTracker.getLevel();
+                initializeLevelData(m_level, m_staticObjsData, m_dynObjsData, m_texturesLevel);
+
+                m_levelFinisher->unveilNewLevel();
+                return false;
+            }
+        }
+
+        drawingNecessary = m_levelFinisher->updateDrawObjects(m_levelFinisherObjsData,
+                                                              m_texturesLevelFinisher,
+                                                              m_texturesChanged);
+        if (!drawingNecessary) {
+            return false;
+        }
+
+        updateLevelData(m_levelFinisherObjsData, projView, m_texturesLevelFinisher);
+    } else if (m_levelStarter.get() != nullptr) {
+        drawingNecessary = m_levelStarter->updateData();
+
+        if (m_levelStarter->isFinished()) {
+            m_levelStarter.reset();
+            m_levelStarterDynObjsData.clear();
+            m_levelStarterStaticObjsData.clear();
+            m_texturesLevelStarter.clear();
+            m_level->start();
+            return false;
+        }
+
+        if (drawingNecessary) {
+            m_levelStarter->updateDynamicDrawObjects(m_levelStarterDynObjsData,
+                                                     m_texturesLevelStarter, m_texturesChanged);
+            updateLevelData(m_levelStarterDynObjsData, projView, m_texturesLevelStarter);
+        }
+    } else {
+        drawingNecessary = m_level->updateData();
+
+        if (drawingNecessary) {
+            m_level->updateDynamicDrawObjects(m_dynObjsData, m_texturesLevel, m_texturesChanged);
+            updateLevelData(m_dynObjsData, projView, m_texturesLevel);
+        }
+    }
+
+    return drawingNecessary;
+}
+
 void GraphicsVulkan::init(WindowType *inWindow) {
-    levelTracker.setParameters(m_swapChain->extent().width, m_swapChain->extent().height);
-    levelStarter = levelTracker.getLevelStarter();
-    maze = levelTracker.getLevel();
-    float x, y;
-    maze->getLevelFinisherCenter(x, y);
-    levelFinisher = levelTracker.getLevelFinisher(x,y);
-
-    bool tc;
-    maze->updateStaticDrawObjects(staticObjsData, texturesLevel);
-    maze->updateDynamicDrawObjects(dynObjsData, texturesLevel, tc);
-    addTextures(texturesLevel);
-
-    levelStarter->updateStaticDrawObjects(levelStarterStaticObjsData, texturesLevelStarter);
-    levelStarter->updateDynamicDrawObjects(levelStarterDynObjsData, texturesLevelStarter, tc);
-    addTextures(texturesLevelStarter);
-
-    glm::vec3 lightingVector = maze->getLightingSource();
-    m_uniformBufferLighting->copyRawTo(&lightingVector, sizeof(lightingVector));
-
-    addObjects(staticObjsData, texturesLevel);
-    addObjects(dynObjsData, texturesLevel);
-
-    addObjects(levelStarterStaticObjsData, texturesLevelStarter);
-    addObjects(levelStarterDynObjsData, texturesLevelStarter);
-
     createDepthResources();
 
     uint32_t imageCount;
@@ -1818,50 +1941,8 @@ void GraphicsVulkan::init(WindowType *inWindow) {
     createCommandBuffers();
 }
 
-void GraphicsVulkan::addTextures(TextureMap &textures) {
-    for (TextureMap::iterator it = textures.begin(); it != textures.end(); it++) {
-        if (it->second.get() == nullptr) {
-            std::shared_ptr<TextureDataVulkan> texture{new TextureDataVulkan{m_device, m_commandPool, it->first}};
-            it->second = texture;
-        }
-    }
-}
-
-void GraphicsVulkan::addObjects(DrawObjectTable &objs, TextureMap &textures) {
-    for (auto &&obj : objs) {
-        addObject(obj, textures);
-    }
-}
-
-void GraphicsVulkan::addObject(DrawObjectEntry &obj, TextureMap &textures) {
-    std::shared_ptr<DrawObjectDataVulkan> objData(new DrawObjectDataVulkan(m_device, m_commandPool,
-        m_descriptorPools, obj.first, m_uniformBufferLighting));
-
-    obj.second = objData;
-
-    UniformBufferObject ubo = getViewPerspectiveMatrix();
-
-    std::tuple<glm::mat4, glm::mat4> projView{ubo.proj, ubo.view};
-
-    objData->addUniforms(obj.first, projView, textures);
-}
-
 void GraphicsVulkan::cleanup() {
     cleanupSwapChain();
-
-    // trigger destruction of the objects to draw here so that it happens in the correct order.
-    staticObjsData.clear();
-    dynObjsData.clear();
-    levelFinisherObjsData.clear();
-    texturesLevel.clear();
-    texturesLevelFinisher.clear();
-    texturesLevelStarter.clear();
-
-    if (m_device->logicalDevice().get() != VK_NULL_HANDLE) {
-        m_uniformBufferLighting.reset();
-        m_descriptorPools.reset();
-        m_commandPool.reset();
-    }
 }
 
 void GraphicsVulkan::recreateSwapChain() {
@@ -1877,50 +1958,6 @@ void GraphicsVulkan::recreateSwapChain() {
                                                   getBindingDescription(), getAttributeDescriptions()});
     createFramebuffers();
     createCommandBuffers();
-}
-
-std::shared_ptr<vulkan::Buffer> GraphicsVulkan::createVertexBuffer(std::vector<Vertex> const &vertices) {
-    VkDeviceSize bufferSize = sizeof(vertices[0]) * vertices.size();
-
-    /* use a staging buffer in the CPU accessable memory to copy the data into graphics card
-     * memory.  Then use a copy command to copy the data into fast graphics card only memory.
-     */
-    vulkan::Buffer stagingBuffer(m_device, bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
-                                 VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
-    stagingBuffer.copyRawTo(vertices.data(), static_cast<size_t>(bufferSize));
-
-    std::shared_ptr<vulkan::Buffer> vertexBuffer{new vulkan::Buffer{m_device, bufferSize,
-                                                 VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
-                                                 VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT}};
-
-    vertexBuffer->copyTo(m_commandPool, stagingBuffer, bufferSize);
-
-    return vertexBuffer;
-}
-
-/* buffer for the indices - used to reference which vertex in the vertex array (by index) to
- * draw.  This way normally duplicated vertices would not need to be specified twice.
- * Only one index buffer per pipeline is allowed.  Put all dice in the same index buffer.
- */
-std::shared_ptr<vulkan::Buffer> GraphicsVulkan::createIndexBuffer(std::vector<uint32_t> const &indices) {
-    VkDeviceSize bufferSize = sizeof(indices[0]) * indices.size();
-
-    vulkan::Buffer stagingBuffer{m_device, bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
-                                 VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT};
-
-    stagingBuffer.copyRawTo(indices.data(), (size_t) sizeof(indices[0]) * indices.size());
-
-    std::shared_ptr<vulkan::Buffer> indexBuffer{new vulkan::Buffer{m_device, bufferSize,
-        VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT,
-        VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT}};
-
-    indexBuffer->copyTo(m_commandPool, stagingBuffer, bufferSize);
-
-    return indexBuffer;
-}
-
-void GraphicsVulkan::updatePerspectiveMatrix() {
-    maze->updatePerspectiveMatrix(m_swapChain->extent().width, m_swapChain->extent().height);
 }
 
 void GraphicsVulkan::cleanupSwapChain() {
@@ -2032,7 +2069,7 @@ void GraphicsVulkan::initializeCommandBuffer(VkCommandBuffer &commandBuffer, siz
      * using black with 0% opacity
      */
     std::array<VkClearValue, 2> clearValues = {};
-    glm::vec4 bgColor = maze->getBackgroundColor();
+    glm::vec4 bgColor = m_levelSequence.backgroundColor();
     clearValues[0].color = {bgColor.r, bgColor.g, bgColor.b, bgColor.a};
     clearValues[1].depthStencil = {1.0, 0};
     renderPassInfo.clearValueCount = static_cast<uint32_t>(clearValues.size());
@@ -2050,20 +2087,18 @@ void GraphicsVulkan::initializeCommandBuffer(VkCommandBuffer &commandBuffer, siz
     vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_graphicsPipeline->pipeline().get());
 
     // the objects that stay static.
-    initializeCommandBufferDrawObjects(commandBuffer, staticObjsData);
+    initializeCommandBufferDrawObjects(commandBuffer, m_levelSequence.levelStaticObjsData());
 
     // the objects that move.
-    initializeCommandBufferDrawObjects(commandBuffer, dynObjsData);
+    initializeCommandBufferDrawObjects(commandBuffer, m_levelSequence.levelDynObjsData());
 
     // the level starter
-    if (levelStarter.get() != nullptr) {
-        initializeCommandBufferDrawObjects(commandBuffer, levelStarterStaticObjsData);
-        initializeCommandBufferDrawObjects(commandBuffer, levelStarterDynObjsData);
-    }
+    initializeCommandBufferDrawObjects(commandBuffer, m_levelSequence.starterStaticObjsData());
+    initializeCommandBufferDrawObjects(commandBuffer, m_levelSequence.starterDynObjsData());
 
     // the level finisher objects.
-    if (maze->isFinished() || levelFinisher->isUnveiling()) {
-        initializeCommandBufferDrawObjects(commandBuffer, levelFinisherObjsData);
+    if (m_levelSequence.needFinisherObjs()) {
+        initializeCommandBufferDrawObjects(commandBuffer, m_levelSequence.finisherObjsData());
     }
 
     vkCmdEndRenderPass(commandBuffer);
@@ -2123,7 +2158,6 @@ void GraphicsVulkan::drawFrame() {
         // rewrite the command buffer to display the new objects.  If the textures changed, then we
         // need to update the descriptor sets, so the command buffers need to be rewritten.
         initializeCommandBuffer(commandBuffers[imageIndex], imageIndex);
-        texturesChanged = false;
     //}
 
     /* If the window surface is no longer compatible with the swap chain, then we need to
@@ -2215,134 +2249,7 @@ void GraphicsVulkan::createDepthResources() {
                                         VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL, m_commandPool);
 }
 
-UniformBufferObject GraphicsVulkan::getViewPerspectiveMatrix() {
-    UniformBufferObject ubo = {};
-    ubo.proj = maze->getProjectionMatrix();
-    /* GLM has the y axis inverted from Vulkan's perspective, invert the y-axis on the
-     * projection matrix.
-     */
-    ubo.proj[1][1] *= -1;
-    ubo.view = maze->getViewMatrix();
-    return ubo;
-}
-
-bool GraphicsVulkan::updateData() {
-    bool drawingNecessary = false;
-
-    UniformBufferObject ubo = getViewPerspectiveMatrix();
-    std::tuple<glm::mat4, glm::mat4> projView{ubo.proj, ubo.view};
-    if (maze->isFinished() || levelFinisher->isUnveiling()) {
-        if (levelFinisher->isUnveiling()) {
-            if (levelFinisher->isDone()) {
-                levelFinisherObjsData.clear();
-                texturesLevelFinisher.clear();
-                float x, y;
-                maze->getLevelFinisherCenter(x, y);
-                levelFinisher = levelTracker.getLevelFinisher(x, y);
-                levelStarter->start();
-                return false;
-            }
-        } else {
-            if (levelFinisher->isDone()) {
-
-                levelTracker.gotoNextLevel();
-
-                levelStarter = levelTracker.getLevelStarter();
-                initializeLevelData(levelStarter.get(), levelStarterStaticObjsData,
-                                    levelStarterDynObjsData, texturesLevelStarter);
-
-                maze = levelTracker.getLevel();
-                initializeLevelData(maze.get(), staticObjsData, dynObjsData, texturesLevel);
-
-                levelFinisher->unveilNewLevel();
-                return false;
-            }
-        }
-
-        drawingNecessary = levelFinisher->updateDrawObjects(levelFinisherObjsData,
-                                                            texturesLevelFinisher, texturesChanged);
-        if (!drawingNecessary) {
-            return false;
-        }
-
-        if (texturesChanged) {
-            addTextures(texturesLevelFinisher);
-            for (auto &&obj : levelFinisherObjsData) {
-                DrawObjectDataVulkan *objData = static_cast<DrawObjectDataVulkan *> (obj.second.get());
-                if (objData != nullptr) {
-                    objData->clearUniforms();
-                }
-            }
-        }
-
-        for (auto &&objData : levelFinisherObjsData) {
-            DrawObjectDataVulkan *data = static_cast<DrawObjectDataVulkan *> (objData.second.get());
-            if (data == nullptr) {
-                // a completely new entry
-                addObject(objData, texturesLevelFinisher);
-            } else {
-                data->update(objData.first, projView, texturesLevelFinisher);
-            }
-        }
-    } else if (levelStarter.get() != nullptr) {
-        drawingNecessary = updateLevelData(levelStarter.get(), levelStarterDynObjsData, texturesLevelStarter);
-        if (levelStarter->isFinished()) {
-            levelStarter.reset();
-            levelStarterDynObjsData.clear();
-            levelStarterStaticObjsData.clear();
-            texturesLevelStarter.clear();
-            maze->start();
-            return false;
-        }
-    } else {
-        drawingNecessary = updateLevelData(maze.get(), dynObjsData, texturesLevel);
-    }
-
-    return drawingNecessary;
-}
-
-void GraphicsVulkan::initializeLevelData(Level *level, DrawObjectTable &staticObjsData,
-                                         DrawObjectTable &dynObjsData, TextureMap &textures) {
-    staticObjsData.clear();
-    dynObjsData.clear();
-    textures.clear();
-    level->updateStaticDrawObjects(staticObjsData, textures);
-    bool texturesChanged;
-    level->updateDynamicDrawObjects(dynObjsData, textures, texturesChanged);
-    addTextures(textures);
-    addObjects(staticObjsData, textures);
-    addObjects(dynObjsData, textures);
-}
-
-bool GraphicsVulkan::updateLevelData(Level *level, DrawObjectTable &objsData, TextureMap &textures) {
-    UniformBufferObject ubo = getViewPerspectiveMatrix();
-    std::tuple<glm::mat4, glm::mat4> projView{ubo.proj, ubo.view};
-    bool drawingNecessary = level->updateData();
-
-    if (!drawingNecessary) {
-        return false;
-    }
-
-    level->updateDynamicDrawObjects(objsData, textures, texturesChanged);
-    if (texturesChanged) {
-        addTextures(textures);
-        for (auto &&obj : objsData) {
-            DrawObjectDataVulkan *objData = static_cast<DrawObjectDataVulkan *> (obj.second.get());
-            objData->clearUniforms();
-        }
-    }
-
-    for (auto &&obj : objsData) {
-        DrawObjectDataVulkan *objData = static_cast<DrawObjectDataVulkan *> (obj.second.get());
-        objData->update(obj.first, projView, textures);
-    }
-    return true;
-}
 
 void GraphicsVulkan::updateAcceleration(float x, float y, float z) {
-    if (levelStarter.get() != nullptr) {
-        levelStarter->updateAcceleration(x, y, z);
-    } else {
-        maze->updateAcceleration(x, y, z);
-    }
+    m_levelSequence.updateAcceleration(x, y, z);
 }
