@@ -721,6 +721,46 @@ private:
     std::shared_ptr<vulkan::ImageSampler> m_sampler;
 };
 
+class UniformWrapper {
+public:
+    /* for passing data other than the vertex data to the vertex shader */
+    std::shared_ptr<vulkan::DescriptorSet> m_descriptorSet;
+    std::shared_ptr<vulkan::ImageSampler> m_sampler;
+    std::shared_ptr<vulkan::Buffer> m_uniformBufferLighting;
+    std::shared_ptr<vulkan::Buffer> m_uniformBuffer;
+
+    UniformWrapper(std::shared_ptr<vulkan::Device> const &inDevice,
+                   std::shared_ptr<vulkan::DescriptorPools> const &descriptorPools,
+                   std::shared_ptr<vulkan::ImageSampler> const &inSampler,
+                   std::shared_ptr<vulkan::Buffer> const &inUniformBufferLighting,
+                   UniformBufferObject const &ubo)
+            : m_descriptorSet{},
+              m_sampler{inSampler},
+              m_uniformBufferLighting{inUniformBufferLighting},
+              m_uniformBuffer{}
+    {
+        VkBuffer uniformBuffer;
+        VkDeviceMemory uniformBufferMemory;
+
+        m_uniformBuffer = createUniformBuffer(inDevice, sizeof (UniformBufferObject));
+        m_uniformBuffer->copyRawTo(&ubo, sizeof (ubo));
+
+        m_descriptorSet = descriptorPools->allocateDescriptor();
+        updateDescriptorSet(inDevice);
+    }
+
+    inline std::shared_ptr<vulkan::DescriptorSet> const &descriptorSet() { return m_descriptorSet; }
+    inline std::shared_ptr<vulkan::Buffer> const &uniformBuffer() { return m_uniformBuffer; }
+    inline std::shared_ptr<vulkan::Buffer> const &uniformBufferLighting() { return m_uniformBufferLighting; }
+    inline std::shared_ptr<vulkan::ImageSampler> const &imageSampler() { return m_sampler; }
+
+    static std::shared_ptr<vulkan::Buffer> createUniformBuffer(
+            std::shared_ptr<vulkan::Device> const &device, size_t bufferSize);
+
+private:
+    void updateDescriptorSet(std::shared_ptr<vulkan::Device> const &inDevice);
+};
+
 class GraphicsVulkan : public Graphics {
 public:
     GraphicsVulkan(WindowType *window, uint32_t level)
@@ -738,8 +778,7 @@ public:
         texturesChanged{false},
         swapChainImages{},
         swapChainImageViews{},
-        m_uniformBufferLighting{new vulkan::Buffer{m_device, sizeof (glm::vec3), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
-                                VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT}},
+        m_uniformBufferLighting{UniformWrapper::createUniformBuffer(m_device, sizeof (glm::vec3))},
         staticObjsData{},
         dynObjsData{},
         levelFinisherObjsData{},
@@ -796,24 +835,6 @@ private:
 
     std::shared_ptr<vulkan::Buffer> m_uniformBufferLighting;
 
-    struct UniformWrapper {
-        std::shared_ptr<vulkan::Device> m_device;
-        /* for passing data other than the vertex data to the vertex shader */
-        std::shared_ptr<vulkan::DescriptorSet> m_descriptorSet;
-        std::shared_ptr<vulkan::Buffer> m_uniformBuffer;
-        std::shared_ptr<vulkan::DescriptorPools> m_pools;
-
-        UniformWrapper(std::shared_ptr<vulkan::Device> const &inDevice,
-                       std::shared_ptr<vulkan::DescriptorSet> const &inDescriptorSet,
-                       std::shared_ptr<vulkan::Buffer> const &inUniformBuffer,
-                       std::shared_ptr<vulkan::DescriptorPools> const &inPools)
-        : m_device(inDevice),
-          m_descriptorSet{inDescriptorSet},
-          m_uniformBuffer{inUniformBuffer},
-          m_pools{inPools}
-        {}
-    };
-
     /* vertex buffer and index buffer. the index buffer indicates which vertices to draw and in
      * the specified order.  Note, vertices can be listed twice if they should be part of more
      * than one triangle.
@@ -854,25 +875,6 @@ private:
     /* depth buffer image */
     std::shared_ptr<vulkan::ImageView> m_depthImageView;
 
-    const std::vector<const char*> deviceExtensions = {
-        VK_KHR_SWAPCHAIN_EXTENSION_NAME
-    };
-
-    static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(
-            VkDebugReportFlagsEXT flags,
-            VkDebugReportObjectTypeEXT objType,
-            uint64_t obj,
-            size_t location,
-            int32_t code,
-            const char* layerPrefix,
-            const char* msg,
-            void* userData) {
-
-        std::cerr << "validation layer: " << msg << std::endl;
-
-        return VK_FALSE;
-    }
-
     void addTextures(TextureMap &texture);
     UniformBufferObject getViewPerspectiveMatrix();
     void addObjects(DrawObjectTable &objs, TextureMap &texture);
@@ -892,10 +894,6 @@ private:
     void initializeCommandBuffer(VkCommandBuffer &commandBuffer, size_t index);
     void initializeCommandBufferDrawObjects(VkCommandBuffer &commandBuffer, DrawObjectTable const & objs);
     void createDepthResources();
-    void updateDescriptorSet(std::shared_ptr<vulkan::Buffer> const &uniformBuffer, VkImageView imageView, VkSampler textureSampler,
-                             std::shared_ptr<vulkan::Buffer> const &lightingSource, std::shared_ptr<vulkan::DescriptorSet> const &descriptorSet);
-    std::shared_ptr<vulkan::Image> createTextureImage(TextureDescription *texture);
-    void createTextureSampler(VkSampler &textureSampler);
 };
 #endif
 

@@ -1637,6 +1637,74 @@ VkVertexInputBindingDescription getBindingDescription() {
     return bindingDescription;
 }
 
+std::shared_ptr<vulkan::Buffer> UniformWrapper::createUniformBuffer(
+        std::shared_ptr<vulkan::Device> const &device, size_t bufferSize) {
+    return std::shared_ptr<vulkan::Buffer>{new vulkan::Buffer{device, bufferSize,
+        VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
+        VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT}};
+}
+
+/* descriptor set for the MVP matrix and texture samplers */
+void UniformWrapper::updateDescriptorSet(std::shared_ptr<vulkan::Device> const &inDevice) {
+    VkDescriptorBufferInfo bufferInfo = {};
+    bufferInfo.buffer = m_uniformBuffer->buffer().get();
+    bufferInfo.offset = 0;
+    bufferInfo.range = sizeof(UniformBufferObject);
+
+    std::array<VkWriteDescriptorSet, 3> descriptorWrites = {};
+    descriptorWrites[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+    descriptorWrites[0].dstSet = m_descriptorSet->descriptorSet().get();
+
+    /* must be the same as the binding in the vertex shader */
+    descriptorWrites[0].dstBinding = 0;
+
+    /* index into the array of descriptors */
+    descriptorWrites[0].dstArrayElement = 0;
+
+    descriptorWrites[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+
+    /* how many array elements you want to update */
+    descriptorWrites[0].descriptorCount = 1;
+
+    /* which one of these pointers needs to be used depends on which descriptorType we are
+     * using.  pBufferInfo is for buffer based data, pImageInfo is used for image data, and
+     * pTexelBufferView is used for decriptors that refer to buffer views.
+     */
+    descriptorWrites[0].pBufferInfo = &bufferInfo;
+    descriptorWrites[0].pImageInfo = nullptr; // Optional
+    descriptorWrites[0].pTexelBufferView = nullptr; // Optional
+
+    VkDescriptorImageInfo imageInfo = {};
+    imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+    imageInfo.imageView = m_sampler->imageView()->imageView().get();
+    imageInfo.sampler = m_sampler->sampler().get();
+
+    descriptorWrites[1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+    descriptorWrites[1].dstSet = m_descriptorSet->descriptorSet().get();
+    descriptorWrites[1].dstBinding = 1;
+    descriptorWrites[1].dstArrayElement = 0;
+    descriptorWrites[1].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+    descriptorWrites[1].descriptorCount = 1;
+    descriptorWrites[1].pImageInfo = &imageInfo;
+
+    VkDescriptorBufferInfo bufferLightingSource = {};
+    bufferLightingSource.buffer = m_uniformBufferLighting->buffer().get();
+    bufferLightingSource.offset = 0;
+    bufferLightingSource.range = sizeof(glm::vec3);
+
+    descriptorWrites[2].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+    descriptorWrites[2].dstSet = m_descriptorSet->descriptorSet().get();
+    descriptorWrites[2].dstBinding = 2;
+    descriptorWrites[2].dstArrayElement = 0;
+    descriptorWrites[2].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+    descriptorWrites[2].descriptorCount = 1;
+    descriptorWrites[2].pBufferInfo = &bufferLightingSource;
+
+    vkUpdateDescriptorSets(inDevice->logicalDevice().get(),
+                           static_cast<uint32_t>(descriptorWrites.size()),
+                           descriptorWrites.data(), 0, nullptr);
+}
+
 void GraphicsVulkan::init(WindowType *inWindow) {
     levelTracker.setParameters(m_swapChain->extent().width, m_swapChain->extent().height);
     levelStarter = levelTracker.getLevelStarter();
@@ -1709,26 +1777,18 @@ void GraphicsVulkan::addUniforms(DrawObjectEntry &obj, TextureMap &textures) {
     UniformBufferObject ubo = getViewPerspectiveMatrix();
 
     for (size_t i = data->uniforms.size(); i < obj.first->modelMatrices.size(); i++) {
-        std::shared_ptr<vulkan::Buffer> uniformBuffer{new vulkan::Buffer{m_device, sizeof (ubo),
-            VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
-            VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT}};
-
         ubo.model = obj.first->modelMatrices[i];
-        uniformBuffer->copyRawTo(&ubo, sizeof(ubo));
 
         TextureMap::iterator it = textures.find(obj.first->texture);
         if (it == textures.end()) {
             throw std::runtime_error("Could not find texture in texture map.");
         }
 
-        std::shared_ptr<vulkan::DescriptorSet> descriptorSet = m_descriptorPools->allocateDescriptor();
         TextureDataVulkan *textureData = static_cast<TextureDataVulkan*> (it->second.get());
-        updateDescriptorSet(uniformBuffer, textureData->sampler()->imageView()->imageView().get(),
-                            textureData->sampler()->sampler().get(),
-                            m_uniformBufferLighting, descriptorSet);
 
-        std::shared_ptr<UniformWrapper> uniform(new UniformWrapper(m_device, descriptorSet, uniformBuffer,
-                                                                   m_descriptorPools));
+        std::shared_ptr<UniformWrapper> uniform(new UniformWrapper(m_device, m_descriptorPools,
+            textureData->sampler(), m_uniformBufferLighting, ubo));
+
         data->uniforms.push_back(uniform);
     }
 }
@@ -2100,67 +2160,6 @@ void GraphicsVulkan::createDepthResources() {
 
     m_depthImageView->image()->transitionImageLayout(depthFormat, VK_IMAGE_LAYOUT_UNDEFINED,
                                         VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL, m_commandPool);
-}
-
-/* descriptor set for the MVP matrix and texture samplers */
-void GraphicsVulkan::updateDescriptorSet(std::shared_ptr<vulkan::Buffer> const &uniformBuffer, VkImageView imageView,
-                                         VkSampler textureSampler, std::shared_ptr<vulkan::Buffer> const &lightingSource,
-                                         std::shared_ptr<vulkan::DescriptorSet> const &descriptorSet) {
-    VkDescriptorBufferInfo bufferInfo = {};
-    bufferInfo.buffer = uniformBuffer->buffer().get();
-    bufferInfo.offset = 0;
-    bufferInfo.range = sizeof(UniformBufferObject);
-
-    std::array<VkWriteDescriptorSet, 3> descriptorWrites = {};
-    descriptorWrites[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-    descriptorWrites[0].dstSet = descriptorSet->descriptorSet().get();
-
-    /* must be the same as the binding in the vertex shader */
-    descriptorWrites[0].dstBinding = 0;
-
-    /* index into the array of descriptors */
-    descriptorWrites[0].dstArrayElement = 0;
-
-    descriptorWrites[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-
-    /* how many array elements you want to update */
-    descriptorWrites[0].descriptorCount = 1;
-
-    /* which one of these pointers needs to be used depends on which descriptorType we are
-     * using.  pBufferInfo is for buffer based data, pImageInfo is used for image data, and
-     * pTexelBufferView is used for decriptors that refer to buffer views.
-     */
-    descriptorWrites[0].pBufferInfo = &bufferInfo;
-    descriptorWrites[0].pImageInfo = nullptr; // Optional
-    descriptorWrites[0].pTexelBufferView = nullptr; // Optional
-
-    VkDescriptorImageInfo imageInfo = {};
-    imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-    imageInfo.imageView = imageView;
-    imageInfo.sampler = textureSampler;
-
-    descriptorWrites[1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-    descriptorWrites[1].dstSet = descriptorSet->descriptorSet().get();
-    descriptorWrites[1].dstBinding = 1;
-    descriptorWrites[1].dstArrayElement = 0;
-    descriptorWrites[1].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-    descriptorWrites[1].descriptorCount = 1;
-    descriptorWrites[1].pImageInfo = &imageInfo;
-
-    VkDescriptorBufferInfo bufferLightingSource = {};
-    bufferLightingSource.buffer = lightingSource->buffer().get();
-    bufferLightingSource.offset = 0;
-    bufferLightingSource.range = sizeof (glm::vec3);
-
-    descriptorWrites[2].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-    descriptorWrites[2].dstSet = descriptorSet->descriptorSet().get();
-    descriptorWrites[2].dstBinding = 2;
-    descriptorWrites[2].dstArrayElement = 0;
-    descriptorWrites[2].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-    descriptorWrites[2].descriptorCount = 1;
-    descriptorWrites[2].pBufferInfo = &bufferLightingSource;
-
-    vkUpdateDescriptorSets(m_device->logicalDevice().get(), static_cast<uint32_t>(descriptorWrites.size()), descriptorWrites.data(), 0, nullptr);
 }
 
 UniformBufferObject GraphicsVulkan::getViewPerspectiveMatrix() {
