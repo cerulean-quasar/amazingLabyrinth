@@ -1474,6 +1474,121 @@ namespace vulkan {
 
         m_imageView.reset(imageViewRaw, deleter);
     }
+
+    std::shared_ptr<Image> ImageFactory::createTextureImage(std::shared_ptr<Device> const &device,
+                                                            std::shared_ptr<CommandPool> const &cmdPool,
+                                                            std::shared_ptr<TextureDescription> const &texture) {
+        uint32_t texHeight;
+        uint32_t texWidth;
+        uint32_t texChannels;
+
+        std::vector<char> pixels = texture->getData(texWidth, texHeight, texChannels);
+
+        VkDeviceSize imageSize = texWidth * texHeight * texChannels;
+
+        /* copy the image to CPU accessable memory in the graphics card.  Make sure that it has the
+         * VK_BUFFER_USAGE_TRANSFER_SRC_BIT set so that we can copy from it to an image later
+         */
+        Buffer staging(device, imageSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+                       VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
+                       VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+
+        void *data;
+        vkMapMemory(device->logicalDevice().get(), staging.memory().get(), 0, imageSize, 0, &data);
+        memcpy(data, pixels.data(), static_cast<size_t>(imageSize));
+        vkUnmapMemory(device->logicalDevice().get(), staging.memory().get());
+
+        VkFormat format = VK_FORMAT_R8G8B8A8_UNORM;//VK_FORMAT_R8_UNORM;
+        std::shared_ptr<Image> image(
+                new Image(device, texWidth, texHeight, format,
+                          VK_IMAGE_TILING_OPTIMAL,
+                          VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
+                          VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT));
+
+        /* transition the image to VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL. The image was created with
+         * layout: VK_IMAGE_LAYOUT_UNDEFINED, so we use that to specify the old layout.
+         */
+        image->transitionImageLayout(format, VK_IMAGE_LAYOUT_UNDEFINED,
+                                     VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, cmdPool);
+
+        image->copyBufferToImage(staging, cmdPool);
+
+        /* transition the image to VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL so that the
+         * shader can read from it.
+         */
+        image->transitionImageLayout(format, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+                                     VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, cmdPool);
+        return image;
+    }
+
+    void ImageSampler::createTextureSampler() {
+        VkSamplerCreateInfo samplerInfo = {};
+        samplerInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
+
+        /* algorithm to use in the case of oversampling - more texels than fragments */
+        samplerInfo.magFilter = VK_FILTER_LINEAR;
+
+        /* algorithm to use in the case of undersampling - fewer texels than fragments */
+        samplerInfo.minFilter = VK_FILTER_LINEAR;
+
+        /* Specify what to do when sampling beyond the image border.  Modes listed below:
+         *
+         * VK_SAMPLER_ADDRESS_MODE_REPEAT: Repeat the texture when going beyond the image dimensions.
+         * VK_SAMPLER_ADDRESS_MODE_MIRRORED_REPEAT: Like repeat, but inverts the coordinates
+         *      to mirror the image when going beyond the dimensions.
+         * VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE: Take the color of the edge closest to the
+         *      coordinate beyond the image dimensions.
+         * VK_SAMPLER_ADDRESS_MODE_MIRROR_CLAMP_TO_EDGE: Like clamp to edge, but instead uses
+         *      the edge opposite to the closest edge.
+         * VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER: Return a solid color when sampling beyond
+         *      the dimensions of the image.
+         */
+        samplerInfo.addressModeU = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+        samplerInfo.addressModeV = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+        samplerInfo.addressModeW = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+
+        /* use anisotropic filtering.  limit the amount of texel samples that will be used to
+         * calculate the final color to 16.
+         */
+        samplerInfo.anisotropyEnable = VK_TRUE;
+        samplerInfo.maxAnisotropy = 16;
+
+        /* color to return when sampling beyond the image border and clamp to border is used.
+         * Only black, white, or transparent can be specified in float or int formats, no other
+         * colors.
+         */
+        samplerInfo.borderColor = VK_BORDER_COLOR_INT_OPAQUE_BLACK;
+
+        /* normalized coordinate system: the texels are addressed in the [0, 1) range on all axes.
+         * unnormalized coordinates: the texels are addressed with the ranges: [0, texWidth)
+         * and [0, texHeight).  Most real world applications use normalized coordinates.
+         */
+        samplerInfo.unnormalizedCoordinates = VK_FALSE;
+
+        /* comparison function.  Texels will be first compared to a value and the result of the
+         * comparison will be used in filtering operations.
+         */
+        samplerInfo.compareEnable = VK_FALSE;
+        samplerInfo.compareOp = VK_COMPARE_OP_ALWAYS;
+
+        /* for mipmapping */
+        samplerInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
+        samplerInfo.mipLodBias = 0.0f;
+        samplerInfo.minLod = 0.0f;
+        samplerInfo.maxLod = 0.0f;
+
+        VkSampler textureSamplerRaw;
+        if (vkCreateSampler(m_device->logicalDevice().get(), &samplerInfo, nullptr, &textureSamplerRaw) != VK_SUCCESS) {
+            throw std::runtime_error("failed to create texture sampler!");
+        }
+
+        auto const &capDevice = m_device;
+        auto deleter = [capDevice](VkSampler textureSamplerRaw) {
+            vkDestroySampler(capDevice->logicalDevice().get(), textureSamplerRaw, nullptr);
+        };
+
+        m_sampler.reset(textureSamplerRaw, deleter);
+    }
 } /* namespace vulkan */
 
 std::vector<VkVertexInputAttributeDescription> getAttributeDescriptions() {
@@ -1564,10 +1679,7 @@ void GraphicsVulkan::addTextures(TextureMap &textures) {
     for (TextureMap::iterator it = textures.begin(); it != textures.end(); it++) {
         if (it->second.get() == nullptr) {
             std::shared_ptr<TextureDataVulkan> texture(new TextureDataVulkan(m_device));
-            texture->m_imageView.reset(new vulkan::ImageView{createTextureImage(it->first.get()),
-                                                 VK_FORMAT_R8G8B8A8_UNORM,
-                                                 VK_IMAGE_ASPECT_COLOR_BIT});
-            createTextureSampler(texture->sampler);
+            texture->m_sampler.reset(new vulkan::ImageSampler{m_device, m_commandPool, it->first});
             it->second = texture;
         }
     }
@@ -1612,7 +1724,8 @@ void GraphicsVulkan::addUniforms(DrawObjectEntry &obj, TextureMap &textures) {
 
         std::shared_ptr<vulkan::DescriptorSet> descriptorSet = m_descriptorPools->allocateDescriptor();
         TextureDataVulkan *textureData = static_cast<TextureDataVulkan*> (it->second.get());
-        updateDescriptorSet(uniformBuffer, textureData->m_imageView->imageView().get(), textureData->sampler,
+        updateDescriptorSet(uniformBuffer, textureData->m_sampler->imageView()->imageView().get(),
+                            textureData->m_sampler->sampler().get(),
                             m_uniformBufferLighting, descriptorSet);
 
         std::shared_ptr<UniformWrapper> uniform(new UniformWrapper(m_device, descriptorSet, uniformBuffer,
@@ -2049,106 +2162,6 @@ void GraphicsVulkan::updateDescriptorSet(std::shared_ptr<vulkan::Buffer> const &
     descriptorWrites[2].pBufferInfo = &bufferLightingSource;
 
     vkUpdateDescriptorSets(m_device->logicalDevice().get(), static_cast<uint32_t>(descriptorWrites.size()), descriptorWrites.data(), 0, nullptr);
-}
-
-std::shared_ptr<vulkan::Image> GraphicsVulkan::createTextureImage(TextureDescription *texture) {
-    uint32_t texHeight;
-    uint32_t texWidth;
-    uint32_t texChannels;
-
-    std::vector<char> pixels = texture->getData(texWidth, texHeight, texChannels);
-
-    VkDeviceSize imageSize = texWidth*texHeight*texChannels;
-
-    /* copy the image to CPU accessable memory in the graphics card.  Make sure that it has the
-     * VK_BUFFER_USAGE_TRANSFER_SRC_BIT set so that we can copy from it to an image later
-     */
-    vulkan::Buffer stagingBuffer{m_device, imageSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT};
-
-    stagingBuffer.copyRawTo(pixels.data(), imageSize);
-
-    VkFormat format = VK_FORMAT_R8G8B8A8_UNORM;//VK_FORMAT_R8_UNORM;
-    std::shared_ptr<vulkan::Image> textureImage{new vulkan::Image{m_device, texWidth, texHeight,
-        format, VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
-        VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT}};
-
-    /* transition the image to VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL. The image was created with
-     * layout: VK_IMAGE_LAYOUT_UNDEFINED, so we use that to specify the old layout.
-     */
-    textureImage->transitionImageLayout(format, VK_IMAGE_LAYOUT_UNDEFINED,
-                                        VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, m_commandPool);
-
-    textureImage->copyBufferToImage(stagingBuffer, m_commandPool);
-
-    /* transition the image to VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL so that the
-     * shader can read from it.
-     */
-    textureImage->transitionImageLayout(format, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-                                        VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, m_commandPool);
-
-    return textureImage;
-}
-
-void GraphicsVulkan::createTextureSampler(VkSampler &textureSampler) {
-    VkSamplerCreateInfo samplerInfo = {};
-    samplerInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
-
-    /* algorithm to use in the case of oversampling - more texels than fragments */
-    samplerInfo.magFilter = VK_FILTER_LINEAR;
-
-    /* algorithm to use in the case of undersampling - fewer texels than fragments */
-    samplerInfo.minFilter = VK_FILTER_LINEAR;
-
-    /* Specify what to do when sampling beyond the image border.  Modes listed below:
-     *
-     * VK_SAMPLER_ADDRESS_MODE_REPEAT: Repeat the texture when going beyond the image dimensions.
-     * VK_SAMPLER_ADDRESS_MODE_MIRRORED_REPEAT: Like repeat, but inverts the coordinates
-     *      to mirror the image when going beyond the dimensions.
-     * VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE: Take the color of the edge closest to the
-     *      coordinate beyond the image dimensions.
-     * VK_SAMPLER_ADDRESS_MODE_MIRROR_CLAMP_TO_EDGE: Like clamp to edge, but instead uses
-     *      the edge opposite to the closest edge.
-     * VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER: Return a solid color when sampling beyond
-     *      the dimensions of the image.
-     */
-    samplerInfo.addressModeU = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
-    samplerInfo.addressModeV = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
-    samplerInfo.addressModeW = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
-
-    /* use anisotropic filtering.  limit the amount of texel samples that will be used to
-     * calculate the final color to 16.
-     */
-    samplerInfo.anisotropyEnable = VK_TRUE;
-    samplerInfo.maxAnisotropy = 16;
-
-    /* color to return when sampling beyond the image border and clamp to border is used.
-     * Only black, white, or transparent can be specified in float or int formats, no other
-     * colors.
-     */
-    samplerInfo.borderColor = VK_BORDER_COLOR_INT_OPAQUE_BLACK;
-
-    /* normalized coordinate system: the texels are addressed in the [0, 1) range on all axes.
-     * unnormalized coordinates: the texels are addressed with the ranges: [0, texWidth)
-     * and [0, texHeight).  Most real world applications use normalized coordinates.
-     */
-    samplerInfo.unnormalizedCoordinates = VK_FALSE;
-
-    /* comparison function.  Texels will be first compared to a value and the result of the
-     * comparison will be used in filtering operations.
-     */
-    samplerInfo.compareEnable = VK_FALSE;
-    samplerInfo.compareOp = VK_COMPARE_OP_ALWAYS;
-
-    /* for mipmapping */
-    samplerInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
-    samplerInfo.mipLodBias = 0.0f;
-    samplerInfo.minLod = 0.0f;
-    samplerInfo.maxLod = 0.0f;
-
-    if (vkCreateSampler(m_device->logicalDevice().get(), &samplerInfo, nullptr, &textureSampler) != VK_SUCCESS) {
-        throw std::runtime_error("failed to create texture sampler!");
-    }
-
 }
 
 UniformBufferObject GraphicsVulkan::getViewPerspectiveMatrix() {

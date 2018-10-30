@@ -647,6 +647,55 @@ namespace vulkan {
 
         void createImageView(VkFormat format, VkImageAspectFlags aspectFlags);
     };
+
+    class ImageFactory {
+    public:
+        static std::shared_ptr<Image> createTextureImage(
+                std::shared_ptr<Device> const &inDevice,
+                std::shared_ptr<CommandPool> const &cmdPool,
+                std::shared_ptr<TextureDescription> const &texture);
+
+        static std::shared_ptr<Image> createDepthImage(std::shared_ptr<SwapChain> inSwapChain) {
+            VkExtent2D extent = inSwapChain->extent();
+            std::shared_ptr<Image> img{new Image{inSwapChain->device(), extent.width,
+                                                 extent.height,
+                                                 inSwapChain->device()->depthFormat(),
+                                                 VK_IMAGE_TILING_OPTIMAL,
+                                                 VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT,
+                                                 VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT}};
+
+            return img;
+        }
+    };
+
+    class ImageSampler {
+    public:
+        ImageSampler(std::shared_ptr<Device> const &inDevice,
+                     std::shared_ptr<CommandPool> const &pool,
+                     std::shared_ptr<TextureDescription> const &textureDescription)
+                : m_device{inDevice},
+                  m_image{},
+                  m_imageView{},
+                  m_sampler{} {
+            m_image = ImageFactory::createTextureImage(m_device, pool, textureDescription);
+
+            m_imageView.reset(new ImageView(m_image, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_ASPECT_COLOR_BIT));
+
+            createTextureSampler();
+        }
+
+        inline std::shared_ptr<VkSampler_T> const &sampler() { return m_sampler; }
+        inline std::shared_ptr<Image> const &image() { return m_image; }
+        inline std::shared_ptr<ImageView> const &imageView() { return m_imageView; }
+
+    private:
+        std::shared_ptr<Device> m_device;
+        std::shared_ptr<Image> m_image;
+        std::shared_ptr<ImageView> m_imageView;
+        std::shared_ptr<VkSampler_T> m_sampler;
+
+        void createTextureSampler();
+    };
 } /* namespace vulkan */
 
 #define DEBUG
@@ -691,10 +740,8 @@ public:
         commandBuffers{},
         m_imageAvailableSemaphore{m_device},
         m_renderFinishedSemaphore{m_device},
-        m_depthImageView{new vulkan::ImageView{std::shared_ptr<vulkan::Image>{new vulkan::Image{m_device, m_swapChain->extent().width,
-                   m_swapChain->extent().height, m_device->depthFormat(),
-                   VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT,
-                   VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT}}, m_device->depthFormat(), VK_IMAGE_ASPECT_DEPTH_BIT}}
+        m_depthImageView{new vulkan::ImageView{vulkan::ImageFactory::createDepthImage(m_swapChain),
+                                               m_device->depthFormat(), VK_IMAGE_ASPECT_DEPTH_BIT}}
     {}
     virtual void init(WindowType *window);
 
@@ -731,13 +778,7 @@ private:
                 : m_device{inDevice}
         {}
         std::shared_ptr<vulkan::Device> m_device;
-        std::shared_ptr<vulkan::ImageView> m_imageView;
-        VkSampler sampler;
-
-        virtual ~TextureDataVulkan() {
-            vkDestroySampler(m_device->logicalDevice().get(), sampler, nullptr);
-            m_imageView.reset();
-        }
+        std::shared_ptr<vulkan::ImageSampler> m_sampler;
     };
     TextureMap texturesLevel;
     TextureMap texturesLevelStarter;
