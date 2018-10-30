@@ -1678,8 +1678,7 @@ void GraphicsVulkan::init(WindowType *inWindow) {
 void GraphicsVulkan::addTextures(TextureMap &textures) {
     for (TextureMap::iterator it = textures.begin(); it != textures.end(); it++) {
         if (it->second.get() == nullptr) {
-            std::shared_ptr<TextureDataVulkan> texture(new TextureDataVulkan(m_device));
-            texture->m_sampler.reset(new vulkan::ImageSampler{m_device, m_commandPool, it->first});
+            std::shared_ptr<TextureDataVulkan> texture{new TextureDataVulkan{m_device, m_commandPool, it->first}};
             it->second = texture;
         }
     }
@@ -1724,8 +1723,8 @@ void GraphicsVulkan::addUniforms(DrawObjectEntry &obj, TextureMap &textures) {
 
         std::shared_ptr<vulkan::DescriptorSet> descriptorSet = m_descriptorPools->allocateDescriptor();
         TextureDataVulkan *textureData = static_cast<TextureDataVulkan*> (it->second.get());
-        updateDescriptorSet(uniformBuffer, textureData->m_sampler->imageView()->imageView().get(),
-                            textureData->m_sampler->sampler().get(),
+        updateDescriptorSet(uniformBuffer, textureData->sampler()->imageView()->imageView().get(),
+                            textureData->sampler()->sampler().get(),
                             m_uniformBufferLighting, descriptorSet);
 
         std::shared_ptr<UniformWrapper> uniform(new UniformWrapper(m_device, descriptorSet, uniformBuffer,

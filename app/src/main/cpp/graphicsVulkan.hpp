@@ -708,6 +708,19 @@ namespace vulkan {
 std::vector<VkVertexInputAttributeDescription> getAttributeDescriptions();
 VkVertexInputBindingDescription getBindingDescription();
 
+class TextureDataVulkan : public TextureData {
+public:
+    TextureDataVulkan(std::shared_ptr<vulkan::Device> const &inDevice,
+                      std::shared_ptr<vulkan::CommandPool> const &inCommandPool,
+                      std::shared_ptr<TextureDescription> const &inTextureDescription)
+            : m_sampler{new vulkan::ImageSampler{inDevice, inCommandPool, inTextureDescription}}
+    {}
+
+    inline std::shared_ptr<vulkan::ImageSampler> const &sampler() { return m_sampler; }
+private:
+    std::shared_ptr<vulkan::ImageSampler> m_sampler;
+};
+
 class GraphicsVulkan : public Graphics {
 public:
     GraphicsVulkan(WindowType *window, uint32_t level)
@@ -773,13 +786,6 @@ private:
     std::shared_ptr<vulkan::Pipeline> m_graphicsPipeline;
     std::shared_ptr<vulkan::CommandPool> m_commandPool;
 
-    struct TextureDataVulkan : public TextureData {
-        TextureDataVulkan(std::shared_ptr<vulkan::Device> inDevice)
-                : m_device{inDevice}
-        {}
-        std::shared_ptr<vulkan::Device> m_device;
-        std::shared_ptr<vulkan::ImageSampler> m_sampler;
-    };
     TextureMap texturesLevel;
     TextureMap texturesLevelStarter;
     TextureMap texturesLevelFinisher;
