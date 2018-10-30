@@ -696,6 +696,79 @@ namespace vulkan {
 
         void createTextureSampler();
     };
+
+    class SwapChainCommands {
+    public:
+        SwapChainCommands(std::shared_ptr<SwapChain> const &inSwapChain,
+                          std::shared_ptr<CommandPool> const &inPool,
+                          std::shared_ptr<RenderPass> const &inRenderPass,
+                          std::shared_ptr<ImageView> const &inDepthImage)
+                : m_swapChain{inSwapChain},
+                  m_pool{inPool},
+                  m_renderPass{inRenderPass},
+                  m_depthImage{inDepthImage},
+                  m_images{},
+                  m_imageViews{},
+                  m_framebuffers{},
+                  m_commandBuffers{} {
+            /* retrieve the image handles from the swap chain. - handles cleaned up by Vulkan
+             * Note: Vulkan may have chosen to create more images than specified in minImageCount,
+             * so we have to requery the image count here.
+             */
+            uint32_t imageCount;
+            vkGetSwapchainImagesKHR(m_swapChain->device()->logicalDevice().get(), m_swapChain->swapChain().get(),
+                                    &imageCount, nullptr);
+            m_images.resize(imageCount);
+            vkGetSwapchainImagesKHR(m_swapChain->device()->logicalDevice().get(), m_swapChain->swapChain().get(),
+                                    &imageCount, m_images.data());
+
+            // The swap chain images are owned by the swap chain.  They go away when the swap chain
+            // is destroyed.  So make sure the swap chain hangs around until all the images are
+            // deleted.  So add it as a capture in the deleter.
+            auto deleter = [inSwapChain](VkImage imageRaw) {
+                // do nothing
+            };
+
+            for (auto &img : m_images) {
+                std::shared_ptr<VkImage_T> imgptr(img, deleter);
+                VkExtent2D ext = m_swapChain->extent();
+                ImageView imageView{
+                        std::shared_ptr<Image>(new Image(m_swapChain->device(), imgptr, ext.width, ext.height)),
+                        m_swapChain->imageFormat(), VK_IMAGE_ASPECT_COLOR_BIT};
+                m_imageViews.push_back(imageView);
+            }
+            createFramebuffers(m_renderPass, m_depthImage);
+            createCommandBuffers();
+        }
+
+        inline size_t size() { return m_images.size(); }
+        inline VkFramebuffer frameBuffer(size_t index) { return m_framebuffers[index].get(); }
+        inline VkCommandBuffer commandBuffer(size_t index) { return m_commandBuffers[index]; }
+
+        ~SwapChainCommands() {
+            vkFreeCommandBuffers(m_swapChain->device()->logicalDevice().get(), m_pool->commandPool().get(),
+                                 m_commandBuffers.size(), m_commandBuffers.data());
+            m_commandBuffers.clear();
+            m_framebuffers.clear();
+            m_imageViews.clear();
+        }
+
+    private:
+        std::shared_ptr<SwapChain> m_swapChain;
+        std::shared_ptr<CommandPool> m_pool;
+        std::shared_ptr<RenderPass> m_renderPass;
+        std::shared_ptr<ImageView> m_depthImage;
+
+        std::vector<VkImage> m_images;
+        std::vector<ImageView> m_imageViews;
+        std::vector<std::shared_ptr<VkFramebuffer_T>> m_framebuffers;
+        std::vector<VkCommandBuffer> m_commandBuffers;
+
+        void createFramebuffers(std::shared_ptr<RenderPass> &renderPass,
+                                std::shared_ptr<ImageView> &depthImage);
+
+        void createCommandBuffers();
+    };
 } /* namespace vulkan */
 
 #define DEBUG
@@ -916,16 +989,17 @@ public:
         m_commandPool{new vulkan::CommandPool{m_device}},
         m_levelSequence{m_device, m_commandPool, m_descriptorPools, level,
                         m_swapChain->extent().width, m_swapChain->extent().height},
-        swapChainImages{},
-        swapChainImageViews{},
-        swapChainFramebuffers{},
-        commandBuffers{},
-        m_imageAvailableSemaphore{m_device},
-        m_renderFinishedSemaphore{m_device},
         m_depthImageView{new vulkan::ImageView{vulkan::ImageFactory::createDepthImage(m_swapChain),
-                                               m_device->depthFormat(), VK_IMAGE_ASPECT_DEPTH_BIT}}
-    {}
-    virtual void init(WindowType *window);
+                                               m_device->depthFormat(), VK_IMAGE_ASPECT_DEPTH_BIT}},
+        m_swapChainCommands{new vulkan::SwapChainCommands{m_swapChain, m_commandPool, m_renderPass, m_depthImageView}},
+        m_imageAvailableSemaphore{m_device},
+        m_renderFinishedSemaphore{m_device}
+    {
+        createDepthResources();
+
+        initializeCommandBuffers();
+    }
+    virtual void init(WindowType *window) {}
 
     virtual void initThread() { }
 
@@ -957,12 +1031,10 @@ private:
 
     LevelSequence m_levelSequence;
 
-    std::vector<VkImage> swapChainImages;
-    std::vector<std::shared_ptr<vulkan::ImageView>> swapChainImageViews;
+    /* depth buffer image */
+    std::shared_ptr<vulkan::ImageView> m_depthImageView;
 
-    std::vector<VkFramebuffer> swapChainFramebuffers;
-
-    std::vector<VkCommandBuffer> commandBuffers;
+    std::shared_ptr<vulkan::SwapChainCommands> m_swapChainCommands;
 
     /* use semaphores to coordinate the rendering and presentation. Could also use fences
      * but fences are more for coordinating in our program itself and not for internal
@@ -971,15 +1043,10 @@ private:
     vulkan::Semaphore m_imageAvailableSemaphore;
     vulkan::Semaphore m_renderFinishedSemaphore;
 
-    /* depth buffer image */
-    std::shared_ptr<vulkan::ImageView> m_depthImageView;
-
     void cleanupSwapChain();
-    void createImageViews();
-    void createFramebuffers();
-    void createCommandBuffers();
-    void initializeCommandBuffer(VkCommandBuffer &commandBuffer, size_t index);
-    void initializeCommandBufferDrawObjects(VkCommandBuffer &commandBuffer, DrawObjectTable const & objs);
+    void initializeCommandBuffers();
+    void initializeCommandBuffer(size_t index);
+    void initializeCommandBufferDrawObjects(VkCommandBuffer commandBuffer, DrawObjectTable const & objs);
     void createDepthResources();
 };
 #endif

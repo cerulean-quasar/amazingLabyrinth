@@ -1589,6 +1589,58 @@ namespace vulkan {
 
         m_sampler.reset(textureSamplerRaw, deleter);
     }
+
+    void SwapChainCommands::createFramebuffers(std::shared_ptr<RenderPass> &renderPass,
+                                               std::shared_ptr<ImageView> &depthImage) {
+        for (size_t i = 0; i < m_imageViews.size(); i++) {
+            std::array<VkImageView, 2> attachments = {
+                    m_imageViews[i].imageView().get(),
+                    depthImage->imageView().get()
+            };
+
+            VkFramebufferCreateInfo framebufferInfo = {};
+            framebufferInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
+            framebufferInfo.renderPass = renderPass->renderPass().get();
+            framebufferInfo.attachmentCount = static_cast<uint32_t>(attachments.size());
+            framebufferInfo.pAttachments = attachments.data();
+            framebufferInfo.width = m_swapChain->extent().width;
+            framebufferInfo.height = m_swapChain->extent().height;
+            framebufferInfo.layers = 1;
+
+            VkFramebuffer framebuf;
+            if (vkCreateFramebuffer(m_swapChain->device()->logicalDevice().get(), &framebufferInfo, nullptr,
+                                    &framebuf) != VK_SUCCESS) {
+                throw std::runtime_error("failed to create framebuffer!");
+            }
+
+            auto const &capDevice = m_swapChain->device();
+            auto deleter = [capDevice](VkFramebuffer frameBuf) {
+                vkDestroyFramebuffer(capDevice->logicalDevice().get(), frameBuf, nullptr);
+            };
+
+            std::shared_ptr<VkFramebuffer_T> framebuffer(framebuf, deleter);
+            m_framebuffers.push_back(framebuffer);
+        }
+    }
+
+    /* Allocate and record commands for each swap chain immage */
+    void SwapChainCommands::createCommandBuffers() {
+        m_commandBuffers.resize(m_framebuffers.size());
+
+        /* allocate the command buffer from the command pool, freed by Vulkan when the command
+         * pool is freed
+         */
+        VkCommandBufferAllocateInfo allocInfo = {};
+        allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+        allocInfo.commandPool = m_pool->commandPool().get();
+        allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+        allocInfo.commandBufferCount = (uint32_t) m_commandBuffers.size();
+
+        if (vkAllocateCommandBuffers(m_swapChain->device()->logicalDevice().get(), &allocInfo,
+                                     m_commandBuffers.data()) != VK_SUCCESS) {
+            throw std::runtime_error("failed to allocate command buffers!");
+        }
+    }
 } /* namespace vulkan */
 
 std::vector<VkVertexInputAttributeDescription> getAttributeDescriptions() {
@@ -1928,19 +1980,6 @@ bool LevelSequence::updateData() {
     return drawingNecessary;
 }
 
-void GraphicsVulkan::init(WindowType *inWindow) {
-    createDepthResources();
-
-    uint32_t imageCount;
-    vkGetSwapchainImagesKHR(m_device->logicalDevice().get(), m_swapChain->swapChain().get(), &imageCount, nullptr);
-    swapChainImages.resize(imageCount);
-    vkGetSwapchainImagesKHR(m_device->logicalDevice().get(), m_swapChain->swapChain().get(), &imageCount, swapChainImages.data());
-    createImageViews();
-    createFramebuffers();
-
-    createCommandBuffers();
-}
-
 void GraphicsVulkan::cleanup() {
     cleanupSwapChain();
 }
@@ -1951,96 +1990,40 @@ void GraphicsVulkan::recreateSwapChain() {
     cleanupSwapChain();
 
     m_swapChain.reset(new vulkan::SwapChain(m_device));
-    createImageViews();
+    m_depthImageView.reset(new vulkan::ImageView{vulkan::ImageFactory::createDepthImage(m_swapChain),
+                                                 m_device->depthFormat(), VK_IMAGE_ASPECT_DEPTH_BIT});
     createDepthResources();
     m_renderPass.reset(new vulkan::RenderPass(m_device, m_swapChain));
     m_graphicsPipeline.reset(new vulkan::Pipeline{m_swapChain, m_renderPass, m_descriptorPools,
                                                   getBindingDescription(), getAttributeDescriptions()});
-    createFramebuffers();
-    createCommandBuffers();
+    m_swapChainCommands.reset(new vulkan::SwapChainCommands{m_swapChain, m_commandPool, m_renderPass,
+        m_depthImageView});
 }
 
 void GraphicsVulkan::cleanupSwapChain() {
     if (m_device->logicalDevice().get() == VK_NULL_HANDLE) {
         return;
     }
-    for (auto framebuffer : swapChainFramebuffers) {
-        vkDestroyFramebuffer(m_device->logicalDevice().get(), framebuffer, nullptr);
-    }
+
+    m_swapChainCommands.reset();
 
     m_graphicsPipeline.reset();
     m_renderPass.reset();
 
     m_depthImageView.reset();
 
-    swapChainImageViews.clear();
-
     m_swapChain.reset();
 }
 
-void GraphicsVulkan::createImageViews() {
-    swapChainImageViews.resize(swapChainImages.size());
-
-    for (size_t i=0; i < swapChainImages.size(); i++) {
-        std::shared_ptr<vulkan::SwapChain> const &capSwapChain = m_swapChain;
-        auto deleter = [capSwapChain](VkImage imageRaw) {
-            // do nothing - freed when the swap chain is freed.
-        };
-        std::shared_ptr<vulkan::Image> swapChainImage{new vulkan::Image{m_device,
-            std::shared_ptr<VkImage_T>{swapChainImages[i], deleter},
-            m_swapChain->extent().width, m_swapChain->extent().height}};
-        swapChainImageViews[i].reset(new vulkan::ImageView{swapChainImage,
-            m_swapChain->imageFormat(), VK_IMAGE_ASPECT_COLOR_BIT});
-    }
-}
-
-void GraphicsVulkan::createFramebuffers() {
-    swapChainFramebuffers.resize(swapChainImageViews.size());
-    for (size_t i = 0; i < swapChainImageViews.size(); i++) {
-        std::array<VkImageView, 2> attachments = {
-            swapChainImageViews[i]->imageView().get(),
-            m_depthImageView->imageView().get()
-        };
-
-        VkFramebufferCreateInfo framebufferInfo = {};
-        framebufferInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
-        framebufferInfo.renderPass = m_renderPass->renderPass().get();
-        framebufferInfo.attachmentCount = static_cast<uint32_t>(attachments.size());
-        framebufferInfo.pAttachments = attachments.data();
-        framebufferInfo.width = m_swapChain->extent().width;
-        framebufferInfo.height = m_swapChain->extent().height;
-        framebufferInfo.layers = 1;
-
-        if (vkCreateFramebuffer(m_device->logicalDevice().get(), &framebufferInfo, nullptr, &swapChainFramebuffers[i]) != VK_SUCCESS) {
-            throw std::runtime_error("failed to create framebuffer!");
-        }
-    }
-}
-
-/* Allocate and record commands for each swap chain immage */
-void GraphicsVulkan::createCommandBuffers() {
-    commandBuffers.resize(swapChainFramebuffers.size());
-
-    /* allocate the command buffer from the command pool, freed by Vulkan when the command
-     * pool is freed
-     */
-    VkCommandBufferAllocateInfo allocInfo = {};
-    allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
-    allocInfo.commandPool = m_commandPool->commandPool().get();
-    allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-    allocInfo.commandBufferCount = (uint32_t) commandBuffers.size();
-
-    if (vkAllocateCommandBuffers(m_device->logicalDevice().get(), &allocInfo, commandBuffers.data()) != VK_SUCCESS) {
-        throw std::runtime_error("failed to allocate command buffers!");
-    }
-
+void GraphicsVulkan::initializeCommandBuffers() {
     /* begin recording commands into each comand buffer */
-    for (size_t i = 0; i < commandBuffers.size(); i++) {
-        initializeCommandBuffer(commandBuffers[i], i);
+    for (size_t i = 0; i < m_swapChainCommands->size(); i++) {
+        initializeCommandBuffer(i);
     }
 }
 
-void GraphicsVulkan::initializeCommandBuffer(VkCommandBuffer &commandBuffer, size_t index) {
+void GraphicsVulkan::initializeCommandBuffer(size_t index) {
+    VkCommandBuffer commandBuffer = m_swapChainCommands->commandBuffer(index);
     VkCommandBufferBeginInfo beginInfo = {};
     beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
     beginInfo.flags = VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT;
@@ -2060,7 +2043,7 @@ void GraphicsVulkan::initializeCommandBuffer(VkCommandBuffer &commandBuffer, siz
     VkRenderPassBeginInfo renderPassInfo = {};
     renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
     renderPassInfo.renderPass = m_renderPass->renderPass().get();
-    renderPassInfo.framebuffer = swapChainFramebuffers[index];
+    renderPassInfo.framebuffer = m_swapChainCommands->frameBuffer(index);
     /* size of the render area */
     renderPassInfo.renderArea.offset = {0, 0};
     renderPassInfo.renderArea.extent = m_swapChain->extent();
@@ -2108,7 +2091,7 @@ void GraphicsVulkan::initializeCommandBuffer(VkCommandBuffer &commandBuffer, siz
     }
 }
 
-void GraphicsVulkan::initializeCommandBufferDrawObjects(VkCommandBuffer &commandBuffer, DrawObjectTable const &objs) {
+void GraphicsVulkan::initializeCommandBufferDrawObjects(VkCommandBuffer commandBuffer, DrawObjectTable const &objs) {
     VkDeviceSize offsets[1] = {0};
 
     for (auto &&obj : objs) {
@@ -2157,7 +2140,7 @@ void GraphicsVulkan::drawFrame() {
         // to display the level finished animation.  Since there are additional objects, we need to
         // rewrite the command buffer to display the new objects.  If the textures changed, then we
         // need to update the descriptor sets, so the command buffers need to be rewritten.
-        initializeCommandBuffer(commandBuffers[imageIndex], imageIndex);
+        initializeCommandBuffer(imageIndex);
     //}
 
     /* If the window surface is no longer compatible with the swap chain, then we need to
@@ -2186,7 +2169,8 @@ void GraphicsVulkan::drawFrame() {
 
     /* use the command buffer that corresponds to the image we just acquired */
     submitInfo.commandBufferCount = 1;
-    submitInfo.pCommandBuffers = &commandBuffers[imageIndex];
+    VkCommandBuffer commandBuffer = m_swapChainCommands->commandBuffer(imageIndex);
+    submitInfo.pCommandBuffers = &commandBuffer;
 
     /* indicate which semaphore to signal when execution is done */
     VkSemaphore signalSemaphores[] = {m_renderFinishedSemaphore.semaphore().get()};
