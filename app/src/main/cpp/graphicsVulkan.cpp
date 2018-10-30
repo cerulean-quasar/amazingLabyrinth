@@ -1992,7 +1992,7 @@ void GraphicsVulkan::recreateSwapChain() {
     m_swapChain.reset(new vulkan::SwapChain(m_device));
     m_depthImageView.reset(new vulkan::ImageView{vulkan::ImageFactory::createDepthImage(m_swapChain),
                                                  m_device->depthFormat(), VK_IMAGE_ASPECT_DEPTH_BIT});
-    createDepthResources();
+    prepareDepthResources();
     m_renderPass.reset(new vulkan::RenderPass(m_device, m_swapChain));
     m_graphicsPipeline.reset(new vulkan::Pipeline{m_swapChain, m_renderPass, m_descriptorPools,
                                                   getBindingDescription(), getAttributeDescriptions()});
@@ -2226,7 +2226,7 @@ void GraphicsVulkan::drawFrame() {
 }
 
 
-void GraphicsVulkan::createDepthResources() {
+void GraphicsVulkan::prepareDepthResources() {
     VkFormat depthFormat = m_device->depthFormat();
 
     m_depthImageView->image()->transitionImageLayout(depthFormat, VK_IMAGE_LAYOUT_UNDEFINED,

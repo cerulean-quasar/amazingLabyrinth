@@ -995,7 +995,7 @@ public:
         m_imageAvailableSemaphore{m_device},
         m_renderFinishedSemaphore{m_device}
     {
-        createDepthResources();
+        prepareDepthResources();
 
         initializeCommandBuffers();
     }
@@ -1047,7 +1047,7 @@ private:
     void initializeCommandBuffers();
     void initializeCommandBuffer(size_t index);
     void initializeCommandBufferDrawObjects(VkCommandBuffer commandBuffer, DrawObjectTable const & objs);
-    void createDepthResources();
+    void prepareDepthResources();
 };
 #endif
 
