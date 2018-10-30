@@ -1227,6 +1227,209 @@ namespace vulkan {
 
         m_semaphore.reset(semaphoreRaw, deleter);
     }
+
+    void Image::createImage(VkFormat format, VkImageTiling tiling,
+                            VkImageUsageFlags usage, VkMemoryPropertyFlags properties) {
+
+        /* copy the data to an image object because it will be easier and faster to access the
+         * image from the shader.  One advantage of using an image object is that using one will
+         * allowy us to use 2D coordinates.  Pixels in an image object are known as texels.
+         */
+        VkImageCreateInfo imageInfo = {};
+        imageInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
+        imageInfo.imageType = VK_IMAGE_TYPE_2D;
+        imageInfo.extent.width = m_width;
+        imageInfo.extent.height = m_height;
+        imageInfo.extent.depth = 1;
+        imageInfo.mipLevels = 1;
+        imageInfo.arrayLayers = 1;
+
+        /* must be the same format as the pixels in the buffer otherwise the copy will fail */
+        imageInfo.format = format;
+
+        /* texels are layed out in an implementation defined order for optimal access.  If we
+         * wanted it to be in a row-major order, then we should use VK_IMAGE_TILING_LINEAR
+         */
+        imageInfo.tiling = tiling;
+
+        /* the first transition will discard the texels that were already there */
+        imageInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+
+        /* the image will be used as the destination for the image copy from the buffer, so use
+         * VK_IMAGE_USAGE_TRANSFER_DST_BIT. The image also needs to be accessable from the shader
+         * to color the mesh, so use VK_IMAGE_USAGE_SAMPLED_BIT.
+         */
+        imageInfo.usage = usage;
+
+        /* only accessing the image from the graphic queue which also supports transfer
+         * operations.
+         */
+        imageInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+
+        /* the samples flag is for multisampling.  This is only relevant for images that will
+         * be used as an attachment, so stick to one sample.
+         */
+        imageInfo.samples = VK_SAMPLE_COUNT_1_BIT;
+
+        /* for sparse images.  We don't use it here. */
+        imageInfo.flags = 0; // Optional
+
+        VkImage imageRaw;
+        if (vkCreateImage(m_device->logicalDevice().get(), &imageInfo, nullptr, &imageRaw) != VK_SUCCESS) {
+            throw std::runtime_error("failed to create image!");
+        }
+
+        auto const &capDevice = m_device;
+        auto imageDeleter = [capDevice](VkImage imageRaw) {
+            vkDestroyImage(capDevice->logicalDevice().get(), imageRaw, nullptr);
+        };
+
+        m_image.reset(imageRaw, imageDeleter);
+
+        VkMemoryRequirements memRequirements;
+        vkGetImageMemoryRequirements(m_device->logicalDevice().get(), m_image.get(), &memRequirements);
+
+        VkMemoryAllocateInfo allocInfo = {};
+        allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
+        allocInfo.allocationSize = memRequirements.size;
+        allocInfo.memoryTypeIndex = m_device->findMemoryType(memRequirements.memoryTypeBits, properties);
+
+        VkDeviceMemory imageMemoryRaw;
+        if (vkAllocateMemory(m_device->logicalDevice().get(), &allocInfo, nullptr, &imageMemoryRaw) !=
+            VK_SUCCESS) {
+            throw std::runtime_error("failed to allocate image memory!");
+        }
+
+        auto memoryDeleter = [capDevice](VkDeviceMemory imageMemoryRaw) {
+            vkFreeMemory(capDevice->logicalDevice().get(), imageMemoryRaw, nullptr);
+        };
+
+        m_imageMemory.reset(imageMemoryRaw, memoryDeleter);
+
+        vkBindImageMemory(m_device->logicalDevice().get(), m_image.get(), m_imageMemory.get(), 0);
+    }
+
+    /* get the image in the right layout before we execute a copy command */
+    void Image::transitionImageLayout(VkFormat format, VkImageLayout oldLayout,
+                                      VkImageLayout newLayout, std::shared_ptr<CommandPool> const &pool) {
+        SingleTimeCommands cmds{m_device, pool};
+        cmds.begin();
+
+        /* use an image barrier to transition the layout */
+        VkImageMemoryBarrier barrier = {};
+        barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+        barrier.oldLayout = oldLayout;
+        barrier.newLayout = newLayout;
+
+        /* for transfer of queue family ownership.  we are not transfering queue family ownership
+         * so set these to VK_QUEUE_FAMILY_IGNORED.
+         */
+        barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+        barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+
+        /* define the image that is affected and the part of the image.  our image is not an array
+         * and does not have mipmapping levels.  Only specify one level and layer.
+         */
+        barrier.image = m_image.get();
+        barrier.subresourceRange.baseMipLevel = 0;
+        barrier.subresourceRange.levelCount = 1;
+        barrier.subresourceRange.baseArrayLayer = 0;
+        barrier.subresourceRange.layerCount = 1;
+
+        if (newLayout == VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL) {
+            barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
+
+            if (hasStencilComponent(format)) {
+                barrier.subresourceRange.aspectMask |= VK_IMAGE_ASPECT_STENCIL_BIT;
+            }
+        } else {
+            barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+        }
+
+        VkPipelineStageFlags sourceStage;
+        VkPipelineStageFlags destinationStage;
+
+
+        /* There are two transitions that we handle:
+         *
+         * undefined -> transfer destination: transfer writes don't need to wait on anything
+         *
+         * transfer destination -> shader reading: fragment shader reads need to wait on
+         *      transfer writes
+         */
+        if (oldLayout == VK_IMAGE_LAYOUT_UNDEFINED &&
+            newLayout == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL) {
+            barrier.srcAccessMask = 0;
+            barrier.dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+
+            sourceStage = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
+            destinationStage = VK_PIPELINE_STAGE_TRANSFER_BIT;
+        } else if (oldLayout == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL &&
+                   newLayout == VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL) {
+            barrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+            barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
+
+            sourceStage = VK_PIPELINE_STAGE_TRANSFER_BIT;
+            destinationStage = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
+        } else if (oldLayout == VK_IMAGE_LAYOUT_UNDEFINED &&
+                   newLayout == VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL) {
+            barrier.srcAccessMask = 0;
+            barrier.dstAccessMask = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT |
+                                    VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
+
+            sourceStage = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
+            destinationStage = VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
+
+        } else {
+            throw std::invalid_argument("unsupported layout transition!");
+        }
+
+        vkCmdPipelineBarrier(
+                cmds.commandBuffer().get(),
+                sourceStage, destinationStage,
+                0,
+                0, nullptr,
+                0, nullptr,
+                1, &barrier
+        );
+
+        cmds.end();
+    }
+
+    void Image::copyBufferToImage(Buffer &buffer, std::shared_ptr<CommandPool> const &pool) {
+        SingleTimeCommands cmds{m_device, pool};
+        cmds.begin();
+
+        VkBufferImageCopy region = {};
+
+        /* offset in the buffer where the image starts. */
+        region.bufferOffset = 0;
+
+        /* specifies how the pixels are layed out in memory.  We could have some padding between
+         * the rows.  But we don't in our case, so set both below to 0.
+         */
+        region.bufferRowLength = 0;
+        region.bufferImageHeight = 0;
+
+        /* indicate what part of the image we want to copy */
+        region.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+        region.imageSubresource.mipLevel = 0;
+        region.imageSubresource.baseArrayLayer = 0;
+        region.imageSubresource.layerCount = 1;
+
+        /* indicate what part of the image we want to copy */
+        region.imageOffset = {0, 0, 0};
+        region.imageExtent = {
+                m_width,
+                m_height,
+                1
+        };
+
+        vkCmdCopyBufferToImage(cmds.commandBuffer().get(), buffer.buffer().get(),
+                               m_image.get(), VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &region);
+
+        cmds.end();
+    }
 } /* namespace vulkan */
 
 std::vector<VkVertexInputAttributeDescription> getAttributeDescriptions() {
@@ -1317,8 +1520,8 @@ void GraphicsVulkan::addTextures(TextureMap &textures) {
     for (TextureMap::iterator it = textures.begin(); it != textures.end(); it++) {
         if (it->second.get() == nullptr) {
             std::shared_ptr<TextureDataVulkan> texture(new TextureDataVulkan(m_device));
-            createTextureImage(it->first.get(), texture->image, texture->memory);
-            texture->imageView = createImageView(texture->image, VK_FORMAT_R8G8B8A8_UNORM,
+            texture->m_image = createTextureImage(it->first.get());
+            texture->imageView = createImageView(texture->m_image->image().get(), VK_FORMAT_R8G8B8A8_UNORM,
                                                  VK_IMAGE_ASPECT_COLOR_BIT);
             createTextureSampler(texture->sampler);
             it->second = texture;
@@ -1466,13 +1669,7 @@ void GraphicsVulkan::cleanupSwapChain() {
         vkDestroyImageView(m_device->logicalDevice().get(), depthImageView, nullptr);
     }
 
-    if (depthImage != VK_NULL_HANDLE) {
-        vkDestroyImage(m_device->logicalDevice().get(), depthImage, nullptr);
-    }
-
-    if (depthImageMemory != VK_NULL_HANDLE) {
-        vkFreeMemory(m_device->logicalDevice().get(), depthImageMemory, nullptr);
-    }
+    m_depthImage.reset();
 
     for (auto imageView : swapChainImageViews) {
         vkDestroyImageView(m_device->logicalDevice().get(), imageView, nullptr);
@@ -1743,14 +1940,10 @@ void GraphicsVulkan::drawFrame() {
 void GraphicsVulkan::createDepthResources() {
     VkFormat depthFormat = m_device->depthFormat();
 
-    createImage(m_swapChain->extent().width, m_swapChain->extent().height, depthFormat, VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, depthImage, depthImageMemory);
-    depthImageView = createImageView(depthImage, depthFormat, VK_IMAGE_ASPECT_DEPTH_BIT);
+    depthImageView = createImageView(m_depthImage->image().get(), depthFormat, VK_IMAGE_ASPECT_DEPTH_BIT);
 
-    transitionImageLayout(depthImage, depthFormat, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL);
-}
-
-bool GraphicsVulkan::hasStencilComponent(VkFormat format) {
-    return format == VK_FORMAT_D32_SFLOAT_S8_UINT || format == VK_FORMAT_D24_UNORM_S8_UINT;
+    m_depthImage->transitionImageLayout(depthFormat, VK_IMAGE_LAYOUT_UNDEFINED,
+                                        VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL, m_commandPool);
 }
 
 /* descriptor set for the MVP matrix and texture samplers */
@@ -1814,7 +2007,7 @@ void GraphicsVulkan::updateDescriptorSet(std::shared_ptr<vulkan::Buffer> const &
     vkUpdateDescriptorSets(m_device->logicalDevice().get(), static_cast<uint32_t>(descriptorWrites.size()), descriptorWrites.data(), 0, nullptr);
 }
 
-void GraphicsVulkan::createTextureImage(TextureDescription *texture, VkImage &textureImage, VkDeviceMemory &textureImageMemory) {
+std::shared_ptr<vulkan::Image> GraphicsVulkan::createTextureImage(TextureDescription *texture) {
     uint32_t texHeight;
     uint32_t texWidth;
     uint32_t texChannels;
@@ -1831,19 +2024,25 @@ void GraphicsVulkan::createTextureImage(TextureDescription *texture, VkImage &te
     stagingBuffer.copyRawTo(pixels.data(), imageSize);
 
     VkFormat format = VK_FORMAT_R8G8B8A8_UNORM;//VK_FORMAT_R8_UNORM;
-    createImage(texWidth, texHeight, format, VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, textureImage, textureImageMemory);
+    std::shared_ptr<vulkan::Image> textureImage{new vulkan::Image{m_device, texWidth, texHeight,
+        format, VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
+        VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT}};
 
     /* transition the image to VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL. The image was created with
      * layout: VK_IMAGE_LAYOUT_UNDEFINED, so we use that to specify the old layout.
      */
-    transitionImageLayout(textureImage,  format, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
+    textureImage->transitionImageLayout(format, VK_IMAGE_LAYOUT_UNDEFINED,
+                                        VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, m_commandPool);
 
-    copyBufferToImage(stagingBuffer.buffer().get(), textureImage, static_cast<uint32_t>(texWidth), static_cast<uint32_t>(texHeight));
+    textureImage->copyBufferToImage(stagingBuffer, m_commandPool);
 
     /* transition the image to VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL so that the
      * shader can read from it.
      */
-    transitionImageLayout(textureImage,  format, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+    textureImage->transitionImageLayout(format, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+                                        VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, m_commandPool);
+
+    return textureImage;
 }
 
 void GraphicsVulkan::createTextureSampler(VkSampler &textureSampler) {
@@ -1944,192 +2143,6 @@ VkImageView GraphicsVulkan::createImageView(VkImage image, VkFormat format, VkIm
     }
 
     return imageView;
-}
-
-void GraphicsVulkan::createImage(uint32_t width, uint32_t height, VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage, VkMemoryPropertyFlags properties, VkImage& image, VkDeviceMemory& imageMemory) {
-
-    /* copy the data to an image object because it will be easier and faster to access the
-     * image from the shader.  One advantage of using an image object is that using one will
-     * allowy us to use 2D coordinates.  Pixels in an image object are known as texels.
-     */
-    VkImageCreateInfo imageInfo = {};
-    imageInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
-    imageInfo.imageType = VK_IMAGE_TYPE_2D;
-    imageInfo.extent.width = width;
-    imageInfo.extent.height = height;
-    imageInfo.extent.depth = 1;
-    imageInfo.mipLevels = 1;
-    imageInfo.arrayLayers = 1;
-
-    /* must be the same format as the pixels in the buffer otherwise the copy will fail */
-    imageInfo.format = format;
-
-    /* texels are layed out in an implementation defined order for optimal access.  If we
-     * wanted it to be in a row-major order, then we should use VK_IMAGE_TILING_LINEAR
-     */
-    imageInfo.tiling = tiling;
-
-    /* the first transition will discard the texels that were already there */
-    imageInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-
-    /* the image will be used as the destination for the image copy from the buffer, so use
-     * VK_IMAGE_USAGE_TRANSFER_DST_BIT. The image also needs to be accessable from the shader
-     * to color the mesh, so use VK_IMAGE_USAGE_SAMPLED_BIT.
-     */
-    imageInfo.usage = usage;
-
-    /* only accessing the image from the graphic queue which also supports transfer
-     * operations.
-     */
-    imageInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
-
-    /* the samples flag is for multisampling.  This is only relevant for images that will
-     * be used as an attachment, so stick to one sample.
-     */
-    imageInfo.samples = VK_SAMPLE_COUNT_1_BIT;
-
-    /* for sparse images.  We don't use it here. */
-    imageInfo.flags = 0; // Optional
-
-    if (vkCreateImage(m_device->logicalDevice().get(), &imageInfo, nullptr, &image) != VK_SUCCESS) {
-        throw std::runtime_error("failed to create image!");
-    }
-
-    VkMemoryRequirements memRequirements;
-    vkGetImageMemoryRequirements(m_device->logicalDevice().get(), image, &memRequirements);
-
-    VkMemoryAllocateInfo allocInfo = {};
-    allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
-    allocInfo.allocationSize = memRequirements.size;
-    allocInfo.memoryTypeIndex = m_device->findMemoryType(memRequirements.memoryTypeBits, properties);
-
-    if (vkAllocateMemory(m_device->logicalDevice().get(), &allocInfo, nullptr, &imageMemory) != VK_SUCCESS) {
-        throw std::runtime_error("failed to allocate image memory!");
-    }
-
-    vkBindImageMemory(m_device->logicalDevice().get(), image, imageMemory, 0);
-}
-
-/* get the image in the right layout before we execute a copy command */
-void GraphicsVulkan::transitionImageLayout(VkImage image, VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout) {
-    vulkan::SingleTimeCommands cmds{m_device, m_commandPool};
-    cmds.begin();
-
-    /* use an image barrier to transition the layout */
-    VkImageMemoryBarrier barrier = {};
-    barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
-    barrier.oldLayout = oldLayout;
-    barrier.newLayout = newLayout;
-
-    /* for transfer of queue family ownership.  we are not transfering queue family ownership
-     * so set these to VK_QUEUE_FAMILY_IGNORED.
-     */
-    barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-    barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-
-    /* define the image that is affected and the part of the image.  our image is not an array
-     * and does not have mipmapping levels.  Only specify one level and layer.
-     */
-    barrier.image = image;
-    barrier.subresourceRange.baseMipLevel = 0;
-    barrier.subresourceRange.levelCount = 1;
-    barrier.subresourceRange.baseArrayLayer = 0;
-    barrier.subresourceRange.layerCount = 1;
-
-    if (newLayout == VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL) {
-        barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
-
-        if (hasStencilComponent(format)) {
-            barrier.subresourceRange.aspectMask |= VK_IMAGE_ASPECT_STENCIL_BIT;
-        }
-    } else {
-        barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-    }
-
-    VkPipelineStageFlags sourceStage;
-    VkPipelineStageFlags destinationStage;
-
-    /* There are two transitions that we handle:
-     *
-     * undefined -> transfer destination: transfer writes don't need to wait on anything
-     *
-     * transfer destination -> shader reading: fragment shader reads need to wait on
-     *      transfer writes
-     */
-    if (oldLayout == VK_IMAGE_LAYOUT_UNDEFINED && newLayout == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL) {
-        barrier.srcAccessMask = 0;
-        barrier.dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
-
-        sourceStage = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
-        destinationStage = VK_PIPELINE_STAGE_TRANSFER_BIT;
-    } else if (oldLayout == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL && newLayout == VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL) {
-        barrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
-        barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
-
-        sourceStage = VK_PIPELINE_STAGE_TRANSFER_BIT;
-        destinationStage = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
-    } else if (oldLayout == VK_IMAGE_LAYOUT_UNDEFINED && newLayout == VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL) {
-        barrier.srcAccessMask = 0;
-        barrier.dstAccessMask = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
-
-        sourceStage = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
-        destinationStage = VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
-
-    } else {
-        throw std::invalid_argument("unsupported layout transition!");
-    }
-
-    vkCmdPipelineBarrier(
-        cmds.commandBuffer().get(),
-        sourceStage, destinationStage,
-        0,
-        0, nullptr,
-        0, nullptr,
-        1, &barrier
-    );
-
-    cmds.end();
-}
-
-void GraphicsVulkan::copyBufferToImage(VkBuffer buffer, VkImage image, uint32_t width, uint32_t height) {
-    vulkan::SingleTimeCommands cmds{m_device, m_commandPool};
-    cmds.begin();
-
-    VkBufferImageCopy region = {};
-
-    /* offset in the buffer where the image starts. */
-    region.bufferOffset = 0;
-
-    /* specifies how the pixels are layed out in memory.  We could have some padding between
-     * the rows.  But we don't in our case, so set both below to 0.
-     */
-    region.bufferRowLength = 0;
-    region.bufferImageHeight = 0;
-
-    /* indicate what part of the image we want to copy */
-    region.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-    region.imageSubresource.mipLevel = 0;
-    region.imageSubresource.baseArrayLayer = 0;
-    region.imageSubresource.layerCount = 1;
-
-    /* indicate what part of the image we want to copy */
-    region.imageOffset = {0, 0, 0};
-    region.imageExtent = {
-        width,
-        height,
-        1
-    };
-
-    vkCmdCopyBufferToImage(
-        cmds.commandBuffer().get(),
-        buffer,
-        image,
-        VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-        1,
-        &region
-    );
-
-    cmds.end();
 }
 
 UniformBufferObject GraphicsVulkan::getViewPerspectiveMatrix() {
