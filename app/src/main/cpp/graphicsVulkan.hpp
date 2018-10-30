@@ -761,6 +761,60 @@ private:
     void updateDescriptorSet(std::shared_ptr<vulkan::Device> const &inDevice);
 };
 
+class DrawObjectDataVulkan : public DrawObjectData {
+public:
+    DrawObjectDataVulkan(std::shared_ptr<vulkan::Device> const &inDevice,
+                         std::shared_ptr<vulkan::CommandPool> const &inPool,
+                         std::shared_ptr<vulkan::DescriptorPools> const &inDescriptorPools,
+                         std::shared_ptr<DrawObject> const &drawObj,
+                         std::shared_ptr<vulkan::Buffer> const &inLightingPosition)
+            : m_device{inDevice},
+              m_commandPool{inPool},
+              m_descriptorPools{inDescriptorPools},
+              m_vertexBuffer{m_device, sizeof(drawObj->vertices[0]) * drawObj->vertices.size(),
+                             VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
+                             VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT},
+              m_indexBuffer{m_device, sizeof(drawObj->indices[0]) * drawObj->indices.size(),
+                            VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT,
+                            VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT},
+              m_uniformBufferLighting{inLightingPosition},
+              m_uniforms{} {
+        copyVerticesToBuffer(inPool, drawObj);
+        copyIndicesToBuffer(inPool, drawObj);
+    }
+
+    void addUniforms(std::shared_ptr<DrawObject> const &obj,
+                     std::tuple<glm::mat4, glm::mat4> const &projView,
+                     TextureMap &textures);
+    void update(std::shared_ptr<DrawObject> const &obj,
+                std::tuple<glm::mat4, glm::mat4> const &projView, TextureMap &textures);
+
+    inline vulkan::Buffer const &vertexBuffer() { return m_vertexBuffer; }
+    inline vulkan::Buffer const &indexBuffer() { return m_indexBuffer; }
+    inline std::vector<std::shared_ptr<UniformWrapper>> const &uniforms() { return m_uniforms; }
+    inline void clearUniforms() { m_uniforms.clear(); }
+private:
+    std::shared_ptr<vulkan::Device> m_device;
+    std::shared_ptr<vulkan::CommandPool> m_commandPool;
+    std::shared_ptr<vulkan::DescriptorPools> m_descriptorPools;
+
+    /* vertex buffer and index buffer. the index buffer indicates which vertices to draw and in
+     * the specified order.  Note, vertices can be listed twice if they should be part of more
+     * than one triangle.
+     */
+    vulkan::Buffer m_vertexBuffer;
+    vulkan::Buffer m_indexBuffer;
+
+    std::shared_ptr<vulkan::Buffer> m_uniformBufferLighting;
+    std::vector<std::shared_ptr<UniformWrapper>> m_uniforms;
+
+    void copyVerticesToBuffer(std::shared_ptr<vulkan::CommandPool> const &cmdpool,
+                              std::shared_ptr<DrawObject> const &drawObj);
+
+    void copyIndicesToBuffer(std::shared_ptr<vulkan::CommandPool> const &cmdpool,
+                             std::shared_ptr<DrawObject> const &drawObj);
+};
+
 class GraphicsVulkan : public Graphics {
 public:
     GraphicsVulkan(WindowType *window, uint32_t level)
@@ -834,21 +888,6 @@ private:
     std::vector<std::shared_ptr<vulkan::ImageView>> swapChainImageViews;
 
     std::shared_ptr<vulkan::Buffer> m_uniformBufferLighting;
-
-    /* vertex buffer and index buffer. the index buffer indicates which vertices to draw and in
-     * the specified order.  Note, vertices can be listed twice if they should be part of more
-     * than one triangle.
-     */
-    struct DrawObjectDataVulkan : public DrawObjectData {
-        std::shared_ptr<vulkan::Device> m_device;
-        std::shared_ptr<vulkan::Buffer> m_vertexBuffer;
-        std::shared_ptr<vulkan::Buffer> m_indexBuffer;
-        std::vector<std::shared_ptr<UniformWrapper> > uniforms;
-
-        DrawObjectDataVulkan(std::shared_ptr<vulkan::Device> inDevice)
-        : m_device{inDevice} {
-        }
-    };
 
     DrawObjectTable staticObjsData;
     DrawObjectTable dynObjsData;

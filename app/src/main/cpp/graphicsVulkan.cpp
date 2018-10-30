@@ -1705,6 +1705,81 @@ void UniformWrapper::updateDescriptorSet(std::shared_ptr<vulkan::Device> const &
                            descriptorWrites.data(), 0, nullptr);
 }
 
+void DrawObjectDataVulkan::copyVerticesToBuffer(std::shared_ptr<vulkan::CommandPool> const &cmdpool,
+                                                std::shared_ptr<DrawObject> const &drawObj) {
+    VkDeviceSize bufferSize = sizeof(drawObj->vertices[0]) * drawObj->vertices.size();
+
+    /* use a staging buffer in the CPU accessable memory to copy the data into graphics card
+     * memory.  Then use a copy command to copy the data into fast graphics card only memory.
+     */
+    vulkan::Buffer stagingBuffer(cmdpool->device(), bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+                             VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+
+    stagingBuffer.copyRawTo(drawObj->vertices.data(), bufferSize);
+
+    m_vertexBuffer.copyTo(cmdpool, stagingBuffer, bufferSize);
+}
+
+/* buffer for the indices - used to reference which vertex in the vertex array (by index) to
+ * draw.  This way normally duplicated vertices would not need to be specified twice.
+ * Only one index buffer per pipeline is allowed.  Put all dice in the same index buffer.
+ */
+void DrawObjectDataVulkan::copyIndicesToBuffer(std::shared_ptr<vulkan::CommandPool> const &cmdpool,
+                                               std::shared_ptr<DrawObject> const &drawObj) {
+    VkDeviceSize bufferSize = sizeof(drawObj->indices[0]) * drawObj->indices.size();
+
+    vulkan::Buffer stagingBuffer(cmdpool->device(), bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+                             VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+
+    stagingBuffer.copyRawTo(drawObj->indices.data(), bufferSize);
+
+    m_indexBuffer.copyTo(cmdpool, stagingBuffer, bufferSize);
+}
+
+void DrawObjectDataVulkan::addUniforms(std::shared_ptr<DrawObject> const &obj,
+                                       std::tuple<glm::mat4, glm::mat4> const &projView,
+                                       TextureMap &textures) {
+    if (obj->modelMatrices.size() == m_uniforms.size()) {
+        return;
+    }
+
+    UniformBufferObject ubo;
+    std::tie(ubo.proj, ubo.view) = projView;
+
+    for (size_t i = m_uniforms.size(); i < obj->modelMatrices.size(); i++) {
+        ubo.model = obj->modelMatrices[i];
+        TextureMap::iterator it = textures.find(obj->texture);
+        if (it == textures.end()) {
+            throw std::runtime_error("Could not find texture in texture map.");
+        }
+        TextureDataVulkan *textureData = static_cast<TextureDataVulkan *> (it->second.get());
+        std::shared_ptr<UniformWrapper> uniform(new UniformWrapper(m_device, m_descriptorPools,
+                                                                   textureData->sampler(), m_uniformBufferLighting, ubo));
+        m_uniforms.push_back(uniform);
+    }
+}
+
+void DrawObjectDataVulkan::update(std::shared_ptr<DrawObject> const &obj,
+                                  std::tuple<glm::mat4, glm::mat4> const &projView, TextureMap &textures) {
+    if (m_uniforms.size() < obj->modelMatrices.size()) {
+        // a new model matrix (new object but same texture, vertices and indices).
+        addUniforms(obj, projView, textures);
+    } else if (m_uniforms.size() > obj->modelMatrices.size()) {
+        // a model matrix got removed...
+        m_uniforms.pop_back();
+    } else {
+        UniformBufferObject ubo;
+        std::tie(ubo.proj, ubo.view) = projView;
+        // just copy over the model matrices into the graphics card memory... they might
+        // have changed.
+        for (size_t j = 0; j < obj->modelMatrices.size(); j++) {
+            void *ptr;
+            ubo.model = obj->modelMatrices[j];
+            m_uniforms[j]->uniformBuffer()->copyRawTo(&ubo, sizeof (ubo));
+        }
+    }
+}
+
 void GraphicsVulkan::init(WindowType *inWindow) {
     levelTracker.setParameters(m_swapChain->extent().width, m_swapChain->extent().height);
     levelStarter = levelTracker.getLevelStarter();
@@ -1759,38 +1834,16 @@ void GraphicsVulkan::addObjects(DrawObjectTable &objs, TextureMap &textures) {
 }
 
 void GraphicsVulkan::addObject(DrawObjectEntry &obj, TextureMap &textures) {
-    std::shared_ptr<DrawObjectDataVulkan> objData(new DrawObjectDataVulkan(m_device));
-    objData->m_vertexBuffer = createVertexBuffer(obj.first->vertices);
-    objData->m_indexBuffer = createIndexBuffer(obj.first->indices);
+    std::shared_ptr<DrawObjectDataVulkan> objData(new DrawObjectDataVulkan(m_device, m_commandPool,
+        m_descriptorPools, obj.first, m_uniformBufferLighting));
 
     obj.second = objData;
 
-    addUniforms(obj, textures);
-}
-
-void GraphicsVulkan::addUniforms(DrawObjectEntry &obj, TextureMap &textures) {
-    DrawObjectDataVulkan *data = dynamic_cast<DrawObjectDataVulkan*> (obj.second.get());
-    if (obj.first->modelMatrices.size() == data->uniforms.size()) {
-        return;
-    }
-
     UniformBufferObject ubo = getViewPerspectiveMatrix();
 
-    for (size_t i = data->uniforms.size(); i < obj.first->modelMatrices.size(); i++) {
-        ubo.model = obj.first->modelMatrices[i];
+    std::tuple<glm::mat4, glm::mat4> projView{ubo.proj, ubo.view};
 
-        TextureMap::iterator it = textures.find(obj.first->texture);
-        if (it == textures.end()) {
-            throw std::runtime_error("Could not find texture in texture map.");
-        }
-
-        TextureDataVulkan *textureData = static_cast<TextureDataVulkan*> (it->second.get());
-
-        std::shared_ptr<UniformWrapper> uniform(new UniformWrapper(m_device, m_descriptorPools,
-            textureData->sampler(), m_uniformBufferLighting, ubo));
-
-        data->uniforms.push_back(uniform);
-    }
+    objData->addUniforms(obj.first, projView, textures);
 }
 
 void GraphicsVulkan::cleanup() {
@@ -2026,10 +2079,10 @@ void GraphicsVulkan::initializeCommandBufferDrawObjects(VkCommandBuffer &command
     for (auto &&obj : objs) {
         DrawObjectDataVulkan *objData = dynamic_cast<DrawObjectDataVulkan*> (obj.second.get());
 
-        VkBuffer vertexBuffer = objData->m_vertexBuffer->buffer().get();
+        VkBuffer vertexBuffer = objData->vertexBuffer().buffer().get();
         vkCmdBindVertexBuffers(commandBuffer, 0, 1, &vertexBuffer, offsets);
-        vkCmdBindIndexBuffer(commandBuffer, objData->m_indexBuffer->buffer().get(), 0, VK_INDEX_TYPE_UINT32);
-        for (auto &&uniform : objData->uniforms) {
+        vkCmdBindIndexBuffer(commandBuffer, objData->indexBuffer().buffer().get(), 0, VK_INDEX_TYPE_UINT32);
+        for (auto &&uniform : objData->uniforms()) {
             /* The MVP matrix and texture samplers */
             VkDescriptorSet descriptorSet = uniform->m_descriptorSet->descriptorSet().get();
             vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
@@ -2177,6 +2230,7 @@ bool GraphicsVulkan::updateData() {
     bool drawingNecessary = false;
 
     UniformBufferObject ubo = getViewPerspectiveMatrix();
+    std::tuple<glm::mat4, glm::mat4> projView{ubo.proj, ubo.view};
     if (maze->isFinished() || levelFinisher->isUnveiling()) {
         if (levelFinisher->isUnveiling()) {
             if (levelFinisher->isDone()) {
@@ -2216,7 +2270,7 @@ bool GraphicsVulkan::updateData() {
             for (auto &&obj : levelFinisherObjsData) {
                 DrawObjectDataVulkan *objData = static_cast<DrawObjectDataVulkan *> (obj.second.get());
                 if (objData != nullptr) {
-                    objData->uniforms.clear();
+                    objData->clearUniforms();
                 }
             }
         }
@@ -2226,20 +2280,8 @@ bool GraphicsVulkan::updateData() {
             if (data == nullptr) {
                 // a completely new entry
                 addObject(objData, texturesLevelFinisher);
-            } else if (data->uniforms.size() < objData.first->modelMatrices.size()) {
-                // a new model matrix (new object but same texture, vertices and indices).
-                addUniforms(objData, texturesLevelFinisher);
-            } else if (data->uniforms.size() > objData.first->modelMatrices.size()) {
-                // a model matrix got removed...
-                data->uniforms.pop_back();
             } else {
-                // just copy over the model matrices into the graphics card memory... they might
-                // have changed.
-                for (size_t j = 0; j < objData.first->modelMatrices.size(); j++) {
-                    void *ptr;
-                    ubo.model = objData.first->modelMatrices[j];
-                    data->uniforms[j]->m_uniformBuffer->copyRawTo(&ubo, sizeof(ubo));
-                }
+                data->update(objData.first, projView, texturesLevelFinisher);
             }
         }
     } else if (levelStarter.get() != nullptr) {
@@ -2274,6 +2316,7 @@ void GraphicsVulkan::initializeLevelData(Level *level, DrawObjectTable &staticOb
 
 bool GraphicsVulkan::updateLevelData(Level *level, DrawObjectTable &objsData, TextureMap &textures) {
     UniformBufferObject ubo = getViewPerspectiveMatrix();
+    std::tuple<glm::mat4, glm::mat4> projView{ubo.proj, ubo.view};
     bool drawingNecessary = level->updateData();
 
     if (!drawingNecessary) {
@@ -2285,17 +2328,13 @@ bool GraphicsVulkan::updateLevelData(Level *level, DrawObjectTable &objsData, Te
         addTextures(textures);
         for (auto &&obj : objsData) {
             DrawObjectDataVulkan *objData = static_cast<DrawObjectDataVulkan *> (obj.second.get());
-            objData->uniforms.clear();
-            addUniforms(obj, textures);
+            objData->clearUniforms();
         }
-    } else {
-        for (auto &&obj : objsData) {
-            DrawObjectDataVulkan *objData = static_cast<DrawObjectDataVulkan *> (obj.second.get());
-            for (size_t j = 0; j < obj.first->modelMatrices.size(); j++) {
-                ubo.model = obj.first->modelMatrices[j];
-                objData->uniforms[j]->m_uniformBuffer->copyRawTo(&ubo, sizeof (ubo));
-            }
-        }
+    }
+
+    for (auto &&obj : objsData) {
+        DrawObjectDataVulkan *objData = static_cast<DrawObjectDataVulkan *> (obj.second.get());
+        objData->update(obj.first, projView, textures);
     }
     return true;
 }
