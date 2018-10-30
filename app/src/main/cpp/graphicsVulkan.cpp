@@ -1430,6 +1430,50 @@ namespace vulkan {
 
         cmds.end();
     }
+
+    void ImageView::createImageView(VkFormat format, VkImageAspectFlags aspectFlags) {
+        VkImageViewCreateInfo createInfo = {};
+        createInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
+        createInfo.image = m_image->image().get();
+
+        /* specify how the image data should be interpreted. viewType allows you
+         * to treat images as 1D textures, 2D textures 3D textures and cube maps.
+         */
+        createInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
+        createInfo.format = format;
+
+        /* components enables swizzling the color channels around.  Can map to other channels
+         * or use the constant values of 0 and 1.  Use the default mapping...
+         */
+        createInfo.components.r = VK_COMPONENT_SWIZZLE_IDENTITY;
+        createInfo.components.g = VK_COMPONENT_SWIZZLE_IDENTITY;
+        createInfo.components.b = VK_COMPONENT_SWIZZLE_IDENTITY;
+        createInfo.components.a = VK_COMPONENT_SWIZZLE_IDENTITY;
+
+        /* subresourcesRange describes the image's purpose and which part of the image
+         * should be accessed.  Use the images as color targets without any mimapping levels
+         * or multiple layers.
+         */
+        createInfo.subresourceRange.aspectMask = aspectFlags;
+        createInfo.subresourceRange.baseMipLevel = 0;
+        createInfo.subresourceRange.levelCount = 1;
+        createInfo.subresourceRange.baseArrayLayer = 0;
+        createInfo.subresourceRange.layerCount = 1;
+
+        /* create the image view: destroy when done. */
+        VkImageView imageViewRaw;
+        if (vkCreateImageView(logicalDevice(), &createInfo, nullptr, &imageViewRaw) !=
+            VK_SUCCESS) {
+            throw std::runtime_error("failed to create image views");
+        }
+
+        auto const &capImage = m_image;
+        auto deleter = [capImage] (VkImageView imageViewRaw) {
+            vkDestroyImageView(capImage->device()->logicalDevice().get(), imageViewRaw, nullptr);
+        };
+
+        m_imageView.reset(imageViewRaw, deleter);
+    }
 } /* namespace vulkan */
 
 std::vector<VkVertexInputAttributeDescription> getAttributeDescriptions() {
@@ -1520,9 +1564,9 @@ void GraphicsVulkan::addTextures(TextureMap &textures) {
     for (TextureMap::iterator it = textures.begin(); it != textures.end(); it++) {
         if (it->second.get() == nullptr) {
             std::shared_ptr<TextureDataVulkan> texture(new TextureDataVulkan(m_device));
-            texture->m_image = createTextureImage(it->first.get());
-            texture->imageView = createImageView(texture->m_image->image().get(), VK_FORMAT_R8G8B8A8_UNORM,
-                                                 VK_IMAGE_ASPECT_COLOR_BIT);
+            texture->m_imageView.reset(new vulkan::ImageView{createTextureImage(it->first.get()),
+                                                 VK_FORMAT_R8G8B8A8_UNORM,
+                                                 VK_IMAGE_ASPECT_COLOR_BIT});
             createTextureSampler(texture->sampler);
             it->second = texture;
         }
@@ -1568,7 +1612,7 @@ void GraphicsVulkan::addUniforms(DrawObjectEntry &obj, TextureMap &textures) {
 
         std::shared_ptr<vulkan::DescriptorSet> descriptorSet = m_descriptorPools->allocateDescriptor();
         TextureDataVulkan *textureData = static_cast<TextureDataVulkan*> (it->second.get());
-        updateDescriptorSet(uniformBuffer, textureData->imageView, textureData->sampler,
+        updateDescriptorSet(uniformBuffer, textureData->m_imageView->imageView().get(), textureData->sampler,
                             m_uniformBufferLighting, descriptorSet);
 
         std::shared_ptr<UniformWrapper> uniform(new UniformWrapper(m_device, descriptorSet, uniformBuffer,
@@ -1665,15 +1709,9 @@ void GraphicsVulkan::cleanupSwapChain() {
     m_graphicsPipeline.reset();
     m_renderPass.reset();
 
-    if (depthImageView != VK_NULL_HANDLE) {
-        vkDestroyImageView(m_device->logicalDevice().get(), depthImageView, nullptr);
-    }
+    m_depthImageView.reset();
 
-    m_depthImage.reset();
-
-    for (auto imageView : swapChainImageViews) {
-        vkDestroyImageView(m_device->logicalDevice().get(), imageView, nullptr);
-    }
+    swapChainImageViews.clear();
 
     m_swapChain.reset();
 }
@@ -1682,7 +1720,15 @@ void GraphicsVulkan::createImageViews() {
     swapChainImageViews.resize(swapChainImages.size());
 
     for (size_t i=0; i < swapChainImages.size(); i++) {
-        swapChainImageViews[i] = createImageView(swapChainImages[i], m_swapChain->imageFormat(), VK_IMAGE_ASPECT_COLOR_BIT);
+        std::shared_ptr<vulkan::SwapChain> const &capSwapChain = m_swapChain;
+        auto deleter = [capSwapChain](VkImage imageRaw) {
+            // do nothing - freed when the swap chain is freed.
+        };
+        std::shared_ptr<vulkan::Image> swapChainImage{new vulkan::Image{m_device,
+            std::shared_ptr<VkImage_T>{swapChainImages[i], deleter},
+            m_swapChain->extent().width, m_swapChain->extent().height}};
+        swapChainImageViews[i].reset(new vulkan::ImageView{swapChainImage,
+            m_swapChain->imageFormat(), VK_IMAGE_ASPECT_COLOR_BIT});
     }
 }
 
@@ -1690,8 +1736,8 @@ void GraphicsVulkan::createFramebuffers() {
     swapChainFramebuffers.resize(swapChainImageViews.size());
     for (size_t i = 0; i < swapChainImageViews.size(); i++) {
         std::array<VkImageView, 2> attachments = {
-            swapChainImageViews[i],
-            depthImageView
+            swapChainImageViews[i]->imageView().get(),
+            m_depthImageView->imageView().get()
         };
 
         VkFramebufferCreateInfo framebufferInfo = {};
@@ -1940,9 +1986,7 @@ void GraphicsVulkan::drawFrame() {
 void GraphicsVulkan::createDepthResources() {
     VkFormat depthFormat = m_device->depthFormat();
 
-    depthImageView = createImageView(m_depthImage->image().get(), depthFormat, VK_IMAGE_ASPECT_DEPTH_BIT);
-
-    m_depthImage->transitionImageLayout(depthFormat, VK_IMAGE_LAYOUT_UNDEFINED,
+    m_depthImageView->image()->transitionImageLayout(depthFormat, VK_IMAGE_LAYOUT_UNDEFINED,
                                         VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL, m_commandPool);
 }
 
@@ -2105,44 +2149,6 @@ void GraphicsVulkan::createTextureSampler(VkSampler &textureSampler) {
         throw std::runtime_error("failed to create texture sampler!");
     }
 
-}
-
-VkImageView GraphicsVulkan::createImageView(VkImage image, VkFormat format, VkImageAspectFlags aspectFlags) {
-    VkImageViewCreateInfo createInfo = {};
-    createInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
-    createInfo.image = image;
-
-    /* specify how the image data should be interpreted. viewType allows you
-     * to treat images as 1D textures, 2D textures 3D textures and cube maps.
-     */
-    createInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
-    createInfo.format = format;
-
-    /* components enables swizzling the color channels around.  Can map to other channels
-     * or use the constant values of 0 and 1.  Use the default mapping...
-     */
-    createInfo.components.r = VK_COMPONENT_SWIZZLE_IDENTITY;
-    createInfo.components.g = VK_COMPONENT_SWIZZLE_IDENTITY;
-    createInfo.components.b = VK_COMPONENT_SWIZZLE_IDENTITY;
-    createInfo.components.a = VK_COMPONENT_SWIZZLE_IDENTITY;
-
-    /* subresourcesRange describes the image's purpose and which part of the image
-     * should be accessed.  Use the images as color targets without any mimapping levels
-     * or multiple layers.
-     */
-    createInfo.subresourceRange.aspectMask = aspectFlags;
-    createInfo.subresourceRange.baseMipLevel = 0;
-    createInfo.subresourceRange.levelCount = 1;
-    createInfo.subresourceRange.baseArrayLayer = 0;
-    createInfo.subresourceRange.layerCount = 1;
-
-    /* create the image view: destroy when done. */
-    VkImageView imageView;
-    if (vkCreateImageView(m_device->logicalDevice().get(), &createInfo, nullptr, &imageView) != VK_SUCCESS) {
-        throw std::runtime_error("failed to create image views");
-    }
-
-    return imageView;
 }
 
 UniformBufferObject GraphicsVulkan::getViewPerspectiveMatrix() {

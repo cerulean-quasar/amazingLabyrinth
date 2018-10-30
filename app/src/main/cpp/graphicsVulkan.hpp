@@ -625,6 +625,28 @@ namespace vulkan {
             return format == VK_FORMAT_D32_SFLOAT_S8_UINT || format == VK_FORMAT_D24_UNORM_S8_UINT;
         }
     };
+
+    class ImageView {
+    public:
+        ImageView(std::shared_ptr<Image> const &inImage, VkFormat format,
+                  VkImageAspectFlags aspectFlags)
+                : m_image{inImage},
+                  m_imageView{} {
+            createImageView(format, aspectFlags);
+        }
+
+        inline std::shared_ptr<VkImageView_T> const &imageView() { return m_imageView; }
+        inline std::shared_ptr<Image> const &image() { return m_image; }
+
+    protected:
+        std::shared_ptr<Image> m_image;
+        std::shared_ptr<VkImageView_T> m_imageView;
+
+    private:
+        inline VkDevice logicalDevice() { return m_image->device()->logicalDevice().get(); }
+
+        void createImageView(VkFormat format, VkImageAspectFlags aspectFlags);
+    };
 } /* namespace vulkan */
 
 #define DEBUG
@@ -669,11 +691,10 @@ public:
         commandBuffers{},
         m_imageAvailableSemaphore{m_device},
         m_renderFinishedSemaphore{m_device},
-        m_depthImage{new vulkan::Image{m_device, m_swapChain->extent().width,
+        m_depthImageView{new vulkan::ImageView{std::shared_ptr<vulkan::Image>{new vulkan::Image{m_device, m_swapChain->extent().width,
                    m_swapChain->extent().height, m_device->depthFormat(),
                    VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT,
-                   VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT}},
-        depthImageView{VK_NULL_HANDLE}
+                   VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT}}, m_device->depthFormat(), VK_IMAGE_ASPECT_DEPTH_BIT}}
     {}
     virtual void init(WindowType *window);
 
@@ -710,15 +731,12 @@ private:
                 : m_device{inDevice}
         {}
         std::shared_ptr<vulkan::Device> m_device;
-        std::shared_ptr<vulkan::Image> m_image;
-        VkImageView imageView;
+        std::shared_ptr<vulkan::ImageView> m_imageView;
         VkSampler sampler;
 
         virtual ~TextureDataVulkan() {
             vkDestroySampler(m_device->logicalDevice().get(), sampler, nullptr);
-            vkDestroyImageView(m_device->logicalDevice().get(), imageView, nullptr);
-
-            m_image.reset();
+            m_imageView.reset();
         }
     };
     TextureMap texturesLevel;
@@ -727,7 +745,7 @@ private:
     bool texturesChanged;
 
     std::vector<VkImage> swapChainImages;
-    std::vector<VkImageView> swapChainImageViews;
+    std::vector<std::shared_ptr<vulkan::ImageView>> swapChainImageViews;
 
     std::shared_ptr<vulkan::Buffer> m_uniformBufferLighting;
 
@@ -787,8 +805,7 @@ private:
     vulkan::Semaphore m_renderFinishedSemaphore;
 
     /* depth buffer image */
-    std::shared_ptr<vulkan::Image> m_depthImage;
-    VkImageView depthImageView;
+    std::shared_ptr<vulkan::ImageView> m_depthImageView;
 
     const std::vector<const char*> deviceExtensions = {
         VK_KHR_SWAPCHAIN_EXTENSION_NAME
@@ -832,10 +849,6 @@ private:
                              std::shared_ptr<vulkan::Buffer> const &lightingSource, std::shared_ptr<vulkan::DescriptorSet> const &descriptorSet);
     std::shared_ptr<vulkan::Image> createTextureImage(TextureDescription *texture);
     void createTextureSampler(VkSampler &textureSampler);
-    VkImageView createImageView(VkImage image, VkFormat format, VkImageAspectFlags aspectFlags);
-    void createImage(uint32_t width, uint32_t height, VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage, VkMemoryPropertyFlags properties, VkImage& image, VkDeviceMemory& imageMemory);
-    void transitionImageLayout(VkImage image, VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout);
-    void copyBufferToImage(VkBuffer buffer, VkImage image, uint32_t width, uint32_t height);
 };
 #endif
 
