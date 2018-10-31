@@ -34,6 +34,126 @@ std::string const SHADER_FRAG_FILE("shaders/shaderGL.frag");
 std::string const DEPTH_VERT_FILE("shaders/depthShaderGL.vert");
 std::string const DEPTH_FRAG_FILE("shaders/depthShaderGL.frag");
 
+namespace graphicsGL {
+    void Surface::createSurface() {
+        /*
+        static EGLint const attribute_list[] = {
+                EGL_RED_SIZE, 1,
+                EGL_GREEN_SIZE, 1,
+                EGL_BLUE_SIZE, 1,
+                EGL_NONE
+        };
+         */
+        const EGLint attribute_list[] = {
+                EGL_RENDERABLE_TYPE, EGL_OPENGL_ES2_BIT,
+                EGL_CONFORMANT, EGL_OPENGL_ES2_BIT,
+                EGL_SURFACE_TYPE, EGL_WINDOW_BIT,
+                EGL_COLOR_BUFFER_TYPE, EGL_RGB_BUFFER,
+                EGL_BLUE_SIZE, 8, EGL_GREEN_SIZE, 8, EGL_RED_SIZE, 8,
+                EGL_ALPHA_SIZE, 8,
+                EGL_DEPTH_SIZE, 24,
+                EGL_NONE};
+
+        // Initialize EGL
+        if ((m_display = eglGetDisplay(EGL_DEFAULT_DISPLAY)) == EGL_NO_DISPLAY) {
+            destroyWindow();
+            throw std::runtime_error("Could not open display");
+        }
+
+        EGLint majorVersion;
+        EGLint minorVersion;
+        if (!eglInitialize(m_display, &majorVersion, &minorVersion)) {
+            destroyWindow();
+            throw std::runtime_error("Could not initialize display");
+        }
+
+        EGLint nbr_config;
+        if (!eglChooseConfig(m_display, attribute_list, &m_config, 1, &nbr_config)) {
+            destroyWindow();
+            throw std::runtime_error("Could not get config");
+        }
+
+        if (nbr_config == 0) {
+            destroyWindow();
+            throw std::runtime_error("Got 0 configs.");
+        }
+
+        int32_t format;
+        if (!eglGetConfigAttrib(m_display, m_config, EGL_NATIVE_VISUAL_ID, &format)) {
+            destroyWindow();
+            throw std::runtime_error("Could not get display format");
+        }
+        ANativeWindow_setBuffersGeometry(m_window, 0, 0, format);
+
+        if ((m_surface = eglCreateWindowSurface(m_display, m_config, m_window, nullptr)) ==
+            EGL_NO_SURFACE) {
+            destroyWindow();
+            throw std::runtime_error("Could not create surface");
+        }
+
+        EGLint contextAttributes[] = {EGL_CONTEXT_CLIENT_VERSION, 2, EGL_NONE};
+        if ((m_context = eglCreateContext(m_display, m_config, EGL_NO_CONTEXT, contextAttributes)) ==
+            EGL_NO_CONTEXT) {
+            destroyWindow();
+            throw std::runtime_error("Could not create context");
+        }
+
+        if (!eglMakeCurrent(m_display, m_surface, m_surface, m_context)) {
+            destroyWindow();
+            throw std::runtime_error("Could not set the surface to current");
+        }
+
+        if (!eglQuerySurface(m_display, m_surface, EGL_WIDTH, &m_width) ||
+            !eglQuerySurface(m_display, m_surface, EGL_HEIGHT, &m_height)) {
+            destroyWindow();
+            throw std::runtime_error("Could not get width and height of surface");
+        }
+
+        // Enable depth test
+        glEnable(GL_DEPTH_TEST);
+        // Accept fragment if it is closer to the camera than the former one.
+        glDepthFunc(GL_LESS);
+
+        glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
+        glDepthMask(GL_TRUE);
+
+        glEnable(GL_BLEND);
+        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    }
+
+    void Surface::destroyWindow() {
+        if (m_display != EGL_NO_DISPLAY) {
+            eglMakeCurrent(m_display, EGL_NO_SURFACE, EGL_NO_SURFACE, EGL_NO_CONTEXT);
+            if (m_context != EGL_NO_CONTEXT) {
+                eglDestroyContext(m_display, m_context);
+            }
+            if (m_surface != EGL_NO_SURFACE) {
+                eglDestroySurface(m_display, m_surface);
+            }
+            eglTerminate(m_display);
+        }
+        m_display = EGL_NO_DISPLAY;
+        m_context = EGL_NO_CONTEXT;
+        m_surface = EGL_NO_SURFACE;
+
+        /* release the java window object */
+        ANativeWindow_release(m_window);
+    }
+
+    void Surface::initThread() {
+        if (!eglMakeCurrent(m_display, m_surface, m_surface, m_context)) {
+            throw std::runtime_error("Could not set the surface to current");
+        }
+    }
+
+    void Surface::cleanupThread() {
+        if (!eglMakeCurrent(m_display, EGL_NO_SURFACE, EGL_NO_SURFACE, EGL_NO_CONTEXT)) {
+            throw std::runtime_error("Could not unset the surface to current");
+        }
+    }
+
+} /* namespace graphicsGL */
+
 void DrawObjectDataGL::createDrawObjectData(std::shared_ptr<DrawObject> const &drawObj) {
     // the index buffer
     glGenBuffers(1, &(m_indexBuffer));
@@ -195,104 +315,16 @@ std::tuple<glm::mat4, glm::mat4> LevelSequenceGL::getViewPerspectiveMatrix() {
 }
 
 void GraphicsGL::init(WindowType *inWindow) {
-    initWindow(inWindow);
     initPipeline();
 }
 
-void GraphicsGL::initWindow(WindowType *inWindow){
-    /*
-    static EGLint const attribute_list[] = {
-            EGL_RED_SIZE, 1,
-            EGL_GREEN_SIZE, 1,
-            EGL_BLUE_SIZE, 1,
-            EGL_NONE
-    };
-     */
-    const EGLint attribute_list[] = {
-        EGL_RENDERABLE_TYPE, EGL_OPENGL_ES2_BIT,
-        EGL_CONFORMANT, EGL_OPENGL_ES2_BIT,
-        EGL_SURFACE_TYPE, EGL_WINDOW_BIT,
-        EGL_COLOR_BUFFER_TYPE, EGL_RGB_BUFFER,
-        EGL_BLUE_SIZE, 8, EGL_GREEN_SIZE, 8, EGL_RED_SIZE, 8,
-        EGL_ALPHA_SIZE, 8,
-        EGL_DEPTH_SIZE, 24,
-        EGL_NONE };
-
-    window = inWindow;
-
-    // Initialize EGL
-    if ((display = eglGetDisplay(EGL_DEFAULT_DISPLAY)) == EGL_NO_DISPLAY) {
-        destroyWindow();
-        throw std::runtime_error("Could not open display");
-    }
-
-    EGLint majorVersion;
-    EGLint minorVersion;
-    if (!eglInitialize(display, &majorVersion, &minorVersion)) {
-        destroyWindow();
-        throw std::runtime_error("Could not initialize display");
-    }
-
-    EGLint nbr_config;
-    if (!eglChooseConfig(display, attribute_list, &config, 1, &nbr_config)) {
-        destroyWindow();
-        throw std::runtime_error("Could not get config");
-    }
-
-    if (nbr_config == 0) {
-        destroyWindow();
-        throw std::runtime_error("Got 0 configs.");
-    }
-
-    int32_t format;
-    if (!eglGetConfigAttrib(display, config, EGL_NATIVE_VISUAL_ID, &format)) {
-        destroyWindow();
-        throw std::runtime_error("Could not get display format");
-    }
-    ANativeWindow_setBuffersGeometry(window, 0, 0, format);
-
-    if ((surface = eglCreateWindowSurface(display, config, window, nullptr)) == EGL_NO_SURFACE) {
-        destroyWindow();
-        throw std::runtime_error("Could not create surface");
-    }
-
-    EGLint contextAttributes[] = { EGL_CONTEXT_CLIENT_VERSION, 2, EGL_NONE};
-    if ((context = eglCreateContext(display, config, EGL_NO_CONTEXT, contextAttributes)) == EGL_NO_CONTEXT) {
-        destroyWindow();
-        throw std::runtime_error("Could not create context");
-    }
-
-    if (!eglMakeCurrent(display, surface, surface, context)) {
-        destroyWindow();
-        throw std::runtime_error("Could not set the surface to current");
-    }
-
-    if (!eglQuerySurface(display, surface, EGL_WIDTH, &width) ||
-        !eglQuerySurface(display, surface, EGL_HEIGHT, &height)) {
-        destroyWindow();
-        throw std::runtime_error("Could not get width and height of surface");
-    }
-
-    // Enable depth test
-    glEnable(GL_DEPTH_TEST);
-    // Accept fragment if it is closer to the camera than the former one.
-    glDepthFunc(GL_LESS);
-
-    glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
-    glDepthMask(GL_TRUE);
-
-    glEnable(GL_BLEND);
-    glBlendFunc(GL_SRC_ALPHA,GL_ONE_MINUS_SRC_ALPHA);
-
-    glViewport(0, 0, width, height);
-    m_levelSequence.init(width, height);
+void GraphicsGL::initPipeline() {
+    glViewport(0, 0, m_surface.width(), m_surface.height());
 
     // The clear background color
     glm::vec4 bgColor = m_levelSequence.backgroundColor();
     glClearColor(bgColor.r, bgColor.g, bgColor.b, bgColor.a);
-}
 
-void GraphicsGL::initPipeline() {
     programID = loadShaders(SHADER_VERT_FILE, SHADER_FRAG_FILE);
     depthProgramID = loadShaders(DEPTH_VERT_FILE, DEPTH_FRAG_FILE);
 
@@ -305,7 +337,8 @@ void GraphicsGL::initPipeline() {
     glGenTextures(1, &colorImage);
     glBindTexture(GL_TEXTURE_2D, colorImage);
     glActiveTexture(GL_TEXTURE0);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, m_surface.width(), m_surface.height(), 0, GL_RGBA,
+                 GL_UNSIGNED_BYTE, NULL);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
@@ -314,7 +347,8 @@ void GraphicsGL::initPipeline() {
     glGenTextures(1, &depthMap);
     glBindTexture(GL_TEXTURE_2D, depthMap);
     glActiveTexture(GL_TEXTURE0);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT32F, width, height, 0, GL_DEPTH_COMPONENT, GL_FLOAT, NULL);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT32F, m_surface.width(), m_surface.height(), 0,
+                 GL_DEPTH_COMPONENT, GL_FLOAT, NULL);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
@@ -347,30 +381,13 @@ void GraphicsGL::initPipeline() {
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
     // needed because we are going to switch to another thread now
-    if (!eglMakeCurrent(display, EGL_NO_SURFACE, EGL_NO_SURFACE, EGL_NO_CONTEXT)) {
-        destroyWindow();
-        throw std::runtime_error("Could not unset the surface to current");
-    }
-}
-
-void GraphicsGL::initThread() {
-    if (!eglMakeCurrent(display, surface, surface, context)) {
-        throw std::runtime_error("Could not set the surface to current");
-    }
-}
-
-void GraphicsGL::cleanupThread() {
-    if (!eglMakeCurrent(display, EGL_NO_SURFACE, EGL_NO_SURFACE, EGL_NO_CONTEXT)) {
-        throw std::runtime_error("Could not unset the surface to current");
-    }
+    m_surface.cleanupThread();
 }
 
 void GraphicsGL::cleanup() {
     glDeleteFramebuffers(1, &depthMapFBO);
     glDeleteTextures(1, &colorImage);
     glDeleteTextures(1, &depthMap);
-
-    destroyWindow();
 }
 
 void GraphicsGL::createDepthTexture() {
@@ -449,7 +466,7 @@ void GraphicsGL::drawFrame() {
     if (m_levelSequence.needFinisherObjs()) {
         drawObjects(m_levelSequence.finisherObjsData(), m_levelSequence.finisherTextures());
     }
-    eglSwapBuffers(display, surface);
+    eglSwapBuffers(m_surface.display(), m_surface.surface());
 }
 
 void GraphicsGL::drawObjects(DrawObjectTable const &objsData, TextureMap const &textures) {
@@ -634,25 +651,6 @@ GLuint GraphicsGL::loadShaders(std::string const &vertexShaderFile, std::string 
     glDeleteShader(FragmentShaderID);
 
     return ProgramID;
-}
-
-void GraphicsGL::destroyWindow() {
-    if (display != EGL_NO_DISPLAY) {
-        eglMakeCurrent(display, EGL_NO_SURFACE, EGL_NO_SURFACE, EGL_NO_CONTEXT);
-        if (context != EGL_NO_CONTEXT) {
-            eglDestroyContext(display, context);
-        }
-        if (surface != EGL_NO_SURFACE) {
-            eglDestroySurface(display, surface);
-        }
-        eglTerminate(display);
-    }
-    display = EGL_NO_DISPLAY;
-    context = EGL_NO_CONTEXT;
-    surface = EGL_NO_SURFACE;
-
-    /* release the java window object */
-    ANativeWindow_release(window);
 }
 
 void GraphicsGL::recreateSwapChain() {

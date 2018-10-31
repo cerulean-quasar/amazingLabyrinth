@@ -30,6 +30,48 @@
 #include "levelFinish.hpp"
 #include "levelTracker.hpp"
 
+namespace graphicsGL {
+    class Surface {
+    public:
+        Surface(WindowType *window)
+                : m_window{window},
+                  m_context{EGL_NO_CONTEXT},
+                  m_config{},
+                  m_surface{EGL_NO_SURFACE},
+                  m_display{EGL_NO_DISPLAY},
+                  m_width{0},
+                  m_height{0}
+        {
+            createSurface();
+        }
+
+        void initThread();
+        void cleanupThread();
+
+        inline int width() { return m_width; }
+        inline int height() { return m_height; }
+        inline EGLSurface surface() { return m_surface; }
+        inline EGLDisplay display() { return m_display; }
+
+        ~Surface() {
+            destroyWindow();
+        }
+
+    private:
+        WindowType *m_window;
+        EGLContext m_context;
+        EGLConfig m_config;
+        EGLSurface m_surface;
+        EGLDisplay m_display;
+
+        int m_width;
+        int m_height;
+
+        void createSurface();
+        void destroyWindow();
+    };
+} /* namespace graphicsGL */
+
 class TextureDataGL : public TextureData {
 public:
     TextureDataGL(std::shared_ptr<TextureDescription> const &textureDescription) {
@@ -69,7 +111,7 @@ private:
 
 class LevelSequenceGL {
 public:
-    LevelSequenceGL(uint32_t level)
+    LevelSequenceGL(uint32_t level, uint32_t width, uint32_t height)
         :m_levelTextures{},
          m_levelStarterTextures{},
          m_levelFinisherTextures{},
@@ -82,9 +124,7 @@ public:
          m_staticObjsData{},
          m_dynObjsData{},
          m_levelfinisherObjsData{}
-    {}
-
-    void init(uint32_t width, uint32_t height) {
+    {
         m_levelTracker.setParameters(width, height);
         m_levelStarter = m_levelTracker.getLevelStarter();
         m_level = m_levelTracker.getLevel();
@@ -140,25 +180,20 @@ private:
 class GraphicsGL : public Graphics {
 public:
     GraphicsGL(WindowType *window, uint32_t level)
-        :window{},
-        context{},
-        config{},
-        surface{},
-        display{},
+        :m_surface{window},
         programID{},
         depthProgramID{},
-        width{},
-        height{},
         depthMapFBO{},
         depthMap{},
         colorImage{},
-        m_levelSequence{level}
+        m_levelSequence{level, static_cast<uint32_t>(m_surface.width()),
+                        static_cast<uint32_t >(m_surface.height())}
     {}
 
     virtual void init(WindowType *window);
-    virtual void initThread();
+    virtual void initThread() { m_surface.initThread(); }
 
-    virtual void cleanupThread();
+    virtual void cleanupThread() { m_surface.cleanupThread(); }
 
     virtual void cleanup();
 
@@ -170,22 +205,15 @@ public:
         m_levelSequence.updateAcceleration(x, y, z);
     }
 
-    virtual void destroyWindow();
+    virtual void destroyWindow() {}
 
     virtual void recreateSwapChain();
 
     virtual ~GraphicsGL() {}
 private:
-    WindowType *window;
-    EGLContext context;
-    EGLConfig config;
-    EGLSurface surface;
-    EGLDisplay display;
+    graphicsGL::Surface m_surface;
     GLuint programID;
     GLuint depthProgramID;
-
-    int width;
-    int height;
 
     GLuint depthMapFBO;
     GLuint depthMap;
@@ -194,7 +222,6 @@ private:
     LevelSequenceGL m_levelSequence;
 
     GLuint loadShaders(std::string const &vertexShaderFile, std::string const &fragmentShaderFile);
-    void initWindow(WindowType *window);
     void initPipeline();
     void drawObjects(DrawObjectTable const &objsData, TextureMap const &textures);
     void drawObject(GLuint programID, bool needsNormal, GLuint vertex, GLuint index,
