@@ -30,6 +30,43 @@
 #include "levelFinish.hpp"
 #include "levelTracker.hpp"
 
+class TextureDataGL : public TextureData {
+public:
+    TextureDataGL(std::shared_ptr<TextureDescription> const &textureDescription) {
+        createTexture(textureDescription);
+    }
+    virtual ~TextureDataGL() {
+        glDeleteTextures(1, &m_handle);
+    }
+
+    inline GLuint handle() const { return m_handle; }
+private:
+    GLuint m_handle;
+
+    void createTexture(std::shared_ptr<TextureDescription> const &textureDescription);
+};
+
+class DrawObjectDataGL : public DrawObjectData {
+public:
+    DrawObjectDataGL(std::shared_ptr<DrawObject> const &drawObj) {
+        createDrawObjectData(drawObj);
+    }
+
+    virtual ~DrawObjectDataGL() {
+        glDeleteBuffers(1, &m_vertexBuffer);
+        glDeleteBuffers(1, &m_indexBuffer);
+    }
+
+    inline GLuint vertexBuffer() const { return m_vertexBuffer; }
+    inline GLuint indexBuffer() const { return m_indexBuffer; }
+
+private:
+    void createDrawObjectData(std::shared_ptr<DrawObject> const &drawObj);
+
+    GLuint m_vertexBuffer;
+    GLuint m_indexBuffer;
+};
+
 class GraphicsGL : public Graphics {
 public:
     GraphicsGL(WindowType *window, uint32_t level)
@@ -85,38 +122,21 @@ private:
     GLuint programID;
     GLuint depthProgramID;
 
-    class TextureDataGL : public TextureData {
-    public:
-        GLuint handle;
-        virtual ~TextureDataGL() {
-            glDeleteTextures(1, &handle);
-        }
-    };
-
-    TextureMap levelTextures;
-    TextureMap levelStarterTextures;
-    TextureMap levelFinisherTextures;
-
     int width;
     int height;
 
     GLuint depthMapFBO;
     GLuint depthMap;
     GLuint colorImage;
+
+    TextureMap levelTextures;
+    TextureMap levelStarterTextures;
+    TextureMap levelFinisherTextures;
+
     std::shared_ptr<Level> maze;
     std::shared_ptr<LevelFinish> levelFinisher;
     std::shared_ptr<LevelStarter> levelStarter;
     LevelTracker levelTracker;
-
-    struct DrawObjectDataGL : public DrawObjectData {
-        GLuint vertexBuffer;
-        GLuint indexBuffer;
-
-        virtual ~DrawObjectDataGL() {
-            glDeleteBuffers(1, &vertexBuffer);
-            glDeleteBuffers(1, &indexBuffer);
-        }
-    };
 
     DrawObjectTable levelStarterStaticObjsData;
     DrawObjectTable levelStarterDynObjsData;

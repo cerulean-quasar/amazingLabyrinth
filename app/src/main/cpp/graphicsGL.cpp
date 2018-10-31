@@ -203,55 +203,54 @@ void GraphicsGL::initPipeline() {
 
 void GraphicsGL::addObjects(DrawObjectTable &objsData) {
     for (auto &&obj : objsData) {
-        addObject(obj);
+        obj.second.reset(new DrawObjectDataGL(obj.first));
     }
 }
 
-void GraphicsGL::addObject(DrawObjectEntry &objData) {
-    std::shared_ptr<DrawObjectDataGL> data(new DrawObjectDataGL());
-
+void DrawObjectDataGL::createDrawObjectData(std::shared_ptr<DrawObject> const &drawObj) {
     // the index buffer
-    glGenBuffers(1, &(data->indexBuffer));
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, data->indexBuffer);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof (uint32_t) * objData.first->indices.size(),
-                 objData.first->indices.data(), GL_STATIC_DRAW);
+    glGenBuffers(1, &(m_indexBuffer));
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_indexBuffer);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof (uint32_t) * drawObj->indices.size(),
+                 drawObj->indices.data(), GL_STATIC_DRAW);
 
     // the vertex buffer
-    glGenBuffers(1, &(data->vertexBuffer));
-    glBindBuffer(GL_ARRAY_BUFFER, data->vertexBuffer);
-    glBufferData(GL_ARRAY_BUFFER, sizeof (Vertex) * objData.first->vertices.size(),
-                 objData.first->vertices.data(), GL_STATIC_DRAW);
-
-    objData.second = data;
+    glGenBuffers(1, &(m_vertexBuffer));
+    glBindBuffer(GL_ARRAY_BUFFER, m_vertexBuffer);
+    glBufferData(GL_ARRAY_BUFFER, sizeof (Vertex) * drawObj->vertices.size(),
+                 drawObj->vertices.data(), GL_STATIC_DRAW);
 }
 
+void TextureDataGL::createTexture(std::shared_ptr<TextureDescription> const &textureDescription) {
+
+    glGenTextures(1, &m_handle);
+    glBindTexture(GL_TEXTURE_2D, m_handle);
+
+    // when sampling outside of the texture
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+
+    // when the texture is scaled up or down
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, /*GL_LINEAR_MIPMAP_LINEAR*/
+                    GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, /*GL_LINEAR*/ GL_NEAREST);
+
+    uint32_t texHeight;
+    uint32_t texWidth;
+    uint32_t texChannels;
+    std::vector<char> pixels = textureDescription->getData(texWidth, texHeight, texChannels);
+
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, texWidth, texHeight, 0, GL_RGBA,
+                 GL_UNSIGNED_BYTE, pixels.data());
+
+    glGenerateMipmap(GL_TEXTURE_2D);
+}
+
+// load the textures
 void GraphicsGL::loadTextures(TextureMap &textures) {
     for (TextureMap::iterator it = textures.begin(); it != textures.end(); it++) {
         if (it->second.get() == nullptr) {
-            std::shared_ptr<TextureDataGL> textureData(new TextureDataGL());
-            // load the textures
-            glGenTextures(1, &textureData->handle);
-            glBindTexture(GL_TEXTURE_2D, textureData->handle);
-
-            // when sampling outside of the texture
-            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-
-            // when the texture is scaled up or down
-            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, /*GL_LINEAR_MIPMAP_LINEAR*/
-                            GL_NEAREST);
-            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, /*GL_LINEAR*/ GL_NEAREST);
-
-            uint32_t texHeight;
-            uint32_t texWidth;
-            uint32_t texChannels;
-            std::vector<char> pixels = it->first->getData(texWidth, texHeight, texChannels);
-
-            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, texWidth, texHeight, 0, GL_RGBA,
-                         GL_UNSIGNED_BYTE, pixels.data());
-
-            glGenerateMipmap(GL_TEXTURE_2D);
-            it->second = textureData;
+            it->second.reset(new TextureDataGL{it->first});
         }
     }
 }
@@ -301,7 +300,7 @@ void GraphicsGL::createDepthTexture() {
     for (auto &&obj : staticObjsData) {
         for (auto &&model : obj.first->modelMatrices) {
             DrawObjectDataGL *data = dynamic_cast<DrawObjectDataGL*> (obj.second.get());
-            drawObject(depthProgramID, false, data->vertexBuffer, data->indexBuffer,
+            drawObject(depthProgramID, false, data->vertexBuffer(), data->indexBuffer(),
                        obj.first->indices.size(), model);
         }
     }
@@ -309,7 +308,7 @@ void GraphicsGL::createDepthTexture() {
     for (auto &&obj : dynObjsData) {
         for (auto &&model : obj.first->modelMatrices) {
             DrawObjectDataGL *data = dynamic_cast<DrawObjectDataGL*> (obj.second.get());
-            drawObject(depthProgramID, false, data->vertexBuffer, data->indexBuffer,
+            drawObject(depthProgramID, false, data->vertexBuffer(), data->indexBuffer(),
                        obj.first->indices.size(), model);
         }
     }
@@ -365,11 +364,12 @@ void GraphicsGL::drawObjects(DrawObjectTable const &objsData, TextureMap const &
         }
         TextureDataGL const *texture = static_cast<TextureDataGL const *> (it->second.get());
         for (auto &&model : obj.first->modelMatrices) {
-            drawObject(programID, true, data->vertexBuffer, data->indexBuffer,
-                       obj.first->indices.size(), texture->handle, model);
+            drawObject(programID, true, data->vertexBuffer(), data->indexBuffer(),
+                       obj.first->indices.size(), texture->handle(), model);
         }
     }
 }
+
 void GraphicsGL::drawObject(GLuint programID, bool needsNormal, GLuint vertex, GLuint index,
                             unsigned long nbrIndices, GLuint texture, glm::mat4 const &modelMatrix) {
     GLint textureID = glGetUniformLocation(programID, "texSampler");
@@ -613,7 +613,7 @@ bool GraphicsGL::updateData() {
 
         for (auto &&obj : levelfinisherObjsData) {
             if (obj.second.get() == nullptr) {
-                addObject(obj);
+                obj.second.reset(new DrawObjectDataGL{obj.first});
             }
         }
     } else if (levelStarter.get() != nullptr) {
