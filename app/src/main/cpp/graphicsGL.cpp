@@ -34,6 +34,165 @@ std::string const SHADER_FRAG_FILE("shaders/shaderGL.frag");
 std::string const DEPTH_VERT_FILE("shaders/depthShaderGL.vert");
 std::string const DEPTH_FRAG_FILE("shaders/depthShaderGL.frag");
 
+void DrawObjectDataGL::createDrawObjectData(std::shared_ptr<DrawObject> const &drawObj) {
+    // the index buffer
+    glGenBuffers(1, &(m_indexBuffer));
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_indexBuffer);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof (uint32_t) * drawObj->indices.size(),
+                 drawObj->indices.data(), GL_STATIC_DRAW);
+
+    // the vertex buffer
+    glGenBuffers(1, &(m_vertexBuffer));
+    glBindBuffer(GL_ARRAY_BUFFER, m_vertexBuffer);
+    glBufferData(GL_ARRAY_BUFFER, sizeof (Vertex) * drawObj->vertices.size(),
+                 drawObj->vertices.data(), GL_STATIC_DRAW);
+}
+
+void TextureDataGL::createTexture(std::shared_ptr<TextureDescription> const &textureDescription) {
+
+    glGenTextures(1, &m_handle);
+    glBindTexture(GL_TEXTURE_2D, m_handle);
+
+    // when sampling outside of the texture
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+
+    // when the texture is scaled up or down
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, /*GL_LINEAR_MIPMAP_LINEAR*/
+                    GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, /*GL_LINEAR*/ GL_NEAREST);
+
+    uint32_t texHeight;
+    uint32_t texWidth;
+    uint32_t texChannels;
+    std::vector<char> pixels = textureDescription->getData(texWidth, texHeight, texChannels);
+
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, texWidth, texHeight, 0, GL_RGBA,
+                 GL_UNSIGNED_BYTE, pixels.data());
+
+    glGenerateMipmap(GL_TEXTURE_2D);
+}
+
+void LevelSequenceGL::updateAcceleration(float x, float y, float z) {
+    if (m_levelStarter.get() != nullptr) {
+        m_levelStarter->updateAcceleration(x, y, z);
+    } else {
+        m_level->updateAcceleration(x, y, z);
+    }
+}
+
+bool LevelSequenceGL::updateData() {
+    if (m_level->isFinished() || m_levelFinisher->isUnveiling()) {
+        if (m_levelFinisher->isUnveiling()) {
+            if (m_levelFinisher->isDone()) {
+                float x, y;
+                m_level->getLevelFinisherCenter(x, y);
+                m_levelFinisher = m_levelTracker.getLevelFinisher(x, y);
+                m_levelfinisherObjsData.clear();
+                m_levelStarter->start();
+                return false;
+            }
+        } else {
+            if (m_levelFinisher->isDone()) {
+                m_levelTracker.gotoNextLevel();
+                m_level = m_levelTracker.getLevel();
+                m_levelStarter = m_levelTracker.getLevelStarter();
+
+                // The clear background color
+                glm::vec4 bgColor = m_level->getBackgroundColor();
+                glClearColor(bgColor.r, bgColor.g, bgColor.b, bgColor.a);
+
+                initializeLevelData(m_level, m_staticObjsData, m_dynObjsData, m_levelTextures);
+                initializeLevelData(m_levelStarter, m_levelStarterStaticObjsData,
+                                    m_levelStarterDynObjsData, m_levelStarterTextures);
+                m_levelFinisher->unveilNewLevel();
+                return false;
+            }
+        }
+
+        bool texturesChanged;
+        bool drawingNecessary = m_levelFinisher->updateDrawObjects(m_levelfinisherObjsData,
+                                                                 m_levelFinisherTextures,
+                                                                 texturesChanged);
+        if (!drawingNecessary) {
+            return false;
+        }
+
+        if (texturesChanged) {
+            loadTextures(m_levelFinisherTextures);
+        }
+
+        for (auto &&obj : m_levelfinisherObjsData) {
+            if (obj.second.get() == nullptr) {
+                obj.second.reset(new DrawObjectDataGL{obj.first});
+            }
+        }
+    } else if (m_levelStarter.get() != nullptr) {
+        updateLevelData(m_levelStarter.get(), m_levelStarterDynObjsData, m_levelStarterTextures);
+        if (m_levelStarter->isFinished()) {
+            m_levelStarter.reset();
+            m_levelStarterDynObjsData.clear();
+            m_levelStarterStaticObjsData.clear();
+            m_levelStarterTextures.clear();
+            m_level->start();
+            return false;
+        }
+    } else {
+        updateLevelData(m_level.get(), m_dynObjsData, m_levelTextures);
+    }
+
+    return true;
+}
+
+void LevelSequenceGL::initializeLevelData(std::shared_ptr<Level> const &level, DrawObjectTable &staticObjsData,
+                                          DrawObjectTable &dynObjsData, TextureMap &textures) {
+    dynObjsData.clear();
+    staticObjsData.clear();
+    textures.clear();
+    level->updateStaticDrawObjects(staticObjsData, textures);
+    bool texturesChanged;
+    level->updateDynamicDrawObjects(dynObjsData, textures, texturesChanged);
+    loadTextures(textures);
+    addObjects(staticObjsData);
+    addObjects(dynObjsData);
+}
+
+bool LevelSequenceGL::updateLevelData(Level *level, DrawObjectTable &objsData, TextureMap &textures) {
+    bool drawingNecessary = level->updateData();
+
+    if (!drawingNecessary) {
+        return false;
+    }
+
+    bool texturesChanged;
+    level->updateDynamicDrawObjects(objsData, textures, texturesChanged);
+    if (texturesChanged) {
+        loadTextures(textures);
+    }
+
+    return texturesChanged;
+}
+
+void LevelSequenceGL::addObjects(DrawObjectTable &objsData) {
+    for (auto &&obj : objsData) {
+        obj.second.reset(new DrawObjectDataGL(obj.first));
+    }
+}
+
+// load the textures
+void LevelSequenceGL::loadTextures(TextureMap &textures) {
+    for (TextureMap::iterator it = textures.begin(); it != textures.end(); it++) {
+        if (it->second.get() == nullptr) {
+            it->second.reset(new TextureDataGL{it->first});
+        }
+    }
+}
+
+std::tuple<glm::mat4, glm::mat4> LevelSequenceGL::getViewPerspectiveMatrix() {
+    glm::mat4 proj = m_level->getProjectionMatrix();
+    glm::mat4 view = m_level->getViewMatrix();
+    return std::make_tuple(proj, view);
+}
 
 void GraphicsGL::init(WindowType *inWindow) {
     initWindow(inWindow);
@@ -114,17 +273,6 @@ void GraphicsGL::initWindow(WindowType *inWindow){
         throw std::runtime_error("Could not get width and height of surface");
     }
 
-    levelTracker.setParameters(width, height);
-    levelStarter = levelTracker.getLevelStarter();
-    maze = levelTracker.getLevel();
-    float x, y;
-    maze->getLevelFinisherCenter(x, y);
-    levelFinisher = levelTracker.getLevelFinisher(x, y);
-
-    // The clear background color
-    glm::vec4 bgColor = maze->getBackgroundColor();
-    glClearColor(bgColor.r, bgColor.g, bgColor.b, bgColor.a);
-
     // Enable depth test
     glEnable(GL_DEPTH_TEST);
     // Accept fragment if it is closer to the camera than the former one.
@@ -137,14 +285,18 @@ void GraphicsGL::initWindow(WindowType *inWindow){
     glBlendFunc(GL_SRC_ALPHA,GL_ONE_MINUS_SRC_ALPHA);
 
     glViewport(0, 0, width, height);
+    m_levelSequence.init(width, height);
+
+    // The clear background color
+    glm::vec4 bgColor = m_levelSequence.backgroundColor();
+    glClearColor(bgColor.r, bgColor.g, bgColor.b, bgColor.a);
 }
 
 void GraphicsGL::initPipeline() {
     programID = loadShaders(SHADER_VERT_FILE, SHADER_FRAG_FILE);
     depthProgramID = loadShaders(DEPTH_VERT_FILE, DEPTH_FRAG_FILE);
 
-    initializeLevelData(maze.get(), staticObjsData, dynObjsData, levelTextures);
-    initializeLevelData(levelStarter.get(), levelStarterStaticObjsData, levelStarterDynObjsData, levelStarterTextures);
+    m_levelSequence.initializeLevels();
 
     // for shadow mapping.
     glGenFramebuffers(1, &depthMapFBO);
@@ -201,60 +353,6 @@ void GraphicsGL::initPipeline() {
     }
 }
 
-void GraphicsGL::addObjects(DrawObjectTable &objsData) {
-    for (auto &&obj : objsData) {
-        obj.second.reset(new DrawObjectDataGL(obj.first));
-    }
-}
-
-void DrawObjectDataGL::createDrawObjectData(std::shared_ptr<DrawObject> const &drawObj) {
-    // the index buffer
-    glGenBuffers(1, &(m_indexBuffer));
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_indexBuffer);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof (uint32_t) * drawObj->indices.size(),
-                 drawObj->indices.data(), GL_STATIC_DRAW);
-
-    // the vertex buffer
-    glGenBuffers(1, &(m_vertexBuffer));
-    glBindBuffer(GL_ARRAY_BUFFER, m_vertexBuffer);
-    glBufferData(GL_ARRAY_BUFFER, sizeof (Vertex) * drawObj->vertices.size(),
-                 drawObj->vertices.data(), GL_STATIC_DRAW);
-}
-
-void TextureDataGL::createTexture(std::shared_ptr<TextureDescription> const &textureDescription) {
-
-    glGenTextures(1, &m_handle);
-    glBindTexture(GL_TEXTURE_2D, m_handle);
-
-    // when sampling outside of the texture
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-
-    // when the texture is scaled up or down
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, /*GL_LINEAR_MIPMAP_LINEAR*/
-                    GL_NEAREST);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, /*GL_LINEAR*/ GL_NEAREST);
-
-    uint32_t texHeight;
-    uint32_t texWidth;
-    uint32_t texChannels;
-    std::vector<char> pixels = textureDescription->getData(texWidth, texHeight, texChannels);
-
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, texWidth, texHeight, 0, GL_RGBA,
-                 GL_UNSIGNED_BYTE, pixels.data());
-
-    glGenerateMipmap(GL_TEXTURE_2D);
-}
-
-// load the textures
-void GraphicsGL::loadTextures(TextureMap &textures) {
-    for (TextureMap::iterator it = textures.begin(); it != textures.end(); it++) {
-        if (it->second.get() == nullptr) {
-            it->second.reset(new TextureDataGL{it->first});
-        }
-    }
-}
-
 void GraphicsGL::initThread() {
     if (!eglMakeCurrent(display, surface, surface, context)) {
         throw std::runtime_error("Could not set the surface to current");
@@ -268,12 +366,6 @@ void GraphicsGL::cleanupThread() {
 }
 
 void GraphicsGL::cleanup() {
-    staticObjsData.clear();
-    dynObjsData.clear();
-    levelfinisherObjsData.clear();
-    levelStarterStaticObjsData.clear();
-    levelStarterDynObjsData.clear();
-
     glDeleteFramebuffers(1, &depthMapFBO);
     glDeleteTextures(1, &colorImage);
     glDeleteTextures(1, &depthMap);
@@ -289,15 +381,19 @@ void GraphicsGL::createDepthTexture() {
     glCullFace(GL_FRONT);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-    glm::mat4 proj = maze->getProjectionMatrix();
-    glm::mat4 view = maze->getViewLightSource();
+    std::tuple<glm::mat4, glm::mat4> projView = m_levelSequence.getViewPerspectiveMatrix();
+    glm::mat4 proj;
+    glm::mat4 view;
+
+    std::tie(proj, view) = projView;
+
     GLint MatrixID;
     MatrixID = glGetUniformLocation(depthProgramID, "view");
     glUniformMatrix4fv(MatrixID, 1, GL_FALSE, &view[0][0]);
     MatrixID = glGetUniformLocation(depthProgramID, "proj");
     glUniformMatrix4fv(MatrixID, 1, GL_FALSE, &proj[0][0]);
 
-    for (auto &&obj : staticObjsData) {
+    for (auto &&obj : m_levelSequence.levelStaticObjsData()) {
         for (auto &&model : obj.first->modelMatrices) {
             DrawObjectDataGL *data = dynamic_cast<DrawObjectDataGL*> (obj.second.get());
             drawObject(depthProgramID, false, data->vertexBuffer(), data->indexBuffer(),
@@ -305,7 +401,7 @@ void GraphicsGL::createDepthTexture() {
         }
     }
 
-    for (auto &&obj : dynObjsData) {
+    for (auto &&obj : m_levelSequence.levelDynObjsData()) {
         for (auto &&model : obj.first->modelMatrices) {
             DrawObjectDataGL *data = dynamic_cast<DrawObjectDataGL*> (obj.second.get());
             drawObject(depthProgramID, false, data->vertexBuffer(), data->indexBuffer(),
@@ -324,9 +420,12 @@ void GraphicsGL::drawFrame() {
     glCullFace(GL_BACK);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-    glm::mat4 proj = maze->getProjectionMatrix();
-    glm::mat4 view = maze->getViewMatrix();
-    glm::mat4 lightSpaceMatrix = maze->getProjectionMatrix() * maze->getViewLightSource();
+    std::tuple<glm::mat4, glm::mat4> projView = m_levelSequence.getViewPerspectiveMatrix();
+    glm::mat4 proj;
+    glm::mat4 view;
+    std::tie(proj, view) = projView;
+
+    glm::mat4 lightSpaceMatrix = proj * m_levelSequence.viewLightingSource();
     GLint MatrixID;
     MatrixID = glGetUniformLocation(programID, "view");
     glUniformMatrix4fv(MatrixID, 1, GL_FALSE, &view[0][0]);
@@ -336,21 +435,19 @@ void GraphicsGL::drawFrame() {
     glUniformMatrix4fv(MatrixID, 1, GL_FALSE, &lightSpaceMatrix[0][0]);
 
     GLint lightPosID = glGetUniformLocation(programID, "lightPos");
-    glm::vec3 lightPos = maze->getLightingSource();
+    glm::vec3 lightPos = m_levelSequence.lightingSource();
     glUniform3fv(lightPosID, 1, &lightPos[0]);
 
     GLint textureID = glGetUniformLocation(programID, "texShadowMap");
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, depthMap);
     glUniform1i(textureID, 0);
-    drawObjects(staticObjsData, levelTextures);
-    drawObjects(dynObjsData, levelTextures);
-    if (levelStarter.get() != nullptr) {
-        drawObjects(levelStarterStaticObjsData, levelStarterTextures);
-        drawObjects(levelStarterDynObjsData, levelStarterTextures);
-    }
-    if (maze->isFinished() || levelFinisher->isUnveiling()) {
-        drawObjects(levelfinisherObjsData, levelFinisherTextures);
+    drawObjects(m_levelSequence.levelStaticObjsData(), m_levelSequence.levelTextures());
+    drawObjects(m_levelSequence.levelDynObjsData(), m_levelSequence.levelTextures());
+    drawObjects(m_levelSequence.starterStaticObjsData(), m_levelSequence.starterTextures());
+    drawObjects(m_levelSequence.starterDynObjsData(), m_levelSequence.starterTextures());
+    if (m_levelSequence.needFinisherObjs()) {
+        drawObjects(m_levelSequence.finisherObjsData(), m_levelSequence.finisherTextures());
     }
     eglSwapBuffers(display, surface);
 }
@@ -560,104 +657,4 @@ void GraphicsGL::destroyWindow() {
 
 void GraphicsGL::recreateSwapChain() {
     // do nothing
-}
-
-void GraphicsGL::updateAcceleration(float x, float y, float z) {
-    if (levelStarter.get() != nullptr) {
-        levelStarter->updateAcceleration(x, y, z);
-    } else {
-        maze->updateAcceleration(x, y, z);
-    }
-}
-
-bool GraphicsGL::updateData() {
-    if (maze->isFinished() || levelFinisher->isUnveiling()) {
-        if (levelFinisher->isUnveiling()) {
-            if (levelFinisher->isDone()) {
-                float x, y;
-                maze->getLevelFinisherCenter(x, y);
-                levelFinisher = levelTracker.getLevelFinisher(x, y);
-                levelfinisherObjsData.clear();
-                levelStarter->start();
-                return false;
-            }
-        } else {
-            if (levelFinisher->isDone()) {
-                levelTracker.gotoNextLevel();
-                maze = levelTracker.getLevel();
-                levelStarter = levelTracker.getLevelStarter();
-
-                // The clear background color
-                glm::vec4 bgColor = maze->getBackgroundColor();
-                glClearColor(bgColor.r, bgColor.g, bgColor.b, bgColor.a);
-
-                initializeLevelData(maze.get(), staticObjsData, dynObjsData, levelTextures);
-                initializeLevelData(levelStarter.get(), levelStarterStaticObjsData,
-                                    levelStarterDynObjsData, levelStarterTextures);
-                levelFinisher->unveilNewLevel();
-                return false;
-            }
-        }
-
-        bool texturesChanged;
-        bool drawingNecessary = levelFinisher->updateDrawObjects(levelfinisherObjsData,
-                                                                 levelFinisherTextures,
-                                                                 texturesChanged);
-        if (!drawingNecessary) {
-            return false;
-        }
-
-        if (texturesChanged) {
-            loadTextures(levelFinisherTextures);
-        }
-
-        for (auto &&obj : levelfinisherObjsData) {
-            if (obj.second.get() == nullptr) {
-                obj.second.reset(new DrawObjectDataGL{obj.first});
-            }
-        }
-    } else if (levelStarter.get() != nullptr) {
-        updateLevelData(levelStarter.get(), levelStarterDynObjsData, levelStarterTextures);
-        if (levelStarter->isFinished()) {
-            levelStarter.reset();
-            levelStarterDynObjsData.clear();
-            levelStarterStaticObjsData.clear();
-            levelStarterTextures.clear();
-            maze->start();
-            return false;
-        }
-    } else {
-        updateLevelData(maze.get(), dynObjsData, levelTextures);
-    }
-
-    return true;
-}
-
-void GraphicsGL::initializeLevelData(Level *level, DrawObjectTable &staticObjsData,
-                                     DrawObjectTable &dynObjsData, TextureMap &textures) {
-    dynObjsData.clear();
-    staticObjsData.clear();
-    textures.clear();
-    level->updateStaticDrawObjects(staticObjsData, textures);
-    bool texturesChanged;
-    level->updateDynamicDrawObjects(dynObjsData, textures, texturesChanged);
-    loadTextures(textures);
-    addObjects(staticObjsData);
-    addObjects(dynObjsData);
-}
-
-bool GraphicsGL::updateLevelData(Level *level, DrawObjectTable &objsData, TextureMap &textures) {
-    bool drawingNecessary = level->updateData();
-
-    if (!drawingNecessary) {
-        return false;
-    }
-
-    bool texturesChanged;
-    level->updateDynamicDrawObjects(objsData, textures, texturesChanged);
-    if (texturesChanged) {
-        loadTextures(textures);
-    }
-
-    return texturesChanged;
 }

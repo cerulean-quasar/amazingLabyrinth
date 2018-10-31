@@ -67,6 +67,76 @@ private:
     GLuint m_indexBuffer;
 };
 
+class LevelSequenceGL {
+public:
+    LevelSequenceGL(uint32_t level)
+        :m_levelTextures{},
+         m_levelStarterTextures{},
+         m_levelFinisherTextures{},
+         m_level{},
+         m_levelFinisher{},
+         m_levelStarter{},
+         m_levelTracker{level},
+         m_levelStarterStaticObjsData{},
+         m_levelStarterDynObjsData{},
+         m_staticObjsData{},
+         m_dynObjsData{},
+         m_levelfinisherObjsData{}
+    {}
+
+    void init(uint32_t width, uint32_t height) {
+        m_levelTracker.setParameters(width, height);
+        m_levelStarter = m_levelTracker.getLevelStarter();
+        m_level = m_levelTracker.getLevel();
+        float x, y;
+        m_level->getLevelFinisherCenter(x, y);
+        m_levelFinisher = m_levelTracker.getLevelFinisher(x, y);
+    }
+
+    void loadTextures(TextureMap &textures);
+    void addObjects(DrawObjectTable &objsData);
+    bool updateLevelData(Level *level, DrawObjectTable &objsData, TextureMap &textures);
+    bool updateData();
+    void updateAcceleration(float x, float y, float z);
+    glm::vec4 backgroundColor() { return m_level->getBackgroundColor(); }
+    void initializeLevels() {
+        initializeLevelData(m_level, m_staticObjsData, m_dynObjsData, m_levelTextures);
+        initializeLevelData(m_levelStarter, m_levelStarterStaticObjsData, m_levelStarterDynObjsData, m_levelStarterTextures);
+    }
+    std::tuple<glm::mat4, glm::mat4>  getViewPerspectiveMatrix();
+    bool needFinisherObjs() { return m_level->isFinished() || m_levelFinisher->isUnveiling(); }
+    glm::vec3 lightingSource() { return m_level->getLightingSource(); }
+    glm::mat4 viewLightingSource() { return m_level->getViewLightSource(); }
+
+    inline DrawObjectTable const &starterStaticObjsData() { return m_levelStarterStaticObjsData; }
+    inline DrawObjectTable const &starterDynObjsData() { return m_levelStarterDynObjsData; }
+    inline DrawObjectTable const &levelStaticObjsData() { return m_staticObjsData; }
+    inline DrawObjectTable const &levelDynObjsData() { return m_dynObjsData; }
+    inline DrawObjectTable const &finisherObjsData() { return m_levelfinisherObjsData; }
+
+    inline TextureMap const &starterTextures() { return m_levelStarterTextures; }
+    inline TextureMap const &levelTextures() { return m_levelTextures; }
+    inline TextureMap const &finisherTextures() { return m_levelFinisherTextures; }
+private:
+    TextureMap m_levelTextures;
+    TextureMap m_levelStarterTextures;
+    TextureMap m_levelFinisherTextures;
+
+    std::shared_ptr<Level> m_level;
+    std::shared_ptr<LevelFinish> m_levelFinisher;
+    std::shared_ptr<LevelStarter> m_levelStarter;
+    LevelTracker m_levelTracker;
+
+    DrawObjectTable m_levelStarterStaticObjsData;
+    DrawObjectTable m_levelStarterDynObjsData;
+    DrawObjectTable m_staticObjsData;
+    DrawObjectTable m_dynObjsData;
+    DrawObjectTable m_levelfinisherObjsData;
+
+    void initializeLevelData(std::shared_ptr<Level> const &level, DrawObjectTable &staticObjsData,
+                             DrawObjectTable &dynObjsData, TextureMap &textures);
+};
+
 class GraphicsGL : public Graphics {
 public:
     GraphicsGL(WindowType *window, uint32_t level)
@@ -77,24 +147,14 @@ public:
         display{},
         programID{},
         depthProgramID{},
-        levelTextures{},
-        levelStarterTextures{},
-        levelFinisherTextures{},
         width{},
         height{},
         depthMapFBO{},
         depthMap{},
         colorImage{},
-        maze{},
-        levelFinisher{},
-        levelStarter{},
-        levelTracker{level},
-        levelStarterStaticObjsData{},
-        levelStarterDynObjsData{},
-        staticObjsData{},
-        dynObjsData{},
-        levelfinisherObjsData{}
-    { }
+        m_levelSequence{level}
+    {}
+
     virtual void init(WindowType *window);
     virtual void initThread();
 
@@ -102,11 +162,13 @@ public:
 
     virtual void cleanup();
 
-    virtual bool updateData();
+    virtual bool updateData() { return m_levelSequence.updateData(); }
 
     virtual void drawFrame();
 
-    virtual void updateAcceleration(float x, float y, float z);
+    virtual void updateAcceleration(float x, float y, float z) {
+        m_levelSequence.updateAcceleration(x, y, z);
+    }
 
     virtual void destroyWindow();
 
@@ -129,20 +191,7 @@ private:
     GLuint depthMap;
     GLuint colorImage;
 
-    TextureMap levelTextures;
-    TextureMap levelStarterTextures;
-    TextureMap levelFinisherTextures;
-
-    std::shared_ptr<Level> maze;
-    std::shared_ptr<LevelFinish> levelFinisher;
-    std::shared_ptr<LevelStarter> levelStarter;
-    LevelTracker levelTracker;
-
-    DrawObjectTable levelStarterStaticObjsData;
-    DrawObjectTable levelStarterDynObjsData;
-    DrawObjectTable staticObjsData;
-    DrawObjectTable dynObjsData;
-    DrawObjectTable levelfinisherObjsData;
+    LevelSequenceGL m_levelSequence;
 
     GLuint loadShaders(std::string const &vertexShaderFile, std::string const &fragmentShaderFile);
     void initWindow(WindowType *window);
@@ -150,12 +199,6 @@ private:
     void drawObjects(DrawObjectTable const &objsData, TextureMap const &textures);
     void drawObject(GLuint programID, bool needsNormal, GLuint vertex, GLuint index,
                     unsigned long nbrIndices, GLuint texture, glm::mat4 const &modelMatrix);
-    void loadTextures(TextureMap &textures);
-    void addObjects(DrawObjectTable &objsData);
-    void addObject(DrawObjectEntry &objData);
-    bool updateLevelData(Level *level, DrawObjectTable &objsData, TextureMap &textures);
-    void initializeLevelData(Level *level, DrawObjectTable &staticObjsData,
-                             DrawObjectTable &dynObjsData, TextureMap &textures);
     void createDepthTexture();
     void drawObject(GLuint programID, bool needsNormal, GLuint vertex, GLuint index,
                     unsigned long nbrIndices, glm::mat4 const &modelMatrix);
