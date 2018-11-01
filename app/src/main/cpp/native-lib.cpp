@@ -116,9 +116,7 @@ Java_com_quasar_cerulean_amazinglabyrinth_MainActivity_initPipeline(
 #else
         graphics.reset(new GraphicsGL(window, level));
 #endif
-        graphics->init(window);
     } catch (std::runtime_error &e) {
-        graphics->cleanup();
         graphics.reset();
         return env->NewStringUTF(e.what());
     }
@@ -209,7 +207,6 @@ Java_com_quasar_cerulean_amazinglabyrinth_MainActivity_destroyNativeSurface(
         JNIEnv *env,
         jobject thisptr)
 {
-    graphics->cleanup();
     graphics.reset();
 }
 

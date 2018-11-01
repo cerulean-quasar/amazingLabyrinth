@@ -314,10 +314,6 @@ std::tuple<glm::mat4, glm::mat4> LevelSequenceGL::getViewPerspectiveMatrix() {
     return std::make_tuple(proj, view);
 }
 
-void GraphicsGL::init(WindowType *inWindow) {
-    initPipeline();
-}
-
 void GraphicsGL::initPipeline() {
     glViewport(0, 0, m_surface.width(), m_surface.height());
 
@@ -382,12 +378,6 @@ void GraphicsGL::initPipeline() {
 
     // needed because we are going to switch to another thread now
     m_surface.cleanupThread();
-}
-
-void GraphicsGL::cleanup() {
-    glDeleteFramebuffers(1, &depthMapFBO);
-    glDeleteTextures(1, &colorImage);
-    glDeleteTextures(1, &depthMap);
 }
 
 void GraphicsGL::createDepthTexture() {

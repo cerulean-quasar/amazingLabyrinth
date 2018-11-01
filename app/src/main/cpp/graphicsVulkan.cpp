@@ -1980,10 +1980,6 @@ bool LevelSequence::updateData() {
     return drawingNecessary;
 }
 
-void GraphicsVulkan::cleanup() {
-    cleanupSwapChain();
-}
-
 void GraphicsVulkan::recreateSwapChain() {
     vkDeviceWaitIdle(m_device->logicalDevice().get());
 

@@ -157,19 +157,13 @@ extern unsigned int const MAZE_ROWS;
 
 class Graphics {
 public:
-    virtual void init(WindowType *window) = 0;
-
     virtual void initThread()=0;
-
-    virtual void cleanup()=0;
 
     virtual void updateAcceleration(float x, float y, float z)=0;
 
     virtual void drawFrame()=0;
 
     virtual bool updateData()=0;
-
-    virtual void destroyWindow()=0;
 
     virtual void recreateSwapChain()=0;
 

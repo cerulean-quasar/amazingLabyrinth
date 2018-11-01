@@ -999,21 +999,16 @@ public:
 
         initializeCommandBuffers();
     }
-    virtual void init(WindowType *window) {}
 
     virtual void initThread() { }
 
     virtual void cleanupThread() { }
-
-    virtual void cleanup();
 
     virtual bool updateData() { return m_levelSequence.updateData(); }
 
     virtual void updateAcceleration(float x, float y, float z);
 
     virtual void drawFrame();
-
-    virtual void destroyWindow() {}
 
     virtual void recreateSwapChain();
 

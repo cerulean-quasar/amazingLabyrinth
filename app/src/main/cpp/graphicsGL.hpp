@@ -188,14 +188,13 @@ public:
         colorImage{},
         m_levelSequence{level, static_cast<uint32_t>(m_surface.width()),
                         static_cast<uint32_t >(m_surface.height())}
-    {}
+    {
+        initPipeline();
+    }
 
-    virtual void init(WindowType *window);
     virtual void initThread() { m_surface.initThread(); }
 
     virtual void cleanupThread() { m_surface.cleanupThread(); }
-
-    virtual void cleanup();
 
     virtual bool updateData() { return m_levelSequence.updateData(); }
 
@@ -209,7 +208,13 @@ public:
 
     virtual void recreateSwapChain();
 
-    virtual ~GraphicsGL() {}
+    virtual ~GraphicsGL() {
+        glDeleteFramebuffers(1, &depthMapFBO);
+        glDeleteTextures(1, &colorImage);
+        glDeleteTextures(1, &depthMap);
+        glDeleteShader(programID);
+        glDeleteShader(depthProgramID);
+    }
 private:
     graphicsGL::Surface m_surface;
     GLuint programID;
