@@ -1789,14 +1789,15 @@ void DrawObjectDataVulkan::copyIndicesToBuffer(std::shared_ptr<vulkan::CommandPo
 }
 
 void DrawObjectDataVulkan::addUniforms(std::shared_ptr<DrawObject> const &obj,
-                                       std::tuple<glm::mat4, glm::mat4> const &projView,
+                                       glm::mat4 const &proj, glm::mat4 const &view,
                                        TextureMap &textures) {
     if (obj->modelMatrices.size() == m_uniforms.size()) {
         return;
     }
 
     UniformBufferObject ubo;
-    std::tie(ubo.proj, ubo.view) = projView;
+    ubo.proj = proj;
+    ubo.view = view;
 
     for (size_t i = m_uniforms.size(); i < obj->modelMatrices.size(); i++) {
         ubo.model = obj->modelMatrices[i];
@@ -1812,16 +1813,17 @@ void DrawObjectDataVulkan::addUniforms(std::shared_ptr<DrawObject> const &obj,
 }
 
 void DrawObjectDataVulkan::update(std::shared_ptr<DrawObject> const &obj,
-                                  std::tuple<glm::mat4, glm::mat4> const &projView, TextureMap &textures) {
+                                  glm::mat4 const &proj, glm::mat4 const &view, TextureMap &textures) {
     if (m_uniforms.size() < obj->modelMatrices.size()) {
         // a new model matrix (new object but same texture, vertices and indices).
-        addUniforms(obj, projView, textures);
+        addUniforms(obj, proj, view, textures);
     } else if (m_uniforms.size() > obj->modelMatrices.size()) {
         // a model matrix got removed...
         m_uniforms.pop_back();
     } else {
         UniformBufferObject ubo;
-        std::tie(ubo.proj, ubo.view) = projView;
+        ubo.proj = proj;
+        ubo.view = view;
         // just copy over the model matrices into the graphics card memory... they might
         // have changed.
         for (size_t j = 0; j < obj->modelMatrices.size(); j++) {
@@ -1832,7 +1834,7 @@ void DrawObjectDataVulkan::update(std::shared_ptr<DrawObject> const &obj,
     }
 }
 
-void LevelSequence::initializeLevelData(std::shared_ptr<Level> const &level, DrawObjectTable &staticObjsData,
+void LevelSequenceVulkan::initializeLevelData(std::shared_ptr<Level> const &level, DrawObjectTable &staticObjsData,
                                         DrawObjectTable &dynObjsData, TextureMap &textures) {
     staticObjsData.clear();
     dynObjsData.clear();
@@ -1846,8 +1848,7 @@ void LevelSequence::initializeLevelData(std::shared_ptr<Level> const &level, Dra
     m_texturesChanged = true;
 }
 
-void LevelSequence::updateLevelData(DrawObjectTable &objsData,
-                                    std::tuple<glm::mat4, glm::mat4> const &projView, TextureMap &textures) {
+void LevelSequenceVulkan::updateLevelData(DrawObjectTable &objsData, TextureMap &textures) {
     if (m_texturesChanged) {
         addTextures(textures);
         for (auto &&obj : objsData) {
@@ -1864,22 +1865,20 @@ void LevelSequence::updateLevelData(DrawObjectTable &objsData,
             // a completely new entry
             addObject(objData, textures);
         } else {
-            data->update(objData.first, projView, textures);
+            data->update(objData.first, m_proj, m_view, textures);
         }
     }
 }
 
-std::tuple<glm::mat4, glm::mat4> LevelSequence::getViewPerspectiveMatrix() {
-    glm::mat4 proj = m_level->getProjectionMatrix();
+void LevelSequenceVulkan::updatePerspectiveMatrix(uint32_t surfaceWidth, uint32_t surfaceHeight) {
+    LevelSequence::updatePerspectiveMatrix(surfaceWidth, surfaceHeight);
     /* GLM has the y axis inverted from Vulkan's perspective, invert the y-axis on the
      * projection matrix.
      */
-    proj[1][1] *= -1;
-    glm::mat4 view = m_level->getViewMatrix();
-    return std::make_tuple(proj, view);
+    m_proj[1][1] *= -1;
 }
 
-void LevelSequence::addTextures(TextureMap &textures) {
+void LevelSequenceVulkan::addTextures(TextureMap &textures) {
     for (TextureMap::iterator it = textures.begin(); it != textures.end(); it++) {
         if (it->second.get() == nullptr) {
             it->second.reset(new TextureDataVulkan(m_device, m_commandPool, it->first));
@@ -1887,23 +1886,22 @@ void LevelSequence::addTextures(TextureMap &textures) {
     }
 }
 
-void LevelSequence::addObjects(DrawObjectTable &objs, TextureMap &textures) {
+void LevelSequenceVulkan::addObjects(DrawObjectTable &objs, TextureMap &textures) {
     for (auto &&obj : objs) {
         addObject(obj, textures);
     }
 }
 
-void LevelSequence::addObject(DrawObjectEntry &obj, TextureMap &textures) {
+void LevelSequenceVulkan::addObject(DrawObjectEntry &obj, TextureMap &textures) {
     std::shared_ptr<DrawObjectDataVulkan> objData(new DrawObjectDataVulkan(m_device, m_commandPool,
                                                                            m_descriptorPools, obj.first, m_uniformBufferLighting));
 
     obj.second = objData;
 
-    std::tuple<glm::mat4, glm::mat4> projView = getViewPerspectiveMatrix();
-    objData->addUniforms(obj.first, projView, textures);
+    objData->addUniforms(obj.first, m_proj, m_view, textures);
 }
 
-void LevelSequence::updateAcceleration(float x, float y, float z) {
+void LevelSequenceVulkan::updateAcceleration(float x, float y, float z) {
     if (m_levelStarter.get() != nullptr) {
         m_levelStarter->updateAcceleration(x, y, z);
     } else {
@@ -1911,10 +1909,9 @@ void LevelSequence::updateAcceleration(float x, float y, float z) {
     }
 }
 
-bool LevelSequence::updateData() {
+bool LevelSequenceVulkan::updateData() {
     bool drawingNecessary = false;
 
-    std::tuple<glm::mat4, glm::mat4> projView = getViewPerspectiveMatrix();
     if (m_level->isFinished() || m_levelFinisher->isUnveiling()) {
         if (m_levelFinisher->isUnveiling()) {
             if (m_levelFinisher->isDone()) {
@@ -1950,7 +1947,7 @@ bool LevelSequence::updateData() {
             return false;
         }
 
-        updateLevelData(m_levelFinisherObjsData, projView, m_texturesLevelFinisher);
+        updateLevelData(m_levelFinisherObjsData, m_texturesLevelFinisher);
     } else if (m_levelStarter.get() != nullptr) {
         drawingNecessary = m_levelStarter->updateData();
 
@@ -1966,14 +1963,14 @@ bool LevelSequence::updateData() {
         if (drawingNecessary) {
             m_levelStarter->updateDynamicDrawObjects(m_levelStarterDynObjsData,
                                                      m_texturesLevelStarter, m_texturesChanged);
-            updateLevelData(m_levelStarterDynObjsData, projView, m_texturesLevelStarter);
+            updateLevelData(m_levelStarterDynObjsData, m_texturesLevelStarter);
         }
     } else {
         drawingNecessary = m_level->updateData();
 
         if (drawingNecessary) {
             m_level->updateDynamicDrawObjects(m_dynObjsData, m_texturesLevel, m_texturesChanged);
-            updateLevelData(m_dynObjsData, projView, m_texturesLevel);
+            updateLevelData(m_dynObjsData, m_texturesLevel);
         }
     }
 

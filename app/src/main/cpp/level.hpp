@@ -26,10 +26,6 @@
 class Level {
 protected:
     bool finished;
-    glm::mat4 proj;
-    glm::mat4 view;
-    glm::mat4 viewLightingSource;
-    glm::vec3 lightingSource;
 public:
     virtual void loadModels() = 0;
     virtual void generate() = 0;
@@ -40,17 +36,9 @@ public:
     virtual bool updateStaticDrawObjects(DrawObjectTable &objs, TextureMap &textures) = 0;
     virtual bool updateDynamicDrawObjects(DrawObjectTable &objs, TextureMap &textures, bool &texturesChanged) = 0;
     virtual void start() = 0;
-    virtual void setView();
-    virtual void updatePerspectiveMatrix(int surfaceWidth, int surfaceHeight);
-    virtual void setLightingSource();
-    virtual void setViewLightingSource();
 
     void init(uint32_t width, uint32_t height);
     bool isFinished() { return finished; }
-    glm::mat4 getProjectionMatrix() { return proj; }
-    glm::mat4 getViewMatrix() { return view; }
-    glm::vec3 getLightingSource() { return lightingSource; }
-    glm::mat4 getViewLightSource() { return viewLightingSource; }
     virtual void getLevelFinisherCenter(float &x, float &y) {
         x = 0.0f;
         y = 0.0f;

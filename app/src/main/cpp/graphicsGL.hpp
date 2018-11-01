@@ -109,10 +109,11 @@ private:
     GLuint m_indexBuffer;
 };
 
-class LevelSequenceGL {
+class LevelSequenceGL : public LevelSequence {
 public:
     LevelSequenceGL(uint32_t level, uint32_t width, uint32_t height)
-        :m_levelTextures{},
+        :LevelSequence{width, height},
+         m_levelTextures{},
          m_levelStarterTextures{},
          m_levelFinisherTextures{},
          m_level{},
@@ -143,10 +144,7 @@ public:
         initializeLevelData(m_level, m_staticObjsData, m_dynObjsData, m_levelTextures);
         initializeLevelData(m_levelStarter, m_levelStarterStaticObjsData, m_levelStarterDynObjsData, m_levelStarterTextures);
     }
-    std::tuple<glm::mat4, glm::mat4>  getViewPerspectiveMatrix();
     bool needFinisherObjs() { return m_level->isFinished() || m_levelFinisher->isUnveiling(); }
-    glm::vec3 lightingSource() { return m_level->getLightingSource(); }
-    glm::mat4 viewLightingSource() { return m_level->getViewLightSource(); }
 
     inline DrawObjectTable const &starterStaticObjsData() { return m_levelStarterStaticObjsData; }
     inline DrawObjectTable const &starterDynObjsData() { return m_levelStarterDynObjsData; }

@@ -857,10 +857,9 @@ public:
     }
 
     void addUniforms(std::shared_ptr<DrawObject> const &obj,
-                     std::tuple<glm::mat4, glm::mat4> const &projView,
-                     TextureMap &textures);
+                     glm::mat4 const &proj, glm::mat4 const &view, TextureMap &textures);
     void update(std::shared_ptr<DrawObject> const &obj,
-                std::tuple<glm::mat4, glm::mat4> const &projView, TextureMap &textures);
+                glm::mat4 const &proj, glm::mat4 const &view, TextureMap &textures);
 
     inline vulkan::Buffer const &vertexBuffer() { return m_vertexBuffer; }
     inline vulkan::Buffer const &indexBuffer() { return m_indexBuffer; }
@@ -888,15 +887,16 @@ private:
                              std::shared_ptr<DrawObject> const &drawObj);
 };
 
-class LevelSequence {
+class LevelSequenceVulkan : public LevelSequence {
 public:
-    LevelSequence(std::shared_ptr<vulkan::Device> const &inDevice,
+    LevelSequenceVulkan(std::shared_ptr<vulkan::Device> const &inDevice,
                   std::shared_ptr<vulkan::CommandPool> const &inPool,
                   std::shared_ptr<vulkan::DescriptorPools> const &inDescriptorPools,
                   uint32_t level,
                   uint32_t width,
                   uint32_t height)
-            :m_device{inDevice},
+            :LevelSequence{width, height},
+             m_device{inDevice},
              m_commandPool{inPool},
              m_descriptorPools{inDescriptorPools},
              m_levelTracker{level},
@@ -914,8 +914,11 @@ public:
              m_levelFinisher{},
              m_levelStarter{}
     {
+        /* updatePerspectiveMatrix is called by the LevelSequence constructor, but we need to
+         * call it here too, since we have our own special version of it.
+         */
+        updatePerspectiveMatrix(width, height);
         m_levelTracker.setParameters(width, height);
-
 
         m_level = m_levelTracker.getLevel();
         m_levelStarter = m_levelTracker.getLevelStarter();
@@ -923,7 +926,7 @@ public:
         m_level->getLevelFinisherCenter(x, y);
         m_levelFinisher = m_levelTracker.getLevelFinisher(x, y);
 
-        glm::vec3 lightingVector = m_level->getLightingSource();
+        glm::vec3 lightingVector = lightingSource();
         m_uniformBufferLighting->copyRawTo(&lightingVector, sizeof (lightingVector));
 
         initializeLevelData(m_levelStarter, m_levelStarterStaticObjsData,
@@ -966,11 +969,11 @@ private:
     std::shared_ptr<LevelFinish> m_levelFinisher;
     std::shared_ptr<LevelStarter> m_levelStarter;
 
+    virtual void updatePerspectiveMatrix(uint32_t surfaceWidth, uint32_t surfaceHeight);
+
     void initializeLevelData(std::shared_ptr<Level> const &level, DrawObjectTable &staticObjsData,
                              DrawObjectTable &dynObjsData, TextureMap &textures);
-    void updateLevelData(DrawObjectTable &objsData,
-                         std::tuple<glm::mat4, glm::mat4> const &projView, TextureMap &textures);
-    std::tuple<glm::mat4, glm::mat4>  getViewPerspectiveMatrix();
+    void updateLevelData(DrawObjectTable &objsData, TextureMap &textures);
     void addTextures(TextureMap &textures);
     void addObjects(DrawObjectTable &objs, TextureMap &textures);
     void addObject(DrawObjectEntry &obj, TextureMap &textures);
@@ -1024,7 +1027,7 @@ private:
     std::shared_ptr<vulkan::Pipeline> m_graphicsPipeline;
     std::shared_ptr<vulkan::CommandPool> m_commandPool;
 
-    LevelSequence m_levelSequence;
+    LevelSequenceVulkan m_levelSequence;
 
     /* depth buffer image */
     std::shared_ptr<vulkan::ImageView> m_depthImageView;

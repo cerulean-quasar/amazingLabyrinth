@@ -155,6 +155,32 @@ int istreamEof(void *userData);
 extern unsigned int const MAZE_COLS;
 extern unsigned int const MAZE_ROWS;
 
+class LevelSequence {
+public:
+    glm::mat4 projectionMatrix() { return m_proj; }
+    glm::mat4 viewMatrix() { return m_view; }
+    glm::vec3 lightingSource() { return m_lightingSource; }
+    glm::mat4 viewLightSource() { return m_viewLightingSource; }
+
+protected:
+    glm::mat4 m_proj;
+    glm::mat4 m_view;
+    glm::mat4 m_viewLightingSource;
+    glm::vec3 m_lightingSource;
+
+    LevelSequence(uint32_t surfaceWidth, uint32_t surfaceHeight) {
+        setView();
+        updatePerspectiveMatrix(surfaceWidth, surfaceHeight);
+        setLightingSource();
+        setViewLightingSource();
+    }
+
+    virtual void setView();
+    virtual void updatePerspectiveMatrix(uint32_t surfaceWidth, uint32_t surfaceHeight);
+    virtual void setLightingSource();
+    virtual void setViewLightingSource();
+};
+
 class Graphics {
 public:
     virtual void initThread()=0;

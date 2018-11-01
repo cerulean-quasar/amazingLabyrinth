@@ -308,12 +308,6 @@ void LevelSequenceGL::loadTextures(TextureMap &textures) {
     }
 }
 
-std::tuple<glm::mat4, glm::mat4> LevelSequenceGL::getViewPerspectiveMatrix() {
-    glm::mat4 proj = m_level->getProjectionMatrix();
-    glm::mat4 view = m_level->getViewMatrix();
-    return std::make_tuple(proj, view);
-}
-
 void GraphicsGL::initPipeline() {
     glViewport(0, 0, m_surface.width(), m_surface.height());
 
@@ -388,11 +382,8 @@ void GraphicsGL::createDepthTexture() {
     glCullFace(GL_FRONT);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-    std::tuple<glm::mat4, glm::mat4> projView = m_levelSequence.getViewPerspectiveMatrix();
-    glm::mat4 proj;
-    glm::mat4 view;
-
-    std::tie(proj, view) = projView;
+    glm::mat4 proj = m_levelSequence.projectionMatrix();
+    glm::mat4 view = m_levelSequence.viewMatrix();
 
     GLint MatrixID;
     MatrixID = glGetUniformLocation(depthProgramID, "view");
@@ -427,12 +418,10 @@ void GraphicsGL::drawFrame() {
     glCullFace(GL_BACK);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-    std::tuple<glm::mat4, glm::mat4> projView = m_levelSequence.getViewPerspectiveMatrix();
-    glm::mat4 proj;
-    glm::mat4 view;
-    std::tie(proj, view) = projView;
+    glm::mat4 proj = m_levelSequence.projectionMatrix();
+    glm::mat4 view = m_levelSequence.viewMatrix();
 
-    glm::mat4 lightSpaceMatrix = proj * m_levelSequence.viewLightingSource();
+    glm::mat4 lightSpaceMatrix = proj * m_levelSequence.viewLightSource();
     GLint MatrixID;
     MatrixID = glGetUniformLocation(programID, "view");
     glUniformMatrix4fv(MatrixID, 1, GL_FALSE, &view[0][0]);

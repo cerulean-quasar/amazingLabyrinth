@@ -24,32 +24,8 @@
 
 #include "level.hpp"
 
-void Level::updatePerspectiveMatrix(int surfaceWidth, int surfaceHeight) {
-    /* perspective matrix: takes the perspective projection, the aspect ratio, near and far
-     * view planes.
-     */
-    proj = glm::perspective(glm::radians(45.0f), surfaceWidth / (float) surfaceHeight, 0.1f, 100.0f);
-}
-
-void Level::setViewLightingSource() {
-    viewLightingSource = glm::lookAt(lightingSource, glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
-}
-
-void Level::setView() {
-    /* glm::lookAt takes the eye position, the center position, and the up axis as parameters */
-    view = glm::lookAt(glm::vec3(0.0f, 0.0f, 3.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
-}
-
-void Level::setLightingSource() {
-    lightingSource = glm::vec3(0.0f, 0.0f, 1.28f/*0.01-1.28*/);
-}
-
 void Level::init(uint32_t width, uint32_t height) {
-    setLightingSource();
-    setViewLightingSource();
     loadModels();
-    setView();
-    updatePerspectiveMatrix(width, height);
     generate();
     generateModelMatrices();
 }
