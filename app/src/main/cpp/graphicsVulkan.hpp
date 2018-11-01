@@ -899,7 +899,7 @@ public:
              m_device{inDevice},
              m_commandPool{inPool},
              m_descriptorPools{inDescriptorPools},
-             m_levelTracker{level},
+             m_levelTracker{level, width, height},
              m_texturesLevel{},
              m_texturesLevelStarter{},
              m_texturesLevelFinisher{},
@@ -918,7 +918,6 @@ public:
          * call it here too, since we have our own special version of it.
          */
         updatePerspectiveMatrix(width, height);
-        m_levelTracker.setParameters(width, height);
 
         m_level = m_levelTracker.getLevel();
         m_levelStarter = m_levelTracker.getLevelStarter();

@@ -39,23 +39,18 @@ typedef std::array<LevelEntry, 4> LevelTable;
 
 class LevelTracker {
 private:
-    uint32_t currentLevel;
-    uint32_t width;
-    uint32_t height;
-    static LevelTable levelTable;
+    uint32_t m_currentLevel;
+    uint32_t m_width;
+    uint32_t m_height;
+    static LevelTable s_levelTable;
 public:
-    LevelTracker(uint32_t level);
-
-    void setParameters(uint32_t inWidth, uint32_t inHeight) {
-        width = inWidth;
-        height = inHeight;
-    }
+    LevelTracker(uint32_t level, uint32_t inWidth, uint32_t inHeight);
 
     std::shared_ptr<LevelStarter> getLevelStarter();
     std::shared_ptr<Level> getLevel();
     std::shared_ptr<LevelFinish> getLevelFinisher(float centerX, float centerY);
     void gotoNextLevel();
     static std::vector<std::string> getLevelDescriptions();
-    static bool validLevel(uint32_t level) { return level < levelTable.size(); }
+    static bool validLevel(uint32_t level) { return level < s_levelTable.size(); }
 };
 #endif

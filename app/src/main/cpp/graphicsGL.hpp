@@ -119,14 +119,13 @@ public:
          m_level{},
          m_levelFinisher{},
          m_levelStarter{},
-         m_levelTracker{level},
+         m_levelTracker{level, width, height},
          m_levelStarterStaticObjsData{},
          m_levelStarterDynObjsData{},
          m_staticObjsData{},
          m_dynObjsData{},
          m_levelfinisherObjsData{}
     {
-        m_levelTracker.setParameters(width, height);
         m_levelStarter = m_levelTracker.getLevelStarter();
         m_level = m_levelTracker.getLevel();
         float x, y;

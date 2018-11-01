@@ -131,39 +131,40 @@ std::shared_ptr<LevelFinish> getLevelFinisher3(float x, float y) {
     return levelFinish;
 }
 
-LevelTable LevelTracker::levelTable = {
+LevelTable LevelTracker::s_levelTable = {
         LevelEntry {getLevelStarter0, getLevel0, getLevelFinisher0, "The universe begins"},
         LevelEntry {getLevelStarter1, getLevel1, getLevelFinisher1, "The lonely planet"},
         LevelEntry {getLevelStarter2, getLevel2, getLevelFinisher2, "The roller bee"},
         LevelEntry {getLevelStarter3, getLevel3, getLevelFinisher3, "The search"} };
 
-LevelTracker::LevelTracker(uint32_t level) :currentLevel(level), width(0), height(0) {
-    if (level > levelTable.size() - 1) {
+LevelTracker::LevelTracker(uint32_t level, uint32_t inWidth, uint32_t inHeight)
+        :m_currentLevel(level), m_width(inWidth), m_height(inHeight) {
+    if (level > s_levelTable.size() - 1) {
         throw std::runtime_error("Invalid level: " + std::to_string(level));
     }
 }
 
 void LevelTracker::gotoNextLevel() {
-    currentLevel = (currentLevel + 1) % levelTable.size();
+    m_currentLevel = (m_currentLevel + 1) % s_levelTable.size();
 }
 
 std::shared_ptr<LevelStarter> LevelTracker::getLevelStarter() {
-    return levelTable[currentLevel].starter();
+    return s_levelTable[m_currentLevel].starter();
 }
 
 std::shared_ptr<Level> LevelTracker::getLevel() {
-    return levelTable[currentLevel].level(width, height);
+    return s_levelTable[m_currentLevel].level(m_width, m_height);
 }
 
 std::shared_ptr<LevelFinish> LevelTracker::getLevelFinisher(float centerX = 0.0f, float centerY = 0.0f) {
-    return levelTable[currentLevel].finisher(centerX, centerY);
+    return s_levelTable[m_currentLevel].finisher(centerX, centerY);
 }
 
 std::vector<std::string> LevelTracker::getLevelDescriptions() {
     std::vector<std::string> ret;
 
-    for (int i = 0; i < levelTable.size(); i++) {
-        ret.push_back(std::to_string(i) + ": " + levelTable[i].levelDescription);
+    for (int i = 0; i < s_levelTable.size(); i++) {
+        ret.push_back(std::to_string(i) + ": " + s_levelTable[i].levelDescription);
     }
 
     return ret;
