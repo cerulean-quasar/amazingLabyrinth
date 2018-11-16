@@ -43,44 +43,78 @@
  */
 std::atomic<bool> stopDrawing(false);
 
-/* The following data are per program data and are to be accessed by one thread at a time.
- * Note: there are only two threads in this program; the drawer and the GUI.  Some of the data
- * below are set up by one thread and accessed by another but are guaranteed to not be accessed at
- * the same time because when the GUI thread sets up the data, the drawer has not started yet, or
- * has exited and been joined by the GUI.
+/*
+ * The following global is used for calling back into java.  It is only accessed by one thread:
+ * the thread running the game.
  */
+JNIEnv *gEnv = nullptr;
+
+class Sensors {
+public:
+    struct AccelerationEvent {
+        float x;
+        float y;
+        float z;
+    };
+
+    Sensors() {
+        initSensors();
+    }
+
+    inline bool hasEvents() {
+        return ASensorEventQueue_hasEvents(eventQueue) > 0;
+    }
+
+    inline std::vector<AccelerationEvent> getEvents() {
+        std::vector<ASensorEvent> events;
+        events.resize(100);
+        ssize_t nbrEvents = ASensorEventQueue_getEvents(eventQueue, events.data(), events.size());
+        if (nbrEvents < 0) {
+            // an error has occurred
+            throw std::runtime_error("Error on retrieving sensor events.");
+        }
+
+        std::vector<AccelerationEvent> avector;
+        for (int i = 0; i < nbrEvents; i++) {
+            AccelerationEvent a{
+                    events[i].acceleration.x,
+                    events[i].acceleration.y,
+                    events[i].acceleration.z};
+            avector.push_back(a);
+        }
+
+        return avector;
+    }
+
+    ~Sensors(){
+        ASensorEventQueue_disableSensor(eventQueue, sensor);
+        ASensorManager_destroyEventQueue(sensorManager, eventQueue);
+    }
+private:
 // microseconds
-int const MAX_EVENT_REPORT_TIME = 20000;
+    static int const MAX_EVENT_REPORT_TIME;
 
 // event identifier for identifying an event that occurs during a poll.  It doesn't matter what this
 // value is, it just has to be unique among all the other sensors the program receives events for.
-int const EVENT_TYPE_ACCELEROMETER = 462;
+    static int const EVENT_TYPE_ACCELEROMETER;
 
-ASensorManager *sensorManager = nullptr;
-ASensor const *sensor = nullptr;
-ASensorEventQueue *eventQueue = nullptr;
-ALooper *looper = nullptr;
-JNIEnv *gEnv = nullptr;
-std::unique_ptr<Graphics> graphics;
+    ASensorManager *sensorManager = nullptr;
+    ASensor const *sensor = nullptr;
+    ASensorEventQueue *eventQueue = nullptr;
+    ALooper *looper = nullptr;
 
-extern "C" JNIEXPORT jstring JNICALL
-Java_com_quasar_cerulean_amazinglabyrinth_MainActivity_initPipeline(
-        JNIEnv *env,
-        jobject thisptr,
-        jboolean useVulkan,
-        jobject drawingSurface,
-        jobject assetManager,
-        jint level)
-{
-    gEnv = env;
-    if (level < 0 || ! LevelTracker::validLevel(static_cast<uint32_t>(level))) {
-        return env->NewStringUTF("Invalid level");
-    }
+    void initSensors();
+};
 
+int const Sensors::MAX_EVENT_REPORT_TIME = 20000;
+int const Sensors::EVENT_TYPE_ACCELEROMETER = 462;
+
+void Sensors::initSensors() {
     sensorManager = ASensorManager_getInstance();
     sensor = ASensorManager_getDefaultSensor(sensorManager, ASENSOR_TYPE_ACCELEROMETER);
     if (sensor == nullptr) {
-        return env->NewStringUTF("Accelerometer is not present");
+        // TODO: use a flick gesture instead?
+        throw std::runtime_error("Accelerometer not present.");
     }
 
     looper = ALooper_forThread();
@@ -89,12 +123,64 @@ Java_com_quasar_cerulean_amazinglabyrinth_MainActivity_initPipeline(
     }
 
     if (looper == nullptr) {
-        return env->NewStringUTF("Could not get looper.");
+        throw std::runtime_error("Could not initialize looper.");
     }
 
     eventQueue = ASensorManager_createEventQueue(sensorManager, looper, EVENT_TYPE_ACCELEROMETER, nullptr, nullptr);
-    if (eventQueue == nullptr) {
-        return env->NewStringUTF("Could not create event queue for sensor");
+
+    int rc = ASensorEventQueue_enableSensor(eventQueue, sensor);
+    if (rc < 0) {
+        throw std::runtime_error("Could not enable sensor");
+    }
+    int minDelay = ASensor_getMinDelay(sensor);
+    minDelay = std::max(minDelay, MAX_EVENT_REPORT_TIME);
+
+    rc = ASensorEventQueue_setEventRate(eventQueue, sensor, minDelay);
+    if (rc < 0) {
+        ASensorEventQueue_disableSensor(eventQueue, sensor);
+        throw std::runtime_error("Could not set event rate");
+    }
+}
+
+void draw(std::unique_ptr<Graphics> const &graphics)
+{
+    Sensors sensor;
+    while (!stopDrawing.load()) {
+        timeval tv = {0, 1000};
+        select(0, nullptr, nullptr, nullptr, &tv);
+        if (sensor.hasEvents()) {
+            std::vector<Sensors::AccelerationEvent> events = sensor.getEvents();
+
+            float x = 0;
+            float y = 0;
+            float z = 0;
+            for (auto const & event : events) {
+                x += event.x;
+                y += event.y;
+                z += event.z;
+            }
+            size_t nbrEvents = events.size();
+            graphics->updateAcceleration(x/nbrEvents, y/nbrEvents, z/nbrEvents);
+
+        }
+        bool drawingNecessary = graphics->updateData();
+        if (drawingNecessary) {
+            graphics->drawFrame();
+        }
+    }
+}
+
+extern "C" JNIEXPORT jstring JNICALL
+Java_com_quasar_cerulean_amazinglabyrinth_Draw_startGame(
+        JNIEnv *env,
+        jobject thisptr,
+        jobject drawingSurface,
+        jobject assetManager,
+        jint level)
+{
+    gEnv = env;
+    if (level < 0 || ! LevelTracker::validLevel(static_cast<uint32_t>(level))) {
+        return env->NewStringUTF("Invalid level");
     }
 
     ANativeWindow *window = ANativeWindow_fromSurface(env, drawingSurface);
@@ -105,92 +191,34 @@ Java_com_quasar_cerulean_amazinglabyrinth_MainActivity_initPipeline(
     AAssetManager *manager = AAssetManager_fromJava(env, assetManager);
     setAssetManager(manager);
 
-    try {
-        stopDrawing.store(false);
+    stopDrawing.store(false);
+
+    std::unique_ptr<Graphics> graphics;
+    bool useGL = false;
 #ifdef CQ_ENABLE_VULKAN
-        if (useVulkan) {
-            graphics.reset(new GraphicsVulkan(window, level));
-        } else {
+    try {
+        graphics.reset(new GraphicsVulkan(window, level));
+    } catch (std::runtime_error &e) {
+        useGL = true;
+    }
+#else
+    useGL = true;
+#endif
+
+    try {
+        if (useGL) {
             graphics.reset(new GraphicsGL(window, level));
         }
-#else
-        graphics.reset(new GraphicsGL(window, level));
-#endif
     } catch (std::runtime_error &e) {
-        graphics.reset();
         return env->NewStringUTF(e.what());
     }
 
-    return env->NewStringUTF("");
-}
-
-extern "C" JNIEXPORT jstring JNICALL
-Java_com_quasar_cerulean_amazinglabyrinth_Draw_draw(
-        JNIEnv *env,
-        jobject thisptr)
-{
-    if (stopDrawing.load()) {
-        // There is nothing to do.  Just return, no results, no error.
-        return env->NewStringUTF("");
-    }
-
-    gEnv = env;
     try {
-        graphics->initThread();
-        int rc = ASensorEventQueue_enableSensor(eventQueue, sensor);
-        if (rc < 0) {
-            return env->NewStringUTF("error: Could not enable sensor");
-        }
-        int minDelay = ASensor_getMinDelay(sensor);
-        minDelay = std::max(minDelay, MAX_EVENT_REPORT_TIME);
-
-        rc = ASensorEventQueue_setEventRate(eventQueue, sensor, minDelay);
-        if (rc < 0) {
-            ASensorEventQueue_disableSensor(eventQueue, sensor);
-            graphics->cleanupThread();
-            return env->NewStringUTF("error: Could not set event rate");
-        }
-        std::vector<std::string> results;
-        while (!stopDrawing.load()) {
-            timeval tv = {0, 1000};
-            select(0, nullptr, nullptr, nullptr, &tv);
-            rc = ASensorEventQueue_hasEvents(eventQueue);
-            if (rc > 0) {
-                std::vector<ASensorEvent> events;
-                events.resize(100);
-                ssize_t nbrEvents = ASensorEventQueue_getEvents(eventQueue, events.data(), events.size());
-                if (nbrEvents < 0) {
-                    // an error has occurred
-                    ASensorEventQueue_disableSensor(eventQueue, sensor);
-                    graphics->cleanupThread();
-                    return env->NewStringUTF("error: Error on retrieving sensor events.");
-                }
-
-                float x = 0;
-                float y = 0;
-                float z = 0;
-                for (int i = 0; i < nbrEvents; i++) {
-                    x += events[i].acceleration.x;
-                    y += events[i].acceleration.y;
-                    z += events[i].acceleration.z;
-                }
-                graphics->updateAcceleration(x/nbrEvents, y/nbrEvents, z/nbrEvents);
-
-            }
-            bool drawingNecessary = graphics->updateData();
-            if (drawingNecessary) {
-                graphics->drawFrame();
-            }
-        }
+        draw(graphics);
     } catch (std::runtime_error &e) {
-        // no need to draw another frame - we are failing.
-        ASensorEventQueue_disableSensor(eventQueue, sensor);
-        graphics->cleanupThread();
-        return env->NewStringUTF((std::string("error: ") + e.what()).c_str());
+        return env->NewStringUTF(e.what());
     }
 
-    graphics->cleanupThread();
-    ASensorEventQueue_disableSensor(eventQueue, sensor);
     return env->NewStringUTF("");
 }
 
@@ -200,14 +228,6 @@ Java_com_quasar_cerulean_amazinglabyrinth_MainActivity_tellDrawerStop(
         jobject thisptr)
 {
     stopDrawing.store(true);
-}
-
-extern "C" JNIEXPORT void JNICALL
-Java_com_quasar_cerulean_amazinglabyrinth_MainActivity_destroyNativeSurface(
-        JNIEnv *env,
-        jobject thisptr)
-{
-    graphics.reset();
 }
 
 extern "C" JNIEXPORT jobjectArray JNICALL

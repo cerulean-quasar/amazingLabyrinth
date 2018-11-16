@@ -38,11 +38,12 @@ public class MySurfaceCallback implements SurfaceHolder.Callback {
 
 
     public void surfaceCreated(SurfaceHolder holder) {
+        app.setSurfaceReady(true);
         app.startDrawing(holder, -1);
     }
 
     public void surfaceDestroyed(SurfaceHolder holder) {
         app.joinDrawer();
-        app.destroySurface();
+        app.setSurfaceReady(false);
     }
 }

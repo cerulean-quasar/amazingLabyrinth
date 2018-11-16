@@ -75,21 +75,22 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
     @Override
     protected void onPause() {
         super.onPause();
+        surfaceReady = false;
         joinDrawer();
     }
 
     @Override
     protected void onStop() {
         super.onStop();
+        surfaceReady = false;
         joinDrawer();
     }
 
     @Override
     protected void onDestroy() {
         super.onDestroy();
-
+        surfaceReady = false;
         joinDrawer();
-        destroySurface();
     }
 
     @Override
@@ -131,7 +132,6 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
             selectLevelDialog = null;
         } else {
             joinDrawer();
-            destroySurface();
             SurfaceView surfaceView = findViewById(R.id.mainDrawingSurface);
             startDrawing(surfaceView.getHolder(), pos);
         }
@@ -142,13 +142,6 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
     public void onCancel(View view) {
         selectLevelDialog.dismiss();
         selectLevelDialog = null;
-    }
-
-    public void destroySurface() {
-        if (surfaceReady) {
-            surfaceReady = false;
-            destroyNativeSurface();
-        }
     }
 
     public void joinDrawer() {
@@ -164,32 +157,21 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
         game = null;
     }
 
+    public void setSurfaceReady(boolean inSurfaceReady) {
+        surfaceReady = inSurfaceReady;
+    }
+
     public void startDrawing(SurfaceHolder holder, int level) {
         if (level < 0) {
             level = 0;
         }
-        boolean usingVulkan = true;
+
         Surface drawSurface = holder.getSurface();
-        String err = initPipeline(usingVulkan, drawSurface, manager, level);
-        if (err != null && err.length() != 0) {
-            usingVulkan = false;
-            // Vulkan failed, try with OpenGL instead
-            err = initPipeline(usingVulkan, drawSurface, manager, level);
-            if (err != null && err.length() != 0) {
-                publishError(err);
-                return;
-            }
-        }
 
-        surfaceReady = true;
-        startGame();
-    }
-
-    private void startGame() {
         if (game == null && surfaceReady) {
             TextView errorView = findViewById(R.id.mainErrorResult);
             Handler notify = new Handler(new GameErrorHandler());
-            game = new Thread(new Draw(notify));
+            game = new Thread(new Draw(notify, drawSurface, manager, level));
             game.start();
         }
     }
@@ -212,8 +194,6 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
     /**
      * Native methods.
      */
-    public native String initPipeline(boolean usingVulkan, Surface drawingSurface, AssetManager manager, int level);
     public native void tellDrawerStop();
     public native String[] getLevelList();
-    public native void destroyNativeSurface();
 }
