@@ -5,8 +5,6 @@
 
 cmake_minimum_required(VERSION 3.4.1)
 
-
-
 set (platform64_files)
 if ((NOT ${CMAKE_ANDROID_ARCH_ABI} STREQUAL x86) AND (NOT ${CMAKE_ANDROID_ARCH_ABI} STREQUAL armeabi-v7a))
     list(APPEND platform64_files src/main/cpp/graphicsVulkan.cpp src/main/cpp/vulkanWrapper.cpp)
@@ -57,7 +55,11 @@ include_directories(APP_GLUE_DIR ${ANDROID_NDK}/sources/android/native_app_glue)
 include_directories(/opt/tinyobjloader/include)
 include_directories(/opt/stb/include)
 
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Werror -std=c++14")
+set(CQ_COMPILE_FLAGS)
+if (${CMAKE_BUILD_TYPE} STREQUAL Debug)
+    list(APPEND CQ_COMPILE_FLAGS -DDEBUG)
+endif(${CMAKE_BUILD_TYPE} STREQUAL Debug)
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Werror -std=c++14 ${CQ_COMPILE_FLAGS}")
 
 target_compile_definitions(native-lib PUBLIC -DVK_USE_PLATFORM_ANDROID_KHR)
 

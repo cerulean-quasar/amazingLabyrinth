@@ -48,6 +48,12 @@
 #include "levelStarter.hpp"
 
 namespace vulkan {
+#ifdef DEBUG
+    const bool enableValidationLayers = true;
+#else
+    const bool enableValidationLayers = false;
+#endif
+
     const std::vector<const char *> validationLayers = {
             /* required for checking for errors and getting error messages */
             //"VK_LAYER_LUNARG_standard_validation"
@@ -770,13 +776,6 @@ namespace vulkan {
         void createCommandBuffers();
     };
 } /* namespace vulkan */
-
-#define DEBUG
-#ifdef DEBUG
-    const bool enableValidationLayers = true;
-#else
-    const bool enableValidationLayers = false;
-#endif
 
 std::vector<VkVertexInputAttributeDescription> getAttributeDescriptions();
 VkVertexInputBindingDescription getBindingDescription();
