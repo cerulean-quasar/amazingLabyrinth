@@ -33,6 +33,7 @@ add_library( # Sets the name of the library.
              src/main/cpp/level.cpp
              src/main/cpp/openAreaLevel.cpp
              src/main/cpp/avoidVortexLevel.cpp
+             src/main/cpp/movingQuadsLevel.cpp
              src/main/cpp/levelTracker.cpp
              src/main/cpp/levelStarter.cpp)
 

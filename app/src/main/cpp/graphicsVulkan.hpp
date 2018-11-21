@@ -299,6 +299,14 @@ namespace vulkan {
         inline std::shared_ptr<VkDescriptorSet_T> const &descriptorSet() { return m_descriptorSet; }
     };
 
+    class DescriptorSetLayout {
+    public:
+        virtual std::shared_ptr<VkDescriptorSetLayout_T> const &descriptorSetLayout() = 0;
+        virtual uint32_t numberOfDescriptors() = 0;
+        virtual VkDescriptorPoolCreateInfo const &poolCreateInfo() = 0;
+        virtual ~DescriptorSetLayout() {}
+    };
+
     class DescriptorPool {
         friend DescriptorPools;
     private:
@@ -307,26 +315,13 @@ namespace vulkan {
         uint32_t m_totalDescriptorsInPool;
         uint32_t m_totalDescriptorsAllocated;
 
-        DescriptorPool(std::shared_ptr<Device> const &inDevice, uint32_t totalDescriptors)
+        DescriptorPool(std::shared_ptr<Device> const &inDevice, uint32_t totalDescriptors,
+                       VkDescriptorPoolCreateInfo const &poolInfo)
                 : m_device{inDevice},
                   m_descriptorPool{},
                   m_totalDescriptorsInPool{totalDescriptors},
                   m_totalDescriptorsAllocated{0} {
             // no more descriptors in all the descriptor pools.  create another descriptor pool...
-            std::array<VkDescriptorPoolSize, 3> poolSizes = {};
-
-            // one for each wall and +3 for the floor, ball, and hole.
-            poolSizes[0].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-            poolSizes[0].descriptorCount = m_totalDescriptorsInPool;
-            poolSizes[1].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-            poolSizes[1].descriptorCount = m_totalDescriptorsInPool;
-            poolSizes[2].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-            poolSizes[2].descriptorCount = m_totalDescriptorsInPool;
-            VkDescriptorPoolCreateInfo poolInfo = {};
-            poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
-            poolInfo.poolSizeCount = static_cast<uint32_t>(poolSizes.size());
-            poolInfo.pPoolSizes = poolSizes.data();
-            poolInfo.maxSets = m_totalDescriptorsInPool;
 
             VkDescriptorPool descriptorPoolRaw;
             if (vkCreateDescriptorPool(m_device->logicalDevice().get(), &poolInfo, nullptr,
@@ -341,12 +336,12 @@ namespace vulkan {
             m_descriptorPool.reset(descriptorPoolRaw, deleter);
         }
 
-        VkDescriptorSet allocateDescriptor(std::shared_ptr<VkDescriptorSetLayout_T> const &layout) {
+        VkDescriptorSet allocateDescriptor(std::shared_ptr<DescriptorSetLayout> const &layout) {
             if (m_totalDescriptorsAllocated == m_totalDescriptorsInPool) {
                 return VK_NULL_HANDLE;
             } else {
                 VkDescriptorSet descriptorSet;
-                VkDescriptorSetLayout layouts[] = {layout.get()};
+                VkDescriptorSetLayout layouts[] = {layout->descriptorSetLayout().get()};
                 VkDescriptorSetAllocateInfo allocInfo = {};
                 allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
                 allocInfo.descriptorPool = m_descriptorPool.get();
@@ -376,23 +371,22 @@ namespace vulkan {
         friend DescriptorSet;
     private:
         std::shared_ptr<Device> m_device;
-        static uint32_t constexpr m_numberOfDescriptorSetsInPool = 1024;
-        std::shared_ptr<VkDescriptorSetLayout_T> m_descriptorSetLayout;
+        std::shared_ptr<DescriptorSetLayout> m_descriptorSetLayout;
         std::vector<DescriptorPool> m_descriptorPools;
         std::vector<VkDescriptorSet> m_unusedDescriptors;
 
-        void createDescriptorSetLayout();
-
     public:
-        DescriptorPools(std::shared_ptr<Device> const &inDevice)
+        DescriptorPools(std::shared_ptr<Device> const &inDevice,
+                        std::shared_ptr<DescriptorSetLayout> const &inDescriptorSetLayout)
                 : m_device{inDevice},
-                  m_descriptorSetLayout{},
+                  m_descriptorSetLayout{inDescriptorSetLayout},
                   m_descriptorPools{},
                   m_unusedDescriptors{} {
-            createDescriptorSetLayout();
         }
 
-        std::shared_ptr<VkDescriptorSetLayout_T> const &descriptorSetLayout() { return m_descriptorSetLayout; }
+        inline std::shared_ptr<VkDescriptorSetLayout_T> const &descriptorSetLayout() {
+            return m_descriptorSetLayout->descriptorSetLayout();
+        }
 
         std::shared_ptr<DescriptorSet> allocateDescriptor() {
             if (m_descriptorSetLayout == VK_NULL_HANDLE) {
@@ -416,17 +410,18 @@ namespace vulkan {
                         VkDescriptorSet descriptorSet = descriptorPool.allocateDescriptor(
                                 m_descriptorSetLayout);
                         return std::shared_ptr<DescriptorSet>{new DescriptorSet{shared_from_this(),
-                                                                                std::shared_ptr<VkDescriptorSet_T>{descriptorSet, deleter}}};
+                                std::shared_ptr<VkDescriptorSet_T>{descriptorSet, deleter}}};
                     }
                 }
 
 
-                DescriptorPool newDescriptorPool(m_device, m_numberOfDescriptorSetsInPool);
+                DescriptorPool newDescriptorPool(m_device, m_descriptorSetLayout->numberOfDescriptors(),
+                    m_descriptorSetLayout->poolCreateInfo());
                 m_descriptorPools.push_back(newDescriptorPool);
                 VkDescriptorSet descriptorSet = newDescriptorPool.allocateDescriptor(
                         m_descriptorSetLayout);
                 return std::shared_ptr<DescriptorSet>(new DescriptorSet(shared_from_this(),
-                                                                        std::shared_ptr<VkDescriptorSet_T>(descriptorSet, deleter)));
+                        std::shared_ptr<VkDescriptorSet_T>(descriptorSet, deleter)));
             }
         }
     };
@@ -780,6 +775,44 @@ namespace vulkan {
 std::vector<VkVertexInputAttributeDescription> getAttributeDescriptions();
 VkVertexInputBindingDescription getBindingDescription();
 
+class AmazingLabyrinthDescriptorSetLayout : public vulkan::DescriptorSetLayout {
+public:
+    AmazingLabyrinthDescriptorSetLayout(std::shared_ptr<vulkan::Device> inDevice)
+        : m_device(inDevice)
+    {
+        m_poolSizes[0].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+        m_poolSizes[0].descriptorCount = m_numberOfDescriptorSetsInPool;
+        m_poolSizes[1].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+        m_poolSizes[1].descriptorCount = m_numberOfDescriptorSetsInPool;
+        m_poolSizes[2].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+        m_poolSizes[2].descriptorCount = m_numberOfDescriptorSetsInPool;
+        m_poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
+        m_poolInfo.poolSizeCount = static_cast<uint32_t>(m_poolSizes.size());
+        m_poolInfo.pPoolSizes = m_poolSizes.data();
+        m_poolInfo.maxSets = m_numberOfDescriptorSetsInPool;
+
+        createDescriptorSetLayout();
+    }
+    virtual std::shared_ptr<VkDescriptorSetLayout_T> const &descriptorSetLayout() {
+        return m_descriptorSetLayout;
+    }
+    virtual uint32_t numberOfDescriptors() { return m_numberOfDescriptorSetsInPool; }
+    virtual VkDescriptorPoolCreateInfo const &poolCreateInfo() {
+        return m_poolInfo;
+    }
+    virtual ~AmazingLabyrinthDescriptorSetLayout() {}
+
+private:
+    static uint32_t constexpr m_numberOfDescriptorSetsInPool = 1024;
+
+    std::shared_ptr<vulkan::Device> m_device;
+    std::shared_ptr<VkDescriptorSetLayout_T> m_descriptorSetLayout;
+    VkDescriptorPoolCreateInfo m_poolInfo;
+    std::array<VkDescriptorPoolSize, 3> m_poolSizes;
+
+    void createDescriptorSetLayout();
+};
+
 class TextureDataVulkan : public TextureData {
 public:
     TextureDataVulkan(std::shared_ptr<vulkan::Device> const &inDevice,
@@ -984,7 +1017,8 @@ public:
         m_device{new vulkan::Device{m_instance}},
         m_swapChain{new vulkan::SwapChain{m_device}},
         m_renderPass{new vulkan::RenderPass{m_device, m_swapChain}},
-        m_descriptorPools{new vulkan::DescriptorPools{m_device}},
+        m_descriptorSetLayout{new AmazingLabyrinthDescriptorSetLayout{m_device}},
+        m_descriptorPools{new vulkan::DescriptorPools{m_device, m_descriptorSetLayout}},
         m_graphicsPipeline{new vulkan::Pipeline{m_swapChain, m_renderPass, m_descriptorPools,
             getBindingDescription(), getAttributeDescriptions()}},
         m_commandPool{new vulkan::CommandPool{m_device}},
@@ -1021,6 +1055,7 @@ private:
 
     std::shared_ptr<vulkan::RenderPass> m_renderPass;
 
+    std::shared_ptr<AmazingLabyrinthDescriptorSetLayout> m_descriptorSetLayout;
     std::shared_ptr<vulkan::DescriptorPools> m_descriptorPools;
     std::shared_ptr<vulkan::Pipeline> m_graphicsPipeline;
     std::shared_ptr<vulkan::CommandPool> m_commandPool;

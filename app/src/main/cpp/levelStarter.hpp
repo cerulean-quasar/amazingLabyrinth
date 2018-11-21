@@ -35,11 +35,11 @@
 
 class LevelStarter : public Level {
 private:
-    std::string const ballImage = "textures/ballLevelStarter.png";
-    std::string const holeImage = "textures/holeLevelStarter.png";
-    std::string const corridorImageH1 = "textures/corridorH1.png";
-    std::string const corridorImageV = "textures/corridorV.png";
-    std::string const corridorImageH2 = "textures/corridorH2.png";
+    std::string const ballImage = "textures/levelStarter/ballLevelStarter.png";
+    std::string const holeImage = "textures/levelStarter/holeLevelStarter.png";
+    std::string const corridorImageH1 = "textures/levelStarter/corridorH1.png";
+    std::string const corridorImageV = "textures/levelStarter/corridorV.png";
+    std::string const corridorImageH2 = "textures/levelStarter/corridorH2.png";
     float const scale = 10.0f;
     float const maxPosX = 0.7f;
     float const maxPosY = 1.1f;

@@ -27,6 +27,9 @@
 
 #include "android.hpp"
 
+constexpr float screenMaxX = 0.8f;
+constexpr float screenMaxY = 1.0f;
+
 static std::string const MODEL_WALL("models/wall.obj");
 static std::string const MODEL_BALL("models/ball.obj");
 
