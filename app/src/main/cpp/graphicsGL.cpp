@@ -369,9 +369,6 @@ void GraphicsGL::initPipeline() {
         throw std::runtime_error(std::string("Framebuffer is not complete, returned: ") + c);
     }
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
-
-    // needed because we are going to switch to another thread now
-    m_surface.cleanupThread();
 }
 
 void GraphicsGL::createDepthTexture() {
