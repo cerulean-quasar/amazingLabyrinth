@@ -29,6 +29,7 @@
 #include <unordered_map>
 #include <istream>
 #include <cstring>
+#include <queue>
 
 #define GLM_FORCE_RADIANS
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
@@ -44,6 +45,7 @@
 #include "graphics.hpp"
 
 static std::string const MODEL_HOLE("models/hole.obj");
+constexpr float Maze::viscosity;
 
 void Maze::updateAcceleration(float x, float y, float z) {
     ball.acceleration = glm::vec3(-x,-y,0.0f);
@@ -59,7 +61,7 @@ bool Maze::updateData() {
     float time = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - prevTime).count();
     prevTime = currentTime;
 
-    ball.velocity += ball.acceleration * time;
+    ball.velocity += ball.acceleration * time - viscosity * ball.velocity;
     ball.position += ball.velocity * time;
 
     auto cell = getCell(ball.row, ball.col);
@@ -150,7 +152,7 @@ bool Maze::updateData() {
     return drawingNecessary;
 }
 
-void Maze::generate() {
+void Maze::generateDFS() {
     std::vector<std::pair<unsigned int, unsigned int> > path;
     unsigned int rowStart, columnStart;
     unsigned int rowEnd, columnEnd;
@@ -220,6 +222,79 @@ void Maze::generate() {
     }
 }
 
+void Maze::generateBFS() {
+    std::list<std::pair<unsigned int, unsigned int> > path;
+    unsigned int rowStart, columnStart;
+    unsigned int rowEnd, columnEnd;
+
+    // the desired distance that they are apart is the average of the number of rows and the number
+    // of columns divided by 4.
+    unsigned int desiredDistanceSquared = (numberRows+numberColumns)*(numberRows+numberColumns)/64;
+    unsigned int distanceSquared;
+    rowStart = numberRows/2;
+    columnStart = numberColumns/2;
+    do {
+        rowEnd = random.getUInt(0, numberRows-1);
+        columnEnd = random.getUInt(0, numberColumns-1);
+        distanceSquared = (rowEnd - rowStart)*(rowEnd - rowStart) +
+                          (columnEnd - columnStart)*(columnEnd - columnStart);
+    } while (distanceSquared < desiredDistanceSquared);
+
+    cells[rowStart][columnStart].mIsStart = true;
+    cells[rowEnd][columnEnd].mIsEnd = true;
+
+    cells[rowStart][columnStart].mVisited = true;
+    path.push_back(std::make_pair(rowStart, columnStart));
+
+    while (!path.empty()) {
+        std::pair<unsigned int, unsigned int> current = path.front();
+        path.pop_front();
+        if (cells[current.first][current.second].isEnd()) {
+            continue;
+        }
+
+        std::vector<std::pair<unsigned int, unsigned int> > nextCellOptions;
+        addCellOption(current.first - 1, current.second, nextCellOptions);
+        addCellOption(current.first, current.second - 1, nextCellOptions);
+        addCellOption(current.first + 1, current.second, nextCellOptions);
+        addCellOption(current.first, current.second + 1, nextCellOptions);
+
+        if (nextCellOptions.empty()) {
+            continue;
+        }
+
+        for (auto const &next : nextCellOptions) {
+            if (current.first == next.first) {
+                if (next.second < current.second) {
+                    // the new cell is on the left of the current one.
+                    cells[current.first][current.second].mLeftWallExists = false;
+                    cells[next.first][next.second].mRightWallExists = false;
+                } else {
+                    cells[current.first][current.second].mRightWallExists = false;
+                    cells[next.first][next.second].mLeftWallExists = false;
+                }
+            } else {
+                if (next.first < current.first) {
+                    // the new cell is on the top of the current one.
+                    cells[current.first][current.second].mTopWallExists = false;
+                    cells[next.first][next.second].mBottomWallExists = false;
+                } else {
+                    cells[current.first][current.second].mBottomWallExists = false;
+                    cells[next.first][next.second].mTopWallExists = false;
+                }
+            }
+
+            cells[next.first][next.second].mVisited = true;
+            size_t size = path.size();
+            unsigned int i = size == 0 ? 0 : random.getUInt(0, path.size());
+            std::list<std::pair<unsigned int, unsigned int>>::iterator it = path.begin();
+            for (int j = 0; j < i; j++, it++)
+                /* do nothing */;
+            path.insert(it, next);
+        }
+    }
+}
+
 void Maze::addCellOption(unsigned int r, unsigned int c, std::vector<std::pair<unsigned int, unsigned int> > &options) {
     if (r < numberRows && c < numberColumns && !cells[r][c].visited()) {
         options.push_back(std::make_pair(r, c));
@@ -233,7 +308,7 @@ Cell const &Maze::getCell(unsigned int row, unsigned int column) {
 void Maze::loadModels() {
     loadModel(MODEL_WALL, vertices, indices);
     loadModel(MODEL_BALL, ballVertices, ballIndices);
-    loadModel(MODEL_HOLE, holeVertices, holeIndices);
+    getQuad(holeVertices, holeIndices);
     loadModelFloor();
 }
 
@@ -333,7 +408,7 @@ void Maze::generateModelMatrices() {
     modelMatrixHole = trans*scaleBall;
 
     // the floor.
-    floorModelMatrix = glm::translate(glm::vec3(0.0f, 0.0f, -1.0f -3.0f/(2.0f*(numberRows+numberColumns))));
+    floorModelMatrix = glm::translate(glm::vec3(0.0f, 0.0f, -1.0f -6.0f/(2.0f*(numberRows+numberColumns))));
 }
 
 bool Maze::updateStaticDrawObjects(DrawObjectTable &objs, TextureMap &textures) {

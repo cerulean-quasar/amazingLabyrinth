@@ -66,6 +66,7 @@ public:
 
 class Maze : public Level {
 private:
+    static constexpr float viscosity = 0.01f;
     Random random;
     std::vector<std::string> wallTextures;
     std::string ballTexture;
@@ -116,9 +117,24 @@ private:
     float getColumnCenterPosition(unsigned int col);
     glm::vec3 getCellCenterPosition(unsigned int row, unsigned int col);
     Cell const &getCell(unsigned int row, unsigned int column);
+
+    void loadModels();
+    void generateBFS();
+    void generateDFS();
+    void generateModelMatrices();
+
 public:
-    Maze(unsigned int inNumberRows, unsigned int inNumberColumns)
-        :numberRows(inNumberRows), numberColumns(inNumberColumns)
+    enum Mode {
+        BFS = 0,
+        DFS = 1
+    };
+
+private:
+    Mode m_mode;
+
+public:
+    Maze(unsigned int inNumberRows, unsigned int inNumberColumns, Mode inMode)
+        :numberRows(inNumberRows), numberColumns(inNumberColumns), m_mode(inMode)
     {
         cells.resize(numberRows);
         for (unsigned int i = 0; i < numberRows; i++) {
@@ -135,13 +151,19 @@ public:
                                           1.0f/(i*2.0f + 1)));
     }
 
-    virtual void loadModels();
-    virtual void generate();
+    virtual void init(uint32_t width, uint32_t height) {
+        loadModels();
+        if (m_mode == BFS) {
+            generateBFS();
+        } else {
+            generateDFS();
+        }
+        generateModelMatrices();
+    }
+
     virtual glm::vec4 getBackgroundColor() { return {0.0f, 0.0f, 0.0f, 0.0f}; }
     virtual void updateAcceleration(float x, float y, float z);
     virtual bool updateData();
-    virtual void generateModelMatrices();
-
     virtual bool updateStaticDrawObjects(DrawObjectTable &objs, TextureMap &textures);
     virtual bool updateDynamicDrawObjects(DrawObjectTable &objs, TextureMap &textures, bool &texturesChanged);
     virtual void start() {

@@ -91,13 +91,14 @@ private:
     } m_ball;
 
     bool ballOnQuad(glm::vec3 const &centerPos, float xSize);
+
+    void loadModels();
+    void generate();
+    void generateModelMatrices(){}
 public:
-    virtual void loadModels();
-    virtual void generate();
     virtual glm::vec4 getBackgroundColor() { return glm::vec4(0.2, 0.2, 1.0, 1.0); }
     virtual void updateAcceleration(float x, float y, float z) { m_ball.acceleration = {-x, -y, 0.0f}; }
     virtual bool updateData();
-    virtual void generateModelMatrices(){}
     virtual bool updateStaticDrawObjects(DrawObjectTable &objs, TextureMap &textures);
     virtual bool updateDynamicDrawObjects(DrawObjectTable &objs, TextureMap &textures, bool &texturesChanged);
     virtual void start() {
@@ -107,6 +108,12 @@ public:
     virtual void getLevelFinisherCenter(float &x, float &y) {
         x = 0.0f;
         y = 0.0f;
+    }
+
+    virtual void init(uint32_t width, uint32_t height) {
+        loadModels();
+        generate();
+        generateModelMatrices();
     }
 
     void initSetEndQuadTexture(std::string const &texture) { m_endQuadTexture = texture; }

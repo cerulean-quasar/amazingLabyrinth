@@ -27,17 +27,14 @@ class Level {
 protected:
     bool finished;
 public:
-    virtual void loadModels() = 0;
-    virtual void generate() = 0;
     virtual glm::vec4 getBackgroundColor() = 0;
     virtual void updateAcceleration(float x, float y, float z) = 0;
     virtual bool updateData() = 0;
-    virtual void generateModelMatrices() = 0;
     virtual bool updateStaticDrawObjects(DrawObjectTable &objs, TextureMap &textures) = 0;
     virtual bool updateDynamicDrawObjects(DrawObjectTable &objs, TextureMap &textures, bool &texturesChanged) = 0;
     virtual void start() = 0;
 
-    void init(uint32_t width, uint32_t height);
+    virtual void init(uint32_t width, uint32_t height) = 0;
     bool isFinished() { return finished; }
     virtual void getLevelFinisherCenter(float &x, float &y) {
         x = 0.0f;

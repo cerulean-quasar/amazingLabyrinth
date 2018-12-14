@@ -90,13 +90,13 @@ private:
     } ball;
 
     bool ballProximity(glm::vec3 const &objPosition);
+    void loadModels();
+    void generate();
+    void generateModelMatrices();
 public:
-    virtual void loadModels();
-    virtual void generate();
     virtual glm::vec4 getBackgroundColor() { return glm::vec4(0.0, 0.0, 0.0, 1.0); }
     virtual void updateAcceleration(float x, float y, float z) { ball.acceleration = {-x, -y, 0.0f}; }
     virtual bool updateData();
-    virtual void generateModelMatrices();
     virtual bool updateStaticDrawObjects(DrawObjectTable &objs, TextureMap &textures);
     virtual bool updateDynamicDrawObjects(DrawObjectTable &objs, TextureMap &textures, bool &texturesChanged);
     virtual void start() {
@@ -108,6 +108,11 @@ public:
         y = 0.0f;
     }
 
+    virtual void init(uint32_t width, uint32_t height) {
+        loadModels();
+        generate();
+        generateModelMatrices();
+    }
     void initSetHoleTexture(std::string const &texture) { holeTexture = texture; }
     void initSetVortexTexture(std::string const &texture) { vortexTexture = texture; }
     void initSetStartVortexTexture(std::string const &texture) { startVortexTexture = texture; }

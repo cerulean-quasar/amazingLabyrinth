@@ -35,7 +35,7 @@ struct LevelEntry {
     std::string levelDescription;
 };
 
-typedef std::array<LevelEntry, 5> LevelTable;
+typedef std::array<LevelEntry, 6> LevelTable;
 
 class LevelTracker {
 private:

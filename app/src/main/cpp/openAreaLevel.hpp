@@ -64,10 +64,8 @@ private:
         glm::quat totalRotated;
     } ball;
 
-public:
-    OpenAreaLevel() : prevTime(std::chrono::high_resolution_clock::now()) {}
-    virtual void loadModels();
-    virtual void generate() {
+    void loadModels();
+    void generate() {
         unsigned int i = 2;
         float pos = 1.0f/(i*2.0f + 1);
         scale = glm::scale(glm::vec3(pos, pos, pos));
@@ -88,14 +86,23 @@ public:
             ball.position.y = random.getFloat(-0.7f, 0.7f);
         } while (glm::length(ball.position - holePosition) < smallestDistance);
     }
+    void generateModelMatrices();
+
+public:
+    OpenAreaLevel() : prevTime(std::chrono::high_resolution_clock::now()) {}
     virtual void updateAcceleration(float x, float y, float z);
     virtual glm::vec4 getBackgroundColor() { return {0.0f, 0.0f, 0.0f, 1.0f}; }
     virtual bool updateData();
-    virtual void generateModelMatrices();
     virtual bool updateStaticDrawObjects(DrawObjectTable &objs, TextureMap &textures);
     virtual bool updateDynamicDrawObjects(DrawObjectTable &objs, TextureMap &textures, bool &texturesChanged);
     virtual void start() {
         prevTime = std::chrono::high_resolution_clock::now();
+    }
+
+    virtual void init(uint32_t width, uint32_t height) {
+        loadModels();
+        generate();
+        generateModelMatrices();
     }
 
     void initSetHoleTexture(std::string const &texture) { holeTexture = texture; }

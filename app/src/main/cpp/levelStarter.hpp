@@ -75,6 +75,9 @@ private:
         glm::quat totalRotated;
     } ball;
 
+    void loadModels() { }
+    void generate() { }
+    void generateModelMatrices() { }
 public:
     LevelStarter() {
         prevTime = std::chrono::high_resolution_clock::now();
@@ -103,10 +106,13 @@ public:
     bool isInSideCorridor();
     void confineBall();
 
-    virtual void loadModels() { }
-    virtual void generate() { }
+    virtual void init(uint32_t width, uint32_t height) {
+        loadModels();
+        generate();
+        generateModelMatrices();
+    }
+
     virtual glm::vec4 getBackgroundColor() { return glm::vec4(0.0f, 0.0f, 0.0f, 0.0f); }
-    virtual void generateModelMatrices() { }
 
     virtual void updateAcceleration(float x, float y, float z) {
         ball.acceleration = {-x, -y, 0.0f};
