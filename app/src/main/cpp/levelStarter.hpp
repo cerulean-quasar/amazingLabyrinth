@@ -40,10 +40,9 @@ private:
     std::string const corridorImageH1 = "textures/levelStarter/corridorH1.png";
     std::string const corridorImageV = "textures/levelStarter/corridorV.png";
     std::string const corridorImageH2 = "textures/levelStarter/corridorH2.png";
-    float const scale = 10.0f;
-    float const maxPosX = 0.7f;
-    float const maxPosY = 1.1f;
-    float const maxPosYNoCorridors = maxPosY - 2*maxPosX/scale;
+    float const scale;
+    float const maxPosX;
+    float const maxPosY;
     float const errVal = 0.05f;
 
     std::chrono::high_resolution_clock::time_point prevTime;
@@ -75,11 +74,13 @@ private:
         glm::quat totalRotated;
     } ball;
 
-    void loadModels() { }
-    void generate() { }
-    void generateModelMatrices() { }
 public:
-    LevelStarter() {
+    LevelStarter(uint32_t width, uint32_t height)
+            : Level(width, height),
+              scale(10.0f),
+              maxPosX(m_width/2-m_width/2/scale),
+              maxPosY(m_height/2-m_width/2/scale)
+    {
         prevTime = std::chrono::high_resolution_clock::now();
         getQuad(quadVertices, quadIndices);
         loadModel(MODEL_BALL, ballVertices, ballIndices);
@@ -87,11 +88,11 @@ public:
         textIndex = 0;
         transitionText = false;
 
-        textScale = {maxPosX+2*maxPosX/scale, maxPosYNoCorridors, 1.0f};
-        holeScale = {2*maxPosX/scale, 2*maxPosX/scale, 1.0f};
-        corridorHScale = {1.0f, 2*maxPosX/scale, 1.0f};
-        corridorVScale = {2*maxPosX/scale, 1.0f, 1.0f};
-        ballScale = {2*maxPosX/scale, 2*maxPosX/scale, 2*maxPosX/scale};
+        textScale = {m_width/2, m_height/2, 1.0f};
+        holeScale = {m_width/2/scale, m_width/2/scale, 1.0f};
+        corridorHScale = {m_width/2, m_width/2/scale, 1.0f};
+        corridorVScale = {m_width/2/scale, m_height/2-m_width/scale, 1.0f};
+        ballScale = {m_width/2/scale, m_width/2/scale, m_width/2/scale};
 
         ball.prevPosition = { 10.0f, 0.0f, 0.0f};
         ball.position = {-maxPosX, -maxPosY, 0.0f};
@@ -106,11 +107,7 @@ public:
     bool isInSideCorridor();
     void confineBall();
 
-    virtual void init(uint32_t width, uint32_t height) {
-        loadModels();
-        generate();
-        generateModelMatrices();
-    }
+    virtual void init() {}
 
     virtual glm::vec4 getBackgroundColor() { return glm::vec4(0.0f, 0.0f, 0.0f, 0.0f); }
 

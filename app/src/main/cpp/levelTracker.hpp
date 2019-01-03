@@ -26,7 +26,7 @@
 
 typedef std::shared_ptr<Level> (*getLevel)(uint32_t width, uint32_t height);
 typedef std::shared_ptr<LevelFinish> (*getLevelFinisher)(float centerX, float centerY);
-typedef std::shared_ptr<LevelStarter> (*getLevelStarter)();
+typedef std::shared_ptr<LevelStarter> (*getLevelStarter)(uint32_t width, uint32_t height);
 
 struct LevelEntry {
     getLevelStarter starter;
@@ -35,7 +35,7 @@ struct LevelEntry {
     std::string levelDescription;
 };
 
-typedef std::array<LevelEntry, 6> LevelTable;
+typedef std::array<LevelEntry, 7> LevelTable;
 
 class LevelTracker {
 private:

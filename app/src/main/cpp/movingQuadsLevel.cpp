@@ -20,7 +20,6 @@
 
 #include "movingQuadsLevel.hpp"
 
-constexpr float MovingQuadsLevel::maxY;
 constexpr float MovingQuadsLevel::scaleFactor;
 
 void MovingQuadsLevel::loadModels() {
@@ -68,15 +67,14 @@ void MovingQuadsLevel::generate() {
 }
 
 bool MovingQuadsLevel::ballOnQuad(glm::vec3 const &quadCenterPos, float xSize) {
-    float errorVal = 0.1f;
-    return m_ball.position.x < quadCenterPos.x + xSize/2 + errorVal &&
-           m_ball.position.x > quadCenterPos.x - xSize/2 - errorVal &&
-           m_ball.position.y < quadCenterPos.y + m_quadScaleY/2 + errorVal &&
-           m_ball.position.y > quadCenterPos.y - m_quadScaleY/2 - errorVal;
+    return m_ball.position.x < quadCenterPos.x + xSize/2 + m_width/10 &&
+           m_ball.position.x > quadCenterPos.x - xSize/2 - m_width/10 &&
+           m_ball.position.y < quadCenterPos.y + m_quadScaleY/2 + m_height/10 &&
+           m_ball.position.y > quadCenterPos.y - m_quadScaleY/2 - m_height/10;
 }
 
 bool MovingQuadsLevel::updateData() {
-    if (finished) {
+    if (m_finished) {
         // the maze is finished, do nothing and return false (drawing is not necessary).
         return false;
     }
@@ -101,7 +99,7 @@ bool MovingQuadsLevel::updateData() {
 
     // if the ball is on the end quad, then the user won.
     if (ballOnQuad(m_endQuadPosition, 2*maxX)) {
-        finished = true;
+        m_finished = true;
         return true;
     }
 

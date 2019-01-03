@@ -65,17 +65,19 @@ public:
 };
 
 class Maze : public Level {
-private:
+protected:
     static constexpr float viscosity = 0.01f;
+    static constexpr unsigned int numberBlocksPerCell = 2;
     Random random;
     std::vector<std::string> wallTextures;
     std::string ballTexture;
     std::string floorTexture;
     std::string holeTexture;
-    unsigned int const numberBlocksPerCell = 2;
-    unsigned int numberRows;
-    unsigned int numberColumns;
+    unsigned int const numberRows;
+    unsigned int const numberColumns;
+    float const scale;
     std::chrono::high_resolution_clock::time_point prevTime;
+    bool drawHole;
 
     // data on where the ball is, how fast it is moving, etc.
     struct {
@@ -116,12 +118,14 @@ private:
     float getRowCenterPosition(unsigned int row);
     float getColumnCenterPosition(unsigned int col);
     glm::vec3 getCellCenterPosition(unsigned int row, unsigned int col);
+    bool ballInProximity(float x, float y);
     Cell const &getCell(unsigned int row, unsigned int column);
 
     void loadModels();
     void generateBFS();
     void generateDFS();
-    void generateModelMatrices();
+    virtual void generateModelMatrices();
+    void generateMazeVector(uint32_t &rowEnd, uint32_t &colEnd, std::vector<bool> &wallsExist);
 
 public:
     enum Mode {
@@ -133,8 +137,13 @@ private:
     Mode m_mode;
 
 public:
-    Maze(unsigned int inNumberRows, unsigned int inNumberColumns, Mode inMode)
-        :numberRows(inNumberRows), numberColumns(inNumberColumns), m_mode(inMode)
+    Maze(unsigned int inNumberRows, Mode inMode, uint32_t width, uint32_t height)
+        :Level(width, height),
+         numberRows(inNumberRows),
+         numberColumns(inNumberRows*width/height),
+         scale(1.0f/(std::max(numberRows, numberColumns)*numberBlocksPerCell + 1)),
+         m_mode(inMode),
+         drawHole{true}
     {
         cells.resize(numberRows);
         for (unsigned int i = 0; i < numberRows; i++) {
@@ -146,12 +155,10 @@ public:
         ball.acceleration = {0.0f, 0.0f, 0.0f};
         ball.velocity = {0.0f, 0.0f, 0.0f};
         unsigned int i = std::max(numberRows, numberColumns);
-        scaleBall = glm::scale(glm::vec3(1.0f/(i*2.0f + 1),
-                                          1.0f/(i*2.0f + 1),
-                                          1.0f/(i*2.0f + 1)));
+        scaleBall = glm::scale(glm::vec3(scale, scale, scale));
     }
 
-    virtual void init(uint32_t width, uint32_t height) {
+    virtual void init() {
         loadModels();
         if (m_mode == BFS) {
             generateBFS();

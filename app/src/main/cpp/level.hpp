@@ -25,7 +25,9 @@
 
 class Level {
 protected:
-    bool finished;
+    bool m_finished;
+    float const m_width;
+    float const m_height;
 public:
     virtual glm::vec4 getBackgroundColor() = 0;
     virtual void updateAcceleration(float x, float y, float z) = 0;
@@ -34,15 +36,20 @@ public:
     virtual bool updateDynamicDrawObjects(DrawObjectTable &objs, TextureMap &textures, bool &texturesChanged) = 0;
     virtual void start() = 0;
 
-    virtual void init(uint32_t width, uint32_t height) = 0;
-    bool isFinished() { return finished; }
+    virtual void init() = 0;
+    bool isFinished() { return m_finished; }
     virtual void getLevelFinisherCenter(float &x, float &y) {
         x = 0.0f;
         y = 0.0f;
     }
 
-    Level() : finished(false) { }
-    virtual ~Level() {}
+    Level(uint32_t width, uint32_t height)
+            : m_finished(false),
+              m_width(4.0f/(height+width)*width),
+              m_height(4.0f/(height+width)*height)
+    {
+    }
 
+    virtual ~Level() {}
 };
-#endif
+#endif /* AMAZING_LABYRINTH_LEVEL_HPP */

@@ -17,7 +17,7 @@ void LevelStarter::addTextString(std::string const inText) {
 }
 
 bool LevelStarter::updateData() {
-    if (finished) {
+    if (m_finished) {
         return false;
     }
 
@@ -50,7 +50,7 @@ bool LevelStarter::updateData() {
         ball.position.x = -maxPosX;
         ball.position.y = -maxPosY;
         if (textIndex == text.size() - 1) {
-            finished = true;
+            m_finished = true;
             return true;
         }
     }
@@ -118,7 +118,7 @@ bool LevelStarter::isInSideCorridor() {
 bool LevelStarter::updateDynamicDrawObjects(DrawObjectTable &drawObjsData, TextureMap &textures, bool &texturesChanged) {
     texturesChanged = false;
 
-    if (finished) {
+    if (m_finished) {
         return false;
     }
 
@@ -145,7 +145,7 @@ bool LevelStarter::updateDynamicDrawObjects(DrawObjectTable &drawObjsData, Textu
         drawObjsData[0].first->modelMatrices[0] = glm::translate(ball.position) *
                 glm::toMat4(ball.totalRotated) * glm::scale(ballScale);
 
-        if (transitionText && !finished) {
+        if (transitionText && !m_finished) {
             textIndex++;
             textures.erase(drawObjsData[1].first->texture);
             drawObjsData[1].first->texture.reset(new TextureDescriptionText(text[textIndex]));
@@ -165,6 +165,8 @@ bool LevelStarter::updateStaticDrawObjects(DrawObjectTable &drawObjsData, Textur
         // need to update their draw data).
         return false;
     }
+
+    // the hole
     std::shared_ptr<DrawObject> obj(new DrawObject());
     obj->vertices = quadVertices;
     obj->indices = quadIndices;

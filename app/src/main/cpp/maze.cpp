@@ -51,8 +51,16 @@ void Maze::updateAcceleration(float x, float y, float z) {
     ball.acceleration = glm::vec3(-x,-y,0.0f);
 }
 
+bool Maze::ballInProximity(float x, float y) {
+    float errDistance = scale / 2;
+    return (ball.position.x < x + errDistance &&
+        ball.position.x > x - errDistance &&
+        ball.position.y < y + errDistance &&
+        ball.position.y > y - errDistance);
+}
+
 bool Maze::updateData() {
-    if (finished) {
+    if (m_finished) {
         // the maze is finished, do nothing and return false (drawing is not necessary).
         return false;
     }
@@ -66,12 +74,9 @@ bool Maze::updateData() {
 
     auto cell = getCell(ball.row, ball.col);
     float cellCenterX = getColumnCenterPosition(ball.col);
-    float cellCenterY = getRowCenterPosition(ball.row);
-    float errDistance = 0.01f;
-    if (cell.isEnd() &&
-            ball.position.x < cellCenterX + errDistance && ball.position.x > cellCenterX - errDistance &&
-            ball.position.y < cellCenterY + errDistance && ball.position.y > cellCenterY - errDistance) {
-        finished = true;
+    float cellCenterY = getRowCenterPosition(ball.row) + scale;  // I don't know why I have to add scale here.
+    if (cell.isEnd() && ballInProximity(cellCenterX, cellCenterY)) {
+        m_finished = true;
         ball.position.x = cellCenterX;
         ball.position.y = cellCenterY;
         ball.velocity = {0.0f, 0.0f, 0.0f};
@@ -228,12 +233,12 @@ void Maze::generateBFS() {
     unsigned int rowEnd, columnEnd;
 
     // the desired distance that they are apart is the average of the number of rows and the number
-    // of columns divided by 4.
-    unsigned int desiredDistanceSquared = (numberRows+numberColumns)*(numberRows+numberColumns)/64;
+    // of columns divided by 2.
+    unsigned int desiredDistanceSquared = (numberRows+numberColumns)*(numberRows+numberColumns)/16;
     unsigned int distanceSquared;
-    rowStart = numberRows/2;
-    columnStart = numberColumns/2;
     do {
+        rowStart = random.getUInt(0, numberRows-1);
+        columnStart = random.getUInt(0, numberColumns-1);
         rowEnd = random.getUInt(0, numberRows-1);
         columnEnd = random.getUInt(0, numberColumns-1);
         distanceSquared = (rowEnd - rowStart)*(rowEnd - rowStart) +
@@ -317,11 +322,11 @@ void Maze::loadModelFloor() {
 }
 
 float Maze::getRowCenterPosition(unsigned int row) {
-    return 2.0f / (numberRows * numberBlocksPerCell) * (row*numberBlocksPerCell +1.5f) - 1.0f;
+    return m_height / (numberRows * numberBlocksPerCell) * (row*numberBlocksPerCell +1.0f) - m_height/2;
 }
 
 float Maze::getColumnCenterPosition(unsigned int col) {
-    return 2.0f / (numberColumns * numberBlocksPerCell) * (col*numberBlocksPerCell+1.0f) - 1.0f;
+    return m_width / (numberColumns * numberBlocksPerCell) * (col*numberBlocksPerCell+1.0f) - m_width/2;
 }
 
 glm::vec3 Maze::getCellCenterPosition(unsigned int row, unsigned int col) {
@@ -330,23 +335,20 @@ glm::vec3 Maze::getCellCenterPosition(unsigned int row, unsigned int col) {
                     -1.0f - 3.0f/(2.0f*(numberRows+numberColumns)));
 }
 
-void Maze::generateModelMatrices() {
-    unsigned int rowEnd;
-    unsigned int colEnd;
-    bool wallsExist[numberRows*numberBlocksPerCell+1][numberColumns*numberBlocksPerCell+1];
-    memset(wallsExist, '\0', sizeof (wallsExist));
+void Maze::generateMazeVector(uint32_t &rowEnd, uint32_t &colEnd, std::vector<bool> &wallsExist) {
+    wallsExist.resize((numberRows*numberBlocksPerCell+1)*(numberColumns*numberBlocksPerCell+1), false);
     for (unsigned int i = 0; i < numberRows*numberBlocksPerCell; i+=numberBlocksPerCell) {
         for (unsigned int j = 0; j < numberColumns * numberBlocksPerCell; j += numberBlocksPerCell) {
             Cell const &cell = getCell(i / numberBlocksPerCell, j / numberBlocksPerCell);
             if (cell.topWallExists()) {
-                for (unsigned int k = 0; k <= numberBlocksPerCell; k++) {
-                    wallsExist[i][j + k] = true;
+                for (unsigned int k = 0; k < numberBlocksPerCell+1; k++) {
+                    wallsExist[i*(numberColumns*numberBlocksPerCell+1) + j + k] = true;
                 }
             }
 
             if (cell.leftWallExists()) {
                 for (unsigned int k = 0; k < numberBlocksPerCell+1; k++) {
-                    wallsExist[i+k][j] = true;
+                    wallsExist[(i+k)*(numberColumns*numberBlocksPerCell+1) + j] = true;
                 }
             }
 
@@ -364,19 +366,27 @@ void Maze::generateModelMatrices() {
         }
         // right border
         for (unsigned int k = 0; k < numberBlocksPerCell; k++) {
-            wallsExist[i+k][numberColumns * numberBlocksPerCell] = true;
+            wallsExist[(i+k) * (numberColumns*numberBlocksPerCell+1) + numberColumns * numberBlocksPerCell] = true;
         }
     }
 
     // bottom wall.
     for (unsigned int i = 0; i < numberColumns*numberBlocksPerCell+1; i++) {
-        wallsExist[numberRows*numberBlocksPerCell][i] = true;
+        wallsExist[numberRows*numberBlocksPerCell*(numberColumns*numberBlocksPerCell+1) + i] = true;
     }
 
+}
+
+void Maze::generateModelMatrices() {
+    unsigned int rowEnd;
+    unsigned int colEnd;
+    std::vector<bool> wallsExist;
+
+    generateMazeVector(rowEnd, colEnd, wallsExist);
 
     glm::mat4 trans;
-    glm::mat4 scale  = glm::scale(glm::vec3(1.0f/(numberColumns*numberBlocksPerCell),
-                                            1.0f/(numberRows*numberBlocksPerCell),
+    glm::mat4 scaleMat  = glm::scale(glm::vec3(m_width/2/(numberColumns*numberBlocksPerCell),
+                                            m_height/2/(numberRows*numberBlocksPerCell),
                                             1.0f/(numberRows+numberColumns)));
 
     // Create the model matrices.
@@ -384,18 +394,19 @@ void Maze::generateModelMatrices() {
     // the walls.
     for (unsigned int i = 0; i < numberRows*numberBlocksPerCell+1; i++) {
         for (unsigned int j = 0; j < numberColumns*numberBlocksPerCell+1; j++) {
-            if (wallsExist[i][j]) {
+            if (wallsExist[i*(numberColumns*numberBlocksPerCell+1)+j]) {
                 trans = glm::translate(
-                        glm::vec3(2.0f / (numberColumns * numberBlocksPerCell) * j - 1.0f,
-                                  2.0f / (numberRows * numberBlocksPerCell) * i - 1.0f,
+                        glm::vec3(m_width / (numberColumns * numberBlocksPerCell) * j - m_width/2,
+                                  m_height / (numberRows * numberBlocksPerCell) * i - m_height/2,
                                   -1.0f));
-                modelMatricesMaze.push_back(trans * scale);
+                modelMatricesMaze.push_back(trans * scaleMat);
             }
         }
     }
 
     // the ball
     ball.position = getCellCenterPosition(ball.row, ball.col);
+    ball.position.y += scale;  // I don't know why I have to add scale here.
 
     // cause the frame to be drawn when the program comes up for the first time.
     ball.prevPosition = {-10.0f,0.0f,0.0f};
@@ -404,11 +415,15 @@ void Maze::generateModelMatrices() {
     modelMatrixBall = trans*scaleBall;
 
     // the hole
-    trans = glm::translate(getCellCenterPosition(rowEnd, colEnd));
+    glm::vec3 holePos = getCellCenterPosition(rowEnd, colEnd);
+    holePos.y += scale;  // I don't know why I have to add scale here.
+    trans = glm::translate(holePos);
     modelMatrixHole = trans*scaleBall;
 
     // the floor.
-    floorModelMatrix = glm::translate(glm::vec3(0.0f, 0.0f, -1.0f -6.0f/(2.0f*(numberRows+numberColumns))));
+    floorModelMatrix = glm::translate(glm::vec3(0.0f, 0.0f, -1.0f -6.0f/(2.0f*(numberRows+numberColumns)))) *
+            glm::scale(glm::vec3(m_width/2 + m_width / 2 / (numberColumns * numberBlocksPerCell),
+                                 m_height/2 + m_height / 2 /(numberRows * numberBlocksPerCell), 1.0f));
 }
 
 bool Maze::updateStaticDrawObjects(DrawObjectTable &objs, TextureMap &textures) {
@@ -427,14 +442,16 @@ bool Maze::updateStaticDrawObjects(DrawObjectTable &objs, TextureMap &textures) 
     floor->modelMatrices.push_back(floorModelMatrix);
     objs.push_back(std::make_pair(floor, std::shared_ptr<DrawObjectData>()));
 
-    // the hole
-    std::shared_ptr<DrawObject> hole(new DrawObject());
-    hole->indices = holeIndices;
-    hole->vertices = holeVertices;
-    hole->texture.reset(new TextureDescriptionPath(holeTexture));
-    textures.insert(std::make_pair(hole->texture, std::shared_ptr<TextureData>()));
-    hole->modelMatrices.push_back(modelMatrixHole);
-    objs.push_back(std::make_pair(hole, std::shared_ptr<DrawObjectData>()));
+    if (drawHole) {
+        // the hole
+        std::shared_ptr<DrawObject> hole(new DrawObject());
+        hole->indices = holeIndices;
+        hole->vertices = holeVertices;
+        hole->texture.reset(new TextureDescriptionPath(holeTexture));
+        textures.insert(std::make_pair(hole->texture, std::shared_ptr<TextureData>()));
+        hole->modelMatrices.push_back(modelMatrixHole);
+        objs.push_back(std::make_pair(hole, std::shared_ptr<DrawObjectData>()));
+    }
 
     if (wallTextures.size() == 0) {
         throw std::runtime_error("Maze wall textures not initialized.");

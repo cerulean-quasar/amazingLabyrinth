@@ -23,60 +23,68 @@
 #include "openAreaLevel.hpp"
 #include "avoidVortexLevel.hpp"
 #include "movingQuadsLevel.hpp"
+#include "mazeCollect.hpp"
 
-std::shared_ptr<LevelStarter> getLevelStarterBeginning() {
-    std::shared_ptr<LevelStarter> levelStarter(new LevelStarter());
+std::shared_ptr<LevelStarter> getLevelStarterBeginning(uint32_t width, uint32_t height) {
+    std::shared_ptr<LevelStarter> levelStarter(new LevelStarter(width, height));
     levelStarter->addTextString("In the\nbeginning of\nthe universe\nof mazes...");
     levelStarter->addTextString("...there was nothing\nexcept for\na ball and\na strange\nspacial anomaly.");
     return levelStarter;
 }
 
-std::shared_ptr<LevelStarter> getLevelStarterIcePlanet() {
-    std::shared_ptr<LevelStarter> levelStarter(new LevelStarter());
+std::shared_ptr<LevelStarter> getLevelStarterIcePlanet(uint32_t width, uint32_t height) {
+    std::shared_ptr<LevelStarter> levelStarter(new LevelStarter(width, height));
     levelStarter->addTextString("Now the maze\nuniverse is\nfilled with stars\nand black holes...");
     levelStarter->addTextString("...and a lonely\nice planet seeks\nout the warmth\nof a star.");
     return levelStarter;
 }
 
-std::shared_ptr<LevelStarter> getLevelStarterPufferFish() {
-    std::shared_ptr<LevelStarter> levelStarter(new LevelStarter());
+std::shared_ptr<LevelStarter> getLevelStarterPufferFish(uint32_t width, uint32_t height) {
+    std::shared_ptr<LevelStarter> levelStarter(new LevelStarter(width, height));
     levelStarter->addTextString("On the planet,\nthe ice begins\nto melt\nand life ignites...");
     levelStarter->addTextString("...here, a puffer\nfish is looking\nfor a kelp meal.");
     return levelStarter;
 }
 
-std::shared_ptr<LevelStarter> getLevelStarterRolarBear() {
-    std::shared_ptr<LevelStarter> levelStarter(new LevelStarter());
+std::shared_ptr<LevelStarter> getLevelStarterRolarBear(uint32_t width, uint32_t height) {
+    std::shared_ptr<LevelStarter> levelStarter(new LevelStarter(width, height));
     levelStarter->addTextString("As the ice\nplanet warms\nand the ice\nmelts...");
     levelStarter->addTextString("...an over hot\nrolar bear\nyearns for\nthe cold of the\nnorth pole.");
     return levelStarter;
 }
 
-std::shared_ptr<LevelStarter> getLevelStarterBee1() {
-    std::shared_ptr<LevelStarter> levelStarter(new LevelStarter());
-    levelStarter->addTextString("Then came an age\nwhen flowers\ncovered\nthe planet...");
+std::shared_ptr<LevelStarter> getLevelStarterBee1(uint32_t width, uint32_t height) {
+    std::shared_ptr<LevelStarter> levelStarter(new LevelStarter(width, height));
+    levelStarter->addTextString("Next comes an age\nwhen flowers\ncovered\nthe planet...");
     levelStarter->addTextString("...and one roller\nbee seeks out\nthe nectar\nof a large flower.");
     return levelStarter;
 }
 
-std::shared_ptr<LevelStarter> getLevelStarterBee2() {
-    std::shared_ptr<LevelStarter> levelStarter(new LevelStarter());
-    levelStarter->addTextString("The plants\nbecame more\nnumerous\nand the\nroller bee...");
+std::shared_ptr<LevelStarter> getLevelStarterBee2(uint32_t width, uint32_t height) {
+    std::shared_ptr<LevelStarter> levelStarter(new LevelStarter(width, height));
+    levelStarter->addTextString("The plants have\nbecome more\nnumerous\nand the\nroller bee...");
     levelStarter->addTextString("...has to search\nlong and hard\nfor the\nlarge flower.");
     return levelStarter;
 }
 
+std::shared_ptr<LevelStarter> getLevelStarterCat(uint32_t width, uint32_t height) {
+    std::shared_ptr<LevelStarter> levelStarter(new LevelStarter(width, height));
+    levelStarter->addTextString("In the jungle,\na mother cat...");
+    levelStarter->addTextString("...searches\nfor her\nlost kittens.");
+    return levelStarter;
+}
+
 std::shared_ptr<Level> getLevelBeginning(uint32_t width, uint32_t height) {
-    std::shared_ptr<OpenAreaLevel> openAreaLevel(new OpenAreaLevel());
-    openAreaLevel->init(width, height);
+    std::shared_ptr<OpenAreaLevel> openAreaLevel(new OpenAreaLevel(width, height));
+    openAreaLevel->init();
     openAreaLevel->initSetBallTexture("textures/beginning/ballWhite.png");
     openAreaLevel->initSetHoleTexture("textures/beginning/holeAnomaly.png");
     return openAreaLevel;
 }
 
 std::shared_ptr<Level> getLevelIcePlanet(uint32_t width, uint32_t height) {
-    std::shared_ptr<AvoidVortexLevel> level(new AvoidVortexLevel());
-    level->init(width, height);
+    std::shared_ptr<AvoidVortexLevel> level(new AvoidVortexLevel(width, height));
+    level->init();
     level->initSetBallTexture("textures/icePlanet/ballIcePlanet.png");
     level->initSetHoleTexture("textures/icePlanet/holeSun.png");
     level->initSetVortexTexture("textures/icePlanet/vortexBlackHole.png");
@@ -85,8 +93,8 @@ std::shared_ptr<Level> getLevelIcePlanet(uint32_t width, uint32_t height) {
 }
 
 std::shared_ptr<Level> getLevelPufferFish(uint32_t width, uint32_t height) {
-    std::shared_ptr<Maze> maze(new Maze(7, 7, Maze::Mode::BFS));
-    maze->init(width, height);
+    std::shared_ptr<Maze> maze(new Maze(10, Maze::Mode::BFS, width, height));
+    maze->init();
     maze->initSetBallTexture("textures/pufferFish/ballFish.png");
     maze->initAddWallTexture("textures/pufferFish/wallIce1.png");
     maze->initAddWallTexture("textures/pufferFish/wallIce2.png");
@@ -98,8 +106,8 @@ std::shared_ptr<Level> getLevelPufferFish(uint32_t width, uint32_t height) {
 }
 
 std::shared_ptr<Level> getLevelRolarBear(uint32_t width, uint32_t height) {
-    std::shared_ptr<MovingQuadsLevel> level(new MovingQuadsLevel());
-    level->init(width, height);
+    std::shared_ptr<MovingQuadsLevel> level(new MovingQuadsLevel(width, height));
+    level->init();
     level->initAddMiddleQuadTexture("textures/rolarBear/movingQuadRolarBear1.png");
     level->initAddMiddleQuadTexture("textures/rolarBear/movingQuadRolarBear2.png");
     level->initAddMiddleQuadTexture("textures/rolarBear/movingQuadRolarBear3.png");
@@ -111,8 +119,8 @@ std::shared_ptr<Level> getLevelRolarBear(uint32_t width, uint32_t height) {
 }
 
 std::shared_ptr<Level> getLevelBee1(uint32_t width, uint32_t height) {
-    std::shared_ptr<Maze> maze(new Maze(5, 5, Maze::Mode::DFS));
-    maze->init(width, height);
+    std::shared_ptr<Maze> maze(new Maze(10, Maze::Mode::DFS, width, height));
+    maze->init();
     maze->initSetBallTexture("textures/rollerBee/ballBee.png");
     maze->initAddWallTexture("textures/rollerBee/wallFlower1.png");
     maze->initAddWallTexture("textures/rollerBee/wallFlower2.png");
@@ -124,8 +132,8 @@ std::shared_ptr<Level> getLevelBee1(uint32_t width, uint32_t height) {
 }
 
 std::shared_ptr<Level> getLevelBee2(uint32_t width, uint32_t height) {
-    std::shared_ptr<Maze> maze(new Maze(10, 10, Maze::Mode::DFS));
-    maze->init(width, height);
+    std::shared_ptr<Maze> maze(new Maze(15, Maze::Mode::DFS, width, height));
+    maze->init();
     maze->initAddWallTexture("textures/rollerBee/wallFlower1.png");
     maze->initAddWallTexture("textures/rollerBee/wallFlower2.png");
     maze->initAddWallTexture("textures/rollerBee/wallFlower3.png");
@@ -133,6 +141,19 @@ std::shared_ptr<Level> getLevelBee2(uint32_t width, uint32_t height) {
     maze->initSetBallTexture("textures/rollerBee/ballBee.png");
     maze->initSetFloorTexture("textures/rollerBee/floor.png");
     maze->initSetHoleTexture("textures/rollerBee/hole.png");
+    return maze;
+}
+
+std::shared_ptr<Level> getLevelCat(uint32_t width, uint32_t height) {
+    std::shared_ptr<MazeCollect> maze(new MazeCollect(10, Maze::Mode::DFS, width, height));
+    maze->init();
+    maze->initAddWallTexture("textures/rollerBee/wallFlower1.png");
+    maze->initAddWallTexture("textures/rollerBee/wallFlower2.png");
+    maze->initAddWallTexture("textures/rollerBee/wallFlower3.png");
+    maze->initAddWallTexture("textures/rollerBee/wallFlower4.png");
+    maze->initSetBallTexture("textures/cat/catBall.png");
+    maze->initSetFloorTexture("textures/rollerBee/floor.png");
+    maze->initSetHoleTexture("textures/cat/catHole.png");
     return maze;
 }
 
@@ -184,13 +205,20 @@ std::shared_ptr<LevelFinish> getLevelFinisherBee2(float x, float y) {
     return levelFinish;
 }
 
+std::shared_ptr<LevelFinish> getLevelFinisherCat(float x, float y) {
+    std::shared_ptr<ManyQuadCoverUpLevelFinish> levelFinish(new ManyQuadCoverUpLevelFinish());
+    levelFinish->initAddTexture("textures/pufferFish/hole.png");
+    return levelFinish;
+}
+
 LevelTable LevelTracker::s_levelTable = {
         LevelEntry {getLevelStarterBeginning, getLevelBeginning, getLevelFinisherBeginning, "The beginning"},
         LevelEntry {getLevelStarterIcePlanet, getLevelIcePlanet, getLevelFinisherIcePlanet, "The lonely planet"},
         LevelEntry {getLevelStarterPufferFish, getLevelPufferFish, getLevelFinisherPufferFish, "The puffer fish"},
         LevelEntry {getLevelStarterRolarBear, getLevelRolarBear, getLevelFinisherRolarBear, "The rolar bear"},
         LevelEntry {getLevelStarterBee1, getLevelBee1, getLevelFinisherBee1, "The roller bee"},
-        LevelEntry {getLevelStarterBee2, getLevelBee2, getLevelFinisherBee2, "The search"} };
+        LevelEntry {getLevelStarterBee2, getLevelBee2, getLevelFinisherBee2, "The search"},
+        LevelEntry {getLevelStarterCat, getLevelCat, getLevelFinisherCat, "The cat"} };
 
 LevelTracker::LevelTracker(uint32_t level, uint32_t inWidth, uint32_t inHeight)
         :m_currentLevel(level), m_width(inWidth), m_height(inHeight) {
@@ -204,7 +232,7 @@ void LevelTracker::gotoNextLevel() {
 }
 
 std::shared_ptr<LevelStarter> LevelTracker::getLevelStarter() {
-    return s_levelTable[m_currentLevel].starter();
+    return s_levelTable[m_currentLevel].starter(m_width, m_height);
 }
 
 std::shared_ptr<Level> LevelTracker::getLevel() {

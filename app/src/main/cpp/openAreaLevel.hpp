@@ -36,6 +36,7 @@ private:
     std::string holeTexture;
     std::string ballTexture;
 
+    float const ballScale;
     float const viscosity = 0.005f;
     Random random;
     std::chrono::high_resolution_clock::time_point prevTime;
@@ -66,30 +67,29 @@ private:
 
     void loadModels();
     void generate() {
-        unsigned int i = 2;
-        float pos = 1.0f/(i*2.0f + 1);
-        scale = glm::scale(glm::vec3(pos, pos, pos));
+        scale = glm::scale(glm::vec3(ballScale/2, ballScale/2, ballScale/2));
 
         ball.totalRotated = glm::quat();
         ball.acceleration = {0.0f, 0.0f, 0.0f};
         ball.velocity = {0.0f, 0.0f, 0.0f};
-        ball.prevPosition = {-10.0f, 0.0f, -pos};
-        ball.position.z = -pos;
-        holePosition.z = -pos - pos/2;
+        ball.prevPosition = {-10.0f, 0.0f, -ballScale};
+        ball.position.z = -ballScale;
+        holePosition.z = -ballScale - ballScale/2;
 
         float smallestDistance = 0.5f;
         do {
-            holePosition.x = random.getFloat(-0.7f, 0.7f);
-            holePosition.y = random.getFloat(-0.7f, 0.7f);
+            holePosition.x = random.getFloat(-m_width/2, m_width/2);
+            holePosition.y = random.getFloat(-m_height/2, m_height/2);
 
-            ball.position.x = random.getFloat(-0.7f, 0.7f);
-            ball.position.y = random.getFloat(-0.7f, 0.7f);
+            ball.position.x = random.getFloat(-m_width/2, m_width/2);
+            ball.position.y = random.getFloat(-m_height/2, m_height/2);
         } while (glm::length(ball.position - holePosition) < smallestDistance);
     }
     void generateModelMatrices();
 
 public:
-    OpenAreaLevel() : prevTime(std::chrono::high_resolution_clock::now()) {}
+    OpenAreaLevel(uint32_t width, uint32_t height)
+            : Level(width, height), ballScale(m_width/10.0f), prevTime(std::chrono::high_resolution_clock::now()) {}
     virtual void updateAcceleration(float x, float y, float z);
     virtual glm::vec4 getBackgroundColor() { return {0.0f, 0.0f, 0.0f, 1.0f}; }
     virtual bool updateData();
@@ -99,7 +99,7 @@ public:
         prevTime = std::chrono::high_resolution_clock::now();
     }
 
-    virtual void init(uint32_t width, uint32_t height) {
+    virtual void init() {
         loadModels();
         generate();
         generateModelMatrices();
@@ -115,4 +115,4 @@ public:
 
     virtual ~OpenAreaLevel() {}
 };
-#endif
+#endif /* AMAZING_LABYRINTH_OPEN_AREA_LEVEL_HPP */

@@ -29,7 +29,7 @@ void OpenAreaLevel::updateAcceleration(float x, float y, float z) {
 }
 
 bool OpenAreaLevel::updateData() {
-    if (finished) {
+    if (m_finished) {
         // the maze is finished, do nothing and return false (drawing is not necessary).
         return false;
     }
@@ -52,20 +52,20 @@ bool OpenAreaLevel::updateData() {
     ball.velocity += ball.acceleration * time + glm::vec3(vx, vy, 0.0f);
     ball.position += ball.velocity * time;
 
-    float errDistance = 0.1f;
+    float errDistance = ballScale/2;
     if (ball.position.x < holePosition.x + errDistance && ball.position.x > holePosition.x - errDistance &&
         ball.position.y < holePosition.y + errDistance && ball.position.y > holePosition.y - errDistance) {
-        finished = true;
+        m_finished = true;
         ball.position.x = holePosition.x;
         ball.position.y = holePosition.y;
         ball.velocity = {0.0f, 0.0f, 0.0f};
         return true;
     }
 
-    float maxX = 1.0f;
-    float minX = -1.0f;
-    float maxY = 1.0f;
-    float minY = -1.0f;
+    float maxX = m_width/2 - ballScale;
+    float minX = -m_width/2 + ballScale;
+    float maxY = m_height/2 - ballScale;
+    float minY = -m_height/2 + ballScale;
     if (ball.position.x > maxX) {
         ball.position.x = maxX;
         if (ball.velocity.x > 0) {

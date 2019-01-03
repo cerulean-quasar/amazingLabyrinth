@@ -95,7 +95,7 @@ bool AvoidVortexLevel::ballProximity(glm::vec3 const &objPosition) {
 }
 
 bool AvoidVortexLevel::updateData() {
-    if (finished) {
+    if (m_finished) {
         // the maze is finished, do nothing and return false (drawing is not necessary).
         return false;
     }
@@ -119,7 +119,7 @@ bool AvoidVortexLevel::updateData() {
     ball.position += ball.velocity * time;
 
     if (ballProximity(holePosition)) {
-        finished = true;
+        m_finished = true;
         return true;
     }
 

@@ -1820,17 +1820,16 @@ void DrawObjectDataVulkan::update(std::shared_ptr<DrawObject> const &obj,
     } else if (m_uniforms.size() > obj->modelMatrices.size()) {
         // a model matrix got removed...
         m_uniforms.pop_back();
-    } else {
-        UniformBufferObject ubo;
-        ubo.proj = proj;
-        ubo.view = view;
-        // just copy over the model matrices into the graphics card memory... they might
-        // have changed.
-        for (size_t j = 0; j < obj->modelMatrices.size(); j++) {
-            void *ptr;
-            ubo.model = obj->modelMatrices[j];
-            m_uniforms[j]->uniformBuffer()->copyRawTo(&ubo, sizeof (ubo));
-        }
+    }
+
+    UniformBufferObject ubo;
+    ubo.proj = proj;
+    ubo.view = view;
+    // copy over the model matrices into the graphics card memory... they might
+    // have changed.
+    for (size_t j = 0; j < obj->modelMatrices.size(); j++) {
+        ubo.model = obj->modelMatrices[j];
+        m_uniforms[j]->uniformBuffer()->copyRawTo(&ubo, sizeof (ubo));
     }
 }
 

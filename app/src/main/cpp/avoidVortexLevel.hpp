@@ -48,8 +48,8 @@ private:
     std::string startVortexTexture;
 
     static constexpr float viscosity = 0.01f;
-    static constexpr float maxX = 0.8f;
-    static constexpr float maxY = 1.0f;
+    float const maxX;
+    float const maxY;
     Random random;
     std::chrono::high_resolution_clock::time_point prevTime;
 
@@ -104,11 +104,11 @@ public:
     }
 
     virtual void getLevelFinisherCenter(float &x, float &y) {
-        x = 0.0f;
-        y = 0.0f;
+        x = holePosition.x;
+        y = holePosition.y;
     }
 
-    virtual void init(uint32_t width, uint32_t height) {
+    virtual void init() {
         loadModels();
         generate();
         generateModelMatrices();
@@ -118,7 +118,11 @@ public:
     void initSetStartVortexTexture(std::string const &texture) { startVortexTexture = texture; }
     void initSetBallTexture(std::string const &texture) { ballTexture = texture; }
 
-    AvoidVortexLevel() : prevTime(std::chrono::high_resolution_clock::now()) { }
+    AvoidVortexLevel(uint32_t width, uint32_t height)
+            : Level(width, height),
+              maxX(m_width/2),
+              maxY(m_height/2),
+              prevTime(std::chrono::high_resolution_clock::now()) { }
     virtual ~AvoidVortexLevel() {}
 };
 #endif

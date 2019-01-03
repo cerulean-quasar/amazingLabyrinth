@@ -42,13 +42,13 @@ private:
     static constexpr uint32_t numberOfMidQuadRows = 4;
     static constexpr float scaleFactor = 1.0f/8.0f;
     static constexpr float viscosity = 0.01f;
-    static constexpr float maxX = screenMaxX;
-    static constexpr float maxY = screenMaxY;
     static constexpr uint32_t minQuadsInRow = 1;
     static constexpr uint32_t maxQuadsInRow = 3;
     static constexpr float minQuadMovingSpeed = 0.01f;
     static constexpr float maxQuadMovingSpeed = 0.2f;
     static constexpr float spaceBetweenQuadsX = 0.05f;
+    float const maxX;
+    float const maxY;
 
     std::string m_startQuadTexture;
     std::string m_ballTexture;
@@ -94,7 +94,6 @@ private:
 
     void loadModels();
     void generate();
-    void generateModelMatrices(){}
 public:
     virtual glm::vec4 getBackgroundColor() { return glm::vec4(0.2, 0.2, 1.0, 1.0); }
     virtual void updateAcceleration(float x, float y, float z) { m_ball.acceleration = {-x, -y, 0.0f}; }
@@ -110,10 +109,9 @@ public:
         y = 0.0f;
     }
 
-    virtual void init(uint32_t width, uint32_t height) {
+    virtual void init() {
         loadModels();
         generate();
-        generateModelMatrices();
     }
 
     void initSetEndQuadTexture(std::string const &texture) { m_endQuadTexture = texture; }
@@ -121,7 +119,11 @@ public:
     void initSetStartQuadTexture(std::string const &texture) { m_startQuadTexture = texture; }
     void initSetBallTexture(std::string const &texture) { m_ballTexture = texture; }
 
-    MovingQuadsLevel() : m_prevTime(std::chrono::high_resolution_clock::now()) { }
+    MovingQuadsLevel(uint32_t width, uint32_t height)
+            : Level(width, height),
+              maxX(m_width/2),
+              maxY(m_height/2),
+              m_prevTime(std::chrono::high_resolution_clock::now()) { }
     virtual ~MovingQuadsLevel() {}
 };
 #endif /* AMAZING_LABYRINTH_MOVING_QUADS_LEVEL_HPP */
