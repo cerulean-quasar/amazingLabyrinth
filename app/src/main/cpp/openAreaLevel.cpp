@@ -1,5 +1,5 @@
 /**
- * Copyright 2018 Cerulean Quasar. All Rights Reserved.
+ * Copyright 2019 Cerulean Quasar. All Rights Reserved.
  *
  *  This file is part of AmazingLabyrinth.
  *
@@ -38,23 +38,11 @@ bool OpenAreaLevel::updateData() {
     float time = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - prevTime).count();
     prevTime = currentTime;
 
-    float vx, vy;
-    if (ball.velocity.x < 0.0f) {
-        vx = viscosity;
-    } else {
-        vx = -viscosity;
-    }
-    if (ball.velocity.y < 0.0f) {
-        vy = viscosity;
-    } else {
-        vy = -viscosity;
-    }
-    ball.velocity += ball.acceleration * time + glm::vec3(vx, vy, 0.0f);
+    ball.velocity += ball.acceleration * time - viscosity * ball.velocity;
     ball.position += ball.velocity * time;
 
-    float errDistance = ballScale/2;
-    if (ball.position.x < holePosition.x + errDistance && ball.position.x > holePosition.x - errDistance &&
-        ball.position.y < holePosition.y + errDistance && ball.position.y > holePosition.y - errDistance) {
+    float errDistance = ballScale;
+    if (glm::length(ball.position - holePosition) < errDistance) {
         m_finished = true;
         ball.position.x = holePosition.x;
         ball.position.y = holePosition.y;
@@ -62,10 +50,10 @@ bool OpenAreaLevel::updateData() {
         return true;
     }
 
-    float maxX = m_width/2 - ballScale;
-    float minX = -m_width/2 + ballScale;
-    float maxY = m_height/2 - ballScale;
-    float minY = -m_height/2 + ballScale;
+    float maxX = m_width/2 - ballScale/2;
+    float minX = -m_width/2 + ballScale/2;
+    float maxY = m_height/2 - ballScale/2;
+    float minY = -m_height/2 + ballScale/2;
     if (ball.position.x > maxX) {
         ball.position.x = maxX;
         if (ball.velocity.x > 0) {
@@ -104,7 +92,7 @@ bool OpenAreaLevel::updateData() {
     }
     modelMatrixBall = glm::translate(ball.position) * glm::toMat4(ball.totalRotated) * scale;
 
-    bool drawingNecessary = glm::length(ball.position - ball.prevPosition) > 0.00005;
+    bool drawingNecessary = glm::length(ball.position - ball.prevPosition) > 0.005;
     if (drawingNecessary) {
         ball.prevPosition = ball.position;
     }
@@ -122,14 +110,14 @@ void OpenAreaLevel::generateModelMatrices() {
 }
 
 bool OpenAreaLevel::updateStaticDrawObjects(DrawObjectTable &objs, TextureMap &textures) {
-    if (objs.size() > 0) {
+    if (!objs.empty()) {
         return false;
     }
     std::shared_ptr<DrawObject> holeObj(new DrawObject());
 
     holeObj->vertices = holeVertices;
     holeObj->indices = holeIndices;
-    holeObj->texture.reset(new TextureDescriptionPath(holeTexture));
+    holeObj->texture = std::make_shared<TextureDescriptionPath>(holeTexture);
     textures.insert(std::make_pair(holeObj->texture, std::shared_ptr<TextureData>()));
     holeObj->modelMatrices.push_back(modelMatrixHole);
     objs.push_back(std::make_pair(holeObj, std::shared_ptr<DrawObjectData>()));
@@ -141,13 +129,13 @@ bool OpenAreaLevel::updateDynamicDrawObjects(DrawObjectTable &objs, TextureMap &
     texturesUpdated = false;
     std::vector<glm::mat4> ballModelMatrices;
     ballModelMatrices.push_back(modelMatrixBall);
-    if (objs.size() == 0) {
+    if (objs.empty()) {
         objs.push_back(std::make_pair(std::shared_ptr<DrawObject>(new DrawObject()),
                                       std::shared_ptr<DrawObjectData>()));
         DrawObject *ballObj = objs[0].first.get();
         ballObj->vertices = ballVertices;
         ballObj->indices = ballIndices;
-        ballObj->texture.reset(new TextureDescriptionPath(ballTexture));
+        ballObj->texture = std::make_shared<TextureDescriptionPath>(ballTexture);
         textures.insert(std::make_pair(ballObj->texture, std::shared_ptr<TextureData>()));
         ballObj->modelMatrices.push_back(modelMatrixBall);
         texturesUpdated = true;

@@ -1,5 +1,5 @@
 /**
- * Copyright 2018 Cerulean Quasar. All Rights Reserved.
+ * Copyright 2019 Cerulean Quasar. All Rights Reserved.
  *
  *  This file is part of AmazingLabyrinth.
  *
@@ -30,24 +30,24 @@ protected:
     virtual bool checkFinishCondition(float timeDiff) = 0;
 
     float leftWall(int col) {
-        return m_width / (numberColumns * numberBlocksPerCell) * col*numberBlocksPerCell - m_width/2;
+        return m_width / (numberColumns * numberBlocksPerCell+1) * (col*numberBlocksPerCell+0.5f) - m_width/2;
     }
 
     float rightWall(int col) {
-        return m_width / (numberColumns * numberBlocksPerCell) * (col+1)*numberBlocksPerCell - m_width/2;
+        return m_width / (numberColumns * numberBlocksPerCell+1) * ((col+1)*numberBlocksPerCell+0.5f) - m_width/2;
     }
 
     float topWall(int row) {
-        return m_height / (numberRows * numberBlocksPerCell) * row*numberBlocksPerCell - m_height/2;
+        return m_height / (numberRows * numberBlocksPerCell+1) * (row*numberBlocksPerCell+0.5f) - m_height/2;
     }
 
     float bottomWall(int row) {
-        return m_height / (numberRows * numberBlocksPerCell) * (row+1)*numberBlocksPerCell - m_height/2;
+        return m_height / (numberRows * numberBlocksPerCell+1) * ((row+1)*numberBlocksPerCell+0.5f) - m_height/2;
     }
 
 public:
-    MazeOpenArea(unsigned int inNumberRows, Mode inMode, uint32_t width, uint32_t height)
-            : Maze(inNumberRows, inMode, width, height),
+    MazeOpenArea(unsigned int inNumberRows, Mode inMode, float width, float height, float maxZ)
+            : Maze(inNumberRows, inMode, width, height, maxZ),
               m_rowEnd{},
               m_colEnd{}
     {}

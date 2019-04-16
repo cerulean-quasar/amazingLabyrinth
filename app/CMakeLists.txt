@@ -7,7 +7,7 @@ cmake_minimum_required(VERSION 3.4.1)
 
 set (platform64_files)
 if ((NOT ${CMAKE_ANDROID_ARCH_ABI} STREQUAL x86) AND (NOT ${CMAKE_ANDROID_ARCH_ABI} STREQUAL armeabi-v7a))
-    list(APPEND platform64_files src/main/cpp/graphicsVulkan.cpp src/main/cpp/vulkanWrapper.cpp)
+    list(APPEND platform64_files src/main/cpp/graphicsVulkan.cpp src/main/cpp/mazeVulkan.cpp src/main/cpp/vulkanWrapper.cpp)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DCQ_ENABLE_VULKAN")
 endif ((NOT ${CMAKE_ANDROID_ARCH_ABI} STREQUAL x86) AND (NOT ${CMAKE_ANDROID_ARCH_ABI} STREQUAL armeabi-v7a))
 
@@ -26,6 +26,7 @@ add_library( # Sets the name of the library.
              src/main/cpp/android.cpp
              src/main/cpp/graphics.cpp
              src/main/cpp/graphicsGL.cpp
+             src/main/cpp/mazeGraphics.cpp
              ${platform64_files}
              src/main/cpp/maze.cpp
              src/main/cpp/random.cpp

@@ -1,5 +1,5 @@
 /**
- * Copyright 2018 Cerulean Quasar. All Rights Reserved.
+ * Copyright 2019 Cerulean Quasar. All Rights Reserved.
  *
  *  This file is part of AmazingLabyrinth.
  *
@@ -67,29 +67,31 @@ private:
 
     void loadModels();
     void generate() {
-        scale = glm::scale(glm::vec3(ballScale/2, ballScale/2, ballScale/2));
+        scale = glm::scale(glm::vec3(ballScale/m_originalBallDiameter,
+                ballScale/m_originalBallDiameter, ballScale/m_originalBallDiameter));
 
         ball.totalRotated = glm::quat();
         ball.acceleration = {0.0f, 0.0f, 0.0f};
         ball.velocity = {0.0f, 0.0f, 0.0f};
-        ball.prevPosition = {-10.0f, 0.0f, -ballScale};
-        ball.position.z = -ballScale;
-        holePosition.z = -ballScale - ballScale/2;
+        ball.prevPosition = {-10.0f, 0.0f, m_maxZ-ballScale/2};
+        ball.position.z = m_maxZ-ballScale/2;
+        holePosition.z = m_maxZ-ballScale;
 
         float smallestDistance = 0.5f;
         do {
-            holePosition.x = random.getFloat(-m_width/2, m_width/2);
-            holePosition.y = random.getFloat(-m_height/2, m_height/2);
+            holePosition.x = random.getFloat(-m_width/2+ballScale/2, m_width/2-ballScale/2);
+            holePosition.y = random.getFloat(-m_height/2+ballScale/2, m_height/2-ballScale/2);
 
-            ball.position.x = random.getFloat(-m_width/2, m_width/2);
-            ball.position.y = random.getFloat(-m_height/2, m_height/2);
+            ball.position.x = random.getFloat(-m_width/2+ballScale/2, m_width/2-ballScale/2);
+            ball.position.y = random.getFloat(-m_height/2+ballScale/2, m_height/2-ballScale/2);
         } while (glm::length(ball.position - holePosition) < smallestDistance);
     }
     void generateModelMatrices();
 
 public:
-    OpenAreaLevel(uint32_t width, uint32_t height)
-            : Level(width, height), ballScale(m_width/10.0f), prevTime(std::chrono::high_resolution_clock::now()) {}
+    OpenAreaLevel(float width, float height, float maxZ)
+            : Level(width, height, maxZ), ballScale(m_width/10.0f),
+            prevTime(std::chrono::high_resolution_clock::now()) {}
     virtual void updateAcceleration(float x, float y, float z);
     virtual glm::vec4 getBackgroundColor() { return {0.0f, 0.0f, 0.0f, 1.0f}; }
     virtual bool updateData();

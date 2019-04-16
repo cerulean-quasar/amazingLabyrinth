@@ -1,5 +1,5 @@
 /**
- * Copyright 2018 Cerulean Quasar. All Rights Reserved.
+ * Copyright 2019 Cerulean Quasar. All Rights Reserved.
  *
  *  This file is part of AmazingLabyrinth.
  *
@@ -25,9 +25,11 @@ void AvoidVortexLevel::loadModels() {
     getQuad(quadVertices, quadIndices);
 }
 
+constexpr float AvoidVortexLevel::scaleFactor;
+constexpr float AvoidVortexLevel::viscosity;
+
 void AvoidVortexLevel::generate() {
-    float pos = scaleFactor;
-    scale = glm::scale(glm::vec3(pos, pos, pos));
+    scale = glm::scale(glm::vec3(scaleFactor, scaleFactor, scaleFactor));
 
     ball.totalRotated = glm::quat();
     ball.acceleration = {0.0f, 0.0f, 0.0f};
@@ -35,13 +37,13 @@ void AvoidVortexLevel::generate() {
 
     // set to very large previous position (in vector length) so that it will get drawn
     // the first time through.
-    ball.prevPosition = {-10.0f, 0.0f, -scaleFactor/2};
-    ball.position.z = -scaleFactor;
-    holePosition.z = -2*scaleFactor/3.0f;
+    ball.prevPosition = {-10.0f, 0.0f, m_maxZ-scaleFactor*m_originalBallDiameter/2};
+    ball.position.z = m_maxZ-scaleFactor*m_originalBallDiameter/2;
+    holePosition.z = m_maxZ-scaleFactor*m_originalBallDiameter;
 
     /* ensure that the ball and hole are not near each other. They need to be farther apart than
      * the vortexes.  To make the maze fun and harder. */
-    float smallestDistance = 2*scaleFactor;
+    float smallestDistance = 4*scaleFactor;
     do {
         holePosition.x = random.getFloat(-maxX, maxX);
         holePosition.y = random.getFloat(-maxY, maxY);
@@ -52,40 +54,40 @@ void AvoidVortexLevel::generate() {
 
     startPosition = ball.position;
     startPositionQuad = ball.position;
-    startPositionQuad.z = -2*scaleFactor;
+    startPositionQuad.z = m_maxZ-scaleFactor*m_originalBallDiameter;
 
     /* ensure that the vortexes are not near each other or the hole or the ball. */
     do {
-        glm::vec3 vortexPosition =
-                {random.getFloat(-maxX, maxX), random.getFloat(-maxY, maxY), -2*scaleFactor/3.0f};
+        glm::vec3 vortexPositionCandidate =
+                {random.getFloat(-maxX, maxX), random.getFloat(-maxY, maxY),
+                 m_maxZ-scaleFactor*m_originalBallDiameter};
 
-        float distance = glm::length(vortexPosition - ball.position);
+        float distance = glm::length(vortexPositionCandidate - ball.position);
         if (distance < smallestDistance) {
             continue;
         }
 
-        distance = glm::length(vortexPosition - holePosition);
+        distance = glm::length(vortexPositionCandidate - holePosition);
         if (distance < smallestDistance) {
             continue;
         }
 
-        for (int j = 0; j < vortexPositions.size(); j++) {
-            distance = glm::length(vortexPositions[j] - vortexPosition);
+        for (auto const &vortexPosition : vortexPositions) {
+            distance = glm::length(vortexPosition - vortexPositionCandidate);
             if (distance < smallestDistance) {
                 break;
             }
         }
 
         if (distance >= smallestDistance) {
-            vortexPositions.push_back(vortexPosition);
+            vortexPositions.push_back(vortexPositionCandidate);
         }
     } while (vortexPositions.size() < numberOfVortexes);
 }
 
 bool AvoidVortexLevel::ballProximity(glm::vec3 const &objPosition) {
-    float errDistance = scaleFactor/2.0f;
-    if (ball.position.x < objPosition.x + errDistance && ball.position.x > objPosition.x - errDistance &&
-        ball.position.y < objPosition.y + errDistance && ball.position.y > objPosition.y - errDistance) {
+    float errDistance = scaleFactor*1.5f;
+    if (glm::length(ball.position - objPosition) < errDistance) {
         ball.position.x = objPosition.x;
         ball.position.y = objPosition.y;
         ball.velocity = {0.0f, 0.0f, 0.0f};
@@ -104,18 +106,7 @@ bool AvoidVortexLevel::updateData() {
     float time = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - prevTime).count();
     prevTime = currentTime;
 
-    float vx, vy;
-    if (ball.velocity.x < 0.0f) {
-        vx = viscosity;
-    } else {
-        vx = -viscosity;
-    }
-    if (ball.velocity.y < 0.0f) {
-        vy = viscosity;
-    } else {
-        vy = -viscosity;
-    }
-    ball.velocity += ball.acceleration * time + glm::vec3(vx, vy, 0.0f);
+    ball.velocity += ball.acceleration * time - viscosity * ball.velocity;
     ball.position += ball.velocity * time;
 
     if (ballProximity(holePosition)) {
@@ -169,7 +160,7 @@ bool AvoidVortexLevel::updateData() {
     }
     modelMatrixBall = glm::translate(ball.position) * glm::toMat4(ball.totalRotated) * scale;
 
-    bool drawingNecessary = glm::length(ball.position - ball.prevPosition) > 0.00005;
+    bool drawingNecessary = glm::length(ball.position - ball.prevPosition) > 0.005;
     if (drawingNecessary) {
         ball.prevPosition = ball.position;
     }
@@ -205,7 +196,7 @@ bool AvoidVortexLevel::updateStaticDrawObjects(DrawObjectTable &objs, TextureMap
     std::shared_ptr<DrawObject> holeObj(new DrawObject());
     holeObj->vertices = quadVertices;
     holeObj->indices = quadIndices;
-    holeObj->texture.reset(new TextureDescriptionPath(holeTexture));
+    holeObj->texture = std::make_shared<TextureDescriptionPath>(holeTexture);
     textures.insert(std::make_pair(holeObj->texture, std::shared_ptr<TextureData>()));
     holeObj->modelMatrices.push_back(modelMatrixHole);
     objs.push_back(std::make_pair(holeObj, std::shared_ptr<DrawObjectData>()));
@@ -214,7 +205,7 @@ bool AvoidVortexLevel::updateStaticDrawObjects(DrawObjectTable &objs, TextureMap
     std::shared_ptr<DrawObject> vortexObj(new DrawObject());
     vortexObj->vertices = quadVertices;
     vortexObj->indices = quadIndices;
-    vortexObj->texture.reset(new TextureDescriptionPath(vortexTexture));
+    vortexObj->texture = std::make_shared<TextureDescriptionPath>(vortexTexture);
     textures.insert(std::make_pair(vortexObj->texture, std::shared_ptr<TextureData>()));
     for (auto &&modelMatrixVortex : modelMatrixVortexes) {
         vortexObj->modelMatrices.push_back(modelMatrixVortex);
@@ -225,7 +216,7 @@ bool AvoidVortexLevel::updateStaticDrawObjects(DrawObjectTable &objs, TextureMap
     std::shared_ptr<DrawObject> startVortexObj(new DrawObject());
     startVortexObj->vertices = quadVertices;
     startVortexObj->indices = quadIndices;
-    startVortexObj->texture.reset(new TextureDescriptionPath(startVortexTexture));
+    startVortexObj->texture = std::make_shared<TextureDescriptionPath>(startVortexTexture);
     textures.insert(std::make_pair(startVortexObj->texture, std::shared_ptr<TextureData>()));
     startVortexObj->modelMatrices.push_back(modelMatrixStartVortex);
     objs.push_back(std::make_pair(startVortexObj, std::shared_ptr<DrawObjectData>()));
@@ -237,13 +228,13 @@ bool AvoidVortexLevel::updateDynamicDrawObjects(DrawObjectTable &objs, TextureMa
     texturesUpdated = false;
     std::vector<glm::mat4> ballModelMatrices;
     ballModelMatrices.push_back(modelMatrixBall);
-    if (objs.size() == 0) {
+    if (objs.empty()) {
         objs.push_back(std::make_pair(std::shared_ptr<DrawObject>(new DrawObject()),
                                       std::shared_ptr<DrawObjectData>()));
         DrawObject *ballObj = objs[0].first.get();
         ballObj->vertices = ballVertices;
         ballObj->indices = ballIndices;
-        ballObj->texture.reset(new TextureDescriptionPath(ballTexture));
+        ballObj->texture = std::make_shared<TextureDescriptionPath>(ballTexture);
         textures.insert(std::make_pair(ballObj->texture, std::shared_ptr<TextureData>()));
         ballObj->modelMatrices.push_back(modelMatrixBall);
         texturesUpdated = true;

@@ -26,6 +26,7 @@
 #include <EGL/eglext.h>
 #include <map>
 #include "graphics.hpp"
+#include "mazeGraphics.hpp"
 #include "level.hpp"
 #include "levelFinish.hpp"
 #include "levelTracker.hpp"
@@ -112,14 +113,13 @@ private:
 class LevelSequenceGL : public LevelSequence {
 public:
     LevelSequenceGL(uint32_t level, uint32_t width, uint32_t height)
-        :LevelSequence{width, height},
+        :LevelSequence{level, width, height},
          m_levelTextures{},
          m_levelStarterTextures{},
          m_levelFinisherTextures{},
          m_level{},
          m_levelFinisher{},
          m_levelStarter{},
-         m_levelTracker{level, width, height},
          m_levelStarterStaticObjsData{},
          m_levelStarterDynObjsData{},
          m_staticObjsData{},
@@ -130,7 +130,7 @@ public:
         m_level = m_levelTracker.getLevel();
         float x, y;
         m_level->getLevelFinisherCenter(x, y);
-        m_levelFinisher = m_levelTracker.getLevelFinisher(x, y);
+        m_levelFinisher = m_levelTracker.getLevelFinisher(x, y, m_proj, m_view);
     }
 
     void loadTextures(TextureMap &textures);
@@ -162,7 +162,6 @@ private:
     std::shared_ptr<Level> m_level;
     std::shared_ptr<LevelFinish> m_levelFinisher;
     std::shared_ptr<LevelStarter> m_levelStarter;
-    LevelTracker m_levelTracker;
 
     DrawObjectTable m_levelStarterStaticObjsData;
     DrawObjectTable m_levelStarterDynObjsData;

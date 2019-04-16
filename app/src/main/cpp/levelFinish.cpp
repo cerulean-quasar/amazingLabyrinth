@@ -1,5 +1,5 @@
 /**
- * Copyright 2018 Cerulean Quasar. All Rights Reserved.
+ * Copyright 2019 Cerulean Quasar. All Rights Reserved.
  *
  *  This file is part of AmazingLabyrinth.
  *
@@ -24,14 +24,15 @@
 #include <glm/gtx/transform.hpp>
 #include "levelFinish.hpp"
 
-ManyQuadCoverUpLevelFinish::ManyQuadCoverUpLevelFinish() : totalNumberReturned(0) {
+ManyQuadCoverUpLevelFinish::ManyQuadCoverUpLevelFinish(float maxZ)
+        : LevelFinish(maxZ), totalNumberReturned(0) {
     prevTime = std::chrono::high_resolution_clock::now();
     float range = 1.5f;
     for (uint32_t i = 0; i < totalNumberObjectsForSide; i++) {
         for (uint32_t j = 0; j < totalNumberObjectsForSide; j++) {
-            if (translateVectors.size() > 0) {
+            if (!translateVectors.empty()) {
                 uint32_t index = random.getUInt(0, translateVectors.size());
-                std::list<glm::vec3>::iterator it = translateVectors.begin();
+                auto it = translateVectors.begin();
                 for (int k = 0; k < index; k++) {
                     it++;
                 }
@@ -66,7 +67,7 @@ bool ManyQuadCoverUpLevelFinish::updateDrawObjects(DrawObjectTable &drawObjects,
 
         uint32_t i = random.getUInt(0, drawObjects.size() - 1);
         drawObjects[i].first->modelMatrices.pop_back();
-        if (drawObjects[i].first->modelMatrices.size() == 0) {
+        if (drawObjects[i].first->modelMatrices.empty()) {
             drawObjects.erase(drawObjects.begin()+i);
         }
         totalNumberReturned --;
@@ -80,7 +81,9 @@ bool ManyQuadCoverUpLevelFinish::updateDrawObjects(DrawObjectTable &drawObjects,
         glm::mat4 scale = glm::scale(glm::vec3(sideLength, sideLength, 1.0f));
         glm::vec3 translateVector = translateVectors.back();
         translateVectors.pop_back();
-        translateVector.z = 0.1f + totalNumberReturned * 0.01f;
+        translateVector.z = m_maxZ +
+                (static_cast<int32_t>(totalNumberReturned) -
+                        static_cast<int32_t>(totalNumberObjects)) * 0.01f;
         glm::mat4 trans = glm::translate(translateVector);
 
         // the first imagePaths.size() objects are the linear order of objects in imagePaths,
@@ -90,7 +93,7 @@ bool ManyQuadCoverUpLevelFinish::updateDrawObjects(DrawObjectTable &drawObjects,
             index = drawObjects.size();
             std::shared_ptr<DrawObject> obj(new DrawObject());
             obj->modelMatrices.push_back(trans * scale);
-            obj->texture.reset(new TextureDescriptionPath(imagePaths[index]));
+            obj->texture = std::make_shared<TextureDescriptionPath>(imagePaths[index]);
             textures.insert(std::make_pair(obj->texture, std::shared_ptr<TextureData>()));
             getQuad(obj->vertices, obj->indices);
             obj->modelMatrices.push_back(trans * scale);
@@ -108,8 +111,9 @@ bool ManyQuadCoverUpLevelFinish::updateDrawObjects(DrawObjectTable &drawObjects,
     return true;
 }
 
-GrowingQuadLevelFinish::GrowingQuadLevelFinish(float x, float y) {
-    transVector = {x, y, transZ};
+GrowingQuadLevelFinish::GrowingQuadLevelFinish(float x, float y, float maxZ)
+        : LevelFinish(maxZ) {
+    transVector = {x, y, maxZ};
     prevTime = std::chrono::high_resolution_clock::now();
     timeSoFar = 0.0f;
 }
@@ -136,13 +140,13 @@ bool GrowingQuadLevelFinish::updateDrawObjects(DrawObjectTable &drawObjects, Tex
         multiplier = -1;
     }
 
-    if (drawObjects.size() == 0) {
+    if (drawObjects.empty()) {
         timeSoFar = 0;
         scaleVector = {minSize, minSize, minSize};
         std::shared_ptr<DrawObject> obj(new DrawObject());
 
         getQuad(obj->vertices, obj->indices);
-        obj->texture.reset(new TextureDescriptionPath(imagePath));
+        obj->texture = std::make_shared<TextureDescriptionPath>(imagePath);
         textures.insert(std::make_pair(obj->texture, std::shared_ptr<TextureData>()));
         obj->modelMatrices.push_back(glm::translate(transVector) * glm::scale(scaleVector));
         drawObjects.push_back(std::make_pair(obj, std::shared_ptr<DrawObjectData>()));

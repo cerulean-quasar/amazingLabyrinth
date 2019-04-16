@@ -1,5 +1,5 @@
 /**
- * Copyright 2018 Cerulean Quasar. All Rights Reserved.
+ * Copyright 2019 Cerulean Quasar. All Rights Reserved.
  *
  *  This file is part of AmazingLabyrinth.
  *
@@ -53,10 +53,7 @@ void Maze::updateAcceleration(float x, float y, float z) {
 
 bool Maze::ballInProximity(float x, float y) {
     float errDistance = scale / 2;
-    return (ball.position.x < x + errDistance &&
-        ball.position.x > x - errDistance &&
-        ball.position.y < y + errDistance &&
-        ball.position.y > y - errDistance);
+    return glm::length(ball.position - glm::vec3{x, y, ball.position.z}) < errDistance;
 }
 
 bool Maze::updateData() {
@@ -66,15 +63,15 @@ bool Maze::updateData() {
     }
 
     auto currentTime = std::chrono::high_resolution_clock::now();
-    float time = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - prevTime).count();
+    float difftime = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - prevTime).count();
     prevTime = currentTime;
 
-    ball.velocity += ball.acceleration * time - viscosity * ball.velocity;
-    ball.position += ball.velocity * time;
+    ball.velocity += ball.acceleration * difftime - viscosity * ball.velocity;
+    ball.position += ball.velocity * difftime;
 
     auto cell = getCell(ball.row, ball.col);
     float cellCenterX = getColumnCenterPosition(ball.col);
-    float cellCenterY = getRowCenterPosition(ball.row) + scale;  // I don't know why I have to add scale here.
+    float cellCenterY = getRowCenterPosition(ball.row);// + scale;  // I don't know why I have to add scale here.
     if (cell.isEnd() && ballInProximity(cellCenterX, cellCenterY)) {
         m_finished = true;
         ball.position.x = cellCenterX;
@@ -144,7 +141,7 @@ bool Maze::updateData() {
     glm::vec3 axis = glm::cross(glm::vec3(0.0f, 0.0f, 1.0f), ball.velocity);
     if (glm::length(axis) != 0) {
         float scaleFactor = 10.0f;
-        glm::quat q = glm::angleAxis(glm::length(ball.velocity)*time*scaleFactor, glm::normalize(axis));
+        glm::quat q = glm::angleAxis(glm::length(ball.velocity)*difftime*scaleFactor, glm::normalize(axis));
 
         ball.totalRotated = glm::normalize(q * ball.totalRotated);
     }
@@ -292,7 +289,7 @@ void Maze::generateBFS() {
             cells[next.first][next.second].mVisited = true;
             size_t size = path.size();
             unsigned int i = size == 0 ? 0 : random.getUInt(0, path.size());
-            std::list<std::pair<unsigned int, unsigned int>>::iterator it = path.begin();
+            auto it = path.begin();
             for (int j = 0; j < i; j++, it++)
                 /* do nothing */;
             path.insert(it, next);
@@ -322,17 +319,17 @@ void Maze::loadModelFloor() {
 }
 
 float Maze::getRowCenterPosition(unsigned int row) {
-    return m_height / (numberRows * numberBlocksPerCell) * (row*numberBlocksPerCell +1.0f) - m_height/2;
+    return m_height / (numberRows * numberBlocksPerCell+1) * (row*numberBlocksPerCell +1.5f) - m_height/2;
 }
 
 float Maze::getColumnCenterPosition(unsigned int col) {
-    return m_width / (numberColumns * numberBlocksPerCell) * (col*numberBlocksPerCell+1.0f) - m_width/2;
+    return m_width / (numberColumns * numberBlocksPerCell+1) * (col*numberBlocksPerCell+1.5f) - m_width/2;
 }
 
 glm::vec3 Maze::getCellCenterPosition(unsigned int row, unsigned int col) {
    return glm::vec3(getColumnCenterPosition(col),
                     getRowCenterPosition(row),
-                    -1.0f - 3.0f/(2.0f*(numberRows+numberColumns)));
+                    m_maxZ - m_originalWallHeight*m_scaleWallZ/2.0f);
 }
 
 void Maze::generateMazeVector(uint32_t &rowEnd, uint32_t &colEnd, std::vector<bool> &wallsExist) {
@@ -385,9 +382,9 @@ void Maze::generateModelMatrices() {
     generateMazeVector(rowEnd, colEnd, wallsExist);
 
     glm::mat4 trans;
-    glm::mat4 scaleMat  = glm::scale(glm::vec3(m_width/2/(numberColumns*numberBlocksPerCell),
-                                            m_height/2/(numberRows*numberBlocksPerCell),
-                                            1.0f/(numberRows+numberColumns)));
+    glm::mat4 scaleMat  = glm::scale(glm::vec3(m_width/2/(numberColumns*numberBlocksPerCell+1),
+                                            m_height/2/(numberRows*numberBlocksPerCell+1),
+                                            m_scaleWallZ));
 
     // Create the model matrices.
 
@@ -396,9 +393,9 @@ void Maze::generateModelMatrices() {
         for (unsigned int j = 0; j < numberColumns*numberBlocksPerCell+1; j++) {
             if (wallsExist[i*(numberColumns*numberBlocksPerCell+1)+j]) {
                 trans = glm::translate(
-                        glm::vec3(m_width / (numberColumns * numberBlocksPerCell) * j - m_width/2,
-                                  m_height / (numberRows * numberBlocksPerCell) * i - m_height/2,
-                                  -1.0f));
+                        glm::vec3(m_width / (numberColumns * numberBlocksPerCell+1) * (j + 0.5) - m_width/2,
+                                  m_height / (numberRows * numberBlocksPerCell+1) * (i + 0.5) - m_height/2,
+                                  m_maxZ - m_originalWallHeight * m_scaleWallZ / 2.0f));
                 modelMatricesMaze.push_back(trans * scaleMat);
             }
         }
@@ -406,28 +403,28 @@ void Maze::generateModelMatrices() {
 
     // the ball
     ball.position = getCellCenterPosition(ball.row, ball.col);
-    ball.position.y += scale;  // I don't know why I have to add scale here.
+    //ball.position.y += scale;  // I don't know why I have to add scale here.
 
     // cause the frame to be drawn when the program comes up for the first time.
     ball.prevPosition = {-10.0f,0.0f,0.0f};
 
     trans = glm::translate(ball.position);
-    modelMatrixBall = trans*scaleBall;
+    modelMatrixBall = trans*glm::toMat4(ball.totalRotated)*scaleBall;
 
     // the hole
     glm::vec3 holePos = getCellCenterPosition(rowEnd, colEnd);
-    holePos.y += scale;  // I don't know why I have to add scale here.
+    //holePos.y += scale;  // I don't know why I have to add scale here.
     trans = glm::translate(holePos);
     modelMatrixHole = trans*scaleBall;
 
     // the floor.
-    floorModelMatrix = glm::translate(glm::vec3(0.0f, 0.0f, -1.0f -6.0f/(2.0f*(numberRows+numberColumns)))) *
+    floorModelMatrix = glm::translate(glm::vec3(0.0f, 0.0f, m_maxZ - m_originalWallHeight * m_scaleWallZ)) *
             glm::scale(glm::vec3(m_width/2 + m_width / 2 / (numberColumns * numberBlocksPerCell),
                                  m_height/2 + m_height / 2 /(numberRows * numberBlocksPerCell), 1.0f));
 }
 
 bool Maze::updateStaticDrawObjects(DrawObjectTable &objs, TextureMap &textures) {
-    if (objs.size() > 0) {
+    if (!objs.empty()) {
         // The objects were already updated, add nothing, update nothing.
         // These objects do not change or move.
         return false;
@@ -437,7 +434,7 @@ bool Maze::updateStaticDrawObjects(DrawObjectTable &objs, TextureMap &textures) 
     std::shared_ptr<DrawObject> floor(new DrawObject());
     floor->indices = floorIndices;
     floor->vertices = floorVertices;
-    floor->texture.reset(new TextureDescriptionPath(floorTexture));
+    floor->texture = std::make_shared<TextureDescriptionPath>(floorTexture);
     textures.insert(std::make_pair(floor->texture, std::shared_ptr<TextureData>()));
     floor->modelMatrices.push_back(floorModelMatrix);
     objs.push_back(std::make_pair(floor, std::shared_ptr<DrawObjectData>()));
@@ -447,13 +444,13 @@ bool Maze::updateStaticDrawObjects(DrawObjectTable &objs, TextureMap &textures) 
         std::shared_ptr<DrawObject> hole(new DrawObject());
         hole->indices = holeIndices;
         hole->vertices = holeVertices;
-        hole->texture.reset(new TextureDescriptionPath(holeTexture));
+        hole->texture = std::make_shared<TextureDescriptionPath>(holeTexture);
         textures.insert(std::make_pair(hole->texture, std::shared_ptr<TextureData>()));
         hole->modelMatrices.push_back(modelMatrixHole);
         objs.push_back(std::make_pair(hole, std::shared_ptr<DrawObjectData>()));
     }
 
-    if (wallTextures.size() == 0) {
+    if (wallTextures.empty()) {
         throw std::runtime_error("Maze wall textures not initialized.");
     }
 
@@ -471,10 +468,10 @@ bool Maze::updateStaticDrawObjects(DrawObjectTable &objs, TextureMap &textures) 
     }
 
     for (size_t i = 0; i < wallObjs.size(); i++) {
-        if (wallObjs[i]->modelMatrices.size() > 0) {
+        if (!wallObjs[i]->modelMatrices.empty()) {
             wallObjs[i]->indices = indices;
             wallObjs[i]->vertices = vertices;
-            wallObjs[i]->texture.reset(new TextureDescriptionPath(wallTextures[i]));
+            wallObjs[i]->texture = std::make_shared<TextureDescriptionPath>(wallTextures[i]);
             textures.insert(std::make_pair(wallObjs[i]->texture, std::shared_ptr<TextureData>()));
             objs.push_back(std::make_pair(wallObjs[i], std::shared_ptr<DrawObjectData>()));
         }
@@ -484,13 +481,13 @@ bool Maze::updateStaticDrawObjects(DrawObjectTable &objs, TextureMap &textures) 
 }
 
 bool Maze::updateDynamicDrawObjects(DrawObjectTable &objs, TextureMap &textures, bool &texturesChanged) {
-    if (objs.size() == 0) {
+    if (objs.empty()) {
         texturesChanged = true;
         objs.push_back(std::make_pair(std::shared_ptr<DrawObject>(new DrawObject()), std::shared_ptr<DrawObjectData>()));
         DrawObject *ballObj = objs[0].first.get();
         ballObj->indices = ballIndices;
         ballObj->vertices = ballVertices;
-        ballObj->texture.reset(new TextureDescriptionPath(ballTexture));
+        ballObj->texture = std::make_shared<TextureDescriptionPath>(ballTexture);
         textures.insert(std::make_pair(ballObj->texture, std::shared_ptr<TextureData>()));
     } else {
         texturesChanged = false;
@@ -498,7 +495,7 @@ bool Maze::updateDynamicDrawObjects(DrawObjectTable &objs, TextureMap &textures,
 
     // the ball
     DrawObject *ballObj = objs[0].first.get();
-    if (ballObj->modelMatrices.size() == 0) {
+    if (ballObj->modelMatrices.empty()) {
         ballObj->modelMatrices.push_back(modelMatrixBall);
     } else {
         ballObj->modelMatrices[0] = modelMatrixBall;

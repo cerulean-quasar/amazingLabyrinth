@@ -1,5 +1,5 @@
 /**
- * Copyright 2018 Cerulean Quasar. All Rights Reserved.
+ * Copyright 2019 Cerulean Quasar. All Rights Reserved.
  *
  *  This file is part of AmazingLabyrinth.
  *
@@ -24,9 +24,9 @@
 #include "level.hpp"
 #include "levelStarter.hpp"
 
-typedef std::shared_ptr<Level> (*getLevel)(uint32_t width, uint32_t height);
-typedef std::shared_ptr<LevelFinish> (*getLevelFinisher)(float centerX, float centerY);
-typedef std::shared_ptr<LevelStarter> (*getLevelStarter)(uint32_t width, uint32_t height);
+typedef std::shared_ptr<Level> (*getLevel)(float width, float height, float maxZ);
+typedef std::shared_ptr<LevelFinish> (*getLevelFinisher)(float centerX, float centerY, float maxZ);
+typedef std::shared_ptr<LevelStarter> (*getLevelStarter)(float width, float height, float maxZ);
 
 struct LevelEntry {
     getLevelStarter starter;
@@ -40,15 +40,36 @@ typedef std::array<LevelEntry, 7> LevelTable;
 class LevelTracker {
 private:
     uint32_t m_currentLevel;
-    uint32_t m_width;
-    uint32_t m_height;
+    float m_widthLevel;
+    float m_heightLevel;
+    float m_widthLevelStarter;
+    float m_heightLevelStarter;
     static LevelTable s_levelTable;
 public:
-    LevelTracker(uint32_t level, uint32_t inWidth, uint32_t inHeight);
+    static float constexpr m_maxZLevel = -1.0f;
+    static float constexpr m_maxZLevelStarter = 0.0f;
+    static float constexpr m_maxZLevelFinisher = 1.0f;
 
+    LevelTracker(uint32_t level, glm::mat4 const &proj, glm::mat4 const &view)
+            :m_currentLevel(level) {
+        if (level > s_levelTable.size() - 1) {
+            throw std::runtime_error("Invalid level: " + std::to_string(level));
+        }
+
+        auto wh = getWidthHeight(m_maxZLevel, proj, view);
+        m_widthLevel = wh.first;
+        m_heightLevel = wh.second;
+
+        wh = getWidthHeight(m_maxZLevelStarter, proj, view);
+        m_widthLevelStarter = wh.first;
+        m_heightLevelStarter = wh.second;
+    }
+
+    std::pair<float, float> getWidthHeight(float maxZ, glm::mat4 const &proj, glm::mat4 const &view);
     std::shared_ptr<LevelStarter> getLevelStarter();
     std::shared_ptr<Level> getLevel();
-    std::shared_ptr<LevelFinish> getLevelFinisher(float centerX, float centerY);
+    std::shared_ptr<LevelFinish> getLevelFinisher(float centerX, float centerY,
+                                                  glm::mat4 const &proj, glm::mat4 const &view);
     void gotoNextLevel();
     static std::vector<std::string> getLevelDescriptions();
     static bool validLevel(uint32_t level) { return level < s_levelTable.size(); }

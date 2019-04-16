@@ -38,6 +38,7 @@ import android.view.View;
 import android.view.WindowManager;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
+import android.widget.Button;
 import android.widget.EditText;
 import android.widget.LinearLayout;
 import android.widget.Spinner;
@@ -57,7 +58,6 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
     private boolean surfaceReady = false;
     private Thread game = null;
     private AssetManager manager = null;
-    private AlertDialog selectLevelDialog = null;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -125,27 +125,32 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
         adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
         // Apply the adapter to the spinner
         spinner.setAdapter(adapter);
-        selectLevelDialog = new AlertDialog.Builder(this).setTitle(R.string.select_level).setView(selectLevelLayout).show();
-    }
+        Button okButton = selectLevelLayout.findViewById(R.id.select_level_ok);
+        Button cancelButton = selectLevelLayout.findViewById(R.id.select_level_cancel);
+        final AlertDialog selectLevelDialog = new AlertDialog.Builder(this).
+                setTitle(R.string.select_level).setView(selectLevelLayout).show();
+        okButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                Spinner spinner = selectLevelDialog.findViewById(R.id.select_level_spinner);
+                int pos = spinner.getSelectedItemPosition();
+                if (pos == Spinner.INVALID_POSITION) {
+                    selectLevelDialog.dismiss();
+                } else {
+                    joinDrawer();
+                    SurfaceView surfaceView = findViewById(R.id.mainDrawingSurface);
+                    startDrawing(surfaceView.getHolder(), pos);
+                }
+                selectLevelDialog.dismiss();
+            }
+        });
 
-    public void onSelect(View view) {
-        Spinner spinner = selectLevelDialog.findViewById(R.id.select_level_spinner);
-        int pos = spinner.getSelectedItemPosition();
-        if (pos == Spinner.INVALID_POSITION) {
-            selectLevelDialog.dismiss();
-            selectLevelDialog = null;
-        } else {
-            joinDrawer();
-            SurfaceView surfaceView = findViewById(R.id.mainDrawingSurface);
-            startDrawing(surfaceView.getHolder(), pos);
-        }
-        selectLevelDialog.dismiss();
-        selectLevelDialog = null;
-    }
-
-    public void onCancel(View view) {
-        selectLevelDialog.dismiss();
-        selectLevelDialog = null;
+        cancelButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                selectLevelDialog.dismiss();
+            }
+        });
     }
 
     public void joinDrawer() {
@@ -173,7 +178,6 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
         Surface drawSurface = holder.getSurface();
 
         if (game == null && surfaceReady) {
-            TextView errorView = findViewById(R.id.mainErrorResult);
             Handler notify = new Handler(new GameErrorHandler());
             game = new Thread(new Draw(notify, drawSurface, manager, level));
             game.start();
@@ -182,8 +186,22 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
 
     public void publishError(String err) {
         if (err != null && err.length() > 0) {
-            TextView view = findViewById(R.id.mainErrorResult);
-            view.setText(err);
+            LinearLayout layout = findViewById(R.id.mainLayout);
+            LayoutInflater inflater = getLayoutInflater();
+
+            LinearLayout msgLayout = (LinearLayout) inflater.inflate(R.layout.message_dialog,
+                    layout, false);
+            TextView errMsg = msgLayout.findViewById(R.id.message);
+            errMsg.setText(err);
+            Button okButton = msgLayout.findViewById(R.id.okButton);
+            final AlertDialog dialog = new AlertDialog.Builder(this).
+                    setTitle(R.string.select_level).setView(msgLayout).show();
+            okButton.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View view) {
+                    dialog.dismiss();
+                }
+            });
         }
     }
 

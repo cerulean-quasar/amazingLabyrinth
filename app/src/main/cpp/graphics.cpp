@@ -146,23 +146,3 @@ std::vector<char> TextureDescriptionText::getData(uint32_t &texWidth, uint32_t &
                                                   uint32_t &texChannels) {
     return getTextImage(textString, texWidth, texHeight, texChannels);
 }
-
-void LevelSequence::updatePerspectiveMatrix(uint32_t surfaceWidth, uint32_t surfaceHeight) {
-    /* perspective matrix: takes the perspective projection, the aspect ratio, near and far
-     * view planes.
-     */
-    m_proj = glm::perspective(glm::radians(45.0f), surfaceWidth / (float) surfaceHeight, 0.1f, 100.0f);
-}
-
-void LevelSequence::setViewLightingSource() {
-    m_viewLightingSource = glm::lookAt(m_lightingSource, glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
-}
-
-void LevelSequence::setView() {
-    /* glm::lookAt takes the eye position, the center position, and the up axis as parameters */
-    m_view = glm::lookAt(glm::vec3(0.0f, 0.0f, 3.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
-}
-
-void LevelSequence::setLightingSource() {
-    m_lightingSource = glm::vec3(0.0f, 0.0f, 1.28f/*0.01-1.28*/);
-}

@@ -1,5 +1,5 @@
 /**
- * Copyright 2018 Cerulean Quasar. All Rights Reserved.
+ * Copyright 2019 Cerulean Quasar. All Rights Reserved.
  *
  *  This file is part of AmazingLabyrinth.
  *
@@ -25,9 +25,12 @@
 
 class Level {
 protected:
+    static float constexpr m_originalBallDiameter = 2.0f;
+
     bool m_finished;
     float const m_width;
     float const m_height;
+    float const m_maxZ;
 public:
     virtual glm::vec4 getBackgroundColor() = 0;
     virtual void updateAcceleration(float x, float y, float z) = 0;
@@ -43,13 +46,14 @@ public:
         y = 0.0f;
     }
 
-    Level(uint32_t width, uint32_t height)
+    Level(float width, float height, float maxZ)
             : m_finished(false),
-              m_width(4.0f/(height+width)*width),
-              m_height(4.0f/(height+width)*height)
+              m_width(width),
+              m_height(height),
+              m_maxZ(maxZ)
     {
     }
 
-    virtual ~Level() {}
+    virtual ~Level() = default;
 };
 #endif /* AMAZING_LABYRINTH_LEVEL_HPP */

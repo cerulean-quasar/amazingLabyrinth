@@ -1,5 +1,5 @@
 /**
- * Copyright 2018 Cerulean Quasar. All Rights Reserved.
+ * Copyright 2019 Cerulean Quasar. All Rights Reserved.
  *
  *  This file is part of AmazingLabyrinth.
  *
@@ -207,7 +207,7 @@ bool LevelSequenceGL::updateData() {
             if (m_levelFinisher->isDone()) {
                 float x, y;
                 m_level->getLevelFinisherCenter(x, y);
-                m_levelFinisher = m_levelTracker.getLevelFinisher(x, y);
+                m_levelFinisher = m_levelTracker.getLevelFinisher(x, y, m_proj, m_view);
                 m_levelfinisherObjsData.clear();
                 m_levelStarter->start();
                 return false;

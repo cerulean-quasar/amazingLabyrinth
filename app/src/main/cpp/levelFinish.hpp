@@ -1,5 +1,5 @@
 /**
- * Copyright 2018 Cerulean Quasar. All Rights Reserved.
+ * Copyright 2019 Cerulean Quasar. All Rights Reserved.
  *
  *  This file is part of AmazingLabyrinth.
  *
@@ -29,26 +29,27 @@
 
 class LevelFinish {
 protected:
+    float m_maxZ;
     bool shouldUnveil;
     bool finished;
 public:
-    LevelFinish() : shouldUnveil(false), finished(false) { }
+    explicit LevelFinish(float maxZ) : m_maxZ(maxZ), shouldUnveil(false), finished(false) { }
     void unveilNewLevel() { shouldUnveil = true; finished = false; }
     bool isUnveiling() { return shouldUnveil; }
+    bool isDone() { return finished; }
 
     virtual bool updateDrawObjects(DrawObjectTable &drawObjects, TextureMap &textures, bool &texturesUpdated) = 0;
-    virtual bool isDone() = 0;
-    virtual ~LevelFinish() {}
+    virtual ~LevelFinish() = default;
 };
 
 class ManyQuadCoverUpLevelFinish : public LevelFinish {
 private:
-    uint32_t const totalNumberObjectsForSide = 5;
-    uint32_t const totalNumberObjects = totalNumberObjectsForSide * totalNumberObjectsForSide;
+    static uint32_t constexpr totalNumberObjectsForSide = 5;
+    static uint32_t constexpr totalNumberObjects = totalNumberObjectsForSide * totalNumberObjectsForSide;
     std::list<glm::vec3> translateVectors;
 
     // every timeThreshold, a new image appears, covering up the maze.
-    float const timeThreshold = 0.05f;
+    static float constexpr timeThreshold = 0.05f;
 
     Random random;
     uint32_t totalNumberReturned;
@@ -57,11 +58,10 @@ private:
     std::vector<std::string> imagePaths;
 public:
     virtual bool updateDrawObjects(DrawObjectTable &drawObjects, TextureMap &textures, bool &texturesUpdated);
-    virtual bool isDone() { return finished; }
     void initAddTexture(std::string const &inImagePath) {
         imagePaths.push_back(inImagePath);
     }
-    ManyQuadCoverUpLevelFinish();
+    ManyQuadCoverUpLevelFinish(float maxZ);
 };
 
 class GrowingQuadLevelFinish : public LevelFinish {
@@ -80,10 +80,9 @@ private:
     glm::vec3 transVector;
 public:
     virtual bool updateDrawObjects(DrawObjectTable &drawObjects, TextureMap &textures, bool &texturesUpdated);
-    virtual bool isDone() { return finished; }
     void initTexture(std::string const &inImagePath) {
         imagePath = inImagePath;
     }
-    GrowingQuadLevelFinish(float x = 0.0f, float y = 0.0f);
+    GrowingQuadLevelFinish(float x, float y, float maxZ);
 };
 #endif

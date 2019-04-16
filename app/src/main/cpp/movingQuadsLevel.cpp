@@ -1,5 +1,5 @@
 /**
- * Copyright 2018 Cerulean Quasar. All Rights Reserved.
+ * Copyright 2019 Cerulean Quasar. All Rights Reserved.
  *
  *  This file is part of AmazingLabyrinth.
  *
@@ -21,6 +21,7 @@
 #include "movingQuadsLevel.hpp"
 
 constexpr float MovingQuadsLevel::scaleFactor;
+constexpr float MovingQuadsLevel::viscosity;
 
 void MovingQuadsLevel::loadModels() {
     loadModel(MODEL_BALL, m_ballVertices, m_ballIndices);
@@ -28,9 +29,9 @@ void MovingQuadsLevel::loadModels() {
 }
 
 void MovingQuadsLevel::generate() {
-    m_startQuadPosition = {0.0f, -maxY, -2*scaleFactor};
-    m_endQuadPosition = {0.0f, maxY, -2*scaleFactor};
-    m_startPosition = {0.0f, -maxY, -scaleFactor};
+    m_startQuadPosition = {0.0f, -maxY, m_maxZ-m_originalBallDiameter*scaleFactor};
+    m_endQuadPosition = {0.0f, maxY, m_maxZ-m_originalBallDiameter*scaleFactor};
+    m_startPosition = {0.0f, -maxY, m_maxZ-m_originalBallDiameter*scaleFactor/2.0f};
     m_quadScaleY = maxY/(numberOfMidQuadRows+1.0f);
 
     m_ball.totalRotated = glm::quat();
@@ -40,7 +41,7 @@ void MovingQuadsLevel::generate() {
 
     // set to very large previous position (in vector length) so that it will get drawn
     // the first time through.
-    m_ball.prevPosition = {-10.0f, 0.0f, -scaleFactor/2.0f};
+    m_ball.prevPosition = {-10.0f, 0.0f, m_maxZ-scaleFactor*m_originalBallDiameter/2.0f};
     m_ball.position = m_startPosition;
 
     // The moving quads move at a random speed in the x direction.  There is a random number of
@@ -58,7 +59,7 @@ void MovingQuadsLevel::generate() {
         for (int j = 0; j < numberOfQuadsInRow; j++) {
             glm::vec3 pos{2.0f*maxX/numberOfQuadsInRow*j-xpos,
                           2.0f*maxY/(numberOfMidQuadRows+1)*(i+1)-maxY,
-                          -2*scaleFactor};
+                          m_maxZ-m_originalBallDiameter*scaleFactor};
             row.positions.push_back(pos);
         }
 
@@ -83,18 +84,7 @@ bool MovingQuadsLevel::updateData() {
     float time = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - m_prevTime).count();
     m_prevTime = currentTime;
 
-    float vx, vy;
-    if (m_ball.velocity.x < 0.0f) {
-        vx = viscosity;
-    } else {
-        vx = -viscosity;
-    }
-    if (m_ball.velocity.y < 0.0f) {
-        vy = viscosity;
-    } else {
-        vy = -viscosity;
-    }
-    m_ball.velocity += m_ball.acceleration * time + glm::vec3(vx, vy, 0.0f);
+    m_ball.velocity += m_ball.acceleration * time - viscosity * m_ball.velocity;
     m_ball.position += m_ball.velocity * time;
 
     // if the ball is on the end quad, then the user won.
@@ -179,26 +169,26 @@ bool MovingQuadsLevel::updateData() {
 }
 
 bool MovingQuadsLevel::updateStaticDrawObjects(DrawObjectTable &objs, TextureMap &textures) {
-    if (objs.size() > 0) {
+    if (!objs.empty()) {
         return false;
     }
 
     glm::mat4 scale = glm::scale(glm::vec3{2*maxX, m_quadScaleY, 1.0f});
 
     // the end quad
-    std::shared_ptr<DrawObject> endObj(new DrawObject());
+    std::shared_ptr<DrawObject> endObj = std::make_shared<DrawObject>();
     endObj->vertices = m_quadVertices;
     endObj->indices = m_quadIndices;
-    endObj->texture.reset(new TextureDescriptionPath(m_endQuadTexture));
+    endObj->texture = std::make_shared<TextureDescriptionPath>(m_endQuadTexture);
     textures.insert(std::make_pair(endObj->texture, std::shared_ptr<TextureData>()));
     endObj->modelMatrices.push_back(glm::translate(m_endQuadPosition) * scale);
     objs.push_back(std::make_pair(endObj, std::shared_ptr<DrawObjectData>()));
 
     // the start quad
-    std::shared_ptr<DrawObject> startVortexObj(new DrawObject());
+    std::shared_ptr<DrawObject> startVortexObj = std::make_shared<DrawObject>();
     startVortexObj->vertices = m_quadVertices;
     startVortexObj->indices = m_quadIndices;
-    startVortexObj->texture.reset(new TextureDescriptionPath(m_startQuadTexture));
+    startVortexObj->texture = std::make_shared<TextureDescriptionPath>(m_startQuadTexture);
     textures.insert(std::make_pair(startVortexObj->texture, std::shared_ptr<TextureData>()));
     startVortexObj->modelMatrices.push_back(glm::translate(m_startQuadPosition) * scale);
     objs.push_back(std::make_pair(startVortexObj, std::shared_ptr<DrawObjectData>()));
@@ -208,12 +198,12 @@ bool MovingQuadsLevel::updateStaticDrawObjects(DrawObjectTable &objs, TextureMap
 
 bool MovingQuadsLevel::updateDynamicDrawObjects(DrawObjectTable &objs, TextureMap &textures, bool &texturesUpdated) {
     texturesUpdated = false;
-    if (objs.size() == 0) {
+    if (objs.empty()) {
         // the ball is first...
         std::shared_ptr<DrawObject> ballObj{new DrawObject{}};
         ballObj->vertices = m_ballVertices;
         ballObj->indices = m_ballIndices;
-        ballObj->texture.reset(new TextureDescriptionPath(m_ballTexture));
+        ballObj->texture = std::make_shared<TextureDescriptionPath>(m_ballTexture);
         textures.insert(std::make_pair(ballObj->texture, std::shared_ptr<TextureData>()));
         ballObj->modelMatrices.push_back(glm::translate(m_ball.position) *
                                          glm::toMat4(m_ball.totalRotated) * m_ball.scale);
@@ -235,7 +225,7 @@ bool MovingQuadsLevel::updateDynamicDrawObjects(DrawObjectTable &objs, TextureMa
             } else {
                 textureNumber = i / nbrRowsForTexture;
             }
-            quadObj->texture.reset(new TextureDescriptionPath(m_middleQuadTextures[textureNumber]));
+            quadObj->texture = std::make_shared<TextureDescriptionPath>(m_middleQuadTextures[textureNumber]);
             textures.insert(std::make_pair(quadObj->texture, std::shared_ptr<TextureData>()));
             for (auto const &movingQuadPos : movingQuadRow.positions) {
                 quadObj->modelMatrices.push_back(glm::translate(movingQuadPos) *

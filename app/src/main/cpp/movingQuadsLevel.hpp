@@ -1,5 +1,5 @@
 /**
- * Copyright 2018 Cerulean Quasar. All Rights Reserved.
+ * Copyright 2019 Cerulean Quasar. All Rights Reserved.
  *
  *  This file is part of AmazingLabyrinth.
  *
@@ -119,11 +119,11 @@ public:
     void initSetStartQuadTexture(std::string const &texture) { m_startQuadTexture = texture; }
     void initSetBallTexture(std::string const &texture) { m_ballTexture = texture; }
 
-    MovingQuadsLevel(uint32_t width, uint32_t height)
-            : Level(width, height),
+    MovingQuadsLevel(float width, float height, float maxZ)
+            : Level(width, height, maxZ),
               maxX(m_width/2),
               maxY(m_height/2),
               m_prevTime(std::chrono::high_resolution_clock::now()) { }
-    virtual ~MovingQuadsLevel() {}
+    virtual ~MovingQuadsLevel() = default;
 };
 #endif /* AMAZING_LABYRINTH_MOVING_QUADS_LEVEL_HPP */

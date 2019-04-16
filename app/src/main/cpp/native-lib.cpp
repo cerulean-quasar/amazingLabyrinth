@@ -1,5 +1,5 @@
 /**
- * Copyright 2018 Cerulean Quasar. All Rights Reserved.
+ * Copyright 2019 Cerulean Quasar. All Rights Reserved.
  *
  *  This file is part of AmazingLabyrinth.
  *
@@ -34,7 +34,7 @@
 #include "graphicsGL.hpp"
 
 #ifdef CQ_ENABLE_VULKAN
-#include "graphicsVulkan.hpp"
+#include "mazeVulkan.hpp"
 #endif
 
 /* Used to communicate between the gui thread and the drawing thread.  When the GUI thread wants
@@ -197,7 +197,7 @@ Java_com_quasar_cerulean_amazinglabyrinth_Draw_startGame(
     bool useGL = false;
 #ifdef CQ_ENABLE_VULKAN
     try {
-        graphics.reset(new GraphicsVulkan(window, level));
+        graphics = std::make_unique<GraphicsVulkan>(window, level);
     } catch (std::runtime_error &e) {
         useGL = true;
     }
@@ -207,7 +207,7 @@ Java_com_quasar_cerulean_amazinglabyrinth_Draw_startGame(
 
     try {
         if (useGL) {
-            graphics.reset(new GraphicsGL(window, level));
+            graphics = std::make_unique<GraphicsGL>(window, level);
         }
     } catch (std::runtime_error &e) {
         return env->NewStringUTF(e.what());

@@ -1,5 +1,5 @@
 /**
- * Copyright 2018 Cerulean Quasar. All Rights Reserved.
+ * Copyright 2019 Cerulean Quasar. All Rights Reserved.
  *
  *  This file is part of AmazingLabyrinth.
  *
@@ -47,7 +47,7 @@ private:
     std::string vortexTexture;
     std::string startVortexTexture;
 
-    static constexpr float viscosity = 0.01f;
+    static constexpr float viscosity = 0.005f;
     float const maxX;
     float const maxY;
     Random random;
@@ -118,8 +118,8 @@ public:
     void initSetStartVortexTexture(std::string const &texture) { startVortexTexture = texture; }
     void initSetBallTexture(std::string const &texture) { ballTexture = texture; }
 
-    AvoidVortexLevel(uint32_t width, uint32_t height)
-            : Level(width, height),
+    AvoidVortexLevel(float width, float height, float maxZ)
+            : Level(width, height, maxZ),
               maxX(m_width/2),
               maxY(m_height/2),
               prevTime(std::chrono::high_resolution_clock::now()) { }

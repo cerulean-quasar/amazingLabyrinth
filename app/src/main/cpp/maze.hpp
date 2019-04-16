@@ -1,5 +1,5 @@
 /**
- * Copyright 2018 Cerulean Quasar. All Rights Reserved.
+ * Copyright 2019 Cerulean Quasar. All Rights Reserved.
  *
  *  This file is part of AmazingLabyrinth.
  *
@@ -53,7 +53,7 @@ private:
 public:
     Cell() : mVisited(false), mIsStart(false), mIsEnd(false), mTopWallExists(true),
         mBottomWallExists(true), mLeftWallExists(true), mRightWallExists(true) {}
-    ~Cell() {}
+    ~Cell() = default;
 
     bool visited() const { return mVisited; }
     bool isStart() const { return mIsStart; }
@@ -66,6 +66,7 @@ public:
 
 class Maze : public Level {
 protected:
+    static constexpr float m_originalWallHeight = 3.0f;
     static constexpr float viscosity = 0.01f;
     static constexpr unsigned int numberBlocksPerCell = 2;
     Random random;
@@ -78,6 +79,7 @@ protected:
     float const scale;
     std::chrono::high_resolution_clock::time_point prevTime;
     bool drawHole;
+    float m_scaleWallZ;
 
     // data on where the ball is, how fast it is moving, etc.
     struct {
@@ -137,13 +139,14 @@ private:
     Mode m_mode;
 
 public:
-    Maze(unsigned int inNumberRows, Mode inMode, uint32_t width, uint32_t height)
-        :Level(width, height),
+    Maze(unsigned int inNumberRows, Mode inMode, float width, float height, float maxZ)
+        :Level(width, height, maxZ),
          numberRows(inNumberRows),
-         numberColumns(inNumberRows*width/height),
+         numberColumns(static_cast<uint32_t>(std::floor(inNumberRows*width/height))),
          scale(1.0f/(std::max(numberRows, numberColumns)*numberBlocksPerCell + 1)),
          m_mode(inMode),
-         drawHole{true}
+         drawHole{true},
+         m_scaleWallZ(scale*2)
     {
         cells.resize(numberRows);
         for (unsigned int i = 0; i < numberRows; i++) {
@@ -151,14 +154,15 @@ public:
         }
 
         prevTime = std::chrono::high_resolution_clock::now();
-        ball.totalRotated = glm::quat();
+        glm::vec3 xaxis{1.0f, 0.0f, 0.0f};
+        ball.totalRotated = glm::angleAxis(glm::radians(270.0f), xaxis);
         ball.acceleration = {0.0f, 0.0f, 0.0f};
         ball.velocity = {0.0f, 0.0f, 0.0f};
         unsigned int i = std::max(numberRows, numberColumns);
         scaleBall = glm::scale(glm::vec3(scale, scale, scale));
     }
 
-    virtual void init() {
+    void init() override {
         loadModels();
         if (m_mode == BFS) {
             generateBFS();
@@ -168,12 +172,13 @@ public:
         generateModelMatrices();
     }
 
-    virtual glm::vec4 getBackgroundColor() { return {0.0f, 0.0f, 0.0f, 0.0f}; }
-    virtual void updateAcceleration(float x, float y, float z);
-    virtual bool updateData();
-    virtual bool updateStaticDrawObjects(DrawObjectTable &objs, TextureMap &textures);
-    virtual bool updateDynamicDrawObjects(DrawObjectTable &objs, TextureMap &textures, bool &texturesChanged);
-    virtual void start() {
+    glm::vec4 getBackgroundColor() override { return {0.0f, 0.0f, 0.0f, 0.0f}; }
+    void updateAcceleration (float x, float y, float z) override;
+    bool updateData() override ;
+    bool updateStaticDrawObjects(DrawObjectTable &objs, TextureMap &textures) override;
+    bool updateDynamicDrawObjects(DrawObjectTable &objs, TextureMap &textures,
+            bool &texturesChanged) override;
+    void start() override {
         prevTime = std::chrono::high_resolution_clock::now();
     }
 
@@ -182,6 +187,6 @@ public:
     void initSetHoleTexture(std::string const &texturePath) { holeTexture = texturePath; }
     void initSetBallTexture(std::string const &texturePath) { ballTexture = texturePath; }
 
-    virtual ~Maze() {}
+    ~Maze() override = default;
 };
 #endif

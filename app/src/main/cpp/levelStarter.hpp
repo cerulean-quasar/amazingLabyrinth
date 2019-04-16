@@ -1,5 +1,5 @@
 /**
- * Copyright 2018 Cerulean Quasar. All Rights Reserved.
+ * Copyright 2019 Cerulean Quasar. All Rights Reserved.
  *
  *  This file is part of AmazingLabyrinth.
  *
@@ -40,6 +40,7 @@ private:
     std::string const corridorImageH1 = "textures/levelStarter/corridorH1.png";
     std::string const corridorImageV = "textures/levelStarter/corridorV.png";
     std::string const corridorImageH2 = "textures/levelStarter/corridorH2.png";
+
     float const scale;
     float const maxPosX;
     float const maxPosY;
@@ -75,8 +76,8 @@ private:
     } ball;
 
 public:
-    LevelStarter(uint32_t width, uint32_t height)
-            : Level(width, height),
+    LevelStarter(float width, float height, float maxZ)
+            : Level(width, height, maxZ),
               scale(10.0f),
               maxPosX(m_width/2-m_width/2/scale),
               maxPosY(m_height/2-m_width/2/scale)
@@ -95,14 +96,14 @@ public:
         ballScale = {m_width/2/scale, m_width/2/scale, m_width/2/scale};
 
         ball.prevPosition = { 10.0f, 0.0f, 0.0f};
-        ball.position = {-maxPosX, -maxPosY, 0.0f};
+        ball.position = {-maxPosX, -maxPosY, m_maxZ - ballScale.z*m_originalBallDiameter/2.0f};
         ball.velocity = {0.0f, 0.0f, 0.0f};
         ball.acceleration = {0.0f, 0.0f, 0.0f};
         ball.totalRotated = glm::quat();
     }
 
     void clearText();
-    void addTextString(std::string const inText);
+    void addTextString(std::string const &inText);
     bool isInBottomCorridor();
     bool isInSideCorridor();
     void confineBall();

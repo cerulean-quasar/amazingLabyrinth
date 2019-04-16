@@ -1,5 +1,5 @@
 /**
- * Copyright 2018 Cerulean Quasar. All Rights Reserved.
+ * Copyright 2019 Cerulean Quasar. All Rights Reserved.
  *
  *  This file is part of AmazingLabyrinth.
  *
@@ -73,9 +73,11 @@ void MazeCollect::generateModelMatrices() {
         uint32_t row = random.getUInt(0, numberRows-1);
         uint32_t col = random.getUInt(0, numberColumns-1);
 
-        glm::vec3 pos{random.getFloat(leftWall(col)+scale, rightWall(col)-scale),
-                      random.getFloat(topWall(row)+scale, bottomWall(row)-scale),
-                      -1.0f - 3.0f/(2.0f*(numberRows+numberColumns))};
+        // move it away from the wall by at least the ball diameter so that it can be easily
+        // collected.
+        glm::vec3 pos{random.getFloat(leftWall(col)+2*scale, rightWall(col)-2*scale),
+                      random.getFloat(topWall(row)+2*scale, bottomWall(row)-2*scale),
+                      m_maxZ - m_originalWallHeight*m_scaleWallZ/2.0f};
         bool tooClose = false;
         for (auto const &collectionObjectLocation : m_collectionObjectLocations) {
             if (glm::length(pos - collectionObjectLocation.second) < (m_width+m_height)/32) {
@@ -96,16 +98,16 @@ void MazeCollect::generateModelMatrices() {
 }
 
 bool MazeCollect::updateDynamicDrawObjects(DrawObjectTable &objs, TextureMap &textures, bool &texturesChanged) {
-    bool isEmpty = objs.size() == 0;
+    bool isEmpty = objs.empty();
     bool isUpdated = MazeOpenArea::updateDynamicDrawObjects(objs, textures, texturesChanged);
 
     glm::mat4 scaleMatrix = glm::scale(glm::vec3{2*scale/3.0f, 2*scale/3.0f, 2*scale/3.0f});
     if (isEmpty) {
         // the objects to collect - they are just smaller versions of the ball.  Just add them to
         // the ball model matrices.  The ball is always first in the table of draw objects.
-        auto const &ball = objs[0].first;
+        auto const &ballObj = objs[0].first;
         for (auto const &item : m_collectionObjectLocations) {
-            ball->modelMatrices.push_back(glm::translate(item.second) * scaleMatrix);
+            ballObj->modelMatrices.push_back(glm::translate(item.second) * glm::toMat4(ball.totalRotated) * scaleMatrix);
         }
         isUpdated = true;
     } else {
@@ -116,7 +118,7 @@ bool MazeCollect::updateDynamicDrawObjects(DrawObjectTable &objs, TextureMap &te
         uint32_t i = 1;
         for (auto const &item : m_collectionObjectLocations) {
             if (item.first) {
-                obj.first->modelMatrices[i++] = glm::translate(item.second) * scaleMatrix;
+                obj.first->modelMatrices[i++] = glm::translate(item.second) * glm::toMat4(ball.totalRotated) *scaleMatrix;
                 isUpdated = true;
             } else {
                 i++;

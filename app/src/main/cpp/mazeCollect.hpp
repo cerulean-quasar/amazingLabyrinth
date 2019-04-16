@@ -1,5 +1,5 @@
 /**
- * Copyright 2018 Cerulean Quasar. All Rights Reserved.
+ * Copyright 2019 Cerulean Quasar. All Rights Reserved.
  *
  *  This file is part of AmazingLabyrinth.
  *
@@ -30,8 +30,8 @@ protected:
     std::vector<std::pair<bool, glm::vec3>> m_collectionObjectLocations;
     std::deque<std::pair<uint32_t, uint32_t>> m_prevCells;
 public:
-    MazeCollect(unsigned int inRows, Maze::Mode inMode, uint32_t inWidth, uint32_t inHeight)
-            :MazeOpenArea(inRows, inMode, inWidth, inHeight)
+    MazeCollect(unsigned int inRows, Maze::Mode inMode, float inWidth, float inHeight, float maxZ)
+            :MazeOpenArea(inRows, inMode, inWidth, inHeight, maxZ)
     {}
 
     virtual bool updateDynamicDrawObjects(DrawObjectTable &objs, TextureMap &textures, bool &texturesChanged);
