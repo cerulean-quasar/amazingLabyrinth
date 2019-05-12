@@ -24,216 +24,299 @@
 
 #include <string>
 #include <stdexcept>
-#include <atomic>
 #include <memory>
-#include <looper.h>
-#include <sensor.h>
+#include <fstream>
+#include <boost/variant.hpp>
+#include <boost/optional.hpp>
+#include <json.hpp>
 
+#include "native-lib.hpp"
+#include "drawer.hpp"
+#include "level/levelTracker.hpp"
 
-#include "graphics.hpp"
-#include "graphicsGL.hpp"
+char constexpr const *DirectorySeparator = "/";
+char constexpr const *SaveGameFileName = "amazingLabyrinthSaveGameFile.cbor";
 
-#ifdef CQ_ENABLE_VULKAN
-#include "mazeVulkan.hpp"
-#endif
+void handleJNIException(JNIEnv *env) {
+    if (env->ExceptionCheck()) {
+        env->ExceptionClear();
+        throw std::runtime_error("Java exception occurred");
+    }
+}
 
-/* Used to communicate between the gui thread and the drawing thread.  When the GUI thread wants
- * the drawer to stop drawing, cleanup, and exit, it sets this value to true.  The GUI will set
- * this value to false before starting a new drawer.
- */
-std::atomic<bool> stopDrawing(false);
-
-/*
- * The following global is used for calling back into java.  It is only accessed by one thread:
- * the thread running the game.
- */
-JNIEnv *gEnv = nullptr;
-
-class Sensors {
-public:
-    struct AccelerationEvent {
-        float x;
-        float y;
-        float z;
+template <>
+GameBundleValue JGameBundle::getDatum<std::string>(std::string const &key) const {
+    JNIEnv *lenv = m_requester->env();
+    auto deleter = [lenv](jobject obj) {
+        lenv->DeleteLocalRef(obj);
     };
 
-    Sensors() {
-        initSensors();
-    }
+    std::shared_ptr<_jstring> jkey(lenv->NewStringUTF(key.c_str()), deleter);
+    handleJNIException(lenv);
+    std::shared_ptr<_jstring> jstr((jstring) lenv->CallObjectMethod(m_bundle.get(), m_midGetString,
+                                                                    jkey.get()),
+                                   deleter);
+    handleJNIException(lenv);
 
-    inline bool hasEvents() {
-        return ASensorEventQueue_hasEvents(eventQueue) > 0;
-    }
+    char const *cstr = lenv->GetStringUTFChars(jstr.get(), nullptr);
+    handleJNIException(lenv);
+    std::string str{cstr};
+    lenv->ReleaseStringUTFChars(jstr.get(), cstr);
+    handleJNIException(lenv);
 
-    inline std::vector<AccelerationEvent> getEvents() {
-        std::vector<ASensorEvent> events;
-        events.resize(100);
-        ssize_t nbrEvents = ASensorEventQueue_getEvents(eventQueue, events.data(), events.size());
-        if (nbrEvents < 0) {
-            // an error has occurred
-            throw std::runtime_error("Error on retrieving sensor events.");
-        }
-
-        std::vector<AccelerationEvent> avector;
-        for (int i = 0; i < nbrEvents; i++) {
-            AccelerationEvent a{
-                    events[i].acceleration.x,
-                    events[i].acceleration.y,
-                    events[i].acceleration.z};
-            avector.push_back(a);
-        }
-
-        return avector;
-    }
-
-    ~Sensors(){
-        ASensorEventQueue_disableSensor(eventQueue, sensor);
-        ASensorManager_destroyEventQueue(sensorManager, eventQueue);
-    }
-private:
-// microseconds
-    static int const MAX_EVENT_REPORT_TIME;
-
-// event identifier for identifying an event that occurs during a poll.  It doesn't matter what this
-// value is, it just has to be unique among all the other sensors the program receives events for.
-    static int const EVENT_TYPE_ACCELEROMETER;
-
-    ASensorManager *sensorManager = nullptr;
-    ASensor const *sensor = nullptr;
-    ASensorEventQueue *eventQueue = nullptr;
-    ALooper *looper = nullptr;
-
-    void initSensors();
-};
-
-int const Sensors::MAX_EVENT_REPORT_TIME = 20000;
-int const Sensors::EVENT_TYPE_ACCELEROMETER = 462;
-
-void Sensors::initSensors() {
-    sensorManager = ASensorManager_getInstance();
-    sensor = ASensorManager_getDefaultSensor(sensorManager, ASENSOR_TYPE_ACCELEROMETER);
-    if (sensor == nullptr) {
-        // TODO: use a flick gesture instead?
-        throw std::runtime_error("Accelerometer not present.");
-    }
-
-    looper = ALooper_forThread();
-    if (looper == nullptr) {
-        looper = ALooper_prepare(0);
-    }
-
-    if (looper == nullptr) {
-        throw std::runtime_error("Could not initialize looper.");
-    }
-
-    eventQueue = ASensorManager_createEventQueue(sensorManager, looper, EVENT_TYPE_ACCELEROMETER, nullptr, nullptr);
-
-    int rc = ASensorEventQueue_enableSensor(eventQueue, sensor);
-    if (rc < 0) {
-        throw std::runtime_error("Could not enable sensor");
-    }
-    int minDelay = ASensor_getMinDelay(sensor);
-    minDelay = std::max(minDelay, MAX_EVENT_REPORT_TIME);
-
-    rc = ASensorEventQueue_setEventRate(eventQueue, sensor, minDelay);
-    if (rc < 0) {
-        ASensorEventQueue_disableSensor(eventQueue, sensor);
-        throw std::runtime_error("Could not set event rate");
-    }
+    return GameBundleValue{std::move(str)};
 }
 
-void draw(std::unique_ptr<Graphics> const &graphics)
-{
-    Sensors sensor;
-    while (!stopDrawing.load()) {
-        timeval tv = {0, 1000};
-        select(0, nullptr, nullptr, nullptr, &tv);
-        if (sensor.hasEvents()) {
-            std::vector<Sensors::AccelerationEvent> events = sensor.getEvents();
+template<>
+GameBundleValue JGameBundle::getDatum<std::vector<char>>(std::string const &key) const {
+    JNIEnv *lenv = m_requester->env();
+    auto deleter = [lenv](jobject obj) {
+        lenv->DeleteLocalRef(obj);
+    };
 
-            float x = 0;
-            float y = 0;
-            float z = 0;
-            for (auto const & event : events) {
-                x += event.x;
-                y += event.y;
-                z += event.z;
-            }
-            size_t nbrEvents = events.size();
-            graphics->updateAcceleration(x/nbrEvents, y/nbrEvents, z/nbrEvents);
+    std::shared_ptr<_jstring> jkey(lenv->NewStringUTF(key.c_str()), deleter);
+    handleJNIException(lenv);
+    std::shared_ptr<_jbyteArray> jbytes((jbyteArray)lenv->CallObjectMethod(m_bundle.get(),
+                                                                           m_midGetByteArray, jkey.get()),
+                                        deleter);
+    handleJNIException(lenv);
 
-        }
-        bool drawingNecessary = graphics->updateData();
-        if (drawingNecessary) {
-            graphics->drawFrame();
-        }
-    }
+    jint size = lenv->GetArrayLength(jbytes.get());
+    handleJNIException(lenv);
+
+    std::vector<char> bytes;
+    bytes.resize(static_cast<size_t >(size));
+    jbyte *cbytes = lenv->GetByteArrayElements(jbytes.get(), nullptr);
+    handleJNIException(lenv);
+    memcpy(bytes.data(), cbytes, static_cast<size_t>(size));
+    lenv->ReleaseByteArrayElements(jbytes.get(), cbytes, JNI_ABORT);
+    handleJNIException(lenv);
+
+    return GameBundleValue{std::move(bytes)};
 }
 
-extern "C" JNIEXPORT jstring JNICALL
-Java_com_quasar_cerulean_amazinglabyrinth_Draw_startGame(
-        JNIEnv *env,
-        jobject thisptr,
-        jobject drawingSurface,
-        jobject assetManager,
-        jint level)
-{
-    gEnv = env;
-    if (level < 0 || ! LevelTracker::validLevel(static_cast<uint32_t>(level))) {
-        return env->NewStringUTF("Invalid level");
-    }
+template<>
+GameBundleValue JGameBundle::getDatum<float>(std::string const &key) const {
+    JNIEnv *lenv = m_requester->env();
+    auto deleter = [lenv](jobject obj) {
+        lenv->DeleteLocalRef(obj);
+    };
 
-    ANativeWindow *window = ANativeWindow_fromSurface(env, drawingSurface);
-    if (window == nullptr) {
-        return env->NewStringUTF("Unable to acquire window from surface.");
-    }
+    std::shared_ptr<_jstring> jkey(lenv->NewStringUTF(key.c_str()), deleter);
+    handleJNIException(lenv);
+    float ret = lenv->CallFloatMethod(m_bundle.get(), m_midGetFloat, jkey.get());
+    handleJNIException(lenv);
+    return GameBundleValue{ret};
+}
 
-    AAssetManager *manager = AAssetManager_fromJava(env, assetManager);
-    setAssetManager(manager);
+template<>
+GameBundleValue JGameBundle::getDatum<bool>(std::string const &key) const {
+    JNIEnv *lenv = m_requester->env();
+    auto deleter = [lenv](jobject obj) {
+        lenv->DeleteLocalRef(obj);
+    };
 
-    stopDrawing.store(false);
+    std::shared_ptr<_jstring> jkey(lenv->NewStringUTF(key.c_str()), deleter);
+    handleJNIException(lenv);
+    bool ret = lenv->CallBooleanMethod(m_bundle.get(), m_midGetBool, jkey.get());
+    handleJNIException(lenv);
+    return GameBundleValue{ret};
+}
 
-    std::unique_ptr<Graphics> graphics;
-    bool useGL = false;
-#ifdef CQ_ENABLE_VULKAN
-    try {
-        graphics = std::make_unique<GraphicsVulkan>(window, level);
-    } catch (std::runtime_error &e) {
-        useGL = true;
-    }
-#else
-    useGL = true;
-#endif
+template<>
+GameBundleValue JGameBundle::getDatum<int>(std::string const &key) const {
+    JNIEnv *lenv = m_requester->env();
+    auto deleter = [lenv](jobject obj) {
+        lenv->DeleteLocalRef(obj);
+    };
 
-    try {
-        if (useGL) {
-            graphics = std::make_unique<GraphicsGL>(window, level);
-        }
-    } catch (std::runtime_error &e) {
-        return env->NewStringUTF(e.what());
-    }
+    std::shared_ptr<_jstring> jkey(lenv->NewStringUTF(key.c_str()), deleter);
+    handleJNIException(lenv);
+    int ret = lenv->CallIntMethod(m_bundle.get(), m_midGetInt, jkey.get());
+    handleJNIException(lenv);
+    return GameBundleValue{ret};
+}
 
-    try {
-        draw(graphics);
-    } catch (std::runtime_error &e) {
-        return env->NewStringUTF(e.what());
-    }
+template<>
+void JGameBundle::putDatum<std::string>(std::string const &key, GameBundleValue const &val) {
+    JNIEnv *lenv = m_requester->env();
+    auto deleter = [lenv](jobject obj) {
+        lenv->DeleteLocalRef(obj);
+    };
 
-    return env->NewStringUTF("");
+    std::string str{boost::apply_visitor(GameBundleStringVisitor{}, val)};
+    std::shared_ptr<_jstring> jkey(lenv->NewStringUTF(key.c_str()), deleter);
+    handleJNIException(lenv);
+    std::shared_ptr<_jstring> jval(lenv->NewStringUTF(str.c_str()), deleter);
+    handleJNIException(lenv);
+
+    lenv->CallVoidMethod(m_bundle.get(), m_midPutString, jkey.get(), jval.get());
+    handleJNIException(lenv);
+}
+
+template<>
+void JGameBundle::putDatum<float>(std::string const &key, GameBundleValue const &val) {
+    JNIEnv *lenv = m_requester->env();
+    auto deleter = [lenv](jobject obj) {
+        lenv->DeleteLocalRef(obj);
+    };
+
+    float f = boost::apply_visitor(GameBundleFloatVisitor{}, val);
+
+    std::shared_ptr<_jstring> jkey(lenv->NewStringUTF(key.c_str()), deleter);
+    handleJNIException(lenv);
+
+    lenv->CallVoidMethod(m_bundle.get(), m_midPutFloat, jkey.get(), f);
+    handleJNIException(lenv);
+}
+
+template<>
+void JGameBundle::putDatum<std::vector<char>>(std::string const &key, GameBundleValue const &val) {
+    JNIEnv *lenv = m_requester->env();
+    auto deleter = [lenv](jobject obj) {
+        lenv->DeleteLocalRef(obj);
+    };
+
+    std::vector<char> vec{boost::get<std::vector<char>>(val)};
+    std::shared_ptr<_jstring> jkey(lenv->NewStringUTF(key.c_str()), deleter);
+    handleJNIException(lenv);
+
+    std::shared_ptr<_jbyteArray> jval(lenv->NewByteArray(vec.size()), deleter);
+    handleJNIException(lenv);
+
+    jbyte *cval = lenv->GetByteArrayElements(jval.get(), nullptr);
+    handleJNIException(lenv);
+    memcpy(cval, vec.data(), vec.size());
+    lenv->ReleaseByteArrayElements(jval.get(), cval, JNI_COMMIT);
+    handleJNIException(lenv);
+
+    lenv->CallVoidMethod(m_bundle.get(), m_midPutByteArray, jkey.get(), jval.get());
+    handleJNIException(lenv);
+}
+
+template<>
+void JGameBundle::putDatum<bool>(std::string const &key, GameBundleValue const &val) {
+    JNIEnv *lenv = m_requester->env();
+    auto deleter = [lenv](jobject obj) {
+        lenv->DeleteLocalRef(obj);
+    };
+
+    bool f = boost::apply_visitor(GameBundleBoolVisitor{}, val);
+
+    std::shared_ptr<_jstring> jkey(lenv->NewStringUTF(key.c_str()), deleter);
+    handleJNIException(lenv);
+
+    lenv->CallVoidMethod(m_bundle.get(), m_midPutBool, jkey.get(), f);
+    handleJNIException(lenv);
+}
+
+template<>
+void JGameBundle::putDatum<int>(std::string const &key, GameBundleValue const &val) {
+    JNIEnv *lenv = m_requester->env();
+    auto deleter = [lenv](jobject obj) {
+        lenv->DeleteLocalRef(obj);
+    };
+
+    int i = boost::apply_visitor(GameBundleIntVisitor{}, val);
+
+    std::shared_ptr<_jstring> jkey(lenv->NewStringUTF(key.c_str()), deleter);
+    handleJNIException(lenv);
+
+    lenv->CallVoidMethod(m_bundle.get(), m_midPutInt, jkey.get(), i);
+    handleJNIException(lenv);
 }
 
 extern "C" JNIEXPORT void JNICALL
-Java_com_quasar_cerulean_amazinglabyrinth_MainActivity_tellDrawerStop(
+Java_com_quasar_cerulean_amazinglabyrinth_Draw_startGame(
         JNIEnv *env,
-        jobject thisptr)
+        jobject thisptr,
+        jobject jdrawingSurface,
+        jobject jassetManager,
+        jstring jsaveDataDir,
+        jobject jReturnChannel)
 {
-    stopDrawing.store(true);
+    std::string saveDataFile;
+    try {
+        char const *csaveDataDir = env->GetStringUTFChars(jsaveDataDir, nullptr);
+        handleJNIException(env);
+        saveDataFile += csaveDataDir;
+        env->ReleaseStringUTFChars(jsaveDataDir, csaveDataDir);
+        saveDataFile += DirectorySeparator;
+        saveDataFile += SaveGameFileName;
+    } catch (std::runtime_error &e) {
+        // no way to send the error yet...
+        return;
+    }
+
+    AAssetManager *manager = AAssetManager_fromJava(env, jassetManager);
+    if (manager == nullptr) {
+        return;
+    }
+    auto requester = std::make_shared<JGameRequester>(env, jReturnChannel, saveDataFile, manager);
+
+    ANativeWindow *window = ANativeWindow_fromSurface(env, jdrawingSurface);
+    if (window == nullptr) {
+        requester->sendError("Unable to create window from surface.");
+        return;
+    }
+    auto deleter = [](ANativeWindow *windowRaw) {
+        /* release the java window object */
+        if (windowRaw != nullptr) {
+            ANativeWindow_release(windowRaw);
+        }
+    };
+    std::shared_ptr<WindowType> surface(window, deleter);
+
+    try {
+        GameWorker worker{surface, requester, requester->getSaveData(), true, false};
+        worker.drawingLoop();
+    } catch (std::runtime_error &e) {
+        requester->sendError(e.what());
+    }
+}
+
+extern "C" JNIEXPORT void JNICALL
+Java_com_quasar_cerulean_amazinglabyrinth_Draw_tellDrawerStop(
+        JNIEnv *env,
+        jclass jclassptr)
+{
+    gameFromGuiChannel().sendStopDrawingEvent();
+}
+
+extern "C" JNIEXPORT void JNICALL
+Java_com_quasar_cerulean_amazinglabyrinth_Draw_tellDrawerSendSaveData(
+        JNIEnv *env,
+        jclass jclassptr)
+{
+    auto ev = std::make_shared<SaveLevelDataEvent>();
+    gameFromGuiChannel().sendEvent(ev);
+}
+
+extern "C" JNIEXPORT void JNICALL
+Java_com_quasar_cerulean_amazinglabyrinth_Draw_tellDrawerSurfaceChanged(
+        JNIEnv *env,
+        jclass jclassptr,
+        jint jwidth,
+        jint jheight)
+{
+    auto ev = std::make_shared<SurfaceChangedEvent>(jwidth, jheight);
+    gameFromGuiChannel().sendEvent(ev);
+}
+
+extern "C" JNIEXPORT void JNICALL
+Java_com_quasar_cerulean_amazinglabyrinth_Draw_tellDrawerSwitchLevel(
+        JNIEnv *env,
+        jclass jclassptr,
+        jint jlevel)
+{
+    auto ev = std::make_shared<LevelChangedEvent>(jlevel);
+    gameFromGuiChannel().sendEvent(ev);
 }
 
 extern "C" JNIEXPORT jobjectArray JNICALL
-Java_com_quasar_cerulean_amazinglabyrinth_MainActivity_getLevelList(
+Java_com_quasar_cerulean_amazinglabyrinth_Draw_getLevelList(
         JNIEnv *env,
-        jobject thisptr)
+        jclass jclassptr)
 {
     std::vector<std::string> levels = LevelTracker::getLevelDescriptions();
     jobjectArray ret = (jobjectArray)env->NewObjectArray(levels.size(), env->FindClass("java/lang/String"), nullptr);
@@ -244,50 +327,305 @@ Java_com_quasar_cerulean_amazinglabyrinth_MainActivity_getLevelList(
     return ret;
 }
 
-std::vector<char> getTextImage(std::string text, uint32_t &width, uint32_t &height, uint32_t &channels) {
-    jclass imageLoaderClass = gEnv->FindClass("com/quasar/cerulean/amazinglabyrinth/TextImageLoader");
-    jmethodID mid = gEnv->GetMethodID(imageLoaderClass, "<init>", "(Ljava/lang/String;)V");
-    if (mid == 0) {
+std::vector<char> JGameRequester::getTextImage(std::string text, uint32_t &width, uint32_t &height, uint32_t &channels) {
+    JNIEnv *lenv = m_env;
+    auto deleter = [lenv](jobject obj) {
+        lenv->DeleteLocalRef(obj);
+    };
+    std::shared_ptr<_jclass> imageLoaderClass(
+            m_env->FindClass("com/quasar/cerulean/amazinglabyrinth/TextImageLoader"), deleter);
+    handleJNIException(m_env);
+    jmethodID mid = m_env->GetMethodID(imageLoaderClass.get(), "<init>", "(Ljava/lang/String;)V");
+    if (mid == nullptr) {
         throw (std::runtime_error("Could not find method in fetching the image for text"));
     }
-    jstring jtext = gEnv->NewStringUTF(text.c_str());
-    jobject imageLoader = gEnv->NewObject(imageLoaderClass, mid, jtext);
+    std::shared_ptr<_jstring> jtext(m_env->NewStringUTF(text.c_str()), deleter);
+    handleJNIException(m_env);
+    std::shared_ptr<_jobject> imageLoader(
+            m_env->NewObject(imageLoaderClass.get(), mid, jtext.get()),
+            deleter);
+    handleJNIException(m_env);
 
-    mid = gEnv->GetMethodID(imageLoaderClass, "getImageSize", "()I");
-    if (mid == 0) {
+    mid = m_env->GetMethodID(imageLoaderClass.get(), "getImageSize", "()I");
+    if (mid == nullptr) {
         throw (std::runtime_error("Could not find method in fetching the image for text"));
     }
-    jint jsize = gEnv->CallIntMethod(imageLoader, mid);
+    jint jsize = m_env->CallIntMethod(imageLoader.get(), mid);
+    handleJNIException(m_env);
 
-    mid = gEnv->GetMethodID(imageLoaderClass, "getImageWidth", "()I");
-    if (mid == 0) {
+    mid = m_env->GetMethodID(imageLoaderClass.get(), "getImageWidth", "()I");
+    if (mid == nullptr) {
         throw (std::runtime_error("Could not find method in fetching the image for text"));
     }
-    jint jwidth = gEnv->CallIntMethod(imageLoader, mid);
+    jint jwidth = m_env->CallIntMethod(imageLoader.get(), mid);
+    handleJNIException(m_env);
     width = static_cast<uint32_t> (jwidth);
 
-    mid = gEnv->GetMethodID(imageLoaderClass, "getImageHeight", "()I");
-    if (mid == 0) {
+    mid = m_env->GetMethodID(imageLoaderClass.get(), "getImageHeight", "()I");
+    if (mid == nullptr) {
         throw (std::runtime_error("Could not find method in fetching the image for text"));
     }
-    jint jheight = gEnv->CallIntMethod(imageLoader, mid);
+    jint jheight = m_env->CallIntMethod(imageLoader.get(), mid);
+    handleJNIException(m_env);
     height = static_cast<uint32_t> (jheight);
 
-    jbyteArray jimageData = gEnv->NewByteArray(jsize);
-    mid = gEnv->GetMethodID(imageLoaderClass, "getImageData", "([B)V");
-    if (mid == 0) {
+    std::shared_ptr<_jbyteArray> jimageData(m_env->NewByteArray(jsize), deleter);
+    handleJNIException(m_env);
+    mid = m_env->GetMethodID(imageLoaderClass.get(), "getImageData", "([B)V");
+    if (mid == nullptr) {
         throw (std::runtime_error("Could not find method in fetching the image for text"));
     }
-    gEnv->CallVoidMethod(imageLoader, mid, jimageData);
+    m_env->CallVoidMethod(imageLoader.get(), mid, jimageData.get());
+    handleJNIException(m_env);
 
     std::vector<char> imageData;
-    size_t size = static_cast<size_t> (jsize);
+    auto size = static_cast<size_t> (jsize);
     imageData.resize(size);
-    jbyte *bytes = gEnv->GetByteArrayElements(jimageData, nullptr);
+    jbyte *bytes = m_env->GetByteArrayElements(jimageData.get(), nullptr);
+    handleJNIException(m_env);
     memcpy(imageData.data(), bytes, size);
-    gEnv->ReleaseByteArrayElements(jimageData, bytes, JNI_ABORT);
+    m_env->ReleaseByteArrayElements(jimageData.get(), bytes, JNI_ABORT);
+    handleJNIException(m_env);
 
     channels = 4;
     return imageData;
 }
 
+void JGameRequester::sendError(std::string const &error) {
+    sendError(error.c_str());
+}
+
+void JGameRequester::sendError(char const *error) {
+    // don't throw in here because we might be handling an exception already.
+    JNIEnv *lenv = m_env;
+    auto deleter = [lenv](jobject obj) {
+        lenv->DeleteLocalRef(obj);
+    };
+
+    std::shared_ptr<_jstring> jerror(m_env->NewStringUTF(error), deleter);
+    if (m_env->ExceptionCheck()) {
+        m_env->ExceptionClear();
+        return;
+    }
+    std::shared_ptr<_jclass> notifyClass(m_env->GetObjectClass(m_notify), deleter);
+    if (m_env->ExceptionCheck()) {
+        m_env->ExceptionClear();
+        return;
+    }
+    jmethodID mid = m_env->GetMethodID(notifyClass.get(), "sendError", "(Ljava/lang/String;)V");
+    if (mid == nullptr) {
+        return;
+    }
+    m_env->CallVoidMethod(m_notify, mid, jerror.get());
+    if (m_env->ExceptionCheck()) {
+        m_env->ExceptionClear();
+        return;
+    }
+}
+
+void JGameRequester::sendGraphicsDescription(GraphicsDescription const &description,
+                                           bool hasAccelerometer) {
+    auto bundle = createBundle();
+    bundle->putDatum<std::string>(KeyGraphicsName, GameBundleValue{description.m_graphicsName});
+    bundle->putDatum<std::string>(KeyVersionName, GameBundleValue{description.m_version});
+    bundle->putDatum<std::string>(KeyDeviceName, GameBundleValue{description.m_deviceName});
+    bundle->putDatum<bool>(KeyHasAccelerometer, GameBundleValue{hasAccelerometer});
+    JNIEnv *lenv = m_env;
+    auto deleter = [lenv](jobject obj) {
+        lenv->DeleteLocalRef(obj);
+    };
+
+    std::shared_ptr<_jclass> notifyClass(m_env->GetObjectClass(m_notify), deleter);
+    handleJNIException(m_env);
+    jmethodID mid = m_env->GetMethodID(notifyClass.get(), "sendBundle", "(Landroid/os/Bundle;)V");
+    if (mid == nullptr) {
+        throw (std::runtime_error("Could not find API to send graphics description."));
+    }
+    m_env->CallVoidMethod(m_notify, mid, bundle->bundle().get());
+    handleJNIException(m_env);
+}
+
+std::shared_ptr<JGameBundle> JGameRequester::createBundle() {
+    JNIEnv *lenv = m_env;
+    auto deleter = [lenv](jobject obj) {
+        lenv->DeleteLocalRef(obj);
+    };
+    std::shared_ptr<_jclass> bundleClass(m_env->FindClass("android/os/Bundle"), deleter);
+    handleJNIException(m_env);
+
+    jmethodID mid = m_env->GetMethodID(bundleClass.get(), "<init>", "()V");
+    if (mid == nullptr) {
+        throw (std::runtime_error("Could not find method for creating a Bundle."));
+    }
+    std::shared_ptr<_jobject> jSaveData(m_env->NewObject(bundleClass.get(), mid),
+                                        deleter);
+    handleJNIException(m_env);
+
+    return std::make_shared<JGameBundle>(shared_from_this(), jSaveData);
+}
+
+std::shared_ptr<JGameBundle> JGameRequester::createBundle(std::shared_ptr<_jobject> inBundle) {
+    return std::make_shared<JGameBundle>(shared_from_this(), std::move(inBundle));
+}
+
+namespace nlohmann {
+    template <>
+    struct adl_serializer<GameBundleValue> {
+        static void to_json(json &j, GameBundleValue const &val) {
+            std::type_info const &tpi = val.type();
+            if (tpi == typeid(std::string)) {
+                j = boost::apply_visitor(GameBundleStringVisitor{}, val);
+            } else if (tpi == typeid(float)) {
+                j = boost::apply_visitor(GameBundleFloatVisitor{}, val);
+            } else if (tpi == typeid(std::vector<uint32_t>)) {
+                // should fix when we start using this type.  not sure what is needed yet...
+                j = boost::apply_visitor(GameBundleByteArrayVisitor{}, val);
+            } else if (tpi == typeid(bool)) {
+                j = boost::apply_visitor(GameBundleBoolVisitor{}, val);
+            } else if (tpi == typeid(int)) {
+                j = boost::apply_visitor(GameBundleIntVisitor{}, val);
+            }
+        }
+
+        static void from_json(json const &j, GameBundleValue &val) {
+            if (j.is_string()) {
+                val = j.get<std::string>();
+            } else if (j.is_number_float()) {
+                val = j.get<float>();
+            } else if (j.is_array()) {
+                // should fix when we start using this type.  not sure what is needed yet...
+                std::vector<uint32_t> v;
+                v.resize(j.size());
+                uint32_t i = 0;
+                for (auto const &jArrayValue : j) {
+                    v[i] = jArrayValue.get<uint32_t>();
+                }
+            } else if (j.is_boolean()) {
+                val = j.get<bool>();
+            } else if (j.is_number_integer()) {
+                val = j.get<int>();
+            }
+        }
+    };
+}
+
+void JGameRequester::sendSaveData(GameBundle const &saveData) {
+    nlohmann::json j = saveData;
+
+    std::ofstream saveDataStream(m_pathSaveFile);
+
+    std::vector<uint8_t> vec = nlohmann::json::to_cbor(j);
+    saveDataStream.write(reinterpret_cast<char const *>(vec.data()), vec.size());
+}
+
+boost::optional<GameBundle> JGameRequester::getSaveData() {
+    std::ifstream saveDataStream(m_pathSaveFile, std::ifstream::binary);
+
+    if (saveDataStream) {
+        saveDataStream.seekg(0, saveDataStream.end);
+        size_t i = static_cast<size_t >(saveDataStream.tellg());
+        saveDataStream.seekg(0, saveDataStream.beg);
+        std::vector<uint8_t> vec;
+        vec.resize(i);
+        saveDataStream.read(reinterpret_cast<char *>(vec.data()), vec.size());
+
+        if (saveDataStream) {
+            GameBundle bundle;
+            nlohmann::json j = nlohmann::json::from_cbor(vec);
+            for (auto const &jobj : j.items()) {
+                bundle.insert(std::make_pair(jobj.key(), jobj.value().get<GameBundleValue>()));
+            }
+            return boost::optional<GameBundle>{bundle};
+        } else {
+            return boost::none;
+        }
+    } else {
+        return boost::none;
+    }
+}
+
+JGameBundle::JGameBundle(std::shared_ptr<JGameRequester> inRequester, std::shared_ptr<_jobject> inBundle)
+    : m_requester{std::move(inRequester)},
+    m_bundle{std::move(inBundle)},
+    m_bundleClass{},
+    m_midGetString{},
+    m_midGetFloat{},
+    m_midGetByteArray{},
+    m_midGetBool{},
+    m_midPutString{},
+    m_midPutFloat{},
+    m_midPutByteArray{},
+    m_midPutBool{}
+{
+    JNIEnv *lenv = m_requester->env();
+    auto deleter = [lenv](jobject obj) {
+        lenv->DeleteLocalRef(obj);
+    };
+    m_bundleClass = std::shared_ptr<_jclass>(lenv->GetObjectClass(m_bundle.get()), deleter);
+    handleJNIException(lenv);
+
+    m_midGetString = m_requester->env()->GetMethodID(m_bundleClass.get(), "getString",
+                                                     "(Ljava/lang/String;)Ljava/lang/String;");
+    m_midGetFloat = m_requester->env()->GetMethodID(m_bundleClass.get(), "getFloat",
+                                                    "(Ljava/lang/String;)F");
+    m_midGetByteArray = m_requester->env()->GetMethodID(m_bundleClass.get(), "getByteArray",
+                                                        "(Ljava/lang/String;)[B");
+    m_midGetBool = m_requester->env()->GetMethodID(m_bundleClass.get(), "getBoolean",
+                                                        "(Ljava/lang/String;)Z");
+    m_midGetInt = m_requester->env()->GetMethodID(m_bundleClass.get(), "getInt",
+                                                  "(Ljava/lang/String;)I");
+    m_midPutString = m_requester->env()->GetMethodID(m_bundleClass.get(), "putString",
+                                                     "(Ljava/lang/String;Ljava/lang/String;)V");
+    m_midPutFloat = m_requester->env()->GetMethodID(m_bundleClass.get(), "putFloat",
+                                                    "(Ljava/lang/String;F)V");
+    m_midPutByteArray = m_requester->env()->GetMethodID(m_bundleClass.get(), "putByteArray",
+                                                        "(Ljava/lang/String;[B)V");
+    m_midPutBool = m_requester->env()->GetMethodID(m_bundleClass.get(), "putBoolean",
+                                                   "(Ljava/lang/String;Z)V");
+    m_midPutInt = m_requester->env()->GetMethodID(m_bundleClass.get(), "putInt",
+                                                   "(Ljava/lang/String;I)V");
+
+    if (m_midGetString == nullptr || m_midGetFloat == nullptr || m_midGetByteArray == nullptr ||
+        m_midGetBool == nullptr || m_midGetInt == nullptr ||
+        m_midPutString == nullptr || m_midPutFloat == nullptr || m_midPutByteArray == nullptr ||
+        m_midPutBool == nullptr || m_midGetInt == nullptr) {
+        throw std::runtime_error("Could not initialize save data handle");
+    }
+
+    insertGetDatumMapEntry<std::string>(m_getDatumMap);
+    insertGetDatumMapEntry<float>(m_getDatumMap);
+    insertGetDatumMapEntry<std::vector<char>>(m_getDatumMap);
+    insertGetDatumMapEntry<bool>(m_getDatumMap);
+    insertGetDatumMapEntry<int>(m_getDatumMap);
+
+    insertPutDatumMapEntry<std::string>(m_putDatumMap);
+    insertPutDatumMapEntry<float>(m_putDatumMap);
+    insertPutDatumMapEntry<std::vector<char>>(m_putDatumMap);
+    insertPutDatumMapEntry<bool>(m_putDatumMap);
+    insertPutDatumMapEntry<int>(m_putDatumMap);
+}
+
+GameBundle JGameBundle::getData(GameBundleSchema const &keys) const {
+    GameBundle ret;
+    for (auto const &key : keys) {
+        auto fcnEntry = m_getDatumMap.find(key.second);
+        if (fcnEntry == m_getDatumMap.end()) {
+            throw std::runtime_error("Could not find function to obtain data.");
+        }
+        GameBundleValue val = (this->*(fcnEntry->second))(key.first);
+        ret.insert(std::make_pair(key.first, val));
+    }
+
+    return ret;
+}
+
+void JGameBundle::putData(GameBundle const &data) {
+    for (auto const &datum : data) {
+        auto fcnEntry = m_putDatumMap.find(std::type_index(datum.second.type()));
+        if (fcnEntry == m_putDatumMap.end()) {
+            throw std::runtime_error("Could not find function to put data.");
+        }
+
+        (this->*(fcnEntry->second))(datum.first, datum.second);
+    }
+}

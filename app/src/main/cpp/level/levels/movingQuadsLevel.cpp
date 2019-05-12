@@ -24,7 +24,7 @@ constexpr float MovingQuadsLevel::scaleFactor;
 constexpr float MovingQuadsLevel::viscosity;
 
 void MovingQuadsLevel::loadModels() {
-    loadModel(MODEL_BALL, m_ballVertices, m_ballIndices);
+    loadModel(m_gameRequester->getAssetStream(MODEL_BALL), m_ballVertices, m_ballIndices);
     getQuad(m_quadVertices, m_quadIndices);
 }
 
@@ -179,7 +179,7 @@ bool MovingQuadsLevel::updateStaticDrawObjects(DrawObjectTable &objs, TextureMap
     std::shared_ptr<DrawObject> endObj = std::make_shared<DrawObject>();
     endObj->vertices = m_quadVertices;
     endObj->indices = m_quadIndices;
-    endObj->texture = std::make_shared<TextureDescriptionPath>(m_endQuadTexture);
+    endObj->texture = std::make_shared<TextureDescriptionPath>(m_gameRequester, m_endQuadTexture);
     textures.insert(std::make_pair(endObj->texture, std::shared_ptr<TextureData>()));
     endObj->modelMatrices.push_back(glm::translate(m_endQuadPosition) * scale);
     objs.push_back(std::make_pair(endObj, std::shared_ptr<DrawObjectData>()));
@@ -188,7 +188,7 @@ bool MovingQuadsLevel::updateStaticDrawObjects(DrawObjectTable &objs, TextureMap
     std::shared_ptr<DrawObject> startVortexObj = std::make_shared<DrawObject>();
     startVortexObj->vertices = m_quadVertices;
     startVortexObj->indices = m_quadIndices;
-    startVortexObj->texture = std::make_shared<TextureDescriptionPath>(m_startQuadTexture);
+    startVortexObj->texture = std::make_shared<TextureDescriptionPath>(m_gameRequester, m_startQuadTexture);
     textures.insert(std::make_pair(startVortexObj->texture, std::shared_ptr<TextureData>()));
     startVortexObj->modelMatrices.push_back(glm::translate(m_startQuadPosition) * scale);
     objs.push_back(std::make_pair(startVortexObj, std::shared_ptr<DrawObjectData>()));
@@ -203,7 +203,7 @@ bool MovingQuadsLevel::updateDynamicDrawObjects(DrawObjectTable &objs, TextureMa
         std::shared_ptr<DrawObject> ballObj{new DrawObject{}};
         ballObj->vertices = m_ballVertices;
         ballObj->indices = m_ballIndices;
-        ballObj->texture = std::make_shared<TextureDescriptionPath>(m_ballTexture);
+        ballObj->texture = std::make_shared<TextureDescriptionPath>(m_gameRequester, m_ballTexture);
         textures.insert(std::make_pair(ballObj->texture, std::shared_ptr<TextureData>()));
         ballObj->modelMatrices.push_back(glm::translate(m_ball.position) *
                                          glm::toMat4(m_ball.totalRotated) * m_ball.scale);
@@ -225,7 +225,8 @@ bool MovingQuadsLevel::updateDynamicDrawObjects(DrawObjectTable &objs, TextureMa
             } else {
                 textureNumber = i / nbrRowsForTexture;
             }
-            quadObj->texture = std::make_shared<TextureDescriptionPath>(m_middleQuadTextures[textureNumber]);
+            quadObj->texture = std::make_shared<TextureDescriptionPath>(m_gameRequester,
+                    m_middleQuadTextures[textureNumber]);
             textures.insert(std::make_pair(quadObj->texture, std::shared_ptr<TextureData>()));
             for (auto const &movingQuadPos : movingQuadRow.positions) {
                 quadObj->modelMatrices.push_back(glm::translate(movingQuadPos) *

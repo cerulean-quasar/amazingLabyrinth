@@ -360,6 +360,13 @@ namespace vulkan {
         }
     }
 
+    Device::DeviceProperties Device::properties() {
+        VkPhysicalDeviceProperties deviceProperties;
+        vkGetPhysicalDeviceProperties(m_physicalDevice, &deviceProperties);
+
+        return DeviceProperties(deviceProperties.deviceName, deviceProperties.apiVersion);
+    }
+
     void Device::createLogicalDevice() {
         QueueFamilyIndices indices = findQueueFamilies();
         std::vector<VkDeviceQueueCreateInfo> queueCreateInfos;
@@ -720,8 +727,9 @@ namespace vulkan {
         m_renderPass.reset(renderPassRaw, deleter);
     }
 
-    void Shader::createShaderModule(std::string const &codeFile) {
-        auto code = readFile(codeFile.c_str());
+    void Shader::createShaderModule(std::shared_ptr<FileRequester> const &requester,
+            std::string const &codeFile) {
+        auto code = readFile(requester, codeFile.c_str());
 
         VkShaderModuleCreateInfo createInfo = {};
         createInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
@@ -744,10 +752,11 @@ namespace vulkan {
         m_shaderModule.reset(shaderModuleRaw, deleter);
     }
 
-    void Pipeline::createGraphicsPipeline(VkVertexInputBindingDescription const &bindingDescription,
-                                          std::vector<VkVertexInputAttributeDescription> const &attributeDescriptions) {
-        Shader vertShaderModule(m_device, SHADER_VERT_FILE);
-        Shader fragShaderModule(m_device, SHADER_FRAG_FILE);
+    void Pipeline::createGraphicsPipeline(std::shared_ptr<FileRequester> const &requester,
+            VkVertexInputBindingDescription const &bindingDescription,
+            std::vector<VkVertexInputAttributeDescription> const &attributeDescriptions) {
+        Shader vertShaderModule(requester, m_device, SHADER_VERT_FILE);
+        Shader fragShaderModule(requester, m_device, SHADER_FRAG_FILE);
 
         /* assign shaders to stages in the graphics pipeline */
         VkPipelineShaderStageCreateInfo vertShaderStageInfo = {};

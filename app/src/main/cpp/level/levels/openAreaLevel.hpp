@@ -28,8 +28,8 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtx/transform.hpp>
 
-#include "levelFinish.hpp"
-#include "level.hpp"
+#include "../levelFinish.hpp"
+#include "../level.hpp"
 
 class OpenAreaLevel : public Level {
 private:
@@ -89,8 +89,8 @@ private:
     void generateModelMatrices();
 
 public:
-    OpenAreaLevel(float width, float height, float maxZ)
-            : Level(width, height, maxZ), ballScale(m_width/10.0f),
+    OpenAreaLevel(std::shared_ptr<GameRequester> inGameRequester, float width, float height, float maxZ)
+            : Level(std::move(inGameRequester), width, height, maxZ), ballScale(m_width/10.0f),
             prevTime(std::chrono::high_resolution_clock::now()) {}
     virtual void updateAcceleration(float x, float y, float z);
     virtual glm::vec4 getBackgroundColor() { return {0.0f, 0.0f, 0.0f, 1.0f}; }

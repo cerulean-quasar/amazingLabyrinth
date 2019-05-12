@@ -46,8 +46,9 @@ protected:
     }
 
 public:
-    MazeOpenArea(unsigned int inNumberRows, Mode inMode, float width, float height, float maxZ)
-            : Maze(inNumberRows, inMode, width, height, maxZ),
+    MazeOpenArea(std::shared_ptr<GameRequester> inGameRequester,
+                 unsigned int inNumberRows, Mode inMode, float width, float height, float maxZ)
+            : Maze(std::move(inGameRequester), std::move(inNumberRows), inMode, width, height, maxZ),
               m_rowEnd{},
               m_colEnd{}
     {}

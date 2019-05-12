@@ -24,8 +24,9 @@
 #include <glm/gtx/transform.hpp>
 #include "levelFinish.hpp"
 
-ManyQuadCoverUpLevelFinish::ManyQuadCoverUpLevelFinish(float maxZ)
-        : LevelFinish(maxZ), totalNumberReturned(0) {
+ManyQuadCoverUpLevelFinish::ManyQuadCoverUpLevelFinish(
+        std::shared_ptr<GameRequester> inGameRequester, float maxZ)
+        : LevelFinish(std::move(inGameRequester), maxZ), totalNumberReturned(0) {
     prevTime = std::chrono::high_resolution_clock::now();
     float range = 1.5f;
     for (uint32_t i = 0; i < totalNumberObjectsForSide; i++) {
@@ -93,7 +94,7 @@ bool ManyQuadCoverUpLevelFinish::updateDrawObjects(DrawObjectTable &drawObjects,
             index = drawObjects.size();
             std::shared_ptr<DrawObject> obj(new DrawObject());
             obj->modelMatrices.push_back(trans * scale);
-            obj->texture = std::make_shared<TextureDescriptionPath>(imagePaths[index]);
+            obj->texture = std::make_shared<TextureDescriptionPath>(m_gameRequester, imagePaths[index]);
             textures.insert(std::make_pair(obj->texture, std::shared_ptr<TextureData>()));
             getQuad(obj->vertices, obj->indices);
             obj->modelMatrices.push_back(trans * scale);
@@ -111,8 +112,9 @@ bool ManyQuadCoverUpLevelFinish::updateDrawObjects(DrawObjectTable &drawObjects,
     return true;
 }
 
-GrowingQuadLevelFinish::GrowingQuadLevelFinish(float x, float y, float maxZ)
-        : LevelFinish(maxZ) {
+GrowingQuadLevelFinish::GrowingQuadLevelFinish(
+        std::shared_ptr<GameRequester> inGameRequester, float x, float y, float maxZ)
+        : LevelFinish(std::move(inGameRequester), maxZ) {
     transVector = {x, y, maxZ};
     prevTime = std::chrono::high_resolution_clock::now();
     timeSoFar = 0.0f;
@@ -146,7 +148,7 @@ bool GrowingQuadLevelFinish::updateDrawObjects(DrawObjectTable &drawObjects, Tex
         std::shared_ptr<DrawObject> obj(new DrawObject());
 
         getQuad(obj->vertices, obj->indices);
-        obj->texture = std::make_shared<TextureDescriptionPath>(imagePath);
+        obj->texture = std::make_shared<TextureDescriptionPath>(m_gameRequester, imagePath);
         textures.insert(std::make_pair(obj->texture, std::shared_ptr<TextureData>()));
         obj->modelMatrices.push_back(glm::translate(transVector) * glm::scale(scaleVector));
         drawObjects.push_back(std::make_pair(obj, std::shared_ptr<DrawObjectData>()));

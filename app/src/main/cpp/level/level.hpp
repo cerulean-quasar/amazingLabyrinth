@@ -27,6 +27,7 @@ class Level {
 protected:
     static float constexpr m_originalBallDiameter = 2.0f;
 
+    std::shared_ptr<GameRequester> m_gameRequester;
     bool m_finished;
     float const m_width;
     float const m_height;
@@ -46,8 +47,9 @@ public:
         y = 0.0f;
     }
 
-    Level(float width, float height, float maxZ)
-            : m_finished(false),
+    Level(std::shared_ptr<GameRequester> inGameRequester, float width, float height, float maxZ)
+            : m_gameRequester{std::move(inGameRequester)},
+              m_finished(false),
               m_width(width),
               m_height(height),
               m_maxZ(maxZ)

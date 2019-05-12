@@ -147,7 +147,7 @@ bool LevelStarter::updateDynamicDrawObjects(DrawObjectTable &drawObjsData, Textu
         std::shared_ptr<DrawObject> obj = std::make_shared<DrawObject>();
         obj->vertices = ballVertices;
         obj->indices = ballIndices;
-        obj->texture = std::make_shared<TextureDescriptionPath>(ballImage);
+        obj->texture = std::make_shared<TextureDescriptionPath>(m_gameRequester, ballImage);
         textures.insert(std::make_pair(obj->texture, std::shared_ptr<TextureData>()));
         obj->modelMatrices.push_back(
                 glm::translate(ball.position) * glm::toMat4(ball.totalRotated) * glm::scale(ballScale));
@@ -157,7 +157,7 @@ bool LevelStarter::updateDynamicDrawObjects(DrawObjectTable &drawObjsData, Textu
         std::shared_ptr<DrawObject> obj1 = std::make_shared<DrawObject>();
         obj1->vertices = quadVertices;
         obj1->indices = quadIndices;
-        obj1->texture = std::make_shared<TextureDescriptionText>(text[textIndex]);
+        obj1->texture = std::make_shared<TextureDescriptionText>(m_gameRequester, text[textIndex]);
         textures.insert(std::make_pair(obj1->texture, std::shared_ptr<TextureData>()));
         obj1->modelMatrices.push_back(
                 glm::translate(glm::vec3(0.0f, 0.0f, m_maxZ - ballScale.z * m_originalBallDiameter)) *
@@ -171,7 +171,8 @@ bool LevelStarter::updateDynamicDrawObjects(DrawObjectTable &drawObjsData, Textu
         if (transitionText && !m_finished) {
             textIndex++;
             textures.erase(drawObjsData[1].first->texture);
-            drawObjsData[1].first->texture = std::make_shared<TextureDescriptionText>(text[textIndex]);
+            drawObjsData[1].first->texture = std::make_shared<TextureDescriptionText>(m_gameRequester,
+                    text[textIndex]);
             textures.insert(std::make_pair(drawObjsData[1].first->texture, std::shared_ptr<TextureData>()));
             transitionText = false;
             texturesChanged = true;
@@ -193,7 +194,7 @@ bool LevelStarter::updateStaticDrawObjects(DrawObjectTable &drawObjsData, Textur
     std::shared_ptr<DrawObject> obj = std::make_shared<DrawObject>();
     obj->vertices = quadVertices;
     obj->indices = quadIndices;
-    obj->texture = std::make_shared<TextureDescriptionPath>(holeImage);
+    obj->texture = std::make_shared<TextureDescriptionPath>(m_gameRequester, holeImage);
     textures.insert(std::make_pair(obj->texture, std::shared_ptr<TextureData>()));
     obj->modelMatrices.push_back(
             glm::translate(glm::vec3(-maxPosX, maxPosY, m_maxZ - ballScale.z*m_originalBallDiameter)) *
@@ -202,7 +203,8 @@ bool LevelStarter::updateStaticDrawObjects(DrawObjectTable &drawObjsData, Textur
 
     // Bottom corridor
     obj = std::make_shared<DrawObject>();
-    std::shared_ptr<TextureDescription> textureCorridorH1 = std::make_shared<TextureDescriptionPath>(corridorImageH1);
+    std::shared_ptr<TextureDescription> textureCorridorH1 = std::make_shared<TextureDescriptionPath>(
+            m_gameRequester, corridorImageH1);
     textures.insert(std::make_pair(textureCorridorH1, std::shared_ptr<TextureData>()));
     obj->vertices = quadVertices;
     obj->indices = quadIndices;
@@ -214,7 +216,8 @@ bool LevelStarter::updateStaticDrawObjects(DrawObjectTable &drawObjsData, Textur
 
     // Side corridor
     obj = std::make_shared<DrawObject>();
-    std::shared_ptr<TextureDescription> textureCorridorV = std::make_shared<TextureDescriptionPath>(corridorImageV);
+    std::shared_ptr<TextureDescription> textureCorridorV = std::make_shared<TextureDescriptionPath>(
+            m_gameRequester, corridorImageV);
     textures.insert(std::make_pair(textureCorridorV, std::shared_ptr<TextureData>()));
     obj->vertices = quadVertices;
     obj->indices = quadIndices;
@@ -226,7 +229,8 @@ bool LevelStarter::updateStaticDrawObjects(DrawObjectTable &drawObjsData, Textur
 
     // Top corridor
     obj = std::make_shared<DrawObject>();
-    std::shared_ptr<TextureDescription> textureCorridorH2 = std::make_shared<TextureDescriptionPath>(corridorImageH2);
+    std::shared_ptr<TextureDescription> textureCorridorH2 = std::make_shared<TextureDescriptionPath>(
+            m_gameRequester, corridorImageH2);
     textures.insert(std::make_pair(textureCorridorH2, std::shared_ptr<TextureData>()));
     obj->vertices = quadVertices;
     obj->indices = quadIndices;

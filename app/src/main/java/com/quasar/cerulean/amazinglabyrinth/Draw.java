@@ -1,5 +1,5 @@
 /**
- * Copyright 2018 Cerulean Quasar. All Rights Reserved.
+ * Copyright 2019 Cerulean Quasar. All Rights Reserved.
  *
  *  This file is part of AmazingLabyrinth.
  *
@@ -23,34 +23,53 @@ import android.content.res.AssetManager;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
-import android.util.Log;
 import android.view.Surface;
 
 public class Draw implements Runnable {
-    private static String NATIVE = "Rainbow Dice Native";
-    private Handler notify;
-    private Surface drawingSurface;
-    private AssetManager assetManager;
-    private int level;
-    public Draw(Handler inNotify, Surface inDrawingSurface, AssetManager inAssetManager, int inLevel) {
-        notify = inNotify;
-        drawingSurface = inDrawingSurface;
-        assetManager = inAssetManager;
-        level = inLevel;
-    }
-    public void run() {
-        String error = startGame(drawingSurface, assetManager, level);
-        if (error == null || error.length() == 0) {
-            // no error, just return.
-            return;
-        }
-        // tell the main thread, an error has occurred.
-        Bundle bundle = new Bundle();
-        bundle.putString(MainActivity.ERROR_STRING_KEY, error);
-        Message msg = Message.obtain();
-        msg.setData(bundle);
-        notify.sendMessage(msg);
+    public static String ERROR_STRING_KEY = "errorString";
+    public static String SAVE_GAME_DATA = "saveGameData";
+
+    private Handler m_notify;
+    private Surface m_drawingSurface;
+    private AssetManager m_assetManager;
+    private String m_saveGameDir;
+
+    public Draw(Handler inNotify, Surface inDrawingSurface, AssetManager inAssetManager, String inSaveGameDir) {
+        m_notify = inNotify;
+        m_drawingSurface = inDrawingSurface;
+        m_assetManager = inAssetManager;
+        m_saveGameDir = inSaveGameDir;
     }
 
-    public native String startGame(Surface drawingSurface, AssetManager manager, int level);
+    public void run() {
+        startGame(m_drawingSurface, m_assetManager, m_saveGameDir, new GameReturnChannel(m_notify));
+    }
+
+    public static String[] levelList() {
+        return getLevelList();
+    }
+
+    public static void switchLevel(int level) {
+        tellDrawerSwitchLevel(level);
+    }
+
+    public static void stopDrawer() {
+        tellDrawerStop();
+    }
+
+    public static void surfaceChanged(int width, int height) {
+        tellDrawerSurfaceChanged(width, height);
+    }
+
+    /**
+     * Native methods.
+     */
+    private static native void tellDrawerSwitchLevel(int level);
+    private static native void tellDrawerSurfaceChanged(int width, int height);
+    private static native void tellDrawerStop();
+
+    private static native String[] getLevelList();
+
+    private native void startGame(Surface drawingSurface, AssetManager manager, String saveData,
+                                    GameReturnChannel notify);
 }

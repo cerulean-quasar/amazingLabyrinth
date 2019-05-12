@@ -54,47 +54,35 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
         System.loadLibrary("native-lib");
     }
 
-    public static final String ERROR_STRING_KEY = "errorKey";
-    private boolean surfaceReady = false;
-    private Thread game = null;
-    private AssetManager manager = null;
-
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_main);
 
         /* Keep the screen on even though the user is not tapping it. */
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
 
-        manager = getAssets();
+        setContentView(R.layout.activity_main);
+
         SurfaceView drawSurfaceView = findViewById(R.id.mainDrawingSurface);
         drawSurfaceView.setZOrderOnTop(true);
         SurfaceHolder drawSurfaceHolder = drawSurfaceView.getHolder();
         drawSurfaceHolder.setFormat(PixelFormat.TRANSPARENT);
-        drawSurfaceHolder.addCallback(new MySurfaceCallback(this));
-
+        drawSurfaceHolder.addCallback(new MySurfaceCallback(this, savedInstanceState));
     }
 
     @Override
     protected void onPause() {
         super.onPause();
-        surfaceReady = false;
-        joinDrawer();
     }
 
     @Override
     protected void onStop() {
         super.onStop();
-        surfaceReady = false;
-        joinDrawer();
     }
 
     @Override
     protected void onDestroy() {
         super.onDestroy();
-        surfaceReady = false;
-        joinDrawer();
     }
 
     @Override
@@ -120,7 +108,7 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
                 layout, false);
         Spinner spinner = selectLevelLayout.findViewById(R.id.select_level_spinner);
         ArrayAdapter<String> adapter = new ArrayAdapter<String>(this,
-                android.R.layout.simple_spinner_item, getLevelList());
+                android.R.layout.simple_spinner_item, Draw.levelList());
         // Specify the layout to use when the list of choices appears
         adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
         // Apply the adapter to the spinner
@@ -137,9 +125,7 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
                 if (pos == Spinner.INVALID_POSITION) {
                     selectLevelDialog.dismiss();
                 } else {
-                    joinDrawer();
-                    SurfaceView surfaceView = findViewById(R.id.mainDrawingSurface);
-                    startDrawing(surfaceView.getHolder(), pos);
+                    Draw.switchLevel(pos);
                 }
                 selectLevelDialog.dismiss();
             }
@@ -151,37 +137,6 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
                 selectLevelDialog.dismiss();
             }
         });
-    }
-
-    public void joinDrawer() {
-        boolean done = false;
-        while (!done && game != null) {
-            tellDrawerStop();
-            try {
-                game.join();
-                done = true;
-            } catch (InterruptedException e) {
-            }
-        }
-        game = null;
-    }
-
-    public void setSurfaceReady(boolean inSurfaceReady) {
-        surfaceReady = inSurfaceReady;
-    }
-
-    public void startDrawing(SurfaceHolder holder, int level) {
-        if (level < 0) {
-            level = 0;
-        }
-
-        Surface drawSurface = holder.getSurface();
-
-        if (game == null && surfaceReady) {
-            Handler notify = new Handler(new GameErrorHandler());
-            game = new Thread(new Draw(notify, drawSurface, manager, level));
-            game.start();
-        }
     }
 
     public void publishError(String err) {
@@ -204,18 +159,4 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
             });
         }
     }
-
-    private class GameErrorHandler implements Handler.Callback {
-        public boolean handleMessage(Message message) {
-            Bundle data = message.getData();
-            String error = data.getString(ERROR_STRING_KEY);
-            publishError(error);
-            return true;
-        }
-    }
-    /**
-     * Native methods.
-     */
-    public native void tellDrawerStop();
-    public native String[] getLevelList();
 }

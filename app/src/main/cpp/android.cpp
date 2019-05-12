@@ -1,5 +1,5 @@
 /**
- * Copyright 2018 Cerulean Quasar. All Rights Reserved.
+ * Copyright 2019 Cerulean Quasar. All Rights Reserved.
  *
  *  This file is part of AmazingLabyrinth.
  *
@@ -26,10 +26,76 @@
 #include "android.hpp"
 #include "graphics.hpp"
 
-std::unique_ptr<AssetManagerWrapper> assetWrapper;
+constexpr int Sensors::MAX_EVENT_REPORT_TIME;
 
-void setAssetManager(AAssetManager *mgr) {
-    assetWrapper.reset(new AssetManagerWrapper(mgr));
+void Sensors::initSensors(std::bitset<3> inWhichSensors) {
+    m_sensorManager = ASensorManager_getInstance();
+    if (inWhichSensors.test(LINEAR_ACCELERATION_SENSOR)) {
+        m_sensorLinearAcceleration = ASensorManager_getDefaultSensor(m_sensorManager,
+                                                                     ASENSOR_TYPE_LINEAR_ACCELERATION);
+        if (m_sensorLinearAcceleration == nullptr) {
+            // should not happen
+            throw std::runtime_error("Linear acceleration sensor not present.");
+        }
+    }
+
+    if (inWhichSensors.test(GRAVITY_SENSOR)) {
+        m_sensorGravity = ASensorManager_getDefaultSensor(m_sensorManager, ASENSOR_TYPE_GRAVITY);
+        if (m_sensorGravity == nullptr) {
+            // should not happen
+            throw std::runtime_error("Gravity sensor not present.");
+        }
+    }
+
+    if (inWhichSensors.test(ACCELEROMETER_SENSOR)) {
+        m_sensorAccelerometer = ASensorManager_getDefaultSensor(m_sensorManager,
+                                                                ASENSOR_TYPE_ACCELEROMETER);
+        if (m_sensorAccelerometer == nullptr) {
+            // should not happen
+            throw std::runtime_error("Accelerometer not present.");
+        }
+    }
+
+    m_looper = ALooper_forThread();
+    if (m_looper == nullptr) {
+        m_looper = ALooper_prepare(0);
+    }
+
+    if (m_looper == nullptr) {
+        throw std::runtime_error("Could not initialize looper.");
+    }
+
+    m_eventQueueLinearAcceleration = initializeSensor(m_sensorLinearAcceleration, EVENT_TYPE_LINEAR_ACCELERATION);
+    m_eventQueueGravity = initializeSensor(m_sensorGravity, EVENT_TYPE_GRAVITY);
+    m_eventQueueAccelerometer = initializeSensor(m_sensorAccelerometer, EVENT_TYPE_ACCELEROMETER);
+}
+
+ASensorEventQueue *Sensors::initializeSensor(ASensor const *sensor, int eventType) {
+    if (sensor == nullptr) {
+        return nullptr;
+    }
+
+    ASensorEventQueue *eventQueue = ASensorManager_createEventQueue(m_sensorManager, m_looper,
+                                                                    eventType, nullptr, nullptr);
+
+    int rc = ASensorEventQueue_enableSensor(eventQueue, sensor);
+    if (rc < 0) {
+        ASensorManager_destroyEventQueue(m_sensorManager, eventQueue);
+        destroyResources();
+        throw std::runtime_error("Could not enable sensor");
+    }
+    int minDelay = ASensor_getMinDelay(sensor);
+    minDelay = std::max(minDelay, MAX_EVENT_REPORT_TIME);
+
+    rc = ASensorEventQueue_setEventRate(eventQueue, sensor, minDelay);
+    if (rc < 0) {
+        ASensorEventQueue_disableSensor(eventQueue, sensor);
+        ASensorManager_destroyEventQueue(m_sensorManager, eventQueue);
+        destroyResources();
+        throw std::runtime_error("Could not set event rate");
+    }
+
+    return eventQueue;
 }
 
 std::unique_ptr<AAsset> AssetManagerWrapper::getAsset(std::string const &path) {
@@ -76,23 +142,4 @@ std::streampos AssetStreambuf::seekoff(std::streamoff off, std::ios_base::seekdi
 
 std::streampos AssetStreambuf::seekpos(std::streampos pos, std::ios_base::openmode which) {
     return seekoff(pos, std::ios_base::beg, which);
-}
-
-std::vector<char> readFile(std::string const &filename) {
-    AssetStreambuf assetStreambuf(assetWrapper->getAsset(filename));
-    std::istream reader(&assetStreambuf);
-    std::vector<char> data;
-    unsigned long const readSize = 1024;
-
-    while (!reader.eof()) {
-        unsigned long size = data.size();
-        data.resize(size + readSize);
-        long bytesRead = reader.read(data.data()+size, readSize).gcount();
-
-        if (bytesRead != readSize) {
-            data.resize(size + bytesRead);
-        }
-    }
-
-    return data;
 }

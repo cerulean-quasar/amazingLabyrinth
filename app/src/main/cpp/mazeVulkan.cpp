@@ -273,9 +273,9 @@ void LevelSequenceVulkan::updatePerspectiveMatrix(uint32_t surfaceWidth, uint32_
 }
 
 void LevelSequenceVulkan::addTextures(TextureMap &textures) {
-    for (TextureMap::iterator it = textures.begin(); it != textures.end(); it++) {
+    for (auto it = textures.begin(); it != textures.end(); it++) {
         if (it->second.get() == nullptr) {
-            it->second.reset(new TextureDataVulkan(m_device, m_commandPool, it->first));
+            it->second = std::make_shared<TextureDataVulkan>(m_device, m_commandPool, it->first);
         }
     }
 }
@@ -326,7 +326,7 @@ bool LevelSequenceVulkan::updateData() {
                 initializeLevelData(m_levelStarter, m_levelStarterStaticObjsData,
                                     m_levelStarterDynObjsData, m_texturesLevelStarter);
 
-                m_level = m_levelTracker.getLevel();
+                m_level = m_levelTracker.getLevel(boost::none);
                 initializeLevelData(m_level, m_staticObjsData, m_dynObjsData, m_texturesLevel);
 
                 m_levelFinisher->unveilNewLevel();
@@ -371,7 +371,7 @@ bool LevelSequenceVulkan::updateData() {
     return drawingNecessary;
 }
 
-void GraphicsVulkan::recreateSwapChain() {
+void GraphicsVulkan::recreateSwapChain(uint32_t width, uint32_t height) {
     vkDeviceWaitIdle(m_device->logicalDevice().get());
 
     cleanupSwapChain();
@@ -381,7 +381,7 @@ void GraphicsVulkan::recreateSwapChain() {
                                                  m_device->depthFormat(), VK_IMAGE_ASPECT_DEPTH_BIT});
     prepareDepthResources();
     m_renderPass.reset(new vulkan::RenderPass(m_device, m_swapChain));
-    m_graphicsPipeline.reset(new vulkan::Pipeline{m_swapChain, m_renderPass, m_descriptorPools,
+    m_graphicsPipeline.reset(new vulkan::Pipeline{m_gameRequester, m_swapChain, m_renderPass, m_descriptorPools,
                                                   getBindingDescription(), getAttributeDescriptions()});
     m_swapChainCommands.reset(new vulkan::SwapChainCommands{m_swapChain, m_commandPool, m_renderPass,
                                                             m_depthImageView});
@@ -536,7 +536,7 @@ void GraphicsVulkan::drawFrame() {
      * but it no longer matches the window surface exactly.
      */
     if (result == VK_ERROR_OUT_OF_DATE_KHR) {
-        recreateSwapChain();
+        recreateSwapChain(0, 0);
         return;
     } else if (result != VK_SUCCESS && result != VK_SUBOPTIMAL_KHR) {
         throw std::runtime_error("failed to acquire swap chain image!");
@@ -601,7 +601,7 @@ void GraphicsVulkan::drawFrame() {
      * We recreate the swap chain in this case too.
      */
     if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR) {
-        recreateSwapChain();
+        recreateSwapChain(0, 0);
     } else if (result != VK_SUCCESS) {
         throw std::runtime_error("failed to present swap chain image!");
     }

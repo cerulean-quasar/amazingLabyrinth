@@ -30,8 +30,9 @@ protected:
     std::vector<std::pair<bool, glm::vec3>> m_collectionObjectLocations;
     std::deque<std::pair<uint32_t, uint32_t>> m_prevCells;
 public:
-    MazeCollect(unsigned int inRows, Maze::Mode inMode, float inWidth, float inHeight, float maxZ)
-            :MazeOpenArea(inRows, inMode, inWidth, inHeight, maxZ)
+    MazeCollect(std::shared_ptr<GameRequester> inGameRequester,
+            unsigned int inRows, Maze::Mode inMode, float inWidth, float inHeight, float maxZ)
+            :MazeOpenArea(std::move(inGameRequester), inRows, inMode, inWidth, inHeight, maxZ)
     {}
 
     virtual bool updateDynamicDrawObjects(DrawObjectTable &objs, TextureMap &textures, bool &texturesChanged);

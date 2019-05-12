@@ -32,10 +32,10 @@
 #include <string>
 #include <array>
 
-#include "vulkanWrapper.hpp"
-#include "graphics.hpp"
-#include "levelFinish.hpp"
-#include "level.hpp"
+#include "../../vulkanWrapper.hpp"
+#include "../../graphics.hpp"
+#include "../levelFinish.hpp"
+#include "../level.hpp"
 
 
 class Maze;
@@ -139,8 +139,9 @@ private:
     Mode m_mode;
 
 public:
-    Maze(unsigned int inNumberRows, Mode inMode, float width, float height, float maxZ)
-        :Level(width, height, maxZ),
+    Maze(std::shared_ptr<GameRequester> inGameRequester,
+         unsigned int inNumberRows, Mode inMode, float width, float height, float maxZ)
+        :Level(std::move(inGameRequester), width, height, maxZ),
          numberRows(inNumberRows),
          numberColumns(static_cast<uint32_t>(std::floor(inNumberRows*width/height))),
          scale(1.0f/(std::max(numberRows, numberColumns)*numberBlocksPerCell + 1)),

@@ -1,5 +1,5 @@
 /**
- * Copyright 2018 Cerulean Quasar. All Rights Reserved.
+ * Copyright 2019 Cerulean Quasar. All Rights Reserved.
  *
  *  This file is part of AmazingLabyrinth.
  *
@@ -20,13 +20,32 @@
 
 package com.quasar.cerulean.amazinglabyrinth;
 
+import android.os.Bundle;
+import android.os.Handler;
+import android.os.Message;
+import android.view.Surface;
 import android.view.SurfaceHolder;
 
 public class MySurfaceCallback implements SurfaceHolder.Callback {
-    private MainActivity app;
+    public static final String KeyError = "errorString";
+    private static final String KeyGraphicsName = "graphicsName";
+    private static final String KeyVersionName = "versionName";
+    private static final String KeyDeviceName = "deviceName";
+    private static final String KeyHasAccelerometer = "hasAccelerometer";
 
-    public MySurfaceCallback(MainActivity inApp) {
-        app = inApp;
+    private MainActivity m_app;
+    private Thread m_game;
+    private Bundle m_saveData;
+
+    public MySurfaceCallback(MainActivity inApp, Bundle saveData) {
+        m_app = inApp;
+        m_game = null;
+
+        if (saveData != null) {
+            m_saveData = saveData.getBundle(Draw.SAVE_GAME_DATA);
+        } else {
+            m_saveData = null;
+        }
     }
 
     public void surfaceChanged(SurfaceHolder holder,
@@ -34,16 +53,46 @@ public class MySurfaceCallback implements SurfaceHolder.Callback {
                                int width,
                                int height)
     {
+        Draw.surfaceChanged(width, height);
     }
 
-
     public void surfaceCreated(SurfaceHolder holder) {
-        app.setSurfaceReady(true);
-        app.startDrawing(holder, -1);
+        startDrawing(holder);
     }
 
     public void surfaceDestroyed(SurfaceHolder holder) {
-        app.joinDrawer();
-        app.setSurfaceReady(false);
+        joinDrawer();
+    }
+
+    public void startDrawing(SurfaceHolder holder) {
+        Surface drawSurface = holder.getSurface();
+
+        if (m_game == null) {
+            Handler notify = new Handler(new GameErrorHandler());
+            m_game = new Thread(new Draw(notify, drawSurface, m_app.getAssets(), m_app.getFilesDir().toString()));
+            m_game.start();
+        }
+    }
+
+    public void joinDrawer() {
+        if (m_game != null) {
+            Draw.stopDrawer();
+            try {
+                m_game.join();
+            } catch (InterruptedException e) {
+            }
+            m_game = null;
+        }
+    }
+
+    private class GameErrorHandler implements Handler.Callback {
+        public boolean handleMessage(Message message) {
+            Bundle data = message.getData();
+            String error = data.getString(Draw.ERROR_STRING_KEY);
+            if (error != null) {
+                MySurfaceCallback.this.m_app.publishError(error);
+            }
+            return true;
+        }
     }
 }

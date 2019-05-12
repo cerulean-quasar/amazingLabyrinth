@@ -30,7 +30,7 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtx/transform.hpp>
 
-#include "graphics.hpp"
+#include "../graphics.hpp"
 #include "level.hpp"
 
 class LevelStarter : public Level {
@@ -76,15 +76,15 @@ private:
     } ball;
 
 public:
-    LevelStarter(float width, float height, float maxZ)
-            : Level(width, height, maxZ),
+    LevelStarter(std::shared_ptr<GameRequester> inGameRequester, float width, float height, float maxZ)
+            : Level(std::move(inGameRequester), width, height, maxZ),
               scale(10.0f),
               maxPosX(m_width/2-m_width/2/scale),
               maxPosY(m_height/2-m_width/2/scale)
     {
         prevTime = std::chrono::high_resolution_clock::now();
         getQuad(quadVertices, quadIndices);
-        loadModel(MODEL_BALL, ballVertices, ballIndices);
+        loadModel(m_gameRequester->getAssetStream(MODEL_BALL), ballVertices, ballIndices);
 
         textIndex = 0;
         transitionText = false;

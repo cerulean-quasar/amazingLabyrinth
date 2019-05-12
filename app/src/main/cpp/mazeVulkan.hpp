@@ -36,10 +36,12 @@ public:
         m_poolSizes[1].descriptorCount = m_numberOfDescriptorSetsInPool;
         m_poolSizes[2].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
         m_poolSizes[2].descriptorCount = m_numberOfDescriptorSetsInPool;
+        m_poolInfo = {};
         m_poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
         m_poolInfo.poolSizeCount = static_cast<uint32_t>(m_poolSizes.size());
         m_poolInfo.pPoolSizes = m_poolSizes.data();
         m_poolInfo.maxSets = m_numberOfDescriptorSetsInPool;
+        m_poolInfo.pNext = nullptr;
 
         createDescriptorSetLayout();
     }
@@ -171,13 +173,14 @@ private:
 
 class LevelSequenceVulkan : public LevelSequence {
 public:
-    LevelSequenceVulkan(std::shared_ptr<vulkan::Device> const &inDevice,
+    LevelSequenceVulkan(std::shared_ptr<GameRequester> const &inRequester,
+                        boost::optional<GameBundle> const &inGameSaveData,
+                        std::shared_ptr<vulkan::Device> const &inDevice,
                         std::shared_ptr<vulkan::CommandPool> const &inPool,
                         std::shared_ptr<vulkan::DescriptorPools> const &inDescriptorPools,
-                        uint32_t level,
                         uint32_t width,
                         uint32_t height)
-            :LevelSequence{level, width, height},
+            :LevelSequence{inRequester, inGameSaveData, width, height},
              m_device{inDevice},
              m_commandPool{inPool},
              m_descriptorPools{inDescriptorPools},
@@ -200,7 +203,7 @@ public:
          */
         updatePerspectiveMatrix(width, height);
 
-        m_level = m_levelTracker.getLevel();
+        m_level = m_levelTracker.getLevel(inGameSaveData);
         m_levelStarter = m_levelTracker.getLevelStarter();
         float x, y;
         m_level->getLevelFinisherCenter(x, y);
@@ -260,23 +263,26 @@ private:
 
 class GraphicsVulkan : public Graphics {
 public:
-    GraphicsVulkan(WindowType *window, uint32_t level)
-            :m_instance{new vulkan::Instance(window)},
-             m_device{new vulkan::Device{m_instance}},
-             m_swapChain{new vulkan::SwapChain{m_device}},
-             m_renderPass{new vulkan::RenderPass{m_device, m_swapChain}},
-             m_descriptorSetLayout{new AmazingLabyrinthDescriptorSetLayout{m_device}},
-             m_descriptorPools{new vulkan::DescriptorPools{m_device, m_descriptorSetLayout}},
-             m_graphicsPipeline{new vulkan::Pipeline{m_swapChain, m_renderPass, m_descriptorPools,
-                                                     getBindingDescription(), getAttributeDescriptions()}},
-             m_commandPool{new vulkan::CommandPool{m_device}},
-             m_levelSequence{m_device, m_commandPool, m_descriptorPools, level,
-                             m_swapChain->extent().width, m_swapChain->extent().height},
-             m_depthImageView{new vulkan::ImageView{vulkan::ImageFactory::createDepthImage(m_swapChain),
-                                                    m_device->depthFormat(), VK_IMAGE_ASPECT_DEPTH_BIT}},
-             m_swapChainCommands{new vulkan::SwapChainCommands{m_swapChain, m_commandPool, m_renderPass, m_depthImageView}},
-             m_imageAvailableSemaphore{m_device},
-             m_renderFinishedSemaphore{m_device}
+    GraphicsVulkan(std::shared_ptr<WindowType> window,
+            std::shared_ptr<GameRequester> inRequester,
+            boost::optional<GameBundle> const &inBundle)
+            : Graphics{std::move(inRequester)},
+              m_instance{new vulkan::Instance(std::move(window))},
+              m_device{new vulkan::Device{m_instance}},
+              m_swapChain{new vulkan::SwapChain{m_device}},
+              m_renderPass{new vulkan::RenderPass{m_device, m_swapChain}},
+              m_descriptorSetLayout{new AmazingLabyrinthDescriptorSetLayout{m_device}},
+              m_descriptorPools{new vulkan::DescriptorPools{m_device, m_descriptorSetLayout}},
+              m_graphicsPipeline{new vulkan::Pipeline{m_gameRequester, m_swapChain, m_renderPass, m_descriptorPools,
+                                                      getBindingDescription(), getAttributeDescriptions()}},
+              m_commandPool{new vulkan::CommandPool{m_device}},
+              m_levelSequence{m_gameRequester, inBundle, m_device, m_commandPool, m_descriptorPools,
+                              m_swapChain->extent().width, m_swapChain->extent().height},
+              m_depthImageView{new vulkan::ImageView{vulkan::ImageFactory::createDepthImage(m_swapChain),
+                                                     m_device->depthFormat(), VK_IMAGE_ASPECT_DEPTH_BIT}},
+              m_swapChainCommands{new vulkan::SwapChainCommands{m_swapChain, m_commandPool, m_renderPass, m_depthImageView}},
+              m_imageAvailableSemaphore{m_device},
+              m_renderFinishedSemaphore{m_device}
     {
         prepareDepthResources();
 
@@ -293,7 +299,18 @@ public:
 
     virtual void drawFrame();
 
-    virtual void recreateSwapChain();
+    virtual void recreateSwapChain(uint32_t width, uint32_t height);
+
+    virtual GraphicsDescription graphicsDescription() {
+        auto devGraphicsDescription = m_device->properties();
+        return GraphicsDescription{std::string{"Vulkan"},
+                std::move(devGraphicsDescription.m_vulkanAPIVersion),
+                std::move(devGraphicsDescription.m_name)};
+    }
+
+    virtual GameBundle saveLevelData() {
+        return m_levelSequence.saveLevelData();
+    }
 
     virtual ~GraphicsVulkan() { }
 private:

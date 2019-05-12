@@ -21,17 +21,20 @@
 #define AMAZING_LABYRINTH_GRAPHICS_HPP
 #include <set>
 #include <vector>
+#include <map>
+#include <string>
 
 #include <glm/glm.hpp>
-#include <map>
 
-#include "android.hpp"
+#include "common.hpp"
 
 constexpr float screenMaxX = 0.8f;
 constexpr float screenMaxY = 1.0f;
 
 static std::string const MODEL_WALL("models/wall.obj");
 static std::string const MODEL_BALL("models/ball.obj");
+
+std::vector<char> readFile(std::shared_ptr<FileRequester> const &requester, std::string const &filename);
 
 struct Vertex {
     glm::vec3 pos;
@@ -70,13 +73,19 @@ class TextureDescriptionPtrLess;
 class TextureDescription {
     friend TextureDescriptionPtrLess;
 protected:
+    std::shared_ptr<GameRequester> m_gameRequester;
+
     virtual bool compare(TextureDescription *) = 0;
 public:
+    explicit TextureDescription(std::shared_ptr<GameRequester> inGameRequester)
+        : m_gameRequester{std::move(inGameRequester)}
+    {}
     virtual std::vector<char> getData(uint32_t &texWidth, uint32_t &texHeight, uint32_t &texChannels) = 0;
     virtual ~TextureDescription() = default;
 };
 
 class TextureDescriptionPath : public TextureDescription {
+private:
     std::string imagePath;
 protected:
     virtual bool compare(TextureDescription *other) {
@@ -84,22 +93,30 @@ protected:
         return imagePath < otherPath->imagePath;
     }
 public:
-    explicit TextureDescriptionPath(std::string const &inImagePath) {
-        imagePath = inImagePath;
-    }
+    TextureDescriptionPath(
+            std::shared_ptr<GameRequester> inGameRequester,
+            std::string const &inImagePath)
+        : TextureDescription{std::move(inGameRequester)},
+          imagePath{inImagePath}
+    {}
     virtual std::vector<char> getData(uint32_t &texWidth, uint32_t &texHeight, uint32_t &texChannels);
 };
 
 class TextureDescriptionText : public TextureDescription {
-    std::string textString;
+private:
+    std::string m_textString;
 protected:
     bool compare(TextureDescription *other) {
         auto otherPath = dynamic_cast<TextureDescriptionText*>(other);
-        return textString < otherPath->textString;
+        return m_textString < otherPath->m_textString;
     }
 public:
-    explicit TextureDescriptionText(std::string const &inTextString) {
-        textString = inTextString;
+    TextureDescriptionText(
+            std::shared_ptr<GameRequester> inGameRequester,
+            std::string const &inTextString)
+        : TextureDescription{std::move(inGameRequester)},
+          m_textString{inTextString}
+    {
     }
     virtual std::vector<char> getData(uint32_t &texWidth, uint32_t &texHeight, uint32_t &texChannels);
 };
@@ -151,7 +168,8 @@ struct UniformBufferObject {
 };
 
 void getQuad(std::vector<Vertex> &vertices, std::vector<uint32_t> &indices);
-void loadModel(std::string const & modelFile, std::vector<Vertex> &vertices, std::vector<uint32_t> &indices);
+void loadModel(std::unique_ptr<std::streambuf> const &modelStreamBuf, std::vector<Vertex> &vertices,
+        std::vector<uint32_t> &indices);
 
 int istreamRead(void *userData, char *data, int size);
 void istreamSkip(void *userData, int n);

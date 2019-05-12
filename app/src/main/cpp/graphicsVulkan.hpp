@@ -41,11 +41,11 @@
 #include <glm/gtx/transform.hpp>
 #include <map>
 
+#include "android.hpp"
 #include "graphics.hpp"
-#include "maze.hpp"
-#include "levelFinish.hpp"
-#include "levelTracker.hpp"
-#include "levelStarter.hpp"
+#include "level/levelFinish.hpp"
+#include "level/levelTracker.hpp"
+#include "level/levelStarter.hpp"
 
 namespace vulkan {
 #ifdef DEBUG
@@ -75,21 +75,12 @@ namespace vulkan {
 
     class Instance {
     public:
-        Instance(WindowType *inWindow)
+        Instance(std::shared_ptr<WindowType> inWindow)
                 : m_loader{},
-                  m_window{},
+                  m_window{std::move(inWindow)},
                   m_instance{},
                   m_callback{},
                   m_surface{} {
-            auto deleter = [](WindowType *windowRaw) {
-                /* release the java window object */
-                if (windowRaw != nullptr) {
-                    ANativeWindow_release(windowRaw);
-                }
-            };
-
-            m_window.reset(inWindow, deleter);
-
             createInstance();
             setupDebugCallback();
             createSurface();
@@ -160,6 +151,17 @@ namespace vulkan {
             std::vector<VkPresentModeKHR> presentModes;
         };
 
+        struct DeviceProperties {
+            std::string m_name;
+            std::string m_vulkanAPIVersion;
+            DeviceProperties(std::string inName, uint32_t version)
+                    :m_name{std::move(inName)},
+                     m_vulkanAPIVersion{std::to_string(VK_VERSION_MAJOR(version)) + "." +
+                                        std::to_string(VK_VERSION_MINOR(version)) + "." +
+                                        std::to_string(VK_VERSION_PATCH(version))} {
+            }
+        };
+
         Device(std::shared_ptr<Instance> const &inInstance)
                 : m_instance (inInstance),
                   m_physicalDevice{},
@@ -175,6 +177,8 @@ namespace vulkan {
                                                 VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT);
 
         }
+
+        DeviceProperties properties();
 
         uint32_t findMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties);
 
@@ -431,13 +435,14 @@ namespace vulkan {
 
         std::shared_ptr<VkShaderModule_T> m_shaderModule;
 
-        void createShaderModule(std::string const &codeFile);
+        void createShaderModule(std::shared_ptr<FileRequester> const &inRequester, std::string const &codeFile);
 
     public:
-        Shader(std::shared_ptr<Device> const &inDevice, std::string const &codeFile)
+        Shader(std::shared_ptr<FileRequester> const &inRequester,
+               std::shared_ptr<Device> const &inDevice, std::string const &codeFile)
                 : m_device(inDevice),
                   m_shaderModule{} {
-            createShaderModule(codeFile);
+            createShaderModule(inRequester, codeFile);
         }
 
         inline std::shared_ptr<VkShaderModule_T> const &shader() { return m_shaderModule; }
@@ -445,7 +450,8 @@ namespace vulkan {
 
     class Pipeline {
     public:
-        Pipeline(std::shared_ptr<SwapChain> &inSwapChain, std::shared_ptr<RenderPass> &inRenderPass,
+        Pipeline(std::shared_ptr<FileRequester> const &requester,
+                 std::shared_ptr<SwapChain> &inSwapChain, std::shared_ptr<RenderPass> &inRenderPass,
                  std::shared_ptr<DescriptorPools> &inDescriptorPools,
                  VkVertexInputBindingDescription const &bindingDescription,
                  std::vector<VkVertexInputAttributeDescription> const &attributeDescription)
@@ -455,7 +461,7 @@ namespace vulkan {
                   m_descriptorPools{inDescriptorPools},
                   m_pipelineLayout{},
                   m_pipeline{} {
-            createGraphicsPipeline(bindingDescription, attributeDescription);
+            createGraphicsPipeline(requester, bindingDescription, attributeDescription);
         }
 
         inline std::shared_ptr<VkPipeline_T> const &pipeline() { return m_pipeline; }
@@ -475,8 +481,9 @@ namespace vulkan {
         std::shared_ptr<VkPipelineLayout_T> m_pipelineLayout;
         std::shared_ptr<VkPipeline_T> m_pipeline;
 
-        void createGraphicsPipeline(VkVertexInputBindingDescription const &bindingDescription,
-                                    std::vector<VkVertexInputAttributeDescription> const &attributeDescriptions);
+        void createGraphicsPipeline(std::shared_ptr<FileRequester> const &requester,
+                VkVertexInputBindingDescription const &bindingDescription,
+                std::vector<VkVertexInputAttributeDescription> const &attributeDescriptions);
     };
 
     class CommandPool {

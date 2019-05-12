@@ -20,7 +20,8 @@
 #ifndef AMAZING_LABYRINTH_MAZE_GRAPHICS_HPP
 #define AMAZING_LABYRINTH_MAZE_GRAPHICS_HPP
 
-#include "levelTracker.hpp"
+#include "level/levelTracker.hpp"
+#include "common.hpp"
 
 class LevelSequence {
 public:
@@ -29,6 +30,13 @@ public:
     glm::vec3 lightingSource() { return m_lightingSource; }
     glm::mat4 viewLightSource() { return m_viewLightingSource; }
 
+    GameBundle saveLevelData() {
+        GameBundle saveData = m_levelTracker.saveLevelData();
+        saveData.insert(std::make_pair(KeyLevelIsAtStart, GameBundleValue(true)));
+        saveData.insert(std::make_pair(KeyVersionIdentifier, GameBundleValue(1)));
+        return saveData;
+    }
+
 protected:
     glm::mat4 m_proj;
     glm::mat4 m_view;
@@ -36,12 +44,15 @@ protected:
     glm::vec3 m_lightingSource;
     LevelTracker m_levelTracker;
 
-    LevelSequence(uint32_t level, uint32_t surfaceWidth, uint32_t surfaceHeight)
+    LevelSequence(std::shared_ptr<GameRequester> inRequester,
+            boost::optional<GameBundle> const &bundle,
+            uint32_t surfaceWidth,
+            uint32_t surfaceHeight)
             : m_proj{},
               m_view{},
               m_viewLightingSource{},
               m_lightingSource{},
-              m_levelTracker{level, getPerspectiveMatrix(surfaceWidth, surfaceHeight),
+              m_levelTracker{inRequester, bundle, getPerspectiveMatrix(surfaceWidth, surfaceHeight),
                              getViewMatrix()}
     {
         setView();
@@ -76,10 +87,21 @@ public:
 
     virtual bool updateData()=0;
 
-    virtual void recreateSwapChain()=0;
+    virtual void recreateSwapChain(uint32_t width, uint32_t height)=0;
+
+    virtual GraphicsDescription graphicsDescription() = 0;
+
+    virtual GameBundle saveLevelData() = 0;
 
     virtual void cleanupThread()=0;
 
+    explicit Graphics(std::shared_ptr<GameRequester> inRequester)
+        : m_gameRequester{std::move(inRequester)}
+    {}
+
     virtual ~Graphics() = default;
+
+protected:
+    std::shared_ptr<GameRequester> m_gameRequester;
 };
 #endif // AMAZING_LABYRINTH_MAZE_GRAPHICS_HPP

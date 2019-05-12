@@ -33,9 +33,9 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtx/transform.hpp>
 
-#include "graphics.hpp"
-#include "random.hpp"
-#include "level.hpp"
+#include "../../graphics.hpp"
+#include "../../random.hpp"
+#include "../level.hpp"
 
 class MovingQuadsLevel : public Level {
 private:
@@ -119,8 +119,8 @@ public:
     void initSetStartQuadTexture(std::string const &texture) { m_startQuadTexture = texture; }
     void initSetBallTexture(std::string const &texture) { m_ballTexture = texture; }
 
-    MovingQuadsLevel(float width, float height, float maxZ)
-            : Level(width, height, maxZ),
+    MovingQuadsLevel(std::shared_ptr<GameRequester> inGameRequester, float width, float height, float maxZ)
+            : Level(std::move(inGameRequester), width, height, maxZ),
               maxX(m_width/2),
               maxY(m_height/2),
               m_prevTime(std::chrono::high_resolution_clock::now()) { }

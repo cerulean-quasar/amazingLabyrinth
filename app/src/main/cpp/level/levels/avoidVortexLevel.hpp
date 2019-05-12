@@ -33,9 +33,9 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtx/transform.hpp>
 
-#include "graphics.hpp"
-#include "random.hpp"
-#include "level.hpp"
+#include "../../graphics.hpp"
+#include "../../random.hpp"
+#include "../level.hpp"
 
 class AvoidVortexLevel : public Level {
 private:
@@ -118,8 +118,8 @@ public:
     void initSetStartVortexTexture(std::string const &texture) { startVortexTexture = texture; }
     void initSetBallTexture(std::string const &texture) { ballTexture = texture; }
 
-    AvoidVortexLevel(float width, float height, float maxZ)
-            : Level(width, height, maxZ),
+    AvoidVortexLevel(std::shared_ptr<GameRequester> inGameRequester, float width, float height, float maxZ)
+            : Level(std::move(inGameRequester), width, height, maxZ),
               maxX(m_width/2),
               maxY(m_height/2),
               prevTime(std::chrono::high_resolution_clock::now()) { }

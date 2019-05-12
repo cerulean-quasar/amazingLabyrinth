@@ -20,7 +20,7 @@
 #include "openAreaLevel.hpp"
 
 void OpenAreaLevel::loadModels() {
-    loadModel(MODEL_BALL, ballVertices, ballIndices);
+    loadModel(m_gameRequester->getAssetStream(MODEL_BALL), ballVertices, ballIndices);
     getQuad(holeVertices, holeIndices);
 }
 
@@ -117,7 +117,7 @@ bool OpenAreaLevel::updateStaticDrawObjects(DrawObjectTable &objs, TextureMap &t
 
     holeObj->vertices = holeVertices;
     holeObj->indices = holeIndices;
-    holeObj->texture = std::make_shared<TextureDescriptionPath>(holeTexture);
+    holeObj->texture = std::make_shared<TextureDescriptionPath>(m_gameRequester, holeTexture);
     textures.insert(std::make_pair(holeObj->texture, std::shared_ptr<TextureData>()));
     holeObj->modelMatrices.push_back(modelMatrixHole);
     objs.push_back(std::make_pair(holeObj, std::shared_ptr<DrawObjectData>()));
@@ -135,7 +135,7 @@ bool OpenAreaLevel::updateDynamicDrawObjects(DrawObjectTable &objs, TextureMap &
         DrawObject *ballObj = objs[0].first.get();
         ballObj->vertices = ballVertices;
         ballObj->indices = ballIndices;
-        ballObj->texture = std::make_shared<TextureDescriptionPath>(ballTexture);
+        ballObj->texture = std::make_shared<TextureDescriptionPath>(m_gameRequester, ballTexture);
         textures.insert(std::make_pair(ballObj->texture, std::shared_ptr<TextureData>()));
         ballObj->modelMatrices.push_back(modelMatrixBall);
         texturesUpdated = true;

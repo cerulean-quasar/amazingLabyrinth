@@ -1,14 +1,31 @@
+/**
+ * Copyright 2019 Cerulean Quasar. All Rights Reserved.
+ *
+ *  This file is part of AmazingLabyrinth.
+ *
+ *  AmazingLabyrinth is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 3 of the License, or
+ *  (at your option) any later version.
+ *
+ *  AmazingLabyrinth is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with AmazingLabyrinth.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ */
+
 #include <string>
 #include <istream>
 #include <array>
 #include <unordered_map>
-#include "graphics.hpp"
-#include "native-lib.hpp"
 
 #define GLM_FORCE_RADIANS
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
 #include <glm/gtx/transform.hpp>
-
 
 #define STB_IMAGE_IMPLEMENTATION
 #include <stb_image.h>
@@ -16,8 +33,11 @@
 #define TINYOBJLOADER_IMPLEMENTATION
 #include <tiny_obj_loader.h>
 
-unsigned int const MAZE_COLS = 5;
-unsigned int const MAZE_ROWS = 5;
+#include "common.hpp"
+#include "graphics.hpp"
+
+//unsigned int const MAZE_COLS = 5;
+//unsigned int const MAZE_ROWS = 5;
 
 
 bool Vertex::operator==(const Vertex& other) const {
@@ -55,14 +75,16 @@ void getQuad(std::vector<Vertex> &vertices, std::vector<uint32_t> &indices) {
 
 }
 
-void loadModel(std::string const & modelFile, std::vector<Vertex> &vertices, std::vector<uint32_t> &indices) {
+void loadModel(
+        std::unique_ptr<std::streambuf> const &modelStreamBuf,
+        std::vector<Vertex> &vertices,
+        std::vector<uint32_t> &indices) {
     tinyobj::attrib_t attrib;
     std::vector<tinyobj::shape_t> shapes;
     std::vector<tinyobj::material_t> materials;
     std::string err;
 
-    AssetStreambuf assetStreambuf(assetWrapper->getAsset(modelFile));
-    std::istream assetIstream(&assetStreambuf);
+    std::istream assetIstream(modelStreamBuf.get());
 
     if (!tinyobj::LoadObj(&attrib, &shapes, &materials, &err, &assetIstream)) {
         throw std::runtime_error(err);
@@ -116,8 +138,8 @@ int istreamEof(void *userData) {
 
 std::vector<char> TextureDescriptionPath::getData(uint32_t &texWidth, uint32_t &texHeight,
                                                   uint32_t &texChannels) {
-    AssetStreambuf imageStreambuf(assetWrapper->getAsset(imagePath));
-    std::istream imageStream(&imageStreambuf);
+    std::unique_ptr<std::streambuf> assetbuf = m_gameRequester->getAssetStream(imagePath);
+    std::istream imageStream(assetbuf.get());
 
     int c, w, h;
 
@@ -144,5 +166,24 @@ std::vector<char> TextureDescriptionPath::getData(uint32_t &texWidth, uint32_t &
 
 std::vector<char> TextureDescriptionText::getData(uint32_t &texWidth, uint32_t &texHeight,
                                                   uint32_t &texChannels) {
-    return getTextImage(textString, texWidth, texHeight, texChannels);
+    return m_gameRequester->getTextImage(m_textString, texWidth, texHeight, texChannels);
+}
+
+std::vector<char> readFile(std::shared_ptr<FileRequester> const &requester, std::string const &filename) {
+    std::unique_ptr<std::streambuf> assetStreambuf = requester->getAssetStream(filename);
+    std::istream reader(assetStreambuf.get());
+    std::vector<char> data;
+    unsigned long const readSize = 1024;
+
+    while (!reader.eof()) {
+        unsigned long size = data.size();
+        data.resize(size + readSize);
+        long bytesRead = reader.read(data.data()+size, readSize).gcount();
+
+        if (bytesRead != readSize) {
+            data.resize(size + bytesRead);
+        }
+    }
+
+    return data;
 }

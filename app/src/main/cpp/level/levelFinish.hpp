@@ -24,16 +24,18 @@
 #include <cstdint>
 #include <vector>
 #include <list>
-#include "graphics.hpp"
-#include "random.hpp"
+#include "../graphics.hpp"
+#include "../random.hpp"
 
 class LevelFinish {
 protected:
+    std::shared_ptr<GameRequester> m_gameRequester;
     float m_maxZ;
     bool shouldUnveil;
     bool finished;
 public:
-    explicit LevelFinish(float maxZ) : m_maxZ(maxZ), shouldUnveil(false), finished(false) { }
+    LevelFinish(std::shared_ptr<GameRequester> inGameRequester, float maxZ)
+        : m_gameRequester{std::move(inGameRequester)}, m_maxZ(maxZ), shouldUnveil(false), finished(false) { }
     void unveilNewLevel() { shouldUnveil = true; finished = false; }
     bool isUnveiling() { return shouldUnveil; }
     bool isDone() { return finished; }
@@ -61,7 +63,7 @@ public:
     void initAddTexture(std::string const &inImagePath) {
         imagePaths.push_back(inImagePath);
     }
-    ManyQuadCoverUpLevelFinish(float maxZ);
+    ManyQuadCoverUpLevelFinish(std::shared_ptr<GameRequester> inGameRequester, float maxZ);
 };
 
 class GrowingQuadLevelFinish : public LevelFinish {
@@ -83,6 +85,6 @@ public:
     void initTexture(std::string const &inImagePath) {
         imagePath = inImagePath;
     }
-    GrowingQuadLevelFinish(float x, float y, float maxZ);
+    GrowingQuadLevelFinish(std::shared_ptr<GameRequester> inGameRequester, float x, float y, float maxZ);
 };
 #endif
