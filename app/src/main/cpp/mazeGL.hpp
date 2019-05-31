@@ -69,64 +69,23 @@ class LevelSequenceGL : public LevelSequence {
 public:
     LevelSequenceGL(std::shared_ptr<GameRequester> inRequester,
                     boost::optional<GameBundle> inSaveGameBundle, uint32_t width, uint32_t height)
-            : LevelSequence{inRequester, inSaveGameBundle, width, height},
-              m_levelTextures{},
-              m_levelStarterTextures{},
-              m_levelFinisherTextures{},
-              m_level{},
-              m_levelFinisher{},
-              m_levelStarter{},
-              m_levelStarterStaticObjsData{},
-              m_levelStarterDynObjsData{},
-              m_staticObjsData{},
-              m_dynObjsData{},
-              m_levelfinisherObjsData{}
+            : LevelSequence{inRequester, inSaveGameBundle, width, height, true}
     {
-        m_levelStarter = m_levelTracker.getLevelStarter();
-        m_level = m_levelTracker.getLevel(inSaveGameBundle);
-        float x, y;
-        m_level->getLevelFinisherCenter(x, y);
-        m_levelFinisher = m_levelTracker.getLevelFinisher(x, y, m_proj, m_view);
+        // Need to call these here because they call virtual functions.
+        initializeLevelData(m_levelStarter, m_levelStarterStaticObjsData,
+                            m_levelStarterDynObjsData, m_texturesLevelStarter);
+        initializeLevelData(m_level, m_staticObjsData, m_dynObjsData, m_texturesLevel);
     }
 
-    void loadTextures(TextureMap &textures);
-    void addObjects(DrawObjectTable &objsData);
-    bool updateLevelData(Level *level, DrawObjectTable &objsData, TextureMap &textures);
-    bool updateData();
-    void updateAcceleration(float x, float y, float z);
-    glm::vec4 backgroundColor() { return m_level->getBackgroundColor(); }
     void initializeLevels() {
-        initializeLevelData(m_level, m_staticObjsData, m_dynObjsData, m_levelTextures);
-        initializeLevelData(m_levelStarter, m_levelStarterStaticObjsData, m_levelStarterDynObjsData, m_levelStarterTextures);
+        initializeLevelData(m_level, m_staticObjsData, m_dynObjsData, m_texturesLevel);
+        initializeLevelData(m_levelStarter, m_levelStarterStaticObjsData, m_levelStarterDynObjsData, m_texturesLevelStarter);
     }
-    bool needFinisherObjs() { return m_level->isFinished() || m_levelFinisher->isUnveiling(); }
 
-    inline DrawObjectTable const &starterStaticObjsData() { return m_levelStarterStaticObjsData; }
-    inline DrawObjectTable const &starterDynObjsData() { return m_levelStarterDynObjsData; }
-    inline DrawObjectTable const &levelStaticObjsData() { return m_staticObjsData; }
-    inline DrawObjectTable const &levelDynObjsData() { return m_dynObjsData; }
-    inline DrawObjectTable const &finisherObjsData() { return m_levelfinisherObjsData; }
-
-    inline TextureMap const &starterTextures() { return m_levelStarterTextures; }
-    inline TextureMap const &levelTextures() { return m_levelTextures; }
-    inline TextureMap const &finisherTextures() { return m_levelFinisherTextures; }
-private:
-    TextureMap m_levelTextures;
-    TextureMap m_levelStarterTextures;
-    TextureMap m_levelFinisherTextures;
-
-    std::shared_ptr<Level> m_level;
-    std::shared_ptr<LevelFinish> m_levelFinisher;
-    std::shared_ptr<LevelStarter> m_levelStarter;
-
-    DrawObjectTable m_levelStarterStaticObjsData;
-    DrawObjectTable m_levelStarterDynObjsData;
-    DrawObjectTable m_staticObjsData;
-    DrawObjectTable m_dynObjsData;
-    DrawObjectTable m_levelfinisherObjsData;
-
-    void initializeLevelData(std::shared_ptr<Level> const &level, DrawObjectTable &staticObjsData,
-                             DrawObjectTable &dynObjsData, TextureMap &textures);
+protected:
+    std::shared_ptr<TextureData> createTexture(std::shared_ptr<TextureDescription> const &textureDescription) override;
+    std::shared_ptr<DrawObjectData> createObject(std::shared_ptr<DrawObject> const &obj, TextureMap &textures) override;
+    void updateLevelData(DrawObjectTable &objsData, TextureMap &textures) override;
 };
 
 class GraphicsGL : public Graphics {

@@ -268,7 +268,7 @@ Java_com_quasar_cerulean_amazinglabyrinth_Draw_startGame(
     std::shared_ptr<WindowType> surface(window, deleter);
 
     try {
-        GameWorker worker{surface, requester, requester->getSaveData(), true, false};
+        GameWorker worker{surface, requester, requester->getSaveData(), true, /* useLegacy */ false};
         worker.drawingLoop();
     } catch (std::runtime_error &e) {
         requester->sendError(e.what());

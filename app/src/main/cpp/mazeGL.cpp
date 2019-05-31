@@ -71,14 +71,29 @@ void TextureDataGL::createTexture(std::shared_ptr<TextureDescription> const &tex
     glGenerateMipmap(GL_TEXTURE_2D);
 }
 
-void LevelSequenceGL::updateAcceleration(float x, float y, float z) {
-    if (m_levelStarter.get() != nullptr) {
-        m_levelStarter->updateAcceleration(x, y, z);
-    } else {
-        m_level->updateAcceleration(x, y, z);
+std::shared_ptr<TextureData> LevelSequenceGL::createTexture(std::shared_ptr<TextureDescription> const &textureDescription) {
+    return std::make_shared<TextureDataGL>(textureDescription);
+}
+
+std::shared_ptr<DrawObjectData> LevelSequenceGL::createObject(std::shared_ptr<DrawObject> const &obj, TextureMap &textures) {
+    return std::make_shared<DrawObjectDataGL>(obj);
+}
+
+void LevelSequenceGL::updateLevelData(DrawObjectTable &objsData, TextureMap &textures) {
+    if (m_texturesChanged) {
+        addTextures(textures);
+    }
+
+    for (auto &&objData : objsData) {
+        DrawObjectDataGL *data = dynamic_cast<DrawObjectDataGL *> (objData.second.get());
+        if (data == nullptr) {
+            // a completely new entry
+            objData.second = createObject(objData.first, textures);
+        }
     }
 }
 
+/*
 bool LevelSequenceGL::updateData() {
     if (m_level->isFinished() || m_levelFinisher->isUnveiling()) {
         if (m_levelFinisher->isUnveiling()) {
@@ -142,19 +157,6 @@ bool LevelSequenceGL::updateData() {
     return true;
 }
 
-void LevelSequenceGL::initializeLevelData(std::shared_ptr<Level> const &level, DrawObjectTable &staticObjsData,
-                                          DrawObjectTable &dynObjsData, TextureMap &textures) {
-    dynObjsData.clear();
-    staticObjsData.clear();
-    textures.clear();
-    level->updateStaticDrawObjects(staticObjsData, textures);
-    bool texturesChanged;
-    level->updateDynamicDrawObjects(dynObjsData, textures, texturesChanged);
-    loadTextures(textures);
-    addObjects(staticObjsData);
-    addObjects(dynObjsData);
-}
-
 bool LevelSequenceGL::updateLevelData(Level *level, DrawObjectTable &objsData, TextureMap &textures) {
     bool drawingNecessary = level->updateData();
 
@@ -170,21 +172,7 @@ bool LevelSequenceGL::updateLevelData(Level *level, DrawObjectTable &objsData, T
 
     return texturesChanged;
 }
-
-void LevelSequenceGL::addObjects(DrawObjectTable &objsData) {
-    for (auto &&obj : objsData) {
-        obj.second.reset(new DrawObjectDataGL(obj.first));
-    }
-}
-
-// load the textures
-void LevelSequenceGL::loadTextures(TextureMap &textures) {
-    for (TextureMap::iterator it = textures.begin(); it != textures.end(); it++) {
-        if (it->second.get() == nullptr) {
-            it->second.reset(new TextureDataGL{it->first});
-        }
-    }
-}
+*/
 
 void GraphicsGL::initPipeline() {
     glViewport(0, 0, m_surface.width(), m_surface.height());
@@ -293,6 +281,10 @@ void GraphicsGL::drawFrame() {
     glCullFace(GL_BACK);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
+    // The clear background color
+    glm::vec4 bgColor = m_levelSequence.backgroundColor();
+    glClearColor(bgColor.r, bgColor.g, bgColor.b, bgColor.a);
+
     glm::mat4 proj = m_levelSequence.projectionMatrix();
     glm::mat4 view = m_levelSequence.viewMatrix();
 
@@ -324,14 +316,14 @@ void GraphicsGL::drawFrame() {
 }
 
 void GraphicsGL::drawObjects(DrawObjectTable const &objsData, TextureMap const &textures) {
-    for (auto&& obj : objsData) {
+    for (auto const& obj : objsData) {
         DrawObjectDataGL *data = static_cast<DrawObjectDataGL*> (obj.second.get());
-        TextureMap::const_iterator it = textures.find(obj.first->texture);
+        auto it = textures.find(obj.first->texture);
         if (it == textures.end()) {
             throw (std::runtime_error("Could not find texture!"));
         }
         TextureDataGL const *texture = static_cast<TextureDataGL const *> (it->second.get());
-        for (auto &&model : obj.first->modelMatrices) {
+        for (auto const &model : obj.first->modelMatrices) {
             drawObject(programID, true, data->vertexBuffer(), data->indexBuffer(),
                        obj.first->indices.size(), texture->handle(), model);
         }

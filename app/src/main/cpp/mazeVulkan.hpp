@@ -144,11 +144,11 @@ public:
                      glm::mat4 const &proj, glm::mat4 const &view, TextureMap &textures);
     void update(std::shared_ptr<DrawObject> const &obj,
                 glm::mat4 const &proj, glm::mat4 const &view, TextureMap &textures);
+    inline void clearUniforms() { m_uniforms.clear(); }
 
     inline vulkan::Buffer const &vertexBuffer() { return m_vertexBuffer; }
     inline vulkan::Buffer const &indexBuffer() { return m_indexBuffer; }
     inline std::vector<std::shared_ptr<UniformWrapper>> const &uniforms() { return m_uniforms; }
-    inline void clearUniforms() { m_uniforms.clear(); }
 private:
     std::shared_ptr<vulkan::Device> m_device;
     std::shared_ptr<vulkan::CommandPool> m_commandPool;
@@ -180,85 +180,35 @@ public:
                         std::shared_ptr<vulkan::DescriptorPools> const &inDescriptorPools,
                         uint32_t width,
                         uint32_t height)
-            :LevelSequence{inRequester, inGameSaveData, width, height},
+            :LevelSequence{inRequester, inGameSaveData, width, height, false},
              m_device{inDevice},
              m_commandPool{inPool},
              m_descriptorPools{inDescriptorPools},
-             m_texturesLevel{},
-             m_texturesLevelStarter{},
-             m_texturesLevelFinisher{},
-             m_texturesChanged{false},
-             m_uniformBufferLighting{UniformWrapper::createUniformBuffer(inDevice, sizeof (glm::vec3))},
-             m_staticObjsData{},
-             m_dynObjsData{},
-             m_levelFinisherObjsData{},
-             m_levelStarterStaticObjsData{},
-             m_levelStarterDynObjsData{},
-             m_level{},
-             m_levelFinisher{},
-             m_levelStarter{}
+             m_uniformBufferLighting{UniformWrapper::createUniformBuffer(inDevice, sizeof (glm::vec3))}
     {
-        /* updatePerspectiveMatrix is called by the LevelSequence constructor, but we need to
-         * call it here too, since we have our own special version of it.
-         */
-        updatePerspectiveMatrix(width, height);
-
-        m_level = m_levelTracker.getLevel(inGameSaveData);
-        m_levelStarter = m_levelTracker.getLevelStarter();
-        float x, y;
-        m_level->getLevelFinisherCenter(x, y);
-        m_levelFinisher = m_levelTracker.getLevelFinisher(x, y, m_proj, m_view);
-
         glm::vec3 lightingVector = lightingSource();
         m_uniformBufferLighting->copyRawTo(&lightingVector, sizeof (lightingVector));
 
+        // Need to call these here because they call virtual functions.
         initializeLevelData(m_levelStarter, m_levelStarterStaticObjsData,
                             m_levelStarterDynObjsData, m_texturesLevelStarter);
         initializeLevelData(m_level, m_staticObjsData, m_dynObjsData, m_texturesLevel);
     }
 
-    bool updateData();
-    void updateAcceleration(float x, float y, float z);
-    glm::vec4 backgroundColor() { return m_level->getBackgroundColor(); }
-    bool needFinisherObjs() { return m_level->isFinished() || m_levelFinisher->isUnveiling(); }
     inline bool needsInitializeCommandBuffers() { return m_level->isFinished() ||
                                                          m_levelFinisher->isUnveiling() || m_texturesChanged; }
     inline void doneInitializingCommandBuffers() { m_texturesChanged = false; }
 
-    inline DrawObjectTable const &levelStaticObjsData() { return m_staticObjsData; }
-    inline DrawObjectTable const &levelDynObjsData() { return m_dynObjsData; }
-    inline DrawObjectTable const &finisherObjsData() { return m_levelFinisherObjsData; }
-    inline DrawObjectTable const &starterStaticObjsData() { return m_levelStarterStaticObjsData; }
-    inline DrawObjectTable const &starterDynObjsData() { return m_levelStarterDynObjsData; }
+protected:
+    std::shared_ptr<TextureData> createTexture(std::shared_ptr<TextureDescription> const &textureDescription) override;
+    std::shared_ptr<DrawObjectData> createObject(std::shared_ptr<DrawObject> const &obj, TextureMap &textures) override;
+    void updateLevelData(DrawObjectTable &objsData, TextureMap &textures) override;
+
 private:
     std::shared_ptr<vulkan::Device> m_device;
     std::shared_ptr<vulkan::CommandPool> m_commandPool;
     std::shared_ptr<vulkan::DescriptorPools> m_descriptorPools;
-    TextureMap m_texturesLevel;
-    TextureMap m_texturesLevelStarter;
-    TextureMap m_texturesLevelFinisher;
-    bool m_texturesChanged;
-
     std::shared_ptr<vulkan::Buffer> m_uniformBufferLighting;
-
-    DrawObjectTable m_staticObjsData;
-    DrawObjectTable m_dynObjsData;
-    DrawObjectTable m_levelFinisherObjsData;
-    DrawObjectTable m_levelStarterStaticObjsData;
-    DrawObjectTable m_levelStarterDynObjsData;
-
-    std::shared_ptr<Level> m_level;
-    std::shared_ptr<LevelFinish> m_levelFinisher;
-    std::shared_ptr<LevelStarter> m_levelStarter;
-
-    virtual void updatePerspectiveMatrix(uint32_t surfaceWidth, uint32_t surfaceHeight);
-
-    void initializeLevelData(std::shared_ptr<Level> const &level, DrawObjectTable &staticObjsData,
-                             DrawObjectTable &dynObjsData, TextureMap &textures);
-    void updateLevelData(DrawObjectTable &objsData, TextureMap &textures);
-    void addTextures(TextureMap &textures);
-    void addObjects(DrawObjectTable &objs, TextureMap &textures);
-    void addObject(DrawObjectEntry &obj, TextureMap &textures);
 };
 
 class GraphicsVulkan : public Graphics {
