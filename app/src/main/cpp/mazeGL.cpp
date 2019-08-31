@@ -178,13 +178,13 @@ void GraphicsGL::initPipeline() {
     glViewport(0, 0, m_surface.width(), m_surface.height());
 
     // The clear background color
-    glm::vec4 bgColor = m_levelSequence.backgroundColor();
+    glm::vec4 bgColor = m_levelSequence->backgroundColor();
     glClearColor(bgColor.r, bgColor.g, bgColor.b, bgColor.a);
 
     programID = loadShaders(SHADER_VERT_FILE, SHADER_FRAG_FILE);
     depthProgramID = loadShaders(DEPTH_VERT_FILE, DEPTH_FRAG_FILE);
 
-    m_levelSequence.initializeLevels();
+// TODO: can remove?    m_levelSequence->initializeLevels();
 
     // for shadow mapping.
     glGenFramebuffers(1, &depthMapFBO);
@@ -245,8 +245,8 @@ void GraphicsGL::createDepthTexture() {
     glCullFace(GL_FRONT);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-    glm::mat4 proj = m_levelSequence.projectionMatrix();
-    glm::mat4 view = m_levelSequence.viewMatrix();
+    glm::mat4 proj = m_levelSequence->projectionMatrix();
+    glm::mat4 view = m_levelSequence->viewMatrix();
 
     GLint MatrixID;
     MatrixID = glGetUniformLocation(depthProgramID, "view");
@@ -254,7 +254,7 @@ void GraphicsGL::createDepthTexture() {
     MatrixID = glGetUniformLocation(depthProgramID, "proj");
     glUniformMatrix4fv(MatrixID, 1, GL_FALSE, &proj[0][0]);
 
-    for (auto &&obj : m_levelSequence.levelStaticObjsData()) {
+    for (auto &&obj : m_levelSequence->levelStaticObjsData()) {
         for (auto &&model : obj.first->modelMatrices) {
             DrawObjectDataGL *data = dynamic_cast<DrawObjectDataGL*> (obj.second.get());
             drawObject(depthProgramID, false, data->vertexBuffer(), data->indexBuffer(),
@@ -262,7 +262,7 @@ void GraphicsGL::createDepthTexture() {
         }
     }
 
-    for (auto &&obj : m_levelSequence.levelDynObjsData()) {
+    for (auto &&obj : m_levelSequence->levelDynObjsData()) {
         for (auto &&model : obj.first->modelMatrices) {
             DrawObjectDataGL *data = dynamic_cast<DrawObjectDataGL*> (obj.second.get());
             drawObject(depthProgramID, false, data->vertexBuffer(), data->indexBuffer(),
@@ -282,13 +282,13 @@ void GraphicsGL::drawFrame() {
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     // The clear background color
-    glm::vec4 bgColor = m_levelSequence.backgroundColor();
+    glm::vec4 bgColor = m_levelSequence->backgroundColor();
     glClearColor(bgColor.r, bgColor.g, bgColor.b, bgColor.a);
 
-    glm::mat4 proj = m_levelSequence.projectionMatrix();
-    glm::mat4 view = m_levelSequence.viewMatrix();
+    glm::mat4 proj = m_levelSequence->projectionMatrix();
+    glm::mat4 view = m_levelSequence->viewMatrix();
 
-    glm::mat4 lightSpaceMatrix = proj * m_levelSequence.viewLightSource();
+    glm::mat4 lightSpaceMatrix = proj * m_levelSequence->viewLightSource();
     GLint MatrixID;
     MatrixID = glGetUniformLocation(programID, "view");
     glUniformMatrix4fv(MatrixID, 1, GL_FALSE, &view[0][0]);
@@ -298,19 +298,19 @@ void GraphicsGL::drawFrame() {
     glUniformMatrix4fv(MatrixID, 1, GL_FALSE, &lightSpaceMatrix[0][0]);
 
     GLint lightPosID = glGetUniformLocation(programID, "lightPos");
-    glm::vec3 lightPos = m_levelSequence.lightingSource();
+    glm::vec3 lightPos = m_levelSequence->lightingSource();
     glUniform3fv(lightPosID, 1, &lightPos[0]);
 
     GLint textureID = glGetUniformLocation(programID, "texShadowMap");
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, depthMap);
     glUniform1i(textureID, 0);
-    drawObjects(m_levelSequence.levelStaticObjsData(), m_levelSequence.levelTextures());
-    drawObjects(m_levelSequence.levelDynObjsData(), m_levelSequence.levelTextures());
-    drawObjects(m_levelSequence.starterStaticObjsData(), m_levelSequence.starterTextures());
-    drawObjects(m_levelSequence.starterDynObjsData(), m_levelSequence.starterTextures());
-    if (m_levelSequence.needFinisherObjs()) {
-        drawObjects(m_levelSequence.finisherObjsData(), m_levelSequence.finisherTextures());
+    drawObjects(m_levelSequence->levelStaticObjsData(), m_levelSequence->levelTextures());
+    drawObjects(m_levelSequence->levelDynObjsData(), m_levelSequence->levelTextures());
+    drawObjects(m_levelSequence->starterStaticObjsData(), m_levelSequence->starterTextures());
+    drawObjects(m_levelSequence->starterDynObjsData(), m_levelSequence->starterTextures());
+    if (m_levelSequence->needFinisherObjs()) {
+        drawObjects(m_levelSequence->finisherObjsData(), m_levelSequence->finisherTextures());
     }
     eglSwapBuffers(m_surface.display(), m_surface.surface());
 }

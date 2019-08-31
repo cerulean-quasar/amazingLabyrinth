@@ -72,14 +72,11 @@ public:
             : LevelSequence{inRequester, inSaveGameBundle, width, height, true}
     {
         // Need to call these here because they call virtual functions.
-        initializeLevelData(m_levelStarter, m_levelStarterStaticObjsData,
-                            m_levelStarterDynObjsData, m_texturesLevelStarter);
+        if (! m_levelStarter->isFinished()) {
+            initializeLevelData(m_levelStarter, m_levelStarterStaticObjsData,
+                                m_levelStarterDynObjsData, m_texturesLevelStarter);
+        }
         initializeLevelData(m_level, m_staticObjsData, m_dynObjsData, m_texturesLevel);
-    }
-
-    void initializeLevels() {
-        initializeLevelData(m_level, m_staticObjsData, m_dynObjsData, m_texturesLevel);
-        initializeLevelData(m_levelStarter, m_levelStarterStaticObjsData, m_levelStarterDynObjsData, m_texturesLevelStarter);
     }
 
 protected:
@@ -99,10 +96,10 @@ public:
               depthProgramID{},
               depthMapFBO{},
               depthMap{},
-              colorImage{},
-              m_levelSequence{m_gameRequester, inBundle, static_cast<uint32_t>(m_surface.width()),
-                              static_cast<uint32_t >(m_surface.height())}
+              colorImage{}
     {
+        m_levelSequence = std::make_shared<LevelSequenceGL>(m_gameRequester, inBundle, static_cast<uint32_t>(m_surface.width()),
+                        static_cast<uint32_t >(m_surface.height()));
         initPipeline();
     }
 
@@ -110,13 +107,9 @@ public:
 
     virtual void cleanupThread() { m_surface.cleanupThread(); }
 
-    virtual bool updateData() { return m_levelSequence.updateData(); }
+    virtual bool updateData() { return m_levelSequence->updateData(); }
 
     virtual void drawFrame();
-
-    virtual void updateAcceleration(float x, float y, float z) {
-        m_levelSequence.updateAcceleration(x, y, z);
-    }
 
     virtual void destroyWindow() {}
 
@@ -124,10 +117,6 @@ public:
 
     virtual GraphicsDescription graphicsDescription() {
         return GraphicsDescription{"OpenGLES", "", ""};
-    }
-
-    virtual GameBundle saveLevelData() {
-        return m_levelSequence.saveLevelData();
     }
 
     virtual ~GraphicsGL() {
@@ -145,8 +134,6 @@ private:
     GLuint depthMapFBO;
     GLuint depthMap;
     GLuint colorImage;
-
-    LevelSequenceGL m_levelSequence;
 
     GLuint loadShaders(std::string const &vertexShaderFile, std::string const &fragmentShaderFile);
     void initPipeline();

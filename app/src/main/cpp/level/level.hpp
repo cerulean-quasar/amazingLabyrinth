@@ -47,6 +47,8 @@ public:
         y = 0.0f;
     }
 
+    virtual void saveLevelData(GameBundle &saveData) {/*TODO: remove implementation? */};
+
     Level(std::shared_ptr<GameRequester> inGameRequester, float width, float height, float maxZ)
             : m_gameRequester{std::move(inGameRequester)},
               m_finished(false),

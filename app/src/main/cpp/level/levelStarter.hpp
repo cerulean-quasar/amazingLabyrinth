@@ -31,6 +31,8 @@
 #include <glm/gtx/transform.hpp>
 
 #include "../graphics.hpp"
+#include "../common.hpp"
+#include <boost/optional.hpp>
 #include "level.hpp"
 
 class LevelStarter : public Level {
@@ -76,7 +78,8 @@ private:
     } ball;
 
 public:
-    LevelStarter(std::shared_ptr<GameRequester> inGameRequester, float width, float height, float maxZ)
+    LevelStarter(std::shared_ptr<GameRequester> inGameRequester,
+            boost::optional<GameBundle> const &inGameSaveData, float width, float height, float maxZ)
             : Level(std::move(inGameRequester), width, height, maxZ),
               scale(10.0f),
               maxPosX(m_width/2-m_width/2/scale),
@@ -100,6 +103,14 @@ public:
         ball.velocity = {0.0f, 0.0f, 0.0f};
         ball.acceleration = {0.0f, 0.0f, 0.0f};
         ball.totalRotated = glm::quat();
+
+        if (inGameSaveData) {
+            auto levelStateIt = inGameSaveData->find(KeyLevelIsAtStart);
+            if (levelStateIt != inGameSaveData->end()) {
+                m_finished = ! boost::get<bool>(levelStateIt->second);
+            }
+        }
+
     }
 
     void clearText();
@@ -108,17 +119,21 @@ public:
     bool isInSideCorridor();
     void confineBall();
 
-    virtual void init() {}
+    void saveLevelData(GameBundle &saveData) override {
+        saveData.insert(std::make_pair(KeyLevelIsAtStart, GameBundleValue(true)));
+    }
 
-    virtual glm::vec4 getBackgroundColor() { return glm::vec4(0.0f, 0.0f, 0.0f, 0.0f); }
+    void init() override {}
 
-    virtual void updateAcceleration(float x, float y, float z) {
+    glm::vec4 getBackgroundColor() override { return glm::vec4(0.0f, 0.0f, 0.0f, 0.0f); }
+
+    void updateAcceleration(float x, float y, float z) override {
         ball.acceleration = {-x, -y, 0.0f};
     }
-    virtual bool updateData();
-    virtual bool updateStaticDrawObjects(DrawObjectTable &objs, TextureMap &textures);
-    virtual bool updateDynamicDrawObjects(DrawObjectTable &objs, TextureMap &textures, bool &texturesChanged);
-    virtual void start() {
+    bool updateData() override;
+    bool updateStaticDrawObjects(DrawObjectTable &objs, TextureMap &textures) override;
+    bool updateDynamicDrawObjects(DrawObjectTable &objs, TextureMap &textures, bool &texturesChanged) override;
+    void start() override {
         prevTime = std::chrono::high_resolution_clock::now();
     }
 };

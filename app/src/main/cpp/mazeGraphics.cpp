@@ -102,7 +102,7 @@ bool LevelSequence::updateData() {
 
                 m_levelTracker.gotoNextLevel();
 
-                m_levelStarter = m_levelTracker.getLevelStarter();
+                m_levelStarter = m_levelTracker.getLevelStarter(boost::none);
                 initializeLevelData(m_levelStarter, m_levelStarterStaticObjsData,
                                     m_levelStarterDynObjsData, m_texturesLevelStarter);
 

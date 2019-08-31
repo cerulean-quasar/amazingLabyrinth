@@ -33,7 +33,8 @@ typedef std::shared_ptr<LevelFinish> (*getLevelFinisher)(
         std::shared_ptr<GameRequester> inGameRequester,
         float centerX, float centerY, float maxZ);
 typedef std::shared_ptr<LevelStarter> (*getLevelStarter)(
-        std::shared_ptr<GameRequester> inGameRequester, float width, float height, float maxZ);
+        std::shared_ptr<GameRequester> inGameRequester, boost::optional<GameBundle> const &saveData,
+        float width, float height, float maxZ);
 
 struct LevelEntry {
     getLevelStarter starter;
@@ -52,7 +53,7 @@ public:
     static float constexpr m_maxZLevelFinisher = 1.0f;
 
     std::pair<float, float> getWidthHeight(float maxZ, glm::mat4 const &proj, glm::mat4 const &view);
-    std::shared_ptr<LevelStarter> getLevelStarter();
+    std::shared_ptr<LevelStarter> getLevelStarter(boost::optional<GameBundle> const &saveData);
     std::shared_ptr<Level> getLevel(boost::optional<GameBundle> const &saveData);
     std::shared_ptr<LevelFinish> getLevelFinisher(float centerX, float centerY,
                                                   glm::mat4 const &proj, glm::mat4 const &view);
@@ -64,11 +65,9 @@ public:
         return GameBundleSchema{};
     }
 
-    GameBundle saveLevelData() {
-        GameBundle saveData;
+    void saveLevelData(GameBundle &saveData) {
         saveData.insert(std::make_pair(KeyLevelIdentifier,
                 GameBundleValue(s_levelTable[m_currentLevel].levelName)));
-        return saveData;
     }
 
     LevelTracker(
@@ -90,8 +89,9 @@ public:
         if (saveData) {
             auto levelNameIt = saveData->find(KeyLevelIdentifier);
             if (levelNameIt != saveData->end()) {
+                std::string levelName(boost::get<std::string>(levelNameIt->second));
                 for (uint32_t i = 0; i < s_levelTable.size(); i++) {
-                    if (boost::get<std::string>(levelNameIt->second) == s_levelTable[i].levelName) {
+                    if (levelName == s_levelTable[i].levelName) {
                         m_currentLevel = i;
                         break;
                     }

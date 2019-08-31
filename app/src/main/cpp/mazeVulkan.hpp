@@ -190,8 +190,10 @@ public:
         m_uniformBufferLighting->copyRawTo(&lightingVector, sizeof (lightingVector));
 
         // Need to call these here because they call virtual functions.
-        initializeLevelData(m_levelStarter, m_levelStarterStaticObjsData,
-                            m_levelStarterDynObjsData, m_texturesLevelStarter);
+        if (! m_levelStarter->isFinished()) {
+            initializeLevelData(m_levelStarter, m_levelStarterStaticObjsData,
+                                m_levelStarterDynObjsData, m_texturesLevelStarter);
+        }
         initializeLevelData(m_level, m_staticObjsData, m_dynObjsData, m_texturesLevel);
     }
 
@@ -226,14 +228,15 @@ public:
               m_graphicsPipeline{new vulkan::Pipeline{m_gameRequester, m_swapChain, m_renderPass, m_descriptorPools,
                                                       getBindingDescription(), getAttributeDescriptions()}},
               m_commandPool{new vulkan::CommandPool{m_device}},
-              m_levelSequence{m_gameRequester, inBundle, m_device, m_commandPool, m_descriptorPools,
-                              m_swapChain->extent().width, m_swapChain->extent().height},
               m_depthImageView{new vulkan::ImageView{vulkan::ImageFactory::createDepthImage(m_swapChain),
                                                      m_device->depthFormat(), VK_IMAGE_ASPECT_DEPTH_BIT}},
               m_swapChainCommands{new vulkan::SwapChainCommands{m_swapChain, m_commandPool, m_renderPass, m_depthImageView}},
               m_imageAvailableSemaphore{m_device},
               m_renderFinishedSemaphore{m_device}
     {
+        m_levelSequence = std::make_shared<LevelSequenceVulkan>(m_gameRequester, inBundle, m_device, m_commandPool, m_descriptorPools,
+                        m_swapChain->extent().width, m_swapChain->extent().height);
+
         prepareDepthResources();
 
         initializeCommandBuffers();
@@ -243,9 +246,7 @@ public:
 
     virtual void cleanupThread() { }
 
-    virtual bool updateData() { return m_levelSequence.updateData(); }
-
-    virtual void updateAcceleration(float x, float y, float z);
+    virtual bool updateData() { return m_levelSequence->updateData(); }
 
     virtual void drawFrame();
 
@@ -256,10 +257,6 @@ public:
         return GraphicsDescription{std::string{"Vulkan"},
                 std::move(devGraphicsDescription.m_vulkanAPIVersion),
                 std::move(devGraphicsDescription.m_name)};
-    }
-
-    virtual GameBundle saveLevelData() {
-        return m_levelSequence.saveLevelData();
     }
 
     virtual ~GraphicsVulkan() { }
@@ -274,8 +271,6 @@ private:
     std::shared_ptr<vulkan::DescriptorPools> m_descriptorPools;
     std::shared_ptr<vulkan::Pipeline> m_graphicsPipeline;
     std::shared_ptr<vulkan::CommandPool> m_commandPool;
-
-    LevelSequenceVulkan m_levelSequence;
 
     /* depth buffer image */
     std::shared_ptr<vulkan::ImageView> m_depthImageView;

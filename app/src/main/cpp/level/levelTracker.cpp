@@ -31,56 +31,56 @@ float constexpr LevelTracker::m_maxZLevel;
 float constexpr LevelTracker::m_maxZLevelFinisher;
 
 std::shared_ptr<LevelStarter> getLevelStarterBeginning(std::shared_ptr<GameRequester> inGameRequester,
-        float width, float height, float maxZ) {
-    std::shared_ptr<LevelStarter> levelStarter(new LevelStarter(std::move(inGameRequester), width, height, maxZ));
+        boost::optional<GameBundle> const &saveData, float width, float height, float maxZ) {
+    std::shared_ptr<LevelStarter> levelStarter(new LevelStarter(std::move(inGameRequester), saveData, width, height, maxZ));
     levelStarter->addTextString("In the\nbeginning of\nthe universe\nof mazes...");
     levelStarter->addTextString("...there was nothing\nexcept for\na ball and\na strange\nspacial anomaly.");
     return levelStarter;
 }
 
 std::shared_ptr<LevelStarter> getLevelStarterIcePlanet(std::shared_ptr<GameRequester> inGameRequester,
-        float width, float height, float maxZ) {
-    std::shared_ptr<LevelStarter> levelStarter(new LevelStarter(std::move(inGameRequester), width, height, maxZ));
+        boost::optional<GameBundle> const &saveData, float width, float height, float maxZ) {
+    std::shared_ptr<LevelStarter> levelStarter(new LevelStarter(std::move(inGameRequester), saveData, width, height, maxZ));
     levelStarter->addTextString("Now the maze\nuniverse is\nfilled with stars\nand black holes...");
     levelStarter->addTextString("...and a lonely\nice planet seeks\nout the warmth\nof a star.");
     return levelStarter;
 }
 
 std::shared_ptr<LevelStarter> getLevelStarterPufferFish(std::shared_ptr<GameRequester> inGameRequester,
-        float width, float height, float maxZ) {
-    std::shared_ptr<LevelStarter> levelStarter(new LevelStarter(std::move(inGameRequester), width, height, maxZ));
+        boost::optional<GameBundle> const &saveData, float width, float height, float maxZ) {
+    std::shared_ptr<LevelStarter> levelStarter(new LevelStarter(std::move(inGameRequester), saveData, width, height, maxZ));
     levelStarter->addTextString("On the planet,\nthe ice begins\nto melt\nand life ignites...");
     levelStarter->addTextString("...here, a puffer\nfish is looking\nfor a kelp meal.");
     return levelStarter;
 }
 
 std::shared_ptr<LevelStarter> getLevelStarterRolarBear(std::shared_ptr<GameRequester> inGameRequester,
-        float width, float height, float maxZ) {
-    std::shared_ptr<LevelStarter> levelStarter(new LevelStarter(std::move(inGameRequester), width, height, maxZ));
+        boost::optional<GameBundle> const &saveData, float width, float height, float maxZ) {
+    std::shared_ptr<LevelStarter> levelStarter(new LevelStarter(std::move(inGameRequester), saveData, width, height, maxZ));
     levelStarter->addTextString("As the ice\nplanet warms\nand the ice\nmelts...");
     levelStarter->addTextString("...an over hot\nrolar bear\nyearns for\nthe cold of the\nnorth pole.");
     return levelStarter;
 }
 
 std::shared_ptr<LevelStarter> getLevelStarterBee1(std::shared_ptr<GameRequester> inGameRequester,
-        float width, float height, float maxZ) {
-    std::shared_ptr<LevelStarter> levelStarter(new LevelStarter(std::move(inGameRequester), width, height, maxZ));
+        boost::optional<GameBundle> const &saveData, float width, float height, float maxZ) {
+    std::shared_ptr<LevelStarter> levelStarter(new LevelStarter(std::move(inGameRequester), saveData, width, height, maxZ));
     levelStarter->addTextString("Next comes an age\nwhen flowers\ncovered\nthe planet...");
     levelStarter->addTextString("...and one roller\nbee seeks out\nthe nectar\nof a large flower.");
     return levelStarter;
 }
 
 std::shared_ptr<LevelStarter> getLevelStarterBee2(std::shared_ptr<GameRequester> inGameRequester,
-        float width, float height, float maxZ) {
-    std::shared_ptr<LevelStarter> levelStarter(new LevelStarter(std::move(inGameRequester), width, height, maxZ));
+        boost::optional<GameBundle> const &saveData, float width, float height, float maxZ) {
+    std::shared_ptr<LevelStarter> levelStarter(new LevelStarter(std::move(inGameRequester), saveData, width, height, maxZ));
     levelStarter->addTextString("The plants have\nbecome more\nnumerous\nand the\nroller bee...");
     levelStarter->addTextString("...has to search\nlong and hard\nfor the\nlarge flower.");
     return levelStarter;
 }
 
 std::shared_ptr<LevelStarter> getLevelStarterCat(std::shared_ptr<GameRequester> inGameRequester,
-        float width, float height, float maxZ) {
-    std::shared_ptr<LevelStarter> levelStarter(new LevelStarter(std::move(inGameRequester), width, height, maxZ));
+        boost::optional<GameBundle> const &saveData, float width, float height, float maxZ) {
+    std::shared_ptr<LevelStarter> levelStarter(new LevelStarter(std::move(inGameRequester), saveData, width, height, maxZ));
     levelStarter->addTextString("In the jungle,\na mother cat...");
     levelStarter->addTextString("...searches\nfor her\nlost kittens.");
     return levelStarter;
@@ -277,8 +277,8 @@ void LevelTracker::gotoNextLevel() {
     m_currentLevel = (m_currentLevel + 1) % s_levelTable.size();
 }
 
-std::shared_ptr<LevelStarter> LevelTracker::getLevelStarter() {
-    return s_levelTable[m_currentLevel].starter(m_gameRequester, m_widthLevelStarter,
+std::shared_ptr<LevelStarter> LevelTracker::getLevelStarter(boost::optional<GameBundle> const &saveData) {
+    return s_levelTable[m_currentLevel].starter(m_gameRequester, saveData, m_widthLevelStarter,
             m_heightLevelStarter, m_maxZLevelStarter);
 }
 

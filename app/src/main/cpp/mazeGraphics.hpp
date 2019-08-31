@@ -43,8 +43,11 @@ public:
     bool needFinisherObjs() { return m_level->isFinished() || m_levelFinisher->isUnveiling(); }
 
     GameBundle saveLevelData() {
-        GameBundle saveData = m_levelTracker.saveLevelData();
-        saveData.insert(std::make_pair(KeyLevelIsAtStart, GameBundleValue(true)));
+        GameBundle saveData;
+        m_levelTracker.saveLevelData(saveData);
+        if (m_levelStarter != nullptr) {
+            m_levelStarter->saveLevelData(saveData);
+        }
         saveData.insert(std::make_pair(KeyVersionIdentifier, GameBundleValue(1)));
         return saveData;
     }
@@ -84,7 +87,7 @@ public:
         setViewLightingSource();
 
         m_level = m_levelTracker.getLevel(inGameSaveData);
-        m_levelStarter = m_levelTracker.getLevelStarter();
+        m_levelStarter = m_levelTracker.getLevelStarter(inGameSaveData);
         float x, y;
         m_level->getLevelFinisherCenter(x, y);
         m_levelFinisher = m_levelTracker.getLevelFinisher(x, y, getPerspectiveMatrix(surfaceWidth, surfaceHeight), m_view);
@@ -124,6 +127,11 @@ protected:
     void addTextures(TextureMap &textures);
     void initializeLevelData(std::shared_ptr<Level> const &level, DrawObjectTable &staticObjsData,
                              DrawObjectTable &dynObjsData, TextureMap &textures);
+    /* TODO: can remove?
+    void initializeLevels() {
+        initializeLevelData(m_level, m_staticObjsData, m_dynObjsData, m_texturesLevel);
+        initializeLevelData(m_levelStarter, m_levelStarterStaticObjsData, m_levelStarterDynObjsData, m_texturesLevelStarter);
+    }*/
 
     virtual std::shared_ptr<TextureData> createTexture(std::shared_ptr<TextureDescription> const &textureDescription) = 0;
     virtual std::shared_ptr<DrawObjectData> createObject(std::shared_ptr<DrawObject> const &obj, TextureMap &textures) = 0;
@@ -145,7 +153,9 @@ class Graphics {
 public:
     virtual void initThread()=0;
 
-    virtual void updateAcceleration(float x, float y, float z)=0;
+    void updateAcceleration(float x, float y, float z) {
+        m_levelSequence->updateAcceleration(x, y, z);
+    }
 
     virtual void drawFrame()=0;
 
@@ -155,17 +165,21 @@ public:
 
     virtual GraphicsDescription graphicsDescription() = 0;
 
-    virtual GameBundle saveLevelData() = 0;
+    GameBundle saveLevelData() {
+        return m_levelSequence->saveLevelData();
+    }
 
     virtual void cleanupThread()=0;
 
     explicit Graphics(std::shared_ptr<GameRequester> inRequester)
-        : m_gameRequester{std::move(inRequester)}
+        : m_gameRequester{std::move(inRequester)},
+        m_levelSequence{}
     {}
 
     virtual ~Graphics() = default;
 
 protected:
     std::shared_ptr<GameRequester> m_gameRequester;
+    std::shared_ptr<LevelSequence> m_levelSequence;
 };
 #endif // AMAZING_LABYRINTH_MAZE_GRAPHICS_HPP

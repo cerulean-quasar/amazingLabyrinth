@@ -332,7 +332,7 @@ void GraphicsVulkan::initializeCommandBuffer(size_t index) {
      * using black with 0% opacity
      */
     std::array<VkClearValue, 2> clearValues = {};
-    glm::vec4 bgColor = m_levelSequence.backgroundColor();
+    glm::vec4 bgColor = m_levelSequence->backgroundColor();
     clearValues[0].color = {bgColor.r, bgColor.g, bgColor.b, bgColor.a};
     clearValues[1].depthStencil = {1.0, 0};
     renderPassInfo.clearValueCount = static_cast<uint32_t>(clearValues.size());
@@ -350,18 +350,18 @@ void GraphicsVulkan::initializeCommandBuffer(size_t index) {
     vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_graphicsPipeline->pipeline().get());
 
     // the objects that stay static.
-    initializeCommandBufferDrawObjects(commandBuffer, m_levelSequence.levelStaticObjsData());
+    initializeCommandBufferDrawObjects(commandBuffer, m_levelSequence->levelStaticObjsData());
 
     // the objects that move.
-    initializeCommandBufferDrawObjects(commandBuffer, m_levelSequence.levelDynObjsData());
+    initializeCommandBufferDrawObjects(commandBuffer, m_levelSequence->levelDynObjsData());
 
     // the level starter
-    initializeCommandBufferDrawObjects(commandBuffer, m_levelSequence.starterStaticObjsData());
-    initializeCommandBufferDrawObjects(commandBuffer, m_levelSequence.starterDynObjsData());
+    initializeCommandBufferDrawObjects(commandBuffer, m_levelSequence->starterStaticObjsData());
+    initializeCommandBufferDrawObjects(commandBuffer, m_levelSequence->starterDynObjsData());
 
     // the level finisher objects.
-    if (m_levelSequence.needFinisherObjs()) {
-        initializeCommandBufferDrawObjects(commandBuffer, m_levelSequence.finisherObjsData());
+    if (m_levelSequence->needFinisherObjs()) {
+        initializeCommandBufferDrawObjects(commandBuffer, m_levelSequence->finisherObjsData());
     }
 
     vkCmdEndRenderPass(commandBuffer);
@@ -511,9 +511,4 @@ void GraphicsVulkan::prepareDepthResources() {
 
     m_depthImageView->image()->transitionImageLayout(depthFormat, VK_IMAGE_LAYOUT_UNDEFINED,
                                                      VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL, m_commandPool);
-}
-
-
-void GraphicsVulkan::updateAcceleration(float x, float y, float z) {
-    m_levelSequence.updateAcceleration(x, y, z);
 }
