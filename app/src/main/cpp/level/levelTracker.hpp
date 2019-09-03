@@ -70,6 +70,12 @@ public:
                 GameBundleValue(s_levelTable[m_currentLevel].levelName)));
     }
 
+    void setLevel(size_t level) {
+        if (level < s_levelTable.size()) {
+            m_currentLevel = level;
+        }
+    }
+
     LevelTracker(
             std::shared_ptr<GameRequester> inGameRequester,
             boost::optional<GameBundle> const &saveData,

@@ -150,3 +150,22 @@ bool LevelSequence::updateData() {
 
     return drawingNecessary;
 }
+
+void LevelSequence::changeLevel(size_t level) {
+    m_levelTracker.setLevel(level);
+    m_levelStarter = m_levelTracker.getLevelStarter(boost::none);
+    initializeLevelData(m_levelStarter, m_levelStarterStaticObjsData,
+                        m_levelStarterDynObjsData, m_texturesLevelStarter);
+
+    m_level = m_levelTracker.getLevel(boost::none);
+    initializeLevelData(m_level, m_staticObjsData, m_dynObjsData, m_texturesLevel);
+
+    m_levelFinisherObjsData.clear();
+    m_texturesLevelFinisher.clear();
+
+    float x, y;
+    m_level->getLevelFinisherCenter(x, y);
+    m_levelFinisher = m_levelTracker.getLevelFinisher(x, y, m_proj, m_view);
+
+    m_levelStarter->start();
+}

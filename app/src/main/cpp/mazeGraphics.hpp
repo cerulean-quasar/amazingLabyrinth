@@ -54,6 +54,7 @@ public:
 
     bool updateData();
     void updateAcceleration(float x, float y, float z);
+    void changeLevel(size_t level);
 
     LevelSequence(std::shared_ptr<GameRequester> inRequester,
                   boost::optional<GameBundle> const &inGameSaveData,
@@ -155,6 +156,10 @@ public:
 
     void updateAcceleration(float x, float y, float z) {
         m_levelSequence->updateAcceleration(x, y, z);
+    }
+
+    void changeLevel(size_t level) {
+        m_levelSequence->changeLevel(level);
     }
 
     virtual void drawFrame()=0;

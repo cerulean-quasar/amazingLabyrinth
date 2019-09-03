@@ -95,7 +95,7 @@ class LevelChangedEvent : public DrawEvent {
 public:
     bool operator() (std::unique_ptr<Graphics> &graphics,
                      std::shared_ptr<GameRequester> &notify) override {
-        //graphics->changeLevel(m_level);
+        graphics->changeLevel(m_level);
         return true;
     }
 
