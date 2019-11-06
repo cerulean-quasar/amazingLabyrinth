@@ -30,7 +30,7 @@ bool MazeCollect::checkFinishCondition(float timeDiff) {
     if (ball.row != m_prevCells[nbrItemsToCollect].first ||
         ball.col != m_prevCells[nbrItemsToCollect].second) {
         m_prevCells.pop_front();
-        m_prevCells.push_back(std::make_pair(ball.row, ball.col));
+        m_prevCells.emplace_back(ball.row, ball.col);
     }
 
     uint32_t j = nbrItemsToCollect - 1;
@@ -63,11 +63,7 @@ bool MazeCollect::checkFinishCondition(float timeDiff) {
            ballInProximity(getColumnCenterPosition(m_colEnd), getRowCenterPosition(m_rowEnd));
 }
 
-void MazeCollect::generateModelMatrices() {
-    // generate the maze
-    MazeOpenArea::generateModelMatrices();
-    Random random;
-
+void MazeCollect::generateCollectBallModelMatrices() {
     // generate the items to collect
     while (m_collectionObjectLocations.size() < nbrItemsToCollect) {
         uint32_t row = random.getUInt(0, numberRows-1);
@@ -86,14 +82,14 @@ void MazeCollect::generateModelMatrices() {
         }
 
         if (!tooClose) {
-            m_collectionObjectLocations.push_back(std::make_pair(false, pos));
+            m_collectionObjectLocations.emplace_back(false, pos);
         }
     }
 
     // generate the previous locations of the ball (just set all previous locations to the ball starting cell).
     // this is used to cause the items to collect to follow the user's ball.
     for (uint32_t i = 0; i < nbrItemsToCollect+1; i++) {
-        m_prevCells.push_back(std::make_pair(ball.row, ball.col));
+        m_prevCells.emplace_back(ball.row, ball.col);
     }
 }
 

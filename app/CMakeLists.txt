@@ -31,14 +31,20 @@ add_library( # Sets the name of the library.
         ${platform64_files}
         src/main/cpp/random.cpp
         src/main/cpp/drawer.cpp
-        src/main/cpp/level/levels/maze.cpp
+        src/main/cpp/serializeSaveData.cpp
+        src/main/cpp/level/levelSerializer.cpp
         src/main/cpp/level/levelFinish.cpp
-        src/main/cpp/level/level.cpp
+        src/main/cpp/level/levels/maze.cpp
+        src/main/cpp/level/levels/mazeSerializer.cpp
         src/main/cpp/level/levels/openAreaLevel.cpp
+        src/main/cpp/level/levels/openAreaLevelSerializer.cpp
         src/main/cpp/level/levels/avoidVortexLevel.cpp
+        src/main/cpp/level/levels/avoidVortexLevelSerializer.cpp
         src/main/cpp/level/levels/movingQuadsLevel.cpp
+        src/main/cpp/level/levels/movingQuadsLevelSerializer.cpp
         src/main/cpp/level/levels/mazeOpenArea.cpp
         src/main/cpp/level/levels/mazeCollect.cpp
+        src/main/cpp/level/levels/mazeCollectSerializer.cpp
         src/main/cpp/level/levelTracker.cpp
         src/main/cpp/level/levelStarter.cpp)
 

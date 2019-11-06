@@ -79,7 +79,7 @@ private:
 
 public:
     LevelStarter(std::shared_ptr<GameRequester> inGameRequester,
-            boost::optional<GameBundle> const &inGameSaveData, float width, float height, float maxZ)
+            float width, float height, float maxZ)
             : Level(std::move(inGameRequester), width, height, maxZ),
               scale(10.0f),
               maxPosX(m_width/2-m_width/2/scale),
@@ -103,14 +103,6 @@ public:
         ball.velocity = {0.0f, 0.0f, 0.0f};
         ball.acceleration = {0.0f, 0.0f, 0.0f};
         ball.totalRotated = glm::quat();
-
-        if (inGameSaveData) {
-            auto levelStateIt = inGameSaveData->find(KeyLevelIsAtStart);
-            if (levelStateIt != inGameSaveData->end()) {
-                m_finished = ! boost::get<bool>(levelStateIt->second);
-            }
-        }
-
     }
 
     void clearText();
@@ -118,12 +110,6 @@ public:
     bool isInBottomCorridor();
     bool isInSideCorridor();
     void confineBall();
-
-    void saveLevelData(GameBundle &saveData) override {
-        saveData.insert(std::make_pair(KeyLevelIsAtStart, GameBundleValue(true)));
-    }
-
-    void init() override {}
 
     glm::vec4 getBackgroundColor() override { return glm::vec4(0.0f, 0.0f, 0.0f, 0.0f); }
 

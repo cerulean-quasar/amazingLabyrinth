@@ -20,6 +20,8 @@
 #ifndef AMAZING_LABYRINTH_OPEN_AREA_LEVEL_HPP
 #define AMAZING_LABYRINTH_OPEN_AREA_LEVEL_HPP
 
+#include <chrono>
+
 #define GLM_FORCE_RADIANS
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
 #include <glm/glm.hpp>
@@ -30,6 +32,31 @@
 
 #include "../levelFinish.hpp"
 #include "../level.hpp"
+
+int constexpr openArealLevelVersion = 1;
+struct OpenAreaLevelSaveData : public LevelSaveData {
+    Point<float> ball;
+    Point<float> hole;
+    OpenAreaLevelSaveData(OpenAreaLevelSaveData &&other) noexcept
+            : LevelSaveData{openArealLevelVersion},
+              ball{other.ball},
+              hole{other.hole} {
+    }
+
+    OpenAreaLevelSaveData()
+            : LevelSaveData{openArealLevelVersion},
+              ball{0.0f, 0.0f},
+              hole{0.0f, 0.0f}
+    {
+    }
+
+    OpenAreaLevelSaveData(Point<float> &&ball_, Point<float> &&hole_)
+            : LevelSaveData{openArealLevelVersion},
+    ball{ball_},
+    hole{hole_}
+    {
+    }
+};
 
 class OpenAreaLevel : public Level {
 private:
@@ -66,55 +93,73 @@ private:
     } ball;
 
     void loadModels();
-    void generate() {
-        scale = glm::scale(glm::vec3(ballScale/m_originalBallDiameter,
-                ballScale/m_originalBallDiameter, ballScale/m_originalBallDiameter));
+    void generate(glm::vec2 ballPos, glm::vec2 holePos) {
+        scale = glm::scale(glm::vec3(ballScale / m_originalBallDiameter,
+                                     ballScale / m_originalBallDiameter,
+                                     ballScale / m_originalBallDiameter));
 
         ball.totalRotated = glm::quat();
         ball.acceleration = {0.0f, 0.0f, 0.0f};
         ball.velocity = {0.0f, 0.0f, 0.0f};
-        ball.prevPosition = {-10.0f, 0.0f, m_maxZ-ballScale/2};
-        ball.position.z = m_maxZ-ballScale/2;
-        holePosition.z = m_maxZ-ballScale;
+        ball.prevPosition = {-10.0f, 0.0f, m_maxZ - ballScale / 2};
+        ball.position = {ballPos.x, ballPos.y, m_maxZ - ballScale / 2};
 
+        holePosition = {holePos.x, holePos.y, m_maxZ - ballScale};
+    }
+
+    void generate() {
         float smallestDistance = 0.5f;
+        glm::vec2 holePos;
+        glm::vec2 ballPos;
         do {
-            holePosition.x = random.getFloat(-m_width/2+ballScale/2, m_width/2-ballScale/2);
-            holePosition.y = random.getFloat(-m_height/2+ballScale/2, m_height/2-ballScale/2);
+            holePos.x = random.getFloat(-m_width/2+ballScale/2, m_width/2-ballScale/2);
+            holePos.y = random.getFloat(-m_height/2+ballScale/2, m_height/2-ballScale/2);
 
-            ball.position.x = random.getFloat(-m_width/2+ballScale/2, m_width/2-ballScale/2);
-            ball.position.y = random.getFloat(-m_height/2+ballScale/2, m_height/2-ballScale/2);
-        } while (glm::length(ball.position - holePosition) < smallestDistance);
+            ballPos.x = random.getFloat(-m_width/2+ballScale/2, m_width/2-ballScale/2);
+            ballPos.y = random.getFloat(-m_height/2+ballScale/2, m_height/2-ballScale/2);
+        } while (glm::length(ballPos - holePos) < smallestDistance);
+        generate(ballPos, holePos);
     }
     void generateModelMatrices();
 
 public:
-    OpenAreaLevel(std::shared_ptr<GameRequester> inGameRequester, float width, float height, float maxZ)
+    OpenAreaLevel(
+            std::shared_ptr<GameRequester> inGameRequester,
+            std::shared_ptr<OpenAreaLevelSaveData> const &levelRestoreData,
+            float width,
+            float height,
+            float maxZ)
             : Level(std::move(inGameRequester), width, height, maxZ), ballScale(m_width/10.0f),
-            prevTime(std::chrono::high_resolution_clock::now()) {}
-    virtual void updateAcceleration(float x, float y, float z);
-    virtual glm::vec4 getBackgroundColor() { return {0.0f, 0.0f, 0.0f, 1.0f}; }
-    virtual bool updateData();
-    virtual bool updateStaticDrawObjects(DrawObjectTable &objs, TextureMap &textures);
-    virtual bool updateDynamicDrawObjects(DrawObjectTable &objs, TextureMap &textures, bool &texturesChanged);
-    virtual void start() {
-        prevTime = std::chrono::high_resolution_clock::now();
-    }
-
-    virtual void init() {
+            prevTime(std::chrono::high_resolution_clock::now())
+    {
         loadModels();
-        generate();
+        if(levelRestoreData == nullptr) {
+            generate();
+        } else {
+            generate({levelRestoreData->ball.x, levelRestoreData->ball.y},
+                     {levelRestoreData->hole.x, levelRestoreData->hole.y});
+        }
         generateModelMatrices();
+    }
+    void updateAcceleration(float x, float y, float z) override;
+    glm::vec4 getBackgroundColor() override { return {0.0f, 0.0f, 0.0f, 1.0f}; }
+    bool updateData() override;
+    bool updateStaticDrawObjects(DrawObjectTable &objs, TextureMap &textures) override;
+    bool updateDynamicDrawObjects(DrawObjectTable &objs, TextureMap &textures, bool &texturesChanged) override;
+    void start() override {
+        prevTime = std::chrono::high_resolution_clock::now();
     }
 
     void initSetHoleTexture(std::string const &texture) { holeTexture = texture; }
     void initSetBallTexture(std::string const &texture) { ballTexture = texture; }
 
-    void getLevelFinisherCenter(float &x, float &y) {
+    void getLevelFinisherCenter(float &x, float &y) override {
         x = holePosition.x;
         y = holePosition.y;
     }
 
-    virtual ~OpenAreaLevel() {}
+    SaveLevelDataFcn getSaveLevelDataFcn() override;
+
+    ~OpenAreaLevel() override = default;
 };
 #endif /* AMAZING_LABYRINTH_OPEN_AREA_LEVEL_HPP */

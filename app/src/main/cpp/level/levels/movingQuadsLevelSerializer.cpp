@@ -1,5 +1,5 @@
 /**
- * Copyright 2018 Cerulean Quasar. All Rights Reserved.
+ * Copyright 2019 Cerulean Quasar. All Rights Reserved.
  *
  *  This file is part of AmazingLabyrinth.
  *
@@ -17,10 +17,14 @@
  *  along with AmazingLabyrinth.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
+#include <memory>
+#include <json.hpp>
+#include "movingQuadsLevel.hpp"
+#include "../../serializeSaveDataInternals.hpp"
 
-#define GLM_FORCE_RADIANS
-#define GLM_FORCE_DEPTH_ZERO_TO_ONE
-#include <glm/gtx/transform.hpp>
-
-#include "level.hpp"
-
+Level::SaveLevelDataFcn MovingQuadsLevel::getSaveLevelDataFcn() {
+    return {[](std::shared_ptr<GameSaveData> gsd) -> std::vector<uint8_t> {
+        nlohmann::json j;
+        return saveGameData(gsd, std::shared_ptr<void>());
+    }};
+}

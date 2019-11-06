@@ -17,24 +17,22 @@
  *  along with AmazingLabyrinth.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
-#version 450
-#extension GL_ARB_separate_shader_objects : enable
+#ifndef AMAZING_LABYRINTH_SERIALIZE_SAVE_DATA_HPP
+#define AMAZING_LABYRINTH_SERIALIZE_SAVE_DATA_HPP
 
-layout(location = 0) in vec3 fragColor;
-layout(location = 1) in vec2 fragTexCoord;
-layout(location = 2) in vec3 fragNormal;
-layout(location = 3) in vec3 fragPosition;
+#include "saveData.hpp"
 
-layout(binding = 1) uniform sampler2D texSampler;
-layout(set = 0, binding = 2) uniform UniformBufferObject {
-    vec3 pos;
-} light;
+RestoreData createLevelFromRestore(std::vector<uint8_t> const &saveData, Point<uint32_t> const &screenSize);
+RestoreData createLevelFromRestore();
 
-layout(location = 0) out vec4 outColor;
+struct LevelEntry {
+    std::string levelName;
+    std::string levelDescription;
+    LevelGroup levelGroup;
+};
 
-void main() {
-    vec3 lightDirection = normalize(light.pos - fragPosition);
-    float diff = max(dot(fragNormal, lightDirection), 0.0);
-    vec3 diffuse = diff * vec3(1.0, 1.0, 1.0);
-    outColor = vec4(fragColor + diffuse, 1.0) * texture(texSampler, fragTexCoord);
-}
+using LevelTable = std::vector<LevelEntry>;
+
+LevelTable const &getLevelTable();
+
+#endif

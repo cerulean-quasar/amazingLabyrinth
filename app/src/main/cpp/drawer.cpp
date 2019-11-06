@@ -98,12 +98,12 @@ GameSendChannel &gameFromGuiChannel() {
     return g_diceChannel;
 }
 
-void GameWorker::initGraphics(std::shared_ptr<WindowType> surface, boost::optional<GameBundle> const &bundle)
+void GameWorker::initGraphics(std::shared_ptr<WindowType> surface)
 {
 #ifdef CQ_ENABLE_VULKAN
     if (m_tryVulkan) {
         try {
-            m_graphics = std::make_unique<GraphicsVulkan>(surface, m_requester, bundle);
+            m_graphics = std::make_unique<GraphicsVulkan>(surface, m_requester);
         } catch (std::runtime_error &e) {
             m_tryVulkan = false;
         }
@@ -113,7 +113,7 @@ void GameWorker::initGraphics(std::shared_ptr<WindowType> surface, boost::option
 #endif
 
     if (!m_tryVulkan) {
-        m_graphics = std::make_unique<GraphicsGL>(std::move(surface), m_requester, bundle);
+        m_graphics = std::make_unique<GraphicsGL>(std::move(surface), m_requester);
     }
 }
 

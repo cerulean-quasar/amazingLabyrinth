@@ -174,13 +174,12 @@ private:
 class LevelSequenceVulkan : public LevelSequence {
 public:
     LevelSequenceVulkan(std::shared_ptr<GameRequester> const &inRequester,
-                        boost::optional<GameBundle> const &inGameSaveData,
                         std::shared_ptr<vulkan::Device> const &inDevice,
                         std::shared_ptr<vulkan::CommandPool> const &inPool,
                         std::shared_ptr<vulkan::DescriptorPools> const &inDescriptorPools,
                         uint32_t width,
                         uint32_t height)
-            :LevelSequence{inRequester, inGameSaveData, width, height, false},
+            :LevelSequence{inRequester, width, height, false},
              m_device{inDevice},
              m_commandPool{inPool},
              m_descriptorPools{inDescriptorPools},
@@ -190,7 +189,7 @@ public:
         m_uniformBufferLighting->copyRawTo(&lightingVector, sizeof (lightingVector));
 
         // Need to call these here because they call virtual functions.
-        if (! m_levelStarter->isFinished()) {
+        if (m_levelStarter != nullptr && ! m_levelStarter->isFinished()) {
             initializeLevelData(m_levelStarter, m_levelStarterStaticObjsData,
                                 m_levelStarterDynObjsData, m_texturesLevelStarter);
         }
@@ -216,8 +215,7 @@ private:
 class GraphicsVulkan : public Graphics {
 public:
     GraphicsVulkan(std::shared_ptr<WindowType> window,
-            std::shared_ptr<GameRequester> inRequester,
-            boost::optional<GameBundle> const &inBundle)
+            std::shared_ptr<GameRequester> inRequester)
             : Graphics{std::move(inRequester)},
               m_instance{new vulkan::Instance(std::move(window))},
               m_device{new vulkan::Device{m_instance}},
@@ -234,7 +232,7 @@ public:
               m_imageAvailableSemaphore{m_device},
               m_renderFinishedSemaphore{m_device}
     {
-        m_levelSequence = std::make_shared<LevelSequenceVulkan>(m_gameRequester, inBundle, m_device, m_commandPool, m_descriptorPools,
+        m_levelSequence = std::make_shared<LevelSequenceVulkan>(m_gameRequester, m_device, m_commandPool, m_descriptorPools,
                         m_swapChain->extent().width, m_swapChain->extent().height);
 
         prepareDepthResources();

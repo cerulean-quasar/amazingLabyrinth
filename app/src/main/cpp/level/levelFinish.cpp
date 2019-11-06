@@ -25,7 +25,7 @@
 #include "levelFinish.hpp"
 
 ManyQuadCoverUpLevelFinish::ManyQuadCoverUpLevelFinish(
-        std::shared_ptr<GameRequester> inGameRequester, float maxZ)
+        std::shared_ptr<GameRequester> inGameRequester, float centerX, float centerY, float maxZ)
         : LevelFinish(std::move(inGameRequester), maxZ), totalNumberReturned(0) {
     prevTime = std::chrono::high_resolution_clock::now();
     float range = 1.5f;

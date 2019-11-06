@@ -28,11 +28,12 @@
 #include <fstream>
 #include <boost/variant.hpp>
 #include <boost/optional.hpp>
-#include <json.hpp>
 
 #include "native-lib.hpp"
 #include "drawer.hpp"
 #include "level/levelTracker.hpp"
+#include "saveData.hpp"
+#include "serializeSaveData.hpp"
 
 char constexpr const *DirectorySeparator = "/";
 char constexpr const *SaveGameFileName = "amazingLabyrinthSaveGameFile.cbor";
@@ -268,7 +269,7 @@ Java_com_quasar_cerulean_amazinglabyrinth_Draw_startGame(
     std::shared_ptr<WindowType> surface(window, deleter);
 
     try {
-        GameWorker worker{surface, requester, requester->getSaveData(), true, /* useLegacy */ false};
+        GameWorker worker{surface, requester, true, /* useLegacy */ false};
         worker.drawingLoop();
     } catch (std::runtime_error &e) {
         requester->sendError(e.what());
@@ -468,60 +469,18 @@ std::shared_ptr<JGameBundle> JGameRequester::createBundle(std::shared_ptr<_jobje
     return std::make_shared<JGameBundle>(shared_from_this(), std::move(inBundle));
 }
 
-namespace nlohmann {
-    template <>
-    struct adl_serializer<GameBundleValue> {
-        static void to_json(json &j, GameBundleValue const &val) {
-            std::type_info const &tpi = val.type();
-            if (tpi == typeid(std::string)) {
-                j = boost::apply_visitor(GameBundleStringVisitor{}, val);
-            } else if (tpi == typeid(float)) {
-                j = boost::apply_visitor(GameBundleFloatVisitor{}, val);
-            } else if (tpi == typeid(std::vector<uint32_t>)) {
-                // should fix when we start using this type.  not sure what is needed yet...
-                j = boost::apply_visitor(GameBundleByteArrayVisitor{}, val);
-            } else if (tpi == typeid(bool)) {
-                j = boost::apply_visitor(GameBundleBoolVisitor{}, val);
-            } else if (tpi == typeid(int)) {
-                j = boost::apply_visitor(GameBundleIntVisitor{}, val);
-            }
-        }
-
-        static void from_json(json const &j, GameBundleValue &val) {
-            if (j.is_string()) {
-                val = j.get<std::string>();
-            } else if (j.is_number_float()) {
-                val = j.get<float>();
-            } else if (j.is_array()) {
-                // should fix when we start using this type.  not sure what is needed yet...
-                std::vector<uint32_t> v;
-                v.resize(j.size());
-                uint32_t i = 0;
-                for (auto const &jArrayValue : j) {
-                    v[i] = jArrayValue.get<uint32_t>();
-                }
-            } else if (j.is_boolean()) {
-                val = j.get<bool>();
-            } else if (j.is_number_integer()) {
-                val = j.get<int>();
-            }
-        }
-    };
-}
-
-void JGameRequester::sendSaveData(GameBundle const &saveData) {
-    nlohmann::json j = saveData;
-
+void JGameRequester::sendSaveData(std::vector<uint8_t> const &saveData) {
     std::ofstream saveDataStream(m_pathSaveFile);
 
-    std::vector<uint8_t> vec = nlohmann::json::to_cbor(j);
-    saveDataStream.write(reinterpret_cast<char const *>(vec.data()), vec.size());
+    if (!saveDataStream.fail()) {
+        saveDataStream.write(reinterpret_cast<char const *>(saveData.data()), saveData.size());
+    }
 }
 
-boost::optional<GameBundle> JGameRequester::getSaveData() {
+RestoreData JGameRequester::getSaveData(Point<uint32_t> const &screenSize) {
     std::ifstream saveDataStream(m_pathSaveFile, std::ifstream::binary);
 
-    if (saveDataStream) {
+    if (saveDataStream.good()) {
         saveDataStream.seekg(0, saveDataStream.end);
         size_t i = static_cast<size_t >(saveDataStream.tellg());
         saveDataStream.seekg(0, saveDataStream.beg);
@@ -529,19 +488,12 @@ boost::optional<GameBundle> JGameRequester::getSaveData() {
         vec.resize(i);
         saveDataStream.read(reinterpret_cast<char *>(vec.data()), vec.size());
 
-        if (saveDataStream) {
-            GameBundle bundle;
-            nlohmann::json j = nlohmann::json::from_cbor(vec);
-            for (auto const &jobj : j.items()) {
-                bundle.insert(std::make_pair(jobj.key(), jobj.value().get<GameBundleValue>()));
-            }
-            return boost::optional<GameBundle>{bundle};
-        } else {
-            return boost::none;
+        if (!saveDataStream.fail()) {
+            return createLevelFromRestore(vec, screenSize);
         }
-    } else {
-        return boost::none;
     }
+
+    return createLevelFromRestore();
 }
 
 JGameBundle::JGameBundle(std::shared_ptr<JGameRequester> inRequester, std::shared_ptr<_jobject> inBundle)

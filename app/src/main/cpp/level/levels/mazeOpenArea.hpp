@@ -24,9 +24,6 @@
 
 class MazeOpenArea : public Maze {
 protected:
-    uint32_t m_rowEnd;
-    uint32_t m_colEnd;
-    virtual void generateModelMatrices();
     virtual bool checkFinishCondition(float timeDiff) = 0;
 
     float leftWall(int col) {
@@ -47,13 +44,20 @@ protected:
 
 public:
     MazeOpenArea(std::shared_ptr<GameRequester> inGameRequester,
-                 unsigned int inNumberRows, Mode inMode, float width, float height, float maxZ)
-            : Maze(std::move(inGameRequester), std::move(inNumberRows), inMode, width, height, maxZ),
-              m_rowEnd{},
-              m_colEnd{}
+                 float width, float height, float maxZ)
+            : Maze(std::move(inGameRequester), width, height, maxZ, getMazeWallModelMatricesGenerator())
     {}
 
-    virtual bool updateData();
+    MazeOpenArea(std::shared_ptr<GameRequester> inGameRequester, Maze::CreateParameters const &parameters,
+                 float width, float height, float maxZ)
+            : Maze(std::move(inGameRequester), parameters, width, height, maxZ, getMazeWallModelMatricesGenerator())
+    {}
+
+    bool updateData() override;
+    SaveLevelDataFcn getSaveLevelDataFcn() override = 0;
+
+private:
+    static Maze::MazeWallModelMatrixGeneratorFcn getMazeWallModelMatricesGenerator();
 };
 
 #endif /* AMAZING_LABYRINTH_MAZE_OPEN_AREA_HPP */

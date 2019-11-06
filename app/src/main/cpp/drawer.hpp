@@ -51,8 +51,7 @@ class StopDrawingEvent : public DrawEvent {
 public:
     bool operator() (std::unique_ptr<Graphics> &graphics,
                      std::shared_ptr<GameRequester> &notify) override {
-        GameBundle saveData = graphics->saveLevelData();
-        notify->sendSaveData(saveData);
+        graphics->saveLevelData();
         return false;
     }
 
@@ -114,8 +113,7 @@ class SaveLevelDataEvent : public DrawEvent {
 public:
     bool operator() (std::unique_ptr<Graphics> &graphics,
                      std::shared_ptr<GameRequester> &notify) override {
-        GameBundle saveData = graphics->saveLevelData();
-        notify->sendSaveData(saveData);
+        graphics->saveLevelData();
         return true;
     }
 
@@ -157,7 +155,6 @@ class GameWorker {
 public:
     GameWorker(std::shared_ptr<WindowType> inSurface,
                std::shared_ptr<GameRequester> inNotify,
-               boost::optional<GameBundle> const &injGameBundle,
                bool inUseGravity,
                bool inUseLegacy)
             : m_whichSensors{},
@@ -174,7 +171,7 @@ public:
             }
         }
 
-        initGraphics(std::move(inSurface), injGameBundle);
+        initGraphics(std::move(inSurface));
         m_requester->sendGraphicsDescription(m_graphics->graphicsDescription(),
                                           whichSensors.test(Sensors::ACCELEROMETER_SENSOR));
     }
@@ -188,7 +185,7 @@ private:
     std::unique_ptr<Graphics> m_graphics;
     std::shared_ptr<GameRequester> m_requester;
 
-    void initGraphics(std::shared_ptr<WindowType> surface, boost::optional<GameBundle> const &bundle);
+    void initGraphics(std::shared_ptr<WindowType> surface);
 };
 
 #endif // AMAZING_LABYRINTH_DRAWER_HPP

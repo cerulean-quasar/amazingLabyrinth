@@ -21,7 +21,12 @@
 #ifndef AMAZING_LABYRINTH_LEVEL_HPP
 #define AMAZING_LABYRINTH_LEVEL_HPP
 
+#include <functional>
+#include <memory>
+
+#include "../common.hpp"
 #include "levelFinish.hpp"
+#include "../saveData.hpp"
 
 class Level {
 protected:
@@ -40,14 +45,15 @@ public:
     virtual bool updateDynamicDrawObjects(DrawObjectTable &objs, TextureMap &textures, bool &texturesChanged) = 0;
     virtual void start() = 0;
 
-    virtual void init() = 0;
     bool isFinished() { return m_finished; }
     virtual void getLevelFinisherCenter(float &x, float &y) {
         x = 0.0f;
         y = 0.0f;
     }
 
-    virtual void saveLevelData(GameBundle &saveData) {/*TODO: remove implementation? */};
+    using SaveLevelDataFcn = std::function<std::vector<uint8_t>(std::shared_ptr<GameSaveData> gsd)>;
+    virtual SaveLevelDataFcn getSaveLevelDataFcn();
+    static SaveLevelDataFcn  getBasicSaveLevelDataFcn();
 
     Level(std::shared_ptr<GameRequester> inGameRequester, float width, float height, float maxZ)
             : m_gameRequester{std::move(inGameRequester)},

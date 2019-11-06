@@ -24,6 +24,7 @@
 #include <cstdint>
 #include <vector>
 #include <list>
+#include <chrono>
 
 #define GLM_FORCE_RADIANS
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
@@ -94,35 +95,35 @@ private:
     void generate();
     void generateModelMatrices();
 public:
-    virtual glm::vec4 getBackgroundColor() { return glm::vec4(0.0, 0.0, 0.0, 1.0); }
-    virtual void updateAcceleration(float x, float y, float z) { ball.acceleration = {-x, -y, 0.0f}; }
-    virtual bool updateData();
-    virtual bool updateStaticDrawObjects(DrawObjectTable &objs, TextureMap &textures);
-    virtual bool updateDynamicDrawObjects(DrawObjectTable &objs, TextureMap &textures, bool &texturesChanged);
-    virtual void start() {
+    glm::vec4 getBackgroundColor() override { return glm::vec4(0.0, 0.0, 0.0, 1.0); }
+    void updateAcceleration(float x, float y, float z) override { ball.acceleration = {-x, -y, 0.0f}; }
+    bool updateData() override;
+    bool updateStaticDrawObjects(DrawObjectTable &objs, TextureMap &textures) override;
+    bool updateDynamicDrawObjects(DrawObjectTable &objs, TextureMap &textures, bool &texturesChanged) override;
+    void start() override {
         prevTime = std::chrono::high_resolution_clock::now();
     }
 
-    virtual void getLevelFinisherCenter(float &x, float &y) {
+    void getLevelFinisherCenter(float &x, float &y) override {
         x = holePosition.x;
         y = holePosition.y;
     }
 
-    virtual void init() {
-        loadModels();
-        generate();
-        generateModelMatrices();
-    }
     void initSetHoleTexture(std::string const &texture) { holeTexture = texture; }
     void initSetVortexTexture(std::string const &texture) { vortexTexture = texture; }
     void initSetStartVortexTexture(std::string const &texture) { startVortexTexture = texture; }
     void initSetBallTexture(std::string const &texture) { ballTexture = texture; }
+    SaveLevelDataFcn getSaveLevelDataFcn() override;
 
     AvoidVortexLevel(std::shared_ptr<GameRequester> inGameRequester, float width, float height, float maxZ)
             : Level(std::move(inGameRequester), width, height, maxZ),
               maxX(m_width/2),
               maxY(m_height/2),
-              prevTime(std::chrono::high_resolution_clock::now()) { }
-    virtual ~AvoidVortexLevel() {}
+              prevTime(std::chrono::high_resolution_clock::now()) {
+        loadModels();
+        generate();
+        generateModelMatrices();
+    }
+    ~AvoidVortexLevel() override = default;
 };
 #endif

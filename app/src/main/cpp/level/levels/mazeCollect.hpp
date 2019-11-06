@@ -25,17 +25,28 @@
 class MazeCollect : public MazeOpenArea {
 protected:
     static constexpr uint32_t nbrItemsToCollect = 5;
-    virtual bool checkFinishCondition(float timeDiff);
-    virtual void generateModelMatrices();
+    bool checkFinishCondition(float timeDiff) override;
     std::vector<std::pair<bool, glm::vec3>> m_collectionObjectLocations;
     std::deque<std::pair<uint32_t, uint32_t>> m_prevCells;
 public:
     MazeCollect(std::shared_ptr<GameRequester> inGameRequester,
-            unsigned int inRows, Maze::Mode inMode, float inWidth, float inHeight, float maxZ)
-            :MazeOpenArea(std::move(inGameRequester), inRows, inMode, inWidth, inHeight, maxZ)
-    {}
+                float inWidth, float inHeight, float maxZ)
+            :MazeOpenArea(std::move(inGameRequester), inWidth, inHeight, maxZ)
+    {
+        generateCollectBallModelMatrices();
+    }
 
-    virtual bool updateDynamicDrawObjects(DrawObjectTable &objs, TextureMap &textures, bool &texturesChanged);
+    MazeCollect(std::shared_ptr<GameRequester> inGameRequester, Maze::CreateParameters const &parameters,
+            float inWidth, float inHeight, float maxZ)
+            :MazeOpenArea(std::move(inGameRequester), parameters, inWidth, inHeight, maxZ)
+    {
+        generateCollectBallModelMatrices();
+    }
+
+    bool updateDynamicDrawObjects(DrawObjectTable &objs, TextureMap &textures, bool &texturesChanged) override;
+    SaveLevelDataFcn getSaveLevelDataFcn() override;
+private:
+    void generateCollectBallModelMatrices();
 };
 
 #endif /* AMAZING_LABYRINTH_MAZE_COLLECT_HPP */

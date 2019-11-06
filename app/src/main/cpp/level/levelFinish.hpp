@@ -24,6 +24,7 @@
 #include <cstdint>
 #include <vector>
 #include <list>
+#include <chrono>
 #include "../graphics.hpp"
 #include "../random.hpp"
 
@@ -63,7 +64,7 @@ public:
     void initAddTexture(std::string const &inImagePath) {
         imagePaths.push_back(inImagePath);
     }
-    ManyQuadCoverUpLevelFinish(std::shared_ptr<GameRequester> inGameRequester, float maxZ);
+    ManyQuadCoverUpLevelFinish(std::shared_ptr<GameRequester> inGameRequester, float centerX, float centerY, float maxZ);
 };
 
 class GrowingQuadLevelFinish : public LevelFinish {

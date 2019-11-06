@@ -23,8 +23,11 @@
 #include <cstdint>
 #include <string>
 #include <map>
+#include <boost/variant.hpp>
+#include <boost/optional.hpp>
 #include "common.hpp"
 #include "android.hpp"
+#include "saveData.hpp"
 
 // These must be the same values as the values in java: MySurfaceCallback.java
 std::string const KeyGraphicsName = "graphicsName";
@@ -39,15 +42,13 @@ public:
     void sendError(std::string const &error) override;
     void sendError(char const *error) override;
     void sendGraphicsDescription(GraphicsDescription const &description, bool hasAccelerometer) override;
-    void sendSaveData(GameBundle const &saveData) override;
+    void sendSaveData(std::vector<uint8_t> const &saveData) override;
     std::vector<char> getTextImage(std::string text, uint32_t &width, uint32_t &height,
         uint32_t &channels) override;
     std::unique_ptr<std::streambuf> getAssetStream(std::string const &file) override {
         return std::make_unique<AssetStreambuf>(m_assetWrapper->getAsset(file));
     }
-
-    // non-inherited functions.
-    boost::optional<GameBundle>  getSaveData();
+    RestoreData getSaveData(Point<uint32_t> const &screenSize) override;
 
     // accessors
     JNIEnv *env() { return m_env; }
@@ -68,6 +69,140 @@ private:
     jobject m_notify;
     std::string m_pathSaveFile;
     std::unique_ptr<AssetManagerWrapper> m_assetWrapper;
+};
+
+using GameBundleValue = boost::variant<std::string, float, std::vector<char>, bool, int>;
+using GameBundleSchema = std::map<std::string, std::type_index>;
+using GameBundle = std::map<std::string, GameBundleValue>;
+
+class GameBundleStringVisitor {
+public:
+    std::string operator()(std::string str) {
+        return std::move(str);
+    }
+
+    std::string operator()(float f) {
+        return std::to_string(f);
+    }
+
+    std::string operator()(std::vector<char> const &data) {
+        return std::to_string(data.size());
+    }
+
+    std::string operator()(bool b) {
+        return std::to_string(b?1:0);
+    }
+
+    std::string operator()(int i) {
+        return std::to_string(i);
+    }
+};
+
+class GameBundleFloatVisitor {
+public:
+    float operator()(std::string const &str) {
+        return str.length();
+    }
+
+    float operator()(float f) {
+        return f;
+    }
+
+    float operator()(std::vector<char> const &data) {
+        return data.size();
+    }
+
+    float operator()(bool b) {
+        return b?1.0f:0.0f;
+    }
+
+    float operator()(int i) {
+        return i;
+    }
+};
+
+class GameBundleByteArrayVisitor {
+public:
+    std::vector<char> operator()(std::string const &str) {
+        std::vector<char> vec;
+        vec.resize(str.length());
+        memcpy(vec.data(), str.data(), str.length());
+        return std::move(vec);
+    }
+
+    std::vector<char> operator()(float f) {
+        std::string str = std::to_string(f);
+        std::vector<char> vec;
+        vec.resize(str.length());
+        memcpy(vec.data(), str.data(), str.length());
+        return std::move(vec);
+    }
+
+    std::vector<char> operator()(std::vector<char> data) {
+        return std::move(data);
+    }
+
+    std::vector<char> operator()(bool b) {
+        std::string str = std::to_string(b?1:0);
+        std::vector<char> vec;
+        vec.resize(str.length());
+        memcpy(vec.data(), str.data(), str.length());
+        return std::move(vec);
+    }
+
+    std::vector<char> operator()(int i) {
+        std::string str = std::to_string(i);
+        std::vector<char> vec;
+        vec.resize(str.length());
+        memcpy(vec.data(), str.data(), str.length());
+        return std::move(vec);
+    }
+};
+
+class GameBundleBoolVisitor {
+public:
+    bool operator()(std::string const &str) {
+        return str.length() > 0;
+    }
+
+    bool operator()(float f) {
+        return f != 0.0f;
+    }
+
+    bool operator()(std::vector<char> const &data) {
+        return data.size() > 0;
+    }
+
+    bool operator()(bool b) {
+        return b;
+    }
+
+    bool operator()(int i) {
+        return i != 0;
+    }
+};
+
+class GameBundleIntVisitor {
+public:
+    int operator()(std::string const &str) {
+        return str.length();
+    }
+
+    int operator()(float f) {
+        return static_cast<int>(std::floor(f));
+    }
+
+    int operator()(std::vector<char> const &data) {
+        return data.size();
+    }
+
+    int operator()(bool b) {
+        return b?1:0;
+    }
+
+    int operator()(int i) {
+        return i;
+    }
 };
 
 class JGameBundle {

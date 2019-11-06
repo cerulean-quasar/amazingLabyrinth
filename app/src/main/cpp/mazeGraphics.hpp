@@ -20,8 +20,13 @@
 #ifndef AMAZING_LABYRINTH_MAZE_GRAPHICS_HPP
 #define AMAZING_LABYRINTH_MAZE_GRAPHICS_HPP
 
+#include <memory>
+#include <boost/implicit_cast.hpp>
+
 #include "level/levelTracker.hpp"
 #include "common.hpp"
+#include "serializeSaveData.hpp"
+#include "saveData.hpp"
 
 class LevelSequence {
 public:
@@ -42,14 +47,18 @@ public:
     glm::vec4 backgroundColor() { return m_level->getBackgroundColor(); }
     bool needFinisherObjs() { return m_level->isFinished() || m_levelFinisher->isUnveiling(); }
 
-    GameBundle saveLevelData() {
-        GameBundle saveData;
-        m_levelTracker.saveLevelData(saveData);
-        if (m_levelStarter != nullptr) {
-            m_levelStarter->saveLevelData(saveData);
+    void saveLevelData() {
+        Point<uint32_t> screenSize{m_surfaceWidth, m_surfaceHeight};
+        auto gd = std::make_shared<GameSaveData>(screenSize, m_levelTracker.getLevelName());
+        if (m_levelStarter == nullptr) {
+            auto saveFcn = m_level->getSaveLevelDataFcn();
+            auto saveData = saveFcn(gd);
+            m_gameRequester->sendSaveData(saveData);
+        } else {
+            auto saveFcn = Level::getBasicSaveLevelDataFcn();
+            auto saveData = saveFcn(gd);
+            m_gameRequester->sendSaveData(saveData);
         }
-        saveData.insert(std::make_pair(KeyVersionIdentifier, GameBundleValue(1)));
-        return saveData;
     }
 
     bool updateData();
@@ -57,16 +66,18 @@ public:
     void changeLevel(size_t level);
 
     LevelSequence(std::shared_ptr<GameRequester> inRequester,
-                  boost::optional<GameBundle> const &inGameSaveData,
                   uint32_t surfaceWidth,
                   uint32_t surfaceHeight,
                   bool isGL)
             : m_isGL{isGL},
+              m_surfaceWidth{surfaceWidth},
+              m_surfaceHeight{surfaceHeight},
+              m_gameRequester{std::move(inRequester)},
               m_proj{},
               m_view{},
               m_viewLightingSource{},
               m_lightingSource{},
-              m_levelTracker{inRequester, inGameSaveData, getPerspectiveMatrix(surfaceWidth, surfaceHeight),
+              m_levelTracker{m_gameRequester, getPerspectiveMatrix(surfaceWidth, surfaceHeight),
                              getViewMatrix()},
               m_texturesLevel{},
               m_texturesLevelStarter{},
@@ -87,15 +98,23 @@ public:
         setLightingSource();
         setViewLightingSource();
 
-        m_level = m_levelTracker.getLevel(inGameSaveData);
-        m_levelStarter = m_levelTracker.getLevelStarter(inGameSaveData);
+        Point<uint32_t> screenSize = {surfaceWidth, surfaceHeight};
+        RestoreData saveRestore = m_gameRequester->getSaveData(screenSize);
+        m_levelTracker.setLevel(saveRestore.levelName);
+        m_levelGroupFcns = saveRestore.levelGroupFcns;
+        m_level = m_levelGroupFcns.getLevelFcn(m_levelTracker);
+        m_levelStarter = m_levelGroupFcns.getStarterFcn(m_levelTracker);
+
         float x, y;
         m_level->getLevelFinisherCenter(x, y);
-        m_levelFinisher = m_levelTracker.getLevelFinisher(x, y, getPerspectiveMatrix(surfaceWidth, surfaceHeight), m_view);
+        m_levelFinisher = m_levelGroupFcns.getFinisherFcn(m_levelTracker, x, y, getPerspectiveMatrix(surfaceWidth, surfaceHeight), m_view);
     }
 
 private:
     bool m_isGL;
+    uint32_t m_surfaceWidth;
+    uint32_t m_surfaceHeight;
+    std::shared_ptr<GameRequester> m_gameRequester;
 
 protected:
     glm::mat4 m_proj;
@@ -103,6 +122,7 @@ protected:
     glm::mat4 m_viewLightingSource;
     glm::vec3 m_lightingSource;
     LevelTracker m_levelTracker;
+    LevelGroup m_levelGroupFcns;
 
     TextureMap m_texturesLevel;
     TextureMap m_texturesLevelStarter;
@@ -128,11 +148,6 @@ protected:
     void addTextures(TextureMap &textures);
     void initializeLevelData(std::shared_ptr<Level> const &level, DrawObjectTable &staticObjsData,
                              DrawObjectTable &dynObjsData, TextureMap &textures);
-    /* TODO: can remove?
-    void initializeLevels() {
-        initializeLevelData(m_level, m_staticObjsData, m_dynObjsData, m_texturesLevel);
-        initializeLevelData(m_levelStarter, m_levelStarterStaticObjsData, m_levelStarterDynObjsData, m_texturesLevelStarter);
-    }*/
 
     virtual std::shared_ptr<TextureData> createTexture(std::shared_ptr<TextureDescription> const &textureDescription) = 0;
     virtual std::shared_ptr<DrawObjectData> createObject(std::shared_ptr<DrawObject> const &obj, TextureMap &textures) = 0;
@@ -170,7 +185,7 @@ public:
 
     virtual GraphicsDescription graphicsDescription() = 0;
 
-    GameBundle saveLevelData() {
+    void saveLevelData() {
         return m_levelSequence->saveLevelData();
     }
 

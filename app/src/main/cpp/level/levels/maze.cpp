@@ -374,46 +374,59 @@ void Maze::generateMazeVector(uint32_t &rowEnd, uint32_t &colEnd, std::vector<bo
 
 }
 
-void Maze::generateModelMatrices() {
-    unsigned int rowEnd;
-    unsigned int colEnd;
+Maze::MazeWallModelMatrixGeneratorFcn Maze::getMazeWallModelMatricesGenerator() {
+    return {[](std::vector<bool> const &wallsExist,
+            float width,
+            float height,
+            float maxZ,
+            unsigned int nbrCols,
+            unsigned int nbrRows,
+            float scaleWallZ) -> std::vector<glm::mat4>
+    {
+        std::vector<glm::mat4> matrices;
+        glm::mat4 trans;
+        glm::mat4 scaleMat  = glm::scale(glm::vec3(width/2/(nbrCols*numberBlocksPerCell+1),
+                                                   height/2/(nbrRows*numberBlocksPerCell+1),
+                                                   scaleWallZ));
+
+        // Create the model matrices for the maze walls.
+        for (unsigned int i = 0; i < nbrRows*numberBlocksPerCell+1; i++) {
+            for (unsigned int j = 0; j < nbrCols*numberBlocksPerCell+1; j++) {
+                if (wallsExist[i*(nbrCols*numberBlocksPerCell+1)+j]) {
+                    trans = glm::translate(
+                            glm::vec3(width / (nbrCols * numberBlocksPerCell+1) * (j + 0.5) - width/2,
+                                      height / (nbrRows * numberBlocksPerCell+1) * (i + 0.5) - height/2,
+                                      maxZ - m_originalWallHeight * scaleWallZ / 2.0f));
+                    matrices.push_back(trans * scaleMat);
+                }
+            }
+        }
+
+        return std::move(matrices);
+    }};
+}
+
+void Maze::generateModelMatrices(MazeWallModelMatrixGeneratorFcn &wallModelMatrixGeneratorFcn) {
     std::vector<bool> wallsExist;
 
-    generateMazeVector(rowEnd, colEnd, wallsExist);
-
-    glm::mat4 trans;
-    glm::mat4 scaleMat  = glm::scale(glm::vec3(m_width/2/(numberColumns*numberBlocksPerCell+1),
-                                            m_height/2/(numberRows*numberBlocksPerCell+1),
-                                            m_scaleWallZ));
+    generateMazeVector(m_rowEnd, m_colEnd, wallsExist);
 
     // Create the model matrices.
 
-    // the walls.
-    for (unsigned int i = 0; i < numberRows*numberBlocksPerCell+1; i++) {
-        for (unsigned int j = 0; j < numberColumns*numberBlocksPerCell+1; j++) {
-            if (wallsExist[i*(numberColumns*numberBlocksPerCell+1)+j]) {
-                trans = glm::translate(
-                        glm::vec3(m_width / (numberColumns * numberBlocksPerCell+1) * (j + 0.5) - m_width/2,
-                                  m_height / (numberRows * numberBlocksPerCell+1) * (i + 0.5) - m_height/2,
-                                  m_maxZ - m_originalWallHeight * m_scaleWallZ / 2.0f));
-                modelMatricesMaze.push_back(trans * scaleMat);
-            }
-        }
-    }
+    // the walls
+    modelMatricesMaze = wallModelMatrixGeneratorFcn(wallsExist, m_width, m_height, m_maxZ, numberColumns, numberRows, m_scaleWallZ);
 
     // the ball
     ball.position = getCellCenterPosition(ball.row, ball.col);
-    //ball.position.y += scale;  // I don't know why I have to add scale here.
 
     // cause the frame to be drawn when the program comes up for the first time.
     ball.prevPosition = {-10.0f,0.0f,0.0f};
 
-    trans = glm::translate(ball.position);
+    glm::mat4 trans = glm::translate(ball.position);
     modelMatrixBall = trans*glm::toMat4(ball.totalRotated)*scaleBall;
 
     // the hole
-    glm::vec3 holePos = getCellCenterPosition(rowEnd, colEnd);
-    //holePos.y += scale;  // I don't know why I have to add scale here.
+    glm::vec3 holePos = getCellCenterPosition(m_rowEnd, m_colEnd);
     trans = glm::translate(holePos);
     modelMatrixHole = trans*scaleBall;
 

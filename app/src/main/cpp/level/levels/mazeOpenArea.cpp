@@ -1,5 +1,5 @@
 /**
- * Copyright 2018 Cerulean Quasar. All Rights Reserved.
+ * Copyright 2019 Cerulean Quasar. All Rights Reserved.
  *
  *  This file is part of AmazingLabyrinth.
  *
@@ -102,6 +102,70 @@ bool MazeOpenArea::updateData() {
     return drawingNecessary;
 }
 
+Maze::MazeWallModelMatrixGeneratorFcn MazeOpenArea::getMazeWallModelMatricesGenerator() {
+    return {[] (std::vector<bool> const &wallsExist,
+                float width,
+                float height,
+                float maxZ,
+                unsigned int nbrCols,
+                unsigned int nbrRows,
+                float scaleWallZ) -> std::vector<glm::mat4> {
+        std::vector<glm::mat4> matrices;
+        glm::mat4 trans;
+        glm::mat4 scale  = glm::scale(glm::vec3(width/2/3/(nbrCols*numberBlocksPerCell),
+                                                height/2/3/(nbrRows*numberBlocksPerCell),
+                                                scaleWallZ));
+
+        // Create the model matrices for the maze walls.
+        for (unsigned int i = 0; i < nbrRows*numberBlocksPerCell+1; i++) {
+            for (unsigned int j = 0; j < nbrCols*numberBlocksPerCell+1; j++) {
+                if (wallsExist[i*(nbrCols*numberBlocksPerCell+1)+j]) {
+                    trans = glm::translate(
+                            glm::vec3(width / (nbrCols * numberBlocksPerCell+1) * (j + 0.5f) - width/2,
+                                      height / (nbrRows * numberBlocksPerCell+1) * (i + 0.5f) - height/2,
+                                      maxZ - m_originalWallHeight * scaleWallZ / 2.0f));
+                    matrices.push_back(trans * scale);
+                    if (j > 0 && wallsExist[i*(nbrCols*numberBlocksPerCell+1) + j - 1]) {
+                        trans = glm::translate(
+                                glm::vec3(width / (nbrCols * numberBlocksPerCell+1) * (j + 0.5f) -
+                                          width/2 - width/3/(nbrCols*numberBlocksPerCell+1),
+                                          height / (nbrRows * numberBlocksPerCell+1) * (i + 0.5f) - height/2,
+                                          maxZ - m_originalWallHeight * scaleWallZ / 2.0f));
+                        matrices.push_back(trans * scale);
+                    }
+                    if (j < nbrCols*numberBlocksPerCell && wallsExist[i*(nbrCols*numberBlocksPerCell+1)+j+1]) {
+                        trans = glm::translate(
+                                glm::vec3(width / (nbrCols * numberBlocksPerCell+1) * (j + 0.5f) -
+                                          width/2 + width/3/(nbrCols*numberBlocksPerCell+1),
+                                          height / (nbrRows * numberBlocksPerCell+1) * (i + 0.5f) - height/2,
+                                          maxZ - m_originalWallHeight * scaleWallZ / 2.0f));
+                        matrices.push_back(trans * scale);
+                    }
+                    if (i > 0 && wallsExist[(i-1)*(nbrCols*numberBlocksPerCell+1)+j]) {
+                        trans = glm::translate(
+                                glm::vec3(width / (nbrCols * numberBlocksPerCell+1) * (j + 0.5f) - width/2,
+                                          height / (nbrRows * numberBlocksPerCell+1) * (i + 0.5f) - height/2 -
+                                          height/3/(nbrRows*numberBlocksPerCell+1),
+                                          maxZ - m_originalWallHeight * scaleWallZ / 2.0f));
+                        matrices.push_back(trans * scale);
+                    }
+                    if (i < nbrRows*numberBlocksPerCell && wallsExist[(i+1)*(nbrCols*numberBlocksPerCell+1)+j]) {
+                        trans = glm::translate(
+                                glm::vec3(width / (nbrCols * numberBlocksPerCell+1) * (j + 0.5f) - width/2,
+                                          height / (nbrRows * numberBlocksPerCell+1) * (i + 0.5f) - height/2 +
+                                          height/3/(nbrRows*numberBlocksPerCell+1),
+                                          maxZ - m_originalWallHeight * scaleWallZ / 2.0f));
+                        matrices.push_back(trans * scale);
+                    }
+                }
+            }
+        }
+
+        return std::move(matrices);
+    }};
+}
+
+/*
 void MazeOpenArea::generateModelMatrices() {
     unsigned int rowEnd;
     unsigned int colEnd;
@@ -109,57 +173,6 @@ void MazeOpenArea::generateModelMatrices() {
 
     generateMazeVector(m_rowEnd, m_colEnd, wallsExist);
 
-    glm::mat4 trans;
-    glm::mat4 scale  = glm::scale(glm::vec3(m_width/2/3/(numberColumns*numberBlocksPerCell),
-                                            m_height/2/3/(numberRows*numberBlocksPerCell),
-                                            m_scaleWallZ));
-
-    // Create the model matrices.
-
-    // the walls.
-    for (unsigned int i = 0; i < numberRows*numberBlocksPerCell+1; i++) {
-        for (unsigned int j = 0; j < numberColumns*numberBlocksPerCell+1; j++) {
-            if (wallsExist[i*(numberColumns*numberBlocksPerCell+1)+j]) {
-                trans = glm::translate(
-                        glm::vec3(m_width / (numberColumns * numberBlocksPerCell+1) * (j + 0.5f) - m_width/2,
-                                  m_height / (numberRows * numberBlocksPerCell+1) * (i + 0.5f) - m_height/2,
-                                  m_maxZ - m_originalWallHeight * m_scaleWallZ / 2.0f));
-                modelMatricesMaze.push_back(trans * scale);
-                if (j > 0 && wallsExist[i*(numberColumns*numberBlocksPerCell+1) + j - 1]) {
-                    trans = glm::translate(
-                            glm::vec3(m_width / (numberColumns * numberBlocksPerCell+1) * (j + 0.5f) -
-                                          m_width/2 - m_width/3/(numberColumns*numberBlocksPerCell+1),
-                                      m_height / (numberRows * numberBlocksPerCell+1) * (i + 0.5f) - m_height/2,
-                                      m_maxZ - m_originalWallHeight * m_scaleWallZ / 2.0f));
-                    modelMatricesMaze.push_back(trans * scale);
-                }
-                if (j < numberColumns*numberBlocksPerCell && wallsExist[i*(numberColumns*numberBlocksPerCell+1)+j+1]) {
-                    trans = glm::translate(
-                            glm::vec3(m_width / (numberColumns * numberBlocksPerCell+1) * (j + 0.5f) -
-                                          m_width/2 + m_width/3/(numberColumns*numberBlocksPerCell+1),
-                                      m_height / (numberRows * numberBlocksPerCell+1) * (i + 0.5f) - m_height/2,
-                                      m_maxZ - m_originalWallHeight * m_scaleWallZ / 2.0f));
-                    modelMatricesMaze.push_back(trans * scale);
-                }
-                if (i > 0 && wallsExist[(i-1)*(numberColumns*numberBlocksPerCell+1)+j]) {
-                    trans = glm::translate(
-                            glm::vec3(m_width / (numberColumns * numberBlocksPerCell+1) * (j + 0.5f) - m_width/2,
-                                      m_height / (numberRows * numberBlocksPerCell+1) * (i + 0.5f) - m_height/2 -
-                                         m_height/3/(numberRows*numberBlocksPerCell+1),
-                                      m_maxZ - m_originalWallHeight * m_scaleWallZ / 2.0f));
-                    modelMatricesMaze.push_back(trans * scale);
-                }
-                if (i < numberRows*numberBlocksPerCell && wallsExist[(i+1)*(numberColumns*numberBlocksPerCell+1)+j]) {
-                    trans = glm::translate(
-                            glm::vec3(m_width / (numberColumns * numberBlocksPerCell+1) * (j + 0.5f) - m_width/2,
-                                      m_height / (numberRows * numberBlocksPerCell+1) * (i + 0.5f) - m_height/2 +
-                                          m_height/3/(numberRows*numberBlocksPerCell+1),
-                                      m_maxZ - m_originalWallHeight * m_scaleWallZ / 2.0f));
-                    modelMatricesMaze.push_back(trans * scale);
-                }
-            }
-        }
-    }
 
     // the ball
     ball.position = getCellCenterPosition(ball.row, ball.col);
@@ -179,4 +192,4 @@ void MazeOpenArea::generateModelMatrices() {
                        glm::scale(glm::vec3(m_width/2 + m_width / 2 / (numberColumns * numberBlocksPerCell),
                                             m_height/2 + m_height / 2 /(numberRows * numberBlocksPerCell), 1.0f));
 }
-
+*/

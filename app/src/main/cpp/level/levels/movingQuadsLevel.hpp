@@ -24,6 +24,7 @@
 #include <cstdint>
 #include <vector>
 #include <list>
+#include <chrono>
 
 #define GLM_FORCE_RADIANS
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
@@ -95,35 +96,34 @@ private:
     void loadModels();
     void generate();
 public:
-    virtual glm::vec4 getBackgroundColor() { return glm::vec4(0.2, 0.2, 1.0, 1.0); }
-    virtual void updateAcceleration(float x, float y, float z) { m_ball.acceleration = {-x, -y, 0.0f}; }
-    virtual bool updateData();
-    virtual bool updateStaticDrawObjects(DrawObjectTable &objs, TextureMap &textures);
-    virtual bool updateDynamicDrawObjects(DrawObjectTable &objs, TextureMap &textures, bool &texturesChanged);
-    virtual void start() {
+    glm::vec4 getBackgroundColor() override { return glm::vec4(0.2, 0.2, 1.0, 1.0); }
+    void updateAcceleration(float x, float y, float z) override { m_ball.acceleration = {-x, -y, 0.0f}; }
+    bool updateData() override;
+    bool updateStaticDrawObjects(DrawObjectTable &objs, TextureMap &textures) override;
+    bool updateDynamicDrawObjects(DrawObjectTable &objs, TextureMap &textures, bool &texturesChanged) override;
+    void start() override {
         m_prevTime = std::chrono::high_resolution_clock::now();
     }
 
-    virtual void getLevelFinisherCenter(float &x, float &y) {
+    void getLevelFinisherCenter(float &x, float &y) override {
         x = 0.0f;
         y = 0.0f;
-    }
-
-    virtual void init() {
-        loadModels();
-        generate();
     }
 
     void initSetEndQuadTexture(std::string const &texture) { m_endQuadTexture = texture; }
     void initAddMiddleQuadTexture(std::string const &texture) { m_middleQuadTextures.push_back(texture); }
     void initSetStartQuadTexture(std::string const &texture) { m_startQuadTexture = texture; }
     void initSetBallTexture(std::string const &texture) { m_ballTexture = texture; }
+    SaveLevelDataFcn getSaveLevelDataFcn() override;
 
     MovingQuadsLevel(std::shared_ptr<GameRequester> inGameRequester, float width, float height, float maxZ)
             : Level(std::move(inGameRequester), width, height, maxZ),
               maxX(m_width/2),
               maxY(m_height/2),
-              m_prevTime(std::chrono::high_resolution_clock::now()) { }
-    virtual ~MovingQuadsLevel() = default;
+              m_prevTime(std::chrono::high_resolution_clock::now()) {
+        loadModels();
+        generate();
+    }
+    ~MovingQuadsLevel() override = default;
 };
 #endif /* AMAZING_LABYRINTH_MOVING_QUADS_LEVEL_HPP */

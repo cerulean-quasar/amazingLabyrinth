@@ -67,12 +67,11 @@ private:
 
 class LevelSequenceGL : public LevelSequence {
 public:
-    LevelSequenceGL(std::shared_ptr<GameRequester> inRequester,
-                    boost::optional<GameBundle> inSaveGameBundle, uint32_t width, uint32_t height)
-            : LevelSequence{inRequester, inSaveGameBundle, width, height, true}
+    LevelSequenceGL(std::shared_ptr<GameRequester> inRequester, uint32_t width, uint32_t height)
+            : LevelSequence{inRequester, width, height, true}
     {
         // Need to call these here because they call virtual functions.
-        if (! m_levelStarter->isFinished()) {
+        if (m_levelStarter != nullptr && ! m_levelStarter->isFinished()) {
             initializeLevelData(m_levelStarter, m_levelStarterStaticObjsData,
                                 m_levelStarterDynObjsData, m_texturesLevelStarter);
         }
@@ -88,8 +87,7 @@ protected:
 class GraphicsGL : public Graphics {
 public:
     GraphicsGL(std::shared_ptr<WindowType> window,
-               std::shared_ptr<GameRequester> inRequester,
-               boost::optional<GameBundle> const &inBundle)
+               std::shared_ptr<GameRequester> inRequester)
             : Graphics{inRequester},
               m_surface{std::move(window)},
               programID{},
@@ -98,7 +96,7 @@ public:
               depthMap{},
               colorImage{}
     {
-        m_levelSequence = std::make_shared<LevelSequenceGL>(m_gameRequester, inBundle, static_cast<uint32_t>(m_surface.width()),
+        m_levelSequence = std::make_shared<LevelSequenceGL>(m_gameRequester, static_cast<uint32_t>(m_surface.width()),
                         static_cast<uint32_t >(m_surface.height()));
         initPipeline();
     }
