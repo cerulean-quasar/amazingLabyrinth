@@ -28,7 +28,13 @@ void AvoidVortexLevel::loadModels() {
 constexpr float AvoidVortexLevel::scaleFactor;
 constexpr float AvoidVortexLevel::viscosity;
 
-void AvoidVortexLevel::generate() {
+void AvoidVortexLevel::preGenerate() {
+    ball.position.z = m_maxZ-scaleFactor*m_originalBallDiameter/2;
+    holePosition.z = m_maxZ-scaleFactor*m_originalBallDiameter;
+    startPosition.z = ball.position.z;
+}
+
+void AvoidVortexLevel::postGenerate() {
     scale = glm::scale(glm::vec3(scaleFactor, scaleFactor, scaleFactor));
 
     ball.totalRotated = glm::quat();
@@ -38,9 +44,12 @@ void AvoidVortexLevel::generate() {
     // set to very large previous position (in vector length) so that it will get drawn
     // the first time through.
     ball.prevPosition = {-10.0f, 0.0f, m_maxZ-scaleFactor*m_originalBallDiameter/2};
-    ball.position.z = m_maxZ-scaleFactor*m_originalBallDiameter/2;
-    holePosition.z = m_maxZ-scaleFactor*m_originalBallDiameter;
 
+    startPositionQuad = startPosition;
+    startPositionQuad.z = m_maxZ-scaleFactor*m_originalBallDiameter;
+}
+
+void AvoidVortexLevel::generate() {
     /* ensure that the ball and hole are not near each other. They need to be farther apart than
      * the vortexes.  To make the maze fun and harder. */
     float smallestDistance = 4*scaleFactor;
@@ -51,10 +60,7 @@ void AvoidVortexLevel::generate() {
         ball.position.x = random.getFloat(-maxX, maxX);
         ball.position.y = random.getFloat(-maxY, maxY);
     } while (glm::length(ball.position - holePosition) < smallestDistance*4.0f);
-
     startPosition = ball.position;
-    startPositionQuad = ball.position;
-    startPositionQuad.z = m_maxZ-scaleFactor*m_originalBallDiameter;
 
     /* ensure that the vortexes are not near each other or the hole or the ball. */
     do {

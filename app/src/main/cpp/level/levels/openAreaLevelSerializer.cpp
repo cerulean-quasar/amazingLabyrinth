@@ -41,7 +41,6 @@ void from_json(nlohmann::json const &j, OpenAreaLevelSaveData &val) {
 Level::SaveLevelDataFcn OpenAreaLevel::getSaveLevelDataFcn() {
     auto sd = std::make_shared<OpenAreaLevelSaveData>(Point<float>{ball.position.x, ball.position.y}, Point<float>{holePosition.x, holePosition.y});
     return {[sd](std::shared_ptr<GameSaveData> gsd) -> std::vector<uint8_t> {
-        nlohmann::json j;
         return saveGameData(gsd, sd);
     }};
 }

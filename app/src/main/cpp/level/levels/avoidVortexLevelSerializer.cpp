@@ -18,13 +18,43 @@
  *
  */
 #include <memory>
+#include <boost/implicit_cast.hpp>
 #include <json.hpp>
 #include "avoidVortexLevel.hpp"
 #include "../../serializeSaveDataInternals.hpp"
 
+char constexpr const *BallLocation = "BallLocation";
+char constexpr const *HoleLocation = "HoleLocation";
+char constexpr const *StartPosition = "StartPosition";
+char constexpr const *Vortexes = "Vortexes";
+void to_json(nlohmann::json &j, AvoidVortexLevelSaveData const &val) {
+    to_json(j, boost::implicit_cast<LevelSaveData const &>(val));
+    j[BallLocation] = val.ball;
+    j[HoleLocation] = val.hole;
+    j[StartPosition] = val.startPos;
+    j[Vortexes] = val.vortexes;
+}
+
+void from_json(nlohmann::json const &j, AvoidVortexLevelSaveData &val) {
+    from_json(j, boost::implicit_cast<LevelSaveData&>(val));
+    val.ball = j[BallLocation].get<Point<float>>();
+    val.hole = j[HoleLocation].get<Point<float>>();
+    val.startPos = j[StartPosition].get<Point<float>>();
+    val.vortexes = j[Vortexes].get<std::vector<Point<float>>>();
+}
+
 Level::SaveLevelDataFcn AvoidVortexLevel::getSaveLevelDataFcn() {
-    return {[](std::shared_ptr<GameSaveData> gsd) -> std::vector<uint8_t> {
-        nlohmann::json j;
-        return saveGameData(gsd, std::shared_ptr<void>());
+    std::vector<Point<float>> vortexes;
+    vortexes.reserve(vortexPositions.size());
+    for (auto const &vortexPosition : vortexPositions) {
+        vortexes.emplace_back(vortexPosition.x, vortexPosition.y);
+    }
+    auto sd = std::make_shared<AvoidVortexLevelSaveData>(
+            Point<float>{ball.position.x, ball.position.y},
+            Point<float>{holePosition.x, holePosition.y},
+            Point<float>{startPosition.x, startPosition.y},
+            std::move(vortexes));
+    return {[sd](std::shared_ptr<GameSaveData> gsd) -> std::vector<uint8_t> {
+        return saveGameData(gsd, sd);
     }};
 }

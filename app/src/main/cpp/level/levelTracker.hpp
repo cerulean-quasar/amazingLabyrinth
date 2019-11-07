@@ -31,6 +31,7 @@
 #include "../serializeSaveData.hpp"
 #include "levels/openAreaLevel.hpp"
 #include "levels/mazeCollect.hpp"
+#include "levels/avoidVortexLevel.hpp"
 
 class LevelTracker {
 public:
@@ -53,7 +54,7 @@ public:
     static bool validLevel(uint32_t level) { return level < getLevelTable().size(); }
 
     static LevelGroup getLevelGroupBeginning(std::shared_ptr<OpenAreaLevelSaveData> const &levelSaveData);
-    static LevelGroup getLevelGroupLonelyPlanet(std::shared_ptr<void> const &levelSaveData);
+    static LevelGroup getLevelGroupLonelyPlanet(std::shared_ptr<AvoidVortexLevelSaveData> const &levelSaveData);
     static LevelGroup getLevelGroupPufferFish(std::shared_ptr<void> const &levelSaveData);
     static LevelGroup getLevelGroupRolarBear(std::shared_ptr<void> const &levelSaveData);
     static LevelGroup getLevelGroupBee1(std::shared_ptr<void> const &levelSaveData);
@@ -137,6 +138,12 @@ private:
     std::shared_ptr<OpenAreaLevel> getLevel<OpenAreaLevel,std::shared_ptr<OpenAreaLevelSaveData>>(
             std::shared_ptr<OpenAreaLevelSaveData> const &levelSaveData) {
         return std::make_shared<OpenAreaLevel>(
+                m_gameRequester, levelSaveData, m_widthLevel, m_heightLevel, m_maxZLevel);
+    }
+    template <>
+    std::shared_ptr<AvoidVortexLevel> getLevel<AvoidVortexLevel,std::shared_ptr<AvoidVortexLevelSaveData>>(
+            std::shared_ptr<AvoidVortexLevelSaveData> const &levelSaveData) {
+        return std::make_shared<AvoidVortexLevel>(
                 m_gameRequester, levelSaveData, m_widthLevel, m_heightLevel, m_maxZLevel);
     }
     template <>

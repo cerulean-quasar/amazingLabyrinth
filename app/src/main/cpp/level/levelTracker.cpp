@@ -51,7 +51,7 @@ LevelGroup LevelTracker::getLevelGroupBeginning(std::shared_ptr<OpenAreaLevelSav
     };
 }
 
-LevelGroup LevelTracker::getLevelGroupLonelyPlanet(std::shared_ptr<void> const &levelBundle) {
+LevelGroup LevelTracker::getLevelGroupLonelyPlanet(std::shared_ptr<AvoidVortexLevelSaveData> const &levelBundle) {
     return {
         getStarterFcn(levelBundle == nullptr, std::vector<std::string>{
             "Now the maze\nuniverse is\nfilled with stars\nand black holes...",

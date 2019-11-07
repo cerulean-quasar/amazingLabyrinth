@@ -37,6 +37,44 @@
 #include "../../graphics.hpp"
 #include "../../random.hpp"
 #include "../level.hpp"
+#include "../../saveData.hpp"
+
+int constexpr avoidVortexlLevelVersion = 1;
+struct AvoidVortexLevelSaveData : public LevelSaveData {
+    Point<float> ball;
+    Point<float> hole;
+    Point<float> startPos;
+    std::vector<Point<float>> vortexes;
+    AvoidVortexLevelSaveData(AvoidVortexLevelSaveData &&other) noexcept
+            : LevelSaveData{avoidVortexlLevelVersion},
+              ball{other.ball},
+              hole{other.hole},
+              startPos{other.startPos},
+              vortexes{std::move(other.vortexes)} {
+    }
+
+    AvoidVortexLevelSaveData()
+            : LevelSaveData{avoidVortexlLevelVersion},
+              ball{0.0f, 0.0f},
+              hole{0.0f, 0.0f},
+              startPos{0.0f, 0.0f},
+              vortexes{}
+    {
+    }
+
+    AvoidVortexLevelSaveData(
+            Point<float> &&ball_,
+            Point<float> &&hole_,
+            Point<float> &&startPos_,
+            std::vector<Point<float>> &&vortexes_)
+            : LevelSaveData{avoidVortexlLevelVersion},
+              ball{ball_},
+              hole{hole_},
+              startPos{startPos_},
+              vortexes{std::move(vortexes_)}
+    {
+    }
+};
 
 class AvoidVortexLevel : public Level {
 private:
@@ -92,7 +130,9 @@ private:
 
     bool ballProximity(glm::vec3 const &objPosition);
     void loadModels();
+    void preGenerate();
     void generate();
+    void postGenerate();
     void generateModelMatrices();
 public:
     glm::vec4 getBackgroundColor() override { return glm::vec4(0.0, 0.0, 0.0, 1.0); }
@@ -121,7 +161,39 @@ public:
               maxY(m_height/2),
               prevTime(std::chrono::high_resolution_clock::now()) {
         loadModels();
+        preGenerate();
         generate();
+        postGenerate();
+        generateModelMatrices();
+    }
+
+    AvoidVortexLevel(std::shared_ptr<GameRequester> inGameRequester,
+            std::shared_ptr<AvoidVortexLevelSaveData> sd,
+            float width,
+            float height,
+            float maxZ)
+            : Level(std::move(inGameRequester), width, height, maxZ),
+              maxX(m_width/2),
+              maxY(m_height/2),
+              prevTime(std::chrono::high_resolution_clock::now()) {
+        loadModels();
+        preGenerate();
+        if (sd == nullptr) {
+            generate();
+        } else {
+            ball.position.x = sd->ball.x;
+            ball.position.y = sd->ball.y;
+            holePosition.x = sd->hole.x;
+            holePosition.y = sd->hole.y;
+            startPosition.x = sd->startPos.x;
+            startPosition.y = sd->startPos.y;
+            vortexPositions.reserve(sd->vortexes.size());
+            for (auto const &vortex : sd->vortexes) {
+                vortexPositions.emplace_back(vortex.x, vortex.y,
+                                             m_maxZ - scaleFactor * m_originalBallDiameter);
+            }
+        }
+        postGenerate();
         generateModelMatrices();
     }
     ~AvoidVortexLevel() override = default;
