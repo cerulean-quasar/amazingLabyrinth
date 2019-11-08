@@ -32,6 +32,7 @@
 #include "levels/openAreaLevel.hpp"
 #include "levels/mazeCollect.hpp"
 #include "levels/avoidVortexLevel.hpp"
+#include "levels/movingQuadsLevel.hpp"
 
 class LevelTracker {
 public:
@@ -56,7 +57,7 @@ public:
     static LevelGroup getLevelGroupBeginning(std::shared_ptr<OpenAreaLevelSaveData> const &levelSaveData);
     static LevelGroup getLevelGroupLonelyPlanet(std::shared_ptr<AvoidVortexLevelSaveData> const &levelSaveData);
     static LevelGroup getLevelGroupPufferFish(std::shared_ptr<void> const &levelSaveData);
-    static LevelGroup getLevelGroupRolarBear(std::shared_ptr<void> const &levelSaveData);
+    static LevelGroup getLevelGroupRolarBear(std::shared_ptr<MovingQuadsLevelSaveData> const &levelSaveData);
     static LevelGroup getLevelGroupBee1(std::shared_ptr<void> const &levelSaveData);
     static LevelGroup getLevelGroupBee2(std::shared_ptr<void> const &levelSaveData);
     static LevelGroup getLevelGroupCat(std::shared_ptr<void> const &levelSaveData);
@@ -144,6 +145,12 @@ private:
     std::shared_ptr<AvoidVortexLevel> getLevel<AvoidVortexLevel,std::shared_ptr<AvoidVortexLevelSaveData>>(
             std::shared_ptr<AvoidVortexLevelSaveData> const &levelSaveData) {
         return std::make_shared<AvoidVortexLevel>(
+                m_gameRequester, levelSaveData, m_widthLevel, m_heightLevel, m_maxZLevel);
+    }
+    template <>
+    std::shared_ptr<MovingQuadsLevel> getLevel<MovingQuadsLevel,std::shared_ptr<MovingQuadsLevelSaveData>>(
+            std::shared_ptr<MovingQuadsLevelSaveData> const &levelSaveData) {
+        return std::make_shared<MovingQuadsLevel>(
                 m_gameRequester, levelSaveData, m_widthLevel, m_heightLevel, m_maxZLevel);
     }
     template <>

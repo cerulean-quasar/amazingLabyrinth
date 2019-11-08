@@ -102,7 +102,7 @@ LevelGroup LevelTracker::getLevelGroupPufferFish(std::shared_ptr<void> const &le
     };
 }
 
-LevelGroup LevelTracker::getLevelGroupRolarBear(std::shared_ptr<void> const &levelBundle) {
+LevelGroup LevelTracker::getLevelGroupRolarBear(std::shared_ptr<MovingQuadsLevelSaveData> const &levelBundle) {
     return {
         getStarterFcn(levelBundle == nullptr, std::vector<std::string>{
             "As the ice\nplanet warms\nand the ice\nmelts...",

@@ -64,6 +64,8 @@ void from_json(nlohmann::json const &j, OpenAreaLevelSaveData &val);
 void to_json(nlohmann::json &j, OpenAreaLevelSaveData const &val);
 void to_json(nlohmann::json &j, AvoidVortexLevelSaveData const &val);
 void from_json(nlohmann::json const &j, AvoidVortexLevelSaveData &val);
+void to_json(nlohmann::json &j, MovingQuadsLevelSaveData const &val);
+void from_json(nlohmann::json const &j, MovingQuadsLevelSaveData &val);
 
 using RestoreLevelFromDataFcn = std::function<RestoreData(nlohmann::json const *, std::string const&)>;
 

@@ -38,6 +38,60 @@
 #include "../../random.hpp"
 #include "../level.hpp"
 
+int constexpr movingQuadsLevelVersion = 1;
+struct QuadRowSaveData {
+    std::vector<Point<float>> positions;
+    float speed;
+    Point<float> scale;
+    QuadRowSaveData()
+    : positions{},
+      speed{0.0f},
+      scale{0.0f, 0.0f}
+    {}
+    QuadRowSaveData(
+        std::vector<Point<float>> &&positions_,
+        float speed_,
+        Point<float> &&scale_)
+        : positions{std::move(positions_)},
+        speed{speed_},
+        scale{std::move(scale_)}
+    {}
+    QuadRowSaveData(
+            std::vector<Point<float>> const &positions_,
+            float speed_,
+            Point<float> const &scale_)
+            : positions{positions_},
+              speed{speed_},
+              scale{scale_}
+    {}
+};
+
+struct MovingQuadsLevelSaveData : public LevelSaveData {
+    Point<float> ball;
+    std::vector<QuadRowSaveData> quadRows;
+    MovingQuadsLevelSaveData(MovingQuadsLevelSaveData &&other) noexcept
+            : LevelSaveData{movingQuadsLevelVersion},
+              ball{other.ball},
+              quadRows{std::move(other.quadRows)} {
+    }
+
+    MovingQuadsLevelSaveData()
+            : LevelSaveData{movingQuadsLevelVersion},
+              ball{0.0f, 0.0f},
+              quadRows{}
+    {
+    }
+
+    MovingQuadsLevelSaveData(
+            Point<float> &&ball_,
+            std::vector<QuadRowSaveData> &&quadRows_)
+            : LevelSaveData{movingQuadsLevelVersion},
+              ball{ball_},
+              quadRows{std::move(quadRows_)}
+    {
+    }
+};
+
 class MovingQuadsLevel : public Level {
 private:
     static constexpr uint32_t numberOfMidQuadRows = 4;
@@ -70,6 +124,24 @@ private:
         std::vector<glm::vec3> positions;
         float speed;
         glm::vec3 scale;
+
+        MovingQuadRow()
+            :positions{},
+             speed{0.0f},
+             scale{0.0f, 0.0f, 0.0f}
+        {}
+
+        MovingQuadRow(std::vector<glm::vec3> const &positions_, float speed_, glm::vec3 const &scale_) {
+            positions = positions_;
+            speed = speed_;
+            scale = scale_;
+        }
+
+        MovingQuadRow(std::vector<glm::vec3> &&positions_, float speed_, glm::vec3 &&scale_) {
+            positions = std::move(positions_);
+            speed = speed_;
+            scale = std::move(scale_);
+        }
     };
     std::vector<MovingQuadRow> m_movingQuads;
 
@@ -94,6 +166,7 @@ private:
     bool ballOnQuad(glm::vec3 const &centerPos, float xSize);
 
     void loadModels();
+    void preGenerate();
     void generate();
 public:
     glm::vec4 getBackgroundColor() override { return glm::vec4(0.2, 0.2, 1.0, 1.0); }
@@ -116,13 +189,33 @@ public:
     void initSetBallTexture(std::string const &texture) { m_ballTexture = texture; }
     SaveLevelDataFcn getSaveLevelDataFcn() override;
 
-    MovingQuadsLevel(std::shared_ptr<GameRequester> inGameRequester, float width, float height, float maxZ)
+    MovingQuadsLevel(
+            std::shared_ptr<GameRequester> inGameRequester,
+            std::shared_ptr<MovingQuadsLevelSaveData> saveData,
+            float width,
+            float height,
+            float maxZ)
             : Level(std::move(inGameRequester), width, height, maxZ),
               maxX(m_width/2),
               maxY(m_height/2),
               m_prevTime(std::chrono::high_resolution_clock::now()) {
         loadModels();
-        generate();
+        preGenerate();
+        if (saveData == nullptr) {
+            generate();
+        } else {
+            m_ball.position.x = saveData->ball.x;
+            m_ball.position.y = saveData->ball.y;
+            m_movingQuads.reserve(saveData->quadRows.size());
+            for (auto const &quadRow : saveData->quadRows) {
+                std::vector<glm::vec3> positions;
+                positions.reserve(quadRow.positions.size());
+                for (auto const &position : quadRow.positions) {
+                    positions.emplace_back(position.x, position.y, m_maxZ-m_originalBallDiameter*scaleFactor);
+                }
+                m_movingQuads.emplace_back(std::move(positions), quadRow.speed, glm::vec3{quadRow.scale.x, quadRow.scale.y, 1.0f});
+            }
+        }
     }
     ~MovingQuadsLevel() override = default;
 };

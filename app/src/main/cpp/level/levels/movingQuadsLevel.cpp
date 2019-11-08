@@ -28,11 +28,11 @@ void MovingQuadsLevel::loadModels() {
     getQuad(m_quadVertices, m_quadIndices);
 }
 
-void MovingQuadsLevel::generate() {
-    m_startQuadPosition = {0.0f, -maxY, m_maxZ-m_originalBallDiameter*scaleFactor};
-    m_endQuadPosition = {0.0f, maxY, m_maxZ-m_originalBallDiameter*scaleFactor};
-    m_startPosition = {0.0f, -maxY, m_maxZ-m_originalBallDiameter*scaleFactor/2.0f};
-    m_quadScaleY = maxY/(numberOfMidQuadRows+1.0f);
+void MovingQuadsLevel::preGenerate() {
+    m_startQuadPosition = {0.0f, -maxY, m_maxZ - m_originalBallDiameter * scaleFactor};
+    m_endQuadPosition = {0.0f, maxY, m_maxZ - m_originalBallDiameter * scaleFactor};
+    m_startPosition = {0.0f, -maxY, m_maxZ - m_originalBallDiameter * scaleFactor / 2.0f};
+    m_quadScaleY = maxY / (numberOfMidQuadRows + 1.0f);
 
     m_ball.totalRotated = glm::quat();
     m_ball.acceleration = {0.0f, 0.0f, 0.0f};
@@ -41,9 +41,11 @@ void MovingQuadsLevel::generate() {
 
     // set to very large previous position (in vector length) so that it will get drawn
     // the first time through.
-    m_ball.prevPosition = {-10.0f, 0.0f, m_maxZ-scaleFactor*m_originalBallDiameter/2.0f};
+    m_ball.prevPosition = {-10.0f, 0.0f, m_maxZ - scaleFactor * m_originalBallDiameter / 2.0f};
     m_ball.position = m_startPosition;
+}
 
+void MovingQuadsLevel::generate() {
     // The moving quads move at a random speed in the x direction.  There is a random number of
     // them in each row.
     Random randomGenerator;

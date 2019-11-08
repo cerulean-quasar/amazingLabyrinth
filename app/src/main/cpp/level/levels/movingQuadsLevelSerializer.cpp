@@ -19,12 +19,53 @@
  */
 #include <memory>
 #include <json.hpp>
+#include <boost/implicit_cast.hpp>
 #include "movingQuadsLevel.hpp"
 #include "../../serializeSaveDataInternals.hpp"
 
+char constexpr const *BallLocation = "BallLocation";
+char constexpr const *QuadRows = "QuadRows";
+char constexpr const *Positions = "Positions";
+char constexpr const *Speed = "Speed";
+char constexpr const *Scale = "Scale";
+void to_json(nlohmann::json &j, QuadRowSaveData const &val) {
+    j[Positions] = val.positions;
+    j[Speed] = val.speed;
+    j[Scale] = val.scale;
+}
+
+void from_json(nlohmann::json const &j, QuadRowSaveData &val) {
+    val.positions = j[Positions].get<std::vector<Point<float>>>();
+    val.speed = j[Speed].get<float>();
+    val.scale = j[Scale].get<Point<float>>();
+}
+
+void to_json(nlohmann::json &j, MovingQuadsLevelSaveData const &val) {
+    to_json(j, boost::implicit_cast<LevelSaveData const &>(val));
+    j[BallLocation] = val.ball;
+    j[QuadRows] = val.quadRows;
+}
+
+void from_json(nlohmann::json const &j, MovingQuadsLevelSaveData &val) {
+    from_json(j, boost::implicit_cast<LevelSaveData&>(val));
+    val.ball = j[BallLocation].get<Point<float>>();
+    val.quadRows = j[QuadRows].get<std::vector<QuadRowSaveData>>();
+}
+
 Level::SaveLevelDataFcn MovingQuadsLevel::getSaveLevelDataFcn() {
-    return {[](std::shared_ptr<GameSaveData> gsd) -> std::vector<uint8_t> {
-        nlohmann::json j;
-        return saveGameData(gsd, std::shared_ptr<void>());
+    std::vector<QuadRowSaveData> quadRows;
+    quadRows.reserve(m_movingQuads.size());
+    for (auto const &movingQuad : m_movingQuads) {
+        std::vector<Point<float>> positions;
+        for (auto const &position : movingQuad.positions) {
+            positions.emplace_back(position.x, position.y);
+        }
+        quadRows.emplace_back(std::move(positions), movingQuad.speed, Point<float>{movingQuad.scale.x, movingQuad.scale.y});
+    }
+    auto sd = std::make_shared<MovingQuadsLevelSaveData>(
+            Point<float>{m_ball.position.x, m_ball.position.y},
+            std::move(quadRows));
+    return {[sd](std::shared_ptr<GameSaveData> gsd) -> std::vector<uint8_t> {
+        return saveGameData(gsd, sd);
     }};
 }
