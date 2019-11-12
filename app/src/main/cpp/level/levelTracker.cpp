@@ -72,7 +72,7 @@ LevelGroup LevelTracker::getLevelGroupLonelyPlanet(std::shared_ptr<AvoidVortexLe
     };
 }
 
-LevelGroup LevelTracker::getLevelGroupPufferFish(std::shared_ptr<void> const &levelBundle) {
+LevelGroup LevelTracker::getLevelGroupPufferFish(std::shared_ptr<MazeSaveData> const &levelBundle) {
     return {
         getStarterFcn(levelBundle == nullptr, std::vector<std::string>{
             "On the planet,\nthe ice begins\nto melt\nand life ignites...",
@@ -90,6 +90,7 @@ LevelGroup LevelTracker::getLevelGroupPufferFish(std::shared_ptr<void> const &le
             level->initAddWallTexture("textures/pufferFish/wallIce2.png");
             level->initAddWallTexture("textures/pufferFish/wallIce3.png");
             level->initAddWallTexture("textures/pufferFish/wallIce4.png");
+            level->doneAddingWallTextures();
             level->initSetFloorTexture("textures/pufferFish/floor.png");
             level->initSetHoleTexture("textures/pufferFish/hole.png");
             return level;
@@ -126,7 +127,7 @@ LevelGroup LevelTracker::getLevelGroupRolarBear(std::shared_ptr<MovingQuadsLevel
     };
 }
 
-LevelGroup LevelTracker::getLevelGroupBee1(std::shared_ptr<void> const &levelBundle) {
+LevelGroup LevelTracker::getLevelGroupBee1(std::shared_ptr<MazeSaveData> const &levelBundle) {
     return {
         getStarterFcn(levelBundle == nullptr, std::vector<std::string>{
             "Next comes an age\nwhen flowers\ncovered\nthe planet...",
@@ -146,6 +147,7 @@ LevelGroup LevelTracker::getLevelGroupBee1(std::shared_ptr<void> const &levelBun
             level->initAddWallTexture("textures/rollerBee/wallFlower2.png");
             level->initAddWallTexture("textures/rollerBee/wallFlower3.png");
             level->initAddWallTexture("textures/rollerBee/wallFlower4.png");
+            level->doneAddingWallTextures();
             return level;
         }),
         GetFinisherFcn([](LevelTracker &tracker, float centerX, float centerY, glm::mat4 const &proj, glm::mat4 const &view) {
@@ -162,7 +164,7 @@ LevelGroup LevelTracker::getLevelGroupBee1(std::shared_ptr<void> const &levelBun
     };
 }
 
-LevelGroup LevelTracker::getLevelGroupBee2(std::shared_ptr<void> const &levelBundle) {
+LevelGroup LevelTracker::getLevelGroupBee2(std::shared_ptr<MazeSaveData> const &levelBundle) {
     return {
         getStarterFcn(levelBundle == nullptr, std::vector<std::string>{
             "The plants have\nbecome more\nnumerous\nand the\nroller bee...",
@@ -182,6 +184,7 @@ LevelGroup LevelTracker::getLevelGroupBee2(std::shared_ptr<void> const &levelBun
             level->initAddWallTexture("textures/rollerBee/wallFlower2.png");
             level->initAddWallTexture("textures/rollerBee/wallFlower3.png");
             level->initAddWallTexture("textures/rollerBee/wallFlower4.png");
+            level->doneAddingWallTextures();
             return level;
         }),
         GetFinisherFcn([](LevelTracker &tracker, float centerX, float centerY, glm::mat4 const &proj, glm::mat4 const &view) {
@@ -198,7 +201,7 @@ LevelGroup LevelTracker::getLevelGroupBee2(std::shared_ptr<void> const &levelBun
     };
 }
 
-LevelGroup LevelTracker::getLevelGroupCat(std::shared_ptr<void> const &levelBundle) {
+LevelGroup LevelTracker::getLevelGroupCat(std::shared_ptr<MazeCollectSaveData> const &levelBundle) {
     return {
         getStarterFcn(levelBundle == nullptr, std::vector<std::string>{
             "In the jungle,\na mother cat...",
@@ -215,6 +218,7 @@ LevelGroup LevelTracker::getLevelGroupCat(std::shared_ptr<void> const &levelBund
             level->initAddWallTexture("textures/rollerBee/wallFlower2.png");
             level->initAddWallTexture("textures/rollerBee/wallFlower3.png");
             level->initAddWallTexture("textures/rollerBee/wallFlower4.png");
+            level->doneAddingWallTextures();
             level->initSetBallTexture("textures/cat/catBall.png");
             level->initSetFloorTexture("textures/rollerBee/floor.png");
             level->initSetHoleTexture("textures/cat/catHole.png");

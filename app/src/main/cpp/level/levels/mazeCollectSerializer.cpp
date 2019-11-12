@@ -19,12 +19,56 @@
  */
 #include <memory>
 #include <json.hpp>
+#include <boost/implicit_cast.hpp>
 #include "mazeCollect.hpp"
 #include "../../serializeSaveDataInternals.hpp"
 
+char constexpr const *CollectionObjLocation = "CollectionObjLocation";
+char constexpr const *ItemsCollected = "ItemsCollected";
+char constexpr const *PreviousCells = "PreviousCells";
+void to_json(nlohmann::json &j, MazeCollectSaveData const &val) {
+    to_json(j, boost::implicit_cast<MazeSaveData const &>(val));
+    j[CollectionObjLocation] = val.collectionObjLocations;
+    j[ItemsCollected] = val.itemsCollected;
+    j[PreviousCells] = val.previousCells;
+}
+
+void from_json(nlohmann::json const &j, MazeCollectSaveData &val) {
+    from_json(j, boost::implicit_cast<MazeSaveData&>(val));
+    val.collectionObjLocations = j[CollectionObjLocation].get<std::vector<Point<float>>>();
+    val.itemsCollected = j[ItemsCollected].get<std::vector<bool>>();
+    val.previousCells = j[PreviousCells].get<std::vector<Point<uint32_t>>>();
+}
+
 Level::SaveLevelDataFcn MazeCollect::getSaveLevelDataFcn() {
-    return {[](std::shared_ptr<GameSaveData> gsd) -> std::vector<uint8_t> {
-        nlohmann::json j;
-        return saveGameData(gsd, std::shared_ptr<void>());
+    std::vector<Point<float>> collectionObjLocations;
+    std::vector<bool> itemsCollected;
+    collectionObjLocations.reserve(m_collectionObjectLocations.size());
+    itemsCollected.reserve(m_collectionObjectLocations.size());
+    for (auto const &collectionObj : m_collectionObjectLocations) {
+        collectionObjLocations.emplace_back(collectionObj.second.x, collectionObj.second.y);
+        itemsCollected.push_back(collectionObj.first);
+    }
+
+    std::vector<Point<uint32_t>> previousCells;
+    previousCells.reserve(m_prevCells.size());
+    for (auto const &prevCell : m_prevCells) {
+        previousCells.emplace_back(prevCell.first, prevCell.second);
+    }
+    auto sd = std::make_shared<MazeCollectSaveData>(
+        numberRows,
+        ball.row,
+        ball.col,
+        Point<float>{ball.position.x, ball.position.y},
+        m_rowEnd,
+        m_colEnd,
+        std::vector<uint32_t>{m_wallTextureIndices},
+        getSerializedMazeWallVector(),
+        std::move(collectionObjLocations),
+        std::move(itemsCollected),
+        std::move(previousCells));
+
+    return {[sd{move(sd)}](std::shared_ptr<GameSaveData> gsd) -> std::vector<uint8_t> {
+        return saveGameData(gsd, sd);
     }};
 }

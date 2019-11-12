@@ -73,7 +73,7 @@ void MazeCollect::generateCollectBallModelMatrices() {
         // collected.
         glm::vec3 pos{random.getFloat(leftWall(col)+2*scale, rightWall(col)-2*scale),
                       random.getFloat(topWall(row)+2*scale, bottomWall(row)-2*scale),
-                      m_maxZ - m_originalWallHeight*m_scaleWallZ/2.0f};
+                      getBallZPosition()};
         bool tooClose = false;
         for (auto const &collectionObjectLocation : m_collectionObjectLocations) {
             if (glm::length(pos - collectionObjectLocation.second) < (m_width+m_height)/32) {

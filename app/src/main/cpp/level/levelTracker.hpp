@@ -27,8 +27,8 @@
 #include "levelStarter.hpp"
 #include "../common.hpp"
 #include "../saveData.hpp"
-#include "levels/maze.hpp"
 #include "../serializeSaveData.hpp"
+#include "levels/maze.hpp"
 #include "levels/openAreaLevel.hpp"
 #include "levels/mazeCollect.hpp"
 #include "levels/avoidVortexLevel.hpp"
@@ -56,11 +56,11 @@ public:
 
     static LevelGroup getLevelGroupBeginning(std::shared_ptr<OpenAreaLevelSaveData> const &levelSaveData);
     static LevelGroup getLevelGroupLonelyPlanet(std::shared_ptr<AvoidVortexLevelSaveData> const &levelSaveData);
-    static LevelGroup getLevelGroupPufferFish(std::shared_ptr<void> const &levelSaveData);
+    static LevelGroup getLevelGroupPufferFish(std::shared_ptr<MazeSaveData> const &levelSaveData);
     static LevelGroup getLevelGroupRolarBear(std::shared_ptr<MovingQuadsLevelSaveData> const &levelSaveData);
-    static LevelGroup getLevelGroupBee1(std::shared_ptr<void> const &levelSaveData);
-    static LevelGroup getLevelGroupBee2(std::shared_ptr<void> const &levelSaveData);
-    static LevelGroup getLevelGroupCat(std::shared_ptr<void> const &levelSaveData);
+    static LevelGroup getLevelGroupBee1(std::shared_ptr<MazeSaveData> const &levelSaveData);
+    static LevelGroup getLevelGroupBee2(std::shared_ptr<MazeSaveData> const &levelSaveData);
+    static LevelGroup getLevelGroupCat(std::shared_ptr<MazeCollectSaveData> const &levelSaveData);
 
     void setLevel(std::string const &levelName) {
         size_t i = 0;
@@ -131,10 +131,11 @@ private:
     template <typename LevelType, typename LevelDataType>
     std::shared_ptr<LevelType> getLevel(LevelDataType const &levelSaveData) {
         return std::make_shared<LevelType>(
-                m_gameRequester, m_widthLevel, m_heightLevel, m_maxZLevel);
+                m_gameRequester, levelSaveData, m_widthLevel, m_heightLevel, m_maxZLevel);
     }
 
     // TODO: once completed, we should not need to specialize this template.  the general version should cover all cases
+    /*
     template <>
     std::shared_ptr<OpenAreaLevel> getLevel<OpenAreaLevel,std::shared_ptr<OpenAreaLevelSaveData>>(
             std::shared_ptr<OpenAreaLevelSaveData> const &levelSaveData) {
@@ -163,6 +164,7 @@ private:
         return std::make_shared<MazeCollect>(
                 m_gameRequester, levelSaveData, m_widthLevel, m_heightLevel, m_maxZLevel);
     }
+     */
 
     template <typename FinisherType>
     std::shared_ptr<FinisherType> getFinisher(float centerX, float centerY, glm::mat4 const &proj, glm::mat4 const &view) {

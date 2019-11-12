@@ -37,6 +37,61 @@
 #include "../levelFinish.hpp"
 #include "../level.hpp"
 
+struct MazeSaveData : public LevelSaveData {
+    static int constexpr mazeVersion = 1;
+    uint32_t nbrRows;
+    uint32_t ballRow;
+    uint32_t ballCol;
+    Point<float> ballPos;
+    uint32_t rowEnd;
+    uint32_t colEnd;
+    std::vector<uint32_t> wallTextures;
+    std::vector<uint8_t> mazeWallsVector;
+    MazeSaveData(MazeSaveData &&other) noexcept
+            : LevelSaveData{mazeVersion},
+              nbrRows{other.nbrRows},
+              ballRow{other.ballRow},
+              ballCol{other.ballCol},
+              ballPos{other.ballPos},
+              rowEnd{other.rowEnd},
+              colEnd{other.colEnd},
+              wallTextures{other.wallTextures},
+              mazeWallsVector{std::move(other.mazeWallsVector)} {
+    }
+
+    MazeSaveData()
+            : LevelSaveData{mazeVersion},
+              nbrRows{0},
+              ballRow{0},
+              ballCol{0},
+              ballPos{0.0f, 0.0f},
+              rowEnd{0},
+              colEnd{0},
+              mazeWallsVector{}
+    {
+    }
+
+    MazeSaveData(
+            uint32_t nbrRows_,
+            uint32_t ballRow_,
+            uint32_t ballCol_,
+            Point<float> &&ballPos_,
+            uint32_t rowEnd_,
+            uint32_t colEnd_,
+            std::vector<uint32_t> &&wallTextures_,
+            std::vector<uint8_t> &&mazeWallsVector_)
+            : LevelSaveData{mazeVersion},
+              nbrRows{nbrRows_},
+              ballRow{ballRow_},
+              ballCol{ballCol_},
+              ballPos{ballPos_},
+              rowEnd{rowEnd_},
+              colEnd{colEnd_},
+              wallTextures{std::move(wallTextures_)},
+              mazeWallsVector{std::move(mazeWallsVector_)}
+    {
+    }
+};
 
 class Maze;
 
@@ -98,7 +153,7 @@ protected:
         glm::vec3 acceleration;
         glm::quat totalRotated;
     } ball;
-    std::vector<std::vector<Cell> > cells;
+    std::vector<std::vector<Cell>> cells;
 
     glm::mat4 scaleBall;
     std::vector<glm::mat4> modelMatricesMaze;
@@ -125,10 +180,13 @@ protected:
     uint32_t m_rowEnd;
     uint32_t m_colEnd;
 
+    std::vector<uint32_t> m_wallTextureIndices;
+
     void addCellOption(unsigned int r, unsigned int c, std::vector<std::pair<unsigned int, unsigned int> > &options);
     void loadModelFloor();
     float getRowCenterPosition(unsigned int row);
     float getColumnCenterPosition(unsigned int col);
+    float getBallZPosition();
     glm::vec3 getCellCenterPosition(unsigned int row, unsigned int col);
     bool ballInProximity(float x, float y);
     Cell const &getCell(unsigned int row, unsigned int column);
@@ -138,6 +196,8 @@ protected:
     void generateDFS();
     void generateModelMatrices(MazeWallModelMatrixGeneratorFcn &wallModelMatrixGeneratorFcn);
     void generateMazeVector(uint32_t &rowEnd, uint32_t &colEnd, std::vector<bool> &wallsExist);
+    std::vector<uint8_t> getSerializedMazeWallVector();
+    void generateCellsFromMazeVector(std::vector<uint8_t> const &mazeVector);
 
 public:
     enum Mode {
@@ -151,11 +211,11 @@ public:
     };
 
 private:
-    Mode m_mode;
-
     static Maze::MazeWallModelMatrixGeneratorFcn getMazeWallModelMatricesGenerator();
+
 public:
     Maze(std::shared_ptr<GameRequester> inGameRequester,
+         std::shared_ptr<MazeSaveData> sd,
          float width,
          float height,
          float maxZ,
@@ -163,8 +223,29 @@ public:
             :Level(std::move(inGameRequester), width, height, maxZ),
              drawHole{true}
     {
-        CreateParameters createParameters = { 10, Mode::DFS};
-        initializeMaze(createParameters, wallModelMatrixGeneratorFcn);
+        numberRows = sd->nbrRows;
+        preGenerate();
+
+        loadModels();
+
+        m_wallTextureIndices = sd->wallTextures;
+        generateCellsFromMazeVector(sd->mazeWallsVector);
+        m_rowEnd = sd->rowEnd;
+        m_colEnd = sd->colEnd;
+        cells[m_rowEnd][m_colEnd].mIsEnd = true;
+
+        // Set up the "start" to be where the ball was last since we don't know what the start
+        // was anymore, but we do need a "valid" start for generateModelMatrices.
+        cells[sd->ballRow][sd->ballCol].mIsStart = true;
+
+        generateModelMatrices(wallModelMatrixGeneratorFcn);
+
+        ball.row = sd->ballRow;
+        ball.col = sd->ballCol;
+
+        // these are set incorrectly by generateModelMatrices.... set them up again.
+        ball.position = glm::vec3{sd->ballPos.x, sd->ballPos.y, getBallZPosition()};
+        modelMatrixBall = glm::translate(ball.position)*glm::toMat4(ball.totalRotated)*scaleBall;
     }
 
     Maze(std::shared_ptr<GameRequester> inGameRequester,
@@ -176,28 +257,22 @@ public:
             :Level(std::move(inGameRequester), width, height, maxZ),
              drawHole{true}
     {
-        initializeMaze(createParameters, wallModelMatrixGeneratorFcn);
+        numberRows = createParameters.numberRows;
+        preGenerate();
+
+        loadModels();
+        if (createParameters.mode == BFS) {
+            generateBFS();
+        } else {
+            generateDFS();
+        }
+        generateModelMatrices(wallModelMatrixGeneratorFcn);
     }
 
-    void initializeMaze(
-        CreateParameters createParameters,
-        MazeWallModelMatrixGeneratorFcn &wallModelMatrixGeneratorFcn)
-    {
-        numberRows = createParameters.numberRows;
+    void preGenerate() {
         numberColumns = static_cast<uint32_t>(std::floor(numberRows*m_width/m_height));
         scale = 1.0f/(std::max(numberRows, numberColumns)*numberBlocksPerCell + 1);
-        m_mode = createParameters.mode;
         m_scaleWallZ = scale*2;
-        initializeMaze(wallModelMatrixGeneratorFcn);
-    }
-
-    void initializeMaze(
-        MazeWallModelMatrixGeneratorFcn &wallModelMatrixGeneratorFcn)
-    {
-        cells.resize(numberRows);
-        for (unsigned int i = 0; i < numberRows; i++) {
-            cells[i].resize(numberColumns);
-        }
 
         prevTime = std::chrono::high_resolution_clock::now();
         glm::vec3 xaxis{1.0f, 0.0f, 0.0f};
@@ -206,14 +281,11 @@ public:
         ball.velocity = {0.0f, 0.0f, 0.0f};
         unsigned int i = std::max(numberRows, numberColumns);
         scaleBall = glm::scale(glm::vec3(scale, scale, scale));
+        cells.resize(numberRows);
 
-        loadModels();
-        if (m_mode == BFS) {
-            generateBFS();
-        } else {
-            generateDFS();
+        for (unsigned int i = 0; i < numberRows; i++) {
+            cells[i].resize(numberColumns);
         }
-        generateModelMatrices(wallModelMatrixGeneratorFcn);
     }
 
     glm::vec4 getBackgroundColor() override { return {0.0f, 0.0f, 0.0f, 0.0f}; }
@@ -227,6 +299,7 @@ public:
     }
 
     void initAddWallTexture(std::string const &texturePath) { wallTextures.push_back(texturePath); }
+    void doneAddingWallTextures();
     void initSetFloorTexture(std::string const &texturePath) { floorTexture = texturePath; }
     void initSetHoleTexture(std::string const &texturePath) { holeTexture = texturePath; }
     void initSetBallTexture(std::string const &texturePath) { ballTexture = texturePath; }

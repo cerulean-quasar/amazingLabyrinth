@@ -22,6 +22,49 @@
 
 #include "mazeOpenArea.hpp"
 
+struct MazeCollectSaveData : public MazeSaveData {
+    std::vector<Point<float>> collectionObjLocations;
+    std::vector<bool> itemsCollected;
+    std::vector<Point<uint32_t>> previousCells;
+
+    // Intentionally slices other to pass part into the MazeSaveData constructor.
+    MazeCollectSaveData(MazeCollectSaveData &&other) noexcept
+        : MazeSaveData(std::move(other)),
+        collectionObjLocations{other.collectionObjLocations},
+        itemsCollected{other.itemsCollected},
+        previousCells{other.previousCells}
+    {
+    }
+
+    MazeCollectSaveData()
+            : MazeSaveData{},
+              collectionObjLocations{},
+              itemsCollected{},
+              previousCells{}
+    {
+    }
+
+    MazeCollectSaveData(
+        uint32_t nbrRows_,
+        uint32_t ballRow_,
+        uint32_t ballCol_,
+        Point<float> &&ballPos_,
+        uint32_t rowEnd_,
+        uint32_t colEnd_,
+        std::vector<uint32_t> &&wallTextures_,
+        std::vector<uint8_t> &&mazeWallsVector_,
+        std::vector<Point<float>> &&collectionObjLocations_,
+        std::vector<bool> &&itemsCollected_,
+        std::vector<Point<uint32_t>> &&previousCells_)
+        : MazeSaveData{nbrRows_, ballRow_, ballCol_, std::move(ballPos_), rowEnd_, colEnd_,
+                       std::move(wallTextures_), std::move(mazeWallsVector_)},
+          collectionObjLocations{std::move(collectionObjLocations_)},
+          itemsCollected{std::move(itemsCollected_)},
+          previousCells{std::move(previousCells_)}
+    {
+    }
+};
+
 class MazeCollect : public MazeOpenArea {
 protected:
     static constexpr uint32_t nbrItemsToCollect = 5;
@@ -30,10 +73,18 @@ protected:
     std::deque<std::pair<uint32_t, uint32_t>> m_prevCells;
 public:
     MazeCollect(std::shared_ptr<GameRequester> inGameRequester,
+                std::shared_ptr<MazeCollectSaveData> sd,
                 float inWidth, float inHeight, float maxZ)
-            :MazeOpenArea(std::move(inGameRequester), inWidth, inHeight, maxZ)
+            :MazeOpenArea(std::move(inGameRequester), sd, inWidth, inHeight, maxZ)
     {
-        generateCollectBallModelMatrices();
+        for (size_t i = 0; i < sd->collectionObjLocations.size(); i++) {
+            m_collectionObjectLocations.emplace_back(sd->itemsCollected[i],
+                    glm::vec3{sd->collectionObjLocations[i].x, sd->collectionObjLocations[i].y, getBallZPosition()});
+        }
+
+        for (auto const &prevCell : sd->previousCells) {
+            m_prevCells.emplace_back(prevCell.x, prevCell.y);
+        }
     }
 
     MazeCollect(std::shared_ptr<GameRequester> inGameRequester, Maze::CreateParameters const &parameters,

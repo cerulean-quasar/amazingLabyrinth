@@ -66,6 +66,10 @@ void to_json(nlohmann::json &j, AvoidVortexLevelSaveData const &val);
 void from_json(nlohmann::json const &j, AvoidVortexLevelSaveData &val);
 void to_json(nlohmann::json &j, MovingQuadsLevelSaveData const &val);
 void from_json(nlohmann::json const &j, MovingQuadsLevelSaveData &val);
+void to_json(nlohmann::json &j, MazeSaveData const &val);
+void from_json(nlohmann::json const &j, MazeSaveData &val);
+void to_json(nlohmann::json &j, MazeCollectSaveData const &val);
+void from_json(nlohmann::json const &j, MazeCollectSaveData &val);
 
 using RestoreLevelFromDataFcn = std::function<RestoreData(nlohmann::json const *, std::string const&)>;
 

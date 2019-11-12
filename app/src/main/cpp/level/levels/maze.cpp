@@ -326,10 +326,14 @@ float Maze::getColumnCenterPosition(unsigned int col) {
     return m_width / (numberColumns * numberBlocksPerCell+1) * (col*numberBlocksPerCell+1.5f) - m_width/2;
 }
 
+float Maze::getBallZPosition() {
+    return m_maxZ - m_originalWallHeight*m_scaleWallZ/2.0f;
+}
+
 glm::vec3 Maze::getCellCenterPosition(unsigned int row, unsigned int col) {
    return glm::vec3(getColumnCenterPosition(col),
                     getRowCenterPosition(row),
-                    m_maxZ - m_originalWallHeight*m_scaleWallZ/2.0f);
+                    getBallZPosition());
 }
 
 void Maze::generateMazeVector(uint32_t &rowEnd, uint32_t &colEnd, std::vector<bool> &wallsExist) {
@@ -436,6 +440,15 @@ void Maze::generateModelMatrices(MazeWallModelMatrixGeneratorFcn &wallModelMatri
                                  m_height/2 + m_height / 2 /(numberRows * numberBlocksPerCell), 1.0f));
 }
 
+void Maze::doneAddingWallTextures() {
+    if (m_wallTextureIndices.empty()) {
+        m_wallTextureIndices.reserve(modelMatricesMaze.size());
+        for (size_t i = 0; i < modelMatricesMaze.size(); i++) {
+            m_wallTextureIndices.push_back(random.getUInt(0, wallTextures.size() - 1));
+        }
+    }
+}
+
 bool Maze::updateStaticDrawObjects(DrawObjectTable &objs, TextureMap &textures) {
     if (!objs.empty()) {
         // The objects were already updated, add nothing, update nothing.
@@ -475,9 +488,8 @@ bool Maze::updateStaticDrawObjects(DrawObjectTable &objs, TextureMap &textures) 
         wallObjs.push_back(wall);
     }
 
-    for (auto && modelMatrixMaze : modelMatricesMaze) {
-        uint32_t index = random.getUInt(0, wallTextures.size() - 1);
-        wallObjs[index]->modelMatrices.push_back(modelMatrixMaze);
+    for (size_t i = 0; i < m_wallTextureIndices.size(); i++) {
+        wallObjs[m_wallTextureIndices[i]]->modelMatrices.push_back(modelMatricesMaze[i]);
     }
 
     for (size_t i = 0; i < wallObjs.size(); i++) {

@@ -43,9 +43,9 @@ protected:
     }
 
 public:
-    MazeOpenArea(std::shared_ptr<GameRequester> inGameRequester,
+    MazeOpenArea(std::shared_ptr<GameRequester> inGameRequester, std::shared_ptr<MazeSaveData> sd,
                  float width, float height, float maxZ)
-            : Maze(std::move(inGameRequester), width, height, maxZ, getMazeWallModelMatricesGenerator())
+            : Maze(std::move(inGameRequester), std::move(sd), width, height, maxZ, getMazeWallModelMatricesGenerator())
     {}
 
     MazeOpenArea(std::shared_ptr<GameRequester> inGameRequester, Maze::CreateParameters const &parameters,

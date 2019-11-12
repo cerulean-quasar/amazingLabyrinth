@@ -22,6 +22,11 @@
 #include <memory>
 #include <json.hpp>
 #include "saveData.hpp"
+#include "level/levels/maze.hpp"
+#include "level/levels/mazeCollect.hpp"
+#include "level/levels/movingQuadsLevel.hpp"
+#include "level/levels/openAreaLevel.hpp"
+#include "level/levels/avoidVortexLevel.hpp"
 
 void to_json(nlohmann::json &j, Point<uint32_t> const &val);
 void from_json(nlohmann::json const &j, Point<uint32_t> &val);
@@ -30,6 +35,16 @@ void from_json(nlohmann::json const &j, Point<float> &val);
 void to_json(nlohmann::json &j, LevelSaveData const &val);
 void from_json(nlohmann::json const &j, LevelSaveData &val);
 
+void from_json(nlohmann::json const &j, OpenAreaLevelSaveData &val);
+void to_json(nlohmann::json &j, OpenAreaLevelSaveData const &val);
+void to_json(nlohmann::json &j, AvoidVortexLevelSaveData const &val);
+void from_json(nlohmann::json const &j, AvoidVortexLevelSaveData &val);
+void to_json(nlohmann::json &j, MovingQuadsLevelSaveData const &val);
+void from_json(nlohmann::json const &j, MovingQuadsLevelSaveData &val);
+void to_json(nlohmann::json &j, MazeSaveData const &val);
+void from_json(nlohmann::json const &j, MazeSaveData &val);
+void to_json(nlohmann::json &j, MazeCollectSaveData const &val);
+void from_json(nlohmann::json const &j, MazeCollectSaveData &val);
 
 char constexpr const *GameSaveDataVersion = "GameSaveDataVersion";
 char constexpr const *GameSaveDataLevelName = "LevelName";
