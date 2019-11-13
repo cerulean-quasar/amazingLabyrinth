@@ -127,44 +127,11 @@ private:
                                               m_heightLevelStarter, m_maxZLevelStarter);
     }
 
-    // TODO: for now, only pass in the LevelDataType into the level creator for certain LevelDataType's.
     template <typename LevelType, typename LevelDataType>
     std::shared_ptr<LevelType> getLevel(LevelDataType const &levelSaveData) {
         return std::make_shared<LevelType>(
                 m_gameRequester, levelSaveData, m_widthLevel, m_heightLevel, m_maxZLevel);
     }
-
-    // TODO: once completed, we should not need to specialize this template.  the general version should cover all cases
-    /*
-    template <>
-    std::shared_ptr<OpenAreaLevel> getLevel<OpenAreaLevel,std::shared_ptr<OpenAreaLevelSaveData>>(
-            std::shared_ptr<OpenAreaLevelSaveData> const &levelSaveData) {
-        return std::make_shared<OpenAreaLevel>(
-                m_gameRequester, levelSaveData, m_widthLevel, m_heightLevel, m_maxZLevel);
-    }
-    template <>
-    std::shared_ptr<AvoidVortexLevel> getLevel<AvoidVortexLevel,std::shared_ptr<AvoidVortexLevelSaveData>>(
-            std::shared_ptr<AvoidVortexLevelSaveData> const &levelSaveData) {
-        return std::make_shared<AvoidVortexLevel>(
-                m_gameRequester, levelSaveData, m_widthLevel, m_heightLevel, m_maxZLevel);
-    }
-    template <>
-    std::shared_ptr<MovingQuadsLevel> getLevel<MovingQuadsLevel,std::shared_ptr<MovingQuadsLevelSaveData>>(
-            std::shared_ptr<MovingQuadsLevelSaveData> const &levelSaveData) {
-        return std::make_shared<MovingQuadsLevel>(
-                m_gameRequester, levelSaveData, m_widthLevel, m_heightLevel, m_maxZLevel);
-    }
-    template <>
-    std::shared_ptr<Maze> getLevel<Maze, Maze::CreateParameters>(Maze::CreateParameters const &levelSaveData) {
-        return std::make_shared<Maze>(
-                m_gameRequester, levelSaveData, m_widthLevel, m_heightLevel, m_maxZLevel);
-    }
-    template <>
-    std::shared_ptr<MazeCollect> getLevel<MazeCollect, Maze::CreateParameters>(Maze::CreateParameters const &levelSaveData) {
-        return std::make_shared<MazeCollect>(
-                m_gameRequester, levelSaveData, m_widthLevel, m_heightLevel, m_maxZLevel);
-    }
-     */
 
     template <typename FinisherType>
     std::shared_ptr<FinisherType> getFinisher(float centerX, float centerY, glm::mat4 const &proj, glm::mat4 const &view) {
