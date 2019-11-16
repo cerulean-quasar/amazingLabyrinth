@@ -43,6 +43,8 @@ add_library( # Sets the name of the library.
         src/main/cpp/level/levels/movingQuadsLevel.cpp
         src/main/cpp/level/levels/movingQuadsLevelSerializer.cpp
         src/main/cpp/level/levels/mazeOpenArea.cpp
+        src/main/cpp/level/levels/mazeAvoid.cpp
+        src/main/cpp/level/levels/mazeAvoidSerializer.cpp
         src/main/cpp/level/levels/mazeCollect.cpp
         src/main/cpp/level/levels/mazeCollectSerializer.cpp
         src/main/cpp/level/levelTracker.cpp

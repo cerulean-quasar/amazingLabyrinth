@@ -52,7 +52,7 @@ void Maze::updateAcceleration(float x, float y, float z) {
 }
 
 bool Maze::ballInProximity(float x, float y) {
-    float errDistance = scale / 2;
+    float errDistance = scale;
     return glm::length(ball.position - glm::vec3{x, y, ball.position.z}) < errDistance;
 }
 

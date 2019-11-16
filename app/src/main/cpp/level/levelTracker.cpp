@@ -27,6 +27,7 @@
 #include "levels/avoidVortexLevel.hpp"
 #include "levels/movingQuadsLevel.hpp"
 #include "levels/mazeCollect.hpp"
+#include "levels/mazeAvoid.hpp"
 
 float constexpr LevelTracker::m_maxZLevelStarter;
 float constexpr LevelTracker::m_maxZLevel;
@@ -229,6 +230,37 @@ LevelGroup LevelTracker::getLevelGroupCat(std::shared_ptr<MazeCollectSaveData> c
             levelFinish->initAddTexture("textures/pufferFish/hole.png");
             return levelFinish;
         })
+    };
+}
+
+LevelGroup LevelTracker::getLevelGroupBunny(std::shared_ptr<MazeAvoidSaveData> const &levelBundle) {
+    return {
+            getStarterFcn(levelBundle == nullptr, std::vector<std::string>{
+                    "In the marsh,\na bunny seeks\na carrot...",
+                    "...be carefull\nof quicksand!"}),
+            GetLevelFcn([levelBundle](LevelTracker &tracker) {
+                std::shared_ptr<MazeAvoid> level;
+                if (levelBundle == nullptr) {
+                    Maze::CreateParameters parameters = { 10, Maze::BFS };
+                    level = tracker.getLevel<MazeAvoid>(parameters);
+                } else {
+                    level = tracker.getLevel<MazeAvoid>(levelBundle);
+                }
+                level->initAddWallTexture("textures/bunny/wall1.png");
+                level->initAddWallTexture("textures/bunny/wall2.png");
+                level->initAddWallTexture("textures/bunny/wall3.png");
+                level->doneAddingWallTextures();
+                level->initSetBallTexture("textures/bunny/ball.png");
+                level->initSetFloorTexture("textures/bunny/floor.png");
+                level->initSetHoleTexture("textures/bunny/hole.png");
+                level->initSetAvoidObjTexture("textures/bunny/avoid.png");
+                return level;
+            }),
+            GetFinisherFcn([](LevelTracker &tracker, float centerX, float centerY, glm::mat4 const &proj, glm::mat4 const &view) {
+                auto levelFinish = tracker.getFinisher<ManyQuadCoverUpLevelFinish>(centerX, centerY, proj, view);
+                levelFinish->initAddTexture("textures/bunny/hole.png");
+                return levelFinish;
+            })
     };
 }
 

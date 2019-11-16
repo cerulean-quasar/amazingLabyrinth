@@ -164,32 +164,3 @@ Maze::MazeWallModelMatrixGeneratorFcn MazeOpenArea::getMazeWallModelMatricesGene
         return std::move(matrices);
     }};
 }
-
-/*
-void MazeOpenArea::generateModelMatrices() {
-    unsigned int rowEnd;
-    unsigned int colEnd;
-    std::vector<bool> wallsExist;
-
-    generateMazeVector(m_rowEnd, m_colEnd, wallsExist);
-
-
-    // the ball
-    ball.position = getCellCenterPosition(ball.row, ball.col);
-
-    // cause the frame to be drawn when the program comes up for the first time.
-    ball.prevPosition = {-10.0f,0.0f,0.0f};
-
-    trans = glm::translate(ball.position);
-    modelMatrixBall = trans*glm::toMat4(ball.totalRotated)*scaleBall;
-
-    // the hole
-    trans = glm::translate(getCellCenterPosition(m_rowEnd, m_colEnd));
-    modelMatrixHole = trans*scaleBall;
-
-    // the floor.
-    floorModelMatrix = glm::translate(glm::vec3(0.0f, 0.0f, m_maxZ - m_originalWallHeight * m_scaleWallZ)) *
-                       glm::scale(glm::vec3(m_width/2 + m_width / 2 / (numberColumns * numberBlocksPerCell),
-                                            m_height/2 + m_height / 2 /(numberRows * numberBlocksPerCell), 1.0f));
-}
-*/

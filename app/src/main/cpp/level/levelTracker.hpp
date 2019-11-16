@@ -33,6 +33,7 @@
 #include "levels/mazeCollect.hpp"
 #include "levels/avoidVortexLevel.hpp"
 #include "levels/movingQuadsLevel.hpp"
+#include "levels/mazeAvoid.hpp"
 
 class LevelTracker {
 public:
@@ -48,6 +49,7 @@ public:
     static char constexpr const *bee1 = "bee1";
     static char constexpr const *bee2 = "bee2";
     static char constexpr const *cat = "cat";
+    static char constexpr const *bunny = "bunny";
 
     std::pair<float, float> getWidthHeight(float maxZ, glm::mat4 const &proj, glm::mat4 const &view);
     void gotoNextLevel();
@@ -61,6 +63,7 @@ public:
     static LevelGroup getLevelGroupBee1(std::shared_ptr<MazeSaveData> const &levelSaveData);
     static LevelGroup getLevelGroupBee2(std::shared_ptr<MazeSaveData> const &levelSaveData);
     static LevelGroup getLevelGroupCat(std::shared_ptr<MazeCollectSaveData> const &levelSaveData);
+    static LevelGroup getLevelGroupBunny(std::shared_ptr<MazeAvoidSaveData> const &levelBundle);
 
     void setLevel(std::string const &levelName) {
         size_t i = 0;
