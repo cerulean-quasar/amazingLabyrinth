@@ -93,87 +93,6 @@ void LevelSequenceGL::updateLevelData(DrawObjectTable &objsData, TextureMap &tex
     }
 }
 
-/*
-bool LevelSequenceGL::updateData() {
-    if (m_level->isFinished() || m_levelFinisher->isUnveiling()) {
-        if (m_levelFinisher->isUnveiling()) {
-            if (m_levelFinisher->isDone()) {
-                float x, y;
-                m_level->getLevelFinisherCenter(x, y);
-                m_levelFinisher = m_levelTracker.getLevelFinisher(x, y, m_proj, m_view);
-                m_levelfinisherObjsData.clear();
-                m_levelStarter->start();
-                return false;
-            }
-        } else {
-            if (m_levelFinisher->isDone()) {
-                m_levelTracker.gotoNextLevel();
-                m_level = m_levelTracker.getLevel(boost::none);
-                m_levelStarter = m_levelTracker.getLevelStarter();
-
-                // The clear background color
-                glm::vec4 bgColor = m_level->getBackgroundColor();
-                glClearColor(bgColor.r, bgColor.g, bgColor.b, bgColor.a);
-
-                initializeLevelData(m_level, m_staticObjsData, m_dynObjsData, m_levelTextures);
-                initializeLevelData(m_levelStarter, m_levelStarterStaticObjsData,
-                                    m_levelStarterDynObjsData, m_levelStarterTextures);
-                m_levelFinisher->unveilNewLevel();
-                return false;
-            }
-        }
-
-        bool texturesChanged;
-        bool drawingNecessary = m_levelFinisher->updateDrawObjects(m_levelfinisherObjsData,
-                                                                   m_levelFinisherTextures,
-                                                                   texturesChanged);
-        if (!drawingNecessary) {
-            return false;
-        }
-
-        if (texturesChanged) {
-            loadTextures(m_levelFinisherTextures);
-        }
-
-        for (auto &&obj : m_levelfinisherObjsData) {
-            if (obj.second.get() == nullptr) {
-                obj.second.reset(new DrawObjectDataGL{obj.first});
-            }
-        }
-    } else if (m_levelStarter.get() != nullptr) {
-        updateLevelData(m_levelStarter.get(), m_levelStarterDynObjsData, m_levelStarterTextures);
-        if (m_levelStarter->isFinished()) {
-            m_levelStarter.reset();
-            m_levelStarterDynObjsData.clear();
-            m_levelStarterStaticObjsData.clear();
-            m_levelStarterTextures.clear();
-            m_level->start();
-            return false;
-        }
-    } else {
-        updateLevelData(m_level.get(), m_dynObjsData, m_levelTextures);
-    }
-
-    return true;
-}
-
-bool LevelSequenceGL::updateLevelData(Level *level, DrawObjectTable &objsData, TextureMap &textures) {
-    bool drawingNecessary = level->updateData();
-
-    if (!drawingNecessary) {
-        return false;
-    }
-
-    bool texturesChanged;
-    level->updateDynamicDrawObjects(objsData, textures, texturesChanged);
-    if (texturesChanged) {
-        loadTextures(textures);
-    }
-
-    return texturesChanged;
-}
-*/
-
 void GraphicsGL::initPipeline() {
     glViewport(0, 0, m_surface.width(), m_surface.height());
 
@@ -183,8 +102,6 @@ void GraphicsGL::initPipeline() {
 
     programID = loadShaders(SHADER_VERT_FILE, SHADER_FRAG_FILE);
     depthProgramID = loadShaders(DEPTH_VERT_FILE, DEPTH_FRAG_FILE);
-
-// TODO: can remove?    m_levelSequence->initializeLevels();
 
     // for shadow mapping.
     glGenFramebuffers(1, &depthMapFBO);
