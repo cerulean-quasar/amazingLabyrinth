@@ -21,6 +21,7 @@
 #define AMAZING_LABYRINTH_MAZE_VULKAN_HPP
 #include "graphicsVulkan.hpp"
 #include "mazeGraphics.hpp"
+#include "../../../../../../Android/Sdk/ndk/20.0.5594570/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/include/c++/v1/memory"
 
 std::vector<VkVertexInputAttributeDescription> getAttributeDescriptions();
 VkVertexInputBindingDescription getBindingDescription();
@@ -220,10 +221,11 @@ public:
               m_instance{new vulkan::Instance(std::move(window))},
               m_device{new vulkan::Device{m_instance}},
               m_swapChain{new vulkan::SwapChain{m_device}},
-              m_renderPass{new vulkan::RenderPass{m_device, m_swapChain}},
+              m_renderPass{vulkan::RenderPass::createRenderPass(m_device, m_swapChain)},
               m_descriptorSetLayout{new AmazingLabyrinthDescriptorSetLayout{m_device}},
               m_descriptorPools{new vulkan::DescriptorPools{m_device, m_descriptorSetLayout}},
-              m_graphicsPipeline{new vulkan::Pipeline{m_gameRequester, m_swapChain, m_renderPass, m_descriptorPools,
+              m_graphicsPipeline{new vulkan::Pipeline{m_gameRequester, m_device, m_swapChain->extent(),
+                                                      m_renderPass, m_descriptorPools,
                                                       getBindingDescription(), getAttributeDescriptions()}},
               m_commandPool{new vulkan::CommandPool{m_device}},
               m_depthImageView{new vulkan::ImageView{vulkan::ImageFactory::createDepthImage(m_swapChain),
@@ -287,6 +289,12 @@ private:
     void initializeCommandBuffer(size_t index);
     void initializeCommandBufferDrawObjects(VkCommandBuffer commandBuffer, DrawObjectTable const & objs);
     void prepareDepthResources();
+    std::vector<std::vector<float>> getDepthTexture(
+            std::vector<Vertex> const &vertices,
+            std::vector<uint32_t> indices,
+            float width,
+            float height,
+            float zPos);
 };
 
 #endif // AMAZING_LABYRINTH_MAZE_VULKAN_HPP

@@ -20,6 +20,8 @@
 #include <stb_image.h>
 
 #include "graphicsVulkan.hpp"
+#include "../../../../../../Android/Sdk/ndk/20.0.5594570/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/include/c++/v1/memory"
+#include "../../../../../../Android/Sdk/ndk/20.0.5594570/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/include/c++/v1/cstdint"
 
 std::string const SHADER_VERT_FILE("shaders/shader.vert.spv");
 std::string const SHADER_FRAG_FILE("shaders/shader.frag.spv");
@@ -727,6 +729,87 @@ namespace vulkan {
         m_renderPass.reset(renderPassRaw, deleter);
     }
 
+    void RenderPass::createRenderPassDepthTexture() {
+        /* depth attachment */
+        VkAttachmentDescription depthAttachment = {};
+        depthAttachment.format = m_device->depthFormat();
+        depthAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
+        depthAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+
+        /* we won't be using the depth data after the drawing has finished, so use DONT_CARE for
+         * store operation
+         */
+        depthAttachment.storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+
+        depthAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+        depthAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+
+        /* dont care about the previous contents */
+        depthAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+
+        depthAttachment.finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+
+        VkAttachmentReference depthAttachmentRef = {};
+        depthAttachmentRef.attachment = 1;
+        depthAttachmentRef.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+
+        /* render subpass */
+        VkSubpassDescription subpass = {};
+        /* specify a graphics subpass (as opposed to a compute subpass) */
+        subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
+        subpass.colorAttachmentCount = 0;
+        subpass.pColorAttachments = nullptr;
+        subpass.pDepthStencilAttachment = &depthAttachmentRef;
+
+        /* create a render subbass dependency because we need the render pass to wait for the
+         * VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT stage of the graphics pipeline
+         */
+        VkSubpassDependency dependency = {};
+
+        /* The following two fields specify the indices of the dependency and the dependent
+         * subpass. The special value VK_SUBPASS_EXTERNAL refers to the implicit subpass before
+         * or after the render pass depending on whether it is specified in srcSubpass or
+         * dstSubpass. The index 0 refers to our subpass, which is the first and only one. The
+         * dstSubpass must always be higher than srcSubpass to prevent cycles in the
+         * dependency graph.
+         */
+        dependency.srcSubpass = VK_SUBPASS_EXTERNAL;
+        dependency.dstSubpass = 0;
+
+        /* wait for the VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT stage */
+        dependency.srcStageMask = VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
+        dependency.srcAccessMask = 0;
+
+        /* prevent the transition from happening until when we want to start writing the depth to
+         * the depth attachment.
+         */
+        dependency.dstStageMask = VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
+        dependency.dstAccessMask = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
+
+        /* create the render pass */
+        VkRenderPassCreateInfo renderPassInfo = {};
+        renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
+        renderPassInfo.attachmentCount = 1;
+        renderPassInfo.pAttachments = &depthAttachment;
+        renderPassInfo.subpassCount = 1;
+        renderPassInfo.pSubpasses = &subpass;
+        renderPassInfo.dependencyCount = 1;
+        renderPassInfo.pDependencies = &dependency;
+
+        VkRenderPass renderPassRaw;
+        if (vkCreateRenderPass(m_device->logicalDevice().get(), &renderPassInfo, nullptr, &renderPassRaw) !=
+            VK_SUCCESS) {
+            throw std::runtime_error("failed to create render pass!");
+        }
+
+        auto const &capDevice = m_device;
+        auto deleter = [capDevice](VkRenderPass renderPassRaw) {
+            vkDestroyRenderPass(capDevice->logicalDevice().get(), renderPassRaw, nullptr);
+        };
+
+        m_renderPass.reset(renderPassRaw, deleter);
+    }
+
     void Shader::createShaderModule(std::shared_ptr<FileRequester> const &requester,
             std::string const &codeFile) {
         auto code = readFile(requester, codeFile.c_str());
@@ -754,7 +837,10 @@ namespace vulkan {
 
     void Pipeline::createGraphicsPipeline(std::shared_ptr<FileRequester> const &requester,
             VkVertexInputBindingDescription const &bindingDescription,
-            std::vector<VkVertexInputAttributeDescription> const &attributeDescriptions) {
+            std::vector<VkVertexInputAttributeDescription> const &attributeDescriptions,
+            VkExtent2D const &extent,
+            std::shared_ptr<Pipeline> derivedPipeline,
+            bool useColorBlending) {
         Shader vertShaderModule(requester, m_device, SHADER_VERT_FILE);
         Shader fragShaderModule(requester, m_device, SHADER_FRAG_FILE);
 
@@ -803,8 +889,8 @@ namespace vulkan {
         VkViewport viewport = {};
         viewport.x = 0.0f;
         viewport.y = 0.0f;
-        viewport.width = (float) m_swapChain->extent().width;
-        viewport.height = (float) m_swapChain->extent().height;
+        viewport.width = (float) extent.width;
+        viewport.height = (float) extent.height;
         viewport.minDepth = 0.0f;
         viewport.maxDepth = 1.0f;
 
@@ -813,7 +899,7 @@ namespace vulkan {
          */
         VkRect2D scissor = {};
         scissor.offset = {0, 0};
-        scissor.extent = m_swapChain->extent();
+        scissor.extent = extent;
 
         /* can specify multiple viewports and scissors here */
         VkPipelineViewportStateCreateInfo viewportState = {};
@@ -876,22 +962,31 @@ namespace vulkan {
 
         /* per attached framebuffer color blending information */
         VkPipelineColorBlendAttachmentState colorBlendAttachment = {};
-        colorBlendAttachment.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT |
-                                              VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
+        VkPipelineColorBlendAttachmentState *pcolorBlendAttachment = nullptr;
+        uint32_t nbrColorBlendAttachments = 0;
+        if (useColorBlending) {
+            colorBlendAttachment.colorWriteMask =
+                    VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT |
+                    VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
 
-        /* alpha blending: new color should be blended with the old color based on its opacity */
-        colorBlendAttachment.blendEnable = VK_TRUE;
-        colorBlendAttachment.srcColorBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA;
-        colorBlendAttachment.dstColorBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
-        colorBlendAttachment.colorBlendOp = VK_BLEND_OP_ADD;
+            /* alpha blending: new color should be blended with the old color based on its opacity */
+            colorBlendAttachment.blendEnable = VK_TRUE;
+            colorBlendAttachment.srcColorBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA;
+            colorBlendAttachment.dstColorBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
+            colorBlendAttachment.colorBlendOp = VK_BLEND_OP_ADD;
 
-        /* differs from what they said to do in the Vulkan tutorial.  We want both the destination and
-         * the source alpha channel to be considered when choosing the final alpha channel value in case
-         * the top surface is see through and we need to see the bottom one through it.
-         */
-        colorBlendAttachment.srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE;
-        colorBlendAttachment.dstAlphaBlendFactor = VK_BLEND_FACTOR_ONE;
-        colorBlendAttachment.alphaBlendOp = VK_BLEND_OP_MAX;
+            /* differs from what they said to do in the Vulkan tutorial.  We want both the destination and
+             * the source alpha channel to be considered when choosing the final alpha channel value in case
+             * the top surface is see through and we need to see the bottom one through it.
+             */
+            colorBlendAttachment.srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE;
+            colorBlendAttachment.dstAlphaBlendFactor = VK_BLEND_FACTOR_ONE;
+            colorBlendAttachment.alphaBlendOp = VK_BLEND_OP_MAX;
+
+
+            pcolorBlendAttachment = &colorBlendAttachment;
+            nbrColorBlendAttachments = 1;
+        }
 
         /* color blending for all the framebuffers and allows you to set blend constants used
          * as blend factors in the per framebuffer color blending operations
@@ -900,8 +995,8 @@ namespace vulkan {
         colorBlending.sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO;
         colorBlending.logicOpEnable = VK_FALSE;
         colorBlending.logicOp = VK_LOGIC_OP_COPY; // Optional
-        colorBlending.attachmentCount = 1;
-        colorBlending.pAttachments = &colorBlendAttachment;
+        colorBlending.attachmentCount = nbrColorBlendAttachments;
+        colorBlending.pAttachments = pcolorBlendAttachment;
         colorBlending.blendConstants[0] = 0.0f; // Optional
         colorBlending.blendConstants[1] = 0.0f; // Optional
         colorBlending.blendConstants[2] = 0.0f; // Optional
@@ -986,10 +1081,18 @@ namespace vulkan {
         pipelineInfo.subpass = 0; // index of the subpass
 
         /* if you want to create a pipeline from an already existing pipeline use these.
-         * It is less expensive to switch between piplines derrived from each other
+         * It is less expensive to switch between pipelines derived from each other
          */
-        pipelineInfo.basePipelineHandle = VK_NULL_HANDLE; // Optional
-        pipelineInfo.basePipelineIndex = -1; // Optional
+        if (derivedPipeline == nullptr) {
+            pipelineInfo.flags = VK_PIPELINE_CREATE_ALLOW_DERIVATIVES_BIT;
+            pipelineInfo.basePipelineHandle = VK_NULL_HANDLE; // Optional
+        } else {
+            pipelineInfo.flags = VK_PIPELINE_CREATE_DERIVATIVE_BIT;
+            pipelineInfo.basePipelineHandle = derivedPipeline->pipeline().get();
+        }
+
+        // Can use index or handle to refer to the base pipeline.  We use the handle so, set this to -1.
+        pipelineInfo.basePipelineIndex = -1;
 
         VkPipeline pipelineRaw;
         if (vkCreateGraphicsPipelines(m_device->logicalDevice().get(), VK_NULL_HANDLE/*pipeline cache*/, 1,
@@ -1552,33 +1655,12 @@ namespace vulkan {
     void SwapChainCommands::createFramebuffers(std::shared_ptr<RenderPass> &renderPass,
                                                std::shared_ptr<ImageView> &depthImage) {
         for (size_t i = 0; i < m_imageViews.size(); i++) {
-            std::array<VkImageView, 2> attachments = {
-                    m_imageViews[i].imageView().get(),
-                    depthImage->imageView().get()
+            std::vector<std::shared_ptr<ImageView>> attachments = {
+                    m_imageViews[i],
+                    depthImage
             };
-
-            VkFramebufferCreateInfo framebufferInfo = {};
-            framebufferInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
-            framebufferInfo.renderPass = renderPass->renderPass().get();
-            framebufferInfo.attachmentCount = static_cast<uint32_t>(attachments.size());
-            framebufferInfo.pAttachments = attachments.data();
-            framebufferInfo.width = m_swapChain->extent().width;
-            framebufferInfo.height = m_swapChain->extent().height;
-            framebufferInfo.layers = 1;
-
-            VkFramebuffer framebuf;
-            if (vkCreateFramebuffer(m_swapChain->device()->logicalDevice().get(), &framebufferInfo, nullptr,
-                                    &framebuf) != VK_SUCCESS) {
-                throw std::runtime_error("failed to create framebuffer!");
-            }
-
-            auto const &capDevice = m_swapChain->device();
-            auto deleter = [capDevice](VkFramebuffer frameBuf) {
-                vkDestroyFramebuffer(capDevice->logicalDevice().get(), frameBuf, nullptr);
-            };
-
-            std::shared_ptr<VkFramebuffer_T> framebuffer(framebuf, deleter);
-            m_framebuffers.push_back(framebuffer);
+            m_framebuffers.push_back(Framebuffer::createRawFramebuffer(m_swapChain->device(),
+                    renderPass, attachments, m_swapChain->extent().width, m_swapChain->extent().height));
         }
     }
 
@@ -1599,6 +1681,20 @@ namespace vulkan {
                                      m_commandBuffers.data()) != VK_SUCCESS) {
             throw std::runtime_error("failed to allocate command buffers!");
         }
+    }
+
+    void copyIndicesToBuffer(std::shared_ptr<vulkan::CommandPool> const &cmdpool,
+                             std::vector<uint32_t> const &indices,
+                             Buffer &buffer)
+    {
+        VkDeviceSize bufferSize = sizeof(indices[0]) * indices.size();
+
+        vulkan::Buffer stagingBuffer(cmdpool->device(), bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+                                     VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+
+        stagingBuffer.copyRawTo(indices.data(), bufferSize);
+
+        buffer.copyTo(cmdpool, stagingBuffer, bufferSize);
     }
 } /* namespace vulkan */
 

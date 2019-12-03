@@ -46,6 +46,7 @@
 #include "level/levelFinish.hpp"
 #include "level/levelTracker.hpp"
 #include "level/levelStarter.hpp"
+#include "../../../../../../Android/Sdk/ndk/20.0.5594570/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/include/c++/v1/memory"
 
 namespace vulkan {
 #ifdef DEBUG
@@ -270,19 +271,39 @@ namespace vulkan {
 
     class RenderPass {
     public:
+        inline std::shared_ptr<VkRenderPass_T> const &renderPass() { return m_renderPass; }
+
+        // For a normal render pass that includes a color and depth attachment
+        static std::shared_ptr<RenderPass> createRenderPass(std::shared_ptr<Device> const &inDevice,
+                                                            std::shared_ptr<SwapChain> const &inSwapChain) {
+            return std::shared_ptr<RenderPass>{new RenderPass(inDevice, inSwapChain)};
+        }
+
+        // for a render pass that only uses the depth attachment (to read the z-buffer for shadow
+        // mapping and to read the depth of an object.
+        static std::shared_ptr<RenderPass> createDepthTextureRenderPass(std::shared_ptr<Device> const &inDevice) {
+            return std::shared_ptr<RenderPass>{new RenderPass(inDevice)};
+        }
+    private:
+        // for creating a render pass that uses a color and depth attachment (i.e. the normal render pass)
         RenderPass(std::shared_ptr<Device> const &inDevice, std::shared_ptr<SwapChain> const &swapChain)
                 : m_device{inDevice},
                   m_renderPass{} {
             createRenderPass(swapChain);
         }
 
-        inline std::shared_ptr<VkRenderPass_T> const &renderPass() { return m_renderPass; }
+        // for creating a render pass with only a depth attachment.
+        RenderPass(std::shared_ptr<Device> const &inDevice)
+                : m_device{inDevice},
+                  m_renderPass{} {
+            createRenderPassDepthTexture();
+        }
 
-    private:
         std::shared_ptr<Device> m_device;
         std::shared_ptr<VkRenderPass_T> m_renderPass;
 
         void createRenderPass(std::shared_ptr<SwapChain> const &swapChain);
+        void createRenderPassDepthTexture();
     };
 
     class DescriptorPools;
@@ -451,17 +472,21 @@ namespace vulkan {
     class Pipeline {
     public:
         Pipeline(std::shared_ptr<FileRequester> const &requester,
-                 std::shared_ptr<SwapChain> &inSwapChain, std::shared_ptr<RenderPass> &inRenderPass,
+                 std::shared_ptr<Device> const &inDevice,
+                 VkExtent2D const &extent,
+                 std::shared_ptr<RenderPass> &inRenderPass,
                  std::shared_ptr<DescriptorPools> &inDescriptorPools,
                  VkVertexInputBindingDescription const &bindingDescription,
-                 std::vector<VkVertexInputAttributeDescription> const &attributeDescription)
-                : m_device{inSwapChain->device()},
-                  m_swapChain{inSwapChain},
+                 std::vector<VkVertexInputAttributeDescription> const &attributeDescription,
+                 std::shared_ptr<Pipeline> derivedPipeline = std::shared_ptr<Pipeline>(),
+                 bool useColorBlending = true)
+                : m_device{inDevice},
                   m_renderPass{inRenderPass},
                   m_descriptorPools{inDescriptorPools},
                   m_pipelineLayout{},
                   m_pipeline{} {
-            createGraphicsPipeline(requester, bindingDescription, attributeDescription);
+            createGraphicsPipeline(requester, bindingDescription, attributeDescription,
+                    extent, derivedPipeline, useColorBlending);
         }
 
         inline std::shared_ptr<VkPipeline_T> const &pipeline() { return m_pipeline; }
@@ -474,7 +499,6 @@ namespace vulkan {
 
     private:
         std::shared_ptr<Device> m_device;
-        std::shared_ptr<SwapChain> m_swapChain;
         std::shared_ptr<RenderPass> m_renderPass;
         std::shared_ptr<DescriptorPools> m_descriptorPools;
 
@@ -483,7 +507,10 @@ namespace vulkan {
 
         void createGraphicsPipeline(std::shared_ptr<FileRequester> const &requester,
                 VkVertexInputBindingDescription const &bindingDescription,
-                std::vector<VkVertexInputAttributeDescription> const &attributeDescriptions);
+                std::vector<VkVertexInputAttributeDescription> const &attributeDescriptions,
+                VkExtent2D const &extent,
+                std::shared_ptr<Pipeline> const &derivedPipeline,
+                bool useColorBlending);
     };
 
     class CommandPool {
@@ -705,6 +732,60 @@ namespace vulkan {
         void createTextureSampler();
     };
 
+    class Framebuffer {
+    public:
+        static std::shared_ptr<VkFramebuffer_T> const &createRawFramebuffer(
+                std::shared_ptr<Device> inDevice,
+                std::shared_ptr<RenderPass> inRenderPass,
+                std::vector<std::shared_ptr<ImageView>> inAttachments,
+                uint32_t width,
+                uint32_t height)
+        {
+            std::vector<VkImageView> attachments;
+            attachments.reserve(inAttachments.size());
+            for (auto const &attachment : inAttachments) {
+                attachments.push_back(attachment->imageView().get());
+            }
+            VkFramebufferCreateInfo framebufferInfo = {};
+            framebufferInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
+            framebufferInfo.renderPass = inRenderPass->renderPass().get();
+            framebufferInfo.attachmentCount = static_cast<uint32_t>(attachments.size());
+            framebufferInfo.pAttachments = attachments.data();
+            framebufferInfo.width = width;
+            framebufferInfo.height = height;
+            framebufferInfo.layers = 1;
+
+            VkFramebuffer framebuf;
+            if (vkCreateFramebuffer(inDevice->logicalDevice().get(), &framebufferInfo, nullptr,
+                                    &framebuf) != VK_SUCCESS) {
+                throw std::runtime_error("failed to create framebuffer!");
+            }
+
+            auto deleter = [inDevice](VkFramebuffer frameBuf) {
+                vkDestroyFramebuffer(inDevice->logicalDevice().get(), frameBuf, nullptr);
+            };
+
+            std::shared_ptr<VkFramebuffer_T> framebuffer(framebuf, deleter);
+
+            return framebuffer;
+        }
+
+        Framebuffer(std::shared_ptr<Device> const &inDevice,
+                std::shared_ptr<RenderPass> const &inRenderPass,
+                std::vector<std::shared_ptr<ImageView>> inAttachments,
+                uint32_t inWidth,
+                uint32_t inHeight)
+            : m_device{inDevice},
+              m_framebuffer{createRawFramebuffer(inDevice, inRenderPass, inAttachments, inWidth, inHeight)}
+              {}
+
+        inline std::shared_ptr<Device> const &device() { return m_device; }
+        inline std::shared_ptr<VkFramebuffer_T> const &framebuffer() { return m_framebuffer; }
+    private:
+        Device m_device;
+        std::shared_ptr<VkFramebuffer_T> m_framebuffer;
+    };
+
     class SwapChainCommands {
     public:
         SwapChainCommands(std::shared_ptr<SwapChain> const &inSwapChain,
@@ -777,6 +858,29 @@ namespace vulkan {
 
         void createCommandBuffers();
     };
+
+    template <typename VertexType>
+    void copyVerticesToBuffer(std::shared_ptr<vulkan::CommandPool> const &cmdpool,
+                              std::vector<VertexType> const &vertices,
+                              Buffer &buffer)
+    {
+        VkDeviceSize bufferSize = sizeof(vertices[0]) * vertices.size();
+
+        /* use a staging buffer in the CPU accessable memory to copy the data into graphics card
+         * memory.  Then use a copy command to copy the data into fast graphics card only memory.
+         */
+        vulkan::Buffer stagingBuffer(cmdpool->device(), bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+                                     VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+
+        stagingBuffer.copyRawTo(vertices.data(), bufferSize);
+
+        buffer.copyTo(cmdpool, stagingBuffer, bufferSize);
+    }
+
+    void copyIndicesToBuffer(std::shared_ptr<vulkan::CommandPool> const &cmdpool,
+                             std::vector<uint32_t> const &indices,
+                             Buffer &buffer);
+
 } /* namespace vulkan */
 #endif
 
