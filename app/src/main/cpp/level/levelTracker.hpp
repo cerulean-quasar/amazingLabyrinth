@@ -39,7 +39,7 @@ class LevelTracker {
 public:
     static float constexpr m_maxZLevel = -1.0f;
     static float constexpr m_maxZLevelStarter = 0.0f;
-    static float constexpr m_maxZLevelFinisher = 1.0f;
+    static float constexpr m_maxZLevelFinisher = 0.5f;
 
     // the following strings must be unique with respect to each other
     static char constexpr const *beginning = "beginning";
@@ -104,6 +104,10 @@ public:
         wh = getWidthHeight(m_maxZLevelStarter, proj, view);
         m_widthLevelStarter = wh.first;
         m_heightLevelStarter = wh.second;
+
+        wh = getWidthHeight(m_maxZLevelFinisher, proj, view);
+        m_widthLevelFinisher = wh.first;
+        m_heightLevelFinisher = wh.second;
     }
 
 private:
@@ -144,8 +148,8 @@ private:
                                    z.z * locationScreen.w, locationScreen.w * z.w};
         glm::vec4 locationWorld = glm::inverse(view) * glm::inverse(proj) * locationScreen;
 
-        return std::make_shared<FinisherType>(m_gameRequester, locationWorld.x/locationWorld.w,
-                                                        locationWorld.y/locationWorld.w, m_maxZLevelFinisher);
+        return std::make_shared<FinisherType>(m_gameRequester, m_widthLevelFinisher, m_heightLevelFinisher,
+                locationWorld.x/locationWorld.w, locationWorld.y/locationWorld.w, m_maxZLevelFinisher);
     }
 
     std::shared_ptr<GameRequester> m_gameRequester;
@@ -154,5 +158,7 @@ private:
     float m_heightLevel;
     float m_widthLevelStarter;
     float m_heightLevelStarter;
+    float m_widthLevelFinisher;
+    float m_heightLevelFinisher;
 };
 #endif

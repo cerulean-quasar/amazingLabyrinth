@@ -20,7 +20,6 @@
 
 #include "movingQuadsLevel.hpp"
 
-constexpr float MovingQuadsLevel::scaleFactor;
 constexpr float MovingQuadsLevel::viscosity;
 
 void MovingQuadsLevel::loadModels() {

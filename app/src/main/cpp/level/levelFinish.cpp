@@ -25,10 +25,10 @@
 #include "levelFinish.hpp"
 
 ManyQuadCoverUpLevelFinish::ManyQuadCoverUpLevelFinish(
-        std::shared_ptr<GameRequester> inGameRequester, float centerX, float centerY, float maxZ)
-        : LevelFinish(std::move(inGameRequester), maxZ), totalNumberReturned(0) {
+        std::shared_ptr<GameRequester> inGameRequester, float width, float height, float centerX, float centerY, float maxZ)
+        : LevelFinish(std::move(inGameRequester), width, height, centerX, centerY, maxZ), totalNumberReturned(0) {
     prevTime = std::chrono::high_resolution_clock::now();
-    float range = 1.5f;
+    float range = m_height;
     for (uint32_t i = 0; i < totalNumberObjectsForSide; i++) {
         for (uint32_t j = 0; j < totalNumberObjectsForSide; j++) {
             if (!translateVectors.empty()) {
@@ -37,11 +37,11 @@ ManyQuadCoverUpLevelFinish::ManyQuadCoverUpLevelFinish(
                 for (int k = 0; k < index; k++) {
                     it++;
                 }
-                translateVectors.insert(it, glm::vec3(2.0f / (totalNumberObjectsForSide - 1) * i - 1.0f,
+                translateVectors.insert(it, glm::vec3(m_width / (totalNumberObjectsForSide - 1) * i - m_width/2.0f,
                                           range / (totalNumberObjectsForSide - 1) * j - range/2,
                                           0.0f));
             } else {
-                translateVectors.push_back(glm::vec3(2.0f / (totalNumberObjectsForSide - 1) * i - 1.0f,
+                translateVectors.push_back(glm::vec3(m_width / (totalNumberObjectsForSide - 1) * i - m_width/2.0f,
                                          range / (totalNumberObjectsForSide - 1) * j - range/2,
                                          0.0f));
             }
@@ -78,7 +78,7 @@ bool ManyQuadCoverUpLevelFinish::updateDrawObjects(DrawObjectTable &drawObjects,
             return false;
         }
 
-        float sideLength = random.getFloat(0.2f, 0.4f);
+        float sideLength = random.getFloat(0.1f*m_height, 0.3f*m_height);
         glm::mat4 scale = glm::scale(glm::vec3(sideLength, sideLength, 1.0f));
         glm::vec3 translateVector = translateVectors.back();
         translateVectors.pop_back();
@@ -113,9 +113,11 @@ bool ManyQuadCoverUpLevelFinish::updateDrawObjects(DrawObjectTable &drawObjects,
 }
 
 GrowingQuadLevelFinish::GrowingQuadLevelFinish(
-        std::shared_ptr<GameRequester> inGameRequester, float x, float y, float maxZ)
-        : LevelFinish(std::move(inGameRequester), maxZ) {
-    transVector = {x, y, maxZ};
+        std::shared_ptr<GameRequester> inGameRequester, float width, float height, float centerX, float centerY, float maxZ)
+        : LevelFinish(std::move(inGameRequester), width, height, centerX, centerY, maxZ),
+        finalSize{1.5f*std::max(m_width, m_height)},
+        minSize{0.005f*std::min(m_width, m_height)} {
+    transVector = {m_centerX, m_centerY, maxZ};
     prevTime = std::chrono::high_resolution_clock::now();
     timeSoFar = 0.0f;
 }

@@ -78,15 +78,15 @@ struct AvoidVortexLevelSaveData : public LevelSaveData {
 
 class AvoidVortexLevel : public Level {
 private:
-    static constexpr uint32_t numberOfVortexes = 8;
-    static constexpr float scaleFactor = 1.0f/16.0f;
+    static uint32_t constexpr numberOfVortexes = 8;
+    float const scaleFactor;
 
     std::string holeTexture;
     std::string ballTexture;
     std::string vortexTexture;
     std::string startVortexTexture;
 
-    static constexpr float viscosity = 0.005f;
+    static float constexpr viscosity = 0.005f;
     float const maxX;
     float const maxY;
     Random random;
@@ -157,6 +157,7 @@ public:
 
     AvoidVortexLevel(std::shared_ptr<GameRequester> inGameRequester, float width, float height, float maxZ)
             : Level(std::move(inGameRequester), width, height, maxZ),
+              scaleFactor{1.0f/16.0f*m_width},
               maxX(m_width/2),
               maxY(m_height/2),
               prevTime(std::chrono::high_resolution_clock::now()) {
@@ -173,6 +174,7 @@ public:
             float height,
             float maxZ)
             : Level(std::move(inGameRequester), width, height, maxZ),
+              scaleFactor{1.0f/16.0f*m_width},
               maxX(m_width/2),
               maxY(m_height/2),
               prevTime(std::chrono::high_resolution_clock::now()) {
@@ -190,7 +192,7 @@ public:
             vortexPositions.reserve(sd->vortexes.size());
             for (auto const &vortex : sd->vortexes) {
                 vortexPositions.emplace_back(vortex.x, vortex.y,
-                                             m_maxZ - scaleFactor * m_originalBallDiameter);
+                                             m_maxZ - scaleFactor * m_width * m_originalBallDiameter);
             }
         }
         postGenerate();

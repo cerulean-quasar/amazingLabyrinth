@@ -25,7 +25,6 @@ void AvoidVortexLevel::loadModels() {
     getQuad(quadVertices, quadIndices);
 }
 
-constexpr float AvoidVortexLevel::scaleFactor;
 constexpr float AvoidVortexLevel::viscosity;
 
 void AvoidVortexLevel::preGenerate() {

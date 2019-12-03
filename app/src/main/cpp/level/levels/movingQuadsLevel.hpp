@@ -95,7 +95,7 @@ struct MovingQuadsLevelSaveData : public LevelSaveData {
 class MovingQuadsLevel : public Level {
 private:
     static constexpr uint32_t numberOfMidQuadRows = 4;
-    static constexpr float scaleFactor = 1.0f/8.0f;
+    float const scaleFactor;
     static constexpr float viscosity = 0.01f;
     static constexpr uint32_t minQuadsInRow = 1;
     static constexpr uint32_t maxQuadsInRow = 3;
@@ -196,6 +196,7 @@ public:
             float height,
             float maxZ)
             : Level(std::move(inGameRequester), width, height, maxZ),
+              scaleFactor{1.0f/16.0f*m_width},
               maxX(m_width/2),
               maxY(m_height/2),
               m_prevTime(std::chrono::high_resolution_clock::now()) {

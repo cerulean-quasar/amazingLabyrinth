@@ -271,7 +271,7 @@ public:
 
     void preGenerate() {
         numberColumns = static_cast<uint32_t>(std::floor(numberRows*m_width/m_height));
-        scale = 1.0f/(std::max(numberRows, numberColumns)*numberBlocksPerCell + 1);
+        scale = m_width/(numberColumns*numberBlocksPerCell + 1)/2;
         m_scaleWallZ = scale*2;
 
         prevTime = std::chrono::high_resolution_clock::now();

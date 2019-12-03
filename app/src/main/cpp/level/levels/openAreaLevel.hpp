@@ -94,9 +94,9 @@ private:
 
     void loadModels();
     void generate(glm::vec2 ballPos, glm::vec2 holePos) {
-        scale = glm::scale(glm::vec3(ballScale / m_originalBallDiameter,
-                                     ballScale / m_originalBallDiameter,
-                                     ballScale / m_originalBallDiameter));
+        scale = glm::scale(glm::vec3(ballScale / m_originalBallDiameter*m_width,
+                                     ballScale / m_originalBallDiameter*m_width,
+                                     ballScale / m_originalBallDiameter*m_width));
 
         ball.totalRotated = glm::quat();
         ball.acceleration = {0.0f, 0.0f, 0.0f};

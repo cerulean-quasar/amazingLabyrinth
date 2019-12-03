@@ -71,8 +71,8 @@ void MazeCollect::generateCollectBallModelMatrices() {
 
         // move it away from the wall by at least the ball diameter so that it can be easily
         // collected.
-        glm::vec3 pos{random.getFloat(leftWall(col)+2*scale, rightWall(col)-2*scale),
-                      random.getFloat(topWall(row)+2*scale, bottomWall(row)-2*scale),
+        glm::vec3 pos{random.getFloat(leftWall(col)+scale, rightWall(col)-scale),
+                      random.getFloat(topWall(row)+scale, bottomWall(row)-scale),
                       getBallZPosition()};
         bool tooClose = false;
         for (auto const &collectionObjectLocation : m_collectionObjectLocations) {

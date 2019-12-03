@@ -32,11 +32,23 @@ class LevelFinish {
 protected:
     std::shared_ptr<GameRequester> m_gameRequester;
     float m_maxZ;
+    float m_width;
+    float m_height;
+    float m_centerX;
+    float m_centerY;
     bool shouldUnveil;
     bool finished;
 public:
-    LevelFinish(std::shared_ptr<GameRequester> inGameRequester, float maxZ)
-        : m_gameRequester{std::move(inGameRequester)}, m_maxZ(maxZ), shouldUnveil(false), finished(false) { }
+    LevelFinish(std::shared_ptr<GameRequester> inGameRequester, float width, float height,
+            float centerX, float centerY, float maxZ)
+        : m_gameRequester{std::move(inGameRequester)},
+        m_maxZ(maxZ),
+        m_width(width),
+        m_height(height),
+        m_centerX(centerX),
+        m_centerY(centerY),
+        shouldUnveil(false),
+        finished(false) { }
     void unveilNewLevel() { shouldUnveil = true; finished = false; }
     bool isUnveiling() { return shouldUnveil; }
     bool isDone() { return finished; }
@@ -64,7 +76,8 @@ public:
     void initAddTexture(std::string const &inImagePath) {
         imagePaths.push_back(inImagePath);
     }
-    ManyQuadCoverUpLevelFinish(std::shared_ptr<GameRequester> inGameRequester, float centerX, float centerY, float maxZ);
+    ManyQuadCoverUpLevelFinish(std::shared_ptr<GameRequester> inGameRequester, float width, float height,
+            float centerX, float centerY, float maxZ);
 };
 
 class GrowingQuadLevelFinish : public LevelFinish {
@@ -72,9 +85,8 @@ private:
     std::chrono::high_resolution_clock::time_point prevTime;
     float const timeThreshold = 0.1f; // seconds
     float const totalTime = 2.0f; // seconds
-    float const finalSize = 1.5f;
-    float const minSize = 0.005f;
-    float const transZ = 0.5f;
+    float const finalSize;
+    float const minSize;
 
     float timeSoFar;
     std::string imagePath;
@@ -86,6 +98,7 @@ public:
     void initTexture(std::string const &inImagePath) {
         imagePath = inImagePath;
     }
-    GrowingQuadLevelFinish(std::shared_ptr<GameRequester> inGameRequester, float x, float y, float maxZ);
+    GrowingQuadLevelFinish(std::shared_ptr<GameRequester> inGameRequester, float width, float height,
+            float x, float y, float maxZ);
 };
 #endif
