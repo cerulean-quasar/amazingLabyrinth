@@ -764,7 +764,7 @@ namespace vulkan {
         /* create a render subbass dependency because we need the render pass to wait for the
          * VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT stage of the graphics pipeline
          */
-        VkSubpassDependency dependency = {};
+        std::array<VkSubpassDependency, 2> dependencies = {};
 
         /* The following two fields specify the indices of the dependency and the dependent
          * subpass. The special value VK_SUBPASS_EXTERNAL refers to the implicit subpass before
@@ -773,18 +773,26 @@ namespace vulkan {
          * dstSubpass must always be higher than srcSubpass to prevent cycles in the
          * dependency graph.
          */
-        dependency.srcSubpass = VK_SUBPASS_EXTERNAL;
-        dependency.dstSubpass = 0;
+        dependencies[0].srcSubpass = VK_SUBPASS_EXTERNAL;
+        dependencies[0].dstSubpass = 0;
 
         /* wait for the VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT stage */
-        dependency.srcStageMask = VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
-        dependency.srcAccessMask = 0;
+        dependencies[0].srcStageMask = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
+        dependencies[0].srcAccessMask = VK_ACCESS_SHADER_READ_BIT;
 
         /* prevent the transition from happening until when we want to start writing the depth to
          * the depth attachment.
          */
-        dependency.dstStageMask = VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
-        dependency.dstAccessMask = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
+        dependencies[0].dstStageMask = VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
+        dependencies[0].dstAccessMask = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
+
+        // transition the layout back so the shader can read from it.
+        dependencies[1].srcSubpass = 0;
+        dependencies[1].dstSubpass = VK_SUBPASS_EXTERNAL;
+        dependencies[1].srcStageMask = VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
+        dependencies[1].srcAccessMask = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
+        dependencies[1].dstStageMask = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
+        dependencies[1].dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
 
         /* create the render pass */
         VkRenderPassCreateInfo renderPassInfo = {};
@@ -793,8 +801,8 @@ namespace vulkan {
         renderPassInfo.pAttachments = &depthAttachment;
         renderPassInfo.subpassCount = 1;
         renderPassInfo.pSubpasses = &subpass;
-        renderPassInfo.dependencyCount = 1;
-        renderPassInfo.pDependencies = &dependency;
+        renderPassInfo.dependencyCount = static_cast<uint32_t>(dependencies.size());
+        renderPassInfo.pDependencies = dependencies.data();
 
         VkRenderPass renderPassRaw;
         if (vkCreateRenderPass(m_device->logicalDevice().get(), &renderPassInfo, nullptr, &renderPassRaw) !=

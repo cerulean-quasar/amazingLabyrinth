@@ -591,12 +591,12 @@ std::vector<std::vector<float>> GraphicsVulkan::getDepthTexture(
     bufferInfo.offset = 0;
     bufferInfo.range = sizeof(uboBuffer);
 
-    vulkan::Buffer vertexBuffer{m_device, vertices[0]) * vertices.size(),
+    vulkan::Buffer vertexBuffer{m_device, sizeof (vertices[0]) * vertices.size(),
                                 VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
                                 VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT};
     vulkan::copyVerticesToBuffer<Vertex>(m_commandPool, vertices, vertexBuffer);
 
-    vulkan::Buffer indexBuffer{m_device, sizeof(indices[0]) * indices.size(),
+    vulkan::Buffer indexBuffer{m_device, sizeof (indices[0]) * indices.size(),
                            VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT,
                            VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT};
     vulkan::copyIndicesToBuffer(m_commandPool, indices, indexBuffer);
@@ -614,8 +614,10 @@ std::vector<std::vector<float>> GraphicsVulkan::getDepthTexture(
 
     vkUpdateDescriptorSets(m_device->logicalDevice().get(), 1, &descriptorWrite, 0, nullptr);
 
-    auto depthView = std::make_shared<vulkan::ImageView>(vulkan::ImageFactory::createDepthImage(m_swapChain),
-        m_device->depthFormat(), VK_IMAGE_ASPECT_DEPTH_BIT);
+    auto depthView = std::make_shared<vulkan::ImageView>(
+            vulkan::ImageFactory::createDepthImageForSampler(m_swapChain),
+            m_device->depthFormat(),
+            VK_IMAGE_ASPECT_DEPTH_BIT);
     depthView->image()->transitionImageLayout(m_device->depthFormat(), VK_IMAGE_LAYOUT_UNDEFINED,
                                               VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL, m_commandPool);
 
@@ -663,5 +665,11 @@ std::vector<std::vector<float>> GraphicsVulkan::getDepthTexture(
     VkBuffer vertexBufferRaw = vertexBuffer.buffer().get();
     vkCmdBindVertexBuffers(cmds.commandBuffer().get(), 0, 1, &vertexBufferRaw, offsets);
 
-    vkCmdBindIndexBuffer(cmds.commandBuffer().get(), indexBuffer->buffer().get(), 0, VK_INDEX_TYPE_UINT32);
+    vkCmdBindIndexBuffer(cmds.commandBuffer().get(), indexBuffer.buffer().get(), 0, VK_INDEX_TYPE_UINT32);
+
+    vkCmdEndRenderPass(cmds.commandBuffer().get());
+
+    cmds.end();
+
+    auto imgSampler = std::make_shared<vulkan::ImageSampler>(depthView);
 }

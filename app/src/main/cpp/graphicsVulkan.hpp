@@ -701,6 +701,18 @@ namespace vulkan {
 
             return img;
         }
+
+        static std::shared_ptr<Image> createDepthImageForSampler(std::shared_ptr<SwapChain> inSwapChain) {
+            VkExtent2D extent = inSwapChain->extent();
+            std::shared_ptr<Image> img{new Image{inSwapChain->device(), extent.width,
+                                                 extent.height,
+                                                 inSwapChain->device()->depthFormat(),
+                                                 VK_IMAGE_TILING_OPTIMAL,
+                                                 VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
+                                                 VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT}};
+
+            return img;
+        }
     };
 
     class ImageSampler {
@@ -718,6 +730,13 @@ namespace vulkan {
 
             createTextureSampler();
         }
+
+        ImageSampler(std::shared_ptr<Device> const &inDevice,
+                std::shared_ptr<ImageView> const &inImageView)
+                : m_device{inDevice},
+                m_image{inImageView->image()},
+                m_imageView{inImageView}
+        {}
 
         inline std::shared_ptr<VkSampler_T> const &sampler() { return m_sampler; }
         inline std::shared_ptr<Image> const &image() { return m_image; }
