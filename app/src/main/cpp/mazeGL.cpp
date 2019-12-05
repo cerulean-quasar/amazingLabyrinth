@@ -230,6 +230,8 @@ virtual std::shared_ptr<TextureData> GraphicsGL::getDepthTexture(
     }
 
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+    return make_shared<TextureDataGL>(depthMap);
 }
 
 void GraphicsGL::drawFrame() {

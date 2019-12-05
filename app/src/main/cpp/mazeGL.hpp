@@ -32,13 +32,24 @@ class TextureDataGL : public TextureData {
 public:
     TextureDataGL(std::shared_ptr<TextureDescription> const &textureDescription) {
         createTexture(textureDescription);
+        deleteWhenDone = true; // TODO: can remove, testing
     }
+
+    // TODO: can remove, testing
+    TextureDataGL(GLuint texture)
+        : deleteWhenDone{false},
+        m_handle{texture} {
+    }
+
     virtual ~TextureDataGL() {
-        glDeleteTextures(1, &m_handle);
+        if (deleteWhenDone) { // TODO: can remove, testing
+            glDeleteTextures(1, &m_handle);
+        }
     }
 
     inline GLuint handle() const { return m_handle; }
 private:
+    bool deleteWhenDone; // TODO: can remove, testing
     GLuint m_handle;
 
     void createTexture(std::shared_ptr<TextureDescription> const &textureDescription);
