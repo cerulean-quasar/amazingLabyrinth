@@ -566,11 +566,9 @@ void DepthTextureDescriptorSetLayout::createDescriptorSetLayout() {
 }
 
 std::shared_ptr<TextureData> GraphicsVulkan::getDepthTexture(
-        std::vector<Vertex> const &vertices,
-        std::vector<uint32_t> indices,
+        DrawObjectTable const &objsData,
         float width,
-        float height,
-        float zPos)
+        float height)
 {
     DepthTextureDescriptorSetLayout dscLayout{m_device};
     vulkan::DescriptorPools dscPools{m_device, dscLayout};

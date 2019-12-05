@@ -190,6 +190,48 @@ void GraphicsGL::createDepthTexture() {
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
 
+// some levels use this function to get a depth texture.
+virtual std::shared_ptr<TextureData> GraphicsGL::getDepthTexture(
+        DrawObjectTable const &objsData,
+        float width,
+        float height)
+{
+    glBindFramebuffer(GL_FRAMEBUFFER, depthMapFBO);
+
+    // set the shader to use
+    glUseProgram(depthProgramID);
+    glCullFace(GL_BACK);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+    glm::mat4 proj = glm::ortho(-width/2.0f, width/2.0f, -height/2.0f, height/2.0f, 0.1f, 100.0f);
+    glm::mat4 view = m_levelSequence->viewMatrix();
+
+    GLint MatrixID;
+    MatrixID = glGetUniformLocation(depthProgramID, "view");
+    glUniformMatrix4fv(MatrixID, 1, GL_FALSE, &view[0][0]);
+    MatrixID = glGetUniformLocation(depthProgramID, "proj");
+    glUniformMatrix4fv(MatrixID, 1, GL_FALSE, &proj[0][0]);
+
+    for (auto &&obj : objsData) {
+        for (auto &&model : obj.first->modelMatrices) {
+            DrawObjectDataGL* data;
+            // the draw object data might not be initialized at this point. Initialize it
+            // if it is null.
+            if (obj.second == nullptr) {
+                auto pdata = std::make_shared<DrawObjectDataGL>(obj);
+                data = pdata.get();
+                obj.second = std::move(pdata);
+            } else {
+                data = dynamic_cast<DrawObjectDataGL*> (obj.second.get());
+            }
+            drawObject(depthProgramID, false, data->vertexBuffer(), data->indexBuffer(),
+                       obj.first->indices.size(), model);
+        }
+    }
+
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+}
+
 void GraphicsGL::drawFrame() {
     createDepthTexture();
 

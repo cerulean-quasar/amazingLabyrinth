@@ -197,11 +197,9 @@ public:
 
     // some levels use this function to get a depth texture.
     virtual std::shared_ptr<TextureData> getDepthTexture(
-            std::vector<Vertex> const &vertices,
-            std::vector<uint32_t> indices,
+            DrawObjectTable const &objsData,
             float width,
-            float height,
-            float zPos) = 0;
+            float height) = 0;
 
     explicit Graphics(GameRequesterCreator requesterCreator)
         : m_gameRequester{requesterCreator(shared_from_this())},

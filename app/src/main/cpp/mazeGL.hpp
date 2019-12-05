@@ -117,6 +117,11 @@ public:
         return GraphicsDescription{"OpenGLES", "", ""};
     }
 
+    virtual std::shared_ptr<TextureData> getDepthTexture(
+            DrawObjectTable const &objsData,
+            float width,
+            float height);
+
     virtual ~GraphicsGL() {
         glDeleteFramebuffers(1, &depthMapFBO);
         glDeleteTextures(1, &colorImage);
