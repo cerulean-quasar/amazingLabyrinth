@@ -20,11 +20,6 @@
 #include <stb_image.h>
 
 #include "graphicsVulkan.hpp"
-#include "../../../../../../Android/Sdk/ndk/20.0.5594570/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/include/c++/v1/memory"
-#include "../../../../../../Android/Sdk/ndk/20.0.5594570/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/include/c++/v1/cstdint"
-
-std::string const SHADER_VERT_FILE("shaders/shader.vert.spv");
-std::string const SHADER_FRAG_FILE("shaders/shader.frag.spv");
 
 namespace vulkan {
 /**
@@ -844,13 +839,15 @@ namespace vulkan {
     }
 
     void Pipeline::createGraphicsPipeline(std::shared_ptr<FileRequester> const &requester,
-            VkVertexInputBindingDescription const &bindingDescription,
-            std::vector<VkVertexInputAttributeDescription> const &attributeDescriptions,
-            VkExtent2D const &extent,
-            std::shared_ptr<Pipeline> derivedPipeline,
-            bool useColorBlending) {
-        Shader vertShaderModule(requester, m_device, SHADER_VERT_FILE);
-        Shader fragShaderModule(requester, m_device, SHADER_FRAG_FILE);
+                  VkVertexInputBindingDescription const &bindingDescription,
+                  std::vector<VkVertexInputAttributeDescription> const &attributeDescriptions,
+                  VkExtent2D const &extent,
+                  std::string const vertShader,
+                  std::string const fragShader,
+                  std::shared_ptr<Pipeline> derivedPipeline,
+                  bool useColorBlending) {
+        Shader vertShaderModule(requester, m_device, vertShader);
+        Shader fragShaderModule(requester, m_device, fragShader);
 
         /* assign shaders to stages in the graphics pipeline */
         VkPipelineShaderStageCreateInfo vertShaderStageInfo = {};

@@ -23,6 +23,11 @@
 #include "mazeGraphics.hpp"
 #include "common.hpp"
 
+char constexpr const *SHADER_VERT_FILE ="shaders/shader.vert.spv";
+char constexpr const *SHADER_FRAG_FILE ="shaders/shader.frag.spv";
+char constexpr const *SHADER_DEPTH_VERT_FILE ="shaders/depthShader.vert.spv";
+char constexpr const *SHADER_DEPTH_FRAG_FILE ="shaders/depthShader.frag.spv";
+
 std::vector<VkVertexInputAttributeDescription> getAttributeDescriptions();
 VkVertexInputBindingDescription getBindingDescription();
 
@@ -84,6 +89,9 @@ private:
     std::shared_ptr<vulkan::ImageSampler> m_sampler;
 };
 
+std::shared_ptr<vulkan::Buffer> createUniformBuffer(
+        std::shared_ptr<vulkan::Device> const &device, size_t bufferSize);
+
 class UniformWrapper {
 public:
     /* for passing data other than the vertex data to the vertex shader */
@@ -116,9 +124,6 @@ public:
     inline std::shared_ptr<vulkan::Buffer> const &uniformBuffer() { return m_uniformBuffer; }
     inline std::shared_ptr<vulkan::Buffer> const &uniformBufferLighting() { return m_uniformBufferLighting; }
     inline std::shared_ptr<vulkan::ImageSampler> const &imageSampler() { return m_sampler; }
-
-    static std::shared_ptr<vulkan::Buffer> createUniformBuffer(
-            std::shared_ptr<vulkan::Device> const &device, size_t bufferSize);
 
 private:
     void updateDescriptorSet(std::shared_ptr<vulkan::Device> const &inDevice);
@@ -155,6 +160,8 @@ public:
     inline vulkan::Buffer const &vertexBuffer() { return m_vertexBuffer; }
     inline vulkan::Buffer const &indexBuffer() { return m_indexBuffer; }
     inline std::vector<std::shared_ptr<UniformWrapper>> const &uniforms() { return m_uniforms; }
+
+    virtual ~DrawObjectDataVulkan() = default;
 private:
     std::shared_ptr<vulkan::Device> m_device;
     std::shared_ptr<vulkan::CommandPool> m_commandPool;
@@ -175,6 +182,103 @@ private:
 
     void copyIndicesToBuffer(std::shared_ptr<vulkan::CommandPool> const &cmdpool,
                              std::shared_ptr<DrawObject> const &drawObj);
+};
+
+class UniformWrapperMVPOnly {
+public:
+    /* for passing data other than the vertex data to the vertex shader */
+    std::shared_ptr<vulkan::DescriptorSet> m_descriptorSet;
+    std::shared_ptr<vulkan::Buffer> m_uniformBuffer;
+
+    UniformWrapperMVPOnly(std::shared_ptr<vulkan::Device> const &inDevice,
+                   std::shared_ptr<vulkan::DescriptorPools> const &descriptorPools,
+                   glm::mat4 const &mvp)
+            : m_descriptorSet{},
+              m_uniformBuffer{}
+    {
+        VkBuffer uniformBuffer;
+        VkDeviceMemory uniformBufferMemory;
+
+        m_uniformBuffer = createUniformBuffer(inDevice, sizeof (mvp));
+        m_uniformBuffer->copyRawTo(&mvp, sizeof (mvp));
+
+        m_descriptorSet = descriptorPools->allocateDescriptor();
+        updateDescriptorSet(inDevice);
+    }
+
+    inline std::shared_ptr<vulkan::DescriptorSet> const &descriptorSet() { return m_descriptorSet; }
+    inline std::shared_ptr<vulkan::Buffer> const &uniformBuffer() { return m_uniformBuffer; }
+
+private:
+    void updateDescriptorSet(std::shared_ptr<vulkan::Device> const &inDevice) {
+        VkDescriptorBufferInfo bufferInfo = {};
+        bufferInfo.buffer = m_uniformBuffer;
+        bufferInfo.offset = 0;
+        bufferInfo.range = sizeof (glm::mat4);
+
+        VkWriteDescriptorSet descriptorWrite;
+        descriptorWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+        descriptorWrite.dstSet = m_descriptorSet->descriptorSet().get();
+        descriptorWrite.dstBinding = 0;
+        descriptorWrite.dstArrayElement = 0;
+        descriptorWrite.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+        descriptorWrite.descriptorCount = 1;
+        descriptorWrite.pBufferInfo = &bufferInfo;
+        descriptorWrite.pImageInfo = nullptr; // Optional
+        descriptorWrite.pTexelBufferView = nullptr; // Optional
+
+        vkUpdateDescriptorSets(inDevice->logicalDevice().get(), 1, &descriptorWrite, 0, nullptr);
+    }
+};
+
+class DrawObjectDataVulkanDepthTexture : public DrawObjectData {
+public:
+    DrawObjectDataVulkanDepthTexture(std::shared_ptr<vulkan::Device> const &inDevice,
+                         std::shared_ptr<vulkan::CommandPool> const &inPool,
+                         std::shared_ptr<vulkan::DescriptorPools> const &inDescriptorPools,
+                         std::shared_ptr<DrawObject> const &drawObj)
+            : m_device{inDevice},
+              m_commandPool{inPool},
+              m_descriptorPools{inDescriptorPools},
+              m_vertexBuffer{m_device, sizeof(drawObj->vertices[0]) * drawObj->vertices.size(),
+                             VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
+                             VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT},
+              m_indexBuffer{m_device, sizeof(drawObj->indices[0]) * drawObj->indices.size(),
+                            VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT,
+                            VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT},
+              m_uniforms{} {
+        vulkan::copyVerticesToBuffer<Vertex>(inPool, drawObj->vertices, m_vertexBuffer);
+        vulkan::copyIndicesToBuffer(inPool, drawObj->indices, m_indexBuffer);
+    }
+
+    void addUniforms(std::shared_ptr<DrawObject> const &obj, glm::mat4 const &vp) {
+        if (obj->modelMatrices.size() == m_uniforms.size()) {
+            return;
+        }
+
+        for (size_t i = m_uniforms.size(); i < obj->modelMatrices.size(); i++) {
+            glm::mat4 mvp = vp * obj->modelMatrices[i];
+            auto uniform = std::make_shared<UniformWrapperMVPOnly>(m_device, m_descriptorPools, mvp));
+            m_uniforms.push_back(uniform);
+        }
+    }
+
+    inline vulkan::Buffer const &vertexBuffer() { return m_vertexBuffer; }
+    inline vulkan::Buffer const &indexBuffer() { return m_indexBuffer; }
+    inline std::vector<std::shared_ptr<UniformWrapperMVPOnly>> const &uniforms() { return m_uniforms; }
+private:
+    std::shared_ptr<vulkan::Device> m_device;
+    std::shared_ptr<vulkan::CommandPool> m_commandPool;
+    std::shared_ptr<vulkan::DescriptorPools> m_descriptorPools;
+
+    /* vertex buffer and index buffer. the index buffer indicates which vertices to draw and in
+     * the specified order.  Note, vertices can be listed twice if they should be part of more
+     * than one triangle.
+     */
+    vulkan::Buffer m_vertexBuffer;
+    vulkan::Buffer m_indexBuffer;
+
+    std::vector<std::shared_ptr<UniformWrapperMVPOnly>> m_uniforms;
 };
 
 class LevelSequenceVulkan : public LevelSequence {
@@ -231,7 +335,8 @@ public:
               m_descriptorPools{new vulkan::DescriptorPools{m_device, m_descriptorSetLayout}},
               m_graphicsPipeline{new vulkan::Pipeline{m_gameRequester, m_device, m_swapChain->extent(),
                                                       m_renderPass, m_descriptorPools,
-                                                      getBindingDescription(), getAttributeDescriptions()}},
+                                                      getBindingDescription(), getAttributeDescriptions(),
+                                                      SHADER_VERT_FILE, SHADER_FRAG_FILE}},
               m_commandPool{new vulkan::CommandPool{m_device}},
               m_depthImageView{new vulkan::ImageView{vulkan::ImageFactory::createDepthImage(m_swapChain),
                                                      m_device->depthFormat(), VK_IMAGE_ASPECT_DEPTH_BIT}},

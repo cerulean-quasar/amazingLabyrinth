@@ -478,6 +478,8 @@ namespace vulkan {
                  std::shared_ptr<DescriptorPools> &inDescriptorPools,
                  VkVertexInputBindingDescription const &bindingDescription,
                  std::vector<VkVertexInputAttributeDescription> const &attributeDescription,
+                 std::string const &vertShader,
+                 std::string const &fragShader,
                  std::shared_ptr<Pipeline> derivedPipeline = std::shared_ptr<Pipeline>(),
                  bool useColorBlending = true)
                 : m_device{inDevice},
