@@ -20,7 +20,7 @@
 #include "graphics.hpp"
 #include "android.hpp"
 #include "drawer.hpp"
-#include "native-lib.hpp"
+#include "gameRequester.hpp"
 #include "mazeGL.hpp"
 
 #ifdef CQ_ENABLE_VULKAN
@@ -98,12 +98,13 @@ GameSendChannel &gameFromGuiChannel() {
     return g_diceChannel;
 }
 
-void GameWorker::initGraphics(std::shared_ptr<WindowType> surface)
+void GameWorker::initGraphics(std::shared_ptr<WindowType> surface,
+        GameRequesterCreator requesterCreator)
 {
 #ifdef CQ_ENABLE_VULKAN
     if (m_tryVulkan) {
         try {
-            m_graphics = std::make_unique<GraphicsVulkan>(surface, m_requester);
+            m_graphics = std::make_unique<GraphicsVulkan>(surface, requesterCreator);
         } catch (std::runtime_error &e) {
             m_tryVulkan = false;
         }
@@ -113,7 +114,7 @@ void GameWorker::initGraphics(std::shared_ptr<WindowType> surface)
 #endif
 
     if (!m_tryVulkan) {
-        m_graphics = std::make_unique<GraphicsGL>(std::move(surface), m_requester);
+        m_graphics = std::make_unique<GraphicsGL>(std::move(surface), requesterCreator);
     }
 }
 
@@ -139,13 +140,13 @@ void GameWorker::drawingLoop() {
                 switch (event->type()) {
                     case DrawEvent::stopDrawing:
                         // The main thread requested that we exit.  Run the event and then exit.
-                        (*event)(m_graphics, m_requester);
+                        (*event)(m_graphics);
                         return;
                     case DrawEvent::surfaceChanged:
                     case DrawEvent::saveLevelData:
                     case DrawEvent::tiltMaze:
                     case DrawEvent::levelChanged:
-                        if ((*event)(m_graphics, m_requester)) {
+                        if ((*event)(m_graphics)) {
                             nbrRequireRedraw++;
                         }
                         break;

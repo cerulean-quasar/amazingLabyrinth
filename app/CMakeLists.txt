@@ -23,6 +23,7 @@ add_library( # Sets the name of the library.
 
         # Provides a relative path to your source file(s).
         src/main/cpp/native-lib.cpp
+        src/main/cpp/gameRequester.cpp
         src/main/cpp/android.cpp
         src/main/cpp/graphics.cpp
         src/main/cpp/graphicsGL.cpp

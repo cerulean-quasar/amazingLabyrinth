@@ -165,7 +165,7 @@ private:
     }
 };
 
-class Graphics {
+class Graphics : public std::enable_shared_from_this<Graphics> {
 public:
     virtual void initThread()=0;
 
@@ -185,14 +185,26 @@ public:
 
     virtual GraphicsDescription graphicsDescription() = 0;
 
+    void sendGraphicsDescription(bool hasAccelerometer) {
+        m_gameRequester->sendGraphicsDescription(graphicsDescription(), hasAccelerometer);
+    }
+
     void saveLevelData() {
         return m_levelSequence->saveLevelData();
     }
 
     virtual void cleanupThread()=0;
 
-    explicit Graphics(std::shared_ptr<GameRequester> inRequester)
-        : m_gameRequester{std::move(inRequester)},
+    // some levels use this function to get a depth texture.
+    virtual std::shared_ptr<TextureData> getDepthTexture(
+            std::vector<Vertex> const &vertices,
+            std::vector<uint32_t> indices,
+            float width,
+            float height,
+            float zPos) = 0;
+
+    explicit Graphics(GameRequesterCreator requesterCreator)
+        : m_gameRequester{requesterCreator(shared_from_this())},
         m_levelSequence{}
     {}
 
@@ -202,4 +214,5 @@ protected:
     std::shared_ptr<GameRequester> m_gameRequester;
     std::shared_ptr<LevelSequence> m_levelSequence;
 };
+
 #endif // AMAZING_LABYRINTH_MAZE_GRAPHICS_HPP

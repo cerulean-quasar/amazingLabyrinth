@@ -87,8 +87,8 @@ protected:
 class GraphicsGL : public Graphics {
 public:
     GraphicsGL(std::shared_ptr<WindowType> window,
-               std::shared_ptr<GameRequester> inRequester)
-            : Graphics{inRequester},
+               GameRequesterCreator inRequesterCreator)
+            : Graphics{inRequesterCreator},
               m_surface{std::move(window)},
               programID{},
               depthProgramID{},

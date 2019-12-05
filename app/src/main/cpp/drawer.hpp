@@ -40,8 +40,7 @@ public:
     };
 
     // returns true if the surface needs redrawing after this event.
-    virtual bool operator() (std::unique_ptr<Graphics> &diceGraphics,
-                             std::shared_ptr<GameRequester> &notify) = 0;
+    virtual bool operator() (std::unique_ptr<Graphics> &diceGraphics) = 0;
 
     virtual evtype type() = 0;
     virtual ~DrawEvent() = default;
@@ -49,8 +48,7 @@ public:
 
 class StopDrawingEvent : public DrawEvent {
 public:
-    bool operator() (std::unique_ptr<Graphics> &graphics,
-                     std::shared_ptr<GameRequester> &notify) override {
+    bool operator() (std::unique_ptr<Graphics> &graphics) override {
         graphics->saveLevelData();
         return false;
     }
@@ -62,8 +60,7 @@ public:
 
 class SurfaceChangedEvent : public DrawEvent {
 public:
-    bool operator() (std::unique_ptr<Graphics> &graphics,
-                     std::shared_ptr<GameRequester> &notify) override {
+    bool operator() (std::unique_ptr<Graphics> &graphics) override {
         // giggle the device so that when the swapchain is recreated, it gets the correct width and
         // height.
         graphics->drawFrame();
@@ -92,8 +89,7 @@ private:
 
 class LevelChangedEvent : public DrawEvent {
 public:
-    bool operator() (std::unique_ptr<Graphics> &graphics,
-                     std::shared_ptr<GameRequester> &notify) override {
+    bool operator() (std::unique_ptr<Graphics> &graphics) override {
         graphics->changeLevel(m_level);
         return true;
     }
@@ -111,8 +107,7 @@ private:
 
 class SaveLevelDataEvent : public DrawEvent {
 public:
-    bool operator() (std::unique_ptr<Graphics> &graphics,
-                     std::shared_ptr<GameRequester> &notify) override {
+    bool operator() (std::unique_ptr<Graphics> &graphics) override {
         graphics->saveLevelData();
         return true;
     }
@@ -154,13 +149,12 @@ GameSendChannel &gameFromGuiChannel();
 class GameWorker {
 public:
     GameWorker(std::shared_ptr<WindowType> inSurface,
-               std::shared_ptr<GameRequester> inNotify,
+               GameRequesterCreator inRequesterCreator,
                bool inUseGravity,
                bool inUseLegacy)
             : m_whichSensors{},
               m_tryVulkan{!inUseLegacy},
-              m_graphics{},
-              m_requester{std::move(inNotify)}
+              m_graphics{}
     {
         std::bitset<3> whichSensors = Sensors::hasWhichSensors();
         if (inUseGravity) {
@@ -171,9 +165,8 @@ public:
             }
         }
 
-        initGraphics(std::move(inSurface));
-        m_requester->sendGraphicsDescription(m_graphics->graphicsDescription(),
-                                          whichSensors.test(Sensors::ACCELEROMETER_SENSOR));
+        initGraphics(std::move(inSurface), inRequesterCreator);
+        m_graphics->sendGraphicsDescription(whichSensors.test(Sensors::ACCELEROMETER_SENSOR));
     }
 
     void drawingLoop();
@@ -183,9 +176,8 @@ private:
     std::bitset<3> m_whichSensors;
     bool m_tryVulkan;
     std::unique_ptr<Graphics> m_graphics;
-    std::shared_ptr<GameRequester> m_requester;
 
-    void initGraphics(std::shared_ptr<WindowType> surface);
+    void initGraphics(std::shared_ptr<WindowType> surface, GameRequesterCreator requesterCreator);
 };
 
 #endif // AMAZING_LABYRINTH_DRAWER_HPP

@@ -24,6 +24,9 @@
 #include <memory>
 #include <streambuf>
 #include "saveData.hpp"
+#include "graphics.hpp"
+
+class Graphics;
 
 struct GraphicsDescription {
 public:
@@ -36,6 +39,17 @@ public:
           m_version{std::move(inVersion)},
           m_deviceName{std::move(inDeviceName)} {
     }
+};
+
+class GraphicsRequester {
+public:
+    virtual std::shared_ptr<TextureData> getDepthTexture(
+            std::vector<Vertex> const &vertices,
+            std::vector<uint32_t> indices,
+            float width,
+            float height,
+            float zPos) = 0;
+    virtual ~GraphicsRequester() = default;
 };
 
 class FileRequester {
@@ -57,9 +71,11 @@ public:
     virtual ~JRequester() = default;
 };
 
-class GameRequester :public FileRequester, public JRequester {
+class GameRequester :public FileRequester, public JRequester, public GraphicsRequester {
 public:
     ~GameRequester() override = default;
 };
+
+using GameRequesterCreator = std::function<std::shared_ptr<GameRequester>(std::shared_ptr<Graphics>)>;
 
 #endif // AMAZING_LABYRINTH_COMMON_HPP

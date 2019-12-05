@@ -17,8 +17,8 @@
  *  along with AmazingLabyrinth.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
-#ifndef AMAZING_LABYRINTH_NATIVE_LIB_HPP
-#define AMAZING_LABYRINTH_NATIVE_LIB_HPP
+#ifndef AMAZING_LABYRINTH_GAME_REQUESTER_HPP
+#define AMAZING_LABYRINTH_GAME_REQUESTER_HPP
 
 #include <cstdint>
 #include <string>
@@ -35,6 +35,8 @@ std::string const KeyVersionName = "versionName";
 std::string const KeyDeviceName = "deviceName";
 std::string const KeyHasAccelerometer = "hasAccelerometer";
 
+void handleJNIException(JNIEnv *env);
+
 class JGameBundle;
 
 class JGameRequester : public std::enable_shared_from_this<JGameRequester>, public GameRequester {
@@ -49,16 +51,24 @@ public:
         return std::make_unique<AssetStreambuf>(m_assetWrapper->getAsset(file));
     }
     RestoreData getSaveData(Point<uint32_t> const &screenSize) override;
+    std::shared_ptr<TextureData> getDepthTexture(
+            std::vector<Vertex> const &vertices,
+            std::vector<uint32_t> indices,
+            float width,
+            float height,
+            float zPos) override;
 
     // accessors
     JNIEnv *env() { return m_env; }
 
     // constructors
-    JGameRequester(JNIEnv *inEnv, jobject inNotify, std::string inSaveGameFile, AAssetManager *mgr)
+    JGameRequester(JNIEnv *inEnv, jobject inNotify, std::string inSaveGameFile, AAssetManager *mgr,
+            std::shared_ptr<Graphics> inGraphics)
             : m_env{inEnv},
               m_notify{inNotify},
               m_pathSaveFile{std::move(inSaveGameFile)},
-              m_assetWrapper{new AssetManagerWrapper(mgr)} {}
+              m_assetWrapper{new AssetManagerWrapper(mgr)},
+              m_graphics(std::move(inGraphics)) {}
 
     ~JGameRequester() override {}
 private:
@@ -69,6 +79,7 @@ private:
     jobject m_notify;
     std::string m_pathSaveFile;
     std::unique_ptr<AssetManagerWrapper> m_assetWrapper;
+    std::shared_ptr<Graphics> m_graphics;
 };
 
 using GameBundleValue = boost::variant<std::string, float, std::vector<char>, bool, int>;
@@ -251,4 +262,4 @@ template <typename T> void insertPutDatumMapEntry(JGameBundle::PutMap &map) {
     map.insert(std::make_pair(std::type_index(typeid(T)), &JGameBundle::putDatum<T>));
 }
 
-#endif
+#endif // AMAZING_LABYRINTH_GAME_REQUESTER_HPP

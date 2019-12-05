@@ -84,6 +84,22 @@ public:
     virtual ~TextureDescription() = default;
 };
 
+// TODO: can remove, testing
+class TextureDescriptionDummy : public TextureDescription {
+private:
+protected:
+    virtual bool compare(TextureDescription *other) {
+        return true;
+    }
+public:
+    TextureDescriptionDummy(std::shared_ptr<GameRequester> inGameRequester)
+        : TextureDescription(std::move(inGameRequester))
+        {}
+    virtual std::vector<char> getData(uint32_t &texWidth, uint32_t &texHeight, uint32_t &texChannels) {
+        return std::vector<char>();
+    }
+};
+
 class TextureDescriptionPath : public TextureDescription {
 private:
     std::string imagePath;

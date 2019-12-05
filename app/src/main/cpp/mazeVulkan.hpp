@@ -21,7 +21,7 @@
 #define AMAZING_LABYRINTH_MAZE_VULKAN_HPP
 #include "graphicsVulkan.hpp"
 #include "mazeGraphics.hpp"
-#include "../../../../../../Android/Sdk/ndk/20.0.5594570/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/include/c++/v1/memory"
+#include "common.hpp"
 
 std::vector<VkVertexInputAttributeDescription> getAttributeDescriptions();
 VkVertexInputBindingDescription getBindingDescription();
@@ -72,6 +72,11 @@ public:
                       std::shared_ptr<vulkan::CommandPool> const &inCommandPool,
                       std::shared_ptr<TextureDescription> const &inTextureDescription)
             : m_sampler{new vulkan::ImageSampler{inDevice, inCommandPool, inTextureDescription}}
+    {}
+
+    // TODO: testing, can remove
+    TextureDataVulkan(std::shared_ptr<vulkan::ImageSampler> const &inSampler)
+            : m_sampler{inSampler}
     {}
 
     inline std::shared_ptr<vulkan::ImageSampler> const &sampler() { return m_sampler; }
@@ -216,8 +221,8 @@ private:
 class GraphicsVulkan : public Graphics {
 public:
     GraphicsVulkan(std::shared_ptr<WindowType> window,
-            std::shared_ptr<GameRequester> inRequester)
-            : Graphics{std::move(inRequester)},
+            GameRequesterCreator inRequesterCreator)
+            : Graphics{inRequesterCreator},
               m_instance{new vulkan::Instance(std::move(window))},
               m_device{new vulkan::Device{m_instance}},
               m_swapChain{new vulkan::SwapChain{m_device}},
@@ -259,6 +264,13 @@ public:
                 std::move(devGraphicsDescription.m_name)};
     }
 
+    virtual std::shared_ptr<TextureData> getDepthTexture(
+            std::vector<Vertex> const &vertices,
+            std::vector<uint32_t> indices,
+            float width,
+            float height,
+            float zPos);
+
     virtual ~GraphicsVulkan() { }
 private:
     std::shared_ptr<vulkan::Instance> m_instance;
@@ -289,12 +301,6 @@ private:
     void initializeCommandBuffer(size_t index);
     void initializeCommandBufferDrawObjects(VkCommandBuffer commandBuffer, DrawObjectTable const & objs);
     void prepareDepthResources();
-    std::vector<std::vector<float>> getDepthTexture(
-            std::vector<Vertex> const &vertices,
-            std::vector<uint32_t> indices,
-            float width,
-            float height,
-            float zPos);
 };
 
 #endif // AMAZING_LABYRINTH_MAZE_VULKAN_HPP

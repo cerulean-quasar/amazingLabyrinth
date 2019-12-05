@@ -565,7 +565,7 @@ void DepthTextureDescriptorSetLayout::createDescriptorSetLayout() {
     m_descriptorSetLayout.reset(descriptorSetLayoutRaw, deleter);
 }
 
-std::vector<std::vector<float>> GraphicsVulkan::getDepthTexture(
+std::shared_ptr<TextureData> GraphicsVulkan::getDepthTexture(
         std::vector<Vertex> const &vertices,
         std::vector<uint32_t> indices,
         float width,
@@ -672,4 +672,6 @@ std::vector<std::vector<float>> GraphicsVulkan::getDepthTexture(
     cmds.end();
 
     auto imgSampler = std::make_shared<vulkan::ImageSampler>(depthView);
+
+    return std::make_shared<TextureDataVulkan>(imgSampler);
 }
