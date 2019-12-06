@@ -102,7 +102,7 @@ struct LevelRestoreTableEntry {
     std::string levelDescription;
 };
 
-using LevelRestoreTable = std::array<LevelRestoreTableEntry, 8>;
+using LevelRestoreTable = std::array<LevelRestoreTableEntry, 9>;
 
 LevelRestoreTable const &getRestoreLevelTable() {
     static LevelRestoreTable const levelRestoreTable{

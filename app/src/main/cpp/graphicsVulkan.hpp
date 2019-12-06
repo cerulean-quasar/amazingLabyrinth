@@ -480,15 +480,15 @@ namespace vulkan {
                  std::vector<VkVertexInputAttributeDescription> const &attributeDescription,
                  std::string const &vertShader,
                  std::string const &fragShader,
-                 std::shared_ptr<Pipeline> derivedPipeline = std::shared_ptr<Pipeline>(),
-                 bool useColorBlending = true)
+                 std::shared_ptr<Pipeline> const &derivedPipeline,
+                 bool useColorBlending)
                 : m_device{inDevice},
                   m_renderPass{inRenderPass},
                   m_descriptorPools{inDescriptorPools},
                   m_pipelineLayout{},
                   m_pipeline{} {
             createGraphicsPipeline(requester, bindingDescription, attributeDescription,
-                    extent, derivedPipeline, useColorBlending);
+                    extent, vertShader, fragShader, derivedPipeline, useColorBlending);
         }
 
         inline std::shared_ptr<VkPipeline_T> const &pipeline() { return m_pipeline; }
@@ -511,6 +511,8 @@ namespace vulkan {
                 VkVertexInputBindingDescription const &bindingDescription,
                 std::vector<VkVertexInputAttributeDescription> const &attributeDescriptions,
                 VkExtent2D const &extent,
+                std::string const vertShader,
+                std::string const fragShader,
                 std::shared_ptr<Pipeline> const &derivedPipeline,
                 bool useColorBlending);
     };
@@ -755,9 +757,9 @@ namespace vulkan {
 
     class Framebuffer {
     public:
-        static std::shared_ptr<VkFramebuffer_T> const &createRawFramebuffer(
-                std::shared_ptr<Device> inDevice,
-                std::shared_ptr<RenderPass> inRenderPass,
+        static std::shared_ptr<VkFramebuffer_T> createRawFramebuffer(
+                std::shared_ptr<Device> const &inDevice,
+                std::shared_ptr<RenderPass> const &inRenderPass,
                 std::vector<std::shared_ptr<ImageView>> inAttachments,
                 uint32_t width,
                 uint32_t height)
@@ -767,11 +769,21 @@ namespace vulkan {
             for (auto const &attachment : inAttachments) {
                 attachments.push_back(attachment->imageView().get());
             }
+            return createRawFramebuffer(inDevice, inRenderPass, attachments, width, height);
+        }
+
+        static std::shared_ptr<VkFramebuffer_T> createRawFramebuffer(
+                std::shared_ptr<Device> const &inDevice,
+                std::shared_ptr<RenderPass> const &inRenderPass,
+                std::vector<VkImageView> inAttachments,
+                uint32_t width,
+                uint32_t height)
+        {
             VkFramebufferCreateInfo framebufferInfo = {};
             framebufferInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
             framebufferInfo.renderPass = inRenderPass->renderPass().get();
-            framebufferInfo.attachmentCount = static_cast<uint32_t>(attachments.size());
-            framebufferInfo.pAttachments = attachments.data();
+            framebufferInfo.attachmentCount = static_cast<uint32_t>(inAttachments.size());
+            framebufferInfo.pAttachments = inAttachments.data();
             framebufferInfo.width = width;
             framebufferInfo.height = height;
             framebufferInfo.layers = 1;
@@ -803,7 +815,7 @@ namespace vulkan {
         inline std::shared_ptr<Device> const &device() { return m_device; }
         inline std::shared_ptr<VkFramebuffer_T> const &framebuffer() { return m_framebuffer; }
     private:
-        Device m_device;
+        std::shared_ptr<Device> m_device;
         std::shared_ptr<VkFramebuffer_T> m_framebuffer;
     };
 

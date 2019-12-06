@@ -76,4 +76,6 @@ public:
 
 using GameRequesterCreator = std::function<std::shared_ptr<GameRequester>(std::shared_ptr<Graphics>)>;
 
+std::vector<char> readFile(std::shared_ptr<FileRequester> const &requester, std::string const &filename);
+
 #endif // AMAZING_LABYRINTH_COMMON_HPP

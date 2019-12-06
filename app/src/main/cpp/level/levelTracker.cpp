@@ -271,8 +271,7 @@ LevelGroup LevelTracker::getLevelGroupMountain(std::shared_ptr<FixedMazeSaveData
                     "In the mountain,\na yeti...",
                     "searches for\na den to weather\nthe harsh winter"}),
             GetLevelFcn([levelBundle](LevelTracker &tracker) {
-                std::shared_ptr<MazeAvoid> level;
-                level = tracker.getLevel<FixedMaze>(levelBundle);
+                auto level = tracker.getLevel<FixedMaze>(levelBundle);
                 return level;
             }),
             GetFinisherFcn([](LevelTracker &tracker, float centerX, float centerY, glm::mat4 const &proj, glm::mat4 const &view) {

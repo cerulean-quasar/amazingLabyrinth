@@ -186,10 +186,6 @@ private:
 
 class UniformWrapperMVPOnly {
 public:
-    /* for passing data other than the vertex data to the vertex shader */
-    std::shared_ptr<vulkan::DescriptorSet> m_descriptorSet;
-    std::shared_ptr<vulkan::Buffer> m_uniformBuffer;
-
     UniformWrapperMVPOnly(std::shared_ptr<vulkan::Device> const &inDevice,
                    std::shared_ptr<vulkan::DescriptorPools> const &descriptorPools,
                    glm::mat4 const &mvp)
@@ -212,7 +208,7 @@ public:
 private:
     void updateDescriptorSet(std::shared_ptr<vulkan::Device> const &inDevice) {
         VkDescriptorBufferInfo bufferInfo = {};
-        bufferInfo.buffer = m_uniformBuffer;
+        bufferInfo.buffer = m_uniformBuffer->buffer().get();
         bufferInfo.offset = 0;
         bufferInfo.range = sizeof (glm::mat4);
 
@@ -229,6 +225,10 @@ private:
 
         vkUpdateDescriptorSets(inDevice->logicalDevice().get(), 1, &descriptorWrite, 0, nullptr);
     }
+
+    /* for passing data other than the vertex data to the vertex shader */
+    std::shared_ptr<vulkan::DescriptorSet> m_descriptorSet;
+    std::shared_ptr<vulkan::Buffer> m_uniformBuffer;
 };
 
 class DrawObjectDataVulkanDepthTexture : public DrawObjectData {
@@ -258,7 +258,7 @@ public:
 
         for (size_t i = m_uniforms.size(); i < obj->modelMatrices.size(); i++) {
             glm::mat4 mvp = vp * obj->modelMatrices[i];
-            auto uniform = std::make_shared<UniformWrapperMVPOnly>(m_device, m_descriptorPools, mvp));
+            auto uniform = std::make_shared<UniformWrapperMVPOnly>(m_device, m_descriptorPools, mvp);
             m_uniforms.push_back(uniform);
         }
     }
@@ -293,7 +293,7 @@ public:
              m_device{inDevice},
              m_commandPool{inPool},
              m_descriptorPools{inDescriptorPools},
-             m_uniformBufferLighting{UniformWrapper::createUniformBuffer(inDevice, sizeof (glm::vec3))}
+             m_uniformBufferLighting{createUniformBuffer(inDevice, sizeof (glm::vec3))}
     {
         glm::vec3 lightingVector = lightingSource();
         m_uniformBufferLighting->copyRawTo(&lightingVector, sizeof (lightingVector));
@@ -336,7 +336,8 @@ public:
               m_graphicsPipeline{new vulkan::Pipeline{m_gameRequester, m_device, m_swapChain->extent(),
                                                       m_renderPass, m_descriptorPools,
                                                       getBindingDescription(), getAttributeDescriptions(),
-                                                      SHADER_VERT_FILE, SHADER_FRAG_FILE}},
+                                                      SHADER_VERT_FILE, SHADER_FRAG_FILE, nullptr,
+                                                      true}},
               m_commandPool{new vulkan::CommandPool{m_device}},
               m_depthImageView{new vulkan::ImageView{vulkan::ImageFactory::createDepthImage(m_swapChain),
                                                      m_device->depthFormat(), VK_IMAGE_ASPECT_DEPTH_BIT}},

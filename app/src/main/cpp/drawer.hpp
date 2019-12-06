@@ -28,6 +28,7 @@
 #include <boost/optional.hpp>
 #include "mazeGraphics.hpp"
 #include "common.hpp"
+#include "android.hpp"
 
 class DrawEvent {
 public:

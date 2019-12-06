@@ -844,7 +844,7 @@ namespace vulkan {
                   VkExtent2D const &extent,
                   std::string const vertShader,
                   std::string const fragShader,
-                  std::shared_ptr<Pipeline> derivedPipeline,
+                  std::shared_ptr<Pipeline> const &derivedPipeline,
                   bool useColorBlending) {
         Shader vertShaderModule(requester, m_device, vertShader);
         Shader fragShaderModule(requester, m_device, fragShader);
@@ -1660,9 +1660,9 @@ namespace vulkan {
     void SwapChainCommands::createFramebuffers(std::shared_ptr<RenderPass> &renderPass,
                                                std::shared_ptr<ImageView> &depthImage) {
         for (size_t i = 0; i < m_imageViews.size(); i++) {
-            std::vector<std::shared_ptr<ImageView>> attachments = {
-                    m_imageViews[i],
-                    depthImage
+            std::vector<VkImageView> attachments = {
+                    m_imageViews[i].imageView().get(),
+                    depthImage->imageView().get()
             };
             m_framebuffers.push_back(Framebuffer::createRawFramebuffer(m_swapChain->device(),
                     renderPass, attachments, m_swapChain->extent().width, m_swapChain->extent().height));

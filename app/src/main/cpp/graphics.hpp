@@ -26,15 +26,13 @@
 
 #include <glm/glm.hpp>
 
-#include "common.hpp"
+class GameRequester;
 
 constexpr float screenMaxX = 0.8f;
 constexpr float screenMaxY = 1.0f;
 
 static std::string const MODEL_WALL("models/wall.obj");
 static std::string const MODEL_BALL("models/ball.obj");
-
-std::vector<char> readFile(std::shared_ptr<FileRequester> const &requester, std::string const &filename);
 
 struct Vertex {
     glm::vec3 pos;

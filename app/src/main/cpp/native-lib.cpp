@@ -60,7 +60,7 @@ Java_com_quasar_cerulean_amazinglabyrinth_Draw_startGame(
     }
 
     GameRequesterCreator requesterCreator([env, jReturnChannel, saveDataFile, manager]
-         -> std::shared_ptr<GameRequester> (std::shared_ptr<Graphics> inGraphics) {
+        (std::shared_ptr<Graphics> inGraphics) -> std::shared_ptr<GameRequester> {
         return std::make_shared<JGameRequester>(env, jReturnChannel, saveDataFile, manager,
                 std::move(inGraphics));
     });

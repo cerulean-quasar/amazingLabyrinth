@@ -229,7 +229,7 @@ std::shared_ptr<TextureData> JGameRequester::getDepthTexture(
         float width,
         float height)
 {
-    m_graphics->getDepthTexture(objsData, width, height);
+    return m_graphics->getDepthTexture(objsData, width, height);
 }
 
 std::vector<char> JGameRequester::getTextImage(std::string text, uint32_t &width, uint32_t &height, uint32_t &channels) {

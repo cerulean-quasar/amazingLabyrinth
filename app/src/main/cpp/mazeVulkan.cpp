@@ -18,6 +18,7 @@
  *
  */
 #include "mazeVulkan.hpp"
+#include "../../../../../../Android/Sdk/ndk/20.0.5594570/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/include/c++/v1/memory"
 
 VkVertexInputBindingDescription getBindingDescription() {
     VkVertexInputBindingDescription bindingDescription = {};
@@ -259,7 +260,9 @@ void GraphicsVulkan::recreateSwapChain(uint32_t width, uint32_t height) {
     m_renderPass = vulkan::RenderPass::createRenderPass(m_device, m_swapChain);
     m_graphicsPipeline.reset(new vulkan::Pipeline{m_gameRequester, m_device, m_swapChain->extent(),
                                                   m_renderPass, m_descriptorPools,
-                                                  getBindingDescription(), getAttributeDescriptions()});
+                                                  getBindingDescription(), getAttributeDescriptions(),
+                                                  SHADER_VERT_FILE, SHADER_FRAG_FILE,
+                                                  nullptr, true});
     m_swapChainCommands.reset(new vulkan::SwapChainCommands{m_swapChain, m_commandPool, m_renderPass,
                                                             m_depthImageView});
 }
@@ -569,8 +572,8 @@ std::shared_ptr<TextureData> GraphicsVulkan::getDepthTexture(
         float width,
         float height)
 {
-    DepthTextureDescriptorSetLayout dscLayout{m_device};
-    vulkan::DescriptorPools dscPools{m_device, dscLayout};
+    auto dscLayout = std::make_shared<DepthTextureDescriptorSetLayout>(m_device);
+    auto dscPools = std::make_shared<vulkan::DescriptorPools>(m_device, dscLayout);
 
     glm::mat4 proj = glm::ortho(-width/2.0f, width/2.0f, -height/2.0f, height/2.0f, 0.1f, 100.0f);
     glm::mat4 vp = proj * m_levelSequence->viewMatrix();
@@ -578,9 +581,9 @@ std::shared_ptr<TextureData> GraphicsVulkan::getDepthTexture(
     std::vector<std::shared_ptr<DrawObjectDataVulkanDepthTexture>> drawObjsData;
     for (auto const &objdata : objsData) {
         auto drawObjData = std::make_shared<DrawObjectDataVulkanDepthTexture>(
-                m_device, m_commandPool, dscPools, objdata.fisrt);
+                m_device, m_commandPool, dscPools, objdata.first);
         drawObjsData.emplace_back();
-        drawObjsData.back().addUniforms(objdata.first, vp);
+        drawObjsData.back()->addUniforms(objdata.first, vp);
     }
 
     auto depthView = std::make_shared<vulkan::ImageView>(
@@ -596,8 +599,8 @@ std::shared_ptr<TextureData> GraphicsVulkan::getDepthTexture(
     auto frameBuffer = std::make_shared<vulkan::Framebuffer>(m_device, renderPass, attachments,
             m_swapChain->extent().width, m_swapChain->extent().height);
 
-    auto pipeline = std::make_shared<vulkan::Pipeline>(m_device, m_swapChain->extent(), renderPass,
-            dscPools, getBindingDescription(), getAttributeDescriptions(),
+    auto pipeline = std::make_shared<vulkan::Pipeline>(m_gameRequester, m_device, m_swapChain->extent(),
+            renderPass, dscPools, getBindingDescription(), getAttributeDescriptions(),
             SHADER_DEPTH_VERT_FILE, SHADER_DEPTH_FRAG_FILE, m_graphicsPipeline, false);
 
     // start recording commands
@@ -627,22 +630,22 @@ std::shared_ptr<TextureData> GraphicsVulkan::getDepthTexture(
      */
     vkCmdBeginRenderPass(cmds.commandBuffer().get(), &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
 
-    vkCmdBindPipeline(cmds.commandBuffer().get(), VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
+    vkCmdBindPipeline(cmds.commandBuffer().get(), VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline->pipeline().get());
 
     size_t i = 0;
     VkDeviceSize offsets[1] = {0};
     for (auto const &drawObjData : drawObjsData) {
-        VkBuffer vertexBufferRaw = drawObjData->vertexBuffer.buffer().get();
+        VkBuffer vertexBufferRaw = drawObjData->vertexBuffer().buffer().get();
         vkCmdBindVertexBuffers(cmds.commandBuffer().get(), 0, 1, &vertexBufferRaw, offsets);
 
         vkCmdBindIndexBuffer(cmds.commandBuffer().get(), drawObjData->indexBuffer().buffer().get(), 0,
                              VK_INDEX_TYPE_UINT32);
 
         for (auto const &uniform : drawObjData->uniforms()) {
+            VkDescriptorSet dscSet = uniform->descriptorSet()->descriptorSet().get();
             vkCmdBindDescriptorSets(cmds.commandBuffer().get(), VK_PIPELINE_BIND_POINT_GRAPHICS,
-                                    pipeline->pipelineLayout().get(), 0, 1, uniform->descriptorSet(),
-                                    0, nullptr);
-            vkCmdDrawIndexed(commandBuffer, objsData[i].first->indices.size(), 1, 0, 0, 0);
+                                    pipeline->layout().get(), 0, 1, &dscSet, 0, nullptr);
+            vkCmdDrawIndexed(cmds.commandBuffer().get(), objsData[i].first->indices.size(), 1, 0, 0, 0);
         }
         i++;
     }
@@ -650,7 +653,7 @@ std::shared_ptr<TextureData> GraphicsVulkan::getDepthTexture(
 
     cmds.end();
 
-    auto imgSampler = std::make_shared<vulkan::ImageSampler>(depthView);
+    auto imgSampler = std::make_shared<vulkan::ImageSampler>(m_device, depthView);
 
     return std::make_shared<TextureDataVulkan>(imgSampler);
 }

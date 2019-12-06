@@ -42,9 +42,9 @@ struct FixedMazeSaveData : public LevelSaveData {
 
 class FixedMaze : public Level {
 public:
-    float constexpr MODEL_WIDTH = 1.0f;
-    float constexpr MODEL_HEIGHT = 1.0f;
-    float constexpr MODEL_MAXZ = 1.0f;
+    static float constexpr MODEL_WIDTH = 1.0f;
+    static float constexpr MODEL_HEIGHT = 1.0f;
+    static float constexpr MODEL_MAXZ = 1.0f;
     glm::vec4 getBackgroundColor() override {
         return glm::vec4{0.0f, 0.0f, 0.0f, 0.0f};
     };
@@ -60,11 +60,19 @@ public:
     }
 
     bool updateStaticDrawObjects(DrawObjectTable &objs, TextureMap &textures) override {
-        objs.emplace_back(m_testObj, nullptr);
-        textures.insert(std::make_pair(std::make_shared<TextureDescriptionDummy>(), m_testTexture));
+        if (objs.empty() && textures.empty()) {
+            objs.emplace_back(m_testObj, nullptr);
+            textures.insert(
+                    std::make_pair(std::make_shared<TextureDescriptionDummy>(m_gameRequester), m_testTexture));
+        }
+        return true;
     }
 
-    bool updateDynamicDrawObjects(DrawObjectTable &objs, TextureMap &textures, bool &texturesChanged) override {}
+    bool updateDynamicDrawObjects(DrawObjectTable &objs, TextureMap &textures, bool &texturesChanged) override {
+        texturesChanged = false;
+        return true;
+    }
+
     void start() override {}
 
     void getLevelFinisherCenter(float &x, float &y) override {
@@ -94,15 +102,17 @@ public:
     {
         auto worldObj = std::make_shared<DrawObject>();
         loadModel(m_gameRequester->getAssetStream("mountainLandscape.obj"), worldObj->vertices, worldObj->indices);
-        worldObj->modelMatrices.push_back(glm::translate(0.0f, 0.0f, m_maxZ - MODEL_MAXZ) * glm::scale(m_width/MODEL_WIDTH, m_height/MODEL_HEIGHT, 1.0f));
+        worldObj->modelMatrices.push_back(
+                glm::translate(glm::vec3{0.0f, 0.0f, m_maxZ - MODEL_MAXZ}) *
+                glm::scale(glm::vec3{m_width/MODEL_WIDTH, m_height/MODEL_HEIGHT, 1.0f}));
         worldObj->texture = nullptr;
         m_worldMap.emplace_back(worldObj, nullptr);
 
         m_testTexture = m_gameRequester->getDepthTexture(m_worldMap, m_width, m_height);
         m_testObj = std::make_shared<DrawObject>();
-        m_testObj->texture = std::make_shared<TextureDescriptionDummy>();
+        m_testObj->texture = std::make_shared<TextureDescriptionDummy>(m_gameRequester);
         getQuad(m_testObj->vertices, m_testObj->indices);
-        m_testObj->modelMatrices.push_back(glm::scale(m_width/2.0f, m_height/2.0f, 1.0f));
+        m_testObj->modelMatrices.push_back(glm::scale(glm::vec3{m_width/2.0f, m_height/2.0f, 1.0f}));
     }
 
     ~FixedMaze() override = default;
