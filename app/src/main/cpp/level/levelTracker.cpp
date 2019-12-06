@@ -28,6 +28,7 @@
 #include "levels/movingQuadsLevel.hpp"
 #include "levels/mazeCollect.hpp"
 #include "levels/mazeAvoid.hpp"
+#include "levels/fixedMaze.hpp"
 
 float constexpr LevelTracker::m_maxZLevelStarter;
 float constexpr LevelTracker::m_maxZLevel;
@@ -254,6 +255,24 @@ LevelGroup LevelTracker::getLevelGroupBunny(std::shared_ptr<MazeAvoidSaveData> c
                 level->initSetFloorTexture("textures/bunny/floor.png");
                 level->initSetHoleTexture("textures/bunny/hole.png");
                 level->initSetAvoidObjTexture("textures/bunny/avoid.png");
+                return level;
+            }),
+            GetFinisherFcn([](LevelTracker &tracker, float centerX, float centerY, glm::mat4 const &proj, glm::mat4 const &view) {
+                auto levelFinish = tracker.getFinisher<ManyQuadCoverUpLevelFinish>(centerX, centerY, proj, view);
+                levelFinish->initAddTexture("textures/bunny/hole.png");
+                return levelFinish;
+            })
+    };
+}
+
+LevelGroup LevelTracker::getLevelGroupMountain(std::shared_ptr<FixedMazeSaveData> const &levelBundle) {
+    return {
+            getStarterFcn(levelBundle == nullptr, std::vector<std::string>{
+                    "In the mountain,\na yeti...",
+                    "searches for\na den to weather\nthe harsh winter"}),
+            GetLevelFcn([levelBundle](LevelTracker &tracker) {
+                std::shared_ptr<MazeAvoid> level;
+                level = tracker.getLevel<FixedMaze>(levelBundle);
                 return level;
             }),
             GetFinisherFcn([](LevelTracker &tracker, float centerX, float centerY, glm::mat4 const &proj, glm::mat4 const &view) {

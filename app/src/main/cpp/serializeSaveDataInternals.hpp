@@ -28,6 +28,7 @@
 #include "level/levels/openAreaLevel.hpp"
 #include "level/levels/avoidVortexLevel.hpp"
 #include "level/levels/mazeAvoid.hpp"
+#include "level/levels/fixedMaze.hpp"
 
 void to_json(nlohmann::json &j, Point<uint32_t> const &val);
 void from_json(nlohmann::json const &j, Point<uint32_t> &val);
@@ -48,6 +49,8 @@ void to_json(nlohmann::json &j, MazeCollectSaveData const &val);
 void from_json(nlohmann::json const &j, MazeCollectSaveData &val);
 void to_json(nlohmann::json &j, MazeAvoidSaveData const &val);
 void from_json(nlohmann::json const &j, MazeAvoidSaveData &val);
+void to_json(nlohmann::json &j, FixedMazeSaveData const &val);
+void from_json(nlohmann::json const &j, FixedMazeSaveData &val);
 
 char constexpr const *GameSaveDataVersion = "GameSaveDataVersion";
 char constexpr const *GameSaveDataLevelName = "LevelName";
