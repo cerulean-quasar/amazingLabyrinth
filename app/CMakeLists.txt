@@ -48,6 +48,8 @@ add_library( # Sets the name of the library.
         src/main/cpp/level/levels/mazeAvoidSerializer.cpp
         src/main/cpp/level/levels/mazeCollect.cpp
         src/main/cpp/level/levels/mazeCollectSerializer.cpp
+        src/main/cpp/level/levels/fixedMaze.cpp
+        src/main/cpp/level/levels/fixedMazeSerializer.cpp
         src/main/cpp/level/levelTracker.cpp
         src/main/cpp/level/levelStarter.cpp)
 

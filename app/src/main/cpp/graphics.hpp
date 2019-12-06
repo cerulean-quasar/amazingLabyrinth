@@ -183,7 +183,9 @@ struct UniformBufferObject {
     glm::mat4 proj;
 };
 
+// creates a quad with each side length 2.0f.
 void getQuad(std::vector<Vertex> &vertices, std::vector<uint32_t> &indices);
+
 void loadModel(std::unique_ptr<std::streambuf> const &modelStreamBuf, std::vector<Vertex> &vertices,
         std::vector<uint32_t> &indices);
 

@@ -225,13 +225,11 @@ void JGameBundle::putDatum<int>(std::string const &key, GameBundleValue const &v
 }
 
 std::shared_ptr<TextureData> JGameRequester::getDepthTexture(
-        std::vector<Vertex> const &vertices,
-        std::vector<uint32_t> indices,
+        DrawObjectTable const &objsData,
         float width,
-        float height,
-        float zPos)
+        float height)
 {
-    m_graphics->getDepthTexture(vertices, indices, width, height, zPos);
+    m_graphics->getDepthTexture(objsData, width, height);
 }
 
 std::vector<char> JGameRequester::getTextImage(std::string text, uint32_t &width, uint32_t &height, uint32_t &channels) {

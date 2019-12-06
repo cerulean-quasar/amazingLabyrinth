@@ -44,6 +44,7 @@ bool Vertex::operator==(const Vertex& other) const {
     return pos == other.pos && color == other.color && texCoord == other.texCoord && normal == other.normal;
 }
 
+// creates a quad with each side length 2.0f.
 void getQuad(std::vector<Vertex> &vertices, std::vector<uint32_t> &indices) {
     Vertex vertex = {};
     vertex.color = {0.2f, 0.2f, 0.2f };
