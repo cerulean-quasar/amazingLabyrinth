@@ -46,7 +46,6 @@
 #include "level/levelFinish.hpp"
 #include "level/levelTracker.hpp"
 #include "level/levelStarter.hpp"
-#include "../../../../../../Android/Sdk/ndk/20.0.5594570/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/include/c++/v1/memory"
 
 namespace vulkan {
 #ifdef DEBUG
@@ -58,11 +57,14 @@ namespace vulkan {
     const std::vector<const char *> validationLayers = {
             /* required for checking for errors and getting error messages */
             //"VK_LAYER_LUNARG_standard_validation"
+
             "VK_LAYER_GOOGLE_threading",
             "VK_LAYER_LUNARG_parameter_validation",
             "VK_LAYER_LUNARG_object_tracker",
             "VK_LAYER_LUNARG_core_validation",
             "VK_LAYER_GOOGLE_unique_objects"
+
+            //"VK_LAYER_KHRONOS_validation"
     };
 
     class VulkanLibrary {
@@ -740,7 +742,9 @@ namespace vulkan {
                 : m_device{inDevice},
                 m_image{inImageView->image()},
                 m_imageView{inImageView}
-        {}
+        {
+            createTextureSampler();
+        }
 
         inline std::shared_ptr<VkSampler_T> const &sampler() { return m_sampler; }
         inline std::shared_ptr<Image> const &image() { return m_image; }

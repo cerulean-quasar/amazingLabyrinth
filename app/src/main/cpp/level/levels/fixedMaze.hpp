@@ -23,6 +23,7 @@
 
 #include <functional>
 #include <memory>
+#include <vector>
 #define GLM_FORCE_RADIANS
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
 #include <glm/glm.hpp>
@@ -42,9 +43,9 @@ struct FixedMazeSaveData : public LevelSaveData {
 
 class FixedMaze : public Level {
 public:
-    static float constexpr MODEL_WIDTH = 1.0f;
-    static float constexpr MODEL_HEIGHT = 1.0f;
-    static float constexpr MODEL_MAXZ = 1.0f;
+    static float constexpr MODEL_WIDTH = 2.0f;
+    static float constexpr MODEL_HEIGHT = 2.0f;
+    static float constexpr MODEL_MAXZ = 2.0f;
     glm::vec4 getBackgroundColor() override {
         return glm::vec4{0.0f, 0.0f, 0.0f, 0.0f};
     };
@@ -101,7 +102,7 @@ public:
     void init()
     {
         auto worldObj = std::make_shared<DrawObject>();
-        loadModel(m_gameRequester->getAssetStream("mountainLandscape.obj"), worldObj->vertices, worldObj->indices);
+        loadModel(m_gameRequester->getAssetStream("models/mountainLandscape.obj"), worldObj->vertices, worldObj->indices);
         worldObj->modelMatrices.push_back(
                 glm::translate(glm::vec3{0.0f, 0.0f, m_maxZ - MODEL_MAXZ}) *
                 glm::scale(glm::vec3{m_width/MODEL_WIDTH, m_height/MODEL_HEIGHT, 1.0f}));
@@ -112,7 +113,8 @@ public:
         m_testObj = std::make_shared<DrawObject>();
         m_testObj->texture = std::make_shared<TextureDescriptionDummy>(m_gameRequester);
         getQuad(m_testObj->vertices, m_testObj->indices);
-        m_testObj->modelMatrices.push_back(glm::scale(glm::vec3{m_width/2.0f, m_height/2.0f, 1.0f}));
+        m_testObj->modelMatrices.push_back(glm::translate(glm::vec3{0.0f, 0.0f, m_maxZ}) *
+            glm::scale(glm::vec3{m_width/2.0f, m_height/2.0f, 1.0f}));
     }
 
     ~FixedMaze() override = default;

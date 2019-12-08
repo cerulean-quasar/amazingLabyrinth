@@ -20,6 +20,7 @@
 #include <stb_image.h>
 
 #include "graphicsVulkan.hpp"
+#include "../../../../../../Android/Sdk/ndk/20.0.5594570/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/include/vulkan/vulkan.h"
 
 namespace vulkan {
 /**
@@ -731,10 +732,7 @@ namespace vulkan {
         depthAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
         depthAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
 
-        /* we won't be using the depth data after the drawing has finished, so use DONT_CARE for
-         * store operation
-         */
-        depthAttachment.storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+        depthAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
 
         depthAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
         depthAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
@@ -745,7 +743,7 @@ namespace vulkan {
         depthAttachment.finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
 
         VkAttachmentReference depthAttachmentRef = {};
-        depthAttachmentRef.attachment = 1;
+        depthAttachmentRef.attachment = 0;
         depthAttachmentRef.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
 
         /* render subpass */
@@ -796,8 +794,8 @@ namespace vulkan {
         renderPassInfo.pAttachments = &depthAttachment;
         renderPassInfo.subpassCount = 1;
         renderPassInfo.pSubpasses = &subpass;
-        renderPassInfo.dependencyCount = static_cast<uint32_t>(dependencies.size());
-        renderPassInfo.pDependencies = dependencies.data();
+        renderPassInfo.dependencyCount = 0; //static_cast<uint32_t>(dependencies.size());
+        renderPassInfo.pDependencies = nullptr; //dependencies.data();
 
         VkRenderPass renderPassRaw;
         if (vkCreateRenderPass(m_device->logicalDevice().get(), &renderPassInfo, nullptr, &renderPassRaw) !=
@@ -967,8 +965,7 @@ namespace vulkan {
 
         /* per attached framebuffer color blending information */
         VkPipelineColorBlendAttachmentState colorBlendAttachment = {};
-        VkPipelineColorBlendAttachmentState *pcolorBlendAttachment = nullptr;
-        uint32_t nbrColorBlendAttachments = 0;
+
         if (useColorBlending) {
             colorBlendAttachment.colorWriteMask =
                     VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT |
@@ -988,9 +985,6 @@ namespace vulkan {
             colorBlendAttachment.dstAlphaBlendFactor = VK_BLEND_FACTOR_ONE;
             colorBlendAttachment.alphaBlendOp = VK_BLEND_OP_MAX;
 
-
-            pcolorBlendAttachment = &colorBlendAttachment;
-            nbrColorBlendAttachments = 1;
         }
 
         /* color blending for all the framebuffers and allows you to set blend constants used
@@ -1000,8 +994,14 @@ namespace vulkan {
         colorBlending.sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO;
         colorBlending.logicOpEnable = VK_FALSE;
         colorBlending.logicOp = VK_LOGIC_OP_COPY; // Optional
-        colorBlending.attachmentCount = nbrColorBlendAttachments;
-        colorBlending.pAttachments = pcolorBlendAttachment;
+
+        if (useColorBlending) {
+            colorBlending.attachmentCount = 1;
+            colorBlending.pAttachments = &colorBlendAttachment;
+        } else {
+            colorBlending.attachmentCount = 0;
+            colorBlending.pAttachments = nullptr;
+        }
         colorBlending.blendConstants[0] = 0.0f; // Optional
         colorBlending.blendConstants[1] = 0.0f; // Optional
         colorBlending.blendConstants[2] = 0.0f; // Optional
@@ -1702,34 +1702,3 @@ namespace vulkan {
         buffer.copyTo(cmdpool, stagingBuffer, bufferSize);
     }
 } /* namespace vulkan */
-
-std::vector<VkVertexInputAttributeDescription> getAttributeDescriptions() {
-    std::vector<VkVertexInputAttributeDescription> attributeDescriptions = {};
-
-    attributeDescriptions.resize(4);
-
-    /* position */
-    attributeDescriptions[0].binding = 0; /* binding description to use */
-    attributeDescriptions[0].location = 0; /* matches the location in the vertex shader */
-    attributeDescriptions[0].format = VK_FORMAT_R32G32B32_SFLOAT;
-    attributeDescriptions[0].offset = offsetof(Vertex, pos);
-
-    /* color */
-    attributeDescriptions[1].binding = 0; /* binding description to use */
-    attributeDescriptions[1].location = 1;
-    attributeDescriptions[1].format = VK_FORMAT_R32G32B32_SFLOAT;
-    attributeDescriptions[1].offset = offsetof(Vertex, color);
-
-    /* texture coordinate */
-    attributeDescriptions[2].binding = 0;
-    attributeDescriptions[2].location = 2;
-    attributeDescriptions[2].format = VK_FORMAT_R32G32_SFLOAT;
-    attributeDescriptions[2].offset = offsetof(Vertex, texCoord);
-
-    /* normal vector */
-    attributeDescriptions[3].binding = 0;
-    attributeDescriptions[3].location = 3;
-    attributeDescriptions[3].format = VK_FORMAT_R32G32B32_SFLOAT;
-    attributeDescriptions[3].offset = offsetof(Vertex, normal);
-    return attributeDescriptions;
-}

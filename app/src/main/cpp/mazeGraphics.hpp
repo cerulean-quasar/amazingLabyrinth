@@ -165,7 +165,7 @@ private:
     }
 };
 
-class Graphics : public std::enable_shared_from_this<Graphics> {
+class Graphics {
 public:
     virtual void initThread()=0;
 
@@ -201,8 +201,8 @@ public:
             float width,
             float height) = 0;
 
-    explicit Graphics(GameRequesterCreator requesterCreator)
-        : m_gameRequester{requesterCreator(shared_from_this())},
+    explicit Graphics(GameRequesterCreator inRequesterCreator)
+        : m_gameRequester{inRequesterCreator(this)},
         m_levelSequence{}
     {}
 

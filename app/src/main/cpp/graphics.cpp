@@ -101,10 +101,14 @@ void loadModel(
                     attrib.vertices[3 * index.vertex_index + 2]
             };
 
-            vertex.texCoord = {
-                    attrib.texcoords[2 * index.texcoord_index + 0],
-                    1.0f - attrib.texcoords[2 * index.texcoord_index + 1]
-            };
+            if (attrib.texcoords.size() > 0) {
+                vertex.texCoord = {
+                        attrib.texcoords[2 * index.texcoord_index + 0],
+                        1.0f - attrib.texcoords[2 * index.texcoord_index + 1]
+                };
+            } else {
+                vertex.texCoord = {0.0f, 0.0f};
+            }
 
             vertex.color = {0.2f, 0.2f, 0.2f};
 

@@ -35,6 +35,37 @@ VkVertexInputBindingDescription getBindingDescription() {
     return bindingDescription;
 }
 
+std::vector<VkVertexInputAttributeDescription> getAttributeDescriptions() {
+    std::vector<VkVertexInputAttributeDescription> attributeDescriptions = {};
+
+    attributeDescriptions.resize(4);
+
+    /* position */
+    attributeDescriptions[0].binding = 0; /* binding description to use */
+    attributeDescriptions[0].location = 0; /* matches the location in the vertex shader */
+    attributeDescriptions[0].format = VK_FORMAT_R32G32B32_SFLOAT;
+    attributeDescriptions[0].offset = offsetof(Vertex, pos);
+
+    /* color */
+    attributeDescriptions[1].binding = 0; /* binding description to use */
+    attributeDescriptions[1].location = 1;
+    attributeDescriptions[1].format = VK_FORMAT_R32G32B32_SFLOAT;
+    attributeDescriptions[1].offset = offsetof(Vertex, color);
+
+    /* texture coordinate */
+    attributeDescriptions[2].binding = 0;
+    attributeDescriptions[2].location = 2;
+    attributeDescriptions[2].format = VK_FORMAT_R32G32_SFLOAT;
+    attributeDescriptions[2].offset = offsetof(Vertex, texCoord);
+
+    /* normal vector */
+    attributeDescriptions[3].binding = 0;
+    attributeDescriptions[3].location = 3;
+    attributeDescriptions[3].format = VK_FORMAT_R32G32B32_SFLOAT;
+    attributeDescriptions[3].offset = offsetof(Vertex, normal);
+    return attributeDescriptions;
+}
+
 /* for accessing data other than the vertices from the shaders */
 void AmazingLabyrinthDescriptorSetLayout::createDescriptorSetLayout() {
     /* MVP matrix */
@@ -506,7 +537,7 @@ public:
             : m_device(inDevice)
     {
         m_poolSizes[0].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-        m_poolSizes[0].descriptorCount = m_numberOfDescriptorSetsInPool;
+        m_poolSizes[0].descriptorCount = 1;
         m_poolInfo = {};
         m_poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
         m_poolInfo.poolSizeCount = static_cast<uint32_t>(m_poolSizes.size());
@@ -526,7 +557,7 @@ public:
     virtual ~DepthTextureDescriptorSetLayout() {}
 
 private:
-    static uint32_t constexpr m_numberOfDescriptorSetsInPool = 1;
+    static uint32_t constexpr m_numberOfDescriptorSetsInPool = 1024;
 
     std::shared_ptr<vulkan::Device> m_device;
     std::shared_ptr<VkDescriptorSetLayout_T> m_descriptorSetLayout;
@@ -582,8 +613,8 @@ std::shared_ptr<TextureData> GraphicsVulkan::getDepthTexture(
     for (auto const &objdata : objsData) {
         auto drawObjData = std::make_shared<DrawObjectDataVulkanDepthTexture>(
                 m_device, m_commandPool, dscPools, objdata.first);
-        drawObjsData.emplace_back();
-        drawObjsData.back()->addUniforms(objdata.first, vp);
+        drawObjData->addUniforms(objdata.first, vp);
+        drawObjsData.push_back(drawObjData);
     }
 
     auto depthView = std::make_shared<vulkan::ImageView>(

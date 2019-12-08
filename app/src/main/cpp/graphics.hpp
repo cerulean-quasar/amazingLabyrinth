@@ -87,7 +87,7 @@ class TextureDescriptionDummy : public TextureDescription {
 private:
 protected:
     virtual bool compare(TextureDescription *other) {
-        return true;
+        return false;
     }
 public:
     TextureDescriptionDummy(std::shared_ptr<GameRequester> inGameRequester)

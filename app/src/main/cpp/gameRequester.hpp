@@ -61,12 +61,12 @@ public:
 
     // constructors
     JGameRequester(JNIEnv *inEnv, jobject inNotify, std::string inSaveGameFile, AAssetManager *mgr,
-            std::shared_ptr<Graphics> inGraphics)
+            Graphics *inGraphics)
             : m_env{inEnv},
               m_notify{inNotify},
               m_pathSaveFile{std::move(inSaveGameFile)},
               m_assetWrapper{new AssetManagerWrapper(mgr)},
-              m_graphics(std::move(inGraphics)) {}
+              m_graphics(inGraphics) {}
 
     ~JGameRequester() override {}
 private:
@@ -77,7 +77,7 @@ private:
     jobject m_notify;
     std::string m_pathSaveFile;
     std::unique_ptr<AssetManagerWrapper> m_assetWrapper;
-    std::shared_ptr<Graphics> m_graphics;
+    Graphics *m_graphics;
 };
 
 using GameBundleValue = boost::variant<std::string, float, std::vector<char>, bool, int>;
