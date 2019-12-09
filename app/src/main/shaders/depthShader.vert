@@ -36,6 +36,12 @@ out gl_PerVertex {
 };
 
 void main() {
-    gl_Position = ubo.mvp * vec4(inPosition, 1.0);
+    float near = 0.1;
+    float far = 10.0;
+    vec4 pos = ubo.mvp * vec4(inPosition, 1.0);
+    vec3 pos3 = pos.xyz / pos.w;
+    pos3.z = near * far / (far + pos3.z * (near - far));
+    pos3.z = (near - pos3.z)/ (far - near);
+    gl_Position = vec4(pos3, 1.0);
     fragColor = gl_Position.zzz;
 }

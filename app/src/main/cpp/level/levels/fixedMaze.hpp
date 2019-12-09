@@ -54,6 +54,7 @@ public:
     }
     bool updateData() override {
         if (!initialized) {
+            init();
             initialized = true;
             return true;
         }
@@ -61,16 +62,20 @@ public:
     }
 
     bool updateStaticDrawObjects(DrawObjectTable &objs, TextureMap &textures) override {
-        if (objs.empty() && textures.empty()) {
-            objs.emplace_back(m_testObj, nullptr);
-            textures.insert(
-                    std::make_pair(std::make_shared<TextureDescriptionDummy>(m_gameRequester), m_testTexture));
-        }
         return true;
     }
 
     bool updateDynamicDrawObjects(DrawObjectTable &objs, TextureMap &textures, bool &texturesChanged) override {
         texturesChanged = false;
+        if (objs.empty() && textures.empty() && initialized) {
+            texturesChanged = true;
+            objs.emplace_back(m_testObj, nullptr);
+            //auto obj = m_worldMap.begin();
+            //obj->first->texture = m_testObj->texture;
+            //objs.emplace_back(obj->first, nullptr);
+            textures.insert(
+                    std::make_pair(std::make_shared<TextureDescriptionDummy>(m_gameRequester), m_testTexture));
+        }
         return true;
     }
 
@@ -87,7 +92,6 @@ public:
             : Level{inGameRequester, width, height, maxZ},
               initialized{false}
     {
-        init();
     }
 
     FixedMaze(std::shared_ptr<GameRequester> inGameRequester,
@@ -96,7 +100,6 @@ public:
             : Level{inGameRequester, width, height, maxZ},
             initialized{false}
     {
-        init();
     }
 
     void init()
@@ -104,8 +107,9 @@ public:
         auto worldObj = std::make_shared<DrawObject>();
         loadModel(m_gameRequester->getAssetStream("models/mountainLandscape.obj"), worldObj->vertices, worldObj->indices);
         worldObj->modelMatrices.push_back(
-                glm::translate(glm::vec3{0.0f, 0.0f, m_maxZ - MODEL_MAXZ}) *
-                glm::scale(glm::vec3{m_width/MODEL_WIDTH, m_height/MODEL_HEIGHT, 1.0f}));
+                glm::translate(glm::vec3{0.0f, 0.0f, m_maxZ}) *
+                glm::scale(glm::vec3{m_width/MODEL_WIDTH, m_height/MODEL_HEIGHT, 1.0f}) *
+                glm::toMat4(glm::angleAxis(3.1415926f/2.0f, glm::vec3(1.0f, 0.0f, 0.0f))));
         worldObj->texture = nullptr;
         m_worldMap.emplace_back(worldObj, nullptr);
 

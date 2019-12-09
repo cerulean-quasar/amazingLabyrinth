@@ -42,11 +42,45 @@ void MazeAvoid::generateAvoidModelMatrices() {
         uint32_t row = random.getUInt(0, numberRows-1);
         uint32_t col = random.getUInt(0, numberColumns-1);
 
-        // move it away from the wall by at least the ball diameter so that it can be easily
-        // collected.
-        glm::vec3 pos{random.getFloat(leftWall(col)+2*scale, rightWall(col)-2*scale),
-                      random.getFloat(topWall(row)+2*scale, bottomWall(row)-2*scale),
-                      getBallZPosition()};
+        glm::vec3 pos = getCellCenterPosition(row, col);
+        int wall = random.getUInt(0, 3);
+        bool selected = false;
+        while (!selected) {
+            switch (wall) {
+                case 0:
+                    if (cells[row][col].leftWallExists()) {
+                        pos.x = leftWall(col) + scale;
+                        selected = true;
+                        break;
+                    }
+                    // fall through and just try to see if the next wall exists and put the object
+                    // there if it does.
+                case 1:
+                    if (cells[row][col].rightWallExists()) {
+                        pos.x = rightWall(col) - scale;
+                        selected = true;
+                        break;
+                    }
+                case 2:
+                    if (cells[row][col].topWallExists()) {
+                        pos.y = topWall(row) + scale ;
+                        selected = true;
+                        break;
+                    }
+                case 3:
+                default:
+                    if (cells[row][col].bottomWallExists()) {
+                        pos.y = bottomWall(row) - scale;
+                        selected = true;
+                        break;
+                    }
+                    wall = 0;
+            }
+        }
+        /*
+        glm::vec3 pos{random.getFloat(leftWall(col)+scale/2.0f, rightWall(col)-scale/2.0f),
+                      random.getFloat(topWall(row)+scale/2.0f, bottomWall(row)-scale/2.0f),
+                      getBallZPosition()}; */
         bool tooClose = false;
         for (auto const &avoidObj : m_avoidObjectLocations) {
             if (glm::length(pos - avoidObj) < (m_width+m_height)/32) {

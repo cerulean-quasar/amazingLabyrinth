@@ -606,14 +606,16 @@ std::shared_ptr<TextureData> GraphicsVulkan::getDepthTexture(
     auto dscLayout = std::make_shared<DepthTextureDescriptorSetLayout>(m_device);
     auto dscPools = std::make_shared<vulkan::DescriptorPools>(m_device, dscLayout);
 
-    glm::mat4 proj = glm::ortho(-width/2.0f, width/2.0f, -height/2.0f, height/2.0f, 0.1f, 100.0f);
+    glm::mat4 proj = glm::ortho(-width/2.0f, width/2.0f, -height/2.0f, height/2.0f, 0.1f, 10.0f);
     glm::mat4 vp = proj * m_levelSequence->viewMatrix();
 
     std::vector<std::shared_ptr<DrawObjectDataVulkanDepthTexture>> drawObjsData;
     for (auto const &objdata : objsData) {
         auto drawObjData = std::make_shared<DrawObjectDataVulkanDepthTexture>(
                 m_device, m_commandPool, dscPools, objdata.first);
-        drawObjData->addUniforms(objdata.first, vp);
+        for (auto const &modelMatrix : objdata.first->modelMatrices) {
+            drawObjData->addUniforms(objdata.first, vp * modelMatrix);
+        }
         drawObjsData.push_back(drawObjData);
     }
 
