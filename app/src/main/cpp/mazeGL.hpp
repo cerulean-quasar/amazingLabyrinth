@@ -55,6 +55,44 @@ private:
     void createTexture(std::shared_ptr<TextureDescription> const &textureDescription);
 };
 
+class Framebuffer {
+public:
+    Framebuffer(uint32_t width, uint32_t height);
+    ~Framebuffer() {
+        if (m_depthMapFBO != GL_INVALID_VALUE) {
+            glDeleteFramebuffers(1, &m_depthMapFBO);
+        }
+
+        if (m_depthMap != GL_INVALID_VALUE) {
+            glDeleteTextures(1, &m_depthMap);
+        }
+
+        if (m_colorImage != GL_INVALID_VALUE) {
+            glDeleteTextures(1, &m_colorImage);
+        }
+    }
+
+    GLuint fbo() { return m_depthMapFBO; }
+    GLuint depthImage() { return m_depthMap; }
+    GLuint colorImage() { return m_colorImage; }
+
+    GLuint acquireDepthImage() {
+        GLuint depthMap_ = m_depthMap;
+        m_depthMap = GL_INVALID_VALUE;
+        return depthMap_;
+    }
+
+    GLuint acquireColorImage() {
+        GLuint colorImage_ = m_colorImage;
+        m_colorImage = GL_INVALID_VALUE;
+        return colorImage_;
+    }
+private:
+    GLuint m_depthMapFBO;
+    GLuint m_depthMap;
+    GLuint m_colorImage;
+};
+
 class DrawObjectDataGL : public DrawObjectData {
 public:
     DrawObjectDataGL(std::shared_ptr<DrawObject> const &drawObj) {
@@ -103,9 +141,7 @@ public:
               m_surface{std::move(window)},
               programID{},
               depthProgramID{},
-              depthMapFBO{},
-              depthMap{},
-              colorImage{}
+              m_framebufferShadowMap{}
     {
         m_levelSequence = std::make_shared<LevelSequenceGL>(m_gameRequester, static_cast<uint32_t>(m_surface.width()),
                         static_cast<uint32_t >(m_surface.height()));
@@ -134,9 +170,6 @@ public:
             float height);
 
     virtual ~GraphicsGL() {
-        glDeleteFramebuffers(1, &depthMapFBO);
-        glDeleteTextures(1, &colorImage);
-        glDeleteTextures(1, &depthMap);
         glDeleteShader(programID);
         glDeleteShader(depthProgramID);
     }
@@ -145,9 +178,7 @@ private:
     GLuint programID;
     GLuint depthProgramID;
 
-    GLuint depthMapFBO;
-    GLuint depthMap;
-    GLuint colorImage;
+    std::shared_ptr<Framebuffer> m_framebufferShadowMap;
 
     GLuint loadShaders(std::string const &vertexShaderFile, std::string const &fragmentShaderFile);
     void initPipeline();

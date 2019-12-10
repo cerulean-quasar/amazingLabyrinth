@@ -102,34 +102,41 @@ void GraphicsGL::initPipeline() {
 
     programID = loadShaders(SHADER_VERT_FILE, SHADER_FRAG_FILE);
     depthProgramID = loadShaders(DEPTH_VERT_FILE, DEPTH_FRAG_FILE);
+    m_framebufferShadowMap = std::make_shared<Framebuffer>(m_surface.width(), m_surface.height());
+}
 
+Framebuffer::Framebuffer(uint32_t width, uint32_t height)
+    : m_depthMapFBO(GL_INVALID_VALUE),
+      m_depthMap(GL_INVALID_VALUE),
+      m_colorImage(GL_INVALID_VALUE)
+{
     // for shadow mapping.
-    glGenFramebuffers(1, &depthMapFBO);
+    glGenFramebuffers(1, &m_depthMapFBO);
 
     // needed because OpenGLES 2.0 does not have glReadBuffer or glDrawBuffer, so we need a color attachment.
-    glGenTextures(1, &colorImage);
-    glBindTexture(GL_TEXTURE_2D, colorImage);
+    glGenTextures(1, &m_colorImage);
+    glBindTexture(GL_TEXTURE_2D, m_colorImage);
     glActiveTexture(GL_TEXTURE0);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, m_surface.width(), m_surface.height(), 0, GL_RGBA,
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA,
                  GL_UNSIGNED_BYTE, nullptr);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
 
-    glGenTextures(1, &depthMap);
-    glBindTexture(GL_TEXTURE_2D, depthMap);
+    glGenTextures(1, &m_depthMap);
+    glBindTexture(GL_TEXTURE_2D, m_depthMap);
     glActiveTexture(GL_TEXTURE0);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT32F, m_surface.width(), m_surface.height(), 0,
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT32F, width, height, 0,
                  GL_DEPTH_COMPONENT, GL_FLOAT, nullptr);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 
-    glBindFramebuffer(GL_FRAMEBUFFER, depthMapFBO);
-    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, colorImage, 0);
-    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, depthMap, 0);
+    glBindFramebuffer(GL_FRAMEBUFFER, m_depthMapFBO);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, m_colorImage, 0);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, m_depthMap, 0);
     GLenum rc = glCheckFramebufferStatus(GL_FRAMEBUFFER);
     if (rc != GL_FRAMEBUFFER_COMPLETE) {
         std::string c;
@@ -155,7 +162,7 @@ void GraphicsGL::initPipeline() {
 }
 
 void GraphicsGL::createDepthTexture() {
-    glBindFramebuffer(GL_FRAMEBUFFER, depthMapFBO);
+    glBindFramebuffer(GL_FRAMEBUFFER, m_framebufferShadowMap->fbo());
 
     // set the shader to use
     glUseProgram(depthProgramID);
@@ -196,14 +203,15 @@ std::shared_ptr<TextureData> GraphicsGL::getDepthTexture(
         float width,
         float height)
 {
-    glBindFramebuffer(GL_FRAMEBUFFER, depthMapFBO);
+    Framebuffer fb(m_surface.width(), m_surface.height());
+    glBindFramebuffer(GL_FRAMEBUFFER, fb.fbo());
 
     // set the shader to use
     glUseProgram(depthProgramID);
     glCullFace(GL_BACK);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-    glm::mat4 proj = glm::ortho(-width/2.0f, width/2.0f, -height/2.0f, height/2.0f, 0.1f, 100.0f);
+    glm::mat4 proj = glm::ortho(-width/2.0f, width/2.0f, -height/2.0f, height/2.0f, 0.1f, 10.0f);
     glm::mat4 view = m_levelSequence->viewMatrix();
 
     GLint MatrixID;
@@ -222,7 +230,7 @@ std::shared_ptr<TextureData> GraphicsGL::getDepthTexture(
 
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
-    return std::make_shared<TextureDataGL>(depthMap);
+    return std::make_shared<TextureDataGL>(fb.acquireDepthImage());
 }
 
 void GraphicsGL::drawFrame() {
@@ -255,7 +263,7 @@ void GraphicsGL::drawFrame() {
 
     GLint textureID = glGetUniformLocation(programID, "texShadowMap");
     glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_2D, depthMap);
+    glBindTexture(GL_TEXTURE_2D, m_framebufferShadowMap->depthImage());
     glUniform1i(textureID, 0);
     drawObjects(m_levelSequence->levelStaticObjsData(), m_levelSequence->levelTextures());
     drawObjects(m_levelSequence->levelDynObjsData(), m_levelSequence->levelTextures());
