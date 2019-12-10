@@ -53,6 +53,9 @@ public:
         ball.acceleration = glm::vec3{x, y, -z};
     }
     bool updateData() override {
+        // need to postpone getting the depth texture till here because the functionality is
+        // not available earlier on.
+        // todo: fix this!
         if (!initialized) {
             init();
             initialized = true;

@@ -162,6 +162,10 @@ Framebuffer::Framebuffer(uint32_t width, uint32_t height)
 }
 
 void GraphicsGL::createDepthTexture() {
+    if (m_levelSequence->levelDynObjsData().empty() && m_levelSequence->levelStaticObjsData().empty()) {
+        // nothing to draw
+        return;
+    }
     glBindFramebuffer(GL_FRAMEBUFFER, m_framebufferShadowMap->fbo());
 
     // set the shader to use
