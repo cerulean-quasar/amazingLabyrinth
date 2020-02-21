@@ -18,7 +18,6 @@
  *
  */
 #include "mazeVulkan.hpp"
-#include "../../../../../../Android/Sdk/ndk/20.0.5594570/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/include/c++/v1/memory"
 
 VkVertexInputBindingDescription getBindingDescription() {
     VkVertexInputBindingDescription bindingDescription = {};
@@ -606,7 +605,7 @@ std::shared_ptr<TextureData> GraphicsVulkan::getDepthTexture(
     auto dscLayout = std::make_shared<DepthTextureDescriptorSetLayout>(m_device);
     auto dscPools = std::make_shared<vulkan::DescriptorPools>(m_device, dscLayout);
 
-    glm::mat4 proj = glm::ortho(-width/2.0f, width/2.0f, -height/2.0f, height/2.0f, 0.1f, 10.0f);
+    glm::mat4 proj = glm::ortho(-width/2.0f, width/2.0f, -height/2.0f, height/2.0f, m_depthTextureNearPlane, m_depthTextureFarPlane);
     glm::mat4 vp = proj * m_levelSequence->viewMatrix();
 
     std::vector<std::shared_ptr<DrawObjectDataVulkanDepthTexture>> drawObjsData;
@@ -614,7 +613,7 @@ std::shared_ptr<TextureData> GraphicsVulkan::getDepthTexture(
         auto drawObjData = std::make_shared<DrawObjectDataVulkanDepthTexture>(
                 m_device, m_commandPool, dscPools, objdata.first);
         for (auto const &modelMatrix : objdata.first->modelMatrices) {
-            drawObjData->addUniforms(objdata.first, vp * modelMatrix);
+            drawObjData->addUniforms(objdata.first, vp);
         }
         drawObjsData.push_back(drawObjData);
     }

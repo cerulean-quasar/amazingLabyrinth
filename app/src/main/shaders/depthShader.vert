@@ -42,6 +42,13 @@ void main() {
     vec3 pos3 = pos.xyz / pos.w;
     pos3.z = near * far / (far + pos3.z * (near - far));
     pos3.z = (near - pos3.z)/ (far - near);
+    if (pos3.z <= 0.004) {
+        pos3.z = 0.5;
+    } else if (pos3.z >= 1.0) {
+        pos3.z = 0.5;
+    }
     gl_Position = vec4(pos3, 1.0);
+//    gl_Position = pos;
+//    gl_Position = vec4(pos3.xy, 0.5, 1.0);
     fragColor = gl_Position.zzz;
 }

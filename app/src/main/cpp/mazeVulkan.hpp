@@ -22,7 +22,6 @@
 #include "graphicsVulkan.hpp"
 #include "mazeGraphics.hpp"
 #include "common.hpp"
-#include "../../../../../../Android/Sdk/ndk/20.0.5594570/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/include/vulkan/vulkan.h"
 
 char constexpr const *SHADER_VERT_FILE ="shaders/shader.vert.spv";
 char constexpr const *SHADER_FRAG_FILE ="shaders/shader.frag.spv";

@@ -215,7 +215,8 @@ std::shared_ptr<TextureData> GraphicsGL::getDepthTexture(
     glCullFace(GL_BACK);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-    glm::mat4 proj = glm::ortho(-width/2.0f, width/2.0f, -height/2.0f, height/2.0f, 0.1f, 10.0f);
+    glm::mat4 proj = glm::ortho(-width/2.0f, width/2.0f, -height/2.0f, height/2.0f,
+            m_depthTextureNearPlane, m_depthTextureFarPlane);
     glm::mat4 view = m_levelSequence->viewMatrix();
 
     GLint MatrixID;

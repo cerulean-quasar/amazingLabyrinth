@@ -211,6 +211,9 @@ public:
 protected:
     std::shared_ptr<GameRequester> m_gameRequester;
     std::shared_ptr<LevelSequence> m_levelSequence;
+
+    float constexpr m_depthTextureNearPlane = 0.1f;
+    float constexpr m_depthTextureFarPlane = 10.0f;
 };
 
 #endif // AMAZING_LABYRINTH_MAZE_GRAPHICS_HPP

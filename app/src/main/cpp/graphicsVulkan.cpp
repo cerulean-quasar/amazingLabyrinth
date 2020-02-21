@@ -20,7 +20,6 @@
 #include <stb_image.h>
 
 #include "graphicsVulkan.hpp"
-#include "../../../../../../Android/Sdk/ndk/20.0.5594570/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/include/vulkan/vulkan.h"
 
 namespace vulkan {
 /**
