@@ -1,5 +1,5 @@
 /**
- * Copyright 2019 Cerulean Quasar. All Rights Reserved.
+ * Copyright 2020 Cerulean Quasar. All Rights Reserved.
  *
  *  This file is part of AmazingLabyrinth.
  *
@@ -119,15 +119,11 @@ public:
     LevelSequenceGL(std::shared_ptr<GameRequester> inRequester, uint32_t width, uint32_t height)
             : LevelSequence{inRequester, width, height, true}
     {
-        // Need to call these here because they call virtual functions.
-        if (m_levelStarter != nullptr && ! m_levelStarter->isFinished()) {
-            initializeLevelData(m_levelStarter, m_levelStarterStaticObjsData,
-                                m_levelStarterDynObjsData, m_texturesLevelStarter);
-        }
-        initializeLevelData(m_level, m_staticObjsData, m_dynObjsData, m_texturesLevel);
     }
 
 protected:
+    glm::mat4 getPerspectiveMatrix(uint32_t surfaceWidth, uint32_t surfaceHeight) override;
+    void updatePerspectiveMatrix(uint32_t surfaceWidth, uint32_t surfaceHeight) override;
     std::shared_ptr<TextureData> createTexture(std::shared_ptr<TextureDescription> const &textureDescription) override;
     std::shared_ptr<DrawObjectData> createObject(std::shared_ptr<DrawObject> const &obj, TextureMap &textures) override;
     void updateLevelData(DrawObjectTable &objsData, TextureMap &textures) override;

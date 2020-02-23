@@ -1,5 +1,5 @@
 /**
- * Copyright 2019 Cerulean Quasar. All Rights Reserved.
+ * Copyright 2020 Cerulean Quasar. All Rights Reserved.
  *
  *  This file is part of AmazingLabyrinth.
  *
@@ -19,20 +19,6 @@
  */
 
 #include "mazeGraphics.hpp"
-
-void LevelSequence::updatePerspectiveMatrix(uint32_t surfaceWidth, uint32_t surfaceHeight) {
-    /* perspective matrix: takes the perspective projection, the aspect ratio, near and far
-     * view planes.
-     */
-    m_proj = getPerspectiveMatrix(surfaceWidth, surfaceHeight);
-
-    if (!m_isGL) {
-        /* GLM has the y axis inverted from Vulkan's perspective, invert the y-axis on the
-         * projection matrix.
-         */
-        m_proj[1][1] *= -1;
-    }
-}
 
 void LevelSequence::setViewLightingSource() {
     m_viewLightingSource = glm::lookAt(m_lightingSource, glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
@@ -83,7 +69,40 @@ void LevelSequence::addTextures(TextureMap &textures) {
     }
 }
 
+void LevelSequence::initializeLevelTracker() {
+    if (m_levelTracker != nullptr) {
+        return;
+    }
+
+    setView();
+    updatePerspectiveMatrix(m_surfaceWidth, m_surfaceHeight);
+
+    m_levelTracker = std::make_shared<LevelTracker>(m_gameRequester,
+            getPerspectiveMatrix(m_surfaceWidth, m_surfaceHeight), m_view);
+
+    setLightingSource();
+    setViewLightingSource();
+
+    m_levelTracker->setLevel(m_levelName);
+    m_level = m_levelGroupFcns.getLevelFcn(*m_levelTracker);
+    m_levelStarter = m_levelGroupFcns.getStarterFcn(*m_levelTracker);
+
+    float x, y;
+    m_level->getLevelFinisherCenter(x, y);
+    m_levelFinisher = m_levelGroupFcns.getFinisherFcn(*m_levelTracker, x, y, getPerspectiveMatrix(m_surfaceWidth, m_surfaceHeight), m_view);
+
+    setupLightingSourceBuffer();
+
+    if (m_levelStarter != nullptr && ! m_levelStarter->isFinished()) {
+        initializeLevelData(m_levelStarter, m_levelStarterStaticObjsData,
+                            m_levelStarterDynObjsData, m_texturesLevelStarter);
+    }
+    initializeLevelData(m_level, m_staticObjsData, m_dynObjsData, m_texturesLevel);
+}
+
 bool LevelSequence::updateData() {
+    initializeLevelTracker();
+
     bool drawingNecessary = false;
 
     if (m_level->isFinished() || m_levelFinisher->isUnveiling()) {
@@ -93,21 +112,21 @@ bool LevelSequence::updateData() {
                 m_texturesLevelFinisher.clear();
                 float x, y;
                 m_level->getLevelFinisherCenter(x, y);
-                m_levelFinisher = m_levelGroupFcns.getFinisherFcn(m_levelTracker, x, y, m_proj, m_view);
+                m_levelFinisher = m_levelGroupFcns.getFinisherFcn(*m_levelTracker, x, y, m_proj, m_view);
                 m_levelStarter->start();
                 return false;
             }
         } else {
             if (m_levelFinisher->isDone()) {
 
-                m_levelTracker.gotoNextLevel();
-                m_levelGroupFcns = m_levelTracker.getLevelGroupFcns();
+                m_levelTracker->gotoNextLevel();
+                m_levelGroupFcns = m_levelTracker->getLevelGroupFcns();
 
-                m_levelStarter = m_levelGroupFcns.getStarterFcn(m_levelTracker);
+                m_levelStarter = m_levelGroupFcns.getStarterFcn(*m_levelTracker);
                 initializeLevelData(m_levelStarter, m_levelStarterStaticObjsData,
                                     m_levelStarterDynObjsData, m_texturesLevelStarter);
 
-                m_level = m_levelGroupFcns.getLevelFcn(m_levelTracker);
+                m_level = m_levelGroupFcns.getLevelFcn(*m_levelTracker);
                 initializeLevelData(m_level, m_staticObjsData, m_dynObjsData, m_texturesLevel);
 
                 m_levelFinisher->unveilNewLevel();
@@ -153,13 +172,13 @@ bool LevelSequence::updateData() {
 }
 
 void LevelSequence::changeLevel(size_t level) {
-    m_levelTracker.setLevel(level);
-    m_levelGroupFcns = m_levelTracker.getLevelGroupFcns();
-    m_levelStarter = m_levelGroupFcns.getStarterFcn(m_levelTracker);
+    m_levelTracker->setLevel(level);
+    m_levelGroupFcns = m_levelTracker->getLevelGroupFcns();
+    m_levelStarter = m_levelGroupFcns.getStarterFcn(*m_levelTracker);
     initializeLevelData(m_levelStarter, m_levelStarterStaticObjsData,
                         m_levelStarterDynObjsData, m_texturesLevelStarter);
 
-    m_level = m_levelGroupFcns.getLevelFcn(m_levelTracker);
+    m_level = m_levelGroupFcns.getLevelFcn(*m_levelTracker);
     initializeLevelData(m_level, m_staticObjsData, m_dynObjsData, m_texturesLevel);
 
     m_levelFinisherObjsData.clear();
@@ -167,7 +186,7 @@ void LevelSequence::changeLevel(size_t level) {
 
     float x, y;
     m_level->getLevelFinisherCenter(x, y);
-    m_levelFinisher = m_levelGroupFcns.getFinisherFcn(m_levelTracker, x, y, m_proj, m_view);
+    m_levelFinisher = m_levelGroupFcns.getFinisherFcn(*m_levelTracker, x, y, m_proj, m_view);
 
     m_levelStarter->start();
 }

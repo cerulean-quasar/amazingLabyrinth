@@ -63,7 +63,9 @@ class SurfaceChangedEvent : public DrawEvent {
 public:
     bool operator() (std::unique_ptr<Graphics> &graphics) override {
         // giggle the device so that when the swapchain is recreated, it gets the correct width and
-        // height.
+        // height.  Also updateData must be called before the first draw event because some
+        // initialization is delayed till then.
+        bool needsRedraw = graphics->updateData();
         graphics->drawFrame();
 
         graphics->recreateSwapChain(m_width, m_height);

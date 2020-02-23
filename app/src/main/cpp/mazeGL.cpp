@@ -1,5 +1,5 @@
 /**
- * Copyright 2019 Cerulean Quasar. All Rights Reserved.
+ * Copyright 2020 Cerulean Quasar. All Rights Reserved.
  *
  *  This file is part of AmazingLabyrinth.
  *
@@ -21,7 +21,13 @@
 #include <cstring>
 #include <istream>
 
-#include <stb_image.h>
+#include <glm/glm.hpp>
+#include <glm/gtx/quaternion.hpp>
+#include <glm/gtc/quaternion.hpp>
+#include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtx/transform.hpp>
+
+//#include <stb_image.h>
 
 #include "level/level.hpp"
 #include "graphicsGL.hpp"
@@ -69,6 +75,36 @@ void TextureDataGL::createTexture(std::shared_ptr<TextureDescription> const &tex
                  GL_UNSIGNED_BYTE, pixels.data());
 
     glGenerateMipmap(GL_TEXTURE_2D);
+}
+
+/*
+ * getPerspectiveMatrix needs to be in THIS file, not the header file and not in the general maze
+ * graphics file because there are some differences in the projection matrix depending on whether
+ * Vulkan or OpenGL is being used.  Some of which are changed depending on a #define macro.
+ *
+ * Differences:
+ *
+ * (1) The range for the depth in Vulkan is 0.0f to 1.0f by default.  (Might be able to change
+ * this but that might trigger bugs.  Needs experimentation.)  In OpenGl the range is -1.0f to 1.0f.
+ * The projection matrix must be produced in a file that #defines GLM_FORCE_DEPTH_ZERO_TO_ONE before
+ * including any headers in Vulkan and does NOT define this macro before including any headers in
+ * OpenGL.
+ *
+ * (2) The y axis is inverted in Vulkan compared to OpenGL.  Just handle that by changing the
+ * projection matrix.
+ */
+glm::mat4 LevelSequenceGL::getPerspectiveMatrix(uint32_t surfaceWidth, uint32_t surfaceHeight) {
+    /* perspective matrix: takes the perspective projection, the aspect ratio, near and far
+     * view planes.
+     */
+    glm::mat4 proj = glm::perspective(m_perspectiveViewAngle,
+                                      surfaceWidth / static_cast<float>(surfaceHeight),
+                                      m_perspectiveNearPlane, m_perspectiveFarPlane);
+    return proj;
+}
+
+void LevelSequenceGL::updatePerspectiveMatrix(uint32_t surfaceWidth, uint32_t surfaceHeight) {
+    m_proj = getPerspectiveMatrix(surfaceWidth, surfaceHeight);
 }
 
 std::shared_ptr<TextureData> LevelSequenceGL::createTexture(std::shared_ptr<TextureDescription> const &textureDescription) {

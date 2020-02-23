@@ -1,5 +1,5 @@
 /**
- * Copyright 2019 Cerulean Quasar. All Rights Reserved.
+ * Copyright 2020 Cerulean Quasar. All Rights Reserved.
  *
  *  This file is part of AmazingLabyrinth.
  *
@@ -49,7 +49,7 @@ public:
 
     void saveLevelData() {
         Point<uint32_t> screenSize{m_surfaceWidth, m_surfaceHeight};
-        auto gd = std::make_shared<GameSaveData>(screenSize, m_levelTracker.getLevelName());
+        auto gd = std::make_shared<GameSaveData>(screenSize, m_levelTracker->getLevelName());
         if (m_levelStarter == nullptr) {
             auto saveFcn = m_level->getSaveLevelDataFcn();
             auto saveData = saveFcn(gd);
@@ -77,8 +77,7 @@ public:
               m_view{},
               m_viewLightingSource{},
               m_lightingSource{},
-              m_levelTracker{m_gameRequester, getPerspectiveMatrix(surfaceWidth, surfaceHeight),
-                             getViewMatrix()},
+              m_levelTracker{},
               m_texturesLevel{},
               m_texturesLevelStarter{},
               m_texturesLevelFinisher{},
@@ -93,21 +92,14 @@ public:
               m_levelStarter{}
 
     {
-        setView();
-        updatePerspectiveMatrix(surfaceWidth, surfaceHeight);
-        setLightingSource();
-        setViewLightingSource();
-
         Point<uint32_t> screenSize = {surfaceWidth, surfaceHeight};
         RestoreData saveRestore = m_gameRequester->getSaveData(screenSize);
-        m_levelTracker.setLevel(saveRestore.levelName);
+        m_levelName = saveRestore.levelName;
         m_levelGroupFcns = saveRestore.levelGroupFcns;
-        m_level = m_levelGroupFcns.getLevelFcn(m_levelTracker);
-        m_levelStarter = m_levelGroupFcns.getStarterFcn(m_levelTracker);
 
-        float x, y;
-        m_level->getLevelFinisherCenter(x, y);
-        m_levelFinisher = m_levelGroupFcns.getFinisherFcn(m_levelTracker, x, y, getPerspectiveMatrix(surfaceWidth, surfaceHeight), m_view);
+        /* leave initialization of the level tracker and levels for the first render operation.
+         * This is needed because they involve virtual functions.
+         */
     }
 
 private:
@@ -117,11 +109,15 @@ private:
     std::shared_ptr<GameRequester> m_gameRequester;
 
 protected:
+    static float constexpr m_perspectiveViewAngle = 3.1415926f/4.0f;
+    static float constexpr m_perspectiveNearPlane = 0.1f;
+    static float constexpr m_perspectiveFarPlane = 100.0f;
     glm::mat4 m_proj;
     glm::mat4 m_view;
     glm::mat4 m_viewLightingSource;
     glm::vec3 m_lightingSource;
-    LevelTracker m_levelTracker;
+    std::shared_ptr<LevelTracker> m_levelTracker;
+    std::string m_levelName;
     LevelGroup m_levelGroupFcns;
 
     TextureMap m_texturesLevel;
@@ -140,9 +136,14 @@ protected:
     std::shared_ptr<LevelFinish> m_levelFinisher;
     std::shared_ptr<LevelStarter> m_levelStarter;
 
+    /* initialize the level tracker and all the level data */
+    void initializeLevelTracker();
+
     void setView();
-    void updatePerspectiveMatrix(uint32_t surfaceWidth, uint32_t surfaceHeight);
+    virtual glm::mat4 getPerspectiveMatrix(uint32_t surfaceWidth, uint32_t surfaceHeight) = 0;
+    virtual void updatePerspectiveMatrix(uint32_t surfaceWidth, uint32_t surfaceHeight) = 0;
     void setLightingSource();
+    virtual void setupLightingSourceBuffer() { /* work only needed in Vulkan */ }
     void setViewLightingSource();
     void addObjects(DrawObjectTable &objs, TextureMap &textures);
     void addTextures(TextureMap &textures);
@@ -154,11 +155,6 @@ protected:
     virtual void updateLevelData(DrawObjectTable &objsData, TextureMap &textures) = 0;
 
 private:
-    glm::mat4 getPerspectiveMatrix(uint32_t surfaceWidth, uint32_t surfaceHeight) {
-        return glm::perspective(glm::radians(45.0f), surfaceWidth / (float) surfaceHeight,
-                0.1f, 100.0f);
-    }
-
     glm::mat4 getViewMatrix() {
         return glm::lookAt(glm::vec3(0.0f, 0.0f, 1.1f),
                 glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
@@ -212,8 +208,8 @@ protected:
     std::shared_ptr<GameRequester> m_gameRequester;
     std::shared_ptr<LevelSequence> m_levelSequence;
 
-    float constexpr m_depthTextureNearPlane = 0.1f;
-    float constexpr m_depthTextureFarPlane = 10.0f;
+    static float constexpr m_depthTextureNearPlane = 0.1f;
+    static float constexpr m_depthTextureFarPlane = 10.0f;
 };
 
 #endif // AMAZING_LABYRINTH_MAZE_GRAPHICS_HPP

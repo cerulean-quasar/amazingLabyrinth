@@ -296,15 +296,6 @@ public:
              m_descriptorPools{inDescriptorPools},
              m_uniformBufferLighting{createUniformBuffer(inDevice, sizeof (glm::vec3))}
     {
-        glm::vec3 lightingVector = lightingSource();
-        m_uniformBufferLighting->copyRawTo(&lightingVector, sizeof (lightingVector));
-
-        // Need to call these here because they call virtual functions.
-        if (m_levelStarter != nullptr && ! m_levelStarter->isFinished()) {
-            initializeLevelData(m_levelStarter, m_levelStarterStaticObjsData,
-                                m_levelStarterDynObjsData, m_texturesLevelStarter);
-        }
-        initializeLevelData(m_level, m_staticObjsData, m_dynObjsData, m_texturesLevel);
     }
 
     inline bool needsInitializeCommandBuffers() { return m_level->isFinished() ||
@@ -312,9 +303,14 @@ public:
     inline void doneInitializingCommandBuffers() { m_texturesChanged = false; }
 
 protected:
+    glm::mat4 getPerspectiveMatrix(uint32_t surfaceWidth, uint32_t surfaceHeight) override;
+    void updatePerspectiveMatrix(uint32_t surfaceWidth, uint32_t surfaceHeight) override;
     std::shared_ptr<TextureData> createTexture(std::shared_ptr<TextureDescription> const &textureDescription) override;
     std::shared_ptr<DrawObjectData> createObject(std::shared_ptr<DrawObject> const &obj, TextureMap &textures) override;
     void updateLevelData(DrawObjectTable &objsData, TextureMap &textures) override;
+    void setupLightingSourceBuffer() override {
+        m_uniformBufferLighting->copyRawTo(&m_lightingSource, sizeof (m_lightingSource));
+    }
 
 private:
     std::shared_ptr<vulkan::Device> m_device;
@@ -351,7 +347,7 @@ public:
 
         prepareDepthResources();
 
-        initializeCommandBuffers();
+        //initializeCommandBuffers();
     }
 
     virtual void initThread() { }

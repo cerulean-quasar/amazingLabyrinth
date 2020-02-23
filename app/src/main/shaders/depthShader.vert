@@ -1,5 +1,5 @@
 /**
- * Copyright 2019 Cerulean Quasar. All Rights Reserved.
+ * Copyright 2020 Cerulean Quasar. All Rights Reserved.
  *
  *  This file is part of AmazingLabyrinth.
  *
@@ -42,10 +42,12 @@ void main() {
     vec3 pos3 = pos.xyz / pos.w;
     pos3.z = near * far / (far + pos3.z * (near - far));
     pos3.z = (near - pos3.z)/ (far - near);
-    if (pos3.z <= 0.004) {
+    if (pos3.z <= 0.0038) {
         pos3.z = 0.5;
     } else if (pos3.z >= 1.0) {
         pos3.z = 0.5;
+    } else {
+        pos3.z = 0.0;
     }
     gl_Position = vec4(pos3, 1.0);
 //    gl_Position = pos;

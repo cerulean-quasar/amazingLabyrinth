@@ -1,5 +1,5 @@
 /**
- * Copyright 2019 Cerulean Quasar. All Rights Reserved.
+ * Copyright 2020 Cerulean Quasar. All Rights Reserved.
  *
  *  This file is part of AmazingLabyrinth.
  *
@@ -24,7 +24,6 @@
 #include <unordered_map>
 
 #define GLM_FORCE_RADIANS
-#define GLM_FORCE_DEPTH_ZERO_TO_ONE
 #include <glm/gtx/transform.hpp>
 
 #define STB_IMAGE_IMPLEMENTATION
@@ -35,9 +34,6 @@
 
 #include "common.hpp"
 #include "graphics.hpp"
-
-//unsigned int const MAZE_COLS = 5;
-//unsigned int const MAZE_ROWS = 5;
 
 
 bool Vertex::operator==(const Vertex& other) const {
