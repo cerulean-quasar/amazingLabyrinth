@@ -34,5 +34,5 @@ varying vec3 fragColor;
 
 void main() {
     gl_Position = proj * view * model * vec4(inPosition, 1.0);
-    fragColor = gl_Position.zzz/gl_Position.w;
+    fragColor = gl_Position.zzz/gl_Position.w/2.0 + 0.5;
 }
