@@ -29,6 +29,7 @@
 
 #include "graphicsGL.hpp"
 #include "mazeGL.hpp"
+#include "mathGraphics.hpp"
 
 void checkGraphicsError() {
     GLenum rc = glGetError();
@@ -116,34 +117,22 @@ void TextureDataGL::createTexture(std::shared_ptr<TextureDescription> const &tex
     checkGraphicsError();
 }
 
-/*
- * getPerspectiveMatrix needs to be in THIS file, not the header file and not in the general maze
- * graphics file because there are some differences in the projection matrix depending on whether
- * Vulkan or OpenGL is being used.  Some of which are changed depending on a #define macro.
- *
- * Differences:
- *
- * (1) The range for the depth in Vulkan is 0.0f to 1.0f by default.  (Might be able to change
- * this but that might trigger bugs.  Needs experimentation.)  In OpenGl the range is -1.0f to 1.0f.
- * The projection matrix must be produced in a file that #defines GLM_FORCE_DEPTH_ZERO_TO_ONE before
- * including any headers in Vulkan and does NOT define this macro before including any headers in
- * OpenGL.
- *
- * (2) The y axis is inverted in Vulkan compared to OpenGL.  Just handle that by changing the
- * projection matrix.
- */
-glm::mat4 LevelSequenceGL::getPerspectiveMatrix(uint32_t surfaceWidth, uint32_t surfaceHeight) {
+glm::mat4 LevelSequenceGL::getPerspectiveMatrixForLevel(uint32_t surfaceWidth, uint32_t surfaceHeight) {
     /* perspective matrix: takes the perspective projection, the aspect ratio, near and far
      * view planes.
      */
-    glm::mat4 proj = glm::perspective(m_perspectiveViewAngle,
+    return getPerspectiveMatrix(m_perspectiveViewAngle,
                                       surfaceWidth / static_cast<float>(surfaceHeight),
-                                      m_perspectiveNearPlane, m_perspectiveFarPlane);
-    return proj;
+                                      m_perspectiveNearPlane, m_perspectiveFarPlane,
+                                      false, false);
 }
 
 void LevelSequenceGL::updatePerspectiveMatrix(uint32_t surfaceWidth, uint32_t surfaceHeight) {
-    m_proj = getPerspectiveMatrix(surfaceWidth, surfaceHeight);
+    m_proj = getPerspectiveMatrix(m_perspectiveViewAngle,
+                                  surfaceWidth / static_cast<float>(surfaceHeight),
+                                  m_perspectiveNearPlane, m_perspectiveFarPlane,
+                                  false, false);
+
 }
 
 std::shared_ptr<TextureData> LevelSequenceGL::createTexture(std::shared_ptr<TextureDescription> const &textureDescription) {
@@ -324,8 +313,8 @@ std::shared_ptr<TextureData> GraphicsGL::getDepthTexture(
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     checkGraphicsError();
 
-    glm::mat4 proj = glm::ortho(-width/2.0f, width/2.0f, -height/2.0f, height/2.0f,
-            m_depthTextureNearPlane, m_depthTextureFarPlane);
+    glm::mat4 proj = getOrthoMatrix(-width/2.0f, width/2.0f, -height/2.0f, height/2.0f,
+            m_depthTextureNearPlane, m_depthTextureFarPlane, false, false);
     glm::mat4 view = m_levelSequence->viewMatrix();
 
     GLint MatrixID;

@@ -140,7 +140,7 @@ protected:
     void initializeLevelTracker();
 
     void setView();
-    virtual glm::mat4 getPerspectiveMatrix(uint32_t surfaceWidth, uint32_t surfaceHeight) = 0;
+    virtual glm::mat4 getPerspectiveMatrixForLevel(uint32_t surfaceWidth, uint32_t surfaceHeight) = 0;
     virtual void updatePerspectiveMatrix(uint32_t surfaceWidth, uint32_t surfaceHeight) = 0;
     void setLightingSource();
     virtual void setupLightingSourceBuffer() { /* work only needed in Vulkan */ }

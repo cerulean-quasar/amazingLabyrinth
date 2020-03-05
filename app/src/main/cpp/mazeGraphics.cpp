@@ -78,7 +78,7 @@ void LevelSequence::initializeLevelTracker() {
     updatePerspectiveMatrix(m_surfaceWidth, m_surfaceHeight);
 
     m_levelTracker = std::make_shared<LevelTracker>(m_gameRequester,
-            getPerspectiveMatrix(m_surfaceWidth, m_surfaceHeight), m_view);
+        getPerspectiveMatrixForLevel(m_surfaceWidth, m_surfaceHeight), m_view);
 
     setLightingSource();
     setViewLightingSource();
@@ -89,7 +89,8 @@ void LevelSequence::initializeLevelTracker() {
 
     float x, y;
     m_level->getLevelFinisherCenter(x, y);
-    m_levelFinisher = m_levelGroupFcns.getFinisherFcn(*m_levelTracker, x, y, getPerspectiveMatrix(m_surfaceWidth, m_surfaceHeight), m_view);
+    m_levelFinisher = m_levelGroupFcns.getFinisherFcn(*m_levelTracker, x, y,
+            getPerspectiveMatrixForLevel(m_surfaceWidth, m_surfaceHeight), m_view);
 
     setupLightingSourceBuffer();
 

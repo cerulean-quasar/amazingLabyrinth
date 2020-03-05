@@ -33,6 +33,8 @@ add_library( # Sets the name of the library.
         src/main/cpp/random.cpp
         src/main/cpp/drawer.cpp
         src/main/cpp/serializeSaveData.cpp
+        src/main/cpp/mathGL.cpp
+        src/main/cpp/mathVulkan.cpp
         src/main/cpp/level/levelSerializer.cpp
         src/main/cpp/level/levelFinish.cpp
         src/main/cpp/level/levels/maze.cpp

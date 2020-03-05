@@ -303,7 +303,7 @@ public:
     inline void doneInitializingCommandBuffers() { m_texturesChanged = false; }
 
 protected:
-    glm::mat4 getPerspectiveMatrix(uint32_t surfaceWidth, uint32_t surfaceHeight) override;
+    glm::mat4 getPerspectiveMatrixForLevel(uint32_t surfaceWidth, uint32_t surfaceHeight) override;
     void updatePerspectiveMatrix(uint32_t surfaceWidth, uint32_t surfaceHeight) override;
     std::shared_ptr<TextureData> createTexture(std::shared_ptr<TextureDescription> const &textureDescription) override;
     std::shared_ptr<DrawObjectData> createObject(std::shared_ptr<DrawObject> const &obj, TextureMap &textures) override;

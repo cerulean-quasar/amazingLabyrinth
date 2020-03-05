@@ -25,6 +25,7 @@
 #include <glm/gtx/transform.hpp>
 
 #include "mazeVulkan.hpp"
+#include "mathGraphics.hpp"
 
 VkVertexInputBindingDescription getBindingDescription() {
     VkVertexInputBindingDescription bindingDescription = {};
@@ -249,39 +250,21 @@ void DrawObjectDataVulkan::update(std::shared_ptr<DrawObject> const &obj,
     }
 }
 
-/*
- * getPerspectiveMatrix needs to be in THIS file, not the header file and not in the general maze
- * graphics file because there are some differences in the projection matrix depending on whether
- * Vulkan or OpenGL is being used.  Some of which are changed depending on a #define macro.
- *
- * Differences:
- *
- * (1) The range for the depth in Vulkan is 0.0f to 1.0f by default.  (Might be able to change
- * this but that might trigger bugs.  Needs experimentation.)  In OpenGl the range is -1.0f to 1.0f.
- * The projection matrix must be produced in a file that #defines GLM_FORCE_DEPTH_ZERO_TO_ONE before
- * including any headers in Vulkan and does NOT define this macro before including any headers in
- * OpenGL.
- *
- * (2) The y axis is inverted in Vulkan compared to OpenGL.  Just handle that by changing the
- * projection matrix.
- */
-glm::mat4 LevelSequenceVulkan::getPerspectiveMatrix(uint32_t surfaceWidth, uint32_t surfaceHeight) {
+glm::mat4 LevelSequenceVulkan::getPerspectiveMatrixForLevel(uint32_t surfaceWidth, uint32_t surfaceHeight) {
     /* perspective matrix: takes the perspective projection, the aspect ratio, near and far
      * view planes.
      */
-    glm::mat4 proj = glm::perspective(m_perspectiveViewAngle,
-                                      surfaceWidth / static_cast<float>(surfaceHeight),
-                                      m_perspectiveNearPlane, m_perspectiveFarPlane);
-    return proj;
+    return getPerspectiveMatrix(m_perspectiveViewAngle,
+                                surfaceWidth / static_cast<float>(surfaceHeight),
+                                m_perspectiveNearPlane, m_perspectiveFarPlane,
+                                false, true);
 }
 
 void LevelSequenceVulkan::updatePerspectiveMatrix(uint32_t surfaceWidth, uint32_t surfaceHeight) {
-    m_proj = getPerspectiveMatrix(surfaceWidth, surfaceHeight);
-
-    /* GLM has the y axis inverted from Vulkan's perspective, invert the y-axis on the
-     * projection matrix.
-     */
-    m_proj[1][1] *= -1;
+    m_proj = getPerspectiveMatrix(m_perspectiveViewAngle,
+                                surfaceWidth / static_cast<float>(surfaceHeight),
+                                m_perspectiveNearPlane, m_perspectiveFarPlane,
+                                true, true);
 }
 
 void LevelSequenceVulkan::updateLevelData(DrawObjectTable &objsData, TextureMap &textures) {
@@ -647,8 +630,8 @@ std::shared_ptr<TextureData> GraphicsVulkan::getDepthTexture(
     auto dscLayout = std::make_shared<DepthTextureDescriptorSetLayout>(m_device);
     auto dscPools = std::make_shared<vulkan::DescriptorPools>(m_device, dscLayout);
 
-    glm::mat4 proj = glm::ortho(-width/2.0f, width/2.0f, -height/2.0f, height/2.0f, m_depthTextureNearPlane, m_depthTextureFarPlane);
-    proj[1][1] *= -1;
+    glm::mat4 proj = getOrthoMatrix(-width/2.0f, width/2.0f, -height/2.0f, height/2.0f,
+            m_depthTextureNearPlane, m_depthTextureFarPlane, true, true);
     glm::mat4 vp = proj * m_levelSequence->viewMatrix();
 
     std::vector<std::shared_ptr<DrawObjectDataVulkanDepthTexture>> drawObjsData;
