@@ -33,8 +33,7 @@ add_library( # Sets the name of the library.
         src/main/cpp/random.cpp
         src/main/cpp/drawer.cpp
         src/main/cpp/serializeSaveData.cpp
-        src/main/cpp/mathGL.cpp
-        src/main/cpp/mathVulkan.cpp
+        src/main/cpp/mathGraphics.cpp
         src/main/cpp/level/levelSerializer.cpp
         src/main/cpp/level/levelFinish.cpp
         src/main/cpp/level/levels/maze.cpp
@@ -84,7 +83,11 @@ if (${CMAKE_BUILD_TYPE} STREQUAL Debug)
 endif(${CMAKE_BUILD_TYPE} STREQUAL Debug)
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Werror -std=c++14 ${CQ_COMPILE_FLAGS}")
 
-target_compile_definitions(native-lib PUBLIC -DVK_USE_PLATFORM_ANDROID_KHR)
+# GLM #defines:
+# (1) GLM_FORCE_DEPTH_ZERO_TO_ONE: tell GLM to use 0 to 1 for the depth.  We will translate to OpenGL's
+#     -1 to 1 depth in our code.
+# (2) GLM_FORCE_RADIANS: tell GLM to use radians for angles.
+target_compile_definitions(native-lib PUBLIC -DVK_USE_PLATFORM_ANDROID_KHR -DGLM_FORCE_DEPTH_ZERO_TO_ONE -DGLM_FORCE_RADIANS)
 
 
 # Specifies libraries CMake should link to your target library. You

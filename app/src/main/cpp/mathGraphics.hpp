@@ -42,18 +42,6 @@ glm::mat4 getPerspectiveMatrix(
         bool invertY,
         bool depth0to1);
 
-glm::mat4 getPerspectiveMatrixDepthMinus1to1(
-        float viewAngle, /* radians */
-        float aspectRatio,
-        float nearPlane,
-        float farPlane);
-
-glm::mat4 getPerspectiveMatrixDepth0to1(
-        float viewAngle, /* radians */
-        float aspectRatio,
-        float nearPlane,
-        float farPlane);
-
 glm::mat4 getOrthoMatrix(
         float minusX,
         float plusX,
@@ -63,19 +51,3 @@ glm::mat4 getOrthoMatrix(
         float farPlane,
         bool invertY,
         bool depth0to1);
-
-glm::mat4 getOrthoMatrixDepthMinus1to1(
-        float minusX,
-        float plusX,
-        float minusY,
-        float plusY,
-        float nearPlane,
-        float farPlane);
-
-glm::mat4 getOrthoMatrixDepth0to1(
-        float minusX,
-        float plusX,
-        float minusY,
-        float plusY,
-        float nearPlane,
-        float farPlane);

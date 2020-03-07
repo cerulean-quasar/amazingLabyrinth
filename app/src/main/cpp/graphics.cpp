@@ -23,7 +23,6 @@
 #include <array>
 #include <unordered_map>
 
-#define GLM_FORCE_RADIANS
 #include <glm/gtx/transform.hpp>
 
 #define STB_IMAGE_IMPLEMENTATION

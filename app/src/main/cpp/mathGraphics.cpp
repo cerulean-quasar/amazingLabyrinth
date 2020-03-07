@@ -18,11 +18,17 @@
  *
  */
 
-#define GLM_FORCE_RADIANS
-#include <glm/gtx/transform.hpp>
+#include <glm/gtc/matrix_transform.hpp>
 
 #include "mathGraphics.hpp"
 
+glm::mat4 getDepthMinus1to1Matrix() {
+    glm::mat4 matrix(1.0f);
+    matrix[2][2] = 2.0f;
+    matrix[3][2] = -1.0f;
+
+    return matrix;
+}
 
 /*
  * get a perspective matrix.  viewAngle is in radians.
@@ -35,30 +41,18 @@ glm::mat4 getPerspectiveMatrix(
         bool invertY,
         bool depth0to1)
 {
-    glm::mat4 proj;
-    if (depth0to1) {
-        proj = getPerspectiveMatrixDepth0to1(viewAngle, aspectRatio, nearPlane, farPlane);
-    } else {
-        proj = getPerspectiveMatrixDepthMinus1to1(viewAngle, aspectRatio, nearPlane, farPlane);
+    glm::mat4 proj = glm::perspective(viewAngle, aspectRatio, nearPlane, farPlane);
+    if (!depth0to1) {
+        proj = getDepthMinus1to1Matrix() * proj;
     }
 
     if (invertY) {
-        proj[1][1] *= -1;
+        proj[1][0] *= -1.0f;
+        proj[1][1] *= -1.0f;
+        proj[1][2] *= -1.0f;
+        proj[1][3] *= -1.0f;
     }
 
-    return proj;
-}
-
-glm::mat4 getPerspectiveMatrixDepthMinus1to1(
-        float viewAngle,
-        float aspectRatio,
-        float nearPlane,
-        float farPlane)
-{
-    /* perspective matrix: takes the perspective projection, the aspect ratio, near and far
-     * view planes.
-     */
-    glm::mat4 proj = glm::perspective(viewAngle, aspectRatio, nearPlane, farPlane);
     return proj;
 }
 
@@ -72,27 +66,17 @@ glm::mat4 getOrthoMatrix(
         bool invertY,
         bool depth0to1)
 {
-    glm::mat4 proj;
-    if (depth0to1) {
-        proj = getOrthoMatrixDepth0to1(minusX, plusX, minusY, plusY, nearPlane, farPlane);
-    } else {
-        proj = getOrthoMatrixDepthMinus1to1(minusX, plusX, minusY, plusY, nearPlane, farPlane);
+    glm::mat4 proj = glm::ortho(minusX, plusX, minusY, plusY, nearPlane, farPlane);
+    if (!depth0to1) {
+        proj = getDepthMinus1to1Matrix() * proj;
     }
 
     if (invertY) {
-        proj[1][1] *= -1;
+        proj[1][0] *= -1.0f;
+        proj[1][1] *= -1.0f;
+        proj[1][2] *= -1.0f;
+        proj[1][3] *= -1.0f;
     }
 
     return proj;
-}
-
-glm::mat4 getOrthoMatrixDepthMinus1to1(
-        float minusX,
-        float plusX,
-        float minusY,
-        float plusY,
-        float nearPlane,
-        float farPlane)
-{
-    return glm::ortho(minusX, plusX, minusY, plusY, nearPlane, farPlane);
 }

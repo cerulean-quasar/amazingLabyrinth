@@ -39,18 +39,27 @@ void main() {
     float near = 0.1;
     float far = 10.0;
     vec4 pos = ubo.mvp * vec4(inPosition, 1.0);
-    vec3 pos3 = pos.xyz / pos.w;
-    pos3.z = near * far / (far + pos3.z * (near - far));
-    pos3.z = (near - pos3.z)/ (far - near);
-    if (pos3.z <= 0.0038) {
-        pos3.z = 0.5;
-    } else if (pos3.z >= 1.0) {
-        pos3.z = 0.5;
-    } else {
-        pos3.z = 0.0;
-    }
-    gl_Position = vec4(pos3, 1.0);
-//    gl_Position = pos;
+//    vec3 pos3 = pos.xyz / pos.w;
+//    pos3.z = near * far / (far + pos3.z * (near - far));
+//    pos3.z = (near - pos3.z)/ (far - near);
+//    if (pos3.z <= 0.0038) {
+//        pos3.z = 0.5;
+//    } else if (pos3.z >= 1.0) {
+//        pos3.z = 0.5;
+//    } else {
+//        pos3.z = 0.0;
+//    }
+//    gl_Position = vec4(pos3, 1.0);
+    vec4 pos2 = vec4(pos.xyz/pos.w, 1.0);
+    //pos2.z = pos2.z * 0.5 + 0.5;
+//    if (pos2.z < 0.0) {
+//        pos2.z = 0.2;
+//    } else if (pos2.z > 1.0) {
+//        pos2.z = 0.7;
+//    } else if (pos2.z > 0.91) {
+//        pos2.z = 0.0;
+//    }
+    gl_Position = pos2;
 //    gl_Position = vec4(pos3.xy, 0.5, 1.0);
     fragColor = gl_Position.zzz;
 }
