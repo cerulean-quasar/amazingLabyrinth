@@ -32,10 +32,8 @@
 #include <queue>
 
 #include <glm/glm.hpp>
-#include <glm/gtx/quaternion.hpp>
 #include <glm/gtc/quaternion.hpp>
 #include <glm/gtc/matrix_transform.hpp>
-#include <glm/gtx/transform.hpp>
 
 #include "maze.hpp"
 #include "../../android.hpp"
@@ -143,7 +141,7 @@ bool Maze::updateData() {
 
         ball.totalRotated = glm::normalize(q * ball.totalRotated);
     }
-    modelMatrixBall = glm::translate(ball.position) * glm::toMat4(ball.totalRotated) * scaleBall;
+    modelMatrixBall = glm::translate(glm::mat4(1.0f), ball.position) * glm::mat4_cast(ball.totalRotated) * scaleBall;
 
     bool drawingNecessary = glm::length(ball.position - ball.prevPosition) > 0.01;
     if (drawingNecessary) {
@@ -386,20 +384,20 @@ Maze::MazeWallModelMatrixGeneratorFcn Maze::getMazeWallModelMatricesGenerator() 
             float scaleWallZ) -> std::vector<glm::mat4>
     {
         std::vector<glm::mat4> matrices;
-        glm::mat4 trans;
-        glm::mat4 scaleMat  = glm::scale(glm::vec3(width/2/(nbrCols*numberBlocksPerCell+1),
-                                                   height/2/(nbrRows*numberBlocksPerCell+1),
-                                                   scaleWallZ));
+        glm::mat4 scaleMat  = glm::scale(glm::mat4(1.0f),
+                glm::vec3(width/2/(nbrCols*numberBlocksPerCell+1),
+                          height/2/(nbrRows*numberBlocksPerCell+1),
+                          scaleWallZ));
 
         // Create the model matrices for the maze walls.
         for (unsigned int i = 0; i < nbrRows*numberBlocksPerCell+1; i++) {
             for (unsigned int j = 0; j < nbrCols*numberBlocksPerCell+1; j++) {
                 if (wallsExist[i*(nbrCols*numberBlocksPerCell+1)+j]) {
-                    trans = glm::translate(
+                    glm::mat4 trans = glm::translate(glm::mat4(1.0f),
                             glm::vec3(width / (nbrCols * numberBlocksPerCell+1) * (j + 0.5) - width/2,
                                       height / (nbrRows * numberBlocksPerCell+1) * (i + 0.5) - height/2,
                                       maxZ - m_originalWallHeight * scaleWallZ / 2.0f));
-                    matrices.push_back(trans * scaleMat);
+                    matrices.push_back(trans*scaleMat);
                 }
             }
         }
@@ -424,17 +422,17 @@ void Maze::generateModelMatrices(MazeWallModelMatrixGeneratorFcn &wallModelMatri
     // cause the frame to be drawn when the program comes up for the first time.
     ball.prevPosition = {-10.0f,0.0f,0.0f};
 
-    glm::mat4 trans = glm::translate(ball.position);
-    modelMatrixBall = trans*glm::toMat4(ball.totalRotated)*scaleBall;
+    glm::mat4 trans = glm::translate(glm::mat4(1.0f), ball.position);
+    modelMatrixBall = trans*glm::mat4_cast(ball.totalRotated)*scaleBall;
 
     // the hole
     glm::vec3 holePos = getCellCenterPosition(m_rowEnd, m_colEnd);
-    trans = glm::translate(holePos);
+    trans = glm::translate(glm::mat4(1.0f), holePos);
     modelMatrixHole = trans*scaleBall;
 
     // the floor.
-    floorModelMatrix = glm::translate(glm::vec3(0.0f, 0.0f, m_maxZ - m_originalWallHeight * m_scaleWallZ)) *
-            glm::scale(glm::vec3(m_width/2 + m_width / 2 / (numberColumns * numberBlocksPerCell),
+    floorModelMatrix = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, m_maxZ - m_originalWallHeight * m_scaleWallZ)) *
+            glm::scale(glm::mat4(1.0f), glm::vec3(m_width/2 + m_width / 2 / (numberColumns * numberBlocksPerCell),
                                  m_height/2 + m_height / 2 /(numberRows * numberBlocksPerCell), 1.0f));
 }
 

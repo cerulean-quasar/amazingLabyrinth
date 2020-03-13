@@ -1,5 +1,5 @@
 /**
- * Copyright 2019 Cerulean Quasar. All Rights Reserved.
+ * Copyright 2020 Cerulean Quasar. All Rights Reserved.
  *
  *  This file is part of AmazingLabyrinth.
  *
@@ -19,7 +19,7 @@
  */
 
 #include <list>
-#include <glm/gtx/transform.hpp>
+#include <glm/gtc/matrix_transform.hpp>
 #include "levelFinish.hpp"
 
 ManyQuadCoverUpLevelFinish::ManyQuadCoverUpLevelFinish(
@@ -77,13 +77,13 @@ bool ManyQuadCoverUpLevelFinish::updateDrawObjects(DrawObjectTable &drawObjects,
         }
 
         float sideLength = random.getFloat(0.1f*m_height, 0.3f*m_height);
-        glm::mat4 scale = glm::scale(glm::vec3(sideLength, sideLength, 1.0f));
+        glm::mat4 scale = glm::scale(glm::mat4(1.0f), glm::vec3(sideLength, sideLength, 1.0f));
         glm::vec3 translateVector = translateVectors.back();
         translateVectors.pop_back();
         translateVector.z = m_maxZ +
                 (static_cast<int32_t>(totalNumberReturned) -
                         static_cast<int32_t>(totalNumberObjects)) * 0.01f;
-        glm::mat4 trans = glm::translate(translateVector);
+        glm::mat4 trans = glm::translate(glm::mat4(1.0f), translateVector);
 
         // the first imagePaths.size() objects are the linear order of objects in imagePaths,
         // then a texture image is selected at random.
@@ -150,14 +150,16 @@ bool GrowingQuadLevelFinish::updateDrawObjects(DrawObjectTable &drawObjects, Tex
         getQuad(obj->vertices, obj->indices);
         obj->texture = std::make_shared<TextureDescriptionPath>(m_gameRequester, imagePath);
         textures.insert(std::make_pair(obj->texture, std::shared_ptr<TextureData>()));
-        obj->modelMatrices.push_back(glm::translate(transVector) * glm::scale(scaleVector));
+        obj->modelMatrices.push_back(glm::translate(glm::mat4(1.0f), transVector) *
+                glm::scale(glm::mat4(1.0f), scaleVector));
         drawObjects.push_back(std::make_pair(obj, std::shared_ptr<DrawObjectData>()));
         texturesUpdated = true;
     } else {
         timeSoFar += time;
         size = size + multiplier * timeSoFar / totalTime * (finalSize - minSize);
         scaleVector = {size, size, size};
-        drawObjects[0].first->modelMatrices[0] = glm::translate(transVector) * glm::scale(scaleVector);
+        drawObjects[0].first->modelMatrices[0] = glm::translate(glm::mat4(1.0f), transVector) *
+                glm::scale(glm::mat4(1.0f), scaleVector);
         if (size >= finalSize && !shouldUnveil) {
             timeSoFar = 0.0f;
             finished = true;

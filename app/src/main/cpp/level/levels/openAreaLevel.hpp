@@ -1,5 +1,5 @@
 /**
- * Copyright 2019 Cerulean Quasar. All Rights Reserved.
+ * Copyright 2020 Cerulean Quasar. All Rights Reserved.
  *
  *  This file is part of AmazingLabyrinth.
  *
@@ -23,10 +23,8 @@
 #include <chrono>
 
 #include <glm/glm.hpp>
-#include <glm/gtx/quaternion.hpp>
 #include <glm/gtc/quaternion.hpp>
 #include <glm/gtc/matrix_transform.hpp>
-#include <glm/gtx/transform.hpp>
 
 #include "../levelFinish.hpp"
 #include "../level.hpp"
@@ -92,7 +90,7 @@ private:
 
     void loadModels();
     void generate(glm::vec2 ballPos, glm::vec2 holePos) {
-        scale = glm::scale(glm::vec3(ballScale / m_originalBallDiameter*m_width,
+        scale = glm::scale(glm::mat4(1.0f), glm::vec3(ballScale / m_originalBallDiameter*m_width,
                                      ballScale / m_originalBallDiameter*m_width,
                                      ballScale / m_originalBallDiameter*m_width));
 

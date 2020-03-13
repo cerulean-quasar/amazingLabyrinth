@@ -107,7 +107,7 @@ bool MazeAvoid::updateStaticDrawObjects(DrawObjectTable &objs, TextureMap &textu
         textures.insert(std::make_pair(aviodObj->texture, std::shared_ptr<TextureData>()));
 
         for (auto const &item : m_avoidObjectLocations) {
-            aviodObj->modelMatrices.push_back(glm::translate(item) * scaleBall);
+            aviodObj->modelMatrices.push_back(glm::translate(glm::mat4(1.0f), item) * scaleBall);
         }
         objs.push_back(std::make_pair(aviodObj, std::shared_ptr<DrawObjectData>()));
 

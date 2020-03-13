@@ -97,13 +97,14 @@ bool MazeCollect::updateDynamicDrawObjects(DrawObjectTable &objs, TextureMap &te
     bool isEmpty = objs.empty();
     bool isUpdated = MazeOpenArea::updateDynamicDrawObjects(objs, textures, texturesChanged);
 
-    glm::mat4 scaleMatrix = glm::scale(glm::vec3{2*scale/3.0f, 2*scale/3.0f, 2*scale/3.0f});
+    glm::mat4 scaleMatrix = glm::scale(glm::mat4(1.0f), glm::vec3{2*scale/3.0f, 2*scale/3.0f, 2*scale/3.0f});
     if (isEmpty) {
         // the objects to collect - they are just smaller versions of the ball.  Just add them to
         // the ball model matrices.  The ball is always first in the table of draw objects.
         auto const &ballObj = objs[0].first;
         for (auto const &item : m_collectionObjectLocations) {
-            ballObj->modelMatrices.push_back(glm::translate(item.second) * glm::toMat4(ball.totalRotated) * scaleMatrix);
+            ballObj->modelMatrices.push_back(glm::translate(glm::mat4(1.0f),item.second) *
+                glm::mat4_cast(ball.totalRotated) * scaleMatrix);
         }
         isUpdated = true;
     } else {
@@ -114,7 +115,8 @@ bool MazeCollect::updateDynamicDrawObjects(DrawObjectTable &objs, TextureMap &te
         uint32_t i = 1;
         for (auto const &item : m_collectionObjectLocations) {
             if (item.first) {
-                obj.first->modelMatrices[i++] = glm::translate(item.second) * glm::toMat4(ball.totalRotated) *scaleMatrix;
+                obj.first->modelMatrices[i++] = glm::translate(glm::mat4(1.0f), item.second) *
+                        glm::mat4_cast(ball.totalRotated) *scaleMatrix;
                 isUpdated = true;
             } else {
                 i++;

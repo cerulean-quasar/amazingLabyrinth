@@ -1,5 +1,5 @@
 /**
- * Copyright 2019 Cerulean Quasar. All Rights Reserved.
+ * Copyright 2020 Cerulean Quasar. All Rights Reserved.
  *
  *  This file is part of AmazingLabyrinth.
  *
@@ -90,7 +90,7 @@ bool OpenAreaLevel::updateData() {
 
         ball.totalRotated = glm::normalize(q * ball.totalRotated);
     }
-    modelMatrixBall = glm::translate(ball.position) * glm::toMat4(ball.totalRotated) * scale;
+    modelMatrixBall = glm::translate(glm::mat4(1.0f), ball.position) * glm::mat4_cast(ball.totalRotated) * scale;
 
     bool drawingNecessary = glm::length(ball.position - ball.prevPosition) > 0.005;
     if (drawingNecessary) {
@@ -101,11 +101,11 @@ bool OpenAreaLevel::updateData() {
 
 void OpenAreaLevel::generateModelMatrices() {
     // the ball
-    glm::mat4 trans = glm::translate(ball.position);
+    glm::mat4 trans = glm::translate(glm::mat4(1.0f), ball.position);
     modelMatrixBall = trans*scale;
 
     // the hole
-    trans = glm::translate(holePosition);
+    trans = glm::translate(glm::mat4(1.0f), holePosition);
     modelMatrixHole = trans*scale;
 }
 

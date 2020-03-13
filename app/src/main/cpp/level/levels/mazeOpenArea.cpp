@@ -93,7 +93,7 @@ bool MazeOpenArea::updateData() {
 
         ball.totalRotated = glm::normalize(q * ball.totalRotated);
     }
-    modelMatrixBall = glm::translate(ball.position) * glm::toMat4(ball.totalRotated) * scaleBall;
+    modelMatrixBall = glm::translate(glm::mat4(1.0f), ball.position) * glm::mat4_cast(ball.totalRotated) * scaleBall;
 
     bool drawingNecessary = glm::length(ball.position - ball.prevPosition) > 0.007;
     if (drawingNecessary) {
@@ -112,21 +112,22 @@ Maze::MazeWallModelMatrixGeneratorFcn MazeOpenArea::getMazeWallModelMatricesGene
                 float scaleWallZ) -> std::vector<glm::mat4> {
         std::vector<glm::mat4> matrices;
         glm::mat4 trans;
-        glm::mat4 scale  = glm::scale(glm::vec3(width/2/3/(nbrCols*numberBlocksPerCell),
-                                                height/2/3/(nbrRows*numberBlocksPerCell),
-                                                scaleWallZ));
+        glm::mat4 scale  = glm::scale(glm::mat4(1.0f),
+                glm::vec3(width/2/3/(nbrCols*numberBlocksPerCell),
+                          height/2/3/(nbrRows*numberBlocksPerCell),
+                          scaleWallZ));
 
         // Create the model matrices for the maze walls.
         for (unsigned int i = 0; i < nbrRows*numberBlocksPerCell+1; i++) {
             for (unsigned int j = 0; j < nbrCols*numberBlocksPerCell+1; j++) {
                 if (wallsExist[i*(nbrCols*numberBlocksPerCell+1)+j]) {
-                    trans = glm::translate(
+                    trans = glm::translate(glm::mat4(1.0f),
                             glm::vec3(width / (nbrCols * numberBlocksPerCell+1) * (j + 0.5f) - width/2,
                                       height / (nbrRows * numberBlocksPerCell+1) * (i + 0.5f) - height/2,
                                       maxZ - m_originalWallHeight * scaleWallZ / 2.0f));
                     matrices.push_back(trans * scale);
                     if (j > 0 && wallsExist[i*(nbrCols*numberBlocksPerCell+1) + j - 1]) {
-                        trans = glm::translate(
+                        trans = glm::translate(glm::mat4(1.0f),
                                 glm::vec3(width / (nbrCols * numberBlocksPerCell+1) * (j + 0.5f) -
                                           width/2 - width/3/(nbrCols*numberBlocksPerCell+1),
                                           height / (nbrRows * numberBlocksPerCell+1) * (i + 0.5f) - height/2,
@@ -134,7 +135,7 @@ Maze::MazeWallModelMatrixGeneratorFcn MazeOpenArea::getMazeWallModelMatricesGene
                         matrices.push_back(trans * scale);
                     }
                     if (j < nbrCols*numberBlocksPerCell && wallsExist[i*(nbrCols*numberBlocksPerCell+1)+j+1]) {
-                        trans = glm::translate(
+                        trans = glm::translate(glm::mat4(1.0f),
                                 glm::vec3(width / (nbrCols * numberBlocksPerCell+1) * (j + 0.5f) -
                                           width/2 + width/3/(nbrCols*numberBlocksPerCell+1),
                                           height / (nbrRows * numberBlocksPerCell+1) * (i + 0.5f) - height/2,
@@ -142,7 +143,7 @@ Maze::MazeWallModelMatrixGeneratorFcn MazeOpenArea::getMazeWallModelMatricesGene
                         matrices.push_back(trans * scale);
                     }
                     if (i > 0 && wallsExist[(i-1)*(nbrCols*numberBlocksPerCell+1)+j]) {
-                        trans = glm::translate(
+                        trans = glm::translate(glm::mat4(1.0f),
                                 glm::vec3(width / (nbrCols * numberBlocksPerCell+1) * (j + 0.5f) - width/2,
                                           height / (nbrRows * numberBlocksPerCell+1) * (i + 0.5f) - height/2 -
                                           height/3/(nbrRows*numberBlocksPerCell+1),
@@ -150,7 +151,7 @@ Maze::MazeWallModelMatrixGeneratorFcn MazeOpenArea::getMazeWallModelMatricesGene
                         matrices.push_back(trans * scale);
                     }
                     if (i < nbrRows*numberBlocksPerCell && wallsExist[(i+1)*(nbrCols*numberBlocksPerCell+1)+j]) {
-                        trans = glm::translate(
+                        trans = glm::translate(glm::mat4(1.0f),
                                 glm::vec3(width / (nbrCols * numberBlocksPerCell+1) * (j + 0.5f) - width/2,
                                           height / (nbrRows * numberBlocksPerCell+1) * (i + 0.5f) - height/2 +
                                           height/3/(nbrRows*numberBlocksPerCell+1),

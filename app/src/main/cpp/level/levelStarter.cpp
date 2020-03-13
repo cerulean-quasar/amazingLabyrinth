@@ -18,10 +18,8 @@
  *
  */
 #include <glm/glm.hpp>
-#include <glm/gtx/quaternion.hpp>
 #include <glm/gtc/quaternion.hpp>
 #include <glm/gtc/matrix_transform.hpp>
-#include <glm/gtx/transform.hpp>
 
 #include "levelStarter.hpp"
 
@@ -148,7 +146,8 @@ bool LevelStarter::updateDynamicDrawObjects(DrawObjectTable &drawObjsData, Textu
         obj->texture = std::make_shared<TextureDescriptionPath>(m_gameRequester, ballImage);
         textures.insert(std::make_pair(obj->texture, std::shared_ptr<TextureData>()));
         obj->modelMatrices.push_back(
-                glm::translate(ball.position) * glm::toMat4(ball.totalRotated) * glm::scale(ballScale));
+                glm::translate(glm::mat4(1.0f), ball.position) * glm::mat4_cast(ball.totalRotated) *
+                glm::scale(glm::mat4(1.0f), ballScale));
         drawObjsData.push_back(std::make_pair(obj, std::shared_ptr<DrawObjectData>()));
 
         // Text box
@@ -158,13 +157,13 @@ bool LevelStarter::updateDynamicDrawObjects(DrawObjectTable &drawObjsData, Textu
         obj1->texture = std::make_shared<TextureDescriptionText>(m_gameRequester, text[textIndex]);
         textures.insert(std::make_pair(obj1->texture, std::shared_ptr<TextureData>()));
         obj1->modelMatrices.push_back(
-                glm::translate(glm::vec3(0.0f, 0.0f, m_maxZ - ballScale.z * m_originalBallDiameter)) *
-                glm::scale(textScale));
+                glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, m_maxZ - ballScale.z * m_originalBallDiameter)) *
+                glm::scale(glm::mat4(1.0f), textScale));
         drawObjsData.push_back(std::make_pair(obj1, std::shared_ptr<DrawObjectData>()));
         texturesChanged = true;
     } else {
-        drawObjsData[0].first->modelMatrices[0] = glm::translate(ball.position) *
-                glm::toMat4(ball.totalRotated) * glm::scale(ballScale);
+        drawObjsData[0].first->modelMatrices[0] = glm::translate(glm::mat4(1.0f), ball.position) *
+                glm::mat4_cast(ball.totalRotated) * glm::scale(glm::mat4(1.0f), ballScale);
 
         if (transitionText && !m_finished) {
             textIndex++;
@@ -195,8 +194,8 @@ bool LevelStarter::updateStaticDrawObjects(DrawObjectTable &drawObjsData, Textur
     obj->texture = std::make_shared<TextureDescriptionPath>(m_gameRequester, holeImage);
     textures.insert(std::make_pair(obj->texture, std::shared_ptr<TextureData>()));
     obj->modelMatrices.push_back(
-            glm::translate(glm::vec3(-maxPosX, maxPosY, m_maxZ - ballScale.z*m_originalBallDiameter)) *
-            glm::scale(holeScale));
+            glm::translate(glm::mat4(1.0f), glm::vec3(-maxPosX, maxPosY, m_maxZ - ballScale.z*m_originalBallDiameter)) *
+            glm::scale(glm::mat4(1.0f), holeScale));
     drawObjsData.push_back(std::make_pair(obj, std::shared_ptr<DrawObjectData>()));
 
     // Bottom corridor
@@ -208,8 +207,8 @@ bool LevelStarter::updateStaticDrawObjects(DrawObjectTable &drawObjsData, Textur
     obj->indices = quadIndices;
     obj->texture = textureCorridorH1;
     obj->modelMatrices.push_back(
-            glm::translate(glm::vec3(0.0f, -maxPosY, m_maxZ - ballScale.z*m_originalBallDiameter)) *
-            glm::scale(corridorHScale));
+            glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, -maxPosY, m_maxZ - ballScale.z*m_originalBallDiameter)) *
+            glm::scale(glm::mat4(1.0f), corridorHScale));
     drawObjsData.push_back(std::make_pair(obj, std::shared_ptr<DrawObjectData>()));
 
     // Side corridor
@@ -221,8 +220,8 @@ bool LevelStarter::updateStaticDrawObjects(DrawObjectTable &drawObjsData, Textur
     obj->indices = quadIndices;
     obj->texture = textureCorridorV;
     obj->modelMatrices.push_back(
-            glm::translate(glm::vec3(maxPosX, 0.0f, m_maxZ - ballScale.z*m_originalBallDiameter)) *
-            glm::scale(corridorVScale));
+            glm::translate(glm::mat4(1.0f), glm::vec3(maxPosX, 0.0f, m_maxZ - ballScale.z*m_originalBallDiameter)) *
+            glm::scale(glm::mat4(1.0f), corridorVScale));
     drawObjsData.push_back(std::make_pair(obj, std::shared_ptr<DrawObjectData>()));
 
     // Top corridor
@@ -234,8 +233,8 @@ bool LevelStarter::updateStaticDrawObjects(DrawObjectTable &drawObjsData, Textur
     obj->indices = quadIndices;
     obj->texture = textureCorridorH2;
     obj->modelMatrices.push_back(
-            glm::translate(glm::vec3(0.0f, maxPosY, m_maxZ - ballScale.z*m_originalBallDiameter)) *
-            glm::scale(corridorHScale));
+            glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, maxPosY, m_maxZ - ballScale.z*m_originalBallDiameter)) *
+            glm::scale(glm::mat4(1.0f),corridorHScale));
     drawObjsData.push_back(std::make_pair(obj, std::shared_ptr<DrawObjectData>()));
 
     return true;

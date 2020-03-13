@@ -25,10 +25,8 @@
 #include <memory>
 #include <vector>
 #include <glm/glm.hpp>
-#include <glm/gtx/quaternion.hpp>
 #include <glm/gtc/quaternion.hpp>
 #include <glm/gtc/matrix_transform.hpp>
-#include <glm/gtx/transform.hpp>
 
 #include "../../common.hpp"
 #include "../../saveData.hpp"
@@ -108,9 +106,9 @@ public:
         auto worldObj = std::make_shared<DrawObject>();
         loadModel(m_gameRequester->getAssetStream("models/mountainLandscape.obj"), worldObj->vertices, worldObj->indices);
         worldObj->modelMatrices.push_back(
-                glm::translate(glm::vec3{0.0f, 0.0f, m_maxZ}) *
-                glm::scale(glm::vec3{m_width/MODEL_WIDTH, m_height/MODEL_HEIGHT, 1.0f}) *
-                glm::toMat4(glm::angleAxis(3.1415926f/2.0f, glm::vec3(1.0f, 0.0f, 0.0f))));
+                glm::translate(glm::mat4(1.0f), glm::vec3{0.0f, 0.0f, m_maxZ}) *
+                glm::scale(glm::mat4(1.0f), glm::vec3{m_width/MODEL_WIDTH, m_height/MODEL_HEIGHT, 1.0f}) *
+                glm::mat4_cast(glm::angleAxis(3.1415926f/2.0f, glm::vec3(1.0f, 0.0f, 0.0f))));
         worldObj->texture = nullptr;
         m_worldMap.emplace_back(worldObj, nullptr);
 
@@ -118,8 +116,8 @@ public:
         m_testObj = std::make_shared<DrawObject>();
         m_testObj->texture = std::make_shared<TextureDescriptionDummy>(m_gameRequester);
         getQuad(m_testObj->vertices, m_testObj->indices);
-        m_testObj->modelMatrices.push_back(glm::translate(glm::vec3{0.0f, 0.0f, m_maxZ}) *
-            glm::scale(glm::vec3{m_width/2.0f, m_height/2.0f, 1.0f}));
+        m_testObj->modelMatrices.push_back(glm::translate(glm::mat4(1.0f), glm::vec3{0.0f, 0.0f, m_maxZ}) *
+            glm::scale(glm::mat4(1.0f), glm::vec3{m_width/2.0f, m_height/2.0f, 1.0f}));
     }
 
     ~FixedMaze() override = default;

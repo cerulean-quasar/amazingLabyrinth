@@ -1,5 +1,5 @@
 /**
- * Copyright 2019 Cerulean Quasar. All Rights Reserved.
+ * Copyright 2020 Cerulean Quasar. All Rights Reserved.
  *
  *  This file is part of AmazingLabyrinth.
  *
@@ -17,6 +17,7 @@
  *  along with AmazingLabyrinth.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
+#include <glm/gtc/matrix_transform.hpp>
 
 #include "avoidVortexLevel.hpp"
 
@@ -34,7 +35,7 @@ void AvoidVortexLevel::preGenerate() {
 }
 
 void AvoidVortexLevel::postGenerate() {
-    scale = glm::scale(glm::vec3(scaleFactor, scaleFactor, scaleFactor));
+    scale = glm::scale(glm::mat4(1.0f), glm::vec3(scaleFactor, scaleFactor, scaleFactor));
 
     ball.totalRotated = glm::quat();
     ball.acceleration = {0.0f, 0.0f, 0.0f};
@@ -163,7 +164,7 @@ bool AvoidVortexLevel::updateData() {
 
         ball.totalRotated = glm::normalize(q * ball.totalRotated);
     }
-    modelMatrixBall = glm::translate(ball.position) * glm::toMat4(ball.totalRotated) * scale;
+    modelMatrixBall = glm::translate(glm::mat4(1.0f), ball.position) * glm::mat4_cast(ball.totalRotated) * scale;
 
     bool drawingNecessary = glm::length(ball.position - ball.prevPosition) > 0.005;
     if (drawingNecessary) {
@@ -174,20 +175,20 @@ bool AvoidVortexLevel::updateData() {
 
 void AvoidVortexLevel::generateModelMatrices() {
     // the ball
-    glm::mat4 trans = glm::translate(ball.position);
+    glm::mat4 trans = glm::translate(glm::mat4(1.0f), ball.position);
     modelMatrixBall = trans*scale;
 
     // the hole
-    trans = glm::translate(holePosition);
+    trans = glm::translate(glm::mat4(1.0f), holePosition);
     modelMatrixHole = trans*scale;
 
     // the starting vortex (the ball shows up here if it enters a vortex).
-    trans = glm::translate(startPositionQuad);
+    trans = glm::translate(glm::mat4(1.0f), startPositionQuad);
     modelMatrixStartVortex = trans * scale;
 
     // the vortexes
     for (auto && vortexPosition : vortexPositions) {
-        trans = glm::translate(vortexPosition);
+        trans = glm::translate(glm::mat4(1.0f), vortexPosition);
         modelMatrixVortexes.push_back(trans*scale);
     }
 }

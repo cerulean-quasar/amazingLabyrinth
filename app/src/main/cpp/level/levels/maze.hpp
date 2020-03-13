@@ -20,10 +20,8 @@
 #ifndef AMAZING_LABYRINTH_MAZE_HPP
 #define AMAZING_LABYRINTH_MAZE_HPP
 #include <glm/glm.hpp>
-#include <glm/gtx/quaternion.hpp>
 #include <glm/gtc/quaternion.hpp>
 #include <glm/gtc/matrix_transform.hpp>
-#include <glm/gtx/transform.hpp>
 
 #include <vector>
 #include <deque>
@@ -243,7 +241,7 @@ public:
 
         // these are set incorrectly by generateModelMatrices.... set them up again.
         ball.position = glm::vec3{sd->ballPos.x, sd->ballPos.y, getBallZPosition()};
-        modelMatrixBall = glm::translate(ball.position)*glm::toMat4(ball.totalRotated)*scaleBall;
+        modelMatrixBall = glm::translate(glm::mat4(1.0f), ball.position)*glm::mat4_cast(ball.totalRotated)*scaleBall;
     }
 
     Maze(std::shared_ptr<GameRequester> inGameRequester,
@@ -278,7 +276,7 @@ public:
         ball.acceleration = {0.0f, 0.0f, 0.0f};
         ball.velocity = {0.0f, 0.0f, 0.0f};
         unsigned int i = std::max(numberRows, numberColumns);
-        scaleBall = glm::scale(glm::vec3(scale, scale, scale));
+        scaleBall = glm::scale(glm::mat4(1.0f), glm::vec3(scale, scale, scale));
         cells.resize(numberRows);
 
         for (unsigned int i = 0; i < numberRows; i++) {

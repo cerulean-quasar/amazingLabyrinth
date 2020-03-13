@@ -23,7 +23,7 @@
 #include <array>
 #include <unordered_map>
 
-#include <glm/gtx/transform.hpp>
+#include <glm/glm.hpp>
 
 #define STB_IMAGE_IMPLEMENTATION
 #include <stb_image.h>
