@@ -100,8 +100,8 @@ bool Maze::updateData() {
         ball.position.y = cellCenterY;
     }
 
-    float cellHeight = 2.0f / numberRows;
-    float cellWidth = 2.0f / numberColumns;
+    float cellHeight = m_height / (numberRows*numberBlocksPerCell+1)*numberBlocksPerCell;
+    float cellWidth = m_width / (numberColumns*numberBlocksPerCell+1)*numberBlocksPerCell;
 
     float delta = cellWidth/5.0f;
     if (ball.position.x > cellCenterX + delta || ball.position.x < cellCenterX - delta) {
@@ -117,10 +117,6 @@ bool Maze::updateData() {
 
     float deltax = ball.position.x - cellCenterX;
     float deltay = ball.position.y - cellCenterY;
-
-    if (deltay > cellHeight || deltay < -cellHeight || deltax > cellWidth || deltax < -cellWidth) {
-        deltax +=0.00001;
-    }
 
     if (deltay > cellHeight/2.0f && ball.row != numberRows - 1) {
         ball.row++;

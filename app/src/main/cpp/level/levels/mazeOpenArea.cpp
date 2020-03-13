@@ -34,7 +34,7 @@ bool MazeOpenArea::updateData() {
     ball.velocity += ball.acceleration * time - viscosity * ball.velocity;
     ball.position += ball.velocity * time;
 
-    float halfWallWidth = m_width/2/3/(numberColumns*numberBlocksPerCell);
+    float halfWallWidth = m_width/2/3/(numberColumns*numberBlocksPerCell+1);
     auto cell = getCell(ball.row, ball.col);
     if (cell.leftWallExists() && ball.position.x < leftWall(ball.col) + scale + halfWallWidth) {
         if (ball.velocity.x < 0.0f) {
@@ -69,17 +69,30 @@ bool MazeOpenArea::updateData() {
     float deltax = ball.position.x - cellCenterX;
     float deltay = ball.position.y - cellCenterY;
 
-    if (deltay > cellHeight*2.0f/3.0f && ball.row != numberRows - 1) {
-        ball.row++;
-    } else if (deltay < -cellHeight*2.0f/3.0f && ball.row != 0) {
-        ball.row--;
+    int rowinc = 0;
+    int colinc = 0;
+    if (deltay > cellHeight/2.0f && ball.row != numberRows - 1) {
+        rowinc++;
+    } else if (deltay < -cellHeight/2.0f && ball.row != 0) {
+        rowinc--;
     }
 
-    if (deltax > cellWidth*2.0f/3.0f && ball.col != numberColumns - 1) {
-        ball.col++;
-    } else if (deltax < -cellWidth*2.0f/3.0f && ball.col != 0) {
-        ball.col--;
+    if (deltax > cellWidth/2.0f && ball.col != numberColumns - 1) {
+        colinc++;
+    } else if (deltax < -cellWidth/2.0f && ball.col != 0) {
+        colinc--;
     }
+
+    // stop balls from going through the corners of the maze.  If both rows and columns are
+    // changing, the ball could go through a corner if the ball is in the cell were two would be
+    // touching walls are not there.  If this is the case, as long as the ball has not registered
+    // as being in the other cell, it is ok to go through the wall on that side.
+    if (rowinc != 0 && colinc != 0) {
+        colinc = 0;
+    }
+
+    ball.row += rowinc;
+    ball.col += colinc;
 
     if (checkFinishCondition(time)) {
         m_finished = true;
