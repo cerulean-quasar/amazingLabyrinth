@@ -296,11 +296,12 @@ std::shared_ptr<TextureData> GraphicsGL::getDepthTexture(
         DrawObjectTable const &objsData,
         float width,
         float height,
+        float widthStep,
         std::vector<float> &depthMap, /* output */
         uint32_t &rowSize) /* output */
 {
-    uint32_t surfaceWidth = static_cast<uint32_t>(m_surface.width());
-    uint32_t surfaceHeight = static_cast<uint32_t>(m_surface.height());
+    uint32_t surfaceWidth = static_cast<uint32_t>(std::floor(m_surface.width()*widthStep/width));
+    uint32_t surfaceHeight = static_cast<uint32_t>((m_surface.height()*surfaceWidth)/m_surface.width());
     Framebuffer fb(surfaceWidth, surfaceHeight);
     glBindFramebuffer(GL_FRAMEBUFFER, fb.fbo());
     checkGraphicsError();
@@ -337,7 +338,7 @@ std::shared_ptr<TextureData> GraphicsGL::getDepthTexture(
 
     /* width * height * 4 color values each uint32_t in size. */
     std::vector<uint32_t> data(static_cast<size_t>(surfaceWidth * surfaceHeight * 4));
-    glReadPixels(0, 0, m_surface.width(), m_surface.height(), GL_RGBA, GL_FLOAT, data.data());
+    glReadPixels(0, 0, surfaceWidth, surfaceHeight, GL_RGBA, GL_FLOAT, data.data());
     checkGraphicsError();
 
     glBindFramebuffer(GL_FRAMEBUFFER, 0);

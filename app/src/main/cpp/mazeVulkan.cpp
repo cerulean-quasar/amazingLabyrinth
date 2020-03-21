@@ -622,6 +622,7 @@ std::shared_ptr<TextureData> GraphicsVulkan::getDepthTexture(
         DrawObjectTable const &objsData,
         float width,
         float height,
+        float widthStep,
         std::vector<float> &depthMap,
         uint32_t &rowSize)
 {
@@ -642,19 +643,21 @@ std::shared_ptr<TextureData> GraphicsVulkan::getDepthTexture(
         drawObjsData.push_back(drawObjData);
     }
 
+    VkExtent2D extent = m_swapChain->extent();
+    uint32_t imageWidth = static_cast<uint32_t>(std::floor(extent.width/width * widthStep));
+    uint32_t imageHeight = (imageWidth * extent.height)/extent.width;
     auto depthView = std::make_shared<vulkan::ImageView>(
-            vulkan::ImageFactory::createDepthImage(m_swapChain),
+            std::make_shared<vulkan::Image>(m_device, imageWidth, imageHeight),
             m_device->depthFormat(),
             VK_IMAGE_ASPECT_DEPTH_BIT);
     depthView->image()->transitionImageLayout(m_device->depthFormat(), VK_IMAGE_LAYOUT_UNDEFINED,
                                               VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL, m_commandPool);
 
-    VkExtent2D extent = m_swapChain->extent();
     VkFormat colorImageFormat = VK_FORMAT_R32_SFLOAT;
     auto colorDepthImage = vulkan::ImageView::createImageViewAndImage(
             m_device,
-            extent.width,
-            extent.height,
+            imageWidth,
+            imageHeight,
             colorImageFormat,
             VK_IMAGE_TILING_OPTIMAL,
             VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT,
@@ -724,13 +727,13 @@ std::shared_ptr<TextureData> GraphicsVulkan::getDepthTexture(
     std::vector<uint32_t> colorDepthMap;
     colorDepthMap.resize(extent.width * extent.height);
     vulkan::Buffer buffer{m_device,
-                          extent.width * extent.height * sizeof (uint32_t),
+                          imageWidth * imageHeight * sizeof (uint32_t),
                           VK_BUFFER_USAGE_TRANSFER_DST_BIT,
                           VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT};
     colorDepthImage->image().copyImageToBuffer(buffer, m_commandPool);
     buffer.copyRawTo(colorDepthMap.data(), colorDepthMap.size() * sizeof (uint32_t));
-    bitmapToDepthMap(colorDepthMap, proj, view, extent.width, extent.height, depthMap);
-    rowSize = extent.width;
+    bitmapToDepthMap(colorDepthMap, proj, view, imageWidth, imageHeight, depthMap);
+    rowSize = imageWidth;
 
     colorDepthImage->image()->transitionLayout(colorImageFormat, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
             VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, m_commandPool);

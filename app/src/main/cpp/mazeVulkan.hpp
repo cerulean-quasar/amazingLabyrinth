@@ -367,10 +367,11 @@ public:
                 std::move(devGraphicsDescription.m_name)};
     }
 
-    virtual void getDepthTexture(
+    virtual std::shared_ptr<TextureData> getDepthTexture(
             DrawObjectTable const &objsData,
             float width,
             float height,
+            float widthStep,
             std::vector<float> &depthMap,
             uint32_t &rowSize);
 

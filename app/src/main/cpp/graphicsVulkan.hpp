@@ -711,7 +711,7 @@ namespace vulkan {
                 std::shared_ptr<CommandPool> const &cmdPool,
                 std::shared_ptr<TextureDescription> const &texture);
 
-        static std::shared_ptr<Image> createDepthImage(std::shared_ptr<SwapChain> inSwapChain) {
+        static std::shared_ptr<Image> createDepthImage(std::shared_ptr<SwapChain> const &inSwapChain) {
             VkExtent2D extent = inSwapChain->extent();
             std::shared_ptr<Image> img{new Image{inSwapChain->device(), extent.width,
                                                  extent.height,
@@ -723,11 +723,14 @@ namespace vulkan {
             return img;
         }
 
-        static std::shared_ptr<Image> createDepthImageForReading(std::shared_ptr<SwapChain> inSwapChain) {
-            VkExtent2D extent = inSwapChain->extent();
-            std::shared_ptr<Image> img{new Image{inSwapChain->device(), extent.width,
-                                                 extent.height,
-                                                 inSwapChain->device()->depthFormat(),
+        static std::shared_ptr<Image> createDepthImage(
+                vulkan::Device const &device,
+                uint32_t width,
+                uint32_t height)
+        {
+            std::shared_ptr<Image> img{new Image{device, width,
+                                                 height,
+                                                 device->depthFormat(),
                                                  VK_IMAGE_TILING_OPTIMAL,
                                                  VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT,
                                                  VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT}};

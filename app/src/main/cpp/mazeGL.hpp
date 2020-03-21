@@ -164,6 +164,7 @@ public:
             DrawObjectTable const &objsData,
             float width,
             float height,
+            float widthStep,
             std::vector<float> &depthValues,
             uint32_t &rowSize);
 
