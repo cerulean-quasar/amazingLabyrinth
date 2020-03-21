@@ -295,9 +295,13 @@ void GraphicsGL::createDepthTexture() {
 std::shared_ptr<TextureData> GraphicsGL::getDepthTexture(
         DrawObjectTable const &objsData,
         float width,
-        float height)
+        float height,
+        std::vector<float> &depthMap, /* output */
+        uint32_t &rowSize) /* output */
 {
-    Framebuffer fb(m_surface.width(), m_surface.height());
+    uint32_t surfaceWidth = static_cast<uint32_t>(m_surface.width());
+    uint32_t surfaceHeight = static_cast<uint32_t>(m_surface.height());
+    Framebuffer fb(surfaceWidth, surfaceHeight);
     glBindFramebuffer(GL_FRAMEBUFFER, fb.fbo());
     checkGraphicsError();
 
@@ -331,8 +335,16 @@ std::shared_ptr<TextureData> GraphicsGL::getDepthTexture(
         }
     }
 
+    /* width * height * 4 color values each uint32_t in size. */
+    std::vector<uint32_t> data(static_cast<size_t>(surfaceWidth * surfaceHeight * 4));
+    glReadPixels(0, 0, m_surface.width(), m_surface.height(), GL_RGBA, GL_FLOAT, data.data());
+    checkGraphicsError();
+
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
     checkGraphicsError();
+
+    rowSize = surfaceWidth;
+    bitmapToDepthMap(data, proj, view, surfaceWidth, surfaceHeight, depthMap);
 
     return std::make_shared<TextureDataGL>(fb.acquireColorImage());
 }

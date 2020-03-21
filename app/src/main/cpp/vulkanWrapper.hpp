@@ -104,4 +104,5 @@ extern PFN_vkGetPhysicalDeviceFormatProperties vkGetPhysicalDeviceFormatProperti
 extern PFN_vkCreateSampler vkCreateSampler;
 extern PFN_vkCmdCopyBufferToImage vkCmdCopyBufferToImage;
 extern PFN_vkCreateAndroidSurfaceKHR vkCreateAndroidSurfaceKHR;
+extern PFN_vkCmdCopyImageToBuffer vkCmdCopyImageToBuffer;
 #endif

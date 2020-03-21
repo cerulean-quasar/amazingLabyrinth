@@ -40,6 +40,8 @@
 #include "level/levelFinish.hpp"
 #include "level/levelTracker.hpp"
 #include "level/levelStarter.hpp"
+#include "../../../../../../Android/Sdk/ndk/20.1.5948944/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/include/vulkan/vulkan.h"
+#include "../../../../../../Android/Sdk/ndk/20.1.5948944/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/include/c++/v1/memory"
 
 namespace vulkan {
 #ifdef DEBUG
@@ -277,8 +279,11 @@ namespace vulkan {
 
         // for a render pass that only uses the depth attachment (to read the z-buffer for shadow
         // mapping and to read the depth of an object.
-        static std::shared_ptr<RenderPass> createDepthTextureRenderPass(std::shared_ptr<Device> const &inDevice) {
-            return std::shared_ptr<RenderPass>{new RenderPass(inDevice)};
+        static std::shared_ptr<RenderPass> createDepthTextureRenderPass(
+                std::shared_ptr<Device> const &inDevice,
+                VkFormat colorImageFormat)
+        {
+            return std::shared_ptr<RenderPass>{new RenderPass(inDevice, colorImageFormat)};
         }
     private:
         // for creating a render pass that uses a color and depth attachment (i.e. the normal render pass)
@@ -289,17 +294,17 @@ namespace vulkan {
         }
 
         // for creating a render pass with only a depth attachment.
-        RenderPass(std::shared_ptr<Device> const &inDevice)
+        RenderPass(std::shared_ptr<Device> const &inDevice, VkFormat colorImageFormat)
                 : m_device{inDevice},
                   m_renderPass{} {
-            createRenderPassDepthTexture();
+            createRenderPassDepthTexture(colorImageFormat);
         }
 
         std::shared_ptr<Device> m_device;
         std::shared_ptr<VkRenderPass_T> m_renderPass;
 
         void createRenderPass(std::shared_ptr<SwapChain> const &swapChain);
-        void createRenderPassDepthTexture();
+        void createRenderPassDepthTexture(VkFormat colorImageFormat);
     };
 
     class DescriptorPools;
@@ -635,6 +640,8 @@ namespace vulkan {
 
         void copyBufferToImage(Buffer &buffer, std::shared_ptr<CommandPool> const &pool);
 
+        void copyImageToBuffer(Buffer &buffer, std::shared_ptr<CommandPool> const &pool);
+
         void transitionImageLayout(VkFormat format, VkImageLayout oldLayout,
                                    VkImageLayout newLayout, std::shared_ptr<CommandPool> const &pool);
 
@@ -663,6 +670,20 @@ namespace vulkan {
 
     class ImageView {
     public:
+        static std::shared_ptr<ImageView> createImageViewAndImage(
+                std::shared_ptr<Device> const &inDevice,
+                uint32_t inWidth,
+                uint32_t inHeight,
+                VkFormat format,
+                VkImageTiling tiling,
+                VkImageUsageFlags usage,
+                VkMemoryPropertyFlags properties,
+                VkImageAspectFlags aspectFlags)
+        {
+            return std::make_shared<ImageView>(std::make_shared<Image>(inDevice, inWidth, inHeight,
+                    format, tiling, usage, properties), format, aspectFlags);
+        }
+
         ImageView(std::shared_ptr<Image> const &inImage, VkFormat format,
                   VkImageAspectFlags aspectFlags)
                 : m_image{inImage},
@@ -702,13 +723,13 @@ namespace vulkan {
             return img;
         }
 
-        static std::shared_ptr<Image> createDepthImageForSampler(std::shared_ptr<SwapChain> inSwapChain) {
+        static std::shared_ptr<Image> createDepthImageForReading(std::shared_ptr<SwapChain> inSwapChain) {
             VkExtent2D extent = inSwapChain->extent();
             std::shared_ptr<Image> img{new Image{inSwapChain->device(), extent.width,
                                                  extent.height,
                                                  inSwapChain->device()->depthFormat(),
                                                  VK_IMAGE_TILING_OPTIMAL,
-                                                 VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
+                                                 VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT,
                                                  VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT}};
 
             return img;

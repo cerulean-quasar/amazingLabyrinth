@@ -21,6 +21,7 @@
 
 #include "mazeVulkan.hpp"
 #include "mathGraphics.hpp"
+#include "../../../../../../Android/Sdk/ndk/20.1.5948944/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/include/c++/v1/memory"
 
 VkVertexInputBindingDescription getBindingDescription() {
     VkVertexInputBindingDescription bindingDescription = {};
@@ -620,7 +621,9 @@ void DepthTextureDescriptorSetLayout::createDescriptorSetLayout() {
 std::shared_ptr<TextureData> GraphicsVulkan::getDepthTexture(
         DrawObjectTable const &objsData,
         float width,
-        float height)
+        float height,
+        std::vector<float> &depthMap,
+        uint32_t &rowSize)
 {
     auto dscLayout = std::make_shared<DepthTextureDescriptorSetLayout>(m_device);
     auto dscPools = std::make_shared<vulkan::DescriptorPools>(m_device, dscLayout);
@@ -640,21 +643,33 @@ std::shared_ptr<TextureData> GraphicsVulkan::getDepthTexture(
     }
 
     auto depthView = std::make_shared<vulkan::ImageView>(
-            vulkan::ImageFactory::createDepthImageForSampler(m_swapChain),
+            vulkan::ImageFactory::createDepthImage(m_swapChain),
             m_device->depthFormat(),
             VK_IMAGE_ASPECT_DEPTH_BIT);
     depthView->image()->transitionImageLayout(m_device->depthFormat(), VK_IMAGE_LAYOUT_UNDEFINED,
                                               VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL, m_commandPool);
 
-    auto renderPass = vulkan::RenderPass::createDepthTextureRenderPass(m_device);
+    VkExtent2D extent = m_swapChain->extent();
+    VkFormat colorImageFormat = VK_FORMAT_R32_SFLOAT;
+    auto colorDepthImage = vulkan::ImageView::createImageViewAndImage(
+            m_device,
+            extent.width,
+            extent.height,
+            colorImageFormat,
+            VK_IMAGE_TILING_OPTIMAL,
+            VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT,
+            VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+            VK_IMAGE_ASPECT_COLOR_BIT);
 
-    std::vector<std::shared_ptr<vulkan::ImageView>> attachments = {depthView};
+    auto renderPass = vulkan::RenderPass::createDepthTextureRenderPass(m_device, colorImageFormat);
+
+    std::vector<std::shared_ptr<vulkan::ImageView>> attachments = {colorDepthImage, depthView};
     auto frameBuffer = std::make_shared<vulkan::Framebuffer>(m_device, renderPass, attachments,
             m_swapChain->extent().width, m_swapChain->extent().height);
 
     auto pipeline = std::make_shared<vulkan::Pipeline>(m_gameRequester, m_device, m_swapChain->extent(),
             renderPass, dscPools, getBindingDescription(), getAttributeDescriptions(),
-            SHADER_DEPTH_VERT_FILE, SHADER_DEPTH_FRAG_FILE, m_graphicsPipeline, false);
+            SHADER_DEPTH_VERT_FILE, SHADER_DEPTH_FRAG_FILE, m_graphicsPipeline, true);
 
     // start recording commands
     vulkan::SingleTimeCommands cmds{m_device, m_commandPool};
@@ -706,7 +721,21 @@ std::shared_ptr<TextureData> GraphicsVulkan::getDepthTexture(
 
     cmds.end();
 
-    auto imgSampler = std::make_shared<vulkan::ImageSampler>(m_device, depthView);
+    std::vector<uint32_t> colorDepthMap;
+    colorDepthMap.resize(extent.width * extent.height);
+    vulkan::Buffer buffer{m_device,
+                          extent.width * extent.height * sizeof (uint32_t),
+                          VK_BUFFER_USAGE_TRANSFER_DST_BIT,
+                          VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT};
+    colorDepthImage->image().copyImageToBuffer(buffer, m_commandPool);
+    buffer.copyRawTo(colorDepthMap.data(), colorDepthMap.size() * sizeof (uint32_t));
+    bitmapToDepthMap(colorDepthMap, proj, view, extent.width, extent.height, depthMap);
+    rowSize = extent.width;
+
+    colorDepthImage->image()->transitionLayout(colorImageFormat, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+            VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, m_commandPool);
+
+    auto imgSampler = std::make_shared<vulkan::ImageSampler>(m_device, colorDepthImage);
 
     return std::make_shared<TextureDataVulkan>(imgSampler);
 }

@@ -20,6 +20,7 @@
 #include <stb_image.h>
 
 #include "graphicsVulkan.hpp"
+#include "../../../../../../Android/Sdk/ndk/20.1.5948944/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/include/c++/v1/stdexcept"
 
 namespace vulkan {
 /**
@@ -724,14 +725,42 @@ namespace vulkan {
         m_renderPass.reset(renderPassRaw, deleter);
     }
 
-    void RenderPass::createRenderPassDepthTexture() {
+    void RenderPass::createRenderPassDepthTexture(VkFormat colorImageFormat) {
+        /* color buffer attachment descriptions: use a single attachment represented by
+         * one of the images from the swap chain.
+         */
+        VkAttachmentDescription colorAttachment = {};
+        colorAttachment.format = colorImageFormat;
+        /* stick to one sample since we are not using multisampling */
+        colorAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
+        /* clear the contents of the attachment to a constant at the start */
+        colorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+        /* store the rendered contents in memory so they can be read later */
+        colorAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+        /* we don't care about the stencil buffer for this app */
+        colorAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+        colorAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+
+        /* we don't care which layout the image was in */
+        colorAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+
+        /* images to be presented in the swap chain */
+        colorAttachment.finalLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
+
+        /* subpasses and attachment references:
+         * a render pass may consist of many subpasses. For example, post processing tasks.
+         */
+        VkAttachmentReference colorAttachmentRef = {};
+        /* specify which attachment by its index in the attachment descriptions array */
+        colorAttachmentRef.attachment = 0;
+
         /* depth attachment */
         VkAttachmentDescription depthAttachment = {};
         depthAttachment.format = m_device->depthFormat();
         depthAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
         depthAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
 
-        depthAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+        depthAttachment.storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
 
         depthAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
         depthAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
@@ -742,17 +771,18 @@ namespace vulkan {
         depthAttachment.finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
 
         VkAttachmentReference depthAttachmentRef = {};
-        depthAttachmentRef.attachment = 0;
+        depthAttachmentRef.attachment = 1;
         depthAttachmentRef.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
 
         /* render subpass */
         VkSubpassDescription subpass = {};
         /* specify a graphics subpass (as opposed to a compute subpass) */
         subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
-        subpass.colorAttachmentCount = 0;
-        subpass.pColorAttachments = nullptr;
+        subpass.colorAttachmentCount = 1;
+        subpass.pColorAttachments = &colorAttachmentRef;
         subpass.pDepthStencilAttachment = &depthAttachmentRef;
 
+#if 0
         /* create a render subbass dependency because we need the render pass to wait for the
          * VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT stage of the graphics pipeline
          */
@@ -785,16 +815,44 @@ namespace vulkan {
         dependencies[1].srcAccessMask = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
         dependencies[1].dstStageMask = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
         dependencies[1].dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
+#endif
+        /* create a render subbass dependency because we need the render pass to wait for the
+ * VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT stage of the graphics pipeline
+ */
+        VkSubpassDependency dependency = {};
+
+        /* The following two fields specify the indices of the dependency and the dependent
+         * subpass. The special value VK_SUBPASS_EXTERNAL refers to the implicit subpass before
+         * or after the render pass depending on whether it is specified in srcSubpass or
+         * dstSubpass. The index 0 refers to our subpass, which is the first and only one. The
+         * dstSubpass must always be higher than srcSubpass to prevent cycles in the
+         * dependency graph.
+         */
+        dependency.srcSubpass = VK_SUBPASS_EXTERNAL;
+        dependency.dstSubpass = 0;
+
+        /* wait for the VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT stage */
+        dependency.srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+        dependency.srcAccessMask = 0;
+
+        /* prevent the transition from happening until when we want to start writing colors to
+         * the color attachment.
+         */
+        dependency.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+        dependency.dstAccessMask =
+                VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+
+        std::array<VkAttachmentDescription, 2> attachments{ colorAttachment, depthAttachment };
 
         /* create the render pass */
         VkRenderPassCreateInfo renderPassInfo = {};
         renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
-        renderPassInfo.attachmentCount = 1;
-        renderPassInfo.pAttachments = &depthAttachment;
+        renderPassInfo.attachmentCount = attachments.size();
+        renderPassInfo.pAttachments = attachments.data();
         renderPassInfo.subpassCount = 1;
         renderPassInfo.pSubpasses = &subpass;
-        renderPassInfo.dependencyCount = 0; //static_cast<uint32_t>(dependencies.size());
-        renderPassInfo.pDependencies = nullptr; //dependencies.data();
+        renderPassInfo.dependencyCount = 1;
+        renderPassInfo.pDependencies = &dependency;
 
         VkRenderPass renderPassRaw;
         if (vkCreateRenderPass(m_device->logicalDevice().get(), &renderPassInfo, nullptr, &renderPassRaw) !=
@@ -842,7 +900,7 @@ namespace vulkan {
                   std::string const vertShader,
                   std::string const fragShader,
                   std::shared_ptr<Pipeline> const &derivedPipeline,
-                  bool useColorBlending) {
+                  bool useColorBlending /* todo: parameter not needed? */) {
         Shader vertShaderModule(requester, m_device, vertShader);
         Shader fragShaderModule(requester, m_device, fragShader);
 
@@ -1445,9 +1503,14 @@ namespace vulkan {
 
             sourceStage = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
             destinationStage = VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
-
+        } else if (oldLayout == VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL &&  // TODO: condition can be removed when testing done
+                   newLayout == VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL) {
+            barrier.srcAccessMask = VK_ACCESS_TRANSFER_READ_BIT;
+            barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
+            sourceStage = VK_PIPELINE_STAGE_TRANSFER_BIT;
+            destinationStage = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
         } else {
-            throw std::invalid_argument("unsupported layout transition!");
+            throw std::runtime_error("unsupported layout transition!");
         }
 
         vkCmdPipelineBarrier(
@@ -1493,6 +1556,41 @@ namespace vulkan {
 
         vkCmdCopyBufferToImage(cmds.commandBuffer().get(), buffer.buffer().get(),
                                m_image.get(), VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &region);
+
+        cmds.end();
+    }
+
+    void Image::copyImageToBuffer(Buffer &buffer, std::shared_ptr<CommandPool> const &pool) {
+        SingleTimeCommands cmds{m_device, pool};
+        cmds.begin();
+
+        VkBufferImageCopy region = {};
+
+        /* offset in the buffer where the image starts. */
+        region.bufferOffset = 0;
+
+        /* specifies how the pixels are layed out in memory.  We could have some padding between
+         * the rows.  But we don't in our case, so set both below to 0.
+         */
+        region.bufferRowLength = 0;
+        region.bufferImageHeight = 0;
+
+        /* indicate what part of the image we want to copy */
+        region.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+        region.imageSubresource.mipLevel = 0;
+        region.imageSubresource.baseArrayLayer = 0;
+        region.imageSubresource.layerCount = 1;
+
+        /* indicate what part of the image we want to copy */
+        region.imageOffset = {0, 0, 0};
+        region.imageExtent = {
+                m_width,
+                m_height,
+                1
+        };
+
+        vkCmdCopyImageToBuffer(cmds.commandBuffer().get(), buffer.buffer().get(),
+                               m_image.get(), VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, 1, &region);
 
         cmds.end();
     }

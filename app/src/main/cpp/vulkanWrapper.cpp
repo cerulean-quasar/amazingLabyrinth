@@ -19,6 +19,7 @@
  */
 #include <dlfcn.h>
 #include "vulkanWrapper.hpp"
+#include "../../../../../../Android/Sdk/ndk/20.1.5948944/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/include/vulkan/vulkan.h"
 
 bool loadVulkan() {
 
@@ -107,7 +108,7 @@ bool loadVulkan() {
     vkCreateSampler = reinterpret_cast<PFN_vkCreateSampler>(dlsym(libvulkan, "vkCreateSampler"));
     vkCmdCopyBufferToImage = reinterpret_cast<PFN_vkCmdCopyBufferToImage>(dlsym(libvulkan, "vkCmdCopyBufferToImage"));
     vkCreateAndroidSurfaceKHR = reinterpret_cast<PFN_vkCreateAndroidSurfaceKHR>(dlsym(libvulkan, "vkCreateAndroidSurfaceKHR"));
-
+    vkCmdCopyImageToBuffer = reinterpret_cast<PFN_vkCmdCopyImageToBuffer>(dlsym(libvulkan, "vkCmdCopyImageToBuffer"));
     return true;
 }
 
@@ -190,3 +191,4 @@ PFN_vkGetPhysicalDeviceFormatProperties vkGetPhysicalDeviceFormatProperties;
 PFN_vkCreateSampler vkCreateSampler;
 PFN_vkCmdCopyBufferToImage vkCmdCopyBufferToImage;
 PFN_vkCreateAndroidSurfaceKHR vkCreateAndroidSurfaceKHR;
+PFN_vkCmdCopyImageToBuffer vkCmdCopyImageToBuffer;

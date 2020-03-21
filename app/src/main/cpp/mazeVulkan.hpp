@@ -367,10 +367,12 @@ public:
                 std::move(devGraphicsDescription.m_name)};
     }
 
-    virtual std::shared_ptr<TextureData> getDepthTexture(
+    virtual void getDepthTexture(
             DrawObjectTable const &objsData,
             float width,
-            float height);
+            float height,
+            std::vector<float> &depthMap,
+            uint32_t &rowSize);
 
     virtual ~GraphicsVulkan() { }
 private:

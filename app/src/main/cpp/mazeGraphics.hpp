@@ -195,7 +195,9 @@ public:
     virtual std::shared_ptr<TextureData> getDepthTexture(
             DrawObjectTable const &objsData,
             float width,
-            float height) = 0;
+            float height,
+            std::vector<float> &depthValues,
+            uint32_t &rowSize) = 0;
 
     explicit Graphics(GameRequesterCreator inRequesterCreator)
         : m_gameRequester{inRequesterCreator(this)},

@@ -163,7 +163,9 @@ public:
     virtual std::shared_ptr<TextureData> getDepthTexture(
             DrawObjectTable const &objsData,
             float width,
-            float height);
+            float height,
+            std::vector<float> &depthValues,
+            uint32_t &rowSize);
 
     virtual ~GraphicsGL() {
         glDeleteShader(programID);

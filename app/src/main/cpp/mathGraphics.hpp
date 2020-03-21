@@ -32,6 +32,7 @@
  * Notes: all angles are in radians
  */
 
+#include <vector>
 #include <glm/glm.hpp>
 
 glm::mat4 getPerspectiveMatrix(
@@ -51,3 +52,16 @@ glm::mat4 getOrthoMatrix(
         float farPlane,
         bool invertY,
         bool depth0to1);
+
+float colorValueToDepth(
+        uint32_t colorValue,
+        glm::mat4 const &proj,
+        glm::mat4 const &view);
+
+void bitmapToDepthMap(
+        std::vector<uint32_t> const &texture,
+        glm::mat4 const &proj,
+        glm::mat4 const &view,
+        uint32_t surfaceWidth,
+        uint32_t surfaceHeight,
+        std::vector<float> &depthMap);

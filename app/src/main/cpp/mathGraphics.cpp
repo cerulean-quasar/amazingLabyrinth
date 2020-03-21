@@ -80,3 +80,31 @@ glm::mat4 getOrthoMatrix(
 
     return proj;
 }
+
+float colorValueToDepth(
+        uint32_t colorValue,
+        glm::mat4 const &proj,
+        glm::mat4 const &view)
+{
+    float floatcolor = static_cast<float>((colorValue >> 30)*-1 * pow(colorValue&0x8fffff, ((colorValue >> 23)&0xff) - 127));
+    glm::vec4 z{0.0f, 0.0f, floatcolor, 1.0f};
+    z = glm::inverse(proj) * glm::inverse(view) * z;
+    return z.z/z.w;
+}
+
+void bitmapToDepthMap(
+        std::vector<uint32_t> const &texture,
+        glm::mat4 const &proj,
+        glm::mat4 const &view,
+        uint32_t surfaceWidth,
+        uint32_t surfaceHeight,
+        std::vector<float> &depthMap)
+{
+    depthMap.resize(surfaceWidth * surfaceHeight);
+    for (size_t i = 0; i < surfaceHeight; i++) {
+        for (size_t j = 0; j < surfaceWidth; j++) {
+            uint32_t red = texture[(i * surfaceHeight + j)*4];
+            depthMap[i*surfaceHeight + j] = colorValueToDepth(red, proj, view);
+        }
+    }
+}
