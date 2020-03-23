@@ -54,7 +54,9 @@ public:
     std::shared_ptr<TextureData> getDepthTexture(
             DrawObjectTable const &objsData,
             float width,
-            float height) override;
+            float height,
+            uint32_t nbrSamplesForWidth,
+            std::vector<float> &depthMap) override;
 
     // accessors
     JNIEnv *env() { return m_env; }

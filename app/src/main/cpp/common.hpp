@@ -46,7 +46,9 @@ public:
     virtual std::shared_ptr<TextureData> getDepthTexture(
             DrawObjectTable const &objsData,
             float width,
-            float height) = 0;
+            float height,
+            uint32_t nbrSamplesForWidth,
+            std::vector<float> &depthMap) = 0;
     virtual ~GraphicsRequester() = default;
 };
 

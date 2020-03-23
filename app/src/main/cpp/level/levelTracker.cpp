@@ -272,6 +272,7 @@ LevelGroup LevelTracker::getLevelGroupMountain(std::shared_ptr<FixedMazeSaveData
                     "searches for\na den to weather\nthe harsh winter"}),
             GetLevelFcn([levelBundle](LevelTracker &tracker) {
                 auto level = tracker.getLevel<FixedMaze>(levelBundle);
+                level->initSetBallTexture("textures/rolarBear/ballRolarBear.png");
                 return level;
             }),
             GetFinisherFcn([](LevelTracker &tracker, float centerX, float centerY, glm::mat4 const &proj, glm::mat4 const &view) {

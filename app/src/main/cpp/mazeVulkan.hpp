@@ -371,9 +371,8 @@ public:
             DrawObjectTable const &objsData,
             float width,
             float height,
-            float widthStep,
-            std::vector<float> &depthMap,
-            uint32_t &rowSize);
+            uint32_t nbrSamplesForWidth,
+            std::vector<float> &depthMap);
 
     virtual ~GraphicsVulkan() { }
 private:

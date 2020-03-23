@@ -196,9 +196,8 @@ public:
             DrawObjectTable const &objsData,
             float width,
             float height,
-            float witdhStep,
-            std::vector<float> &depthValues,
-            uint32_t &rowSize) = 0;
+            uint32_t nbrWidthSamples,
+            std::vector<float> &depthValues) = 0;
 
     explicit Graphics(GameRequesterCreator inRequesterCreator)
         : m_gameRequester{inRequesterCreator(this)},

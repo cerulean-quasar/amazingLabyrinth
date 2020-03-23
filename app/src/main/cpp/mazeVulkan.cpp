@@ -622,9 +622,8 @@ std::shared_ptr<TextureData> GraphicsVulkan::getDepthTexture(
         DrawObjectTable const &objsData,
         float width,
         float height,
-        float widthStep,
-        std::vector<float> &depthMap,
-        uint32_t &rowSize)
+        uint32_t nbrSamplesForWidth,
+        std::vector<float> &depthMap)
 {
     auto dscLayout = std::make_shared<DepthTextureDescriptorSetLayout>(m_device);
     auto dscPools = std::make_shared<vulkan::DescriptorPools>(m_device, dscLayout);
@@ -644,7 +643,7 @@ std::shared_ptr<TextureData> GraphicsVulkan::getDepthTexture(
     }
 
     VkExtent2D extent = m_swapChain->extent();
-    uint32_t imageWidth = static_cast<uint32_t>(std::floor(extent.width/width * widthStep));
+    uint32_t imageWidth = nbrSamplesForWidth;
     uint32_t imageHeight = (imageWidth * extent.height)/extent.width;
     auto depthView = std::make_shared<vulkan::ImageView>(
             std::make_shared<vulkan::Image>(m_device, imageWidth, imageHeight),
