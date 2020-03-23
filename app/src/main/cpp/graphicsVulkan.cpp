@@ -1589,8 +1589,10 @@ namespace vulkan {
                 1
         };
 
-        vkCmdCopyImageToBuffer(cmds.commandBuffer().get(), buffer.buffer().get(),
-                               m_image.get(), VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, 1, &region);
+        vkCmdCopyImageToBuffer(cmds.commandBuffer().get(),
+                               m_image.get(), VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+                               buffer.buffer().get(),
+                               1, &region);
 
         cmds.end();
     }

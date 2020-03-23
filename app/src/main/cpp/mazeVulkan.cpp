@@ -22,6 +22,7 @@
 #include "mazeVulkan.hpp"
 #include "mathGraphics.hpp"
 #include "../../../../../../Android/Sdk/ndk/20.1.5948944/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/include/c++/v1/memory"
+#include "../../../../../../Android/Sdk/ndk/20.1.5948944/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/include/vulkan/vulkan.h"
 
 VkVertexInputBindingDescription getBindingDescription() {
     VkVertexInputBindingDescription bindingDescription = {};
@@ -630,7 +631,8 @@ std::shared_ptr<TextureData> GraphicsVulkan::getDepthTexture(
 
     glm::mat4 proj = getOrthoMatrix(-width/2.0f, width/2.0f, -height/2.0f, height/2.0f,
             m_depthTextureNearPlane, m_depthTextureFarPlane, true, true);
-    glm::mat4 vp = proj * m_levelSequence->viewMatrix();
+    glm::mat4 view = m_levelSequence->viewMatrix();
+    glm::mat4 vp = proj * view;
 
     std::vector<std::shared_ptr<DrawObjectDataVulkanDepthTexture>> drawObjsData;
     for (auto const &objdata : objsData) {
@@ -646,7 +648,7 @@ std::shared_ptr<TextureData> GraphicsVulkan::getDepthTexture(
     uint32_t imageWidth = nbrSamplesForWidth;
     uint32_t imageHeight = (imageWidth * extent.height)/extent.width;
     auto depthView = std::make_shared<vulkan::ImageView>(
-            std::make_shared<vulkan::Image>(m_device, imageWidth, imageHeight),
+            vulkan::ImageFactory::createDepthImage(m_device, imageWidth, imageHeight),
             m_device->depthFormat(),
             VK_IMAGE_ASPECT_DEPTH_BIT);
     depthView->image()->transitionImageLayout(m_device->depthFormat(), VK_IMAGE_LAYOUT_UNDEFINED,
@@ -729,12 +731,12 @@ std::shared_ptr<TextureData> GraphicsVulkan::getDepthTexture(
                           imageWidth * imageHeight * sizeof (uint32_t),
                           VK_BUFFER_USAGE_TRANSFER_DST_BIT,
                           VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT};
-    colorDepthImage->image().copyImageToBuffer(buffer, m_commandPool);
+    colorDepthImage->image()->copyImageToBuffer(buffer, m_commandPool);
     buffer.copyRawTo(colorDepthMap.data(), colorDepthMap.size() * sizeof (uint32_t));
     bitmapToDepthMap(colorDepthMap, proj, view, imageWidth, imageHeight, depthMap);
-    rowSize = imageWidth;
+    nbrSamplesForWidth = imageWidth;
 
-    colorDepthImage->image()->transitionLayout(colorImageFormat, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+    colorDepthImage->image()->transitionImageLayout(colorImageFormat, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
             VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, m_commandPool);
 
     auto imgSampler = std::make_shared<vulkan::ImageSampler>(m_device, colorDepthImage);

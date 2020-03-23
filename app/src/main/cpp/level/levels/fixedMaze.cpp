@@ -124,13 +124,13 @@ bool FixedMaze::updateDynamicDrawObjects(DrawObjectTable &objs, TextureMap &text
         textures.insert(std::make_pair(ballObj->texture, std::shared_ptr<TextureData>()));
         glm::mat4 modelMatrixBall = glm::translate(glm::mat4(1.0f), m_ball.position) *
                                     glm::mat4_cast(m_ball.totalRotated) *
-                                    glm::scale(glm::mat4(1.0f), m_scaleBall, m_scaleBall, m_scaleBall);
+                                    glm::scale(glm::mat4(1.0f), glm::vec3{m_scaleBall, m_scaleBall, m_scaleBall});
         ballObj->modelMatrices.push_back(modelMatrixBall);
         texturesChanged = true;
     } else {
         glm::mat4 modelMatrixBall = glm::translate(glm::mat4(1.0f), m_ball.position) *
             glm::mat4_cast(m_ball.totalRotated) *
-            glm::scale(glm::mat4(1.0f), m_scaleBall, m_scaleBall, m_scaleBall);
+            glm::scale(glm::mat4(1.0f), glm::vec3{m_scaleBall, m_scaleBall, m_scaleBall});
 
     }
     return true;

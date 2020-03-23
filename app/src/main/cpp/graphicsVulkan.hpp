@@ -40,8 +40,6 @@
 #include "level/levelFinish.hpp"
 #include "level/levelTracker.hpp"
 #include "level/levelStarter.hpp"
-#include "../../../../../../Android/Sdk/ndk/20.1.5948944/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/include/vulkan/vulkan.h"
-#include "../../../../../../Android/Sdk/ndk/20.1.5948944/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/include/c++/v1/memory"
 
 namespace vulkan {
 #ifdef DEBUG
@@ -724,7 +722,7 @@ namespace vulkan {
         }
 
         static std::shared_ptr<Image> createDepthImage(
-                vulkan::Device const &device,
+                std::shared_ptr<Device> const &device,
                 uint32_t width,
                 uint32_t height)
         {
