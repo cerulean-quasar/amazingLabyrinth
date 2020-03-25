@@ -573,6 +573,7 @@ namespace vulkan {
         void copyTo(std::shared_ptr<CommandPool> cmds, Buffer const &srcBuffer, VkDeviceSize size);
 
         void copyRawTo(void const *dataRaw, size_t size);
+        void copyRawFrom(void *dataRaw, size_t size) const;
 
         inline std::shared_ptr<VkBuffer_T> const &buffer() const { return m_buffer; }
         inline std::shared_ptr<VkDeviceMemory_T> const &memory() const { return m_bufferMemory; }

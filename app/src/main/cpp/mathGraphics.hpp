@@ -54,14 +54,16 @@ glm::mat4 getOrthoMatrix(
         bool depth0to1);
 
 float colorValueToDepth(
-        uint32_t colorValue,
+        float colorValue,
         glm::mat4 const &proj,
         glm::mat4 const &view);
 
 void bitmapToDepthMap(
-        std::vector<uint32_t> const &texture,
+        std::vector<float> const &texture,
         glm::mat4 const &proj,
         glm::mat4 const &view,
         uint32_t surfaceWidth,
         uint32_t surfaceHeight,
+        uint32_t step,  /* how many colors per data point */
+        bool invertY,
         std::vector<float> &depthMap);

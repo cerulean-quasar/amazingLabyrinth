@@ -37,5 +37,9 @@ out gl_PerVertex {
 
 void main() {
     gl_Position = ubo.mvp * vec4(inPosition, 1.0);
-    fragColor = gl_Position.zzz;
+    if (gl_Position.z >= 0.0 && gl_Position.z <= 1.0f) {
+        fragColor = gl_Position.zzz;
+    } else {
+        fragColor = vec3(1.0f, 1.0f, 1.0f);
+    }
 }

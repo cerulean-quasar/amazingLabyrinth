@@ -753,6 +753,7 @@ namespace vulkan {
         VkAttachmentReference colorAttachmentRef = {};
         /* specify which attachment by its index in the attachment descriptions array */
         colorAttachmentRef.attachment = 0;
+        colorAttachmentRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 
         /* depth attachment */
         VkAttachmentDescription depthAttachment = {};
@@ -1332,6 +1333,17 @@ namespace vulkan {
             throw (std::runtime_error("Can't map memory."));
         }
         memcpy(data, dataRaw, size);
+        vkUnmapMemory(m_device->logicalDevice().get(), m_bufferMemory.get());
+    }
+
+    void Buffer::copyRawFrom(void *dataRaw, size_t size) const {
+        void *data;
+        VkResult result = vkMapMemory(m_device->logicalDevice().get(), m_bufferMemory.get(), 0,
+                                      size, 0, &data);
+        if (result != VK_SUCCESS) {
+            throw (std::runtime_error("Can't map memory."));
+        }
+        memcpy(dataRaw, data, size);
         vkUnmapMemory(m_device->logicalDevice().get(), m_bufferMemory.get());
     }
 

@@ -661,7 +661,7 @@ std::shared_ptr<TextureData> GraphicsVulkan::getDepthTexture(
             imageHeight,
             colorImageFormat,
             VK_IMAGE_TILING_OPTIMAL,
-            VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT,
+            VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, // todo: remove sampled bit usage
             VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
             VK_IMAGE_ASPECT_COLOR_BIT);
 
@@ -669,9 +669,10 @@ std::shared_ptr<TextureData> GraphicsVulkan::getDepthTexture(
 
     std::vector<std::shared_ptr<vulkan::ImageView>> attachments = {colorDepthImage, depthView};
     auto frameBuffer = std::make_shared<vulkan::Framebuffer>(m_device, renderPass, attachments,
-            m_swapChain->extent().width, m_swapChain->extent().height);
+            imageWidth, imageHeight);
 
-    auto pipeline = std::make_shared<vulkan::Pipeline>(m_gameRequester, m_device, m_swapChain->extent(),
+    VkExtent2D extentFB{imageWidth, imageHeight};
+    auto pipeline = std::make_shared<vulkan::Pipeline>(m_gameRequester, m_device, extentFB,
             renderPass, dscPools, getBindingDescription(), getAttributeDescriptions(),
             SHADER_DEPTH_VERT_FILE, SHADER_DEPTH_FRAG_FILE, m_graphicsPipeline, true);
 
@@ -686,15 +687,16 @@ std::shared_ptr<TextureData> GraphicsVulkan::getDepthTexture(
     renderPassInfo.framebuffer = frameBuffer->framebuffer().get();
     /* size of the render area */
     renderPassInfo.renderArea.offset = {0, 0};
-    renderPassInfo.renderArea.extent = m_swapChain->extent();
+    renderPassInfo.renderArea.extent = {imageWidth, imageHeight};
 
     /* the color value to use when clearing the image with VK_ATTACHMENT_LOAD_OP_CLEAR,
      * using black with 0% opacity
      */
-    VkClearValue clearValue = {};
-    clearValue.depthStencil = {1.0, 0};
-    renderPassInfo.clearValueCount = 1;
-    renderPassInfo.pClearValues = &clearValue;
+    std::array<VkClearValue, 2> clearValues = {};
+    clearValues[0].color = {1.0f, 1.0f, 1.0f, 1.0f};
+    clearValues[1].depthStencil = {1.0f, 0};
+    renderPassInfo.clearValueCount = clearValues.size();
+    renderPassInfo.pClearValues = clearValues.data();
 
     /* begin recording commands - start by beginning the render pass.
      * none of these functions returns an error (they return void).  There will be no error
@@ -725,16 +727,15 @@ std::shared_ptr<TextureData> GraphicsVulkan::getDepthTexture(
 
     cmds.end();
 
-    std::vector<uint32_t> colorDepthMap;
-    colorDepthMap.resize(extent.width * extent.height);
+    std::vector<float> colorDepthMap;
+    colorDepthMap.resize(imageWidth * imageHeight);
     vulkan::Buffer buffer{m_device,
-                          imageWidth * imageHeight * sizeof (uint32_t),
-                          VK_BUFFER_USAGE_TRANSFER_DST_BIT,
-                          VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT};
+                          imageWidth * imageHeight * sizeof (float),
+                          VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,
+                          VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT};
     colorDepthImage->image()->copyImageToBuffer(buffer, m_commandPool);
-    buffer.copyRawTo(colorDepthMap.data(), colorDepthMap.size() * sizeof (uint32_t));
-    bitmapToDepthMap(colorDepthMap, proj, view, imageWidth, imageHeight, depthMap);
-    nbrSamplesForWidth = imageWidth;
+    buffer.copyRawFrom(colorDepthMap.data(), colorDepthMap.size() * sizeof (float));
+    bitmapToDepthMap(colorDepthMap, proj, view, imageWidth, imageHeight, 1, true, depthMap);
 
     colorDepthImage->image()->transitionImageLayout(colorImageFormat, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
             VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, m_commandPool);

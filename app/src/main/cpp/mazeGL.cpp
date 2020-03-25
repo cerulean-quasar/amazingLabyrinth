@@ -336,7 +336,7 @@ std::shared_ptr<TextureData> GraphicsGL::getDepthTexture(
     }
 
     /* width * height * 4 color values each uint32_t in size. */
-    std::vector<uint32_t> data(static_cast<size_t>(surfaceWidth * surfaceHeight * 4));
+    std::vector<float> data(static_cast<size_t>(surfaceWidth * surfaceHeight * 4));
     glReadPixels(0, 0, surfaceWidth, surfaceHeight, GL_RGBA, GL_FLOAT, data.data());
     checkGraphicsError();
 
@@ -344,7 +344,7 @@ std::shared_ptr<TextureData> GraphicsGL::getDepthTexture(
     checkGraphicsError();
 
     rowSize = surfaceWidth;
-    bitmapToDepthMap(data, proj, view, surfaceWidth, surfaceHeight, depthMap);
+    bitmapToDepthMap(data, proj, view, surfaceWidth, surfaceHeight, 4, false, depthMap);
 
     return std::make_shared<TextureDataGL>(fb.acquireColorImage());
 }

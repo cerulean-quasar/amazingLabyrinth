@@ -25,7 +25,7 @@ glm::vec4 FixedMaze::getBackgroundColor() {
 }
 
 void FixedMaze::updateAcceleration(float x, float y, float z) {
-    m_ball.acceleration = glm::vec3{x, y, 0.0f/* -z  */};
+    m_ball.acceleration = glm::vec3{-x, -y, 0.0f/* -z  */};
 }
 
 bool FixedMaze::updateData() {
@@ -89,7 +89,13 @@ bool FixedMaze::updateData() {
 
     size_t xcell = static_cast<size_t>(std::floor((m_ball.position.x + m_width/2)/m_width * m_rowWidth));
     size_t ycell = static_cast<size_t>(std::floor((m_ball.position.y + m_height/2)/m_height * m_rowHeight));
-    m_ball.position.z = m_depthMap[ycell * m_rowHeight + xcell] + m_scaleBall/2.0f;
+    if (xcell > m_rowWidth || ycell > m_depthMap.size()/m_rowWidth) {
+        throw std::runtime_error("Out of bounds in fixed maze.");
+    }
+    m_ball.position.z = m_depthMap[ycell * m_rowWidth + xcell] + m_scaleBall/2.0f;
+    if (m_ball.position.z > 0.0f) {
+        m_ball.position.z = m_maxZ - m_scaleBall;
+    }
 
     bool drawingNecessary = glm::length(m_ball.position - m_ball.prevPosition) > 0.005;
     if (drawingNecessary) {
@@ -104,36 +110,47 @@ bool FixedMaze::updateStaticDrawObjects(DrawObjectTable &objs, TextureMap &textu
 
 bool FixedMaze::updateDynamicDrawObjects(DrawObjectTable &objs, TextureMap &textures, bool &texturesChanged) {
     texturesChanged = false;
-    if (objs.empty() && textures.empty() && m_initialized) {
-        /* floor */
-        texturesChanged = true;
-        objs.emplace_back(m_testObj, nullptr);
-        //auto obj = m_worldMap.begin();
-        //obj->first->texture = m_testObj->texture;
-        //objs.emplace_back(obj->first, nullptr);
-        textures.insert(
-                std::make_pair(std::make_shared<TextureDescriptionDummy>(m_gameRequester), m_testTexture));
+    if (m_initialized) {
+        if (objs.empty() && textures.empty()) {
+            /* floor */
+            texturesChanged = true;
+            objs.emplace_back(m_testObj, nullptr);
+            //auto obj = m_worldMap.begin();
+            //obj->first->texture = m_testObj->texture;
+            //objs.emplace_back(obj->first, nullptr);
+            textures.insert(
+                    std::make_pair(std::make_shared<TextureDescriptionDummy>(m_gameRequester),
+                                   m_testTexture));
 
-        /* ball */
-        objs.push_back(std::make_pair(std::shared_ptr<DrawObject>(new DrawObject()),
-                                      std::shared_ptr<DrawObjectData>()));
-        DrawObject *ballObj = objs[0].first.get();
-        ballObj->vertices = m_ballVertices;
-        ballObj->indices = m_ballIndices;
-        ballObj->texture = std::make_shared<TextureDescriptionPath>(m_gameRequester, m_ballTextureName);
-        textures.insert(std::make_pair(ballObj->texture, std::shared_ptr<TextureData>()));
-        glm::mat4 modelMatrixBall = glm::translate(glm::mat4(1.0f), m_ball.position) *
-                                    glm::mat4_cast(m_ball.totalRotated) *
-                                    glm::scale(glm::mat4(1.0f), glm::vec3{m_scaleBall, m_scaleBall, m_scaleBall});
-        ballObj->modelMatrices.push_back(modelMatrixBall);
-        texturesChanged = true;
+            /* ball */
+            std::shared_ptr<DrawObject> ballObj = std::make_shared<DrawObject>();
+            ballObj->vertices = m_ballVertices;
+            ballObj->indices = m_ballIndices;
+            ballObj->texture = std::make_shared<TextureDescriptionPath>(m_gameRequester,
+                                                                        m_ballTextureName);
+            textures.insert(std::make_pair(ballObj->texture, std::shared_ptr<TextureData>()));
+            glm::mat4 modelMatrixBall = glm::translate(glm::mat4(1.0f), m_ball.position) *
+                                        glm::mat4_cast(m_ball.totalRotated) *
+                                        glm::scale(glm::mat4(1.0f),
+                                                   glm::vec3{m_scaleBall, m_scaleBall,
+                                                             m_scaleBall});
+            ballObj->modelMatrices.push_back(modelMatrixBall);
+            objs.emplace_back(ballObj, nullptr);
+            texturesChanged = true;
+        } else {
+            glm::mat4 modelMatrixBall = glm::translate(glm::mat4(1.0f), m_ball.position) *
+                                        glm::mat4_cast(m_ball.totalRotated) *
+                                        glm::scale(glm::mat4(1.0f),
+                                                   glm::vec3{m_scaleBall, m_scaleBall,
+                                                             m_scaleBall});
+            std::shared_ptr<DrawObject> ballObj = objs[1].first;
+            ballObj->modelMatrices[0] = modelMatrixBall;
+
+        }
+        return true;
     } else {
-        glm::mat4 modelMatrixBall = glm::translate(glm::mat4(1.0f), m_ball.position) *
-            glm::mat4_cast(m_ball.totalRotated) *
-            glm::scale(glm::mat4(1.0f), glm::vec3{m_scaleBall, m_scaleBall, m_scaleBall});
-
+        return false;
     }
-    return true;
 }
 
 void FixedMaze::start() {
