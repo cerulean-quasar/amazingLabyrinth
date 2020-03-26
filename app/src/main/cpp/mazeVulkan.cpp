@@ -735,7 +735,7 @@ std::shared_ptr<TextureData> GraphicsVulkan::getDepthTexture(
                           VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT};
     colorDepthImage->image()->copyImageToBuffer(buffer, m_commandPool);
     buffer.copyRawFrom(colorDepthMap.data(), colorDepthMap.size() * sizeof (float));
-    bitmapToDepthMap(colorDepthMap, proj, view, imageWidth, imageHeight, 1, true, depthMap);
+    bitmapToDepthMap(colorDepthMap, proj, view, imageWidth, imageHeight, 1, true, true, depthMap);
 
     colorDepthImage->image()->transitionImageLayout(colorImageFormat, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
             VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, m_commandPool);

@@ -3,4 +3,5 @@
     <string name="select_level">Choose Level</string>
     <string name="ok">OK</string>
     <string name="cancel">Cancel</string>
+    <string name="error">Error</string>
 </resources>

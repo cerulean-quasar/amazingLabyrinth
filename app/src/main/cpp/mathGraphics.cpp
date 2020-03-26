@@ -91,28 +91,11 @@ float colorValueToDepth(
     return z.z/z.w;
 }
 
-void bitmapToDepthMap(
-        std::vector<float> const &texture,
-        glm::mat4 const &proj,
-        glm::mat4 const &view,
-        uint32_t surfaceWidth,
-        uint32_t surfaceHeight,
-        uint32_t step,  /* how many colors per data point */
-        bool invertY,
-        std::vector<float> &depthMap)
-{
-    depthMap.resize(surfaceWidth * surfaceHeight);
-    if (invertY) {
-        for (size_t i = 0; i < surfaceWidth; i++) {
-            for (size_t j = 0; j < surfaceHeight; j++) {
-                float red = texture[((surfaceHeight - 1 - j) * surfaceWidth + i) * step];
-                depthMap[j * surfaceWidth + i] = colorValueToDepth(red, proj, view);
-            }
-        }
-    } else {
-        for (size_t i = 0; i < depthMap.size(); i++) {
-            float red = texture[i * step];
-            depthMap[i] = colorValueToDepth(red, proj, view);
-        }
+template <>
+float convertColor<unsigned char>(unsigned char color, bool depth0to1) {
+    float ret = static_cast<float>(color) / 255.0f;
+    if (!depth0to1) {
+        ret = ret * 2.0f - 1.0f;
     }
+    return ret;
 }

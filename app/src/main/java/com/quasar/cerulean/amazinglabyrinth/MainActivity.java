@@ -142,7 +142,7 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
             errMsg.setText(err);
             Button okButton = msgLayout.findViewById(R.id.okButton);
             final AlertDialog dialog = new AlertDialog.Builder(this).
-                    setTitle(R.string.select_level).setView(msgLayout).show();
+                    setTitle(R.string.error).setView(msgLayout).show();
             okButton.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View view) {

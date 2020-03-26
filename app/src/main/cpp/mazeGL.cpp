@@ -50,7 +50,7 @@ void checkGraphicsError() {
             default:
                 c = "Unknown return code.";
         }
-        throw std::runtime_error(std::string("Framebuffer is not complete, returned: ") + c);
+        throw std::runtime_error(std::string("A graphics error occurred: ") + c);
     }
 }
 std::string const SHADER_VERT_FILE("shaders/shaderGL.vert");
@@ -168,7 +168,6 @@ Framebuffer::Framebuffer(uint32_t width, uint32_t height)
       m_depthMap(GL_INVALID_VALUE),
       m_colorImage(GL_INVALID_VALUE)
 {
-    // needed because OpenGLES 2.0 does not have glReadBuffer or glDrawBuffer, so we need a color attachment.
     glGenTextures(1, &m_colorImage);
     checkGraphicsError();
     glActiveTexture(GL_TEXTURE0);
@@ -305,6 +304,10 @@ std::shared_ptr<TextureData> GraphicsGL::getDepthTexture(
     glBindFramebuffer(GL_FRAMEBUFFER, fb.fbo());
     checkGraphicsError();
 
+    // set the viewport
+    glViewport(0, 0, surfaceWidth, surfaceHeight);
+    checkGraphicsError();
+
     // set the shader to use
     glUseProgram(depthProgramID);
     checkGraphicsError();
@@ -335,16 +338,20 @@ std::shared_ptr<TextureData> GraphicsGL::getDepthTexture(
         }
     }
 
-    /* width * height * 4 color values each uint32_t in size. */
-    std::vector<float> data(static_cast<size_t>(surfaceWidth * surfaceHeight * 4));
-    glReadPixels(0, 0, surfaceWidth, surfaceHeight, GL_RGBA, GL_FLOAT, data.data());
+    // set the viewport back for the rendering to the screen
+    glViewport(0, 0, m_surface.width(), m_surface.height());
+    checkGraphicsError();
+
+    /* width * height * 4 color values each a char in size. */
+    std::vector<unsigned char> data(static_cast<size_t>(surfaceWidth * surfaceHeight * 4));
+    glReadPixels(0, 0, surfaceWidth, surfaceHeight, GL_RGBA, GL_UNSIGNED_BYTE, data.data());
     checkGraphicsError();
 
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
     checkGraphicsError();
 
     rowSize = surfaceWidth;
-    bitmapToDepthMap(data, proj, view, surfaceWidth, surfaceHeight, 4, false, depthMap);
+    bitmapToDepthMap<unsigned char>(data, proj, view, surfaceWidth, surfaceHeight, 4, false, false, depthMap);
 
     return std::make_shared<TextureDataGL>(fb.acquireColorImage());
 }
