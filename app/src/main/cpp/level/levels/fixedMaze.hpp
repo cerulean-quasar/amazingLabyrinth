@@ -68,7 +68,7 @@ private:
     std::chrono::high_resolution_clock::time_point m_prevTime;
     std::vector<Vertex> m_ballVertices;
     std::vector<uint32_t> m_ballIndices;
-    bool m_initialized;
+    //bool m_initialized;
     // data on where the ball is, how fast it is moving, etc.
     struct {
         glm::vec3 prevPosition;
@@ -89,5 +89,6 @@ private:
 
     void loadModels();
     void init();
+    void setBallZPos();
 };
 #endif /* AMAZING_LABYRINTH_FIXED_MAZE_HPP */
