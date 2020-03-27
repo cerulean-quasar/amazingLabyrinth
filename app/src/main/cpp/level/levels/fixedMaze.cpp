@@ -232,7 +232,7 @@ void FixedMaze::init()
     worldObj->texture = nullptr;
     m_worldMap.emplace_back(worldObj, nullptr);
 
-    m_rowWidth = static_cast<uint32_t>(std::floor(20.0f/m_scaleBall * m_width));
+    m_rowWidth = static_cast<uint32_t>(std::floor(10.0f/m_scaleBall * m_width));
     m_testTexture = m_gameRequester->getDepthTexture(m_worldMap, m_width, m_height, m_rowWidth,
             m_depthMap);
     m_rowHeight = m_depthMap.size()/m_rowWidth;

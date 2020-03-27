@@ -308,6 +308,13 @@ std::shared_ptr<TextureData> GraphicsGL::getDepthTexture(
     glViewport(0, 0, surfaceWidth, surfaceHeight);
     checkGraphicsError();
 
+    glCullFace(GL_BACK);
+    checkGraphicsError();
+    glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
+    checkGraphicsError();
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    checkGraphicsError();
+
     // set the shader to use
     glUseProgram(depthProgramID);
     checkGraphicsError();
@@ -364,12 +371,13 @@ void GraphicsGL::drawFrame() {
     checkGraphicsError();
     glCullFace(GL_BACK);
     checkGraphicsError();
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-    checkGraphicsError();
 
     // The clear background color
     glm::vec4 bgColor = m_levelSequence->backgroundColor();
     glClearColor(bgColor.r, bgColor.g, bgColor.b, bgColor.a);
+    checkGraphicsError();
+
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     checkGraphicsError();
 
     glm::mat4 proj = m_levelSequence->projectionMatrix();
