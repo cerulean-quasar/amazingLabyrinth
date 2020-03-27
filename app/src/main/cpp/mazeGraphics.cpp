@@ -21,7 +21,7 @@
 #include "mazeGraphics.hpp"
 
 void LevelSequence::setViewLightingSource() {
-    m_viewLightingSource = glm::lookAt(m_lightingSource, glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+    m_viewLightingSource = glm::lookAt(m_lightingSource, glm::vec3(0.0f, 0.0f, LevelTracker::m_maxZLevel), glm::vec3(0.0f, 1.0f, 0.0f));
 }
 
 void LevelSequence::setView() {
@@ -30,7 +30,7 @@ void LevelSequence::setView() {
 }
 
 void LevelSequence::setLightingSource() {
-    m_lightingSource = glm::vec3(0.0f, 0.0f, 1.28f/*0.01-1.28*/);
+    m_lightingSource = glm::vec3(0.0f, 1.0f, 1.28f);
 }
 
 void LevelSequence::updateAcceleration(float x, float y, float z) {

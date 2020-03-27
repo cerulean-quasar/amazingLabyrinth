@@ -258,7 +258,7 @@ void GraphicsGL::createDepthTexture() {
     checkGraphicsError();
 
     glm::mat4 proj = m_levelSequence->projectionMatrix();
-    glm::mat4 view = m_levelSequence->viewMatrix();
+    glm::mat4 view = m_levelSequence->viewLightSource();
 
     GLint MatrixID;
     MatrixID = glGetUniformLocation(depthProgramID, "view");
@@ -375,7 +375,7 @@ void GraphicsGL::drawFrame() {
     glm::mat4 proj = m_levelSequence->projectionMatrix();
     glm::mat4 view = m_levelSequence->viewMatrix();
 
-    glm::mat4 lightSpaceMatrix = proj * m_levelSequence->viewLightSource();
+    glm::mat4 lightSpaceMatrix = m_levelSequence->viewLightSource();
     GLint MatrixID;
     MatrixID = glGetUniformLocation(programID, "view");
     checkGraphicsError();

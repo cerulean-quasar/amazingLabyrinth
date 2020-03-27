@@ -29,15 +29,57 @@ void FixedMaze::updateAcceleration(float x, float y, float z) {
 }
 
 void FixedMaze::setBallZPos() {
-    size_t xcell = static_cast<size_t>(std::floor((m_ball.position.x + m_width/2)/m_width * m_rowWidth));
-    size_t ycell = static_cast<size_t>(std::floor((m_ball.position.y + m_height/2)/m_height * m_rowHeight));
-    if (xcell > m_rowWidth || ycell > m_depthMap.size()/m_rowWidth) {
-        throw std::runtime_error("Out of bounds in fixed maze.");
-    }
-    m_ball.position.z = m_depthMap[ycell * m_rowWidth + xcell] + m_scaleBall/2.0f;
+    m_ball.position.z = getZPos(m_ball.position.x, m_ball.position.y) + m_scaleBall/2.0f;
     if (m_ball.position.z > 0.0f) {
         m_ball.position.z = m_maxZ - m_scaleBall;
     }
+}
+
+size_t FixedMaze::getXCell(float x) {
+    return static_cast<size_t>(std::floor((x + m_width/2)/m_width * m_rowWidth));
+}
+
+size_t FixedMaze::getYCell(float y) {
+    return static_cast<size_t>(std::floor((y + m_height/2)/m_height * m_rowHeight));
+}
+
+void boundsCheck(size_t &cell, size_t size) {
+    if (cell < 0) {
+        cell = 0;
+    }
+
+    if (cell > size - 1) {
+        cell = size - 1;
+    }
+}
+
+float FixedMaze::getZPos(float x, float y) {
+    float maxZ = m_maxZ - MODEL_MAXZ;
+    size_t xcellmin = getXCell(x - m_scaleBall * MODEL_BALL_SIZE/2.0f);
+    size_t xcellmax = getXCell(x + m_scaleBall * MODEL_BALL_SIZE/2.0f);
+    size_t ycellmin = getYCell(y - m_scaleBall * MODEL_BALL_SIZE/2.0f);
+    size_t ycellmax = getYCell(y + m_scaleBall * MODEL_BALL_SIZE/2.0f);
+
+    boundsCheck(xcellmin, m_rowWidth);
+    boundsCheck(xcellmax, m_rowWidth);
+    boundsCheck(ycellmin, m_rowHeight);
+    boundsCheck(ycellmax, m_rowHeight);
+
+    for (size_t i = xcellmin; i <= xcellmax; i++) {
+        for (size_t j = ycellmin; j <= ycellmax; j++) {
+            float z = m_depthMap[j * m_rowWidth + i];
+            if (z > m_maxZ + MODEL_MAXZ || z < m_maxZ - MODEL_MAXZ) {
+                // if we are outside of the range the model is supposed to be in for Z, then
+                // assume the ball is in the "hole".  Return the special value: m_maxZ - MODEL_MAXZ
+                // to indicate this.
+                return m_maxZ - MODEL_MAXZ;
+            } else  if (z > maxZ) {
+                maxZ = z;
+            }
+        }
+    }
+
+    return maxZ;
 }
 
 bool FixedMaze::updateData() {
@@ -190,7 +232,7 @@ void FixedMaze::init()
     worldObj->texture = nullptr;
     m_worldMap.emplace_back(worldObj, nullptr);
 
-    m_rowWidth = static_cast<uint32_t>(std::floor(10.0f/m_scaleBall * m_width));
+    m_rowWidth = static_cast<uint32_t>(std::floor(20.0f/m_scaleBall * m_width));
     m_testTexture = m_gameRequester->getDepthTexture(m_worldMap, m_width, m_height, m_rowWidth,
             m_depthMap);
     m_rowHeight = m_depthMap.size()/m_rowWidth;

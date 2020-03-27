@@ -42,7 +42,8 @@ class FixedMaze : public Level {
 public:
     static float constexpr MODEL_WIDTH = 2.0f;
     static float constexpr MODEL_HEIGHT = 2.0f;
-    static float constexpr MODEL_MAXZ = 2.0f;
+    static float constexpr MODEL_MAXZ = 1.0f;
+    static float constexpr MODEL_BALL_SIZE = 2.0f;
     glm::vec4 getBackgroundColor() override;
     void updateAcceleration(float x, float y, float z) override;
     bool updateData() override;
@@ -89,6 +90,9 @@ private:
 
     void loadModels();
     void init();
+    size_t getXCell(float x);
+    size_t getYCell(float y);
+    float getZPos(float x, float y);
     void setBallZPos();
 };
 #endif /* AMAZING_LABYRINTH_FIXED_MAZE_HPP */

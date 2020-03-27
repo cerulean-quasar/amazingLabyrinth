@@ -44,7 +44,7 @@ float ShadowCalculation(vec4 pos) {
     float closestDepth = texture2D(texShadowMap, projCoords.xy).r;
 
     float currentDepth = projCoords.z;
-    float bias = 0.005;
+    float bias = 0.001;
     float shadow = currentDepth - bias > closestDepth ? 0.6 : 0.0;
 
     return shadow;

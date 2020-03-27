@@ -2,7 +2,7 @@
 precision mediump float;
 
 /**
- * Copyright 2019 Cerulean Quasar. All Rights Reserved.
+ * Copyright 2020 Cerulean Quasar. All Rights Reserved.
  *
  *  This file is part of AmazingLabyrinth.
  *
@@ -47,6 +47,6 @@ void main() {
     fragNormal = normalize(mat3(normalMatrix) * inNormal);
 
     fragPosition = vec3(model * vec4(inPosition, 1.0));
-    fragPosLightSpace = lightSpaceMatrix * vec4(fragPosition, 1.0);
+    fragPosLightSpace = proj * lightSpaceMatrix * vec4(fragPosition, 1.0);
     gl_Position = proj * view * model * vec4(inPosition, 1.0);
 }
