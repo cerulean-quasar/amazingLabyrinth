@@ -94,5 +94,6 @@ private:
     size_t getYCell(float y);
     float getZPos(float x, float y);
     void setBallZPos();
+    glm::vec3 getParallelAcceleration();
 };
 #endif /* AMAZING_LABYRINTH_FIXED_MAZE_HPP */

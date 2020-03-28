@@ -25,7 +25,7 @@ glm::vec4 FixedMaze::getBackgroundColor() {
 }
 
 void FixedMaze::updateAcceleration(float x, float y, float z) {
-    m_ball.acceleration = glm::vec3{-x, -y, 0.0f/* -z  */};
+    m_ball.acceleration = glm::vec3{-x, -y, -z};
 }
 
 void FixedMaze::setBallZPos() {
@@ -82,12 +82,31 @@ float FixedMaze::getZPos(float x, float y) {
     return maxZ;
 }
 
+glm::vec3 FixedMaze::getParallelAcceleration() {
+    float extend = m_scaleBall * MODEL_BALL_SIZE/ 10.0f;
+    glm::vec3 vert1 = m_ball.position;
+    vert1.x += extend;
+    vert1.y += extend;
+    vert1.z = getZPos(vert1.x, vert1.y);
+    glm::vec3 vert2 = m_ball.position;
+    vert2.x += extend;
+    vert2.z = getZPos(vert2.x, vert2.y);
+    glm::vec3 vert3 = m_ball.position;
+    vert3.y += extend;
+    vert3.z = getZPos(vert3.x, vert3.y);
+
+    glm::vec3 normal = glm::normalize(glm::cross(vert2 - vert1, vert3 - vert1));
+    glm::vec3 normalGravComponent = glm::dot(normal, m_ball.acceleration) * normal;
+
+    return m_ball.acceleration - normalGravComponent;
+}
+
 bool FixedMaze::updateData() {
     auto currentTime = std::chrono::high_resolution_clock::now();
     float time = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - m_prevTime).count();
     m_prevTime = currentTime;
 
-    m_ball.velocity += m_ball.acceleration * time - m_viscosity * m_ball.velocity;
+    m_ball.velocity += getParallelAcceleration() * time - m_viscosity * m_ball.velocity;
     m_ball.position += m_ball.velocity * time;
 
     float errDistance = m_scaleBall;
