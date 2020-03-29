@@ -82,23 +82,23 @@ float FixedMaze::getZPos(float x, float y) {
     return maxZ;
 }
 
-glm::vec3 FixedMaze::getParallelAcceleration() {
+glm::vec3 FixedMaze::getNormalAtPosition(float x, float y) {
     float extend = m_scaleBall * MODEL_BALL_SIZE/ 10.0f;
-    glm::vec3 vert1 = m_ball.position;
-    vert1.x += extend;
-    vert1.y += extend;
+    glm::vec3 vert1{x + extend, y + extend, 0.0f};
     vert1.z = getZPos(vert1.x, vert1.y);
-    glm::vec3 vert2 = m_ball.position;
-    vert2.x += extend;
+    glm::vec3 vert2{x + extend, y, 0.0f};
     vert2.z = getZPos(vert2.x, vert2.y);
-    glm::vec3 vert3 = m_ball.position;
-    vert3.y += extend;
+    glm::vec3 vert3{x, y + extend, 0.0f};
     vert3.z = getZPos(vert3.x, vert3.y);
 
-    glm::vec3 normal = glm::normalize(glm::cross(vert2 - vert1, vert3 - vert1));
-    glm::vec3 normalGravComponent = glm::dot(normal, m_ball.acceleration) * normal;
+    return glm::normalize(glm::cross(vert3 - vert1, vert2 - vert1));
+}
 
-    return m_ball.acceleration - normalGravComponent;
+glm::vec3 FixedMaze::getParallelAcceleration() {
+    glm::vec3 normal = getNormalAtPosition(m_ball.position.x, m_ball.position.y);
+    glm::vec3 normalGravityComponent = glm::dot(normal, m_ball.acceleration) * normal;
+
+    return m_ball.acceleration - normalGravityComponent;
 }
 
 bool FixedMaze::updateData() {
@@ -107,52 +107,109 @@ bool FixedMaze::updateData() {
     m_prevTime = currentTime;
 
     m_ball.velocity += getParallelAcceleration() * time - m_viscosity * m_ball.velocity;
+
+    glm::vec3 surfaceNormal = getNormalAtPosition(m_ball.position.x, m_ball.position.y);
+    m_ball.velocity -= glm::dot(m_ball.velocity, surfaceNormal) * surfaceNormal;
+
+    if (m_stopAtSteepSlope) {
+        float speed = glm::length(m_ball.velocity);
+        if (speed > 0.0001f) {
+            float factor = speed * time;
+            float factor2 = m_scaleBall * MODEL_BALL_SIZE / 10.0f;
+            if (factor2 > factor) {
+                factor = factor2;
+            }
+            glm::vec3 candidatePos = m_ball.position + glm::normalize(m_ball.velocity) * factor;
+            candidatePos.z = getZPos(candidatePos.x, candidatePos.y);
+
+            if (candidatePos.z > m_ball.position.z) {
+                glm::vec3 normal = getNormalAtPosition(candidatePos.x, candidatePos.y);
+                if (normal.z < m_minZNorm && normal.z > -m_minZNorm) {
+                    if (m_bounce) {
+                        glm::vec3 xyNormal = glm::normalize(glm::vec3{normal.x, normal.y, 0.0f});
+                        float velocityNormalToSurface = glm::dot(xyNormal, m_ball.velocity);
+                        m_ball.velocity = m_ball.velocity - 2 * velocityNormalToSurface * xyNormal;
+                        //m_ball.velocity.z = -m_ball.velocity.z;
+                    } else {
+                        m_ball.velocity = glm::vec3{0.0f, 0.0f, 0.0f};
+                    }
+                } else if (candidatePos.z > m_ball.position.z + MODEL_MAXZ * 0.5f) {
+                    // We don't know the slope of the surface here so just give up and zero out the
+                    // velocity.
+                    m_ball.velocity = glm::vec3{0.0f, 0.0f, 0.0f};
+                }
+            }
+        }
+    }
+
     m_ball.position += m_ball.velocity * time;
 
     float errDistance = m_scaleBall;
 
-    float maxX = m_width/2 - m_scaleBall/2;
-    float minX = -m_width/2 + m_scaleBall/2;
-    float maxY = m_height/2 - m_scaleBall/2;
-    float minY = -m_height/2 + m_scaleBall/2;
+    float maxX = m_width/2 - m_scaleBall * MODEL_BALL_SIZE/2.0f;
+    float minX = -m_width/2 + m_scaleBall * MODEL_BALL_SIZE/2.0f;
+    float maxY = m_height/2 - m_scaleBall * MODEL_BALL_SIZE/2.0f;
+    float minY = -m_height/2 + m_scaleBall * MODEL_BALL_SIZE/2.0f;
     if (m_ball.position.x > maxX) {
         m_ball.position.x = maxX;
         if (m_ball.velocity.x > 0) {
-            m_ball.velocity.x = -m_ball.velocity.x;
+            if (m_bounce) {
+                m_ball.velocity.x = -m_ball.velocity.x;
+            } else {
+                m_ball.velocity.x = 0.0f;
+            }
         }
     }
 
     if (m_ball.position.x < minX) {
         m_ball.position.x = minX;
         if (m_ball.velocity.x < 0) {
-            m_ball.velocity.x = -m_ball.velocity.x;
+            if (m_bounce) {
+                m_ball.velocity.x = -m_ball.velocity.x;
+            } else {
+                m_ball.velocity.x = 0.0f;
+            }
         }
     }
 
     if (m_ball.position.y > maxY) {
         m_ball.position.y = maxY;
         if (m_ball.velocity.y > 0) {
-            m_ball.velocity.y = -m_ball.velocity.y;
+            if (m_bounce) {
+                m_ball.velocity.y = -m_ball.velocity.y;
+            } else {
+                m_ball.velocity.y = 0;
+            }
         }
     }
 
     if (m_ball.position.y < minY) {
         m_ball.position.y = minY;
         if (m_ball.velocity.y < 0) {
-            m_ball.velocity.y = -m_ball.velocity.y;
+            if (m_bounce) {
+                m_ball.velocity.y = -m_ball.velocity.y;
+            } else {
+                m_ball.velocity.y = 0;
+            }
         }
     }
 
-
-    glm::vec3 axis = glm::cross(glm::vec3(0.0f, 0.0f, 1.0f), m_ball.velocity);
-    if (glm::length(axis) != 0) {
-        float scaleFactor = 10.0f;
-        glm::quat q = glm::angleAxis(glm::length(m_ball.velocity)*time*scaleFactor, glm::normalize(axis));
-
-        m_ball.totalRotated = glm::normalize(q * m_ball.totalRotated);
+    setBallZPos();
+    if (m_ball.position.z > m_ball.prevPosition.z + MODEL_MAXZ * 0.5f) {
+        m_ball.position = m_ball.prevPosition;
+        m_ball.velocity = glm::vec3{0.0f, 0.0f, 0.0f};
     }
 
-    setBallZPos();
+    if (glm::length(m_ball.velocity) > 0.0f) {
+        glm::vec3 axis = glm::cross(glm::vec3(0.0f, 0.0f, 1.0f), m_ball.velocity);
+        if (glm::length(axis) != 0) {
+            float scaleFactor = 10.0f;
+            glm::quat q = glm::angleAxis(glm::length(m_ball.velocity) * time * scaleFactor,
+                                         glm::normalize(axis));
+
+            m_ball.totalRotated = glm::normalize(q * m_ball.totalRotated);
+        }
+    }
 
     bool drawingNecessary = glm::length(m_ball.position - m_ball.prevPosition) > 0.005;
     if (drawingNecessary) {
@@ -240,6 +297,9 @@ FixedMaze::FixedMaze(std::shared_ptr<GameRequester> inGameRequester,
 
 void FixedMaze::init()
 {
+    m_stopAtSteepSlope = true;
+    m_bounce = true;
+
     loadModels();
 
     auto worldObj = std::make_shared<DrawObject>();
@@ -262,6 +322,6 @@ void FixedMaze::init()
     m_testObj->modelMatrices.push_back(glm::translate(glm::mat4(1.0f), glm::vec3{0.0f, 0.0f, m_maxZ}) *
                                        glm::scale(glm::mat4(1.0f), glm::vec3{m_width/2.0f, m_height/2.0f, 1.0f}));
 
-    m_ball.position = {0.0f, 0.0f, 0.0f};
+    m_ball.position = {-m_width/2.0f + MODEL_BALL_SIZE*m_scaleBall/2.0f, -m_height/2.0f + MODEL_BALL_SIZE*m_scaleBall/2.0f, 0.0f};
     setBallZPos();
 }

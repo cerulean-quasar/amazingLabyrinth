@@ -65,6 +65,7 @@ public:
 
 private:
     static float constexpr m_viscosity = 0.005f;
+    static float constexpr m_minZNorm = 0.5f;
 
     std::chrono::high_resolution_clock::time_point m_prevTime;
     std::vector<Vertex> m_ballVertices;
@@ -87,6 +88,8 @@ private:
     std::shared_ptr<DrawObject> m_testObj;
     std::shared_ptr<TextureData> m_testTexture;
     std::string m_ballTextureName;
+    bool m_bounce;
+    bool m_stopAtSteepSlope;
 
     void loadModels();
     void init();
@@ -95,5 +98,6 @@ private:
     float getZPos(float x, float y);
     void setBallZPos();
     glm::vec3 getParallelAcceleration();
+    glm::vec3 getNormalAtPosition(float x, float y);
 };
 #endif /* AMAZING_LABYRINTH_FIXED_MAZE_HPP */
