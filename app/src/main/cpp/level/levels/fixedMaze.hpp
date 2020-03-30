@@ -66,6 +66,7 @@ public:
 private:
     static float constexpr m_viscosity = 0.005f;
     static float constexpr m_minZNorm = 0.5f;
+    static float constexpr m_floatErrorAmount = 0.0000001f;
 
     std::chrono::high_resolution_clock::time_point m_prevTime;
     std::vector<Vertex> m_ballVertices;
@@ -96,8 +97,12 @@ private:
     size_t getXCell(float x);
     size_t getYCell(float y);
     float getZPos(float x, float y);
+    float getZPos(float x, float y, float extend);
+    float getRawDepth(size_t xcell, size_t ycell);
+    float getRawDepth(float x, float y);
     void setBallZPos();
     glm::vec3 getParallelAcceleration();
     glm::vec3 getNormalAtPosition(float x, float y);
+    void moveBall(float timeDiff);
 };
 #endif /* AMAZING_LABYRINTH_FIXED_MAZE_HPP */
