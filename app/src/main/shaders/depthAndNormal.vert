@@ -20,10 +20,27 @@
 #version 450
 #extension GL_ARB_separate_shader_objects : enable
 
-layout(location = 0) in vec3 fragColor;
+layout(set = 0, binding = 0) uniform UniformBufferObject {
+    mat4 mvp;
+    mat4 normalModelMatrix;
+} ubo;
 
-layout(location = 0) out vec4 outColor;
+layout(location = 0) in vec3 inPosition;
+layout(location = 1) in vec3 inColor;
+layout(location = 2) in vec2 inTexCoord;
+layout(location = 3) in vec3 inNormal;
+
+layout(location = 0) out vec3 fragColor;
+layout(location = 1) out vec3 normalColor;
+
+out gl_PerVertex {
+    vec4 gl_Position;
+};
 
 void main() {
-    outColor = vec4(fragColor, 1.0);
+    gl_Position = ubo.mvp * vec4(inPosition, 1.0);
+    fragColor = gl_Position.zzz/gl_Position.w;
+    vec4 normalVec = ubo.normalModelMatrix * vec4(inNormal, 1.0);
+    normalColor = normalize(normalVec.xyz/normalVec.w);
+    normalColor = normalColor * 0.5 + vec3(0.5, 0.5, 0.5);
 }

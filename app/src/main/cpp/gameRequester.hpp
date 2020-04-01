@@ -56,7 +56,8 @@ public:
             float width,
             float height,
             uint32_t nbrSamplesForWidth,
-            std::vector<float> &depthMap) override;
+            std::vector<float> &depthMap,
+            std::vector<glm::vec3> &normalMap) override;
 
     // accessors
     JNIEnv *env() { return m_env; }

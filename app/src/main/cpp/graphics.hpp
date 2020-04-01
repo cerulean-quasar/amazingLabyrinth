@@ -184,8 +184,11 @@ struct UniformBufferObject {
 // creates a quad with each side length 2.0f.
 void getQuad(std::vector<Vertex> &vertices, std::vector<uint32_t> &indices);
 
-void loadModel(std::unique_ptr<std::streambuf> const &modelStreamBuf, std::vector<Vertex> &vertices,
-        std::vector<uint32_t> &indices);
+void loadModel(
+        std::unique_ptr<std::streambuf> const &modelStreamBuf,
+        std::vector<Vertex> &vertices,
+        std::vector<uint32_t> &indices,
+        std::pair<std::vector<Vertex>, std::vector<uint32_t>> *verticesWithVertexNormals = nullptr);
 
 int istreamRead(void *userData, char *data, int size);
 void istreamSkip(void *userData, int n);

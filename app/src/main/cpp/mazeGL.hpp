@@ -57,7 +57,7 @@ private:
 
 class Framebuffer {
 public:
-    Framebuffer(uint32_t width, uint32_t height);
+    Framebuffer(uint32_t width, uint32_t height, uint32_t nbrColorAttachments = 1);
     ~Framebuffer() {
         if (m_depthMapFBO != GL_INVALID_VALUE) {
             glDeleteFramebuffers(1, &m_depthMapFBO);
@@ -67,14 +67,17 @@ public:
             glDeleteTextures(1, &m_depthMap);
         }
 
-        if (m_colorImage != GL_INVALID_VALUE) {
-            glDeleteTextures(1, &m_colorImage);
+        for (auto &colorImage : m_colorImage) {
+            if (colorImage != GL_INVALID_VALUE) {
+                glDeleteTextures(1, &colorImage);
+                colorImage = GL_INVALID_VALUE;
+            }
         }
     }
 
     GLuint fbo() { return m_depthMapFBO; }
     GLuint depthImage() { return m_depthMap; }
-    GLuint colorImage() { return m_colorImage; }
+    GLuint colorImage(uint32_t attachmentNbr = 0) { return m_colorImage[attachmentNbr]; }
 
     GLuint acquireDepthImage() {
         GLuint depthMap_ = m_depthMap;
@@ -82,15 +85,15 @@ public:
         return depthMap_;
     }
 
-    GLuint acquireColorImage() {
-        GLuint colorImage_ = m_colorImage;
-        m_colorImage = GL_INVALID_VALUE;
-        return colorImage_;
+    GLuint acquireColorImage(uint32_t attachmentNbr = 0) {
+        GLuint colorImage = m_colorImage[attachmentNbr];
+        m_colorImage[attachmentNbr] = GL_INVALID_VALUE;
+        return colorImage;
     }
 private:
     GLuint m_depthMapFBO;
     GLuint m_depthMap;
-    GLuint m_colorImage;
+    std::vector<GLuint> m_colorImage;
 };
 
 class DrawObjectDataGL : public DrawObjectData {
@@ -165,7 +168,8 @@ public:
             float width,
             float height,
             uint32_t nbrSampleForWidth,
-            std::vector<float> &depthValues);
+            std::vector<float> &depthValues,
+            std::vector<glm::vec3> &normalMap);
 
     virtual ~GraphicsGL() {
         glDeleteShader(programID);
@@ -175,6 +179,7 @@ private:
     graphicsGL::Surface m_surface;
     GLuint programID;
     GLuint depthProgramID;
+    GLuint m_depthAndNormalProgramID;
 
     std::shared_ptr<Framebuffer> m_framebufferShadowMap;
 

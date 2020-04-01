@@ -1,3 +1,6 @@
+#version 100
+precision mediump float;
+
 /**
  * Copyright 2020 Cerulean Quasar. All Rights Reserved.
  *
@@ -17,13 +20,21 @@
  *  along with AmazingLabyrinth.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
-#version 450
-#extension GL_ARB_separate_shader_objects : enable
 
-layout(location = 0) in vec3 fragColor;
+uniform mat4 model;
+uniform mat4 view;
+uniform mat4 proj;
 
-layout(location = 0) out vec4 outColor;
+attribute vec3 inPosition;
+attribute vec3 inColor;
+attribute vec2 inTexCoord;
+attribute vec3 inNormal;
+
+varying vec3 fragColor;
+varying vec3 fragNormal;
 
 void main() {
-    outColor = vec4(fragColor, 1.0);
+    gl_Position = proj * view * model * vec4(inPosition, 1.0);
+    fragColor = gl_Position.zzz/gl_Position.w/2.0 + 0.5;
+    fragNormal = inNormal;
 }

@@ -21,6 +21,7 @@
 
 #include "graphicsVulkan.hpp"
 #include "../../../../../../Android/Sdk/ndk/20.1.5948944/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/include/c++/v1/stdexcept"
+#include "../../../../../../Android/Sdk/ndk/20.1.5948944/sysroot/usr/include/android/binder_ibinder.h"
 
 namespace vulkan {
 /**
@@ -725,35 +726,44 @@ namespace vulkan {
         m_renderPass.reset(renderPassRaw, deleter);
     }
 
-    void RenderPass::createRenderPassDepthTexture(VkFormat colorImageFormat) {
+    void RenderPass::createRenderPassDepthTexture(std::vector<VkFormat> const &colorImageFormats) {
         /* color buffer attachment descriptions: use a single attachment represented by
          * one of the images from the swap chain.
          */
-        VkAttachmentDescription colorAttachment = {};
-        colorAttachment.format = colorImageFormat;
-        /* stick to one sample since we are not using multisampling */
-        colorAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
-        /* clear the contents of the attachment to a constant at the start */
-        colorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-        /* store the rendered contents in memory so they can be read later */
-        colorAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
-        /* we don't care about the stencil buffer for this app */
-        colorAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-        colorAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
 
-        /* we don't care which layout the image was in */
-        colorAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+        int i = 0;
+        std::vector<VkAttachmentDescription> attachments;
+        std::vector<VkAttachmentReference> colorAttachmentRefs;
+        for (VkFormat const &colorImageFormat : colorImageFormats) {
+            VkAttachmentDescription colorAttachment = {};
+            colorAttachment.format = colorImageFormat;
+            /* stick to one sample since we are not using multisampling */
+            colorAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
+            /* clear the contents of the attachment to a constant at the start */
+            colorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+            /* store the rendered contents in memory so they can be read later */
+            colorAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+            /* we don't care about the stencil buffer for this app */
+            colorAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+            colorAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
 
-        /* images to be presented in the swap chain */
-        colorAttachment.finalLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
+            /* we don't care which layout the image was in */
+            colorAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
 
-        /* subpasses and attachment references:
-         * a render pass may consist of many subpasses. For example, post processing tasks.
-         */
-        VkAttachmentReference colorAttachmentRef = {};
-        /* specify which attachment by its index in the attachment descriptions array */
-        colorAttachmentRef.attachment = 0;
-        colorAttachmentRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+            /* images to be presented in the swap chain */
+            colorAttachment.finalLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
+            attachments.push_back(colorAttachment);
+
+            /* subpasses and attachment references:
+             * a render pass may consist of many subpasses. For example, post processing tasks.
+             */
+            VkAttachmentReference colorAttachmentRef = {};
+            /* specify which attachment by its index in the attachment descriptions array */
+            colorAttachmentRef.attachment = i;
+            colorAttachmentRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+            colorAttachmentRefs.push_back(colorAttachmentRef);
+            i++;
+        }
 
         /* depth attachment */
         VkAttachmentDescription depthAttachment = {};
@@ -770,17 +780,18 @@ namespace vulkan {
         depthAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
 
         depthAttachment.finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+        attachments.push_back(depthAttachment);
 
         VkAttachmentReference depthAttachmentRef = {};
-        depthAttachmentRef.attachment = 1;
+        depthAttachmentRef.attachment = i;
         depthAttachmentRef.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
 
         /* render subpass */
         VkSubpassDescription subpass = {};
         /* specify a graphics subpass (as opposed to a compute subpass) */
         subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
-        subpass.colorAttachmentCount = 1;
-        subpass.pColorAttachments = &colorAttachmentRef;
+        subpass.colorAttachmentCount = colorAttachmentRefs.size();
+        subpass.pColorAttachments = colorAttachmentRefs.data();
         subpass.pDepthStencilAttachment = &depthAttachmentRef;
 
 #if 0
@@ -818,8 +829,8 @@ namespace vulkan {
         dependencies[1].dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
 #endif
         /* create a render subbass dependency because we need the render pass to wait for the
- * VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT stage of the graphics pipeline
- */
+         * VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT stage of the graphics pipeline
+         */
         VkSubpassDependency dependency = {};
 
         /* The following two fields specify the indices of the dependency and the dependent
@@ -843,7 +854,7 @@ namespace vulkan {
         dependency.dstAccessMask =
                 VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
 
-        std::array<VkAttachmentDescription, 2> attachments{ colorAttachment, depthAttachment };
+        //std::array<VkAttachmentDescription, 2> attachments{ colorAttachment, depthAttachment };
 
         /* create the render pass */
         VkRenderPassCreateInfo renderPassInfo = {};
@@ -901,7 +912,7 @@ namespace vulkan {
                   std::string const vertShader,
                   std::string const fragShader,
                   std::shared_ptr<Pipeline> const &derivedPipeline,
-                  bool useColorBlending /* todo: parameter not needed? */) {
+                  uint32_t nbrColorAttachments) {
         Shader vertShaderModule(requester, m_device, vertShader);
         Shader fragShaderModule(requester, m_device, fragShader);
 
@@ -1022,9 +1033,10 @@ namespace vulkan {
          */
 
         /* per attached framebuffer color blending information */
-        VkPipelineColorBlendAttachmentState colorBlendAttachment = {};
+        std::vector<VkPipelineColorBlendAttachmentState> colorBlendAttachments;
 
-        if (useColorBlending) {
+        for (uint32_t i = 0 ; i < nbrColorAttachments; i++) {
+            VkPipelineColorBlendAttachmentState colorBlendAttachment = {};
             colorBlendAttachment.colorWriteMask =
                     VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT |
                     VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
@@ -1043,6 +1055,7 @@ namespace vulkan {
             colorBlendAttachment.dstAlphaBlendFactor = VK_BLEND_FACTOR_ONE;
             colorBlendAttachment.alphaBlendOp = VK_BLEND_OP_MAX;
 
+            colorBlendAttachments.push_back(colorBlendAttachment);
         }
 
         /* color blending for all the framebuffers and allows you to set blend constants used
@@ -1053,13 +1066,8 @@ namespace vulkan {
         colorBlending.logicOpEnable = VK_FALSE;
         colorBlending.logicOp = VK_LOGIC_OP_COPY; // Optional
 
-        if (useColorBlending) {
-            colorBlending.attachmentCount = 1;
-            colorBlending.pAttachments = &colorBlendAttachment;
-        } else {
-            colorBlending.attachmentCount = 0;
-            colorBlending.pAttachments = nullptr;
-        }
+        colorBlending.attachmentCount = colorBlendAttachments.size();
+        colorBlending.pAttachments = colorBlendAttachments.data();
         colorBlending.blendConstants[0] = 0.0f; // Optional
         colorBlending.blendConstants[1] = 0.0f; // Optional
         colorBlending.blendConstants[2] = 0.0f; // Optional

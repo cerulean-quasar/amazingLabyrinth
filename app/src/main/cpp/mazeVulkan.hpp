@@ -27,6 +27,8 @@ char constexpr const *SHADER_VERT_FILE ="shaders/shader.vert.spv";
 char constexpr const *SHADER_FRAG_FILE ="shaders/shader.frag.spv";
 char constexpr const *SHADER_DEPTH_VERT_FILE ="shaders/depthShader.vert.spv";
 char constexpr const *SHADER_DEPTH_FRAG_FILE ="shaders/depthShader.frag.spv";
+char constexpr const *SHADER_DEPTH_AND_NORMAL_VERT_FILE = "shaders/depthAndNormal.vert.spv";
+char constexpr const *SHADER_DEPTH_AND_NORMAL_FRAG_FILE = "shaders/depthAndNormal.frag.spv";
 
 std::vector<VkVertexInputAttributeDescription> getAttributeDescriptions();
 VkVertexInputBindingDescription getBindingDescription();
@@ -184,19 +186,28 @@ private:
                              std::shared_ptr<DrawObject> const &drawObj);
 };
 
-class UniformWrapperMVPOnly {
+struct UniformBufferObjectDepthTexture {
+    glm::mat4 mvp;
+    glm::mat4 transposeInverseModelMatrix;
+};
+
+class UniformWrapperDepthTexture {
 public:
-    UniformWrapperMVPOnly(std::shared_ptr<vulkan::Device> const &inDevice,
+    UniformWrapperDepthTexture(std::shared_ptr<vulkan::Device> const &inDevice,
                    std::shared_ptr<vulkan::DescriptorPools> const &descriptorPools,
-                   glm::mat4 const &mvp)
+                   glm::mat4 const &mvp,
+                   glm::mat4 const &transposeInverseModelMatrix)
             : m_descriptorSet{},
               m_uniformBuffer{}
     {
         VkBuffer uniformBuffer;
         VkDeviceMemory uniformBufferMemory;
 
-        m_uniformBuffer = createUniformBuffer(inDevice, sizeof (mvp));
-        m_uniformBuffer->copyRawTo(&mvp, sizeof (mvp));
+        UniformBufferObjectDepthTexture ubo;
+        ubo.mvp = mvp;
+        ubo.transposeInverseModelMatrix = transposeInverseModelMatrix;
+        m_uniformBuffer = createUniformBuffer(inDevice, sizeof (ubo));
+        m_uniformBuffer->copyRawTo(&ubo, sizeof (ubo));
 
         m_descriptorSet = descriptorPools->allocateDescriptor();
         updateDescriptorSet(inDevice);
@@ -210,7 +221,7 @@ private:
         VkDescriptorBufferInfo bufferInfo = {};
         bufferInfo.buffer = m_uniformBuffer->buffer().get();
         bufferInfo.offset = 0;
-        bufferInfo.range = sizeof (glm::mat4);
+        bufferInfo.range = sizeof (UniformBufferObjectDepthTexture);
 
         VkWriteDescriptorSet descriptorWrite = {};
         descriptorWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
@@ -259,14 +270,15 @@ public:
 
         for (size_t i = m_uniforms.size(); i < obj->modelMatrices.size(); i++) {
             glm::mat4 mvp = vp * obj->modelMatrices[i];
-            auto uniform = std::make_shared<UniformWrapperMVPOnly>(m_device, m_descriptorPools, mvp);
+            auto uniform = std::make_shared<UniformWrapperDepthTexture>(m_device, m_descriptorPools,
+                    mvp, glm::transpose(glm::inverse(obj->modelMatrices[i])));
             m_uniforms.push_back(uniform);
         }
     }
 
     inline vulkan::Buffer const &vertexBuffer() { return m_vertexBuffer; }
     inline vulkan::Buffer const &indexBuffer() { return m_indexBuffer; }
-    inline std::vector<std::shared_ptr<UniformWrapperMVPOnly>> const &uniforms() { return m_uniforms; }
+    inline std::vector<std::shared_ptr<UniformWrapperDepthTexture>> const &uniforms() { return m_uniforms; }
 private:
     std::shared_ptr<vulkan::Device> m_device;
     std::shared_ptr<vulkan::CommandPool> m_commandPool;
@@ -279,7 +291,7 @@ private:
     vulkan::Buffer m_vertexBuffer;
     vulkan::Buffer m_indexBuffer;
 
-    std::vector<std::shared_ptr<UniformWrapperMVPOnly>> m_uniforms;
+    std::vector<std::shared_ptr<UniformWrapperDepthTexture>> m_uniforms;
 };
 
 class LevelSequenceVulkan : public LevelSequence {
@@ -372,7 +384,8 @@ public:
             float width,
             float height,
             uint32_t nbrSamplesForWidth,
-            std::vector<float> &depthMap);
+            std::vector<float> &depthMap,
+            std::vector<glm::vec3> &normalMap);
 
     virtual ~GraphicsVulkan() { }
 private:

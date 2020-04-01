@@ -85,6 +85,7 @@ private:
     uint32_t m_rowWidth;
     uint32_t m_rowHeight;
     std::vector<float> m_depthMap;
+    std::vector<glm::vec3> m_normalMap;
     DrawObjectTable m_worldMap;
     std::shared_ptr<DrawObject> m_testObj;
     std::shared_ptr<TextureData> m_testTexture;

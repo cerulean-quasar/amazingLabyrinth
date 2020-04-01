@@ -342,7 +342,9 @@ void FixedMaze::init()
     loadModels();
 
     auto worldObj = std::make_shared<DrawObject>();
-    loadModel(m_gameRequester->getAssetStream("models/mountainLandscape.obj"), worldObj->vertices, worldObj->indices);
+    std::pair<std::vector<Vertex>, std::vector<uint32_t>> verticesWithVertexNormals;
+    loadModel(m_gameRequester->getAssetStream("models/mountainLandscape.obj"), worldObj->vertices,
+            worldObj->indices, &verticesWithVertexNormals);
     worldObj->modelMatrices.push_back(
             glm::translate(glm::mat4(1.0f), glm::vec3{0.0f, 0.0f, m_maxZ}) *
             glm::scale(glm::mat4(1.0f), glm::vec3{m_width/MODEL_WIDTH, m_height/MODEL_HEIGHT, 1.0f}) *
@@ -350,9 +352,18 @@ void FixedMaze::init()
     worldObj->texture = nullptr;
     m_worldMap.emplace_back(worldObj, nullptr);
 
+    auto worldObj2 = std::make_shared<DrawObject>();
+    worldObj2->vertices = verticesWithVertexNormals.first;
+    worldObj2->indices = verticesWithVertexNormals.second;
+    worldObj2->modelMatrices = worldObj->modelMatrices;
+    worldObj2->texture = nullptr;
+
+    DrawObjectTable worldMap;
+    worldMap.emplace_back(worldObj2, nullptr);
+
     m_rowWidth = static_cast<uint32_t>(std::floor(10.0f/m_scaleBall * m_width));
-    m_testTexture = m_gameRequester->getDepthTexture(m_worldMap, m_width, m_height, m_rowWidth,
-            m_depthMap);
+    m_testTexture = m_gameRequester->getDepthTexture(worldMap, m_width, m_height, m_rowWidth,
+            m_depthMap, m_normalMap);
     m_rowHeight = m_depthMap.size()/m_rowWidth;
 
     m_testObj = std::make_shared<DrawObject>();

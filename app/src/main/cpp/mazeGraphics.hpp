@@ -197,7 +197,8 @@ public:
             float width,
             float height,
             uint32_t nbrWidthSamples,
-            std::vector<float> &depthValues) = 0;
+            std::vector<float> &depthValues,
+            std::vector<glm::vec3> &normalMap) = 0;
 
     explicit Graphics(GameRequesterCreator inRequesterCreator)
         : m_gameRequester{inRequesterCreator(this)},

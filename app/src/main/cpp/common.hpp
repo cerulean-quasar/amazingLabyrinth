@@ -48,7 +48,8 @@ public:
             float width,
             float height,
             uint32_t nbrSamplesForWidth,
-            std::vector<float> &depthMap) = 0;
+            std::vector<float> &depthMap,
+            std::vector<glm::vec3> &normalMap) = 0;
     virtual ~GraphicsRequester() = default;
 };
 

@@ -99,3 +99,38 @@ void bitmapToDepthMap(
         }
     }
 }
+
+template <typename inputDataType>
+void bitmapToNormals(
+        std::vector<inputDataType> const &texture,
+        uint32_t surfaceWidth,
+        uint32_t surfaceHeight,
+        uint32_t step,  /* how many colors per data point */
+        bool invertY,
+        std::vector<glm::vec3> &normalMap)
+{
+    if (step < 3) {
+        throw std::runtime_error("there must be at least three components in the normal map");
+    }
+    normalMap.resize(surfaceWidth * surfaceHeight);
+    if (invertY) {
+        for (size_t i = 0; i < surfaceWidth; i++) {
+            for (size_t j = 0; j < surfaceHeight; j++) {
+                float x = convertColor<inputDataType>(
+                        texture[((surfaceHeight - 1 - j) * surfaceWidth + i) * step], false);
+                float y = convertColor<inputDataType>(
+                        texture[((surfaceHeight - 1 - j) * surfaceWidth + i) * step + 1], false);
+                float z = convertColor<inputDataType>(
+                        texture[((surfaceHeight - 1 - j) * surfaceWidth + i) * step + 2], false);
+                normalMap[j * surfaceWidth + i] = glm::vec3{x, y, z};
+            }
+        }
+    } else {
+        for (size_t i = 0; i < normalMap.size(); i++) {
+            float x = convertColor<inputDataType>(texture[i * step], false);
+            float y = convertColor<inputDataType>(texture[i * step + 1], false);
+            float z = convertColor<inputDataType>(texture[i * step + 2], false);
+            normalMap[i] = glm::vec3{x, y, z};
+        }
+    }
+}

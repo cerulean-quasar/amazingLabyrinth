@@ -22,6 +22,7 @@
 #include <istream>
 #include <array>
 #include <unordered_map>
+#include <list>
 
 #include <glm/glm.hpp>
 
@@ -74,7 +75,9 @@ void getQuad(std::vector<Vertex> &vertices, std::vector<uint32_t> &indices) {
 void loadModel(
         std::unique_ptr<std::streambuf> const &modelStreamBuf,
         std::vector<Vertex> &vertices,
-        std::vector<uint32_t> &indices) {
+        std::vector<uint32_t> &indices,
+        std::pair<std::vector<Vertex>, std::vector<uint32_t>> *verticesWithVertexNormals)
+{
     tinyobj::attrib_t attrib;
     std::vector<tinyobj::shape_t> shapes;
     std::vector<tinyobj::material_t> materials;
@@ -87,7 +90,34 @@ void loadModel(
     }
 
     std::unordered_map<Vertex, uint32_t> uniqueVertices = {};
+    std::unordered_map<Vertex, uint32_t> uniqueVerticesWithVertexNormals = {};
     for (const auto& shape : shapes) {
+        std::unordered_map<glm::vec3, glm::vec3> vertexNormals;
+        if (verticesWithVertexNormals) {
+            for (const auto &index : shape.mesh.indices) {
+                glm::vec3 pos = {
+                        attrib.vertices[3 * index.vertex_index + 0],
+                        attrib.vertices[3 * index.vertex_index + 1],
+                        attrib.vertices[3 * index.vertex_index + 2]
+                };
+
+                glm::vec3 normal = {attrib.normals[3 * index.normal_index + 0],
+                                    attrib.normals[3 * index.normal_index + 1],
+                                    attrib.normals[3 * index.normal_index + 2]};
+
+                auto it = vertexNormals.find(pos);
+                if (it == vertexNormals.end()) {
+                    vertexNormals.insert(std::make_pair(pos, normal));
+                } else {
+                    it->second += normal;
+                }
+            }
+
+            for (auto &item: vertexNormals) {
+                item.second = glm::normalize(item.second);
+            }
+        }
+
         for (const auto& index : shape.mesh.indices) {
             Vertex vertex = {};
             vertex.pos = {
@@ -107,9 +137,24 @@ void loadModel(
 
             vertex.color = {0.2f, 0.2f, 0.2f};
 
-            vertex.normal = { attrib.normals[3 * index.normal_index +0],
-                              attrib.normals[3 * index.normal_index +1],
-                              attrib.normals[3 * index.normal_index +2] };
+            if (verticesWithVertexNormals) {
+                Vertex vertexWithVertexNormal = vertex;
+                auto it = vertexNormals.find(vertexWithVertexNormal.pos);
+                if (it == vertexNormals.end()) {
+                    throw std::runtime_error("Vertex normal not found when loading model");
+                }
+                vertexWithVertexNormal.normal = it->second;
+                if (uniqueVerticesWithVertexNormals.count(vertexWithVertexNormal) == 0) {
+                    uniqueVerticesWithVertexNormals[vertexWithVertexNormal] = static_cast<uint32_t>(verticesWithVertexNormals->first.size());
+                    verticesWithVertexNormals->first.push_back(vertexWithVertexNormal);
+                }
+
+                verticesWithVertexNormals->second.push_back(uniqueVerticesWithVertexNormals[vertexWithVertexNormal]);
+            }
+
+            vertex.normal = {attrib.normals[3 * index.normal_index + 0],
+                                attrib.normals[3 * index.normal_index + 1],
+                                attrib.normals[3 * index.normal_index + 2]};
 
             if (uniqueVertices.count(vertex) == 0) {
                 uniqueVertices[vertex] = static_cast<uint32_t>(vertices.size());

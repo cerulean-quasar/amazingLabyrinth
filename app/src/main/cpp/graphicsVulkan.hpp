@@ -279,9 +279,9 @@ namespace vulkan {
         // mapping and to read the depth of an object.
         static std::shared_ptr<RenderPass> createDepthTextureRenderPass(
                 std::shared_ptr<Device> const &inDevice,
-                VkFormat colorImageFormat)
+                std::vector<VkFormat> const &colorImageFormats)
         {
-            return std::shared_ptr<RenderPass>{new RenderPass(inDevice, colorImageFormat)};
+            return std::shared_ptr<RenderPass>{new RenderPass(inDevice, colorImageFormats)};
         }
     private:
         // for creating a render pass that uses a color and depth attachment (i.e. the normal render pass)
@@ -292,17 +292,17 @@ namespace vulkan {
         }
 
         // for creating a render pass with only a depth attachment.
-        RenderPass(std::shared_ptr<Device> const &inDevice, VkFormat colorImageFormat)
+        RenderPass(std::shared_ptr<Device> const &inDevice, std::vector<VkFormat> const &colorImageFormats)
                 : m_device{inDevice},
                   m_renderPass{} {
-            createRenderPassDepthTexture(colorImageFormat);
+            createRenderPassDepthTexture(colorImageFormats);
         }
 
         std::shared_ptr<Device> m_device;
         std::shared_ptr<VkRenderPass_T> m_renderPass;
 
         void createRenderPass(std::shared_ptr<SwapChain> const &swapChain);
-        void createRenderPassDepthTexture(VkFormat colorImageFormat);
+        void createRenderPassDepthTexture(std::vector<VkFormat> const &colorImageFormat);
     };
 
     class DescriptorPools;
@@ -480,14 +480,14 @@ namespace vulkan {
                  std::string const &vertShader,
                  std::string const &fragShader,
                  std::shared_ptr<Pipeline> const &derivedPipeline,
-                 bool useColorBlending)
+                 uint32_t nbrColorBlendingAttachments)
                 : m_device{inDevice},
                   m_renderPass{inRenderPass},
                   m_descriptorPools{inDescriptorPools},
                   m_pipelineLayout{},
                   m_pipeline{} {
             createGraphicsPipeline(requester, bindingDescription, attributeDescription,
-                    extent, vertShader, fragShader, derivedPipeline, useColorBlending);
+                    extent, vertShader, fragShader, derivedPipeline, nbrColorBlendingAttachments);
         }
 
         inline std::shared_ptr<VkPipeline_T> const &pipeline() { return m_pipeline; }
@@ -513,7 +513,7 @@ namespace vulkan {
                 std::string const vertShader,
                 std::string const fragShader,
                 std::shared_ptr<Pipeline> const &derivedPipeline,
-                bool useColorBlending);
+                uint32_t nbrColorBlendingAttachments);
     };
 
     class CommandPool {
