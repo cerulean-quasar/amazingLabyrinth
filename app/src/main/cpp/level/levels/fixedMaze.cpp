@@ -29,8 +29,8 @@ void FixedMaze::updateAcceleration(float x, float y, float z) {
 }
 
 void FixedMaze::setBallZPos() {
-    m_ball.position.z = getZPos(m_ball.position.x, m_ball.position.y) + m_scaleBall/2.0f;
-    if (m_ball.position.z > 0.0f) {
+    m_ball.position.z = getZPos(m_ball.position.x, m_ball.position.y) + m_scaleBall * MODEL_BALL_SIZE /2.0f;
+    if (m_ball.position.z > m_maxZ + m_scaleBall || m_ball.position.z < m_maxZ - m_scaleBall) {
         m_ball.position.z = m_maxZ - m_scaleBall;
     }
 }
@@ -102,15 +102,7 @@ float FixedMaze::getRawDepth(size_t xcell, size_t ycell) {
 }
 
 glm::vec3 FixedMaze::getNormalAtPosition(float x, float y) {
-    float extend = m_scaleBall * MODEL_BALL_SIZE/ 10.0f;
-    glm::vec3 vert1{x + extend, y + extend, 0.0f};
-    vert1.z = getZPos(vert1.x, vert1.y, extend);
-    glm::vec3 vert2{x + extend, y, 0.0f};
-    vert2.z = getZPos(vert2.x, vert2.y, extend);
-    glm::vec3 vert3{x, y + extend, 0.0f};
-    vert3.z = getZPos(vert3.x, vert3.y, extend);
-
-    return glm::normalize(glm::cross(vert3 - vert1, vert2 - vert1));
+    return m_normalMap[getYCell(y) * m_rowWidth +  getXCell(x)];
 }
 
 glm::vec3 FixedMaze::getParallelAcceleration() {
@@ -134,12 +126,36 @@ void FixedMaze::moveBall(float timeDiff) {
         int nbrCellsTransitedY = std::abs(static_cast<int>(getYCell(nextPos.y) - getYCell(position.y)));
         int nbrCellsTransited = std::max(nbrCellsTransitedX, nbrCellsTransitedY);
         if (nbrCellsTransited < 1) {
-            if (m_stopAtSteepSlope && nextPos.z > position.z + m_scaleBall*MODEL_BALL_SIZE/2) {
-                velocity = glm::vec3{0.0f, 0.0f, 0.0f};
+            if (m_stopAtSteepSlope && nextPos.z > position.z + m_scaleBall * MODEL_BALL_SIZE/10.0f) {
+                if (m_bounce) {
+                    glm::vec3 normal = getNormalAtPosition(nextPos.x, nextPos.y);
+                    if (normal.z > 0.99999f) {
+                        /* x and y components of the normal too small to compute the reflective
+                         * velocity.  Just negate x and y velocity components so it goes back in the
+                         * direction it came from.
+                         */
+                        velocity = glm::vec3{-velocity.x, -velocity.y, 0.0f};
+                    } else {
+                        glm::vec3 xyNormal = glm::normalize(glm::vec3{normal.x, normal.y, 0.0f});
+                        float velocityNormalToSurface = glm::dot(xyNormal, velocity);
+                        if (velocityNormalToSurface < 0) {
+                            velocity = velocity - 2 * velocityNormalToSurface * xyNormal;
+                        }
+                    }
+                    nextPos = position + velocity * timeDiff;
+                    nextPos.z = getZPos(nextPos.x, nextPos.y) + m_scaleBall*MODEL_BALL_SIZE/2.0f;
+                    if (nextPos.z <= position.z + m_scaleBall * MODEL_BALL_SIZE/10.0f) {
+                        position = nextPos;
+                    }
+                    break;
+                } else {
+                    velocity = glm::vec3{0.0f, 0.0f, 0.0f};
+                    break;
+                }
             } else {
                 position = nextPos;
+                break;
             }
-            break;
         }
         float timeInc =  timeDiff / nbrCellsTransited;
 
@@ -159,6 +175,7 @@ void FixedMaze::moveBall(float timeDiff) {
                     velocity.x = -velocity.x;
                     continue;
                 } else {
+                    velocity = glm::vec3{0.0f, 0.0f, 0.0f};
                     break;
                 }
             }
@@ -171,6 +188,7 @@ void FixedMaze::moveBall(float timeDiff) {
                     velocity.x = -velocity.x;
                     continue;
                 } else {
+                    velocity = glm::vec3{0.0f, 0.0f, 0.0f};
                     break;
                 }
             }
@@ -183,6 +201,7 @@ void FixedMaze::moveBall(float timeDiff) {
                     velocity.y = -velocity.y;
                     continue;
                 } else {
+                    velocity = glm::vec3{0.0f, 0.0f, 0.0f};
                     break;
                 }
             }
@@ -195,25 +214,29 @@ void FixedMaze::moveBall(float timeDiff) {
                     velocity.y = -velocity.y;
                     continue;
                 } else {
+                    velocity = glm::vec3{0.0f, 0.0f, 0.0f};
                     break;
                 }
             }
         }
 
-        if (m_stopAtSteepSlope && nextPosInc.z > position.z + m_scaleBall * MODEL_BALL_SIZE/2.0f) {
+        if (m_stopAtSteepSlope && nextPosInc.z > position.z + m_scaleBall * MODEL_BALL_SIZE/10.0f) {
             if (m_bounce) {
                 glm::vec3 normal = getNormalAtPosition(nextPosInc.x, nextPosInc.y);
-                if (normal.z > 0.99999) {
+                if (normal.z > 0.99999f) {
                     /* x and y components of the normal too small to compute the reflective
-                     * velocity.  Just zero out the velocity (i.e. no bounce) and return
+                     * velocity.  Just negate x and y velocity components so it goes back in the
+                     * direction it came from.
                      */
-                    velocity = glm::vec3{0.0f, 0.0f, 0.0f};
-                    break;
+                    velocity = glm::vec3{-velocity.x, -velocity.y, 0.0f};
+                    continue;
                 }
                 glm::vec3 xyNormal = glm::normalize(glm::vec3{normal.x, normal.y, 0.0f});
                 float velocityNormalToSurface = glm::dot(xyNormal, velocity);
-                velocity = velocity - 2 * velocityNormalToSurface * xyNormal;
-                continue;
+                if (velocityNormalToSurface < 0.0f) {
+                    velocity = velocity - 2.0f * velocityNormalToSurface * xyNormal;
+                    continue;
+                }
             } else {
                 velocity = glm::vec3{0.0f, 0.0f, 0.0f};
                 break;

@@ -749,15 +749,15 @@ std::shared_ptr<TextureData> GraphicsVulkan::getDepthTexture(
 
     // use buffer for both the color depth image (R32) and the color normal image (R32G32B32)
     vulkan::Buffer buffer{m_device,
-                          imageWidth * imageHeight * sizeof (float) * 3,
+                          imageWidth * imageHeight * sizeof (float) * 4,
                           VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,
                           VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT};
     colorDepthImage->image()->copyImageToBuffer(buffer, m_commandPool);
     buffer.copyRawFrom(colorDepthMap.data(), colorDepthMap.size() * sizeof (float));
     bitmapToDepthMap(colorDepthMap, proj, view, imageWidth, imageHeight, 1, true, true, depthMap);
 
-    colorDepthMap.resize(imageWidth * imageHeight * 3);
-    colorDepthImage->image()->copyImageToBuffer(buffer, m_commandPool);
+    colorDepthMap.resize(imageWidth * imageHeight * 4);
+    colorNormalImage->image()->copyImageToBuffer(buffer, m_commandPool);
     buffer.copyRawFrom(colorDepthMap.data(), colorDepthMap.size() * sizeof (float));
     bitmapToNormals(colorDepthMap, imageWidth, imageHeight, 4, true, normalMap);
 

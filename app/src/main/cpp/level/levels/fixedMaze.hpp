@@ -64,7 +64,7 @@ public:
     ~FixedMaze() override = default;
 
 private:
-    static float constexpr m_viscosity = 0.005f;
+    static float constexpr m_viscosity = 0.0005f;
     static float constexpr m_minZNorm = 0.5f;
     static float constexpr m_floatErrorAmount = 0.0000001f;
 
