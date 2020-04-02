@@ -101,7 +101,6 @@ private:
     float getZPos(float x, float y, float extend);
     float getRawDepth(size_t xcell, size_t ycell);
     float getRawDepth(float x, float y);
-    void setBallZPos();
     glm::vec3 getParallelAcceleration();
     glm::vec3 getNormalAtPosition(float x, float y);
     void moveBall(float timeDiff);
