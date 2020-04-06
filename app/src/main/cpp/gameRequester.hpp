@@ -56,6 +56,8 @@ public:
             float width,
             float height,
             uint32_t nbrSamplesForWidth,
+            float farthestDepth,
+            float nearestDepth,
             std::vector<float> &depthMap,
             std::vector<glm::vec3> &normalMap) override;
 

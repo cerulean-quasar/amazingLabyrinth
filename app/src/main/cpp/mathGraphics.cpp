@@ -81,21 +81,22 @@ glm::mat4 getOrthoMatrix(
     return proj;
 }
 
-float colorValueToDepth(
+float transformRange(
         float colorValue,
-        glm::mat4 const &inverseVP)
+        float fromLowest,
+        float fromHighest,
+        float toLowest,
+        float toHighest)
 {
-    glm::vec4 z{0.0f, 0.0f, colorValue, 1.0f};
-    z = inverseVP * z;
-
-    return z.z/z.w;
+    float z = (colorValue - fromLowest) *(toHighest - toLowest)/(fromHighest - fromLowest) + toLowest;
+    return z;
 }
 
 template <>
-float convertColor<unsigned char>(unsigned char color, bool depth0to1) {
+float convertColor<unsigned char>(unsigned char color, bool transform, float fromLowest, float fromHighest, float toLowest, float toHighest) {
     float ret = static_cast<float>(color) / 255.0f;
-    if (!depth0to1) {
-        ret = ret * 2.0f - 1.0f;
+    if (transform) {
+        ret = transformRange(ret, fromLowest, fromHighest, toLowest, toHighest);
     }
     return ret;
 }

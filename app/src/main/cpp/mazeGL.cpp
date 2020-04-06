@@ -376,6 +376,8 @@ std::shared_ptr<TextureData> GraphicsGL::getDepthTexture(
         float width,
         float height,
         uint32_t rowSize,
+        float farthestDepth,
+        float nearestDepth,
         std::vector<float> &depthMap, /* output */
         std::vector<glm::vec3> &normalMap) /* output */
 {
@@ -433,7 +435,7 @@ std::shared_ptr<TextureData> GraphicsGL::getDepthTexture(
     checkGraphicsError();
     glReadPixels(0, 0, surfaceWidth, surfaceHeight, GL_RGBA, GL_UNSIGNED_BYTE, data.data());
     checkGraphicsError();
-    bitmapToDepthMap<unsigned char>(data, proj, view, surfaceWidth, surfaceHeight, 4, false, false, depthMap);
+    bitmapToDepthMap<unsigned char>(data, farthestDepth, nearestDepth, surfaceWidth, surfaceHeight, 4, false, depthMap);
 
     /* normals texture */
     glReadBuffer(GL_COLOR_ATTACHMENT1);

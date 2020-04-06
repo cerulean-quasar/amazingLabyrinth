@@ -197,6 +197,8 @@ public:
             float width,
             float height,
             uint32_t nbrWidthSamples,
+            float farthestDepth,
+            float nearestDepth,
             std::vector<float> &depthValues,
             std::vector<glm::vec3> &normalMap) = 0;
 

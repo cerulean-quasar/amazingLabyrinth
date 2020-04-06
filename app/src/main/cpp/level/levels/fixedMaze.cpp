@@ -533,6 +533,7 @@ void FixedMaze::init()
 
     m_rowWidth = static_cast<uint32_t>(std::floor(10.0f/m_scaleBall * m_width));
     m_testTexture = m_gameRequester->getDepthTexture(worldMap, m_width, m_height, m_rowWidth,
+            m_maxZ - MODEL_MAXZ, m_maxZ + MODEL_MAXZ,
             m_depthMap, m_normalMap);
     m_rowHeight = m_depthMap.size()/m_rowWidth;
 

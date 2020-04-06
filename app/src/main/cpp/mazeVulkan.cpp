@@ -712,6 +712,8 @@ std::shared_ptr<TextureData> GraphicsVulkan::getDepthTexture(
         float width,
         float height,
         uint32_t nbrSamplesForWidth,
+        float farthestDepth,
+        float nearestDepth,
         std::vector<float> &depthMap,
         std::vector<glm::vec3> &normalMap)
 {
@@ -728,7 +730,7 @@ std::shared_ptr<TextureData> GraphicsVulkan::getDepthTexture(
         auto drawObjData = std::make_shared<DrawObjectDataVulkanDepthTexture>(
                 m_device, m_commandPool, dscPools, objdata.first);
         for (auto const &modelMatrix : objdata.first->modelMatrices) {
-            drawObjData->addUniforms(objdata.first, vp);
+            drawObjData->addUniforms(objdata.first, vp, farthestDepth, nearestDepth);
         }
         drawObjsData.push_back(drawObjData);
     }
@@ -771,7 +773,7 @@ std::shared_ptr<TextureData> GraphicsVulkan::getDepthTexture(
                           VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT};
     colorDepthImage->image()->copyImageToBuffer(buffer, m_commandPool);
     buffer.copyRawFrom(colorDepthMap.data(), colorDepthMap.size() * sizeof (float));
-    bitmapToDepthMap(colorDepthMap, proj, view, imageWidth, imageHeight, 1, true, true, depthMap);
+    bitmapToDepthMap(colorDepthMap, farthestDepth, nearestDepth, imageWidth, imageHeight, 1, true, depthMap);
 
     std::shared_ptr<vulkan::ImageView> colorNormalImage = runTextureComputation(
             drawObjsData,

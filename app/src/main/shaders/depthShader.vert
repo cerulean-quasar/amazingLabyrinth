@@ -22,7 +22,9 @@
 
 layout(set = 0, binding = 0) uniform UniformBufferObject {
     mat4 mvp;
-    mat4 normalModelMatrix;
+    mat4 model;
+    float farthestDepth;
+    float nearestDepth;
 } ubo;
 
 layout(location = 0) in vec3 inPosition;
@@ -38,5 +40,13 @@ out gl_PerVertex {
 
 void main() {
     gl_Position = ubo.mvp * vec4(inPosition, 1.0);
-    fragColor = gl_Position.zzz/gl_Position.w;
+    vec4 pos = ubo.model * vec4(inPosition, 1.0);
+    float range = ubo.nearestDepth - ubo.farthestDepth;
+    float z = (pos.z/pos.w - ubo.farthestDepth)/range;
+    if (z > 1.0) {
+        z = 1.0;
+    } else if (z < 0.0) {
+        z = 0.0;
+    }
+    fragColor = vec3(z, z, z);
 }

@@ -190,7 +190,9 @@ private:
 
 struct UniformBufferObjectDepthTexture {
     glm::mat4 mvp;
-    glm::mat4 transposeInverseModelMatrix;
+    glm::mat4 modelMatrix;
+    float farthestDepth;
+    float nearestDepth;
 };
 
 class UniformWrapperDepthTexture {
@@ -198,7 +200,9 @@ public:
     UniformWrapperDepthTexture(std::shared_ptr<vulkan::Device> const &inDevice,
                    std::shared_ptr<vulkan::DescriptorPools> const &descriptorPools,
                    glm::mat4 const &mvp,
-                   glm::mat4 const &transposeInverseModelMatrix)
+                   glm::mat4 const &modelMatrix,
+                   float farthestDepth,
+                   float nearestDepth)
             : m_descriptorSet{},
               m_uniformBuffer{}
     {
@@ -207,7 +211,10 @@ public:
 
         UniformBufferObjectDepthTexture ubo;
         ubo.mvp = mvp;
-        ubo.transposeInverseModelMatrix = transposeInverseModelMatrix;
+        ubo.modelMatrix = modelMatrix;
+        ubo.farthestDepth = farthestDepth;
+        ubo.nearestDepth = nearestDepth;
+
         m_uniformBuffer = createUniformBuffer(inDevice, sizeof (ubo));
         m_uniformBuffer->copyRawTo(&ubo, sizeof (ubo));
 
@@ -265,7 +272,12 @@ public:
         vulkan::copyIndicesToBuffer(inPool, drawObj->indices, m_indexBuffer);
     }
 
-    void addUniforms(std::shared_ptr<DrawObject> const &obj, glm::mat4 const &vp) {
+    void addUniforms(
+            std::shared_ptr<DrawObject> const &obj,
+            glm::mat4 const &vp,
+            float farthestDepth,
+            float nearestDepth)
+    {
         if (obj->modelMatrices.size() == m_uniforms.size()) {
             return;
         }
@@ -273,7 +285,7 @@ public:
         for (size_t i = m_uniforms.size(); i < obj->modelMatrices.size(); i++) {
             glm::mat4 mvp = vp * obj->modelMatrices[i];
             auto uniform = std::make_shared<UniformWrapperDepthTexture>(m_device, m_descriptorPools,
-                    mvp, glm::transpose(glm::inverse(obj->modelMatrices[i])));
+                    mvp, obj->modelMatrices[i], farthestDepth, nearestDepth);
             m_uniforms.push_back(uniform);
         }
     }
@@ -386,6 +398,8 @@ public:
             float width,
             float height,
             uint32_t nbrSamplesForWidth,
+            float farthestDepth,
+            float nearestDepth,
             std::vector<float> &depthMap,
             std::vector<glm::vec3> &normalMap);
 

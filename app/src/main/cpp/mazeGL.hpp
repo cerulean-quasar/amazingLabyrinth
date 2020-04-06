@@ -168,6 +168,8 @@ public:
             float width,
             float height,
             uint32_t nbrSampleForWidth,
+            float farthestDepth,
+            float nearestDepth,
             std::vector<float> &depthValues,
             std::vector<glm::vec3> &normalMap);
 
