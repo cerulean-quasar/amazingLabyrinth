@@ -37,6 +37,8 @@ out gl_PerVertex {
 };
 
 void main() {
-    gl_Position = ubo.mvp * vec4(inPosition, 1.0);
-    fragColor = gl_Position.zzz/gl_Position.w;
+    vec4 pos = ubo.mvp * vec4(inPosition, 1.0);
+    vec4 normalVec = ubo.normalModelMatrix * vec4(inNormal, 1.0);
+    gl_Position = vec4(pos.x * normalVec.w, pos.y * normalVec.w, abs(normalVec.z) * pos.w, normalVec.w * pos.w);
+    fragColor = normalize(normalVec.xyz/normalVec.w) * 0.5 + vec3(0.5, 0.5, 0.5);
 }

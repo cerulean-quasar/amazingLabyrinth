@@ -22,6 +22,14 @@
 
 #include "fixedMaze.hpp"
 
+bool notValid(glm::vec3 const &v) {
+    if (v.x != v.x || v.y != v.y || v.z != v.z) {
+        return true;
+    }
+
+    return false;
+}
+
 glm::vec4 FixedMaze::getBackgroundColor() {
     return glm::vec4{0.0f, 0.0f, 0.0f, 0.0f};
 }
@@ -113,8 +121,64 @@ float FixedMaze::getRawDepth(size_t xcell, size_t ycell) {
     return z;
 }
 
+glm::vec3 FixedMaze::getRawNormalAtPosition(size_t xcell, size_t ycell) {
+    return m_normalMap[ycell * m_rowWidth +  xcell];
+}
+
 glm::vec3 FixedMaze::getNormalAtPosition(float x, float y) {
-    return m_normalMap[getYCell(y) * m_rowWidth +  getXCell(x)];
+    glm::vec3 velocity{0.0f, 0.0f, 0.0f};
+    return getNormalAtPosition(x, y, m_scaleBall * MODEL_BALL_SIZE/2.0f, velocity);
+}
+
+glm::vec3 FixedMaze::getNormalAtPosition(float x, float y, glm::vec3 const &velocity) {
+    return getNormalAtPosition(x, y, m_scaleBall * MODEL_BALL_SIZE/2.0f, velocity);
+}
+
+glm::vec3 FixedMaze::getNormalAtPosition(float x, float y, float extend, glm::vec3 const &velocity) {
+    glm::vec3 leastZNormal{0.0f, 0.0f, 1.0f};
+    glm::vec3 leastZNormal2{0.0f, 0.0f, 1.0f};
+    float leastDot = 1.0f;
+    float leastDot2 = 0.0f;
+    size_t xcellmin = getXCell(x - extend);
+    size_t xcellmax = getXCell(x + extend);
+    size_t ycellmin = getYCell(y - extend);
+    size_t ycellmax = getYCell(y + extend);
+
+    float speed = glm::length(velocity);
+    for (size_t i = xcellmin; i <= xcellmax; i++) {
+        for (size_t j = ycellmin; j <= ycellmax; j++) {
+            glm::vec3 normal = getRawNormalAtPosition(i, j);
+            if (std::fabs(normal.x) > m_floatErrorAmount || std::fabs(normal.y) > m_floatErrorAmount) {
+                if (speed > m_floatErrorAmount) {
+                    glm::vec2 velocityXY{velocity.x, velocity.y};
+                    glm::vec2 normalXY = glm::normalize(glm::vec2{normal.x, normal.y});
+                    float dot = glm::dot(velocityXY, normalXY);
+                    if (leastDot > dot && normal.z < leastZNormal.z) {  // find the most negative dot product
+                        leastZNormal = normal;
+                        leastDot = dot;
+                    }
+                    if (leastDot2 > dot && normal.z < leastZNormal2.z) {
+                        leastZNormal2 = normal;
+                        leastDot2 = dot;
+                    }
+                } else {
+                    leastZNormal = normal;
+                }
+            }
+        }
+    }
+
+    if (speed > m_floatErrorAmount) {
+        // prefer normals where the dot with the velocity is less than 0.0f.  The dot may be
+        // legitimately positive if the ball is grazing the surface.  So prefer the smallest positive
+        // value in that case.
+        if (leastZNormal2.z < 0.9999) {
+            return leastZNormal2;
+        } else {
+            return leastZNormal;
+        }
+    }
+    return leastZNormal;
 }
 
 glm::vec3 FixedMaze::getParallelAcceleration() {
@@ -124,7 +188,22 @@ glm::vec3 FixedMaze::getParallelAcceleration() {
     return m_ball.acceleration - normalGravityComponent;
 }
 
+void FixedMaze::ballOutOfBounds(glm::vec3 &pos) {
+    if (pos.x > m_width/2.0f - m_scaleBall * MODEL_BALL_SIZE / 2.0f) {
+        pos.x = m_width/2.0f - m_scaleBall * MODEL_BALL_SIZE / 2.0f;
+    } else if (pos.x < -m_width/2.0f + m_scaleBall * MODEL_BALL_SIZE / 2.0f) {
+        pos.x = -m_width / 2.0f + m_scaleBall * MODEL_BALL_SIZE / 2.0f;
+    }
+
+    if (pos.y > m_height/2.0f - m_scaleBall * MODEL_BALL_SIZE / 2.0f) {
+        pos.y = m_height/2.0f - m_scaleBall * MODEL_BALL_SIZE / 2.0f;
+    } else if (pos.y < -m_height/2.0f + m_scaleBall * MODEL_BALL_SIZE / 2.0f) {
+        pos.y = -m_height/2.0f  + m_scaleBall * MODEL_BALL_SIZE / 2.0f;
+    }
+}
+
 void FixedMaze::moveBall(float timeDiff) {
+    ballOutOfBounds(m_ball.position);
     glm::vec3 position = m_ball.position;
     glm::vec3 velocity = m_ball.velocity + getParallelAcceleration() * timeDiff - m_viscosity * m_ball.velocity;
 
@@ -138,6 +217,8 @@ void FixedMaze::moveBall(float timeDiff) {
 
     while (timeDiff > 0.0f) {
         glm::vec3 nextPos = position + velocity * timeDiff;
+        notValid(nextPos);
+        notValid(position);
         size_t xcell = getXCell(position.x);
         size_t ycell = getYCell(position.y);
 
@@ -171,80 +252,11 @@ void FixedMaze::moveBall(float timeDiff) {
             }
         }
 
-        if (smallest >= fractionsTillWall.size()) {
-            // shouldn't happen
-            return;
-        }
-
-        if (fractionsTillWall[smallest] >= 1.0f) {
+        if (smallest >= fractionsTillWall.size() || fractionsTillWall[smallest] >= 1.0f) {
             // moving within a cell - just move and break.
             position = nextPos;
-            position.z = getZPos(position.x, position.y) + m_scaleBall*MODEL_BALL_SIZE/2.0f;
+            //position.z = getZPos(position.x, position.y) + m_scaleBall*MODEL_BALL_SIZE/2.0f;
             break;
-        }
-
-        if (smallest == 0 && xcell == 0) {
-            // left wall
-            position.x = -m_width/2.0f + m_scaleBall * MODEL_BALL_SIZE / 2.0f;
-            position.z = getZPos(position.x, position.y) + m_scaleBall*MODEL_BALL_SIZE/2.0f;
-            timeDiff -= fractionsTillWall[smallest] * timeDiff;
-            if (velocity.x < 0.0f) {
-                if (m_bounce) {
-                    velocity.x = -velocity.x;
-                    continue;
-                } else {
-                    velocity = glm::vec3{0.0f, 0.0f, 0.0f};
-                    break;
-                }
-            }
-        }
-
-        if (smallest == 1 && xcell == m_rowWidth - 1) {
-            // right wall
-            position.x = m_width/2.0f - m_scaleBall * MODEL_BALL_SIZE / 2.0f;
-            position.z = getZPos(position.x, position.y) + m_scaleBall*MODEL_BALL_SIZE/2.0f;
-            timeDiff -= fractionsTillWall[smallest] * timeDiff;
-            if (velocity.x > 0.0f) {
-                if (m_bounce) {
-                    velocity.x = -velocity.x;
-                    continue;
-                } else {
-                    velocity = glm::vec3{0.0f, 0.0f, 0.0f};
-                    break;
-                }
-            }
-        }
-
-        if (smallest == 2 && ycell == 0) {
-            // bottom wall
-            position.y = -m_height/2.0f + m_scaleBall * MODEL_BALL_SIZE / 2.0f;
-            position.z = getZPos(position.x, position.y) + m_scaleBall*MODEL_BALL_SIZE/2.0f;
-            timeDiff -= fractionsTillWall[smallest] * timeDiff;
-            if (velocity.y < 0.0f) {
-                if (m_bounce) {
-                    velocity.y = -velocity.y;
-                    continue;
-                } else {
-                    velocity = glm::vec3{0.0f, 0.0f, 0.0f};
-                    break;
-                }
-            }
-        }
-
-        if (smallest == 3 && ycell == m_rowHeight - 1) {
-            // top wall
-            position.y = m_height/2.0f - m_scaleBall * MODEL_BALL_SIZE / 2.0f;
-            position.z = getZPos(position.x, position.y) + m_scaleBall*MODEL_BALL_SIZE/2.0f;
-            timeDiff -= fractionsTillWall[smallest] * timeDiff;
-            if (velocity.y > 0.0f) {
-                if (m_bounce) {
-                    velocity.y = -velocity.y;
-                    continue;
-                } else {
-                    velocity = glm::vec3{0.0f, 0.0f, 0.0f};
-                    break;
-                }
-            }
         }
 
         glm::vec3 newPos = position;
@@ -274,22 +286,86 @@ void FixedMaze::moveBall(float timeDiff) {
             adjustPos(diagonal);
         }
 
+        if (newPos.x < -m_width/2.0f + m_scaleBall * MODEL_BALL_SIZE / 2.0f) {
+            // left wall
+            position.x = -m_width/2.0f + m_scaleBall * MODEL_BALL_SIZE / 2.0f;
+            position.z = getZPos(position.x, position.y) + m_scaleBall*MODEL_BALL_SIZE/2.0f;
+            timeDiff -= fractionsTillWall[smallest] * timeDiff;
+            if (velocity.x < 0.0f) {
+                if (m_bounce) {
+                    velocity.x = -velocity.x;
+                    continue;
+                } else {
+                    velocity = glm::vec3{0.0f, 0.0f, 0.0f};
+                    break;
+                }
+            }
+        }
+
+        if (newPos.x > m_width/2.0f - m_scaleBall * MODEL_BALL_SIZE / 2.0f) {
+            // right wall
+            position.x = m_width/2.0f - m_scaleBall * MODEL_BALL_SIZE / 2.0f;
+            position.z = getZPos(position.x, position.y) + m_scaleBall*MODEL_BALL_SIZE/2.0f;
+            timeDiff -= fractionsTillWall[smallest] * timeDiff;
+            if (velocity.x > 0.0f) {
+                if (m_bounce) {
+                    velocity.x = -velocity.x;
+                    continue;
+                } else {
+                    velocity = glm::vec3{0.0f, 0.0f, 0.0f};
+                    break;
+                }
+            }
+        }
+
+        if (newPos.y < -m_height/2.0f + m_scaleBall * MODEL_BALL_SIZE / 2.0f) {
+            // bottom wall
+            position.y = -m_height/2.0f + m_scaleBall * MODEL_BALL_SIZE / 2.0f;
+            position.z = getZPos(position.x, position.y) + m_scaleBall*MODEL_BALL_SIZE/2.0f;
+            timeDiff -= fractionsTillWall[smallest] * timeDiff;
+            if (velocity.y < 0.0f) {
+                if (m_bounce) {
+                    velocity.y = -velocity.y;
+                    continue;
+                } else {
+                    velocity = glm::vec3{0.0f, 0.0f, 0.0f};
+                    break;
+                }
+            }
+        }
+
+        if (newPos.y > m_height/2.0f - m_scaleBall * MODEL_BALL_SIZE / 2.0f) {
+            // top wall
+            position.y = m_height/2.0f - m_scaleBall * MODEL_BALL_SIZE / 2.0f;
+            position.z = getZPos(position.x, position.y) + m_scaleBall*MODEL_BALL_SIZE/2.0f;
+            timeDiff -= fractionsTillWall[smallest] * timeDiff;
+            if (velocity.y > 0.0f) {
+                if (m_bounce) {
+                    velocity.y = -velocity.y;
+                    continue;
+                } else {
+                    velocity = glm::vec3{0.0f, 0.0f, 0.0f};
+                    break;
+                }
+            }
+        }
+
         glm::vec2 newPosXY{newPos.x, newPos.y};
         glm::vec2 positionXY{position.x, position.y};
         glm::vec2 nextPosXY{nextPos.x, nextPos.y};
         float timeInc = glm::length(newPosXY - positionXY) / glm::length(nextPosXY - positionXY) * timeDiff;
 
         newPos.z = getZPos(newPos.x, newPos.y) + m_scaleBall*MODEL_BALL_SIZE/2.0f;
-        if (m_stopAtSteepSlope && newPos.z > position.z + m_scaleBall * MODEL_BALL_SIZE/10.0f) {
+        if (m_stopAtSteepSlope && newPos.z > position.z + m_scaleBall * MODEL_BALL_SIZE/3.0f) {
             if (m_bounce) {
-                glm::vec3 normal = getNormalAtPosition(newPos.x, newPos.y);
-                if (normal.z > 0.99999f) {
+                glm::vec3 normal = getNormalAtPosition(newPos.x, newPos.y, velocity);
+                if (std::fabs(normal.x) < m_floatErrorAmount && std::fabs(normal.y) < m_floatErrorAmount) {
                     /* x and y components of the normal too small to compute the reflective
                      * velocity.  Just negate x and y velocity components so it goes back in the
                      * direction it came from.
                      */
                     velocity = glm::vec3{-velocity.x, -velocity.y, 0.0f};
-                    position = newPos;
+                    notValid(velocity);
                     timeDiff -= timeInc;
                     continue;
                 }
@@ -297,13 +373,18 @@ void FixedMaze::moveBall(float timeDiff) {
                 float velocityNormalToSurface = glm::dot(xyNormal, velocity);
                 if (velocityNormalToSurface < 0.0f) {
                     velocity = velocity - 2.0f * velocityNormalToSurface * xyNormal;
-                    position = newPos;
+                    notValid(velocity);
+                    timeDiff -= timeInc;
+                    continue;
+                } else {
+                    velocity = velocity - velocityNormalToSurface * xyNormal;
+                    notValid(velocity);
                     timeDiff -= timeInc;
                     continue;
                 }
             } else {
                 velocity = glm::vec3{0.0f, 0.0f, 0.0f};
-                position = newPos;
+                notValid(velocity);
                 timeDiff -= timeInc;
                 break;
             }
@@ -314,6 +395,7 @@ void FixedMaze::moveBall(float timeDiff) {
 
     surfaceNormal = getNormalAtPosition(position.x, position.y);
     velocity -= glm::dot(velocity, surfaceNormal) * surfaceNormal;
+    notValid(velocity);
 
     m_ball.velocity = velocity;
     m_ball.position = position;
@@ -347,10 +429,10 @@ bool FixedMaze::updateData() {
 bool FixedMaze::updateStaticDrawObjects(DrawObjectTable &objs, TextureMap &textures) {
     if (objs.empty() && textures.empty()) {
         /* floor */
-        //objs.emplace_back(m_testObj, nullptr);
-        auto obj = m_worldMap.begin();
-        obj->first->texture = m_testObj->texture;
-        objs.emplace_back(obj->first, nullptr);
+        objs.emplace_back(m_testObj, nullptr);
+        //auto obj = m_worldMap.begin();
+        //obj->first->texture = m_testObj->texture;
+        //objs.emplace_back(obj->first, nullptr);
 
         textures.insert(
                 std::make_pair(std::make_shared<TextureDescriptionDummy>(m_gameRequester),

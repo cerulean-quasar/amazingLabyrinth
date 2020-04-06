@@ -55,8 +55,7 @@ glm::mat4 getOrthoMatrix(
 
 float colorValueToDepth(
         float colorValue,
-        glm::mat4 const &proj,
-        glm::mat4 const &view);
+        glm::mat4 const &inverseVP);
 
 template <typename inputDataType>
 float convertColor(inputDataType color, bool depth0to1) {
@@ -82,6 +81,7 @@ void bitmapToDepthMap(
         bool depth0to1,
         std::vector<float> &depthMap)
 {
+    glm::mat4 invVP = glm::inverse(proj *view);
     depthMap.resize(surfaceWidth * surfaceHeight);
     if (invertY) {
         for (size_t i = 0; i < surfaceWidth; i++) {
@@ -89,13 +89,13 @@ void bitmapToDepthMap(
                 float red = convertColor<inputDataType>(
                         texture[((surfaceHeight - 1 - j) * surfaceWidth + i) * step],
                         depth0to1);
-                depthMap[j * surfaceWidth + i] = colorValueToDepth(red, proj, view);
+                depthMap[j * surfaceWidth + i] = colorValueToDepth(red, invVP);
             }
         }
     } else {
         for (size_t i = 0; i < depthMap.size(); i++) {
             float red = convertColor<inputDataType>(texture[i * step], depth0to1);
-            depthMap[i] = colorValueToDepth(red, proj, view);
+            depthMap[i] = colorValueToDepth(red, invVP);
         }
     }
 }

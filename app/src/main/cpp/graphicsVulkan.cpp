@@ -1001,7 +1001,7 @@ namespace vulkan {
         rasterizer.lineWidth = 1.0f;
 
         /* can disable culling, cull front and/or back faces */
-        rasterizer.cullMode = VK_CULL_MODE_BACK_BIT;
+        rasterizer.cullMode = VK_CULL_MODE_NONE; // VK_CULL_MODE_BACK_BIT;
 
         /* specifies the vertex order for faces to be considered front facing */
         rasterizer.frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE;

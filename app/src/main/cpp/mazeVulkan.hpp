@@ -27,6 +27,8 @@ char constexpr const *SHADER_VERT_FILE ="shaders/shader.vert.spv";
 char constexpr const *SHADER_FRAG_FILE ="shaders/shader.frag.spv";
 char constexpr const *SHADER_DEPTH_VERT_FILE ="shaders/depthShader.vert.spv";
 char constexpr const *SHADER_DEPTH_FRAG_FILE ="shaders/depthShader.frag.spv";
+char constexpr const *SHADER_NORMAL_VERT_FILE ="shaders/normal.vert.spv";
+char constexpr const *SHADER_NORMAL_FRAG_FILE ="shaders/normal.frag.spv";
 char constexpr const *SHADER_DEPTH_AND_NORMAL_VERT_FILE = "shaders/depthAndNormal.vert.spv";
 char constexpr const *SHADER_DEPTH_AND_NORMAL_FRAG_FILE = "shaders/depthAndNormal.frag.spv";
 
@@ -416,6 +418,19 @@ private:
     void initializeCommandBuffers();
     void initializeCommandBuffer(size_t index);
     void initializeCommandBufferDrawObjects(VkCommandBuffer commandBuffer, DrawObjectTable const & objs);
+
+    std::shared_ptr<vulkan::ImageView> runTextureComputation(
+            std::vector<std::shared_ptr<DrawObjectDataVulkanDepthTexture>> const &drawObjsData,
+            std::vector<uint32_t> const &indexArraySizes,
+            std::shared_ptr<vulkan::ImageView> &depthView,
+            uint32_t imageWidth,
+            uint32_t imageHeight,
+            VkClearColorValue const &clearColorValue,
+            VkFormat colorImageFormat,
+            std::string const &vertexShader,
+            std::string const &fragmentShader,
+            std::shared_ptr<vulkan::DescriptorPools> &dscPools);
+
     void prepareDepthResources();
 };
 

@@ -64,9 +64,9 @@ public:
     ~FixedMaze() override = default;
 
 private:
-    static float constexpr m_viscosity = 0.0005f;
+    static float constexpr m_viscosity = 0.005f;
     static float constexpr m_minZNorm = 0.5f;
-    static float constexpr m_floatErrorAmount = 0.0000001f;
+    static float constexpr m_floatErrorAmount = 0.00001f;
 
     std::chrono::high_resolution_clock::time_point m_prevTime;
     std::vector<Vertex> m_ballVertices;
@@ -103,6 +103,10 @@ private:
     float getRawDepth(float x, float y);
     glm::vec3 getParallelAcceleration();
     glm::vec3 getNormalAtPosition(float x, float y);
+    glm::vec3 getNormalAtPosition(float x, float y, float extend, glm::vec3 const &velocity);
+    glm::vec3 getNormalAtPosition(float x, float y, glm::vec3 const &velocity);
+    glm::vec3 getRawNormalAtPosition(size_t xcell, size_t ycell);
+    void ballOutOfBounds(glm::vec3 &pos);
     void moveBall(float timeDiff);
 };
 #endif /* AMAZING_LABYRINTH_FIXED_MAZE_HPP */

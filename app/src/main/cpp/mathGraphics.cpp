@@ -83,11 +83,11 @@ glm::mat4 getOrthoMatrix(
 
 float colorValueToDepth(
         float colorValue,
-        glm::mat4 const &proj,
-        glm::mat4 const &view)
+        glm::mat4 const &inverseVP)
 {
     glm::vec4 z{0.0f, 0.0f, colorValue, 1.0f};
-    z = glm::inverse(view) * glm::inverse(proj) * z;
+    z = inverseVP * z;
+
     return z.z/z.w;
 }
 
