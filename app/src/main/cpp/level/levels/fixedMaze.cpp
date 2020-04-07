@@ -195,7 +195,9 @@ void FixedMaze::moveBall(float timeDiff) {
     glm::vec3 position = m_ball.position;
     glm::vec3 velocity = m_ball.velocity + getParallelAcceleration() * timeDiff - m_viscosity * m_ball.velocity;
 
-    while (timeDiff > 0.0f) {
+    uint32_t nbrComputations = 0;
+    while (timeDiff > 0.0f && nbrComputations < 200) {
+        nbrComputations ++;
         glm::vec3 surfaceNormal = getRawNormalAtPosition(position.x, position.y);
         velocity -= glm::dot(velocity, surfaceNormal) * surfaceNormal;
         if (glm::length(velocity) < m_floatErrorAmount) {
@@ -344,7 +346,14 @@ void FixedMaze::moveBall(float timeDiff) {
                      * velocity.  Just negate x and y velocity components so it goes back in the
                      * direction it came from.
                      */
-                    velocity = glm::vec3{-velocity.x, -velocity.y, 0.0f};
+                    size_t xnewcell = getXCell(newPos.x);
+                    size_t ynewcell = getYCell(newPos.y);
+                    if (xnewcell != xcell) {
+                        velocity.x = -velocity.x;
+                    }
+                    if (ynewcell != ycell) {
+                        velocity.y = -velocity.y;
+                    }
                     notValid(velocity);
                     timeDiff -= timeInc;
                     continue;
