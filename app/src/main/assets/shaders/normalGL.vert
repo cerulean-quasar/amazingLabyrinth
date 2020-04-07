@@ -1,3 +1,6 @@
+#version 100
+precision highp float;
+
 /**
  * Copyright 2020 Cerulean Quasar. All Rights Reserved.
  *
@@ -17,36 +20,23 @@
  *  along with AmazingLabyrinth.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
-#version 450
-#extension GL_ARB_separate_shader_objects : enable
 
-layout(set = 0, binding = 0) uniform UniformBufferObject {
-    mat4 mvp;
-    mat4 model;
-    float farthestDepth;
-    float nearestDepth;
-} ubo;
+uniform mat4 model;
+uniform mat4 view;
+uniform mat4 proj;
+uniform mat4 normalMatrix;
 
-layout(location = 0) in vec3 inPosition;
-layout(location = 1) in vec3 inColor;
-layout(location = 2) in vec2 inTexCoord;
-layout(location = 3) in vec3 inNormal;
+attribute vec3 inPosition;
+attribute vec3 inColor;
+attribute vec2 inTexCoord;
+attribute vec3 inNormal;
 
-layout(location = 0) out vec3 fragColor;
-
-out gl_PerVertex {
-    vec4 gl_Position;
-};
+varying vec3 fragColor;
+varying vec3 fragNormal;
 
 void main() {
-    gl_Position = ubo.mvp * vec4(inPosition, 1.0);
-    vec4 pos = ubo.model * vec4(inPosition, 1.0);
-    float range = ubo.nearestDepth - ubo.farthestDepth;
-    float z = (pos.z/pos.w - ubo.farthestDepth)/range;
-    if (z > 1.0) {
-        z = 1.0;
-    } else if (z < 0.0) {
-        z = 0.0;
-    }
-    fragColor = vec3(z, z, z);
+    vec4 pos = proj * view * model * vec4(inPosition, 1.0);
+    vec4 normalVec = normalMatrix * vec4(inNormal, 1.0);
+    gl_Position = vec4(pos.x * normalVec.w, pos.y * normalVec.w, abs(normalVec.z) * pos.w, normalVec.w * pos.w);
+    fragColor = normalize(normalVec.xyz/normalVec.w) * 0.5 + vec3(0.5, 0.5, 0.5);
 }

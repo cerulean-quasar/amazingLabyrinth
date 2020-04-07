@@ -20,8 +20,6 @@
 #include <stb_image.h>
 
 #include "graphicsVulkan.hpp"
-#include "../../../../../../Android/Sdk/ndk/20.1.5948944/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/include/c++/v1/stdexcept"
-#include "../../../../../../Android/Sdk/ndk/20.1.5948944/sysroot/usr/include/android/binder_ibinder.h"
 
 namespace vulkan {
 /**

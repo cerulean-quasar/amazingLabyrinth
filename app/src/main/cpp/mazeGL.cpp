@@ -56,9 +56,9 @@ void checkGraphicsError() {
 std::string const SHADER_VERT_FILE("shaders/shaderGL.vert");
 std::string const SHADER_FRAG_FILE("shaders/shaderGL.frag");
 std::string const DEPTH_VERT_FILE("shaders/depthShaderGL.vert");
-std::string const DEPTH_FRAG_FILE("shaders/depthShaderGL.frag");
-std::string const DEPTH_AND_NORMAL_VERT_FILE("shaders/depthAndNormalGL.vert");
-std::string const DEPTH_AND_NORMAL_FRAG_FILE("shaders/depthAndNormalGL.frag");
+std::string const SIMPLE_FRAG_FILE("shaders/simpleGL.frag");
+std::string const LINEAR_DEPTH_VERT_FILE("shaders/linearDepthGL.vert");
+std::string const NORMAL_VERT_FILE("shaders/normalGL.vert");
 
 void DrawObjectDataGL::createDrawObjectData(std::shared_ptr<DrawObject> const &drawObj) {
     // the index buffer
@@ -159,21 +159,24 @@ void GraphicsGL::initPipeline() {
     glViewport(0, 0, m_surface.width(), m_surface.height());
 
     programID = loadShaders(SHADER_VERT_FILE, SHADER_FRAG_FILE);
-    depthProgramID = loadShaders(DEPTH_VERT_FILE, DEPTH_FRAG_FILE);
-    m_depthAndNormalProgramID = loadShaders(DEPTH_AND_NORMAL_VERT_FILE, DEPTH_AND_NORMAL_FRAG_FILE);
+    depthProgramID = loadShaders(DEPTH_VERT_FILE, SIMPLE_FRAG_FILE);
+
+    // for fixedMaze levels
+    m_linearDepthProgramID = loadShaders(LINEAR_DEPTH_VERT_FILE, SIMPLE_FRAG_FILE);
+    m_normalProgramID = loadShaders(NORMAL_VERT_FILE, SIMPLE_FRAG_FILE);
 
     // for shadow mapping.
-    m_framebufferShadowMap = std::make_shared<Framebuffer>(m_surface.width(), m_surface.height());
+    std::vector<Framebuffer::ColorImageFormat> colorImageFormats{{GL_RGBA32UI, GL_RGBA_INTEGER, GL_UNSIGNED_INT}};
+    m_framebufferShadowMap = std::make_shared<Framebuffer>(m_surface.width(), m_surface.height(), colorImageFormats);
 }
 
-Framebuffer::Framebuffer(uint32_t width, uint32_t height, uint32_t nbrColorAttachments)
+Framebuffer::Framebuffer(uint32_t width, uint32_t height, std::vector<Framebuffer::ColorImageFormat> colorImageFormats)
     : m_depthMapFBO(GL_INVALID_VALUE),
       m_depthMap(GL_INVALID_VALUE),
       m_colorImage{}
 {
+    size_t nbrColorAttachments = colorImageFormats.size();
     m_colorImage.resize(nbrColorAttachments, GL_INVALID_VALUE);
-    for (uint32_t i = 0; i < nbrColorAttachments; i++) {
-    }
 
     glGenTextures(1, &m_depthMap);
     checkGraphicsError();
@@ -202,8 +205,8 @@ Framebuffer::Framebuffer(uint32_t width, uint32_t height, uint32_t nbrColorAttac
     glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, m_depthMap, 0);
     checkGraphicsError();
     for (uint32_t i = 0; i < nbrColorAttachments; i++) {
-        auto activeTextureIndicator = GL_TEXTURE0;
-        auto attachmentIndicator = GL_COLOR_ATTACHMENT0;
+        GLenum activeTextureIndicator;
+        GLenum attachmentIndicator;
         switch (i) {
             case 0:
                 activeTextureIndicator = GL_TEXTURE0;
@@ -278,8 +281,8 @@ Framebuffer::Framebuffer(uint32_t width, uint32_t height, uint32_t nbrColorAttac
         checkGraphicsError();
         glBindTexture(GL_TEXTURE_2D, m_colorImage[i]);
         checkGraphicsError();
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA,
-                     GL_UNSIGNED_BYTE, nullptr);
+        glTexImage2D(GL_TEXTURE_2D, 0, colorImageFormats[i].internalFormat, width, height, 0, colorImageFormats[i].format,
+                     colorImageFormats[i].type, nullptr);
         checkGraphicsError();
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
         checkGraphicsError();
@@ -381,9 +384,34 @@ std::shared_ptr<TextureData> GraphicsGL::getDepthTexture(
         std::vector<float> &depthMap, /* output */
         std::vector<glm::vec3> &normalMap) /* output */
 {
+    //Framebuffer::ColorImageFormat colorImageFormat{GL_RGBA8, GL_RGBA, GL_UNSIGNED_BYTE};
+    //Framebuffer::ColorImageFormat colorImageFormat{GL_RGBA, GL_RGBA, GL_UNSIGNED_BYTE};
+    Framebuffer::ColorImageFormat colorImageFormat{GL_RGBA32UI, GL_RGBA_INTEGER, GL_UNSIGNED_INT};
+
+    return getDepthTextureTemplate<float>(objsData, colorImageFormat, width, height,
+            rowSize, farthestDepth, nearestDepth, depthMap, normalMap);
+}
+
+template <typename data_type>
+std::shared_ptr<TextureData> GraphicsGL::getDepthTextureTemplate(
+        DrawObjectTable const &objsData,
+        Framebuffer::ColorImageFormat colorImageFormat,
+        float width,
+        float height,
+        uint32_t rowSize,
+        float farthestDepth,
+        float nearestDepth,
+        std::vector<float> &depthMap, /* output */
+        std::vector<glm::vec3> &normalMap) /* output */
+{
     uint32_t surfaceWidth = rowSize;
     uint32_t surfaceHeight = (m_surface.height()*surfaceWidth)/m_surface.width();
-    Framebuffer fb(surfaceWidth, surfaceHeight, 2);
+    glm::mat4 proj = getOrthoMatrix(-width/2.0f, width/2.0f, -height/2.0f, height/2.0f,
+                                    m_depthTextureNearPlane, m_depthTextureFarPlane, false, false);
+    glm::mat4 view = m_levelSequence->viewMatrix();
+
+    std::vector<Framebuffer::ColorImageFormat> colorImageFormats{colorImageFormat};
+    Framebuffer fb(surfaceWidth, surfaceHeight, colorImageFormats);
     glBindFramebuffer(GL_FRAMEBUFFER, fb.fbo());
     checkGraphicsError();
 
@@ -392,62 +420,91 @@ std::shared_ptr<TextureData> GraphicsGL::getDepthTexture(
     checkGraphicsError();
 
     // set the shader to use
-    glUseProgram(m_depthAndNormalProgramID);
+    glUseProgram(m_linearDepthProgramID);
     checkGraphicsError();
 
     glCullFace(GL_BACK);
     checkGraphicsError();
+    glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+    checkGraphicsError();
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    checkGraphicsError();
+
+    GLint MatrixID;
+    MatrixID = glGetUniformLocation(m_linearDepthProgramID, "view");
+    checkGraphicsError();
+    glUniformMatrix4fv(MatrixID, 1, GL_FALSE, &view[0][0]);
+    checkGraphicsError();
+    MatrixID = glGetUniformLocation(m_linearDepthProgramID, "proj");
+    checkGraphicsError();
+    glUniformMatrix4fv(MatrixID, 1, GL_FALSE, &proj[0][0]);
+    checkGraphicsError();
+    GLint loc = glGetUniformLocation(m_linearDepthProgramID, "nearestDepth");
+    glUniform1f(loc, nearestDepth);
+    checkGraphicsError();
+    loc = glGetUniformLocation(m_linearDepthProgramID, "farthestDepth");
+    glUniform1f(loc, farthestDepth);
+    checkGraphicsError();
+
+
+    for (auto const &obj : objsData) {
+        auto objData = std::make_shared<DrawObjectDataGL>(obj.first);
+        for (auto const &model : obj.first->modelMatrices) {
+            drawObject(m_linearDepthProgramID, false, objData->vertexBuffer(), objData->indexBuffer(),
+                       obj.first->indices.size(), model);
+        }
+    }
+
+    /* depth texture */
+    /* width * height * 4 color values each a char in size. */
+    std::vector<data_type> data(static_cast<size_t>(surfaceWidth * surfaceHeight * 4), 0);
+    glReadBuffer(GL_COLOR_ATTACHMENT0);
+    checkGraphicsError();
+    glReadPixels(0, 0, surfaceWidth, surfaceHeight, colorImageFormats[0].format, colorImageFormats[0].type, data.data());
+    checkGraphicsError();
+    bitmapToDepthMap<data_type>(data, farthestDepth, nearestDepth, surfaceWidth, surfaceHeight, 4, false, depthMap);
+
+    // set the shader to use
+    glUseProgram(m_normalProgramID);
+    checkGraphicsError();
+
     glClearColor(0.0f, 0.0f, 1.0f, 1.0f);
     checkGraphicsError();
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     checkGraphicsError();
 
-    glm::mat4 proj = getOrthoMatrix(-width/2.0f, width/2.0f, -height/2.0f, height/2.0f,
-            m_depthTextureNearPlane, m_depthTextureFarPlane, false, false);
-    glm::mat4 view = m_levelSequence->viewMatrix();
-
-    GLint MatrixID;
-    MatrixID = glGetUniformLocation(depthProgramID, "view");
+    MatrixID = glGetUniformLocation(m_normalProgramID, "view");
     checkGraphicsError();
     glUniformMatrix4fv(MatrixID, 1, GL_FALSE, &view[0][0]);
     checkGraphicsError();
-    MatrixID = glGetUniformLocation(depthProgramID, "proj");
+    MatrixID = glGetUniformLocation(m_normalProgramID, "proj");
     checkGraphicsError();
     glUniformMatrix4fv(MatrixID, 1, GL_FALSE, &proj[0][0]);
     checkGraphicsError();
 
     for (auto const &obj : objsData) {
-        auto data = std::make_shared<DrawObjectDataGL>(obj.first);
+        auto objData = std::make_shared<DrawObjectDataGL>(obj.first);
         for (auto const &model : obj.first->modelMatrices) {
-            drawObject(depthProgramID, true, data->vertexBuffer(), data->indexBuffer(),
+            drawObject(m_normalProgramID, true, objData->vertexBuffer(), objData->indexBuffer(),
                        obj.first->indices.size(), model);
         }
     }
+
+    /* normals texture */
+    glReadBuffer(GL_COLOR_ATTACHMENT0);
+    checkGraphicsError();
+    glReadPixels(0, 0, surfaceWidth, surfaceHeight, colorImageFormats[0].format, colorImageFormats[0].type, data.data());
+    checkGraphicsError();
+    bitmapToNormals<data_type>(data, surfaceWidth, surfaceHeight, 4, false, normalMap);
+
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    checkGraphicsError();
 
     // set the viewport back for the rendering to the screen
     glViewport(0, 0, m_surface.width(), m_surface.height());
     checkGraphicsError();
 
-    /* depth texture */
-    /* width * height * 4 color values each a char in size. */
-    std::vector<unsigned char> data(static_cast<size_t>(surfaceWidth * surfaceHeight * 4));
-    glReadBuffer(GL_COLOR_ATTACHMENT0);
-    checkGraphicsError();
-    glReadPixels(0, 0, surfaceWidth, surfaceHeight, GL_RGBA, GL_UNSIGNED_BYTE, data.data());
-    checkGraphicsError();
-    bitmapToDepthMap<unsigned char>(data, farthestDepth, nearestDepth, surfaceWidth, surfaceHeight, 4, false, depthMap);
-
-    /* normals texture */
-    glReadBuffer(GL_COLOR_ATTACHMENT1);
-    checkGraphicsError();
-    glReadPixels(0, 0, surfaceWidth, surfaceHeight, GL_RGBA, GL_UNSIGNED_BYTE, data.data());
-    checkGraphicsError();
-    bitmapToNormals<unsigned char>(data, surfaceWidth, surfaceHeight, 4, false, normalMap);
-
-    glBindFramebuffer(GL_FRAMEBUFFER, 0);
-    checkGraphicsError();
-
-    return std::make_shared<TextureDataGL>(fb.acquireColorImage(1));
+    return std::make_shared<TextureDataGL>(fb.acquireDepthImage());
 }
 
 void GraphicsGL::drawFrame() {

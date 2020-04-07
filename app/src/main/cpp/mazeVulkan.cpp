@@ -758,8 +758,8 @@ std::shared_ptr<TextureData> GraphicsVulkan::getDepthTexture(
             imageHeight,
             VkClearColorValue{1.0f, 0.0f, 0.0f, 1.0f},
             VK_FORMAT_R32_SFLOAT,
-            SHADER_DEPTH_VERT_FILE,
-            SHADER_DEPTH_FRAG_FILE,
+            SHADER_LINEAR_DEPTH_VERT_FILE,
+            SHADER_SIMPLE_FRAG_FILE,
             dscPools);
 
 
@@ -784,7 +784,7 @@ std::shared_ptr<TextureData> GraphicsVulkan::getDepthTexture(
             VkClearColorValue{0.5f, 0.5f, 1.0f, 1.0f},
             VK_FORMAT_R32G32B32A32_SFLOAT,
             SHADER_NORMAL_VERT_FILE,
-            SHADER_NORMAL_FRAG_FILE,
+            SHADER_SIMPLE_FRAG_FILE,
             dscPools);
 
     colorDepthMap.resize(imageWidth * imageHeight * 4);
@@ -799,158 +799,3 @@ std::shared_ptr<TextureData> GraphicsVulkan::getDepthTexture(
 
     return std::make_shared<TextureDataVulkan>(imgSampler);
 }
-
-#if 0
-std::shared_ptr<TextureData> GraphicsVulkan::getDepthTexture(
-        DrawObjectTable const &objsData,
-        float width,
-        float height,
-        uint32_t nbrSamplesForWidth,
-        std::vector<float> &depthMap,
-        std::vector<glm::vec3> &normalMap)
-{
-    auto dscLayout = std::make_shared<DepthTextureDescriptorSetLayout>(m_device);
-    auto dscPools = std::make_shared<vulkan::DescriptorPools>(m_device, dscLayout);
-
-    glm::mat4 proj = getOrthoMatrix(-width/2.0f, width/2.0f, -height/2.0f, height/2.0f,
-            m_depthTextureNearPlane, m_depthTextureFarPlane, true, true);
-    glm::mat4 view = m_levelSequence->viewMatrix();
-    glm::mat4 vp = proj * view;
-
-    std::vector<std::shared_ptr<DrawObjectDataVulkanDepthTexture>> drawObjsData;
-    for (auto const &objdata : objsData) {
-        auto drawObjData = std::make_shared<DrawObjectDataVulkanDepthTexture>(
-                m_device, m_commandPool, dscPools, objdata.first);
-        for (auto const &modelMatrix : objdata.first->modelMatrices) {
-            drawObjData->addUniforms(objdata.first, vp);
-        }
-        drawObjsData.push_back(drawObjData);
-    }
-
-    VkExtent2D extent = m_swapChain->extent();
-    uint32_t imageWidth = nbrSamplesForWidth;
-    uint32_t imageHeight = (imageWidth * extent.height)/extent.width;
-    auto depthView = std::make_shared<vulkan::ImageView>(
-            vulkan::ImageFactory::createDepthImage(m_device, imageWidth, imageHeight),
-            m_device->depthFormat(),
-            VK_IMAGE_ASPECT_DEPTH_BIT);
-    depthView->image()->transitionImageLayout(m_device->depthFormat(), VK_IMAGE_LAYOUT_UNDEFINED,
-                                              VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL, m_commandPool);
-
-    VkFormat colorImageFormat = VK_FORMAT_R32_SFLOAT;
-    auto colorDepthImage = vulkan::ImageView::createImageViewAndImage(
-            m_device,
-            imageWidth,
-            imageHeight,
-            colorImageFormat,
-            VK_IMAGE_TILING_OPTIMAL,
-            VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, // todo: remove sampled bit usage
-            VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
-            VK_IMAGE_ASPECT_COLOR_BIT);
-
-    VkFormat colorNormalFormat = VK_FORMAT_R32G32B32A32_SFLOAT;
-    auto colorNormalImage = vulkan::ImageView::createImageViewAndImage(
-            m_device,
-            imageWidth,
-            imageHeight,
-            colorNormalFormat,
-            VK_IMAGE_TILING_OPTIMAL,
-            VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, // todo: remove sampled bit usage
-            VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
-            VK_IMAGE_ASPECT_COLOR_BIT);
-
-    std::vector<VkFormat> formats;
-    formats.push_back(colorImageFormat);
-    formats.push_back(colorNormalFormat);
-    auto renderPass = vulkan::RenderPass::createDepthTextureRenderPass(m_device,
-            formats);
-
-    std::vector<std::shared_ptr<vulkan::ImageView>> attachments = {colorDepthImage, colorNormalImage, depthView};
-    auto frameBuffer = std::make_shared<vulkan::Framebuffer>(m_device, renderPass, attachments,
-            imageWidth, imageHeight);
-
-    VkExtent2D extentFB{imageWidth, imageHeight};
-    auto pipeline = std::make_shared<vulkan::Pipeline>(m_gameRequester, m_device, extentFB,
-            renderPass, dscPools, getBindingDescription(), getAttributeDescriptions(),
-            SHADER_DEPTH_AND_NORMAL_VERT_FILE, SHADER_DEPTH_AND_NORMAL_FRAG_FILE,
-            m_graphicsPipeline, 2);
-
-    // start recording commands
-    vulkan::SingleTimeCommands cmds{m_device, m_commandPool};
-    cmds.begin();
-
-    /* begin the render pass: drawing starts here*/
-    VkRenderPassBeginInfo renderPassInfo = {};
-    renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-    renderPassInfo.renderPass = renderPass->renderPass().get();
-    renderPassInfo.framebuffer = frameBuffer->framebuffer().get();
-    /* size of the render area */
-    renderPassInfo.renderArea.offset = {0, 0};
-    renderPassInfo.renderArea.extent = {imageWidth, imageHeight};
-
-    /* the color value to use when clearing the image with VK_ATTACHMENT_LOAD_OP_CLEAR,
-     * using black with 0% opacity
-     */
-    std::array<VkClearValue, 3> clearValues = {};
-    // matching what OpenGL is doing with the clear buffers.
-    clearValues[0].color = {0.0f, 0.0f, 1.0f, 1.0f};
-    clearValues[1].color = {0.5f, 0.5f, 1.0f, 1.0f};  // pointing up.
-    clearValues[2].depthStencil = {1.0f, 0};
-    renderPassInfo.clearValueCount = clearValues.size();
-    renderPassInfo.pClearValues = clearValues.data();
-
-    /* begin recording commands - start by beginning the render pass.
-     * none of these functions returns an error (they return void).  There will be no error
-     * handling until recording is done.
-     */
-    vkCmdBeginRenderPass(cmds.commandBuffer().get(), &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
-
-    vkCmdBindPipeline(cmds.commandBuffer().get(), VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline->pipeline().get());
-
-    size_t i = 0;
-    VkDeviceSize offsets[1] = {0};
-    for (auto const &drawObjData : drawObjsData) {
-        VkBuffer vertexBufferRaw = drawObjData->vertexBuffer().buffer().get();
-        vkCmdBindVertexBuffers(cmds.commandBuffer().get(), 0, 1, &vertexBufferRaw, offsets);
-
-        vkCmdBindIndexBuffer(cmds.commandBuffer().get(), drawObjData->indexBuffer().buffer().get(), 0,
-                             VK_INDEX_TYPE_UINT32);
-
-        for (auto const &uniform : drawObjData->uniforms()) {
-            VkDescriptorSet dscSet = uniform->descriptorSet()->descriptorSet().get();
-            vkCmdBindDescriptorSets(cmds.commandBuffer().get(), VK_PIPELINE_BIND_POINT_GRAPHICS,
-                                    pipeline->layout().get(), 0, 1, &dscSet, 0, nullptr);
-            vkCmdDrawIndexed(cmds.commandBuffer().get(), objsData[i].first->indices.size(), 1, 0, 0, 0);
-        }
-        i++;
-    }
-    vkCmdEndRenderPass(cmds.commandBuffer().get());
-
-    cmds.end();
-
-    std::vector<float> colorDepthMap;
-    colorDepthMap.resize(imageWidth * imageHeight);
-
-    // use buffer for both the color depth image (R32) and the color normal image (R32G32B32)
-    vulkan::Buffer buffer{m_device,
-                          imageWidth * imageHeight * sizeof (float) * 4,
-                          VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,
-                          VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT};
-    colorDepthImage->image()->copyImageToBuffer(buffer, m_commandPool);
-    buffer.copyRawFrom(colorDepthMap.data(), colorDepthMap.size() * sizeof (float));
-    bitmapToDepthMap(colorDepthMap, proj, view, imageWidth, imageHeight, 1, true, true, depthMap);
-
-    colorDepthMap.resize(imageWidth * imageHeight * 4);
-    colorNormalImage->image()->copyImageToBuffer(buffer, m_commandPool);
-    buffer.copyRawFrom(colorDepthMap.data(), colorDepthMap.size() * sizeof (float));
-    bitmapToNormals(colorDepthMap, imageWidth, imageHeight, 4, true, normalMap);
-
-    colorNormalImage->image()->transitionImageLayout(colorNormalFormat, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
-            VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, m_commandPool);
-
-    auto imgSampler = std::make_shared<vulkan::ImageSampler>(m_device, colorNormalImage);
-
-    return std::make_shared<TextureDataVulkan>(imgSampler);
-}
-
-#endif

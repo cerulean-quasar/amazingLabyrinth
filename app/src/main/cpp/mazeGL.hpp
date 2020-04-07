@@ -57,7 +57,12 @@ private:
 
 class Framebuffer {
 public:
-    Framebuffer(uint32_t width, uint32_t height, uint32_t nbrColorAttachments = 1);
+    struct ColorImageFormat {
+        GLint internalFormat;
+        GLenum format;
+        GLenum type;
+    };
+    Framebuffer(uint32_t width, uint32_t height, std::vector<ColorImageFormat> colorImageFormats);
     ~Framebuffer() {
         if (m_depthMapFBO != GL_INVALID_VALUE) {
             glDeleteFramebuffers(1, &m_depthMapFBO);
@@ -181,7 +186,8 @@ private:
     graphicsGL::Surface m_surface;
     GLuint programID;
     GLuint depthProgramID;
-    GLuint m_depthAndNormalProgramID;
+    GLuint m_linearDepthProgramID;
+    GLuint m_normalProgramID;
 
     std::shared_ptr<Framebuffer> m_framebufferShadowMap;
 
@@ -193,6 +199,18 @@ private:
     void createDepthTexture();
     void drawObject(GLuint programID, bool needsNormal, GLuint vertex, GLuint index,
                     unsigned long nbrIndices, glm::mat4 const &modelMatrix);
+
+    template <typename data_type>
+    std::shared_ptr<TextureData> getDepthTextureTemplate(
+            DrawObjectTable const &objsData,
+            Framebuffer::ColorImageFormat colorImageFormat,
+            float width,
+            float height,
+            uint32_t rowSize,
+            float farthestDepth,
+            float nearestDepth,
+            std::vector<float> &depthMap, /* output */
+            std::vector<glm::vec3> &normalMap); /* output */
 };
 
 #endif // AMAZING_LABYRINTH_MAZE_GL_HPP

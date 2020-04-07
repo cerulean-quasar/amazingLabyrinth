@@ -25,12 +25,9 @@
 
 char constexpr const *SHADER_VERT_FILE ="shaders/shader.vert.spv";
 char constexpr const *SHADER_FRAG_FILE ="shaders/shader.frag.spv";
-char constexpr const *SHADER_DEPTH_VERT_FILE ="shaders/depthShader.vert.spv";
-char constexpr const *SHADER_DEPTH_FRAG_FILE ="shaders/depthShader.frag.spv";
+char constexpr const *SHADER_LINEAR_DEPTH_VERT_FILE ="shaders/linearDepth.vert.spv";
+char constexpr const *SHADER_SIMPLE_FRAG_FILE ="shaders/simple.frag.spv";
 char constexpr const *SHADER_NORMAL_VERT_FILE ="shaders/normal.vert.spv";
-char constexpr const *SHADER_NORMAL_FRAG_FILE ="shaders/normal.frag.spv";
-char constexpr const *SHADER_DEPTH_AND_NORMAL_VERT_FILE = "shaders/depthAndNormal.vert.spv";
-char constexpr const *SHADER_DEPTH_AND_NORMAL_FRAG_FILE = "shaders/depthAndNormal.frag.spv";
 
 std::vector<VkVertexInputAttributeDescription> getAttributeDescriptions();
 VkVertexInputBindingDescription getBindingDescription();

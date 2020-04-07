@@ -121,6 +121,10 @@ float FixedMaze::getRawDepth(size_t xcell, size_t ycell) {
     return z;
 }
 
+glm::vec3 FixedMaze::getRawNormalAtPosition(float x, float y) {
+    return getRawNormalAtPosition(getXCell(x), getYCell(y));
+}
+
 glm::vec3 FixedMaze::getRawNormalAtPosition(size_t xcell, size_t ycell) {
     return m_normalMap[ycell * m_rowWidth +  xcell];
 }
@@ -136,9 +140,7 @@ glm::vec3 FixedMaze::getNormalAtPosition(float x, float y, glm::vec3 const &velo
 
 glm::vec3 FixedMaze::getNormalAtPosition(float x, float y, float extend, glm::vec3 const &velocity) {
     glm::vec3 leastZNormal{0.0f, 0.0f, 1.0f};
-    glm::vec3 leastZNormal2{0.0f, 0.0f, 1.0f};
-    float leastDot = 1.0f;
-    float leastDot2 = 0.0f;
+    float leastDot = 0.0f;
     size_t xcellmin = getXCell(x - extend);
     size_t xcellmax = getXCell(x + extend);
     size_t ycellmin = getYCell(y - extend);
@@ -153,13 +155,9 @@ glm::vec3 FixedMaze::getNormalAtPosition(float x, float y, float extend, glm::ve
                     glm::vec2 velocityXY{velocity.x, velocity.y};
                     glm::vec2 normalXY = glm::normalize(glm::vec2{normal.x, normal.y});
                     float dot = glm::dot(velocityXY, normalXY);
-                    if (leastDot > dot && normal.z < leastZNormal.z) {  // find the most negative dot product
+                    if (leastDot > dot) {  // find the most negative dot product
                         leastZNormal = normal;
                         leastDot = dot;
-                    }
-                    if (leastDot2 > dot && normal.z < leastZNormal2.z) {
-                        leastZNormal2 = normal;
-                        leastDot2 = dot;
                     }
                 } else {
                     leastZNormal = normal;
@@ -168,21 +166,11 @@ glm::vec3 FixedMaze::getNormalAtPosition(float x, float y, float extend, glm::ve
         }
     }
 
-    if (speed > m_floatErrorAmount) {
-        // prefer normals where the dot with the velocity is less than 0.0f.  The dot may be
-        // legitimately positive if the ball is grazing the surface.  So prefer the smallest positive
-        // value in that case.
-        if (leastZNormal2.z < 0.9999) {
-            return leastZNormal2;
-        } else {
-            return leastZNormal;
-        }
-    }
     return leastZNormal;
 }
 
 glm::vec3 FixedMaze::getParallelAcceleration() {
-    glm::vec3 normal = getNormalAtPosition(m_ball.position.x, m_ball.position.y);
+    glm::vec3 normal = getRawNormalAtPosition(m_ball.position.x, m_ball.position.y);
     glm::vec3 normalGravityComponent = glm::dot(normal, m_ball.acceleration) * normal;
 
     return m_ball.acceleration - normalGravityComponent;
@@ -207,15 +195,14 @@ void FixedMaze::moveBall(float timeDiff) {
     glm::vec3 position = m_ball.position;
     glm::vec3 velocity = m_ball.velocity + getParallelAcceleration() * timeDiff - m_viscosity * m_ball.velocity;
 
-    glm::vec3 surfaceNormal = getNormalAtPosition(position.x, position.y);
-    velocity -= glm::dot(velocity, surfaceNormal) * surfaceNormal;
-
-    if (glm::length(velocity) < m_floatErrorAmount) {
-        // velocity is too small.  Return.
-        return;
-    }
-
     while (timeDiff > 0.0f) {
+        glm::vec3 surfaceNormal = getRawNormalAtPosition(position.x, position.y);
+        velocity -= glm::dot(velocity, surfaceNormal) * surfaceNormal;
+        if (glm::length(velocity) < m_floatErrorAmount) {
+            // velocity is too small.  Return.
+            break;
+        }
+
         glm::vec3 nextPos = position + velocity * timeDiff;
         notValid(nextPos);
         notValid(position);
@@ -237,7 +224,6 @@ void FixedMaze::moveBall(float timeDiff) {
         }
 
         size_t smallest = fractionsTillWall.size();
-        size_t diagonal = fractionsTillWall.size();
         for (size_t i = 0; i < fractionsTillWall.size(); i++) {
             if (fractionsTillWall[i] < m_floatErrorAmount) {
                 continue;
@@ -245,8 +231,6 @@ void FixedMaze::moveBall(float timeDiff) {
 
             if (smallest >= fractionsTillWall.size()) {
                 smallest = i;
-            } else if (fractionsTillWall[i] == fractionsTillWall[smallest]) {
-                diagonal = i;
             } else if (fractionsTillWall[i] < fractionsTillWall[smallest]) {
                 smallest = i;
             }
@@ -260,30 +244,26 @@ void FixedMaze::moveBall(float timeDiff) {
         }
 
         glm::vec3 newPos = position;
-        auto adjustPos = [&] (size_t fractionIndex) -> void {
-            switch (fractionIndex) {
-                case 0:
-                    newPos.x += (nextPos.x - position.x) * fractionsTillWall[fractionIndex] - m_floatErrorAmount;
-                    break;
-                case 1:
-                    newPos.x += (nextPos.x - position.x) * fractionsTillWall[fractionIndex] + m_floatErrorAmount;
-                    break;
-                case 2:
-                    newPos.y += (nextPos.y - position.y) * fractionsTillWall[fractionIndex] - m_floatErrorAmount;
-                    break;
-                case 3:
-                    newPos.y += (nextPos.y - position.y) * fractionsTillWall[fractionIndex] + m_floatErrorAmount ;
-                    break;
-                default:
-                    // shouldn't happen
-                    return;
-            }
-        };
-
-        adjustPos(smallest);
-
-        if (diagonal < fractionsTillWall.size()) {
-            adjustPos(diagonal);
+        switch (smallest) {
+            case 0:
+                newPos.x += (nextPos.x - position.x) * fractionsTillWall[smallest] - m_floatErrorAmount;
+                newPos.y += (nextPos.y - position.y) * fractionsTillWall[smallest];
+                break;
+            case 1:
+                newPos.x += (nextPos.x - position.x) * fractionsTillWall[smallest] + m_floatErrorAmount;
+                newPos.y += (nextPos.y - position.y) * fractionsTillWall[smallest];
+                break;
+            case 2:
+                newPos.y += (nextPos.y - position.y) * fractionsTillWall[smallest] - m_floatErrorAmount;
+                newPos.x += (nextPos.x - position.x) * fractionsTillWall[smallest];
+                break;
+            case 3:
+                newPos.y += (nextPos.y - position.y) * fractionsTillWall[smallest] + m_floatErrorAmount ;
+                newPos.x += (nextPos.x - position.x) * fractionsTillWall[smallest];
+                break;
+            default:
+                // shouldn't happen
+                return;
         }
 
         if (newPos.x < -m_width/2.0f + m_scaleBall * MODEL_BALL_SIZE / 2.0f) {
@@ -356,7 +336,7 @@ void FixedMaze::moveBall(float timeDiff) {
         float timeInc = glm::length(newPosXY - positionXY) / glm::length(nextPosXY - positionXY) * timeDiff;
 
         newPos.z = getZPos(newPos.x, newPos.y) + m_scaleBall*MODEL_BALL_SIZE/2.0f;
-        if (m_stopAtSteepSlope && newPos.z > position.z + m_scaleBall * MODEL_BALL_SIZE/3.0f) {
+        if (m_stopAtSteepSlope && newPos.z > position.z + m_scaleBall * MODEL_BALL_SIZE) {
             if (m_bounce) {
                 glm::vec3 normal = getNormalAtPosition(newPos.x, newPos.y, velocity);
                 if (std::fabs(normal.x) < m_floatErrorAmount && std::fabs(normal.y) < m_floatErrorAmount) {
@@ -393,8 +373,8 @@ void FixedMaze::moveBall(float timeDiff) {
         timeDiff -= timeInc;
     }
 
-    surfaceNormal = getNormalAtPosition(position.x, position.y);
-    velocity -= glm::dot(velocity, surfaceNormal) * surfaceNormal;
+    //surfaceNormal = getRawNormalAtPosition(position.x, position.y);
+    //velocity -= glm::dot(velocity, surfaceNormal) * surfaceNormal;
     notValid(velocity);
 
     m_ball.velocity = velocity;
@@ -429,10 +409,10 @@ bool FixedMaze::updateData() {
 bool FixedMaze::updateStaticDrawObjects(DrawObjectTable &objs, TextureMap &textures) {
     if (objs.empty() && textures.empty()) {
         /* floor */
-        objs.emplace_back(m_testObj, nullptr);
-        //auto obj = m_worldMap.begin();
-        //obj->first->texture = m_testObj->texture;
-        //objs.emplace_back(obj->first, nullptr);
+        //objs.emplace_back(m_testObj, nullptr);
+        auto obj = m_worldMap.begin();
+        obj->first->texture = m_testObj->texture;
+        objs.emplace_back(obj->first, nullptr);
 
         textures.insert(
                 std::make_pair(std::make_shared<TextureDescriptionDummy>(m_gameRequester),

@@ -1,6 +1,3 @@
-#version 100
-precision mediump float;
-
 /**
  * Copyright 2020 Cerulean Quasar. All Rights Reserved.
  *
@@ -20,21 +17,35 @@ precision mediump float;
  *  along with AmazingLabyrinth.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
+#version 450
+#extension GL_ARB_separate_shader_objects : enable
 
-uniform mat4 model;
-uniform mat4 view;
-uniform mat4 proj;
+layout(set = 0, binding = 0) uniform UniformBufferObject {
+    mat4 mvp;
+    mat4 model;
+    float farthestDepth;
+    float nearestDepth;
+} ubo;
 
-attribute vec3 inPosition;
-attribute vec3 inColor;
-attribute vec2 inTexCoord;
-attribute vec3 inNormal;
+layout(location = 0) in vec3 inPosition;
+layout(location = 1) in vec3 inColor;
+layout(location = 2) in vec2 inTexCoord;
+layout(location = 3) in vec3 inNormal;
 
-varying vec3 fragColor;
-varying vec3 fragNormal;
+layout(location = 0) out vec3 fragColor;
+
+out gl_PerVertex {
+    vec4 gl_Position;
+};
 
 void main() {
-    gl_Position = proj * view * model * vec4(inPosition, 1.0);
-    fragColor = gl_Position.zzz/gl_Position.w/2.0 + 0.5;
-    fragNormal = inNormal;
+    gl_Position = ubo.mvp * vec4(inPosition, 1.0);
+    vec4 pos = ubo.model * vec4(inPosition, 1.0);
+    float z = (pos.z/pos.w - ubo.farthestDepth)/(ubo.nearestDepth - ubo.farthestDepth);
+    if (z > 1.0) {
+        z = 1.0;
+    } else if (z < 0.0) {
+        z = 0.0;
+    }
+    fragColor = vec3(z, z, z);
 }

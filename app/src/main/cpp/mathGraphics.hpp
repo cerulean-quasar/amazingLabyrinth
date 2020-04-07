@@ -64,24 +64,20 @@ template <typename inputDataType>
 float convertColor(
         inputDataType color,
         bool transform,
-        float fromLowest,
-        float fromHighest,
         float toLowest,
         float toHighest)
 {
-    float ret = static_cast<float>(color);
+    float ret = *reinterpret_cast<float*>(&color);
     if (transform) {
-        ret = transformRange(ret, fromLowest, fromHighest, toLowest, toHighest);
+        ret = transformRange(ret, 0.0f, static_cast<float>(std::numeric_limits<inputDataType>::max()), toLowest, toHighest);
     }
     return ret;
 }
 
 template <>
-float convertColor<unsigned char>(
-        unsigned char color,
+float convertColor<float>(
+        float color,
         bool transform,
-        float fromLowest,
-        float fromHighest,
         float toLowest,
         float toHighest);
 
@@ -101,13 +97,13 @@ void bitmapToDepthMap(
         for (size_t i = 0; i < surfaceWidth; i++) {
             for (size_t j = 0; j < surfaceHeight; j++) {
                 float red = convertColor<inputDataType>(
-                        texture[((surfaceHeight - 1 - j) * surfaceWidth + i) * step], true, 0.0f, 1.0f, farthestDepth, nearestDepth);
+                        texture[((surfaceHeight - 1 - j) * surfaceWidth + i) * step], true, farthestDepth, nearestDepth);
                 depthMap[j * surfaceWidth + i] = red;
             }
         }
     } else {
         for (size_t i = 0; i < depthMap.size(); i++) {
-            float red = convertColor<inputDataType>(texture[i * step], true, 0.0f, 1.0f, farthestDepth, nearestDepth);
+            float red = convertColor<inputDataType>(texture[i * step], true, farthestDepth, nearestDepth);
             depthMap[i] = red;
         }
     }
@@ -130,19 +126,19 @@ void bitmapToNormals(
         for (size_t i = 0; i < surfaceWidth; i++) {
             for (size_t j = 0; j < surfaceHeight; j++) {
                 float x = convertColor<inputDataType>(
-                        texture[((surfaceHeight - 1 - j) * surfaceWidth + i) * step], true, 0.0f, 1.0f, -1.0f, 1.0f);
+                        texture[((surfaceHeight - 1 - j) * surfaceWidth + i) * step], true, -1.0f, 1.0f);
                 float y = convertColor<inputDataType>(
-                        texture[((surfaceHeight - 1 - j) * surfaceWidth + i) * step + 1], true, 0.0f, 1.0f, -1.0f, 1.0f);
+                        texture[((surfaceHeight - 1 - j) * surfaceWidth + i) * step + 1], true, -1.0f, 1.0f);
                 float z = convertColor<inputDataType>(
-                        texture[((surfaceHeight - 1 - j) * surfaceWidth + i) * step + 2], true, 0.0f, 1.0f, -1.0f, 1.0f);
+                        texture[((surfaceHeight - 1 - j) * surfaceWidth + i) * step + 2], true, -1.0f, 1.0f);
                 normalMap[j * surfaceWidth + i] = glm::vec3{x, y, z};
             }
         }
     } else {
         for (size_t i = 0; i < normalMap.size(); i++) {
-            float x = convertColor<inputDataType>(texture[i * step], true, 0.0f, 1.0f, -1.0f, 1.0f);
-            float y = convertColor<inputDataType>(texture[i * step + 1], true, 0.0f, 1.0f, -1.0f, 1.0f);
-            float z = convertColor<inputDataType>(texture[i * step + 2], true, 0.0f, 1.0f, -1.0f, 1.0f);
+            float x = convertColor<inputDataType>(texture[i * step], true, -1.0f, 1.0f);
+            float y = convertColor<inputDataType>(texture[i * step + 1], true, -1.0f, 1.0f);
+            float z = convertColor<inputDataType>(texture[i * step + 2], true, -1.0f, 1.0f);
             normalMap[i] = glm::vec3{x, y, z};
         }
     }

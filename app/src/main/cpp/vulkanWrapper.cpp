@@ -19,7 +19,6 @@
  */
 #include <dlfcn.h>
 #include "vulkanWrapper.hpp"
-#include "../../../../../../Android/Sdk/ndk/20.1.5948944/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/include/vulkan/vulkan.h"
 
 bool loadVulkan() {
 

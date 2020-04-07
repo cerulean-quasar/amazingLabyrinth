@@ -88,15 +88,15 @@ float transformRange(
         float toLowest,
         float toHighest)
 {
-    float z = (colorValue - fromLowest) *(toHighest - toLowest)/(fromHighest - fromLowest) + toLowest;
+    float z = (colorValue - fromLowest)/(fromHighest - fromLowest) *(toHighest - toLowest) + toLowest;
     return z;
 }
 
 template <>
-float convertColor<unsigned char>(unsigned char color, bool transform, float fromLowest, float fromHighest, float toLowest, float toHighest) {
-    float ret = static_cast<float>(color) / 255.0f;
+float convertColor<float>(float color, bool transform, float toLowest, float toHighest) {
+    float ret = color;
     if (transform) {
-        ret = transformRange(ret, fromLowest, fromHighest, toLowest, toHighest);
+        ret = transformRange(ret, 0.0f, 1.0f, toLowest, toHighest);
     }
     return ret;
 }
