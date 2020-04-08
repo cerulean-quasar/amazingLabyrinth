@@ -283,17 +283,6 @@ LevelGroup LevelTracker::getLevelGroupMountain(std::shared_ptr<FixedMazeSaveData
     };
 }
 
-std::pair<float, float> LevelTracker::getWidthHeight(
-        float maxZ, glm::mat4 const &proj, glm::mat4 const &view) {
-    glm::vec4 worldZ{0.0f, 0.0f, maxZ, 1.0f};
-    glm::vec4 z = proj * view * worldZ;
-
-    glm::vec4 plus = glm::vec4{z.w, z.w, z.z, z.w};
-    glm::vec4 worldPlus = glm::inverse(view) * glm::inverse(proj) * plus;
-
-    return std::make_pair<float, float>(worldPlus.x/worldPlus.w * 2, worldPlus.y/worldPlus.w * 2);
-}
-
 void LevelTracker::gotoNextLevel() {
     m_currentLevel = (m_currentLevel + 1) % getLevelTable().size();
 }

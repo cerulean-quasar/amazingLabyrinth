@@ -370,6 +370,10 @@ public:
 
         prepareDepthResources();
 
+        if (!testDepthTexture(true)) {
+            throw std::runtime_error("This version of Vulkan has bugs making it impossible to get the depth texture and normal map.");
+        }
+
         //initializeCommandBuffers();
     }
 

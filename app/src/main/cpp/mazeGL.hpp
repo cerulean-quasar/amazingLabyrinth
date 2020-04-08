@@ -145,11 +145,22 @@ public:
               m_surface{std::move(window)},
               programID{},
               depthProgramID{},
+              m_linearDepthProgramID{},
+              m_normalProgramID{},
+              m_useIntTexture{true},
               m_framebufferShadowMap{}
     {
         m_levelSequence = std::make_shared<LevelSequenceGL>(m_gameRequester, static_cast<uint32_t>(m_surface.width()),
                         static_cast<uint32_t >(m_surface.height()));
         initPipeline();
+
+        if (!testDepthTexture(false)) {
+            m_useIntTexture = false;
+            if (!testDepthTexture(false)) {
+                throw std::runtime_error(
+                        "This version of OpenGL has bugs making it impossible to get the depth texture and normal map.");
+            }
+        }
     }
 
     virtual void initThread() { m_surface.initThread(); }
@@ -181,6 +192,8 @@ public:
     virtual ~GraphicsGL() {
         glDeleteShader(programID);
         glDeleteShader(depthProgramID);
+        glDeleteShader(m_linearDepthProgramID);
+        glDeleteShader(m_normalProgramID);
     }
 private:
     graphicsGL::Surface m_surface;
@@ -188,6 +201,7 @@ private:
     GLuint depthProgramID;
     GLuint m_linearDepthProgramID;
     GLuint m_normalProgramID;
+    bool m_useIntTexture;
 
     std::shared_ptr<Framebuffer> m_framebufferShadowMap;
 

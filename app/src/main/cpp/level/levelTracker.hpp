@@ -35,6 +35,7 @@
 #include "levels/movingQuadsLevel.hpp"
 #include "levels/mazeAvoid.hpp"
 #include "levels/fixedMaze.hpp"
+#include "../mathGraphics.hpp"
 
 class LevelTracker {
 public:
@@ -53,7 +54,6 @@ public:
     static char constexpr const *bunny = "bunny";
     static char constexpr const *mountain = "mountain";
 
-    std::pair<float, float> getWidthHeight(float maxZ, glm::mat4 const &proj, glm::mat4 const &view);
     void gotoNextLevel();
     static std::vector<std::string> getLevelDescriptions();
     static bool validLevel(uint32_t level) { return level < getLevelTable().size(); }

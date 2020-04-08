@@ -191,3 +191,59 @@ void LevelSequence::changeLevel(size_t level) {
 
     m_levelStarter->start();
 }
+
+template <typename data_type>
+bool testMap(
+    data_type const &expected,
+    std::vector<data_type> const &valueMap,
+    std::function<bool(data_type, data_type)> cmp)
+{
+    for (auto value : valueMap) {
+        if (!cmp(expected, value)) {
+            return false;
+        }
+    }
+
+    return true;
+}
+
+bool Graphics::testDepthTexture(bool depth0to1) {
+    float modelSize = 2.0f;
+
+    auto obj = std::make_shared<DrawObject>();
+    getQuad(obj->vertices, obj->indices);
+
+    // set normal to bogus value that is different from the clear color.
+    //for (auto &vertex : obj->vertices) {
+    //    vertex.normal = {0.5f, 0.5f, 0.5f};
+    //}
+    glm::mat4 view = glm::lookAt(glm::vec3(0.0f, 0.0f, 1.1f),
+                                 glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+    glm::mat4 proj = getPerspectiveMatrix(glm::radians(45.0f),
+            m_levelSequence->surfaceWidth()/ static_cast<float>(m_levelSequence->surfaceHeight()),
+            m_depthTextureNearPlane, m_depthTextureFarPlane, false, depth0to1);
+    auto widthHeight = getWidthHeight(0.0f, proj, view);
+    obj->modelMatrices.push_back(glm::scale(glm::mat4(1.0f),
+                                            glm::vec3{widthHeight.first/modelSize, widthHeight.second/modelSize, 1.0f}));
+    obj->texture = nullptr;
+
+    DrawObjectTable drawObjsData;
+    drawObjsData.emplace_back(obj, nullptr);
+    std::vector<float> depthMap;
+    std::vector<glm::vec3> normalMap;
+    getDepthTexture(drawObjsData, widthHeight.first, widthHeight.second, 200, -1.0f, 1.0f, depthMap, normalMap);
+
+    float errVal = 0.01f;
+    auto cmpDepth = std::function<bool(float, float)>([errVal](float v1, float v2) -> bool {
+        return v1 < v2 + errVal && v1 > v2 - errVal;
+    });
+
+    auto cmpNormal = std::function<bool(glm::vec3, glm::vec3)>([errVal](glm::vec3 v1, glm::vec3 v2) -> bool {
+        return v1.x < v2.x + errVal && v1.x > v2.x - errVal &&
+                v1.y < v2.y + errVal && v1.y > v2.y - errVal &&
+                v1.z < v2.z + errVal && v1.z > v2.z - errVal;
+    });
+
+    return testMap<float>(0.0f, depthMap, cmpDepth) &&
+            testMap<glm::vec3>(glm::vec3{0.0f, 0.0f, 1.0f}, normalMap, cmpNormal);
+}

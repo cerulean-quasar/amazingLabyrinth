@@ -31,7 +31,8 @@
  *
  * Notes: all angles are in radians
  */
-
+#ifndef AMAZING_LABYRINTH_MATH_GRAPHICS
+#define AMAZING_LABYRINTH_MATH_GRAPHICS
 #include <vector>
 #include <glm/glm.hpp>
 
@@ -52,6 +53,11 @@ glm::mat4 getOrthoMatrix(
         float farPlane,
         bool invertY,
         bool depth0to1);
+
+std::pair<float, float> getWidthHeight(
+        float depth,
+        glm::mat4 const &proj,
+        glm::mat4 const &view);
 
 float transformRange(
         float colorValue,
@@ -143,3 +149,5 @@ void bitmapToNormals(
         }
     }
 }
+
+#endif

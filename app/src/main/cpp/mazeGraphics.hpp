@@ -30,6 +30,8 @@
 
 class LevelSequence {
 public:
+    inline uint32_t surfaceWidth() { return m_surfaceWidth; }
+    inline uint32_t surfaceHeight() { return m_surfaceHeight; }
     inline DrawObjectTable const &levelStaticObjsData() { return m_staticObjsData; }
     inline DrawObjectTable const &levelDynObjsData() { return m_dynObjsData; }
     inline DrawObjectTable const &finisherObjsData() { return m_levelFinisherObjsData; }
@@ -215,6 +217,8 @@ protected:
 
     static float constexpr m_depthTextureNearPlane = 0.1f;
     static float constexpr m_depthTextureFarPlane = 10.0f;
+
+    bool testDepthTexture(bool depth0to1);
 };
 
 #endif // AMAZING_LABYRINTH_MAZE_GRAPHICS_HPP

@@ -384,12 +384,21 @@ std::shared_ptr<TextureData> GraphicsGL::getDepthTexture(
         std::vector<float> &depthMap, /* output */
         std::vector<glm::vec3> &normalMap) /* output */
 {
-    //Framebuffer::ColorImageFormat colorImageFormat{GL_RGBA8, GL_RGBA, GL_UNSIGNED_BYTE};
-    //Framebuffer::ColorImageFormat colorImageFormat{GL_RGBA, GL_RGBA, GL_UNSIGNED_BYTE};
-    Framebuffer::ColorImageFormat colorImageFormat{GL_RGBA32UI, GL_RGBA_INTEGER, GL_UNSIGNED_INT};
+    if (m_useIntTexture) {
+        Framebuffer::ColorImageFormat colorImageFormat{GL_RGBA32UI, GL_RGBA_INTEGER,
+                                                       GL_UNSIGNED_INT};
 
-    return getDepthTextureTemplate<float>(objsData, colorImageFormat, width, height,
-            rowSize, farthestDepth, nearestDepth, depthMap, normalMap);
+        return getDepthTextureTemplate<float>(objsData, colorImageFormat, width, height,
+                                              rowSize, farthestDepth, nearestDepth, depthMap,
+                                              normalMap);
+    } else {
+        Framebuffer::ColorImageFormat colorImageFormat{GL_RGBA8, GL_RGBA, GL_UNSIGNED_BYTE};
+        //Framebuffer::ColorImageFormat colorImageFormat{GL_RGBA, GL_RGBA, GL_UNSIGNED_BYTE};
+
+        return getDepthTextureTemplate<uint8_t>(objsData, colorImageFormat, width, height,
+                                              rowSize, farthestDepth, nearestDepth, depthMap,
+                                              normalMap);
+    }
 }
 
 template <typename data_type>
@@ -408,7 +417,8 @@ std::shared_ptr<TextureData> GraphicsGL::getDepthTextureTemplate(
     uint32_t surfaceHeight = (m_surface.height()*surfaceWidth)/m_surface.width();
     glm::mat4 proj = getOrthoMatrix(-width/2.0f, width/2.0f, -height/2.0f, height/2.0f,
                                     m_depthTextureNearPlane, m_depthTextureFarPlane, false, false);
-    glm::mat4 view = m_levelSequence->viewMatrix();
+    glm::mat4 view = glm::lookAt(glm::vec3(0.0f, 0.0f, 1.1f),
+                                 glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
 
     std::vector<Framebuffer::ColorImageFormat> colorImageFormats{colorImageFormat};
     Framebuffer fb(surfaceWidth, surfaceHeight, colorImageFormats);
@@ -425,7 +435,7 @@ std::shared_ptr<TextureData> GraphicsGL::getDepthTextureTemplate(
 
     glCullFace(GL_BACK);
     checkGraphicsError();
-    glClearColor(0.5f, 0.5f, 0.5f, 1.0f);
+    glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
     checkGraphicsError();
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     checkGraphicsError();

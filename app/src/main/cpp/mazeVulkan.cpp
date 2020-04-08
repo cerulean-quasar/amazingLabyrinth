@@ -722,7 +722,8 @@ std::shared_ptr<TextureData> GraphicsVulkan::getDepthTexture(
 
     glm::mat4 proj = getOrthoMatrix(-width/2.0f, width/2.0f, -height/2.0f, height/2.0f,
                                     m_depthTextureNearPlane, m_depthTextureFarPlane, true, true);
-    glm::mat4 view = m_levelSequence->viewMatrix();
+    glm::mat4 view = glm::lookAt(glm::vec3(0.0f, 0.0f, 1.1f),
+                                 glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
     glm::mat4 vp = proj * view;
 
     std::vector<std::shared_ptr<DrawObjectDataVulkanDepthTexture>> drawObjsData;
@@ -756,7 +757,7 @@ std::shared_ptr<TextureData> GraphicsVulkan::getDepthTexture(
             depthView,
             imageWidth,
             imageHeight,
-            VkClearColorValue{1.0f, 0.0f, 0.0f, 1.0f},
+            VkClearColorValue{0.0f, 0.0f, 0.0f, 1.0f},
             VK_FORMAT_R32_SFLOAT,
             SHADER_LINEAR_DEPTH_VERT_FILE,
             SHADER_SIMPLE_FRAG_FILE,

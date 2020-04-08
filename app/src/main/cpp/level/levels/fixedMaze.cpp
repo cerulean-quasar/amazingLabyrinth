@@ -189,7 +189,7 @@ void FixedMaze::ballOutOfBounds(glm::vec3 &pos) {
         pos.y = -m_height/2.0f  + m_scaleBall * MODEL_BALL_SIZE / 2.0f;
     }
 
-    pos.z = getZPos(pos.x, pos.y);
+    pos.z = getZPos(pos.x, pos.y) + m_scaleBall * MODEL_BALL_SIZE / 2.0f;
 }
 
 void FixedMaze::moveBall(float timeDiff) {
@@ -245,8 +245,11 @@ void FixedMaze::moveBall(float timeDiff) {
 
         if (smallest >= fractionsTillWall.size() || fractionsTillWall[smallest] >= 1.0f) {
             // moving within a cell - just move and break.
+            nextPos.z = getZPos(nextPos.x, nextPos.y) + m_scaleBall*MODEL_BALL_SIZE/2.0f;
+            if (nextPos.z > position.z + m_scaleBall * MODEL_BALL_SIZE) {
+                break;
+            }
             position = nextPos;
-            //position.z = getZPos(position.x, position.y) + m_scaleBall*MODEL_BALL_SIZE/2.0f;
             break;
         }
 
@@ -346,11 +349,7 @@ void FixedMaze::moveBall(float timeDiff) {
         if (m_stopAtSteepSlope && newPos.z > position.z + m_scaleBall * MODEL_BALL_SIZE) {
             if (m_bounce) {
                 glm::vec3 normal = getNormalAtPosition(newPos.x, newPos.y, velocity);
-                if (std::fabs(normal.x) < m_floatErrorAmount && std::fabs(normal.y) < m_floatErrorAmount) {
-                    /* x and y components of the normal too small to compute the reflective
-                     * velocity.  Just negate x and y velocity components so it goes back in the
-                     * direction it came from.
-                     */
+                auto doBounce = [&]() -> void {
                     size_t xnewcell = getXCell(newPos.x);
                     size_t ynewcell = getYCell(newPos.y);
                     if (xnewcell != xcell) {
@@ -361,6 +360,13 @@ void FixedMaze::moveBall(float timeDiff) {
                     }
                     notValid(velocity);
                     timeDiff -= timeInc;
+                };
+                if (std::fabs(normal.x) < m_floatErrorAmount && std::fabs(normal.y) < m_floatErrorAmount) {
+                    /* x and y components of the normal too small to compute the reflective
+                     * velocity.  Just negate x and y velocity components so it goes back in the
+                     * direction it came from.
+                     */
+                    doBounce();
                     continue;
                 }
                 glm::vec3 xyNormal = glm::normalize(glm::vec3{normal.x, normal.y, 0.0f});
@@ -371,9 +377,7 @@ void FixedMaze::moveBall(float timeDiff) {
                     timeDiff -= timeInc;
                     continue;
                 } else {
-                    velocity = velocity - velocityNormalToSurface * xyNormal;
-                    notValid(velocity);
-                    timeDiff -= timeInc;
+                    doBounce();
                     continue;
                 }
             } else {
