@@ -425,7 +425,7 @@ std::shared_ptr<TextureData> GraphicsGL::getDepthTextureTemplate(
 
     glCullFace(GL_BACK);
     checkGraphicsError();
-    glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+    glClearColor(0.5f, 0.5f, 0.5f, 1.0f);
     checkGraphicsError();
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     checkGraphicsError();
@@ -468,7 +468,7 @@ std::shared_ptr<TextureData> GraphicsGL::getDepthTextureTemplate(
     glUseProgram(m_normalProgramID);
     checkGraphicsError();
 
-    glClearColor(0.0f, 0.0f, 1.0f, 1.0f);
+    glClearColor(0.5f, 0.5f, 1.0f, 1.0f);
     checkGraphicsError();
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     checkGraphicsError();

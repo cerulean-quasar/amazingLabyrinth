@@ -188,10 +188,15 @@ void FixedMaze::ballOutOfBounds(glm::vec3 &pos) {
     } else if (pos.y < -m_height/2.0f + m_scaleBall * MODEL_BALL_SIZE / 2.0f) {
         pos.y = -m_height/2.0f  + m_scaleBall * MODEL_BALL_SIZE / 2.0f;
     }
+
+    pos.z = getZPos(pos.x, pos.y);
 }
 
 void FixedMaze::moveBall(float timeDiff) {
     ballOutOfBounds(m_ball.position);
+    if (glm::length(m_ball.velocity) > 20.0f) {
+        m_ball.velocity = {0.0f, 0.0f, 0.0f};
+    }
     glm::vec3 position = m_ball.position;
     glm::vec3 velocity = m_ball.velocity + getParallelAcceleration() * timeDiff - m_viscosity * m_ball.velocity;
 

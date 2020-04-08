@@ -67,7 +67,7 @@ float convertColor(
         float toLowest,
         float toHighest)
 {
-    float ret = *reinterpret_cast<float*>(&color);
+    float ret = static_cast<float>(color);
     if (transform) {
         ret = transformRange(ret, 0.0f, static_cast<float>(std::numeric_limits<inputDataType>::max()), toLowest, toHighest);
     }
