@@ -722,8 +722,7 @@ std::shared_ptr<TextureData> GraphicsVulkan::getDepthTexture(
 
     glm::mat4 proj = getOrthoMatrix(-width/2.0f, width/2.0f, -height/2.0f, height/2.0f,
                                     m_depthTextureNearPlane, m_depthTextureFarPlane, true, true);
-    glm::mat4 view = glm::lookAt(glm::vec3(0.0f, 0.0f, 1.1f),
-                                 glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+    glm::mat4 view = m_levelSequence->viewMatrix();
     glm::mat4 vp = proj * view;
 
     std::vector<std::shared_ptr<DrawObjectDataVulkanDepthTexture>> drawObjsData;
@@ -736,9 +735,8 @@ std::shared_ptr<TextureData> GraphicsVulkan::getDepthTexture(
         drawObjsData.push_back(drawObjData);
     }
 
-    VkExtent2D extent = m_swapChain->extent();
     uint32_t imageWidth = nbrSamplesForWidth;
-    uint32_t imageHeight = (imageWidth * extent.height)/extent.width;
+    uint32_t imageHeight = static_cast<uint32_t>(std::floor((imageWidth * height)/width));
     auto depthView = std::make_shared<vulkan::ImageView>(
             vulkan::ImageFactory::createDepthImage(m_device, imageWidth, imageHeight),
             m_device->depthFormat(),

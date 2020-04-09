@@ -213,18 +213,21 @@ bool Graphics::testDepthTexture(bool depth0to1) {
     auto obj = std::make_shared<DrawObject>();
     getQuad(obj->vertices, obj->indices);
 
-    // set normal to bogus value that is different from the clear color.
-    //for (auto &vertex : obj->vertices) {
-    //    vertex.normal = {0.5f, 0.5f, 0.5f};
-    //}
-    glm::mat4 view = glm::lookAt(glm::vec3(0.0f, 0.0f, 1.1f),
-                                 glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
-    glm::mat4 proj = getPerspectiveMatrix(glm::radians(45.0f),
-            m_levelSequence->surfaceWidth()/ static_cast<float>(m_levelSequence->surfaceHeight()),
-            m_depthTextureNearPlane, m_depthTextureFarPlane, false, depth0to1);
+    glm::mat4 view = m_levelSequence->viewMatrix();
+    glm::mat4 proj = m_levelSequence->getPerspectiveMatrixForLevel(m_levelSequence->surfaceWidth(),
+            m_levelSequence->surfaceHeight());
     auto widthHeight = getWidthHeight(0.0f, proj, view);
-    obj->modelMatrices.push_back(glm::scale(glm::mat4(1.0f),
-                                            glm::vec3{widthHeight.first/modelSize, widthHeight.second/modelSize, 1.0f}));
+    glm::mat4 modelMatrix =
+            glm::scale(glm::mat4(1.0f),
+                       glm::vec3{widthHeight.first/modelSize, widthHeight.second/modelSize, 1.0f});
+
+    glm::vec3 normal{0.5f, 0.5f, 0.5f};
+    // set normal to bogus value that is different from the clear color.
+    for (auto &vertex : obj->vertices) {
+        vertex.normal = normal;
+    }
+
+    obj->modelMatrices.push_back(modelMatrix);
     obj->texture = nullptr;
 
     DrawObjectTable drawObjsData;
@@ -244,6 +247,11 @@ bool Graphics::testDepthTexture(bool depth0to1) {
                 v1.z < v2.z + errVal && v1.z > v2.z - errVal;
     });
 
+    glm::vec4 expectedNormal4 = glm::transpose(glm::inverse(modelMatrix)) *
+            glm::vec4{normal.x, normal.y, normal.z, 1.0f};
+    glm::vec3 expectedNormal = glm::normalize(glm::vec3{expectedNormal4.x/expectedNormal4.w,
+                                                        expectedNormal4.y/expectedNormal4.w,
+                                                        expectedNormal4.z/expectedNormal4.w});
     return testMap<float>(0.0f, depthMap, cmpDepth) &&
-            testMap<glm::vec3>(glm::vec3{0.0f, 0.0f, 1.0f}, normalMap, cmpNormal);
+            testMap<glm::vec3>(expectedNormal, normalMap, cmpNormal);
 }

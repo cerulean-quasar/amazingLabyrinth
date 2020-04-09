@@ -417,8 +417,7 @@ std::shared_ptr<TextureData> GraphicsGL::getDepthTextureTemplate(
     uint32_t surfaceHeight = (m_surface.height()*surfaceWidth)/m_surface.width();
     glm::mat4 proj = getOrthoMatrix(-width/2.0f, width/2.0f, -height/2.0f, height/2.0f,
                                     m_depthTextureNearPlane, m_depthTextureFarPlane, false, false);
-    glm::mat4 view = glm::lookAt(glm::vec3(0.0f, 0.0f, 1.1f),
-                                 glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+    glm::mat4 view = m_levelSequence->viewMatrix();
 
     std::vector<Framebuffer::ColorImageFormat> colorImageFormats{colorImageFormat};
     Framebuffer fb(surfaceWidth, surfaceHeight, colorImageFormats);

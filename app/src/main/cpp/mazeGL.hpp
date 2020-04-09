@@ -124,13 +124,14 @@ private:
 
 class LevelSequenceGL : public LevelSequence {
 public:
+    glm::mat4 getPerspectiveMatrixForLevel(uint32_t surfaceWidth, uint32_t surfaceHeight) override;
+
     LevelSequenceGL(std::shared_ptr<GameRequester> inRequester, uint32_t width, uint32_t height)
             : LevelSequence{inRequester, width, height, true}
     {
     }
 
 protected:
-    glm::mat4 getPerspectiveMatrixForLevel(uint32_t surfaceWidth, uint32_t surfaceHeight) override;
     void updatePerspectiveMatrix(uint32_t surfaceWidth, uint32_t surfaceHeight) override;
     std::shared_ptr<TextureData> createTexture(std::shared_ptr<TextureDescription> const &textureDescription) override;
     std::shared_ptr<DrawObjectData> createObject(std::shared_ptr<DrawObject> const &obj, TextureMap &textures) override;

@@ -42,8 +42,24 @@ public:
     inline TextureMap const &levelTextures() { return m_texturesLevel; }
     inline TextureMap const &finisherTextures() { return m_texturesLevelFinisher; }
 
-    glm::mat4 projectionMatrix() { return m_proj; }
-    glm::mat4 viewMatrix() { return m_view; }
+    virtual glm::mat4 getPerspectiveMatrixForLevel(uint32_t surfaceWidth, uint32_t surfaceHeight) = 0;
+
+    glm::mat4 projectionMatrix() {
+        if (!m_projInitialized) {
+            updatePerspectiveMatrix(m_surfaceWidth, m_surfaceHeight);
+            m_projInitialized = true;
+        }
+        return m_proj;
+    }
+
+    glm::mat4 viewMatrix() {
+        if (!m_viewInitialized) {
+            setView();
+            m_viewInitialized = true;
+        }
+        return m_view;
+    }
+
     glm::vec3 lightingSource() { return m_lightingSource; }
     glm::mat4 viewLightSource() { return m_viewLightingSource; }
     glm::vec4 backgroundColor() { return m_level->getBackgroundColor(); }
@@ -75,6 +91,8 @@ public:
               m_surfaceWidth{surfaceWidth},
               m_surfaceHeight{surfaceHeight},
               m_gameRequester{std::move(inRequester)},
+              m_projInitialized{false},
+              m_viewInitialized{false},
               m_proj{},
               m_view{},
               m_viewLightingSource{},
@@ -110,6 +128,9 @@ private:
     uint32_t m_surfaceHeight;
     std::shared_ptr<GameRequester> m_gameRequester;
 
+    bool m_viewInitialized;
+    bool m_projInitialized;
+
 protected:
     static float constexpr m_perspectiveViewAngle = 3.1415926f/4.0f;
     static float constexpr m_perspectiveNearPlane = 0.1f;
@@ -142,7 +163,6 @@ protected:
     void initializeLevelTracker();
 
     void setView();
-    virtual glm::mat4 getPerspectiveMatrixForLevel(uint32_t surfaceWidth, uint32_t surfaceHeight) = 0;
     virtual void updatePerspectiveMatrix(uint32_t surfaceWidth, uint32_t surfaceHeight) = 0;
     void setLightingSource();
     virtual void setupLightingSourceBuffer() { /* work only needed in Vulkan */ }

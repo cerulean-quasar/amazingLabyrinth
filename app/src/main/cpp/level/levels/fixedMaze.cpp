@@ -389,6 +389,10 @@ void FixedMaze::moveBall(float timeDiff) {
         }
         position = newPos;
         timeDiff -= timeInc;
+        if (position.z <= m_maxZ - MODEL_MAXZ + m_scaleBall * MODEL_BALL_SIZE/2.0f + m_floatErrorAmount) {
+            m_finished = true;
+            break;
+        }
     }
 
     //surfaceNormal = getRawNormalAtPosition(position.x, position.y);
