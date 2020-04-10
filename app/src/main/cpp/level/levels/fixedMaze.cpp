@@ -247,6 +247,15 @@ void FixedMaze::moveBall(float timeDiff) {
             // moving within a cell - just move and break.
             nextPos.z = getZPos(nextPos.x, nextPos.y) + m_scaleBall*MODEL_BALL_SIZE/2.0f;
             if (nextPos.z > position.z + m_scaleBall * MODEL_BALL_SIZE) {
+                if (m_bounce) {
+                    if (std::fabs(nextPos.x - position.x) > std::fabs(nextPos.y - position.y)) {
+                        velocity.x = -velocity.x;
+                    } else {
+                        velocity.y = -velocity.y;
+                    }
+                } else {
+                    velocity = glm::vec3{0.0f, 0.0f, 0.0f};
+                }
                 break;
             }
             position = nextPos;
@@ -346,7 +355,7 @@ void FixedMaze::moveBall(float timeDiff) {
         float timeInc = glm::length(newPosXY - positionXY) / glm::length(nextPosXY - positionXY) * timeDiff;
 
         newPos.z = getZPos(newPos.x, newPos.y) + m_scaleBall*MODEL_BALL_SIZE/2.0f;
-        if (m_stopAtSteepSlope && newPos.z > position.z + m_scaleBall * MODEL_BALL_SIZE) {
+        if (newPos.z > position.z + m_scaleBall * MODEL_BALL_SIZE) {
             if (m_bounce) {
                 glm::vec3 normal = getNormalAtPosition(newPos.x, newPos.y, velocity);
                 auto doBounce = [&]() -> void {
@@ -358,7 +367,6 @@ void FixedMaze::moveBall(float timeDiff) {
                     if (ynewcell != ycell) {
                         velocity.y = -velocity.y;
                     }
-                    notValid(velocity);
                     timeDiff -= timeInc;
                 };
                 if (std::fabs(normal.x) < m_floatErrorAmount && std::fabs(normal.y) < m_floatErrorAmount) {
@@ -433,12 +441,13 @@ bool FixedMaze::updateStaticDrawObjects(DrawObjectTable &objs, TextureMap &textu
         /* floor */
         //objs.emplace_back(m_testObj, nullptr);
         auto obj = m_worldMap.begin();
-        obj->first->texture = m_testObj->texture;
+        //obj->first->texture = m_testObj->texture;
         objs.emplace_back(obj->first, nullptr);
 
-        textures.insert(
-                std::make_pair(std::make_shared<TextureDescriptionDummy>(m_gameRequester),
-                               m_testTexture));
+        textures.insert(std::make_pair(obj->first->texture, nullptr));
+        //textures.insert(
+        //        std::make_pair(std::make_shared<TextureDescriptionDummy>(m_gameRequester),
+        //                       m_testTexture));
         return true;
     }
 
@@ -521,7 +530,7 @@ void FixedMaze::init()
             glm::translate(glm::mat4(1.0f), glm::vec3{0.0f, 0.0f, m_maxZ}) *
             glm::scale(glm::mat4(1.0f), glm::vec3{m_width/MODEL_WIDTH, m_height/MODEL_HEIGHT, 1.0f}) *
             glm::mat4_cast(glm::angleAxis(3.1415926f/2.0f, glm::vec3(1.0f, 0.0f, 0.0f))));
-    worldObj->texture = nullptr;
+    worldObj->texture = std::make_shared<TextureDescriptionPath>(m_gameRequester, "textures/mountain/floor.png");
     m_worldMap.emplace_back(worldObj, nullptr);
 
     auto worldObj2 = std::make_shared<DrawObject>();
