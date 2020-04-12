@@ -554,6 +554,62 @@ FixedMaze::FixedMaze(std::shared_ptr<GameRequester> inGameRequester,
     init();
 }
 
+void FixedMaze::findModelViewPort(
+    std::vector<float> const &depthMap,
+    std::vector<glm::vec3> const &normalMap,
+    size_t rowWidth,
+    glm::mat4 &trans,
+    std::vector<float> &outDepthMap,
+    std::vector<glm::vec3> &outNormalMap,
+    size_t &outRowWidth)
+{
+    size_t i = 0;
+    for (; i < depthMap.size(); i++) {
+        if (depthMap[i] < m_maxZ - MODEL_MAXZ + m_floatErrorAmount) {
+            break;
+        }
+    }
+
+    if (i >= depthMap.size()) {
+        // shouldn't happen
+        throw std::runtime_error("Model finish condition not found.");
+    }
+
+    size_t column = i % rowWidth;
+    size_t row = i / rowWidth;
+
+    size_t viewPortWidth = static_cast<size_t>(std::ceil(rowWidth/m_height*m_width));
+    if (viewPortWidth > rowWidth) {
+        viewPortWidth = rowWidth;
+    }
+
+    size_t beginColumn;
+    size_t mapBallWidth = static_cast<size_t>(std::floor(m_scaleBall * MODEL_BALL_SIZE/2.0f/m_width *viewPortWidth));
+    if (column > rowWidth - viewPortWidth) {
+        beginColumn = rowWidth - viewPortWidth;
+    } else if (column < viewPortWidth) {
+        beginColumn = 0;
+    } else {
+        beginColumn = column - viewPortWidth / 2;
+    }
+
+    float x = (static_cast<int32_t>(rowWidth/2) -
+            static_cast<int32_t>(viewPortWidth/2) - static_cast<int32_t>(beginColumn))*m_width/viewPortWidth;
+    trans = glm::translate(glm::mat4(1.0f), glm::vec3{x, 0.0f, m_maxZ});
+
+    // rowWidth is the same as rowHeight
+    outDepthMap.resize(viewPortWidth * rowWidth);
+    outNormalMap.resize(viewPortWidth * rowWidth);
+    for (size_t j = beginColumn; j < beginColumn + viewPortWidth; j++) {
+        for (size_t k = 0; k < rowWidth; k ++) {
+            outDepthMap[k * viewPortWidth + j - beginColumn] = depthMap[k * rowWidth + j];
+            outNormalMap[k * viewPortWidth + j - beginColumn] = normalMap[k * rowWidth + j];
+        }
+    }
+
+    outRowWidth = viewPortWidth;
+}
+
 void FixedMaze::init()
 {
     m_prevTime = std::chrono::high_resolution_clock::now();
@@ -567,27 +623,36 @@ void FixedMaze::init()
     std::pair<std::vector<Vertex>, std::vector<uint32_t>> verticesWithVertexNormals;
     loadModel(m_gameRequester->getAssetStream("models/mountainLandscape.obj"), worldObj->vertices,
             worldObj->indices, &verticesWithVertexNormals);
-    worldObj->modelMatrices.push_back(
-            glm::translate(glm::mat4(1.0f), glm::vec3{0.0f, 0.0f, m_maxZ}) *
-            glm::scale(glm::mat4(1.0f), glm::vec3{m_width/MODEL_WIDTH, m_height/MODEL_HEIGHT, 1.0f}) *
-            glm::mat4_cast(glm::angleAxis(3.1415926f/2.0f, glm::vec3(1.0f, 0.0f, 0.0f))));
-    worldObj->texture = std::make_shared<TextureDescriptionPath>(m_gameRequester, "textures/mountain/floor.png");
-    m_worldMap.emplace_back(worldObj, nullptr);
 
     auto worldObj2 = std::make_shared<DrawObject>();
     worldObj2->vertices = verticesWithVertexNormals.first;
     worldObj2->indices = verticesWithVertexNormals.second;
-    worldObj2->modelMatrices = worldObj->modelMatrices;
+    worldObj2->modelMatrices.push_back(
+            glm::translate(glm::mat4(1.0f), glm::vec3{0.0f, 0.0f, m_maxZ}) *
+            glm::scale(glm::mat4(1.0f), glm::vec3{m_height/MODEL_SIZE, m_height/MODEL_SIZE, 1.0f}) *
+            glm::mat4_cast(glm::angleAxis(3.1415926f/2.0f, glm::vec3(1.0f, 0.0f, 0.0f))));
     worldObj2->texture = nullptr;
 
     DrawObjectTable worldMap;
     worldMap.emplace_back(worldObj2, nullptr);
 
-    m_rowWidth = static_cast<uint32_t>(std::floor(10.0f/m_scaleBall * m_width));
-    m_testTexture = m_gameRequester->getDepthTexture(worldMap, m_width, m_height, m_rowWidth,
+    std::vector<float> depthMap;
+    std::vector<glm::vec3> normalMap;
+    m_rowHeight = static_cast<uint32_t>(std::floor(10.0f/m_scaleBall * m_width));
+    m_testTexture = m_gameRequester->getDepthTexture(worldMap, m_height, m_height,
+            m_rowHeight /* height is the same as width */,
             m_maxZ - MODEL_MAXZ, m_maxZ + MODEL_MAXZ,
-            m_depthMap, m_normalMap);
-    m_rowHeight = m_depthMap.size()/m_rowWidth;
+            depthMap, normalMap);
+
+    glm::mat4 trans;
+    findModelViewPort(depthMap, normalMap, m_rowHeight, trans, m_depthMap, m_normalMap, m_rowWidth);
+    worldObj->modelMatrices.push_back(
+            trans *
+            glm::scale(glm::mat4(1.0f), glm::vec3{m_height/MODEL_SIZE, m_height/MODEL_SIZE, 1.0f}) *
+            glm::mat4_cast(glm::angleAxis(3.1415926f/2.0f, glm::vec3(1.0f, 0.0f, 0.0f))));
+    worldObj->texture = std::make_shared<TextureDescriptionPath>(m_gameRequester, "textures/mountain/floor.png");
+    m_worldMap.emplace_back(worldObj, nullptr);
+
 
     m_testObj = std::make_shared<DrawObject>();
     m_testObj->texture = std::make_shared<TextureDescriptionDummy>(m_gameRequester);

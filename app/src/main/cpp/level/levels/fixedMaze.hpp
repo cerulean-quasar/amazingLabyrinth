@@ -40,8 +40,7 @@ struct FixedMazeSaveData : public LevelSaveData {
 
 class FixedMaze : public Level {
 public:
-    static float constexpr MODEL_WIDTH = 2.0f;
-    static float constexpr MODEL_HEIGHT = 2.0f;
+    static float constexpr MODEL_SIZE = 2.0f;
     static float constexpr MODEL_MAXZ = 1.0f;
     static float constexpr MODEL_BALL_SIZE = 2.0f;
     glm::vec4 getBackgroundColor() override;
@@ -83,8 +82,8 @@ private:
     } m_ball;
 
     float m_scaleBall;
-    uint32_t m_rowWidth;
-    uint32_t m_rowHeight;
+    size_t m_rowWidth;
+    size_t m_rowHeight;
     std::vector<float> m_depthMap;
     std::vector<glm::vec3> m_normalMap;
     DrawObjectTable m_worldMap;
@@ -112,5 +111,13 @@ private:
     glm::vec3 getRawNormalAtPosition(float x, float y);
     void ballOutOfBounds(glm::vec3 &pos);
     void moveBall(float timeDiff);
+    void findModelViewPort(
+            std::vector<float> const &depthMap,
+            std::vector<glm::vec3> const &normalMap,
+            size_t rowWidth,
+            glm::mat4 &trans,
+            std::vector<float> &outDepthMap,
+            std::vector<glm::vec3> &outNormalMap,
+            size_t &outRowWidth);
 };
 #endif /* AMAZING_LABYRINTH_FIXED_MAZE_HPP */
