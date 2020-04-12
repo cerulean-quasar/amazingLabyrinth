@@ -194,25 +194,59 @@ void FixedMaze::ballOutOfBounds(glm::vec3 &pos) {
 
 void FixedMaze::moveBall(float timeDiff) {
     ballOutOfBounds(m_ball.position);
-    if (glm::length(m_ball.velocity) > 20.0f) {
-        m_ball.velocity = {0.0f, 0.0f, 0.0f};
-    }
     glm::vec3 position = m_ball.position;
+    glm::vec3 prevPosition = position;
     glm::vec3 velocity = m_ball.velocity + getParallelAcceleration() * timeDiff - m_viscosity * m_ball.velocity;
 
+    auto adjustVelocity = [&] (bool isX, float direction) -> void {
+        float speed = glm::length(velocity);
+        if (m_extraBounce > 1.0f) {
+            if (speed < m_minSpeedOnObjBounce) {
+                if (speed > m_lengthToSmallToNormalize) {
+                    velocity = m_minSpeedOnObjBounce * glm::normalize(velocity);
+                } else {
+                    if (isX) {
+                        velocity.x = direction * m_minSpeedOnObjBounce;
+                    } else {
+                        velocity.y = direction * m_minSpeedOnObjBounce;
+                    }
+                }
+            }
+            speed = glm::length(velocity);
+            if (speed > m_lengthToSmallToNormalize) {
+                glm::vec3 velocityXY{velocity.x, velocity.y, 0.0f};
+                glm::vec3 perpendicularToVelocity = glm::cross(velocityXY, glm::vec3{0.0f, 0.0f, 1.0f});
+                if (glm::length(perpendicularToVelocity) > m_lengthToSmallToNormalize) {
+                    perpendicularToVelocity = glm::normalize(perpendicularToVelocity);
+                    float randomSpeed = randomNbrs.getFloat(-speed/5.0f, speed/5.0f);
+                    velocity += randomSpeed * perpendicularToVelocity;
+                }
+            }
+        }
+    };
     uint32_t nbrComputations = 0;
+    float lengthTraveled = 0;
     while (timeDiff > 0.0f && nbrComputations < 200) {
         nbrComputations ++;
         glm::vec3 surfaceNormal = getRawNormalAtPosition(position.x, position.y);
         velocity -= glm::dot(velocity, surfaceNormal) * surfaceNormal;
-        if (glm::length(velocity) < m_floatErrorAmount) {
+        float speed = glm::length(velocity);
+        if (speed < m_floatErrorAmount) {
             // velocity is too small.  Return.
             break;
         }
 
+        if (speed > m_speedLimit) {
+            velocity = m_speedLimit * glm::normalize(velocity);
+        }
+
+        lengthTraveled += glm::length(prevPosition - position);
+        if (lengthTraveled > m_scaleBall * MODEL_BALL_SIZE) {
+            // the ball went too far.  Let the drawer draw it before moving any further.
+            break;
+        }
+
         glm::vec3 nextPos = position + velocity * timeDiff;
-        notValid(nextPos);
-        notValid(position);
         size_t xcell = getXCell(position.x);
         size_t ycell = getYCell(position.y);
 
@@ -249,15 +283,18 @@ void FixedMaze::moveBall(float timeDiff) {
             if (nextPos.z > position.z + m_scaleBall * MODEL_BALL_SIZE) {
                 if (m_bounce) {
                     if (std::fabs(nextPos.x - position.x) > std::fabs(nextPos.y - position.y)) {
-                        velocity.x = -velocity.x;
+                        velocity.x = -m_extraBounce * velocity.x;
+                        adjustVelocity(true, glm::sign(velocity.x));
                     } else {
-                        velocity.y = -velocity.y;
+                        velocity.y = -m_extraBounce * velocity.y;
+                        adjustVelocity(false, glm::sign(velocity.x));
                     }
                 } else {
                     velocity = glm::vec3{0.0f, 0.0f, 0.0f};
                 }
                 break;
             }
+            prevPosition = position;
             position = nextPos;
             break;
         }
@@ -362,10 +399,12 @@ void FixedMaze::moveBall(float timeDiff) {
                     size_t xnewcell = getXCell(newPos.x);
                     size_t ynewcell = getYCell(newPos.y);
                     if (xnewcell != xcell) {
-                        velocity.x = -velocity.x;
+                        velocity.x = -m_extraBounce * velocity.x;
+                        adjustVelocity(true, glm::sign(static_cast<float>(xnewcell) - xcell));
                     }
                     if (ynewcell != ycell) {
-                        velocity.y = -velocity.y;
+                        velocity.y = -m_extraBounce * velocity.y;
+                        adjustVelocity(false, glm::sign(static_cast<float>(ynewcell) - ycell));
                     }
                     timeDiff -= timeInc;
                 };
@@ -380,8 +419,8 @@ void FixedMaze::moveBall(float timeDiff) {
                 glm::vec3 xyNormal = glm::normalize(glm::vec3{normal.x, normal.y, 0.0f});
                 float velocityNormalToSurface = glm::dot(xyNormal, velocity);
                 if (velocityNormalToSurface < 0.0f) {
-                    velocity = velocity - 2.0f * velocityNormalToSurface * xyNormal;
-                    notValid(velocity);
+                    velocity = velocity - 2.0f * m_extraBounce * velocityNormalToSurface * xyNormal;
+                    adjustVelocity(velocity.x > velocity.y, glm::sign(glm::max(velocity.x, velocity.y)));
                     timeDiff -= timeInc;
                     continue;
                 } else {
@@ -395,6 +434,7 @@ void FixedMaze::moveBall(float timeDiff) {
                 break;
             }
         }
+        prevPosition = position;
         position = newPos;
         timeDiff -= timeInc;
         if (position.z <= m_maxZ - MODEL_MAXZ + m_scaleBall * MODEL_BALL_SIZE/2.0f + m_floatErrorAmount) {
@@ -495,7 +535,7 @@ void FixedMaze::getLevelFinisherCenter(float &x, float &y) {
 }
 
 void FixedMaze::loadModels() {
-    loadModel(m_gameRequester->getAssetStream(MODEL_BALL), m_ballVertices, m_ballIndices);
+    loadModel(m_gameRequester->getAssetStream("models/frog.obj"), m_ballVertices, m_ballIndices);
 }
 
 FixedMaze::FixedMaze(std::shared_ptr<GameRequester> inGameRequester, float width, float height, float maxZ)
@@ -517,8 +557,9 @@ FixedMaze::FixedMaze(std::shared_ptr<GameRequester> inGameRequester,
 void FixedMaze::init()
 {
     m_prevTime = std::chrono::high_resolution_clock::now();
-    m_stopAtSteepSlope = true;
+    m_extraBounce = 2.0f;
     m_bounce = true;
+    m_minSpeedOnObjBounce = 0.1f;
 
     loadModels();
 

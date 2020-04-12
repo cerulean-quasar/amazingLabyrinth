@@ -36,6 +36,7 @@ varying vec3 fragColor;
 
 void main() {
     gl_Position = proj * view * model * vec4(inPosition, 1.0);
+    gl_Position.z = -gl_Position.z;
     vec4 pos = model * vec4(inPosition, 1.0);
     float z = (pos.z/pos.w - farthestDepth)/(nearestDepth - farthestDepth);
     if (z > 1.0) {

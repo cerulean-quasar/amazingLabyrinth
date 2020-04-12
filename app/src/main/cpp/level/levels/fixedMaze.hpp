@@ -64,9 +64,10 @@ public:
     ~FixedMaze() override = default;
 
 private:
-    static float constexpr m_viscosity = 0.005f;
-    static float constexpr m_minZNorm = 0.5f;
+    static float constexpr m_viscosity = 0.007f;
     static float constexpr m_floatErrorAmount = 0.00001f;
+    static float constexpr m_speedLimit = 1.0f;
+    static float constexpr m_lengthToSmallToNormalize = 0.001f;
 
     std::chrono::high_resolution_clock::time_point m_prevTime;
     std::vector<Vertex> m_ballVertices;
@@ -91,7 +92,9 @@ private:
     std::shared_ptr<TextureData> m_testTexture;
     std::string m_ballTextureName;
     bool m_bounce;
-    bool m_stopAtSteepSlope;
+    float m_extraBounce;
+    float m_minSpeedOnObjBounce;
+    Random randomNbrs;
 
     void loadModels();
     void init();

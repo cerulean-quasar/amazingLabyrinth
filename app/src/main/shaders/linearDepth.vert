@@ -40,6 +40,7 @@ out gl_PerVertex {
 
 void main() {
     gl_Position = ubo.mvp * vec4(inPosition, 1.0);
+    gl_Position.z = 1.0 - gl_Position.z;
     vec4 pos = ubo.model * vec4(inPosition, 1.0);
     float z = (pos.z/pos.w - ubo.farthestDepth)/(ubo.nearestDepth - ubo.farthestDepth);
     if (z > 1.0) {
