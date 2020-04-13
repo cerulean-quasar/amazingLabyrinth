@@ -63,9 +63,9 @@ public:
     ~FixedMaze() override = default;
 
 private:
-    static float constexpr m_viscosity = 0.007f;
-    static float constexpr m_floatErrorAmount = 0.00001f;
-    static float constexpr m_speedLimit = 1.0f;
+    static float constexpr m_viscosity = 0.005f;
+    static float constexpr m_floatErrorAmount = 0.0001f;
+    static float constexpr m_speedLimit = 2.0f;
     static float constexpr m_lengthToSmallToNormalize = 0.001f;
 
     std::chrono::high_resolution_clock::time_point m_prevTime;

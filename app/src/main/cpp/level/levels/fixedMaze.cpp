@@ -212,6 +212,9 @@ void FixedMaze::moveBall(float timeDiff) {
                     }
                 }
             }
+
+            // Add in random velocity component perpendicular to the direction it is going in so
+            // that we can't get stuck in loops where it bounces back and forth forever.
             speed = glm::length(velocity);
             if (speed > m_lengthToSmallToNormalize) {
                 glm::vec3 velocityXY{velocity.x, velocity.y, 0.0f};
@@ -287,7 +290,7 @@ void FixedMaze::moveBall(float timeDiff) {
                         adjustVelocity(true, glm::sign(velocity.x));
                     } else {
                         velocity.y = -m_extraBounce * velocity.y;
-                        adjustVelocity(false, glm::sign(velocity.x));
+                        adjustVelocity(false, glm::sign(velocity.y));
                     }
                 } else {
                     velocity = glm::vec3{0.0f, 0.0f, 0.0f};
@@ -613,9 +616,9 @@ void FixedMaze::findModelViewPort(
 void FixedMaze::init()
 {
     m_prevTime = std::chrono::high_resolution_clock::now();
-    m_extraBounce = 2.0f;
+    m_extraBounce = 1.1f; //2.0f;
     m_bounce = true;
-    m_minSpeedOnObjBounce = 0.1f;
+    m_minSpeedOnObjBounce = m_scaleBall * MODEL_BALL_SIZE; // * 2.0f;
 
     loadModels();
 
@@ -660,6 +663,17 @@ void FixedMaze::init()
     m_testObj->modelMatrices.push_back(glm::translate(glm::mat4(1.0f), glm::vec3{0.0f, 0.0f, m_maxZ}) *
                                        glm::scale(glm::mat4(1.0f), glm::vec3{m_width/2.0f, m_height/2.0f, 1.0f}));
 
-    m_ball.position = {-m_width/2.0f + MODEL_BALL_SIZE*m_scaleBall/2.0f, -m_height/2.0f + MODEL_BALL_SIZE*m_scaleBall/2.0f, 0.0f};
-    m_ball.position.z = getZPos(m_ball.position.x, m_ball.position.y) + m_scaleBall * MODEL_BALL_SIZE /2.0f;
+    // search for a starting point in a row on the model floor (not a high up point).
+    float x = -m_width / 2.0f + MODEL_BALL_SIZE * m_scaleBall / 2.0f;
+    do {
+        m_ball.position = {x, -m_height / 2.0f + MODEL_BALL_SIZE * m_scaleBall / 2.0f, 0.0f};
+        m_ball.position.z = getZPos(m_ball.position.x, m_ball.position.y);
+        x += m_width/m_rowWidth;
+        if (x > m_width / 2.0f - MODEL_BALL_SIZE * m_scaleBall / 2.0f) {
+            // give up...
+            m_ball.position.x = -m_width / 2.0f + MODEL_BALL_SIZE * m_scaleBall / 2.0f;
+            break;
+        }
+    } while (m_ball.position.z > m_maxZ + m_floatErrorAmount || m_ball.position.z < m_maxZ - m_floatErrorAmount);
+    m_ball.position.z += m_scaleBall * MODEL_BALL_SIZE / 2.0f;
 }

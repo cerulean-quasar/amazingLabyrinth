@@ -414,7 +414,7 @@ std::shared_ptr<TextureData> GraphicsGL::getDepthTextureTemplate(
         std::vector<glm::vec3> &normalMap) /* output */
 {
     uint32_t surfaceWidth = rowSize;
-    uint32_t surfaceHeight = (m_surface.height()*surfaceWidth)/m_surface.width();
+    uint32_t surfaceHeight = static_cast<uint32_t>(std::floor(surfaceWidth/width*height));
     glm::mat4 proj = getOrthoMatrix(-width/2.0f, width/2.0f, -height/2.0f, height/2.0f,
                                     m_depthTextureNearPlane, m_depthTextureFarPlane, false, false);
     glm::mat4 view = m_levelSequence->viewMatrix();
