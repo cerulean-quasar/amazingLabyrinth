@@ -18,14 +18,11 @@
  *
  */
 #include "openAreaLevel.hpp"
+#include "../level.hpp"
 
 void OpenAreaLevel::loadModels() {
     loadModel(m_gameRequester->getAssetStream(MODEL_BALL), ballVertices, ballIndices);
     getQuad(holeVertices, holeIndices);
-}
-
-void OpenAreaLevel::updateAcceleration(float x, float y, float z) {
-    ball.acceleration = glm::vec3(-x,-y,0.0f);
 }
 
 bool OpenAreaLevel::updateData() {
@@ -35,73 +32,31 @@ bool OpenAreaLevel::updateData() {
     }
 
     auto currentTime = std::chrono::high_resolution_clock::now();
-    float time = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - prevTime).count();
+    float timeDiff = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - prevTime).count();
     prevTime = currentTime;
 
-    ball.velocity += ball.acceleration * time - viscosity * ball.velocity;
-    ball.position += ball.velocity * time;
+    m_ball.velocity = getUpdatedVelocity(m_ball.acceleration, timeDiff);
+    m_ball.position += m_ball.velocity * timeDiff;
 
-    float errDistance = ballScale;
-    if (glm::length(ball.position - holePosition) < errDistance) {
+    float errDistance = 3.0f*ballRadius();
+    if (glm::length(m_ball.position - holePosition) < errDistance) {
         m_finished = true;
-        ball.position.x = holePosition.x;
-        ball.position.y = holePosition.y;
-        ball.velocity = {0.0f, 0.0f, 0.0f};
+        m_ball.position.x = holePosition.x;
+        m_ball.position.y = holePosition.y;
+        m_ball.velocity = {0.0f, 0.0f, 0.0f};
         return true;
     }
 
-    float maxX = m_width/2 - ballScale/2;
-    float minX = -m_width/2 + ballScale/2;
-    float maxY = m_height/2 - ballScale/2;
-    float minY = -m_height/2 + ballScale/2;
-    if (ball.position.x > maxX) {
-        ball.position.x = maxX;
-        if (ball.velocity.x > 0) {
-            ball.velocity.x = -ball.velocity.x;
-        }
-    }
+    checkBallBorders(m_ball.position, m_ball.velocity);
+    updateRotation(timeDiff);
+    modelMatrixBall = glm::translate(glm::mat4(1.0f), m_ball.position) * glm::mat4_cast(m_ball.totalRotated) * scale;
 
-    if (ball.position.x < minX) {
-        ball.position.x = minX;
-        if (ball.velocity.x < 0) {
-            ball.velocity.x = -ball.velocity.x;
-        }
-    }
-
-    if (ball.position.y > maxY) {
-        ball.position.y = maxY;
-        if (ball.velocity.y > 0) {
-            ball.velocity.y = -ball.velocity.y;
-        }
-    }
-
-    if (ball.position.y < minY) {
-        ball.position.y = minY;
-        if (ball.velocity.y < 0) {
-            ball.velocity.y = -ball.velocity.y;
-        }
-    }
-
-
-    glm::vec3 axis = glm::cross(glm::vec3(0.0f, 0.0f, 1.0f), ball.velocity);
-    if (glm::length(axis) != 0) {
-        float scaleFactor = 10.0f;
-        glm::quat q = glm::angleAxis(glm::length(ball.velocity)*time*scaleFactor, glm::normalize(axis));
-
-        ball.totalRotated = glm::normalize(q * ball.totalRotated);
-    }
-    modelMatrixBall = glm::translate(glm::mat4(1.0f), ball.position) * glm::mat4_cast(ball.totalRotated) * scale;
-
-    bool drawingNecessary = glm::length(ball.position - ball.prevPosition) > 0.005;
-    if (drawingNecessary) {
-        ball.prevPosition = ball.position;
-    }
-    return drawingNecessary;
+    return drawingNecessary();
 }
 
 void OpenAreaLevel::generateModelMatrices() {
     // the ball
-    glm::mat4 trans = glm::translate(glm::mat4(1.0f), ball.position);
+    glm::mat4 trans = glm::translate(glm::mat4(1.0f), m_ball.position);
     modelMatrixBall = trans*scale;
 
     // the hole

@@ -21,6 +21,7 @@
 #define AMAZING_LABYRINTH_LEVEL_STARTER_HPP
 
 #include <string>
+#include <vector>
 
 #include <glm/glm.hpp>
 #include <glm/gtc/quaternion.hpp>
@@ -39,10 +40,9 @@ private:
     std::string const corridorImageV = "textures/levelStarter/corridorV.png";
     std::string const corridorImageH2 = "textures/levelStarter/corridorH2.png";
 
-    float const scale;
     float const maxPosX;
     float const maxPosY;
-    float const errVal = 0.05f;
+    float const errVal;
 
     std::chrono::high_resolution_clock::time_point prevTime;
 
@@ -62,24 +62,14 @@ private:
 
     std::vector<Vertex> ballVertices;
     std::vector<uint32_t> ballIndices;
-    glm::vec3 ballScale;
-
-    // data on where the ball is, how fast it is moving, etc.
-    struct {
-        glm::vec3 prevPosition;
-        glm::vec3 position;
-        glm::vec3 velocity;
-        glm::vec3 acceleration;
-        glm::quat totalRotated;
-    } ball;
 
 public:
     LevelStarter(std::shared_ptr<GameRequester> inGameRequester,
             float width, float height, float maxZ)
-            : Level(std::move(inGameRequester), width, height, maxZ),
-              scale(10.0f),
-              maxPosX(m_width/2-m_width/2/scale),
-              maxPosY(m_height/2-m_width/2/scale)
+            : Level(std::move(inGameRequester), width, height, maxZ, true, 1.0f/50.0f, false),
+              maxPosX(m_width/2-ballRadius()),
+              maxPosY(m_height/2-ballRadius()),
+              errVal(ballDiameter()/5.0f)
     {
         prevTime = std::chrono::high_resolution_clock::now();
         getQuad(quadVertices, quadIndices);
@@ -88,30 +78,25 @@ public:
         textIndex = 0;
         transitionText = false;
 
-        textScale = {m_width/2, m_height/2, 1.0f};
-        holeScale = {m_width/2/scale, m_width/2/scale, 1.0f};
-        corridorHScale = {m_width/2, m_width/2/scale, 1.0f};
-        corridorVScale = {m_width/2/scale, m_height/2-m_width/scale, 1.0f};
-        ballScale = {m_width/2/scale, m_width/2/scale, m_width/2/scale};
+        textScale = {m_width/2-m_scaleBall, m_height/2-2*m_scaleBall, 1.0f};
+        holeScale = {m_scaleBall, m_scaleBall, 1.0f};
+        corridorHScale = {m_width/2, m_scaleBall, 1.0f};
+        corridorVScale = {m_scaleBall, m_height/2-2*m_scaleBall, 1.0f};
 
-        ball.prevPosition = { 10.0f, 0.0f, 0.0f};
-        ball.position = {-maxPosX, -maxPosY, m_maxZ - ballScale.z*m_originalBallDiameter/2.0f};
-        ball.velocity = {0.0f, 0.0f, 0.0f};
-        ball.acceleration = {0.0f, 0.0f, 0.0f};
-        ball.totalRotated = glm::quat();
+        m_ball.prevPosition = { 10.0f, 0.0f, 0.0f};
+        m_ball.position = {-maxPosX, -maxPosY, m_mazeFloorZ + ballRadius()};
+        m_ball.velocity = {0.0f, 0.0f, 0.0f};
+        m_ball.acceleration = {0.0f, 0.0f, 0.0f};
+        m_ball.totalRotated = glm::quat();
     }
 
     void clearText();
     void addTextString(std::string const &inText);
     bool isInBottomCorridor();
     bool isInSideCorridor();
-    void confineBall();
 
     glm::vec4 getBackgroundColor() override { return glm::vec4(0.0f, 0.0f, 0.0f, 0.0f); }
 
-    void updateAcceleration(float x, float y, float z) override {
-        ball.acceleration = {-x, -y, 0.0f};
-    }
     bool updateData() override;
     bool updateStaticDrawObjects(DrawObjectTable &objs, TextureMap &textures) override;
     bool updateDynamicDrawObjects(DrawObjectTable &objs, TextureMap &textures, bool &texturesChanged) override;

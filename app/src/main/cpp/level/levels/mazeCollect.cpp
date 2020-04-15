@@ -1,5 +1,5 @@
 /**
- * Copyright 2019 Cerulean Quasar. All Rights Reserved.
+ * Copyright 2020 Cerulean Quasar. All Rights Reserved.
  *
  *  This file is part of AmazingLabyrinth.
  *
@@ -27,10 +27,10 @@ bool MazeCollect::checkFinishCondition(float timeDiff) {
     // m_prevCells always has nbrItemsToCollect+1 items in it. The one at the back is the last
     // location of the user's ball.  If this is not true, then we need to add the new location of
     // user's ball to the back of the queue of previous user ball positions.
-    if (ball.row != m_prevCells[nbrItemsToCollect].first ||
-        ball.col != m_prevCells[nbrItemsToCollect].second) {
+    if (m_ballCell.row != m_prevCells[nbrItemsToCollect].first ||
+        m_ballCell.col != m_prevCells[nbrItemsToCollect].second) {
         m_prevCells.pop_front();
-        m_prevCells.emplace_back(ball.row, ball.col);
+        m_prevCells.emplace_back(m_ballCell.row, m_ballCell.col);
     }
 
     uint32_t j = nbrItemsToCollect - 1;
@@ -46,10 +46,10 @@ bool MazeCollect::checkFinishCondition(float timeDiff) {
             float length = glm::length(getCellCenterPosition(m_prevCells[j].first,
                                                              m_prevCells[j].second) -
                                        item.second);
-            if (length > scale/2) {
+            if (length > ballRadius()) {
                 float timeTotal = 1.0f;
-                if (glm::length(ball.velocity) > 0.01f) {
-                    timeTotal = length / glm::length(ball.velocity);
+                if (glm::length(m_ball.velocity) > 0.01f) {
+                    timeTotal = length / glm::length(m_ball.velocity);
                 }
                 item.second += (getCellCenterPosition(m_prevCells[j].first,m_prevCells[j].second) -
                                 item.second) / timeTotal * timeDiff;
@@ -71,8 +71,8 @@ void MazeCollect::generateCollectBallModelMatrices() {
 
         // move it away from the wall by at least the ball diameter so that it can be easily
         // collected.
-        glm::vec3 pos{random.getFloat(leftWall(col)+scale, rightWall(col)-scale),
-                      random.getFloat(topWall(row)+scale, bottomWall(row)-scale),
+        glm::vec3 pos{random.getFloat(leftWall(col)+ballRadius(), rightWall(col)-ballRadius()),
+                      random.getFloat(topWall(row)+ballRadius(), bottomWall(row)-ballRadius()),
                       getBallZPosition()};
         bool tooClose = false;
         for (auto const &collectionObjectLocation : m_collectionObjectLocations) {
@@ -89,7 +89,7 @@ void MazeCollect::generateCollectBallModelMatrices() {
     // generate the previous locations of the ball (just set all previous locations to the ball starting cell).
     // this is used to cause the items to collect to follow the user's ball.
     for (uint32_t i = 0; i < nbrItemsToCollect+1; i++) {
-        m_prevCells.emplace_back(ball.row, ball.col);
+        m_prevCells.emplace_back(m_ballCell.row, m_ballCell.col);
     }
 }
 
@@ -97,14 +97,15 @@ bool MazeCollect::updateDynamicDrawObjects(DrawObjectTable &objs, TextureMap &te
     bool isEmpty = objs.empty();
     bool isUpdated = MazeOpenArea::updateDynamicDrawObjects(objs, textures, texturesChanged);
 
-    glm::mat4 scaleMatrix = glm::scale(glm::mat4(1.0f), glm::vec3{2*scale/3.0f, 2*scale/3.0f, 2*scale/3.0f});
+    glm::mat4 scaleMatrix = glm::scale(glm::mat4(1.0f),
+            glm::vec3{collectBallScaleFactor, collectBallScaleFactor, collectBallScaleFactor});
     if (isEmpty) {
         // the objects to collect - they are just smaller versions of the ball.  Just add them to
         // the ball model matrices.  The ball is always first in the table of draw objects.
         auto const &ballObj = objs[0].first;
         for (auto const &item : m_collectionObjectLocations) {
             ballObj->modelMatrices.push_back(glm::translate(glm::mat4(1.0f),item.second) *
-                glm::mat4_cast(ball.totalRotated) * scaleMatrix);
+                glm::mat4_cast(m_ball.totalRotated) * scaleMatrix);
         }
         isUpdated = true;
     } else {
@@ -116,7 +117,7 @@ bool MazeCollect::updateDynamicDrawObjects(DrawObjectTable &objs, TextureMap &te
         for (auto const &item : m_collectionObjectLocations) {
             if (item.first) {
                 obj.first->modelMatrices[i++] = glm::translate(glm::mat4(1.0f), item.second) *
-                        glm::mat4_cast(ball.totalRotated) *scaleMatrix;
+                        glm::mat4_cast(m_ball.totalRotated) *scaleMatrix;
                 isUpdated = true;
             } else {
                 i++;

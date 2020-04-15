@@ -22,8 +22,7 @@
 #include <glm/gtc/matrix_transform.hpp>
 
 #include "movingQuadsLevel.hpp"
-
-constexpr float MovingQuadsLevel::viscosity;
+#include "../level.hpp"
 
 void MovingQuadsLevel::loadModels() {
     loadModel(m_gameRequester->getAssetStream(MODEL_BALL), m_ballVertices, m_ballIndices);
@@ -31,19 +30,18 @@ void MovingQuadsLevel::loadModels() {
 }
 
 void MovingQuadsLevel::preGenerate() {
-    m_startQuadPosition = {0.0f, -maxY, m_maxZ - m_originalBallDiameter * scaleFactor};
-    m_endQuadPosition = {0.0f, maxY, m_maxZ - m_originalBallDiameter * scaleFactor};
-    m_startPosition = {0.0f, -maxY, m_maxZ - m_originalBallDiameter * scaleFactor / 2.0f};
-    m_quadScaleY = maxY / (numberOfMidQuadRows + 1.0f);
+    m_quadScaleY = m_height / (numberOfMidQuadRows + 2.0f)/ m_quadOriginalSize;
+    m_startQuadPosition = {0.0f, -maxY + m_quadScaleY * m_quadOriginalSize/2.0f, m_mazeFloorZ};
+    m_endQuadPosition = {0.0f, maxY - m_quadScaleY * m_quadOriginalSize/2.0f, m_mazeFloorZ};
+    m_startPosition = {0.0f, -maxY + ballRadius(), m_mazeFloorZ + ballRadius() };
 
     m_ball.totalRotated = glm::quat();
     m_ball.acceleration = {0.0f, 0.0f, 0.0f};
     m_ball.velocity = {0.0f, 0.0f, 0.0f};
-    m_ball.scale = glm::scale(glm::mat4(1.0f), glm::vec3(scaleFactor, scaleFactor, scaleFactor));
 
     // set to very large previous position (in vector length) so that it will get drawn
     // the first time through.
-    m_ball.prevPosition = {-10.0f, 0.0f, m_maxZ - scaleFactor * m_originalBallDiameter / 2.0f};
+    m_ball.prevPosition = {-10.0f, 0.0f, m_mazeFloorZ + ballRadius() };
     m_ball.position = m_startPosition;
 }
 
@@ -54,16 +52,22 @@ void MovingQuadsLevel::generate() {
     for (int i = 0; i < numberOfMidQuadRows; i++) {
         MovingQuadRow row;
         int numberOfQuadsInRow = randomGenerator.getUInt(minQuadsInRow, maxQuadsInRow);
-        do {
-            row.speed = randomGenerator.getFloat(-maxQuadMovingSpeed, maxQuadMovingSpeed);
-        } while (fabsf(row.speed) < minQuadMovingSpeed);
+        int direction = randomGenerator.getUInt(0,1) * 2 - 1;
+        row.speed = direction * randomGenerator.getFloat(minQuadMovingSpeed(), maxQuadMovingSpeed());
 
-        row.scale = {maxX/numberOfQuadsInRow - spaceBetweenQuadsX*(numberOfQuadsInRow-1), m_quadScaleY, 1.0f};
-        float xpos = randomGenerator.getFloat(-maxX, 2.0f*maxX/numberOfQuadsInRow - maxX);
+        //float xscale = (m_width/numberOfQuadsInRow - spaceBetweenQuadsX*(numberOfQuadsInRow-1))/m_quadOriginalSize;
+        float xscale = m_width/(1.5f * numberOfQuadsInRow + 0.5f)/m_quadOriginalSize;
+        row.scale = {xscale, m_quadScaleY, 1.0f};
+        float xpos = randomGenerator.getFloat(-maxX, maxX - xscale * (1.5f * numberOfQuadsInRow - 0.5f) * m_quadOriginalSize);
         for (int j = 0; j < numberOfQuadsInRow; j++) {
-            glm::vec3 pos{2.0f*maxX/numberOfQuadsInRow*j-xpos,
-                          2.0f*maxY/(numberOfMidQuadRows+1)*(i+1)-maxY,
-                          m_maxZ-m_originalBallDiameter*scaleFactor};
+            /*
+            glm::vec3 pos{row.scale.x*m_quadOriginalSize*j + spaceBetweenQuadsX * j - xpos,
+                          m_quadScaleY*m_quadOriginalSize*(i+1.5f)-maxY,
+                          m_mazeFloorZ};
+                          */
+            glm::vec3 pos{row.scale.x*m_quadOriginalSize*(1.5f*j)+xpos,
+                          m_quadScaleY*m_quadOriginalSize*(i+1.5f)-maxY,
+                          m_mazeFloorZ};
             row.positions.push_back(pos);
         }
 
@@ -72,10 +76,10 @@ void MovingQuadsLevel::generate() {
 }
 
 bool MovingQuadsLevel::ballOnQuad(glm::vec3 const &quadCenterPos, float xSize) {
-    return m_ball.position.x < quadCenterPos.x + xSize/2 + m_width/10 &&
-           m_ball.position.x > quadCenterPos.x - xSize/2 - m_width/10 &&
-           m_ball.position.y < quadCenterPos.y + m_quadScaleY/2 + m_height/10 &&
-           m_ball.position.y > quadCenterPos.y - m_quadScaleY/2 - m_height/10;
+    return m_ball.position.x < quadCenterPos.x + xSize/2 &&
+           m_ball.position.x > quadCenterPos.x - xSize/2 &&
+           m_ball.position.y < quadCenterPos.y + m_quadScaleY * m_quadOriginalSize/2 + ballRadius() &&
+           m_ball.position.y > quadCenterPos.y - m_quadScaleY * m_quadOriginalSize/2 - ballRadius();
 }
 
 bool MovingQuadsLevel::updateData() {
@@ -85,11 +89,11 @@ bool MovingQuadsLevel::updateData() {
     }
 
     auto currentTime = std::chrono::high_resolution_clock::now();
-    float time = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - m_prevTime).count();
+    float timeDiff = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - m_prevTime).count();
     m_prevTime = currentTime;
 
-    m_ball.velocity += m_ball.acceleration * time - viscosity * m_ball.velocity;
-    m_ball.position += m_ball.velocity * time;
+    m_ball.velocity = getUpdatedVelocity(m_ball.acceleration, timeDiff);
+    m_ball.position += m_ball.velocity * timeDiff;
 
     // if the ball is on the end quad, then the user won.
     if (ballOnQuad(m_endQuadPosition, 2*maxX)) {
@@ -104,7 +108,7 @@ bool MovingQuadsLevel::updateData() {
     } else {
         for (auto const &movingQuadRow : m_movingQuads) {
             for (auto const &movingQuadPos : movingQuadRow.positions) {
-                if (ballOnQuad(movingQuadPos, movingQuadRow.scale.x)) {
+                if (ballOnQuad(movingQuadPos, movingQuadRow.scale.x * m_quadOriginalSize)) {
                     isOnQuads = true;
                     break;
                 }
@@ -119,7 +123,7 @@ bool MovingQuadsLevel::updateData() {
     // Move the moving quads.
     for (auto &movingQuadRow : m_movingQuads) {
         for (auto &movingQuadPos : movingQuadRow.positions) {
-            movingQuadPos.x += movingQuadRow.speed * time;
+            movingQuadPos.x += movingQuadRow.speed * timeDiff;
         }
         if ((movingQuadRow.positions[0].x < -maxX && movingQuadRow.speed < 0) ||
             (movingQuadRow.positions[movingQuadRow.positions.size()-1].x > maxX && movingQuadRow.speed > 0)) {
@@ -127,49 +131,16 @@ bool MovingQuadsLevel::updateData() {
         }
     }
 
-    float minX = -maxX;
-    float minY = -maxY;
-    if (m_ball.position.x > maxX) {
-        m_ball.position.x = maxX;
-        if (m_ball.velocity.x > 0) {
-            m_ball.velocity.x = -m_ball.velocity.x;
-        }
+    checkBallBorders(m_ball.position, m_ball.velocity);
+    updateRotation(timeDiff);
+
+    timeDiffSinceLastMove += timeDiff;
+    if (timeDiffSinceLastMove > 0.01f || drawingNecessary()) {
+        timeDiffSinceLastMove = 0.0f;
+        return true;
     }
 
-    if (m_ball.position.x < minX) {
-        m_ball.position.x = minX;
-        if (m_ball.velocity.x < 0) {
-            m_ball.velocity.x = -m_ball.velocity.x;
-        }
-    }
-
-    if (m_ball.position.y > maxY) {
-        m_ball.position.y = maxY;
-        if (m_ball.velocity.y > 0) {
-            m_ball.velocity.y = -m_ball.velocity.y;
-        }
-    }
-
-    if (m_ball.position.y < minY) {
-        m_ball.position.y = minY;
-        if (m_ball.velocity.y < 0) {
-            m_ball.velocity.y = -m_ball.velocity.y;
-        }
-    }
-
-    if (glm::length(m_ball.velocity) != 0) {
-        glm::vec3 axis = glm::cross(glm::vec3(0.0f, 0.0f, 1.0f), m_ball.velocity);
-        float scaleFactor = 10.0f;
-        glm::quat q = glm::angleAxis(glm::length(m_ball.velocity)*time*scaleFactor, glm::normalize(axis));
-
-        m_ball.totalRotated = glm::normalize(q * m_ball.totalRotated);
-    }
-
-    bool drawingNecessary = glm::length(m_ball.position - m_ball.prevPosition) > 0.00005;
-    if (drawingNecessary) {
-        m_ball.prevPosition = m_ball.position;
-    }
-    return drawingNecessary;
+    return false;
 }
 
 bool MovingQuadsLevel::updateStaticDrawObjects(DrawObjectTable &objs, TextureMap &textures) {
@@ -210,7 +181,7 @@ bool MovingQuadsLevel::updateDynamicDrawObjects(DrawObjectTable &objs, TextureMa
         ballObj->texture = std::make_shared<TextureDescriptionPath>(m_gameRequester, m_ballTexture);
         textures.insert(std::make_pair(ballObj->texture, std::shared_ptr<TextureData>()));
         ballObj->modelMatrices.push_back(glm::translate(glm::mat4(1.0f), m_ball.position) *
-                                         glm::mat4_cast(m_ball.totalRotated) * m_ball.scale);
+                                         glm::mat4_cast(m_ball.totalRotated) * ballScaleMatrix());
         objs.push_back(std::make_pair(ballObj, std::shared_ptr<DrawObjectData>()));
 
         // next we have the moving quads
@@ -244,7 +215,7 @@ bool MovingQuadsLevel::updateDynamicDrawObjects(DrawObjectTable &objs, TextureMa
     } else {
         // the ball is first...
         objs[0].first->modelMatrices[0] = glm::translate(glm::mat4(1.0f), m_ball.position) *
-                glm::mat4_cast(m_ball.totalRotated) * m_ball.scale;
+                glm::mat4_cast(m_ball.totalRotated) * ballScaleMatrix();
 
         // next, the moving quads
         for (int i = 1; i < objs.size(); i++) {

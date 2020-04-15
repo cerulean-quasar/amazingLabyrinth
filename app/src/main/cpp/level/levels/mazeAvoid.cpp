@@ -1,5 +1,5 @@
 /**
- * Copyright 2019 Cerulean Quasar. All Rights Reserved.
+ * Copyright 2020 Cerulean Quasar. All Rights Reserved.
  *
  *  This file is part of AmazingLabyrinth.
  *
@@ -26,9 +26,9 @@ bool MazeAvoid::checkFinishCondition(float timeDiff) {
         if (ballInProximity(avoidObj.x, avoidObj.y)) {
             // send the ball back to the start because it hit one of the objects it was supposed
             // to avoid.
-            ball.row = m_ballStartR;
-            ball.col = m_ballStartC;
-            ball.position = getCellCenterPosition(m_ballStartR, m_ballStartC);
+            m_ballCell.row = m_ballStartR;
+            m_ballCell.col = m_ballStartC;
+            m_ball.position = getCellCenterPosition(m_ballStartR, m_ballStartC);
         }
     }
 
@@ -37,7 +37,7 @@ bool MazeAvoid::checkFinishCondition(float timeDiff) {
 }
 
 void MazeAvoid::generateAvoidModelMatrices() {
-    // generate the items to collect
+    // generate the items to avoid
     while (m_avoidObjectLocations.size() < nbrItemsToAvoid) {
         uint32_t row = random.getUInt(0, numberRows-1);
         uint32_t col = random.getUInt(0, numberColumns-1);
@@ -49,7 +49,7 @@ void MazeAvoid::generateAvoidModelMatrices() {
             switch (wall) {
                 case 0:
                     if (cells[row][col].leftWallExists()) {
-                        pos.x = leftWall(col) + scale;
+                        pos.x = leftWall(col) + ballRadius();
                         selected = true;
                         break;
                     }
@@ -57,20 +57,20 @@ void MazeAvoid::generateAvoidModelMatrices() {
                     // there if it does.
                 case 1:
                     if (cells[row][col].rightWallExists()) {
-                        pos.x = rightWall(col) - scale;
+                        pos.x = rightWall(col) - ballRadius();
                         selected = true;
                         break;
                     }
                 case 2:
                     if (cells[row][col].topWallExists()) {
-                        pos.y = topWall(row) + scale ;
+                        pos.y = topWall(row) + ballRadius();
                         selected = true;
                         break;
                     }
                 case 3:
                 default:
                     if (cells[row][col].bottomWallExists()) {
-                        pos.y = bottomWall(row) - scale;
+                        pos.y = bottomWall(row) - ballRadius();
                         selected = true;
                         break;
                     }
@@ -83,9 +83,15 @@ void MazeAvoid::generateAvoidModelMatrices() {
                       getBallZPosition()}; */
         bool tooClose = false;
         for (auto const &avoidObj : m_avoidObjectLocations) {
-            if (glm::length(pos - avoidObj) < (m_width+m_height)/32) {
+            if (glm::length(pos - avoidObj) < (m_diagonal)/50.0f) {
                 tooClose = true;
             }
+        }
+
+        if (glm::length(pos - getCellCenterPosition(m_rowEnd, m_colEnd)) < m_diagonal/50.0f) {
+            tooClose = true;
+        } else if (glm::length(pos - getCellCenterPosition(m_ballStartR, m_ballStartC)) < m_diagonal/50.0f) {
+            tooClose = true;
         }
 
         if (!tooClose) {

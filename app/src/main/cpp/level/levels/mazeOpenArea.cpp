@@ -1,5 +1,5 @@
 /**
- * Copyright 2019 Cerulean Quasar. All Rights Reserved.
+ * Copyright 2020 Cerulean Quasar. All Rights Reserved.
  *
  *  This file is part of AmazingLabyrinth.
  *
@@ -20,6 +20,7 @@
 
 #include "mazeOpenArea.hpp"
 #include "maze.hpp"
+#include "../level.hpp"
 
 bool MazeOpenArea::updateData() {
     if (m_finished) {
@@ -28,58 +29,58 @@ bool MazeOpenArea::updateData() {
     }
 
     auto currentTime = std::chrono::high_resolution_clock::now();
-    float time = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - prevTime).count();
+    float timeDiff = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - prevTime).count();
     prevTime = currentTime;
 
-    ball.velocity += ball.acceleration * time - viscosity * ball.velocity;
-    ball.position += ball.velocity * time;
+    m_ball.velocity = getUpdatedVelocity(m_ball.acceleration, timeDiff);
+    m_ball.position += m_ball.velocity * timeDiff;
 
     float halfWallWidth = m_width/2/3/(numberColumns*numberBlocksPerCell+1);
-    auto cell = getCell(ball.row, ball.col);
-    if (cell.leftWallExists() && ball.position.x < leftWall(ball.col) + scale + halfWallWidth) {
-        if (ball.velocity.x < 0.0f) {
-            ball.velocity.x = 0.0f;
+    auto cell = getCell(m_ballCell.row, m_ballCell.col);
+    if (cell.leftWallExists() && m_ball.position.x < leftWall(m_ballCell.col) + ballRadius() + halfWallWidth) {
+        if (m_ball.velocity.x < 0.0f) {
+            m_ball.velocity.x = 0.0f;
         }
-        ball.position.x = leftWall(ball.col) + scale + halfWallWidth;
+        m_ball.position.x = leftWall(m_ballCell.col) + ballRadius() + halfWallWidth;
     }
-    if (cell.rightWallExists() && ball.position.x > rightWall(ball.col) - scale - halfWallWidth) {
-        if (ball.velocity.x > 0.0f) {
-            ball.velocity.x = 0.0f;
+    if (cell.rightWallExists() && m_ball.position.x > rightWall(m_ballCell.col) - ballRadius() - halfWallWidth) {
+        if (m_ball.velocity.x > 0.0f) {
+            m_ball.velocity.x = 0.0f;
         }
-        ball.position.x = rightWall(ball.col) - scale - halfWallWidth;
+        m_ball.position.x = rightWall(m_ballCell.col) - ballRadius() - halfWallWidth;
     }
-    if (cell.bottomWallExists() && ball.position.y > bottomWall(ball.row) - scale - halfWallWidth) {
-        if (ball.velocity.y > 0.0f) {
-            ball.velocity.y = 0.0f;
+    if (cell.bottomWallExists() && m_ball.position.y > bottomWall(m_ballCell.row) - ballRadius() - halfWallWidth) {
+        if (m_ball.velocity.y > 0.0f) {
+            m_ball.velocity.y = 0.0f;
         }
-        ball.position.y = bottomWall(ball.row) - scale - halfWallWidth;
+        m_ball.position.y = bottomWall(m_ballCell.row) - ballRadius() - halfWallWidth;
     }
-    if (cell.topWallExists() && ball.position.y < topWall(ball.row) + scale + halfWallWidth) {
-        if (ball.velocity.y < 0.0f) {
-            ball.velocity.y = 0.0f;
+    if (cell.topWallExists() && m_ball.position.y < topWall(m_ballCell.row) + ballRadius() + halfWallWidth) {
+        if (m_ball.velocity.y < 0.0f) {
+            m_ball.velocity.y = 0.0f;
         }
-        ball.position.y = topWall(ball.row) + scale + halfWallWidth;
+        m_ball.position.y = topWall(m_ballCell.row) + ballRadius() + halfWallWidth;
     }
 
     float cellHeight = m_height / (numberRows*numberBlocksPerCell+1)*numberBlocksPerCell;
     float cellWidth = m_width / (numberColumns*numberBlocksPerCell+1)*numberBlocksPerCell;
 
-    float cellCenterX = getColumnCenterPosition(ball.col);
-    float cellCenterY = getRowCenterPosition(ball.row);
-    float deltax = ball.position.x - cellCenterX;
-    float deltay = ball.position.y - cellCenterY;
+    float cellCenterX = getColumnCenterPosition(m_ballCell.col);
+    float cellCenterY = getRowCenterPosition(m_ballCell.row);
+    float deltax = m_ball.position.x - cellCenterX;
+    float deltay = m_ball.position.y - cellCenterY;
 
     int rowinc = 0;
     int colinc = 0;
-    if (deltay > cellHeight/2.0f && ball.row != numberRows - 1) {
+    if (deltay > cellHeight/2.0f && m_ballCell.row != numberRows - 1) {
         rowinc++;
-    } else if (deltay < -cellHeight/2.0f && ball.row != 0) {
+    } else if (deltay < -cellHeight/2.0f && m_ballCell.row != 0) {
         rowinc--;
     }
 
-    if (deltax > cellWidth/2.0f && ball.col != numberColumns - 1) {
+    if (deltax > cellWidth/2.0f && m_ballCell.col != numberColumns - 1) {
         colinc++;
-    } else if (deltax < -cellWidth/2.0f && ball.col != 0) {
+    } else if (deltax < -cellWidth/2.0f && m_ballCell.col != 0) {
         colinc--;
     }
 
@@ -91,28 +92,18 @@ bool MazeOpenArea::updateData() {
         colinc = 0;
     }
 
-    ball.row += rowinc;
-    ball.col += colinc;
+    m_ballCell.row += rowinc;
+    m_ballCell.col += colinc;
 
-    if (checkFinishCondition(time)) {
+    if (checkFinishCondition(timeDiff)) {
         m_finished = true;
         return true;
     }
 
-    glm::vec3 axis = glm::cross(glm::vec3(0.0f, 0.0f, 1.0f), ball.velocity);
-    if (glm::length(axis) != 0) {
-        float scaleFactor = 10.0f;
-        glm::quat q = glm::angleAxis(glm::length(ball.velocity)*time*scaleFactor, glm::normalize(axis));
+    updateRotation(timeDiff);
+    modelMatrixBall = glm::translate(glm::mat4(1.0f), m_ball.position) * glm::mat4_cast(m_ball.totalRotated) * scaleBall;
 
-        ball.totalRotated = glm::normalize(q * ball.totalRotated);
-    }
-    modelMatrixBall = glm::translate(glm::mat4(1.0f), ball.position) * glm::mat4_cast(ball.totalRotated) * scaleBall;
-
-    bool drawingNecessary = glm::length(ball.position - ball.prevPosition) > 0.007;
-    if (drawingNecessary) {
-        ball.prevPosition = ball.position;
-    }
-    return drawingNecessary;
+    return drawingNecessary();
 }
 
 Maze::MazeWallModelMatrixGeneratorFcn MazeOpenArea::getMazeWallModelMatricesGenerator() {

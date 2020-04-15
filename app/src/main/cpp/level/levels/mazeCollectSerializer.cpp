@@ -1,5 +1,5 @@
 /**
- * Copyright 2019 Cerulean Quasar. All Rights Reserved.
+ * Copyright 2020 Cerulean Quasar. All Rights Reserved.
  *
  *  This file is part of AmazingLabyrinth.
  *
@@ -57,9 +57,9 @@ Level::SaveLevelDataFcn MazeCollect::getSaveLevelDataFcn() {
     }
     auto sd = std::make_shared<MazeCollectSaveData>(
         numberRows,
-        ball.row,
-        ball.col,
-        Point<float>{ball.position.x, ball.position.y},
+        m_ballCell.row,
+        m_ballCell.col,
+        Point<float>{m_ball.position.x, m_ball.position.y},
         m_rowEnd,
         m_colEnd,
         std::vector<uint32_t>{m_wallTextureIndices},

@@ -89,16 +89,14 @@ struct MovingQuadsLevelSaveData : public LevelSaveData {
 
 class MovingQuadsLevel : public Level {
 private:
-    static constexpr uint32_t numberOfMidQuadRows = 4;
-    float const scaleFactor;
-    static constexpr float viscosity = 0.01f;
-    static constexpr uint32_t minQuadsInRow = 1;
-    static constexpr uint32_t maxQuadsInRow = 3;
-    static constexpr float minQuadMovingSpeed = 0.01f;
-    static constexpr float maxQuadMovingSpeed = 0.2f;
-    static constexpr float spaceBetweenQuadsX = 0.05f;
+    static uint32_t constexpr numberOfMidQuadRows = 4;
+    static uint32_t constexpr minQuadsInRow = 1;
+    static uint32_t constexpr maxQuadsInRow = 3;
+    static constexpr float m_quadOriginalSize = 2.0f;
+    float const spaceBetweenQuadsX;
     float const maxX;
     float const maxY;
+    float timeDiffSinceLastMove;
 
     std::string m_startQuadTexture;
     std::string m_ballTexture;
@@ -148,24 +146,16 @@ private:
     std::vector<Vertex> m_quadVertices;
     std::vector<uint32_t> m_quadIndices;
 
-    // data on where the ball is, how fast it is moving, etc.
-    struct {
-        glm::vec3 prevPosition;
-        glm::vec3 position;
-        glm::vec3 velocity;
-        glm::vec3 acceleration;
-        glm::quat totalRotated;
-        glm::mat4 scale;
-    } m_ball;
-
     bool ballOnQuad(glm::vec3 const &centerPos, float xSize);
+
+    float minQuadMovingSpeed() { return m_width / 40.0f; }
+    float maxQuadMovingSpeed() { return m_width / 10.0f;}
 
     void loadModels();
     void preGenerate();
     void generate();
 public:
     glm::vec4 getBackgroundColor() override { return glm::vec4(0.2, 0.2, 1.0, 1.0); }
-    void updateAcceleration(float x, float y, float z) override { m_ball.acceleration = {-x, -y, 0.0f}; }
     bool updateData() override;
     bool updateStaticDrawObjects(DrawObjectTable &objs, TextureMap &textures) override;
     bool updateDynamicDrawObjects(DrawObjectTable &objs, TextureMap &textures, bool &texturesChanged) override;
@@ -190,11 +180,13 @@ public:
             float width,
             float height,
             float maxZ)
-            : Level(std::move(inGameRequester), width, height, maxZ),
-              scaleFactor{1.0f/16.0f*m_width},
+            : Level(std::move(inGameRequester), width, height, maxZ, true, 1.0f/30.0f, false),
+              spaceBetweenQuadsX{m_width/10.0f},
               maxX(m_width/2),
               maxY(m_height/2),
-              m_prevTime(std::chrono::high_resolution_clock::now()) {
+              m_prevTime(std::chrono::high_resolution_clock::now()),
+              timeDiffSinceLastMove{0.0f}
+    {
         loadModels();
         preGenerate();
         if (saveData == nullptr) {
@@ -207,7 +199,7 @@ public:
                 std::vector<glm::vec3> positions;
                 positions.reserve(quadRow.positions.size());
                 for (auto const &position : quadRow.positions) {
-                    positions.emplace_back(position.x, position.y, m_maxZ-m_originalBallDiameter*scaleFactor);
+                    positions.emplace_back(position.x, position.y, m_mazeFloorZ);
                 }
                 m_movingQuads.emplace_back(std::move(positions), quadRow.speed, glm::vec3{quadRow.scale.x, quadRow.scale.y, 1.0f});
             }

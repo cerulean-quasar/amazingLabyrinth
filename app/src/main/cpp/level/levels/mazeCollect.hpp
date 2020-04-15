@@ -1,5 +1,5 @@
 /**
- * Copyright 2019 Cerulean Quasar. All Rights Reserved.
+ * Copyright 2020 Cerulean Quasar. All Rights Reserved.
  *
  *  This file is part of AmazingLabyrinth.
  *
@@ -68,28 +68,37 @@ struct MazeCollectSaveData : public MazeSaveData {
 class MazeCollect : public MazeOpenArea {
 protected:
     static constexpr uint32_t nbrItemsToCollect = 5;
+    float const collectBallScaleFactor;
     bool checkFinishCondition(float timeDiff) override;
     std::vector<std::pair<bool, glm::vec3>> m_collectionObjectLocations;
     std::deque<std::pair<uint32_t, uint32_t>> m_prevCells;
 public:
     MazeCollect(std::shared_ptr<GameRequester> inGameRequester,
                 std::shared_ptr<MazeCollectSaveData> sd,
-                float inWidth, float inHeight, float maxZ)
-            :MazeOpenArea(std::move(inGameRequester), sd, inWidth, inHeight, maxZ)
+                float inWidth, float inHeight, float floorZ)
+            :MazeOpenArea(std::move(inGameRequester), sd, inWidth, inHeight, floorZ),
+            collectBallScaleFactor{2.0f * m_scaleBall/3.0f}
     {
-        for (size_t i = 0; i < sd->collectionObjLocations.size(); i++) {
-            m_collectionObjectLocations.emplace_back(sd->itemsCollected[i],
-                    glm::vec3{sd->collectionObjLocations[i].x, sd->collectionObjLocations[i].y, getBallZPosition()});
-        }
+        if (sd) {
+            for (size_t i = 0; i < sd->collectionObjLocations.size(); i++) {
+                m_collectionObjectLocations.emplace_back(sd->itemsCollected[i],
+                                                         glm::vec3{sd->collectionObjLocations[i].x,
+                                                                   sd->collectionObjLocations[i].y,
+                                                                   getBallZPosition()});
+            }
 
-        for (auto const &prevCell : sd->previousCells) {
-            m_prevCells.emplace_back(prevCell.x, prevCell.y);
+            for (auto const &prevCell : sd->previousCells) {
+                m_prevCells.emplace_back(prevCell.x, prevCell.y);
+            }
+        } else {
+            throw std::runtime_error("MazeCollect requires create parameters");
         }
     }
 
     MazeCollect(std::shared_ptr<GameRequester> inGameRequester, Maze::CreateParameters const &parameters,
-            float inWidth, float inHeight, float maxZ)
-            :MazeOpenArea(std::move(inGameRequester), parameters, inWidth, inHeight, maxZ)
+            float inWidth, float inHeight, float floorZ)
+            :MazeOpenArea(std::move(inGameRequester), parameters, inWidth, inHeight, floorZ),
+            collectBallScaleFactor(2.0f*m_scaleBall/3.0f)
     {
         generateCollectBallModelMatrices();
     }

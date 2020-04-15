@@ -1,5 +1,5 @@
 /**
- * Copyright 2019 Cerulean Quasar. All Rights Reserved.
+ * Copyright 2020 Cerulean Quasar. All Rights Reserved.
  *
  *  This file is part of AmazingLabyrinth.
  *
@@ -30,6 +30,7 @@
 #include <istream>
 #include <cstring>
 #include <queue>
+#include <list>
 
 #include <glm/glm.hpp>
 #include <glm/gtc/quaternion.hpp>
@@ -39,17 +40,13 @@
 #include "../../android.hpp"
 #include "../../random.hpp"
 #include "../../graphics.hpp"
+#include "../level.hpp"
 
 static std::string const MODEL_HOLE("models/hole.obj");
-constexpr float Maze::viscosity;
-
-void Maze::updateAcceleration(float x, float y, float z) {
-    ball.acceleration = glm::vec3(-x,-y,0.0f);
-}
 
 bool Maze::ballInProximity(float x, float y) {
-    float errDistance = scale;
-    return glm::length(ball.position - glm::vec3{x, y, ball.position.z}) < errDistance;
+    float errDistance = ballRadius();
+    return glm::length(m_ball.position - glm::vec3{x, y, m_ball.position.z}) < errDistance;
 }
 
 bool Maze::updateData() {
@@ -62,88 +59,78 @@ bool Maze::updateData() {
     float difftime = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - prevTime).count();
     prevTime = currentTime;
 
-    ball.velocity += ball.acceleration * difftime - viscosity * ball.velocity;
-    ball.position += ball.velocity * difftime;
+    m_ball.velocity = getUpdatedVelocity(m_ball.acceleration, difftime);
+    m_ball.position += m_ball.velocity * difftime;
 
-    auto cell = getCell(ball.row, ball.col);
-    float cellCenterX = getColumnCenterPosition(ball.col);
-    float cellCenterY = getRowCenterPosition(ball.row);// + scale;  // I don't know why I have to add scale here.
+    auto cell = getCell(m_ballCell.row, m_ballCell.col);
+    float cellCenterX = getColumnCenterPosition(m_ballCell.col);
+    float cellCenterY = getRowCenterPosition(m_ballCell.row);// + scale;  // I don't know why I have to add scale here.
     if (cell.isEnd() && ballInProximity(cellCenterX, cellCenterY)) {
         m_finished = true;
-        ball.position.x = cellCenterX;
-        ball.position.y = cellCenterY;
-        ball.velocity = {0.0f, 0.0f, 0.0f};
+        m_ball.position.x = cellCenterX;
+        m_ball.position.y = cellCenterY;
+        m_ball.velocity = {0.0f, 0.0f, 0.0f};
         return true;
     }
-    if (cell.leftWallExists() && ball.position.x < cellCenterX) {
-        if (ball.velocity.x < 0.0f) {
-            ball.velocity.x = 0.0f;
+    if (cell.leftWallExists() && m_ball.position.x < cellCenterX) {
+        if (m_ball.velocity.x < 0.0f) {
+            m_ball.velocity.x = 0.0f;
         }
-        ball.position.x = cellCenterX;
+        m_ball.position.x = cellCenterX;
     }
-    if (cell.rightWallExists() && cellCenterX < ball.position.x) {
-        if (ball.velocity.x > 0.0f) {
-            ball.velocity.x = 0.0f;
+    if (cell.rightWallExists() && cellCenterX < m_ball.position.x) {
+        if (m_ball.velocity.x > 0.0f) {
+            m_ball.velocity.x = 0.0f;
         }
-        ball.position.x = cellCenterX;
+        m_ball.position.x = cellCenterX;
     }
-    if (cell.bottomWallExists() && cellCenterY < ball.position.y) {
-        if (ball.velocity.y > 0.0f) {
-            ball.velocity.y = 0.0f;
+    if (cell.bottomWallExists() && cellCenterY < m_ball.position.y) {
+        if (m_ball.velocity.y > 0.0f) {
+            m_ball.velocity.y = 0.0f;
         }
-        ball.position.y = cellCenterY;
+        m_ball.position.y = cellCenterY;
     }
-    if (cell.topWallExists() && ball.position.y < cellCenterY) {
-        if (ball.velocity.y < 0.0f) {
-            ball.velocity.y = 0.0f;
+    if (cell.topWallExists() && m_ball.position.y < cellCenterY) {
+        if (m_ball.velocity.y < 0.0f) {
+            m_ball.velocity.y = 0.0f;
         }
-        ball.position.y = cellCenterY;
+        m_ball.position.y = cellCenterY;
     }
 
     float cellHeight = m_height / (numberRows*numberBlocksPerCell+1)*numberBlocksPerCell;
     float cellWidth = m_width / (numberColumns*numberBlocksPerCell+1)*numberBlocksPerCell;
 
     float delta = cellWidth/5.0f;
-    if (ball.position.x > cellCenterX + delta || ball.position.x < cellCenterX - delta) {
-        ball.position.y = cellCenterY;
-        ball.velocity.y = 0.0f;
+    if (m_ball.position.x > cellCenterX + delta || m_ball.position.x < cellCenterX - delta) {
+        m_ball.position.y = cellCenterY;
+        m_ball.velocity.y = 0.0f;
     }
 
     delta = cellHeight/5.0f;
-    if (ball.position.y > cellCenterY + delta || ball.position.y < cellCenterY - delta) {
-        ball.position.x = cellCenterX;
-        ball.velocity.x = 0.0f;
+    if (m_ball.position.y > cellCenterY + delta || m_ball.position.y < cellCenterY - delta) {
+        m_ball.position.x = cellCenterX;
+        m_ball.velocity.x = 0.0f;
     }
 
-    float deltax = ball.position.x - cellCenterX;
-    float deltay = ball.position.y - cellCenterY;
+    float deltax = m_ball.position.x - cellCenterX;
+    float deltay = m_ball.position.y - cellCenterY;
 
-    if (deltay > cellHeight/2.0f && ball.row != numberRows - 1) {
-        ball.row++;
-    } else if (deltay < -cellHeight/2.0f && ball.row != 0) {
-        ball.row--;
+    if (deltay > cellHeight/2.0f && m_ballCell.row != numberRows - 1) {
+        m_ballCell.row++;
+    } else if (deltay < -cellHeight/2.0f && m_ballCell.row != 0) {
+        m_ballCell.row--;
     }
 
-    if (deltax > cellWidth/2.0f && ball.col != numberColumns - 1) {
-        ball.col++;
-    } else if (deltax < -cellWidth/2.0f && ball.col != 0) {
-        ball.col--;
+    if (deltax > cellWidth/2.0f && m_ballCell.col != numberColumns - 1) {
+        m_ballCell.col++;
+    } else if (deltax < -cellWidth/2.0f && m_ballCell.col != 0) {
+        m_ballCell.col--;
     }
 
-    glm::vec3 axis = glm::cross(glm::vec3(0.0f, 0.0f, 1.0f), ball.velocity);
-    if (glm::length(axis) != 0) {
-        float scaleFactor = 10.0f;
-        glm::quat q = glm::angleAxis(glm::length(ball.velocity)*difftime*scaleFactor, glm::normalize(axis));
+    updateRotation(difftime);
+    modelMatrixBall = glm::translate(glm::mat4(1.0f), m_ball.position) * glm::mat4_cast(m_ball.totalRotated) * scaleBall;
 
-        ball.totalRotated = glm::normalize(q * ball.totalRotated);
-    }
-    modelMatrixBall = glm::translate(glm::mat4(1.0f), ball.position) * glm::mat4_cast(ball.totalRotated) * scaleBall;
-
-    bool drawingNecessary = glm::length(ball.position - ball.prevPosition) > 0.01;
-    if (drawingNecessary) {
-        ball.prevPosition = ball.position;
-    }
-    return drawingNecessary;
+    return drawingNecessary();
 }
 
 void Maze::generateDFS() {
@@ -319,7 +306,7 @@ float Maze::getColumnCenterPosition(unsigned int col) {
 }
 
 float Maze::getBallZPosition() {
-    return m_maxZ - m_originalWallHeight*m_scaleWallZ/2.0f;
+    return m_mazeFloorZ - m_originalWallHeight*m_scaleWallZ/2.0f;
 }
 
 glm::vec3 Maze::getCellCenterPosition(unsigned int row, unsigned int col) {
@@ -347,8 +334,8 @@ void Maze::generateMazeVector(uint32_t &rowEnd, uint32_t &colEnd, std::vector<bo
 
             // the ball
             if (cell.isStart()) {
-                ball.row = i / numberBlocksPerCell;
-                ball.col = j / numberBlocksPerCell;
+                m_ballCell.row = i / numberBlocksPerCell;
+                m_ballCell.col = j / numberBlocksPerCell;
             }
 
             // the hole
@@ -410,16 +397,16 @@ void Maze::generateModelMatrices(MazeWallModelMatrixGeneratorFcn &wallModelMatri
     // Create the model matrices.
 
     // the walls
-    modelMatricesMaze = wallModelMatrixGeneratorFcn(wallsExist, m_width, m_height, m_maxZ, numberColumns, numberRows, m_scaleWallZ);
+    modelMatricesMaze = wallModelMatrixGeneratorFcn(wallsExist, m_width, m_height, m_mazeFloorZ, numberColumns, numberRows, m_scaleWallZ);
 
     // the ball
-    ball.position = getCellCenterPosition(ball.row, ball.col);
+    m_ball.position = getCellCenterPosition(m_ballCell.row, m_ballCell.col);
 
     // cause the frame to be drawn when the program comes up for the first time.
-    ball.prevPosition = {-10.0f,0.0f,0.0f};
+    m_ball.prevPosition = {-10.0f,0.0f,0.0f};
 
-    glm::mat4 trans = glm::translate(glm::mat4(1.0f), ball.position);
-    modelMatrixBall = trans*glm::mat4_cast(ball.totalRotated)*scaleBall;
+    glm::mat4 trans = glm::translate(glm::mat4(1.0f), m_ball.position);
+    modelMatrixBall = trans*glm::mat4_cast(m_ball.totalRotated)*scaleBall;
 
     // the hole
     glm::vec3 holePos = getCellCenterPosition(m_rowEnd, m_colEnd);
@@ -427,7 +414,7 @@ void Maze::generateModelMatrices(MazeWallModelMatrixGeneratorFcn &wallModelMatri
     modelMatrixHole = trans*scaleBall;
 
     // the floor.
-    floorModelMatrix = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, m_maxZ - m_originalWallHeight * m_scaleWallZ)) *
+    floorModelMatrix = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, m_mazeFloorZ - m_originalWallHeight * m_scaleWallZ)) *
             glm::scale(glm::mat4(1.0f), glm::vec3(m_width/2 + m_width / 2 / (numberColumns * numberBlocksPerCell),
                                  m_height/2 + m_height / 2 /(numberRows * numberBlocksPerCell), 1.0f));
 }

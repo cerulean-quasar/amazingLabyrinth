@@ -20,55 +20,54 @@
 #include <glm/gtc/matrix_transform.hpp>
 
 #include "avoidVortexLevel.hpp"
+#include "../level.hpp"
 
 void AvoidVortexLevel::loadModels() {
     loadModel(m_gameRequester->getAssetStream(MODEL_BALL), ballVertices, ballIndices);
     getQuad(quadVertices, quadIndices);
 }
 
-constexpr float AvoidVortexLevel::viscosity;
-
 void AvoidVortexLevel::preGenerate() {
-    ball.position.z = m_maxZ-scaleFactor*m_originalBallDiameter/2;
-    holePosition.z = m_maxZ-scaleFactor*m_originalBallDiameter;
-    startPosition.z = ball.position.z;
+    m_ball.position.z = m_mazeFloorZ + ballRadius();
+    holePosition.z = m_mazeFloorZ;
+    startPosition.z = m_ball.position.z;
 }
 
 void AvoidVortexLevel::postGenerate() {
-    scale = glm::scale(glm::mat4(1.0f), glm::vec3(scaleFactor, scaleFactor, scaleFactor));
+    scale = ballScaleMatrix();
 
-    ball.totalRotated = glm::quat();
-    ball.acceleration = {0.0f, 0.0f, 0.0f};
-    ball.velocity = {0.0f, 0.0f, 0.0f};
+    m_ball.totalRotated = glm::quat();
+    m_ball.acceleration = {0.0f, 0.0f, 0.0f};
+    m_ball.velocity = {0.0f, 0.0f, 0.0f};
 
     // set to very large previous position (in vector length) so that it will get drawn
     // the first time through.
-    ball.prevPosition = {-10.0f, 0.0f, m_maxZ-scaleFactor*m_originalBallDiameter/2};
+    m_ball.prevPosition = {-10.0f, 0.0f, m_mazeFloorZ + ballRadius()};
 
     startPositionQuad = startPosition;
-    startPositionQuad.z = m_maxZ-scaleFactor*m_originalBallDiameter;
+    startPositionQuad.z = m_mazeFloorZ;
 }
 
 void AvoidVortexLevel::generate() {
     /* ensure that the ball and hole are not near each other. They need to be farther apart than
      * the vortexes.  To make the maze fun and harder. */
-    float smallestDistance = 4*scaleFactor;
+    float smallestDistance = 4*ballDiameter();
     do {
         holePosition.x = random.getFloat(-maxX, maxX);
         holePosition.y = random.getFloat(-maxY, maxY);
 
-        ball.position.x = random.getFloat(-maxX, maxX);
-        ball.position.y = random.getFloat(-maxY, maxY);
-    } while (glm::length(ball.position - holePosition) < smallestDistance*4.0f);
-    startPosition = ball.position;
+        m_ball.position.x = random.getFloat(-maxX, maxX);
+        m_ball.position.y = random.getFloat(-maxY, maxY);
+    } while (glm::length(m_ball.position - holePosition) < smallestDistance*4.0f);
+    startPosition = m_ball.position;
 
     /* ensure that the vortexes are not near each other or the hole or the ball. */
     do {
         glm::vec3 vortexPositionCandidate =
                 {random.getFloat(-maxX, maxX), random.getFloat(-maxY, maxY),
-                 m_maxZ-scaleFactor*m_originalBallDiameter};
+                 m_mazeFloorZ};
 
-        float distance = glm::length(vortexPositionCandidate - ball.position);
+        float distance = glm::length(vortexPositionCandidate - m_ball.position);
         if (distance < smallestDistance) {
             continue;
         }
@@ -92,11 +91,11 @@ void AvoidVortexLevel::generate() {
 }
 
 bool AvoidVortexLevel::ballProximity(glm::vec3 const &objPosition) {
-    float errDistance = scaleFactor*1.5f;
-    if (glm::length(ball.position - objPosition) < errDistance) {
-        ball.position.x = objPosition.x;
-        ball.position.y = objPosition.y;
-        ball.velocity = {0.0f, 0.0f, 0.0f};
+    float errDistance = ballDiameter();
+    if (glm::length(m_ball.position - objPosition) < errDistance) {
+        m_ball.position.x = objPosition.x;
+        m_ball.position.y = objPosition.y;
+        m_ball.velocity = {0.0f, 0.0f, 0.0f};
         return true;
     }
     return false;
@@ -109,11 +108,11 @@ bool AvoidVortexLevel::updateData() {
     }
 
     auto currentTime = std::chrono::high_resolution_clock::now();
-    float time = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - prevTime).count();
+    float timeDiff = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - prevTime).count();
     prevTime = currentTime;
 
-    ball.velocity += ball.acceleration * time - viscosity * ball.velocity;
-    ball.position += ball.velocity * time;
+    m_ball.velocity = getUpdatedVelocity(m_ball.acceleration, timeDiff);
+    m_ball.position += m_ball.velocity * timeDiff;
 
     if (ballProximity(holePosition)) {
         m_finished = true;
@@ -122,60 +121,21 @@ bool AvoidVortexLevel::updateData() {
 
     for (auto &&vortexPosition : vortexPositions) {
         if (ballProximity(vortexPosition)) {
-            ball.position = startPosition;
+            m_ball.position = startPosition;
             return true;
         }
     }
 
-    float minX = -maxX;
-    float minY = -maxY;
-    if (ball.position.x > maxX) {
-        ball.position.x = maxX;
-        if (ball.velocity.x > 0) {
-            ball.velocity.x = -ball.velocity.x;
-        }
-    }
+    checkBallBorders(m_ball.position, m_ball.velocity);
+    updateRotation(timeDiff);
+    modelMatrixBall = glm::translate(glm::mat4(1.0f), m_ball.position) * glm::mat4_cast(m_ball.totalRotated) * scale;
 
-    if (ball.position.x < minX) {
-        ball.position.x = minX;
-        if (ball.velocity.x < 0) {
-            ball.velocity.x = -ball.velocity.x;
-        }
-    }
-
-    if (ball.position.y > maxY) {
-        ball.position.y = maxY;
-        if (ball.velocity.y > 0) {
-            ball.velocity.y = -ball.velocity.y;
-        }
-    }
-
-    if (ball.position.y < minY) {
-        ball.position.y = minY;
-        if (ball.velocity.y < 0) {
-            ball.velocity.y = -ball.velocity.y;
-        }
-    }
-
-    if (glm::length(ball.velocity) != 0) {
-        glm::vec3 axis = glm::cross(glm::vec3(0.0f, 0.0f, 1.0f), ball.velocity);
-        float scaleFactor = 10.0f;
-        glm::quat q = glm::angleAxis(glm::length(ball.velocity)*time*scaleFactor, glm::normalize(axis));
-
-        ball.totalRotated = glm::normalize(q * ball.totalRotated);
-    }
-    modelMatrixBall = glm::translate(glm::mat4(1.0f), ball.position) * glm::mat4_cast(ball.totalRotated) * scale;
-
-    bool drawingNecessary = glm::length(ball.position - ball.prevPosition) > 0.005;
-    if (drawingNecessary) {
-        ball.prevPosition = ball.position;
-    }
-    return drawingNecessary;
+    return drawingNecessary();
 }
 
 void AvoidVortexLevel::generateModelMatrices() {
     // the ball
-    glm::mat4 trans = glm::translate(glm::mat4(1.0f), ball.position);
+    glm::mat4 trans = glm::translate(glm::mat4(1.0f), m_ball.position);
     modelMatrixBall = trans*scale;
 
     // the hole

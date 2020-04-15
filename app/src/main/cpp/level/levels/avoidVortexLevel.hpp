@@ -74,14 +74,12 @@ struct AvoidVortexLevelSaveData : public LevelSaveData {
 class AvoidVortexLevel : public Level {
 private:
     static uint32_t constexpr numberOfVortexes = 8;
-    float const scaleFactor;
 
     std::string holeTexture;
     std::string ballTexture;
     std::string vortexTexture;
     std::string startVortexTexture;
 
-    static float constexpr viscosity = 0.005f;
     float const maxX;
     float const maxY;
     Random random;
@@ -114,15 +112,6 @@ private:
     // the scale matrix for the ball.
     glm::mat4 scale;
 
-    // data on where the ball is, how fast it is moving, etc.
-    struct {
-        glm::vec3 prevPosition;
-        glm::vec3 position;
-        glm::vec3 velocity;
-        glm::vec3 acceleration;
-        glm::quat totalRotated;
-    } ball;
-
     bool ballProximity(glm::vec3 const &objPosition);
     void loadModels();
     void preGenerate();
@@ -131,7 +120,6 @@ private:
     void generateModelMatrices();
 public:
     glm::vec4 getBackgroundColor() override { return glm::vec4(0.0, 0.0, 0.0, 1.0); }
-    void updateAcceleration(float x, float y, float z) override { ball.acceleration = {-x, -y, 0.0f}; }
     bool updateData() override;
     bool updateStaticDrawObjects(DrawObjectTable &objs, TextureMap &textures) override;
     bool updateDynamicDrawObjects(DrawObjectTable &objs, TextureMap &textures, bool &texturesChanged) override;
@@ -150,9 +138,8 @@ public:
     void initSetBallTexture(std::string const &texture) { ballTexture = texture; }
     SaveLevelDataFcn getSaveLevelDataFcn() override;
 
-    AvoidVortexLevel(std::shared_ptr<GameRequester> inGameRequester, float width, float height, float maxZ)
-            : Level(std::move(inGameRequester), width, height, maxZ),
-              scaleFactor{1.0f/16.0f*m_width},
+    AvoidVortexLevel(std::shared_ptr<GameRequester> inGameRequester, float width, float height, float floorZ)
+            : Level(std::move(inGameRequester), width, height, floorZ, true, 1.0f/40.0f),
               maxX(m_width/2),
               maxY(m_height/2),
               prevTime(std::chrono::high_resolution_clock::now()) {
@@ -167,9 +154,8 @@ public:
             std::shared_ptr<AvoidVortexLevelSaveData> sd,
             float width,
             float height,
-            float maxZ)
-            : Level(std::move(inGameRequester), width, height, maxZ),
-              scaleFactor{1.0f/16.0f*m_width},
+            float floorZ)
+            : Level(std::move(inGameRequester), width, height, floorZ, true, 1.0f/40.0f),
               maxX(m_width/2),
               maxY(m_height/2),
               prevTime(std::chrono::high_resolution_clock::now()) {
@@ -178,16 +164,15 @@ public:
         if (sd == nullptr) {
             generate();
         } else {
-            ball.position.x = sd->ball.x;
-            ball.position.y = sd->ball.y;
+            m_ball.position.x = sd->ball.x;
+            m_ball.position.y = sd->ball.y;
             holePosition.x = sd->hole.x;
             holePosition.y = sd->hole.y;
             startPosition.x = sd->startPos.x;
             startPosition.y = sd->startPos.y;
             vortexPositions.reserve(sd->vortexes.size());
             for (auto const &vortex : sd->vortexes) {
-                vortexPositions.emplace_back(vortex.x, vortex.y,
-                                             m_maxZ - scaleFactor * m_width * m_originalBallDiameter);
+                vortexPositions.emplace_back(vortex.x, vortex.y, m_mazeFloorZ);
             }
         }
         postGenerate();

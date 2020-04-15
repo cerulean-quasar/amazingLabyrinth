@@ -22,6 +22,7 @@
 #include <glm/gtc/matrix_transform.hpp>
 
 #include "levelStarter.hpp"
+#include "level.hpp"
 
 void LevelStarter::clearText() {
     text.clear();
@@ -40,78 +41,44 @@ bool LevelStarter::updateData() {
     float difftime = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - prevTime).count();
     prevTime = currentTime;
 
-    float viscosity = 0.01f;
-    ball.velocity += ball.acceleration * difftime - viscosity * ball.velocity;
+    m_ball.velocity = getUpdatedVelocity(m_ball.acceleration, difftime);
 
     if (isInBottomCorridor()) {
-        ball.position.y = -maxPosY;
-        ball.velocity.y = 0.0f;
+        m_ball.position.y = -maxPosY;
+        m_ball.velocity.y = 0.0f;
 
-        ball.position.x += ball.velocity.x * difftime;
+        m_ball.position.x += m_ball.velocity.x * difftime;
     } else if (isInSideCorridor()) {
-        ball.position.x = maxPosX;
-        ball.velocity.x = 0.0f;
+        m_ball.position.x = maxPosX;
+        m_ball.velocity.x = 0.0f;
 
-        ball.position.y += ball.velocity.y * difftime;
+        m_ball.position.y += m_ball.velocity.y * difftime;
     } else { // is in top corridor
-        ball.position.y = maxPosY;
-        ball.velocity.y = 0.0f;
+        m_ball.position.y = maxPosY;
+        m_ball.velocity.y = 0.0f;
 
-        ball.position.x += ball.velocity.x * difftime;
+        m_ball.position.x += m_ball.velocity.x * difftime;
     }
-    confineBall();
+    checkBallBorders(m_ball.position, m_ball.velocity);
 
-    if (ball.position.x < -maxPosX + errVal && ball.position.y == maxPosY) {
+    if (m_ball.position.x < -maxPosX + errVal && m_ball.position.y == maxPosY) {
         transitionText = true;
-        ball.position.x = -maxPosX;
-        ball.position.y = -maxPosY;
+        m_ball.position.x = -maxPosX;
+        m_ball.position.y = -maxPosY;
         if (textIndex == text.size() - 1) {
             m_finished = true;
             return true;
         }
     }
 
-    glm::vec3 axis = glm::cross(glm::vec3(0.0f, 0.0f, 1.0f), ball.velocity);
-    if (glm::length(axis) != 0) {
-        float scaleFactor = 10.0f;
-        glm::quat q = glm::angleAxis(glm::length(ball.velocity)*difftime*scaleFactor, glm::normalize(axis));
-
-        ball.totalRotated = glm::normalize(q * ball.totalRotated);
-    }
-
-    if (glm::length(ball.position - ball.prevPosition) < 0.005f) {
-        return false;
-    }
-
-    ball.prevPosition = ball.position;
-
-    return true;
-}
-
-void LevelStarter::confineBall() {
-    if (ball.position.y < -maxPosY) {
-        ball.velocity.y = 0.0f;
-        ball.position.y = -maxPosY;
-    }
-    if (ball.position.y > maxPosY) {
-        ball.velocity.y = 0.0f;
-        ball.position.y = maxPosY;
-    }
-
-    if (ball.position.x < -maxPosX) {
-        ball.velocity.x = 0.0f;
-        ball.position.x = -maxPosX;
-    }
-    if (ball.position.x > maxPosX) {
-        ball.velocity.x = 0.0f;
-        ball.position.x = maxPosX;
-    }
+    updateRotation(difftime);
+    return drawingNecessary();
 }
 
 bool LevelStarter::isInBottomCorridor() {
-    if (ball.position.y < -maxPosY + errVal) {
-        if (ball.position.x > maxPosX - errVal) {
-            return -ball.velocity.x >= ball.velocity.y;
+    if (m_ball.position.y < -maxPosY + errVal) {
+        if (m_ball.position.x > maxPosX - errVal) {
+            return -m_ball.velocity.x >= m_ball.velocity.y;
         }
         return true;
     }
@@ -119,12 +86,12 @@ bool LevelStarter::isInBottomCorridor() {
 }
 
 bool LevelStarter::isInSideCorridor() {
-    if (ball.position.x > maxPosX - errVal) {
-        if (ball.position.y < -maxPosY + errVal) {
-            return ball.velocity.y >= -ball.velocity.x;
+    if (m_ball.position.x > maxPosX - errVal) {
+        if (m_ball.position.y < -maxPosY + errVal) {
+            return m_ball.velocity.y >= -m_ball.velocity.x;
         }
-        if (ball.position.y > maxPosY - errVal) {
-            return -ball.velocity.y >= -ball.velocity.x;
+        if (m_ball.position.y > maxPosY - errVal) {
+            return -m_ball.velocity.y >= -m_ball.velocity.x;
         }
         return true;
     }
@@ -146,8 +113,8 @@ bool LevelStarter::updateDynamicDrawObjects(DrawObjectTable &drawObjsData, Textu
         obj->texture = std::make_shared<TextureDescriptionPath>(m_gameRequester, ballImage);
         textures.insert(std::make_pair(obj->texture, std::shared_ptr<TextureData>()));
         obj->modelMatrices.push_back(
-                glm::translate(glm::mat4(1.0f), ball.position) * glm::mat4_cast(ball.totalRotated) *
-                glm::scale(glm::mat4(1.0f), ballScale));
+                glm::translate(glm::mat4(1.0f), m_ball.position) * glm::mat4_cast(m_ball.totalRotated) *
+                ballScaleMatrix());
         drawObjsData.push_back(std::make_pair(obj, std::shared_ptr<DrawObjectData>()));
 
         // Text box
@@ -157,13 +124,13 @@ bool LevelStarter::updateDynamicDrawObjects(DrawObjectTable &drawObjsData, Textu
         obj1->texture = std::make_shared<TextureDescriptionText>(m_gameRequester, text[textIndex]);
         textures.insert(std::make_pair(obj1->texture, std::shared_ptr<TextureData>()));
         obj1->modelMatrices.push_back(
-                glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, m_maxZ - ballScale.z * m_originalBallDiameter)) *
+                glm::translate(glm::mat4(1.0f), glm::vec3(-ballRadius(), 0.0f, m_mazeFloorZ)) *
                 glm::scale(glm::mat4(1.0f), textScale));
         drawObjsData.push_back(std::make_pair(obj1, std::shared_ptr<DrawObjectData>()));
         texturesChanged = true;
     } else {
-        drawObjsData[0].first->modelMatrices[0] = glm::translate(glm::mat4(1.0f), ball.position) *
-                glm::mat4_cast(ball.totalRotated) * glm::scale(glm::mat4(1.0f), ballScale);
+        drawObjsData[0].first->modelMatrices[0] = glm::translate(glm::mat4(1.0f), m_ball.position) *
+                glm::mat4_cast(m_ball.totalRotated) * ballScaleMatrix();
 
         if (transitionText && !m_finished) {
             textIndex++;
@@ -194,7 +161,7 @@ bool LevelStarter::updateStaticDrawObjects(DrawObjectTable &drawObjsData, Textur
     obj->texture = std::make_shared<TextureDescriptionPath>(m_gameRequester, holeImage);
     textures.insert(std::make_pair(obj->texture, std::shared_ptr<TextureData>()));
     obj->modelMatrices.push_back(
-            glm::translate(glm::mat4(1.0f), glm::vec3(-maxPosX, maxPosY, m_maxZ - ballScale.z*m_originalBallDiameter)) *
+            glm::translate(glm::mat4(1.0f), glm::vec3(-maxPosX, maxPosY, m_mazeFloorZ)) *
             glm::scale(glm::mat4(1.0f), holeScale));
     drawObjsData.push_back(std::make_pair(obj, std::shared_ptr<DrawObjectData>()));
 
@@ -207,7 +174,7 @@ bool LevelStarter::updateStaticDrawObjects(DrawObjectTable &drawObjsData, Textur
     obj->indices = quadIndices;
     obj->texture = textureCorridorH1;
     obj->modelMatrices.push_back(
-            glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, -maxPosY, m_maxZ - ballScale.z*m_originalBallDiameter)) *
+            glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, -maxPosY, m_mazeFloorZ)) *
             glm::scale(glm::mat4(1.0f), corridorHScale));
     drawObjsData.push_back(std::make_pair(obj, std::shared_ptr<DrawObjectData>()));
 
@@ -220,7 +187,7 @@ bool LevelStarter::updateStaticDrawObjects(DrawObjectTable &drawObjsData, Textur
     obj->indices = quadIndices;
     obj->texture = textureCorridorV;
     obj->modelMatrices.push_back(
-            glm::translate(glm::mat4(1.0f), glm::vec3(maxPosX, 0.0f, m_maxZ - ballScale.z*m_originalBallDiameter)) *
+            glm::translate(glm::mat4(1.0f), glm::vec3(maxPosX, 0.0f, m_mazeFloorZ)) *
             glm::scale(glm::mat4(1.0f), corridorVScale));
     drawObjsData.push_back(std::make_pair(obj, std::shared_ptr<DrawObjectData>()));
 
@@ -233,7 +200,7 @@ bool LevelStarter::updateStaticDrawObjects(DrawObjectTable &drawObjsData, Textur
     obj->indices = quadIndices;
     obj->texture = textureCorridorH2;
     obj->modelMatrices.push_back(
-            glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, maxPosY, m_maxZ - ballScale.z*m_originalBallDiameter)) *
+            glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, maxPosY, m_mazeFloorZ)) *
             glm::scale(glm::mat4(1.0f),corridorHScale));
     drawObjsData.push_back(std::make_pair(obj, std::shared_ptr<DrawObjectData>()));
 

@@ -1,5 +1,5 @@
 /**
- * Copyright 2019 Cerulean Quasar. All Rights Reserved.
+ * Copyright 2020 Cerulean Quasar. All Rights Reserved.
  *
  *  This file is part of AmazingLabyrinth.
  *
@@ -125,7 +125,6 @@ protected:
                                                                unsigned int nbrRows,
                                                                float scaleWallZ)>;
     static constexpr float m_originalWallHeight = 3.0f;
-    static constexpr float viscosity = 0.01f;
     static constexpr unsigned int numberBlocksPerCell = 2;
     Random random;
     std::vector<std::string> wallTextures;
@@ -134,7 +133,6 @@ protected:
     std::string holeTexture;
     unsigned int numberRows;
     unsigned int numberColumns;
-    float scale;
     std::chrono::high_resolution_clock::time_point prevTime;
     bool drawHole;
     float m_scaleWallZ;
@@ -143,12 +141,7 @@ protected:
     struct {
         uint32_t row;
         uint32_t col;
-        glm::vec3 prevPosition;
-        glm::vec3 position;
-        glm::vec3 velocity;
-        glm::vec3 acceleration;
-        glm::quat totalRotated;
-    } ball;
+    } m_ballCell;
     std::vector<std::vector<Cell>> cells;
 
     glm::mat4 scaleBall;
@@ -214,11 +207,17 @@ public:
          std::shared_ptr<MazeSaveData> sd,
          float width,
          float height,
-         float maxZ,
+         float floorZ,
          MazeWallModelMatrixGeneratorFcn wallModelMatrixGeneratorFcn = getMazeWallModelMatricesGenerator())
-            :Level(std::move(inGameRequester), width, height, maxZ),
+            :Level(std::move(inGameRequester), width, height, floorZ, true,
+                   height/((sd ?sd->nbrRows:1.0f) *numberBlocksPerCell +1)/glm::length(glm::vec2{width, height})/m_originalBallDiameter,
+                   false),
              drawHole{true}
     {
+        if (!sd) {
+            throw std::runtime_error("expected: save data or create parameters");
+        }
+
         numberRows = sd->nbrRows;
         preGenerate();
 
@@ -236,12 +235,12 @@ public:
 
         generateModelMatrices(wallModelMatrixGeneratorFcn);
 
-        ball.row = sd->ballRow;
-        ball.col = sd->ballCol;
+        m_ballCell.row = sd->ballRow;
+        m_ballCell.col = sd->ballCol;
 
         // these are set incorrectly by generateModelMatrices.... set them up again.
-        ball.position = glm::vec3{sd->ballPos.x, sd->ballPos.y, getBallZPosition()};
-        modelMatrixBall = glm::translate(glm::mat4(1.0f), ball.position)*glm::mat4_cast(ball.totalRotated)*scaleBall;
+        m_ball.position = glm::vec3{sd->ballPos.x, sd->ballPos.y, getBallZPosition()};
+        modelMatrixBall = glm::translate(glm::mat4(1.0f), m_ball.position)*glm::mat4_cast(m_ball.totalRotated)*scaleBall;
     }
 
     Maze(std::shared_ptr<GameRequester> inGameRequester,
@@ -250,7 +249,9 @@ public:
         float height,
         float maxZ,
         MazeWallModelMatrixGeneratorFcn wallModelMatrixGeneratorFcn = getMazeWallModelMatricesGenerator())
-            :Level(std::move(inGameRequester), width, height, maxZ),
+            :Level(std::move(inGameRequester), width, height, maxZ, true,
+                    height/(createParameters.numberRows *numberBlocksPerCell +1)/glm::length(glm::vec2{width, height})/m_originalBallDiameter,
+                    false),
              drawHole{true}
     {
         numberRows = createParameters.numberRows;
@@ -267,16 +268,14 @@ public:
 
     void preGenerate() {
         numberColumns = static_cast<uint32_t>(std::floor(numberRows*m_width/m_height));
-        scale = m_width/(numberColumns*numberBlocksPerCell + 1)/2;
-        m_scaleWallZ = scale*2;
+        m_scaleWallZ = ballDiameter()/numberBlocksPerCell;
 
         prevTime = std::chrono::high_resolution_clock::now();
         glm::vec3 xaxis{1.0f, 0.0f, 0.0f};
-        ball.totalRotated = glm::angleAxis(glm::radians(270.0f), xaxis);
-        ball.acceleration = {0.0f, 0.0f, 0.0f};
-        ball.velocity = {0.0f, 0.0f, 0.0f};
-        unsigned int i = std::max(numberRows, numberColumns);
-        scaleBall = glm::scale(glm::mat4(1.0f), glm::vec3(scale, scale, scale));
+        m_ball.totalRotated = glm::angleAxis(glm::radians(270.0f), xaxis);
+        m_ball.acceleration = {0.0f, 0.0f, 0.0f};
+        m_ball.velocity = {0.0f, 0.0f, 0.0f};
+        scaleBall = ballScaleMatrix();
         cells.resize(numberRows);
 
         for (unsigned int i = 0; i < numberRows; i++) {
@@ -285,7 +284,6 @@ public:
     }
 
     glm::vec4 getBackgroundColor() override { return {0.0f, 0.0f, 0.0f, 0.0f}; }
-    void updateAcceleration (float x, float y, float z) override;
     bool updateData() override ;
     bool updateStaticDrawObjects(DrawObjectTable &objs, TextureMap &textures) override;
     bool updateDynamicDrawObjects(DrawObjectTable &objs, TextureMap &textures,

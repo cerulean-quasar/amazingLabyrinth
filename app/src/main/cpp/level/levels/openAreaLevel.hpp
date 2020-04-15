@@ -48,8 +48,8 @@ struct OpenAreaLevelSaveData : public LevelSaveData {
 
     OpenAreaLevelSaveData(Point<float> &&ball_, Point<float> &&hole_)
             : LevelSaveData{openArealLevelVersion},
-    ball{ball_},
-    hole{hole_}
+              ball{ball_},
+              hole{hole_}
     {
     }
 };
@@ -59,8 +59,6 @@ private:
     std::string holeTexture;
     std::string ballTexture;
 
-    float const ballScale;
-    float const viscosity = 0.005f;
     Random random;
     std::chrono::high_resolution_clock::time_point prevTime;
 
@@ -79,40 +77,27 @@ private:
 
     glm::mat4 scale;
 
-    // data on where the ball is, how fast it is moving, etc.
-    struct {
-        glm::vec3 prevPosition;
-        glm::vec3 position;
-        glm::vec3 velocity;
-        glm::vec3 acceleration;
-        glm::quat totalRotated;
-    } ball;
-
     void loadModels();
     void generate(glm::vec2 ballPos, glm::vec2 holePos) {
-        scale = glm::scale(glm::mat4(1.0f), glm::vec3(ballScale / m_originalBallDiameter*m_width,
-                                     ballScale / m_originalBallDiameter*m_width,
-                                     ballScale / m_originalBallDiameter*m_width));
+        scale = ballScaleMatrix();
 
-        ball.totalRotated = glm::quat();
-        ball.acceleration = {0.0f, 0.0f, 0.0f};
-        ball.velocity = {0.0f, 0.0f, 0.0f};
-        ball.prevPosition = {-10.0f, 0.0f, m_maxZ - ballScale / 2};
-        ball.position = {ballPos.x, ballPos.y, m_maxZ - ballScale / 2};
+        m_ball.prevPosition = {-10.0f, 0.0f, m_mazeFloorZ + ballRadius() };
+        m_ball.position = { ballPos.x, ballPos.y, m_mazeFloorZ + ballRadius() };
 
-        holePosition = {holePos.x, holePos.y, m_maxZ - ballScale};
+        holePosition = {holePos.x, holePos.y, m_mazeFloorZ};
     }
 
     void generate() {
-        float smallestDistance = 0.5f;
+        float smallestDistance = m_diagonal/ 5.0f;
         glm::vec2 holePos;
         glm::vec2 ballPos;
         do {
-            holePos.x = random.getFloat(-m_width/2+ballScale/2, m_width/2-ballScale/2);
-            holePos.y = random.getFloat(-m_height/2+ballScale/2, m_height/2-ballScale/2);
+            float r = ballRadius();
+            holePos.x = random.getFloat(-m_width/2 + r, m_width/2 - r);
+            holePos.y = random.getFloat(-m_height/2 + r, m_height/2 - r);
 
-            ballPos.x = random.getFloat(-m_width/2+ballScale/2, m_width/2-ballScale/2);
-            ballPos.y = random.getFloat(-m_height/2+ballScale/2, m_height/2-ballScale/2);
+            ballPos.x = random.getFloat(-m_width/2 + r, m_width/2 - r);
+            ballPos.y = random.getFloat(-m_height/2 + r, m_height/2 - r);
         } while (glm::length(ballPos - holePos) < smallestDistance);
         generate(ballPos, holePos);
     }
@@ -125,7 +110,7 @@ public:
             float width,
             float height,
             float maxZ)
-            : Level(std::move(inGameRequester), width, height, maxZ), ballScale(m_width/10.0f),
+            : Level(std::move(inGameRequester), width, height, maxZ, true, 1.0f/40.0f),
             prevTime(std::chrono::high_resolution_clock::now())
     {
         loadModels();
@@ -137,7 +122,6 @@ public:
         }
         generateModelMatrices();
     }
-    void updateAcceleration(float x, float y, float z) override;
     glm::vec4 getBackgroundColor() override { return {0.0f, 0.0f, 0.0f, 1.0f}; }
     bool updateData() override;
     bool updateStaticDrawObjects(DrawObjectTable &objs, TextureMap &textures) override;

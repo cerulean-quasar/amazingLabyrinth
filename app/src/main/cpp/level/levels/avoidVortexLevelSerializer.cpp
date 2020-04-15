@@ -1,5 +1,5 @@
 /**
- * Copyright 2019 Cerulean Quasar. All Rights Reserved.
+ * Copyright 2020 Cerulean Quasar. All Rights Reserved.
  *
  *  This file is part of AmazingLabyrinth.
  *
@@ -50,7 +50,7 @@ Level::SaveLevelDataFcn AvoidVortexLevel::getSaveLevelDataFcn() {
         vortexes.emplace_back(vortexPosition.x, vortexPosition.y);
     }
     auto sd = std::make_shared<AvoidVortexLevelSaveData>(
-            Point<float>{ball.position.x, ball.position.y},
+            Point<float>{m_ball.position.x, m_ball.position.y},
             Point<float>{holePosition.x, holePosition.y},
             Point<float>{startPosition.x, startPosition.y},
             std::move(vortexes));

@@ -42,9 +42,7 @@ class FixedMaze : public Level {
 public:
     static float constexpr MODEL_SIZE = 2.0f;
     static float constexpr MODEL_MAXZ = 1.0f;
-    static float constexpr MODEL_BALL_SIZE = 2.0f;
     glm::vec4 getBackgroundColor() override;
-    void updateAcceleration(float x, float y, float z) override;
     bool updateData() override;
     bool updateStaticDrawObjects(DrawObjectTable &objs, TextureMap &textures) override;
     bool updateDynamicDrawObjects(DrawObjectTable &objs, TextureMap &textures, bool &texturesChanged) override;
@@ -63,25 +61,12 @@ public:
     ~FixedMaze() override = default;
 
 private:
-    static float constexpr m_viscosity = 0.005f;
-    static float constexpr m_floatErrorAmount = 0.0001f;
-    static float constexpr m_speedLimit = 2.0f;
-    static float constexpr m_lengthToSmallToNormalize = 0.001f;
-
     std::chrono::high_resolution_clock::time_point m_prevTime;
     std::vector<Vertex> m_ballVertices;
     std::vector<uint32_t> m_ballIndices;
     //bool m_initialized;
     // data on where the ball is, how fast it is moving, etc.
-    struct {
-        glm::vec3 prevPosition;
-        glm::vec3 position;
-        glm::vec3 velocity;
-        glm::vec3 acceleration;
-        glm::quat totalRotated;
-    } m_ball;
 
-    float m_scaleBall;
     size_t m_rowWidth;
     size_t m_rowHeight;
     std::vector<float> m_depthMap;
@@ -90,9 +75,9 @@ private:
     std::shared_ptr<DrawObject> m_testObj;
     std::shared_ptr<TextureData> m_testTexture;
     std::string m_ballTextureName;
-    bool m_bounce;
     float m_extraBounce;
     float m_minSpeedOnObjBounce;
+    float m_speedLimit;
     Random randomNbrs;
 
     void loadModels();

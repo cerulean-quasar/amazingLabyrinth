@@ -1,5 +1,5 @@
 /**
- * Copyright 2019 Cerulean Quasar. All Rights Reserved.
+ * Copyright 2020 Cerulean Quasar. All Rights Reserved.
  *
  *  This file is part of AmazingLabyrinth.
  *
@@ -86,8 +86,8 @@ public:
                 float inWidth, float inHeight, float maxZ)
             :MazeOpenArea(std::move(inGameRequester), parameters, inWidth, inHeight, maxZ)
     {
-        m_ballStartR = ball.row;
-        m_ballStartC = ball.col;
+        m_ballStartR = m_ballCell.row;
+        m_ballStartC = m_ballCell.col;
         generateAvoidModelMatrices();
     }
 
