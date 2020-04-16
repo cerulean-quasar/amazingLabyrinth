@@ -38,7 +38,7 @@ bool OpenAreaLevel::updateData() {
     m_ball.velocity = getUpdatedVelocity(m_ball.acceleration, timeDiff);
     m_ball.position += m_ball.velocity * timeDiff;
 
-    float errDistance = 3.0f*ballRadius();
+    float errDistance = ballDiameter();
     if (glm::length(m_ball.position - holePosition) < errDistance) {
         m_finished = true;
         m_ball.position.x = holePosition.x;
