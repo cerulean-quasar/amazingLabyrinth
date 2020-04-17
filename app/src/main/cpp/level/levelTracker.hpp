@@ -52,7 +52,7 @@ public:
     static char constexpr const *bee2 = "bee2";
     static char constexpr const *cat = "cat";
     static char constexpr const *bunny = "bunny";
-    static char constexpr const *mountain = "mountain";
+    static char constexpr const *frog = "frog";
 
     void gotoNextLevel();
     static std::vector<std::string> getLevelDescriptions();
@@ -66,7 +66,7 @@ public:
     static LevelGroup getLevelGroupBee2(std::shared_ptr<MazeSaveData> const &levelSaveData);
     static LevelGroup getLevelGroupCat(std::shared_ptr<MazeCollectSaveData> const &levelSaveData);
     static LevelGroup getLevelGroupBunny(std::shared_ptr<MazeAvoidSaveData> const &levelBundle);
-    static LevelGroup getLevelGroupMountain(std::shared_ptr<FixedMazeSaveData> const &levelBundle);
+    static LevelGroup getLevelGroupFrog(std::shared_ptr<FixedMazeSaveData> const &levelBundle);
 
     void setLevel(std::string const &levelName) {
         size_t i = 0;

@@ -55,7 +55,7 @@ protected:
     float const m_mazeFloorZ;
     float const m_scaleBall;
     bool const m_ignoreZMovement;
-    bool const m_bounce;
+    bool m_bounce;
 
     // data on where the ball is, how fast it is moving, etc.
     struct {

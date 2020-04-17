@@ -42,8 +42,6 @@
 #include "../../graphics.hpp"
 #include "../level.hpp"
 
-static std::string const MODEL_HOLE("models/hole.obj");
-
 bool Maze::ballInProximity(float x, float y) {
     float errDistance = ballRadius();
     return glm::length(m_ball.position - glm::vec3{x, y, m_ball.position.z}) < errDistance;

@@ -218,7 +218,7 @@ void FixedMaze::moveBall(float timeDiff) {
                 glm::vec3 perpendicularToVelocity = glm::cross(velocityXY, glm::vec3{0.0f, 0.0f, 1.0f});
                 if (glm::length(perpendicularToVelocity) > m_lengthTooSmallToNormalize) {
                     perpendicularToVelocity = glm::normalize(perpendicularToVelocity);
-                    float randomSpeed = randomNbrs.getFloat(-speed/5.0f, speed/5.0f);
+                    float randomSpeed = m_randomNbrs.getFloat(-speed/5.0f, speed/5.0f);
                     velocity += randomSpeed * perpendicularToVelocity;
                 }
             }
@@ -414,15 +414,8 @@ bool FixedMaze::updateData() {
 bool FixedMaze::updateStaticDrawObjects(DrawObjectTable &objs, TextureMap &textures) {
     if (objs.empty() && textures.empty()) {
         /* floor */
-        //objs.emplace_back(m_testObj, nullptr);
-        auto obj = m_worldMap.begin();
-        //obj->first->texture = m_testObj->texture;
-        objs.emplace_back(obj->first, nullptr);
-
-        textures.insert(std::make_pair(obj->first->texture, nullptr));
-        //textures.insert(
-        //        std::make_pair(std::make_shared<TextureDescriptionDummy>(m_gameRequester),
-        //                       m_testTexture));
+        objs.emplace_back(m_floor, nullptr);
+        textures.insert(std::make_pair(m_floor->texture, nullptr));
         return true;
     }
 
@@ -448,6 +441,7 @@ bool FixedMaze::updateDynamicDrawObjects(DrawObjectTable &objs, TextureMap &text
         objs.emplace_back(ballObj, nullptr);
         texturesChanged = true;
     } else {
+        /* ball */
         glm::mat4 modelMatrixBall = glm::translate(glm::mat4(1.0f), m_ball.position) *
                                     glm::mat4_cast(m_ball.totalRotated) *
                                     glm::scale(glm::mat4(1.0f),
@@ -469,22 +463,14 @@ void FixedMaze::getLevelFinisherCenter(float &x, float &y) {
     y = 0.0f;
 }
 
-void FixedMaze::loadModels() {
-    loadModel(m_gameRequester->getAssetStream("models/frog.obj"), m_ballVertices, m_ballIndices);
-}
-
-FixedMaze::FixedMaze(std::shared_ptr<GameRequester> inGameRequester, float width, float height, float maxZ)
-    : Level{inGameRequester, width, height, maxZ, false, 1.0f/50.0f}
-{
-    init();
-}
-
 FixedMaze::FixedMaze(std::shared_ptr<GameRequester> inGameRequester,
     std::shared_ptr<FixedMazeSaveData> sd,
     float width, float height, float mazeFloorZ)
-    : Level{inGameRequester, width, height, mazeFloorZ, false, 1.0f/50.0f}
+    : Level{inGameRequester, width, height, mazeFloorZ, false, 1.0f/50.0f},
+    m_extraBounce{1.0f},
+    m_minSpeedOnObjBounce{0.0f},
+    m_speedLimit{m_diagonal/4.0f}
 {
-    init();
 }
 
 void FixedMaze::findModelViewPort(
@@ -546,52 +532,47 @@ void FixedMaze::findModelViewPort(
 void FixedMaze::init()
 {
     m_prevTime = std::chrono::high_resolution_clock::now();
-    m_extraBounce = 1.0f + m_diagonal/50.0f;
-    m_minSpeedOnObjBounce = ballDiameter();
-    m_speedLimit = m_diagonal/4.0f;
 
-    loadModels();
+    loadModel(m_gameRequester->getAssetStream(m_ballModel), m_ballVertices, m_ballIndices);
 
-    auto worldObj = std::make_shared<DrawObject>();
+    m_floor = std::make_shared<DrawObject>();
     std::pair<std::vector<Vertex>, std::vector<uint32_t>> verticesWithVertexNormals;
-    loadModel(m_gameRequester->getAssetStream("models/mountainLandscape.obj"), worldObj->vertices,
-            worldObj->indices, &verticesWithVertexNormals);
+    loadModel(m_gameRequester->getAssetStream(m_floorModel), m_floor->vertices,
+            m_floor->indices, &verticesWithVertexNormals);
 
-    auto worldObj2 = std::make_shared<DrawObject>();
-    worldObj2->vertices = verticesWithVertexNormals.first;
-    worldObj2->indices = verticesWithVertexNormals.second;
-    worldObj2->modelMatrices.push_back(
+    // For getting the depth map and normal map
+    auto worldObj = std::make_shared<DrawObject>();
+    worldObj->vertices = verticesWithVertexNormals.first;
+    worldObj->indices = verticesWithVertexNormals.second;
+    worldObj->modelMatrices.push_back(
             glm::translate(glm::mat4(1.0f), glm::vec3{0.0f, 0.0f, m_mazeFloorZ}) *
-            glm::scale(glm::mat4(1.0f), glm::vec3{m_height/MODEL_SIZE, m_height/MODEL_SIZE, 1.0f}) *
+            glm::scale(glm::mat4(1.0f), glm::vec3{m_height/m_modelSize, m_height/m_modelSize, 1.0f}) *
             glm::mat4_cast(glm::angleAxis(3.1415926f/2.0f, glm::vec3(1.0f, 0.0f, 0.0f))));
-    worldObj2->texture = nullptr;
-
+    worldObj->texture = nullptr;
     DrawObjectTable worldMap;
-    worldMap.emplace_back(worldObj2, nullptr);
+    worldMap.emplace_back(worldObj, nullptr);
 
     std::vector<float> depthMap;
     std::vector<glm::vec3> normalMap;
     m_rowHeight = static_cast<uint32_t>(std::floor(10.0f/m_scaleBall * m_width));
-    m_testTexture = m_gameRequester->getDepthTexture(worldMap, m_height, m_height,
+
+    // The model is a square.  Get the whole depth and normal maps (without stretching.  Then
+    // find the hole and cut the model so that the hole appears in the center if possible, otherwise
+    // on the side.  So we pass in m_height for the width and height.
+    m_gameRequester->getDepthTexture(worldMap, m_height, m_height,
             m_rowHeight /* height is the same as width */,
             m_mazeFloorZ - MODEL_MAXZ, m_mazeFloorZ + MODEL_MAXZ,
             depthMap, normalMap);
 
+    // cut the model so that the hole appears in the center if possible.
     glm::mat4 trans;
     findModelViewPort(depthMap, normalMap, m_rowHeight, trans, m_depthMap, m_normalMap, m_rowWidth);
-    worldObj->modelMatrices.push_back(
+
+    m_floor->modelMatrices.push_back(
             trans *
-            glm::scale(glm::mat4(1.0f), glm::vec3{m_height/MODEL_SIZE, m_height/MODEL_SIZE, 1.0f}) *
+            glm::scale(glm::mat4(1.0f), glm::vec3{m_height/m_modelSize, m_height/m_modelSize, 1.0f}) *
             glm::mat4_cast(glm::angleAxis(3.1415926f/2.0f, glm::vec3(1.0f, 0.0f, 0.0f))));
-    worldObj->texture = std::make_shared<TextureDescriptionPath>(m_gameRequester, "textures/mountain/floor.png");
-    m_worldMap.emplace_back(worldObj, nullptr);
-
-
-    m_testObj = std::make_shared<DrawObject>();
-    m_testObj->texture = std::make_shared<TextureDescriptionDummy>(m_gameRequester);
-    getQuad(m_testObj->vertices, m_testObj->indices);
-    m_testObj->modelMatrices.push_back(glm::translate(glm::mat4(1.0f), glm::vec3{0.0f, 0.0f, m_mazeFloorZ}) *
-                                       glm::scale(glm::mat4(1.0f), glm::vec3{m_width/2.0f, m_height/2.0f, 1.0f}));
+    m_floor->texture = std::make_shared<TextureDescriptionPath>(m_gameRequester, m_floorTexture);
 
     // search for a starting point in a row on the model floor (not a high up point).
     float x = -m_width / 2.0f + ballRadius();

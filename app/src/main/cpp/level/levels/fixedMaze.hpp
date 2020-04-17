@@ -40,7 +40,6 @@ struct FixedMazeSaveData : public LevelSaveData {
 
 class FixedMaze : public Level {
 public:
-    static float constexpr MODEL_SIZE = 2.0f;
     static float constexpr MODEL_MAXZ = 1.0f;
     glm::vec4 getBackgroundColor() override;
     bool updateData() override;
@@ -50,38 +49,57 @@ public:
     void getLevelFinisherCenter(float &x, float &y) override;
     SaveLevelDataFcn getSaveLevelDataFcn() override;
 
-    FixedMaze(std::shared_ptr<GameRequester> inGameRequester, float width, float height, float maxZ);
-
     FixedMaze(std::shared_ptr<GameRequester> inGameRequester,
               std::shared_ptr<FixedMazeSaveData> sd,
               float width, float height, float maxZ);
 
-    void initSetBallTexture(std::string const &texture) { m_ballTextureName = texture; }
+    void initSetBallInfo(
+        std::string const &ballModel,
+        std::string const &ballTexture)
+    {
+        m_ballModel = ballModel;
+        m_ballTextureName = ballTexture;
+    }
+    void initSetBounce(bool bounce) { m_bounce = bounce; }
+    void initSetFloorInfo(
+        std::string const &floorModel,
+        std::string const &floorTexture)
+    {
+        m_floorModel = floorModel;
+        m_floorTexture = floorTexture;
+    }
+    void initSetBounceParameters(
+            float extraBounce,          // units in number of diagonals/sec to be added to the bounce speed
+            float minSpeedOnObjBounce)  // units in number of diagonals/sec to be the min bounce speed.
+    {
+        m_extraBounce = 1.0f + extraBounce * m_diagonal;
+        m_minSpeedOnObjBounce = minSpeedOnObjBounce * m_diagonal;
+        m_bounce = true;
+    }
+    void init();
 
     ~FixedMaze() override = default;
 
 private:
+    float const m_speedLimit;
+
     std::chrono::high_resolution_clock::time_point m_prevTime;
     std::vector<Vertex> m_ballVertices;
     std::vector<uint32_t> m_ballIndices;
-    //bool m_initialized;
-    // data on where the ball is, how fast it is moving, etc.
+    std::string m_ballModel;
+    std::string m_ballTextureName;
+    std::string m_floorModel;
+    std::string m_floorTexture;
 
     size_t m_rowWidth;
     size_t m_rowHeight;
     std::vector<float> m_depthMap;
     std::vector<glm::vec3> m_normalMap;
-    DrawObjectTable m_worldMap;
-    std::shared_ptr<DrawObject> m_testObj;
-    std::shared_ptr<TextureData> m_testTexture;
-    std::string m_ballTextureName;
+    std::shared_ptr<DrawObject> m_floor;
     float m_extraBounce;
     float m_minSpeedOnObjBounce;
-    float m_speedLimit;
-    Random randomNbrs;
+    Random m_randomNbrs;
 
-    void loadModels();
-    void init();
     size_t getXCell(float x);
     size_t getYCell(float y);
     float getZPos(float x, float y);

@@ -38,7 +38,7 @@ LevelGroup LevelTracker::getLevelGroupBeginning(std::shared_ptr<OpenAreaLevelSav
     return {
         getStarterFcn(levelBundle == nullptr, std::vector<std::string>{
             "In the\nbeginning of\nthe universe\nof mazes...",
-            "...there was nothing\nexcept for\na ball and\na strange\nspacial anomaly."}),
+            "...there was\nnothing except\nfor a ball and\na strange\nspacial anomaly."}),
         GetLevelFcn([levelBundle](LevelTracker &tracker) {
             auto level = tracker.getLevel<OpenAreaLevel>(levelBundle);
             level->initSetBallTexture("textures/beginning/ballWhite.png");
@@ -132,7 +132,7 @@ LevelGroup LevelTracker::getLevelGroupRolarBear(std::shared_ptr<MovingQuadsLevel
 LevelGroup LevelTracker::getLevelGroupBee1(std::shared_ptr<MazeSaveData> const &levelBundle) {
     return {
         getStarterFcn(levelBundle == nullptr, std::vector<std::string>{
-            "Next comes an age\nwhen flowers\ncovered\nthe planet...",
+            "Next comes an\nage when\nflowers covered\nthe planet...",
             "...and one roller\nbee seeks out\nthe nectar\nof a large flower."}),
         GetLevelFcn([levelBundle](LevelTracker &tracker) {
             std::shared_ptr<Maze> level;
@@ -265,14 +265,17 @@ LevelGroup LevelTracker::getLevelGroupBunny(std::shared_ptr<MazeAvoidSaveData> c
     };
 }
 
-LevelGroup LevelTracker::getLevelGroupMountain(std::shared_ptr<FixedMazeSaveData> const &levelBundle) {
+LevelGroup LevelTracker::getLevelGroupFrog(std::shared_ptr<FixedMazeSaveData> const &levelBundle) {
     return {
             getStarterFcn(levelBundle == nullptr, std::vector<std::string>{
-                    "In the mountain,\na yeti...",
-                    "searches for\na den to weather\nthe harsh winter"}),
+                    "In a forest,\na frog\nseeks a fly.",
+                    "Watch out for\nmushrooms, they\nare bouncy!"}),
             GetLevelFcn([levelBundle](LevelTracker &tracker) {
                 auto level = tracker.getLevel<FixedMaze>(levelBundle);
-                level->initSetBallTexture("textures/mountain/frog.png");
+                level->initSetBallInfo("models/frog.obj", "textures/frog/frog.png");
+                level->initSetFloorInfo("models/frogFloor.obj", "textures/frog/frogFloor.png");
+                level->initSetBounceParameters(1/20.0f, 1/50.0f);
+                level->init();
                 return level;
             }),
             GetFinisherFcn([](LevelTracker &tracker, float centerX, float centerY, glm::mat4 const &proj, glm::mat4 const &view) {
