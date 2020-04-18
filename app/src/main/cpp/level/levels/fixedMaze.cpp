@@ -173,24 +173,8 @@ glm::vec3 FixedMaze::getParallelAcceleration() {
     return m_ball.acceleration - normalGravityComponent;
 }
 
-void FixedMaze::ballOutOfBounds(glm::vec3 &pos) {
-    if (pos.x > m_width/2.0f - ballRadius()) {
-        pos.x = m_width/2.0f - ballRadius();
-    } else if (pos.x < -m_width/2.0f + ballRadius()) {
-        pos.x = -m_width / 2.0f + ballRadius();
-    }
-
-    if (pos.y > m_height/2.0f - ballRadius()) {
-        pos.y = m_height/2.0f - ballRadius();
-    } else if (pos.y < -m_height/2.0f + ballRadius()) {
-        pos.y = -m_height/2.0f  + ballRadius();
-    }
-
-    pos.z = getZPos(pos.x, pos.y) + ballRadius();
-}
-
 void FixedMaze::moveBall(float timeDiff) {
-    ballOutOfBounds(m_ball.position);
+    checkBallBorders(m_ball.position, m_ball.velocity);
     glm::vec3 position = m_ball.position;
     glm::vec3 prevPosition = position;
     glm::vec3 velocity = getUpdatedVelocity(getParallelAcceleration(), timeDiff);
@@ -255,12 +239,18 @@ void FixedMaze::moveBall(float timeDiff) {
         std::array<float, 4> fractionsTillWall =  { -1.0f, -1.0f, -1.0f, -1.0f };
 
         if (deltax > m_floatErrorAmount || deltax < -m_floatErrorAmount) {
+            // left
             fractionsTillWall[0] = (xcell * m_width / m_rowWidth - m_width / 2.0f - position.x) / deltax;
+
+            // right
             fractionsTillWall[1] = ((xcell + 1) * m_width / m_rowWidth - m_width/2.0f - position.x) / deltax;
         }
 
         if (deltay > m_floatErrorAmount ||  deltay < -m_floatErrorAmount) {
+            // down
             fractionsTillWall[2] = (ycell * m_height / m_rowHeight - m_height / 2.0f - position.y) / deltay;
+
+            // up
             fractionsTillWall[3] = ((ycell + 1) * m_height / m_rowHeight - m_height / 2.0f - position.y) / deltay;
         }
 
@@ -302,18 +292,22 @@ void FixedMaze::moveBall(float timeDiff) {
         glm::vec3 newPos = position;
         switch (smallest) {
             case 0:
+                // move to the cell to the left of us.
                 newPos.x += (nextPos.x - position.x) * fractionsTillWall[smallest] - m_floatErrorAmount;
                 newPos.y += (nextPos.y - position.y) * fractionsTillWall[smallest];
                 break;
             case 1:
+                // move to the cell to the right of us.
                 newPos.x += (nextPos.x - position.x) * fractionsTillWall[smallest] + m_floatErrorAmount;
                 newPos.y += (nextPos.y - position.y) * fractionsTillWall[smallest];
                 break;
             case 2:
+                // move to the cell below us
                 newPos.y += (nextPos.y - position.y) * fractionsTillWall[smallest] - m_floatErrorAmount;
                 newPos.x += (nextPos.x - position.x) * fractionsTillWall[smallest];
                 break;
             case 3:
+                // move to the cell above us
                 newPos.y += (nextPos.y - position.y) * fractionsTillWall[smallest] + m_floatErrorAmount ;
                 newPos.x += (nextPos.x - position.x) * fractionsTillWall[smallest];
                 break;
@@ -324,6 +318,7 @@ void FixedMaze::moveBall(float timeDiff) {
 
 
         if (checkBallBorders(newPos, velocity)) {
+            prevPosition = position;
             timeDiff -= fractionsTillWall[smallest] * timeDiff;
             position = newPos;
             position.z = getZPos(position.x, position.y) + ballRadius();

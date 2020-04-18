@@ -112,7 +112,6 @@ private:
     glm::vec3 getNormalAtPosition(float x, float y, glm::vec3 const &velocity);
     glm::vec3 getRawNormalAtPosition(size_t xcell, size_t ycell);
     glm::vec3 getRawNormalAtPosition(float x, float y);
-    void ballOutOfBounds(glm::vec3 &pos);
     void moveBall(float timeDiff);
     void findModelViewPort(
             std::vector<float> const &depthMap,
