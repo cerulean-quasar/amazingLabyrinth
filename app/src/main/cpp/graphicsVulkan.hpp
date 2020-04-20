@@ -576,6 +576,23 @@ namespace vulkan {
         void createCommandPool();
     };
 
+    class Semaphore {
+        std::shared_ptr<Device> m_device;
+
+        std::shared_ptr<VkSemaphore_T> m_semaphore;
+
+        void createSemaphore();
+
+    public:
+        Semaphore(std::shared_ptr<Device> const &inDevice)
+                : m_device{inDevice},
+                  m_semaphore{} {
+            createSemaphore();
+        }
+
+        inline std::shared_ptr<VkSemaphore_T> const &semaphore() { return m_semaphore; }
+    };
+
     class CommandBuffer {
     public:
         CommandBuffer(std::shared_ptr<Device> inDevice,
@@ -592,6 +609,8 @@ namespace vulkan {
         void create();
         void begin();
         void end();
+        void end(Semaphore &waitSemaphore, VkPipelineStageFlags pipelineStage, Semaphore &signalSemaphore);
+        void end(Semaphore &signalSemaphore);
 
         inline std::shared_ptr<VkCommandBuffer_T> commandBuffer() { return m_commandBuffer; }
     private:
@@ -640,23 +659,6 @@ namespace vulkan {
         std::shared_ptr<VkDeviceMemory_T> m_bufferMemory;
 
         void createBuffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties);
-    };
-
-    class Semaphore {
-        std::shared_ptr<Device> m_device;
-
-        std::shared_ptr<VkSemaphore_T> m_semaphore;
-
-        void createSemaphore();
-
-    public:
-        Semaphore(std::shared_ptr<Device> const &inDevice)
-                : m_device{inDevice},
-                  m_semaphore{} {
-            createSemaphore();
-        }
-
-        inline std::shared_ptr<VkSemaphore_T> const &semaphore() { return m_semaphore; }
     };
 
     class Image {

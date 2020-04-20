@@ -1224,6 +1224,62 @@ namespace vulkan {
         vkBeginCommandBuffer(m_commandBuffer.get(), &beginInfo);
     }
 
+    void CommandBuffer::end(
+        Semaphore &waitSemaphore,
+        VkPipelineStageFlags pipelineStage,
+        Semaphore &signalSemaphore)
+    {
+        vkEndCommandBuffer(m_commandBuffer.get());
+
+        VkSubmitInfo submitInfo = {};
+        submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+        submitInfo.commandBufferCount = 1;
+
+        VkSemaphore waitSemaphores[] = {waitSemaphore.semaphore().get()};
+        VkPipelineStageFlags waitStages[] = {pipelineStage};
+        submitInfo.waitSemaphoreCount = 1;
+        submitInfo.pWaitSemaphores = waitSemaphores;
+        submitInfo.pWaitDstStageMask = waitStages;
+
+        VkSemaphore signalSemaphores[] = {signalSemaphore.semaphore().get()};
+        submitInfo.signalSemaphoreCount = 1;
+        submitInfo.pSignalSemaphores = signalSemaphores;
+
+        // command is expecting an array of command buffers.  commandBufferRaw is passed in
+        // as const and will not be modified.
+        VkCommandBuffer commandBufferRaw = m_commandBuffer.get();
+        submitInfo.pCommandBuffers = &commandBufferRaw;
+
+        VkResult result = vkQueueSubmit(m_device->graphicsQueue(), 1, &submitInfo, VK_NULL_HANDLE);
+        if (result != VK_SUCCESS) {
+            throw std::runtime_error("failed to submit command buffer!");
+        }
+    }
+
+    void CommandBuffer::end(
+        Semaphore &signalSemaphore)
+    {
+        vkEndCommandBuffer(m_commandBuffer.get());
+
+        VkSubmitInfo submitInfo = {};
+        submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+        submitInfo.commandBufferCount = 1;
+
+        VkSemaphore signalSemaphores[] = {signalSemaphore.semaphore().get()};
+        submitInfo.signalSemaphoreCount = 1;
+        submitInfo.pSignalSemaphores = signalSemaphores;
+
+        // command is expecting an array of command buffers.  commandBufferRaw is passed in
+        // as const and will not be modified.
+        VkCommandBuffer commandBufferRaw = m_commandBuffer.get();
+        submitInfo.pCommandBuffers = &commandBufferRaw;
+
+        VkResult result = vkQueueSubmit(m_device->graphicsQueue(), 1, &submitInfo, VK_NULL_HANDLE);
+        if (result != VK_SUCCESS) {
+            throw std::runtime_error("failed to submit command buffer!");
+        }
+    }
+
     void CommandBuffer::end() {
         vkEndCommandBuffer(m_commandBuffer.get());
 

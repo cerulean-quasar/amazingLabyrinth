@@ -463,6 +463,9 @@ public:
               m_pipelineShadows{std::make_shared<vulkan::Pipeline>(m_gameRequester, m_device, m_swapChain->extent(),
                       m_renderPassShadows, m_descriptorPoolsShadows, getBindingDescription(), getAttributeDescriptions(),
                       SHADOW_VERT_FILE, "", m_graphicsPipeline, VK_CULL_MODE_FRONT_BIT)},
+              m_shadowsWaitBeforeWrite{false},
+              m_shadowsAvailableForWrite{m_device},
+              m_shadowsAvailableForRead{m_device},
               m_swapChainCommands{new vulkan::SwapChainCommands{m_swapChain, m_commandPool, m_renderPass, m_depthImageView}},
               m_imageAvailableSemaphore{m_device},
               m_renderFinishedSemaphore{m_device}
@@ -536,6 +539,9 @@ private:
     std::shared_ptr<vulkan::RenderPass> m_renderPassShadows;
     std::shared_ptr<vulkan::Framebuffer> m_framebufferShadows;
     std::shared_ptr<vulkan::Pipeline> m_pipelineShadows;
+    bool m_shadowsWaitBeforeWrite;
+    vulkan::Semaphore m_shadowsAvailableForWrite;
+    vulkan::Semaphore m_shadowsAvailableForRead;
 
     std::shared_ptr<vulkan::SwapChainCommands> m_swapChainCommands;
 

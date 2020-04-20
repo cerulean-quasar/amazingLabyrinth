@@ -523,6 +523,8 @@ void GraphicsVulkan::initializeCommandBufferDrawObjects(
 {
     VkDeviceSize offsets[1] = {0};
 
+    bool oneDraw = false;
+
     for (auto &&obj : objs) {
         DrawObjectDataVulkan *objData = dynamic_cast<DrawObjectDataVulkan*> (obj.second.get());
 
@@ -548,13 +550,16 @@ void GraphicsVulkan::initializeCommandBufferDrawObjects(
              * parameter 5 - offset to add to the indices in the index buffer
              * parameter 6 - offset for instance rendering
              */
-            vkCmdDrawIndexed(commandBuffer, obj.first->indices.size(), 1, 0, 0, 0);
+            if (!doShadows || !oneDraw) {
+                vkCmdDrawIndexed(commandBuffer, obj.first->indices.size(), 1, 0, 0, 0);
+                oneDraw = true;
+            }
         }
     }
 }
 
 void GraphicsVulkan::drawFrame() {
-    //populateShadowMap();
+    populateShadowMap();
 
     /* wait for presentation to finish before drawing the next frame.  Avoids a memory leak */
     vkQueueWaitIdle(m_device->presentQueue());
@@ -595,9 +600,9 @@ void GraphicsVulkan::drawFrame() {
     /* wait for the semaphore before writing to the color attachment.  This means that we
      * could start executing the vertex shader before the image is available.
      */
-    VkSemaphore waitSemaphores[] = {m_imageAvailableSemaphore.semaphore().get()};
-    VkPipelineStageFlags waitStages[] = {VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT};
-    submitInfo.waitSemaphoreCount = 1;
+    VkSemaphore waitSemaphores[] = {m_imageAvailableSemaphore.semaphore().get(), m_shadowsAvailableForRead.semaphore().get()};
+    VkPipelineStageFlags waitStages[] = {VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT};
+    submitInfo.waitSemaphoreCount = 2;
     submitInfo.pWaitSemaphores = waitSemaphores;
     submitInfo.pWaitDstStageMask = waitStages;
 
@@ -607,8 +612,8 @@ void GraphicsVulkan::drawFrame() {
     submitInfo.pCommandBuffers = &commandBuffer;
 
     /* indicate which semaphore to signal when execution is done */
-    VkSemaphore signalSemaphores[] = {m_renderFinishedSemaphore.semaphore().get()};
-    submitInfo.signalSemaphoreCount = 1;
+    VkSemaphore signalSemaphores[] = {m_renderFinishedSemaphore.semaphore().get(), m_shadowsAvailableForWrite.semaphore().get()};
+    submitInfo.signalSemaphoreCount = 2;
     submitInfo.pSignalSemaphores = signalSemaphores;
 
     /* the last parameter is a fence to indicate when execution is done, but we are using
@@ -926,12 +931,19 @@ std::shared_ptr<TextureData> GraphicsVulkan::getDepthTexture(
 void GraphicsVulkan::populateShadowMap()
 {
     VkClearValue clearValue;
-    clearValue.depthStencil = {1.0f, 0};
+    clearValue.depthStencil = {0.0f, 0};
     std::vector<VkClearValue> clearValues{clearValue};
 
     m_commandBufferShadows->begin();
     initializeCommandBuffer(m_commandBufferShadows->commandBuffer().get(),
             m_framebufferShadows->framebuffer().get(),
             m_pipelineShadows, clearValues, true);
-    m_commandBufferShadows->end();
+    if (m_shadowsWaitBeforeWrite) {
+        m_commandBufferShadows->end(m_shadowsAvailableForWrite,
+                                    VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT,
+                                    m_shadowsAvailableForRead);
+    } else {
+        m_shadowsWaitBeforeWrite = true;
+        m_commandBufferShadows->end(m_shadowsAvailableForRead);
+    }
 }

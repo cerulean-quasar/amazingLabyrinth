@@ -37,5 +37,5 @@ layout(location = 3) in vec3 inNormal;
 
 void main() {
     gl_Position = cubo.proj * cubo.viewLightMatrix * ubo.model * vec4(inPosition, 1.0);
-    gl_Position.z = 0.0;
+    //gl_Position.z = 0.0;
 }
