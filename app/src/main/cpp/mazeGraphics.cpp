@@ -92,7 +92,7 @@ void LevelSequence::initializeLevelTracker() {
     m_levelFinisher = m_levelGroupFcns.getFinisherFcn(*m_levelTracker, x, y,
             getPerspectiveMatrixForLevel(m_surfaceWidth, m_surfaceHeight), m_view);
 
-    setupLightingSourceBuffer();
+    setupCommonBuffers();
 
     if (m_levelStarter != nullptr && ! m_levelStarter->isFinished()) {
         initializeLevelData(m_levelStarter, m_levelStarterStaticObjsData,

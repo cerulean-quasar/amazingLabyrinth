@@ -267,7 +267,36 @@ namespace vulkan {
 
     class RenderPass {
     public:
+        struct ImageAttachmentInfo {
+            VkAttachmentLoadOp loadOp;
+            VkAttachmentStoreOp storeOp;
+            VkFormat format;
+            VkImageLayout initialLayout;
+            VkImageLayout finalLayout;
+
+            ImageAttachmentInfo(
+                VkAttachmentLoadOp inLoadOp,
+                VkAttachmentStoreOp inStoreOp,
+                VkFormat inFormat,
+                VkImageLayout inInitialLayout,
+                VkImageLayout inFinalLayout)
+                : loadOp{inLoadOp},
+                  storeOp{inStoreOp},
+                  format{inFormat},
+                  initialLayout{inInitialLayout},
+                  finalLayout{inFinalLayout}
+            {}
+
+            ImageAttachmentInfo(ImageAttachmentInfo &&other) noexcept
+                : loadOp{other.loadOp},
+                  storeOp{other.storeOp},
+                  format{other.format},
+                  initialLayout{other.initialLayout},
+                  finalLayout{other.finalLayout}
+            {}
+        };
         inline std::shared_ptr<VkRenderPass_T> const &renderPass() { return m_renderPass; }
+        inline size_t numberColorAttachments() { return m_nbrColorAttachments; }
 
         // For a normal render pass that includes a color and depth attachment
         static std::shared_ptr<RenderPass> createRenderPass(std::shared_ptr<Device> const &inDevice,
@@ -279,30 +308,39 @@ namespace vulkan {
         // mapping and to read the depth of an object.
         static std::shared_ptr<RenderPass> createDepthTextureRenderPass(
                 std::shared_ptr<Device> const &inDevice,
-                std::vector<VkFormat> const &colorImageFormats)
+                std::vector<ImageAttachmentInfo> const &info,
+                std::shared_ptr<ImageAttachmentInfo> const &depthInfo)
         {
-            return std::shared_ptr<RenderPass>{new RenderPass(inDevice, colorImageFormats)};
+            return std::shared_ptr<RenderPass>{new RenderPass(inDevice, info, depthInfo)};
         }
     private:
         // for creating a render pass that uses a color and depth attachment (i.e. the normal render pass)
         RenderPass(std::shared_ptr<Device> const &inDevice, std::shared_ptr<SwapChain> const &swapChain)
                 : m_device{inDevice},
-                  m_renderPass{} {
+                  m_renderPass{},
+                  m_nbrColorAttachments{1}
+        {
             createRenderPass(swapChain);
         }
 
         // for creating a render pass with only a depth attachment.
-        RenderPass(std::shared_ptr<Device> const &inDevice, std::vector<VkFormat> const &colorImageFormats)
+        RenderPass(std::shared_ptr<Device> const &inDevice,
+                std::vector<ImageAttachmentInfo> const &colorImageInfo,
+                std::shared_ptr<ImageAttachmentInfo> const &depthInfo)
                 : m_device{inDevice},
-                  m_renderPass{} {
-            createRenderPassDepthTexture(colorImageFormats);
+                  m_renderPass{},
+                  m_nbrColorAttachments{colorImageInfo.size()}
+        {
+            createRenderPassDepthTexture(colorImageInfo, depthInfo);
         }
 
         std::shared_ptr<Device> m_device;
         std::shared_ptr<VkRenderPass_T> m_renderPass;
+        size_t m_nbrColorAttachments;
 
         void createRenderPass(std::shared_ptr<SwapChain> const &swapChain);
-        void createRenderPassDepthTexture(std::vector<VkFormat> const &colorImageFormat);
+        void createRenderPassDepthTexture(std::vector<ImageAttachmentInfo> const &colorImageInfo,
+                std::shared_ptr<ImageAttachmentInfo> const &depthInfo);
     };
 
     class DescriptorPools;
@@ -480,18 +518,22 @@ namespace vulkan {
                  std::string const &vertShader,
                  std::string const &fragShader,
                  std::shared_ptr<Pipeline> const &derivedPipeline,
-                 uint32_t nbrColorBlendingAttachments)
+                 VkCullModeFlags cullMode = VK_CULL_MODE_BACK_BIT)
                 : m_device{inDevice},
                   m_renderPass{inRenderPass},
                   m_descriptorPools{inDescriptorPools},
+                  m_extent{extent},
                   m_pipelineLayout{},
                   m_pipeline{} {
             createGraphicsPipeline(requester, bindingDescription, attributeDescription,
-                    extent, vertShader, fragShader, derivedPipeline, nbrColorBlendingAttachments);
+                    vertShader, fragShader, derivedPipeline, cullMode);
         }
 
+        inline std::shared_ptr<RenderPass> const &renderPass() { return m_renderPass; }
+        inline std::shared_ptr<DescriptorPools> const &descriptorPools() { return m_descriptorPools; }
         inline std::shared_ptr<VkPipeline_T> const &pipeline() { return m_pipeline; }
         inline std::shared_ptr<VkPipelineLayout_T> const &layout() { return m_pipelineLayout; }
+        inline VkExtent2D extent() { return m_extent; }
 
         ~Pipeline() {
             m_pipeline.reset();
@@ -502,6 +544,7 @@ namespace vulkan {
         std::shared_ptr<Device> m_device;
         std::shared_ptr<RenderPass> m_renderPass;
         std::shared_ptr<DescriptorPools> m_descriptorPools;
+        VkExtent2D m_extent;
 
         std::shared_ptr<VkPipelineLayout_T> m_pipelineLayout;
         std::shared_ptr<VkPipeline_T> m_pipeline;
@@ -509,11 +552,10 @@ namespace vulkan {
         void createGraphicsPipeline(std::shared_ptr<FileRequester> const &requester,
                 VkVertexInputBindingDescription const &bindingDescription,
                 std::vector<VkVertexInputAttributeDescription> const &attributeDescriptions,
-                VkExtent2D const &extent,
                 std::string const vertShader,
                 std::string const fragShader,
                 std::shared_ptr<Pipeline> const &derivedPipeline,
-                uint32_t nbrColorBlendingAttachments);
+                VkCullModeFlags cullMode);
     };
 
     class CommandPool {
@@ -534,13 +576,16 @@ namespace vulkan {
         void createCommandPool();
     };
 
-    class SingleTimeCommands {
+    class CommandBuffer {
     public:
-        SingleTimeCommands(std::shared_ptr<Device> inDevice,
-                           std::shared_ptr<CommandPool> commandPool)
+        CommandBuffer(std::shared_ptr<Device> inDevice,
+                      std::shared_ptr<CommandPool> commandPool,
+                      VkCommandBufferUsageFlags usage = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT)
                 : m_device{inDevice},
                   m_pool{commandPool},
-                  m_commandBuffer{} {
+                  m_commandBuffer{},
+                  m_usageFlag{usage}
+        {
             create();
         }
 
@@ -553,6 +598,7 @@ namespace vulkan {
         std::shared_ptr<Device> m_device;
         std::shared_ptr<CommandPool> m_pool;
         std::shared_ptr<VkCommandBuffer_T> m_commandBuffer;
+        VkCommandBufferUsageFlags m_usageFlag;
     };
 
     class Buffer {
@@ -616,23 +662,25 @@ namespace vulkan {
     class Image {
     public:
         Image(std::shared_ptr<Device> const &inDevice, uint32_t inWidth,
-              uint32_t inHeight, VkFormat format,
+              uint32_t inHeight, VkFormat inFormat,
               VkImageTiling tiling, VkImageUsageFlags usage,
               VkMemoryPropertyFlags properties)
                 : m_device{inDevice},
                   m_image{},
                   m_imageMemory{},
+                  m_format{inFormat},
                   m_width{inWidth},
                   m_height{inHeight} {
-            createImage(format, tiling, usage, properties);
+            createImage(inFormat, tiling, usage, properties);
         }
 
         // Image was created by another object, but we are to manage it.
         Image(std::shared_ptr<Device> const &inDevice, std::shared_ptr<VkImage_T> const &inImage,
-              uint32_t inWidth, uint32_t inHeight)
+              VkFormat inFormat, uint32_t inWidth, uint32_t inHeight)
                 : m_device{inDevice},
                   m_image{inImage},
                   m_imageMemory{},
+                  m_format{inFormat},
                   m_width{inWidth},
                   m_height{inHeight} {
         }
@@ -641,7 +689,7 @@ namespace vulkan {
 
         void copyImageToBuffer(Buffer &buffer, std::shared_ptr<CommandPool> const &pool);
 
-        void transitionImageLayout(VkFormat format, VkImageLayout oldLayout,
+        void transitionImageLayout(VkImageLayout oldLayout,
                                    VkImageLayout newLayout, std::shared_ptr<CommandPool> const &pool);
 
         virtual ~Image() {
@@ -649,13 +697,17 @@ namespace vulkan {
             m_imageMemory.reset();
         }
 
+        inline VkFormat format() { return m_format; }
         inline std::shared_ptr<Device> const &device() { return m_device; }
         inline std::shared_ptr<VkImage_T> const &image() { return m_image; }
+        inline uint32_t width() { return m_width; }
+        inline uint32_t height() { return m_height; }
     protected:
         std::shared_ptr<Device> m_device;
 
         std::shared_ptr<VkImage_T> m_image;
         std::shared_ptr<VkDeviceMemory_T> m_imageMemory;
+        VkFormat m_format;
         uint32_t m_width;
         uint32_t m_height;
 
@@ -680,14 +732,14 @@ namespace vulkan {
                 VkImageAspectFlags aspectFlags)
         {
             return std::make_shared<ImageView>(std::make_shared<Image>(inDevice, inWidth, inHeight,
-                    format, tiling, usage, properties), format, aspectFlags);
+                    format, tiling, usage, properties), aspectFlags);
         }
 
-        ImageView(std::shared_ptr<Image> const &inImage, VkFormat format,
+        ImageView(std::shared_ptr<Image> const &inImage,
                   VkImageAspectFlags aspectFlags)
                 : m_image{inImage},
                   m_imageView{} {
-            createImageView(format, aspectFlags);
+            createImageView(inImage->format(), aspectFlags);
         }
 
         inline std::shared_ptr<VkImageView_T> const &imageView() { return m_imageView; }
@@ -711,27 +763,29 @@ namespace vulkan {
                 std::shared_ptr<TextureDescription> const &texture);
 
         static std::shared_ptr<Image> createDepthImage(std::shared_ptr<SwapChain> const &inSwapChain) {
-            VkExtent2D extent = inSwapChain->extent();
-            std::shared_ptr<Image> img{new Image{inSwapChain->device(), extent.width,
-                                                 extent.height,
-                                                 inSwapChain->device()->depthFormat(),
-                                                 VK_IMAGE_TILING_OPTIMAL,
-                                                 VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT,
-                                                 VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT}};
-
-            return img;
+            return createDepthImage(inSwapChain->device(), VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT,
+                    inSwapChain->extent());
         }
 
         static std::shared_ptr<Image> createDepthImage(
-                std::shared_ptr<Device> const &device,
-                uint32_t width,
-                uint32_t height)
+            std::shared_ptr<Device> const &device,
+            VkImageUsageFlags usage,
+            VkExtent2D const &extent)
+        {
+            return createDepthImage(device, usage, extent.width, extent.height);
+        }
+
+        static std::shared_ptr<Image> createDepthImage(
+            std::shared_ptr<Device> const &device,
+            VkImageUsageFlags usage,
+            uint32_t width,
+            uint32_t height)
         {
             std::shared_ptr<Image> img{new Image{device, width,
                                                  height,
                                                  device->depthFormat(),
                                                  VK_IMAGE_TILING_OPTIMAL,
-                                                 VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT,
+                                                 usage,
                                                  VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT}};
 
             return img;
@@ -749,7 +803,7 @@ namespace vulkan {
                   m_sampler{} {
             m_image = ImageFactory::createTextureImage(m_device, pool, textureDescription);
 
-            m_imageView.reset(new ImageView(m_image, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_ASPECT_COLOR_BIT));
+            m_imageView.reset(new ImageView(m_image, VK_IMAGE_ASPECT_COLOR_BIT));
 
             createTextureSampler();
         }
@@ -830,14 +884,18 @@ namespace vulkan {
                 uint32_t inWidth,
                 uint32_t inHeight)
             : m_device{inDevice},
-              m_framebuffer{createRawFramebuffer(inDevice, inRenderPass, inAttachments, inWidth, inHeight)}
+              m_framebuffer{createRawFramebuffer(inDevice, inRenderPass, inAttachments, inWidth, inHeight)},
+              m_width{inWidth},
+              m_height{inHeight}
               {}
-
+        inline VkExtent2D extent() { return VkExtent2D{m_width, m_height}; }
         inline std::shared_ptr<Device> const &device() { return m_device; }
         inline std::shared_ptr<VkFramebuffer_T> const &framebuffer() { return m_framebuffer; }
     private:
         std::shared_ptr<Device> m_device;
         std::shared_ptr<VkFramebuffer_T> m_framebuffer;
+        uint32_t m_width;
+        uint32_t m_height;
     };
 
     class SwapChainCommands {
@@ -876,8 +934,9 @@ namespace vulkan {
                 std::shared_ptr<VkImage_T> imgptr(img, deleter);
                 VkExtent2D ext = m_swapChain->extent();
                 ImageView imageView{
-                        std::shared_ptr<Image>(new Image(m_swapChain->device(), imgptr, ext.width, ext.height)),
-                        m_swapChain->imageFormat(), VK_IMAGE_ASPECT_COLOR_BIT};
+                        std::shared_ptr<Image>(new Image(m_swapChain->device(), imgptr,
+                                m_swapChain->imageFormat(), ext.width, ext.height)),
+                        VK_IMAGE_ASPECT_COLOR_BIT};
                 m_imageViews.push_back(imageView);
             }
             createFramebuffers(m_renderPass, m_depthImage);

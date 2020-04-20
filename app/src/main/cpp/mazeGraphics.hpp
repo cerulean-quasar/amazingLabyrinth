@@ -165,7 +165,7 @@ protected:
     void setView();
     virtual void updatePerspectiveMatrix(uint32_t surfaceWidth, uint32_t surfaceHeight) = 0;
     void setLightingSource();
-    virtual void setupLightingSourceBuffer() { /* work only needed in Vulkan */ }
+    virtual void setupCommonBuffers() { /* work only needed in Vulkan */ }
     void setViewLightingSource();
     void addObjects(DrawObjectTable &objs, TextureMap &textures);
     void addTextures(TextureMap &textures);

@@ -1,5 +1,5 @@
 /**
- * Copyright 2019 Cerulean Quasar. All Rights Reserved.
+ * Copyright 2020 Cerulean Quasar. All Rights Reserved.
  *
  *  This file is part of AmazingLabyrinth.
  *
@@ -24,17 +24,42 @@ layout(location = 0) in vec3 fragColor;
 layout(location = 1) in vec2 fragTexCoord;
 layout(location = 2) in vec3 fragNormal;
 layout(location = 3) in vec3 fragPosition;
+layout(location = 4) in vec4 fragPosLightSpace;
 
-layout(binding = 1) uniform sampler2D texSampler;
-layout(set = 0, binding = 2) uniform UniformBufferObject {
+layout(binding = 2) uniform sampler2D texSampler;
+layout(set = 0, binding = 3) uniform UniformBufferObject {
     vec3 pos;
 } light;
+layout(binding = 4) uniform sampler2D texShadowMap;
 
 layout(location = 0) out vec4 outColor;
+
+float ShadowCalculation(vec4 pos) {
+    /* perspective divide: transform clip space coordinates from range: [-w, w] to [-1, 1]. */
+    vec3 projCoords = pos.xyz/pos.w;
+
+    /* the depth buffer is using coordinates in the range: [0, 1] */
+    projCoords = vec3(projCoords.x * 0.5 + 0.5, 0.5 + projCoords.y * 0.5, projCoords.z);
+
+    if (projCoords.x > 1.0 || projCoords.x < 0.0 || projCoords.y > 1.0 || projCoords.y < 0.0 || projCoords.z > 1.0 || projCoords.z < 0.0) {
+        return 0.0;
+    }
+    float closestDepth = texture(texShadowMap, projCoords.xy).a;
+
+    float currentDepth = projCoords.z;
+    float bias = 0.04;
+    float shadow = currentDepth > closestDepth ? 0.6 : 0.0;
+    //float shadow = currentDepth - bias > closestDepth ? 0.6 : 0.0;
+    //float shadow = closestDepth - currentDepth;
+
+    return shadow;
+}
 
 void main() {
     vec3 lightDirection = normalize(light.pos - fragPosition);
     float diff = max(dot(fragNormal, lightDirection), 0.0);
     vec3 diffuse = diff * vec3(1.0, 1.0, 1.0);
-    outColor = vec4(fragColor + diffuse, 1.0) * texture(texSampler, fragTexCoord);
+    float shadow = ShadowCalculation(fragPosLightSpace);
+    //outColor = vec4(fragColor + diffuse*(1.0 - shadow), 1.0) * texture(texSampler, fragTexCoord);
+    outColor = vec4(fragColor + diffuse, 1.0) * texture(texShadowMap, fragTexCoord).a;
 }

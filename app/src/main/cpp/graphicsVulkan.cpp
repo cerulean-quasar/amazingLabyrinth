@@ -724,7 +724,10 @@ namespace vulkan {
         m_renderPass.reset(renderPassRaw, deleter);
     }
 
-    void RenderPass::createRenderPassDepthTexture(std::vector<VkFormat> const &colorImageFormats) {
+    void RenderPass::createRenderPassDepthTexture(
+        std::vector<ImageAttachmentInfo> const &colorInfos,
+        std::shared_ptr<ImageAttachmentInfo> const &depthInfo)
+    {
         /* color buffer attachment descriptions: use a single attachment represented by
          * one of the images from the swap chain.
          */
@@ -732,24 +735,24 @@ namespace vulkan {
         int i = 0;
         std::vector<VkAttachmentDescription> attachments;
         std::vector<VkAttachmentReference> colorAttachmentRefs;
-        for (VkFormat const &colorImageFormat : colorImageFormats) {
+        for (auto const &colorInfo : colorInfos) {
             VkAttachmentDescription colorAttachment = {};
-            colorAttachment.format = colorImageFormat;
+            colorAttachment.format = colorInfo.format;
             /* stick to one sample since we are not using multisampling */
             colorAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
             /* clear the contents of the attachment to a constant at the start */
-            colorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+            colorAttachment.loadOp = colorInfo.loadOp;
             /* store the rendered contents in memory so they can be read later */
-            colorAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+            colorAttachment.storeOp = colorInfo.storeOp;
             /* we don't care about the stencil buffer for this app */
             colorAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
             colorAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
 
             /* we don't care which layout the image was in */
-            colorAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+            colorAttachment.initialLayout = colorInfo.initialLayout;
 
             /* images to be presented in the swap chain */
-            colorAttachment.finalLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
+            colorAttachment.finalLayout = colorInfo.finalLayout;
             attachments.push_back(colorAttachment);
 
             /* subpasses and attachment references:
@@ -760,29 +763,30 @@ namespace vulkan {
             colorAttachmentRef.attachment = i;
             colorAttachmentRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
             colorAttachmentRefs.push_back(colorAttachmentRef);
-            i++;
+            i++; // todo: get rid of i, use colorAttachmentRefs.size() instead
         }
 
         /* depth attachment */
         VkAttachmentDescription depthAttachment = {};
-        depthAttachment.format = m_device->depthFormat();
-        depthAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
-        depthAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-
-        depthAttachment.storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-
-        depthAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-        depthAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-
-        /* dont care about the previous contents */
-        depthAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-
-        depthAttachment.finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
-        attachments.push_back(depthAttachment);
-
         VkAttachmentReference depthAttachmentRef = {};
-        depthAttachmentRef.attachment = i;
-        depthAttachmentRef.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+        if (depthInfo) {
+            depthAttachment.format = depthInfo->format;
+            depthAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
+            depthAttachment.loadOp = depthInfo->loadOp;
+
+            depthAttachment.storeOp = depthInfo->storeOp;
+
+            depthAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+            depthAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+
+            depthAttachment.initialLayout = depthInfo->initialLayout;
+            depthAttachment.finalLayout = depthInfo->finalLayout;
+
+            attachments.push_back(depthAttachment);
+
+            depthAttachmentRef.attachment = i;
+            depthAttachmentRef.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+        }
 
         /* render subpass */
         VkSubpassDescription subpass = {};
@@ -790,42 +794,10 @@ namespace vulkan {
         subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
         subpass.colorAttachmentCount = colorAttachmentRefs.size();
         subpass.pColorAttachments = colorAttachmentRefs.data();
-        subpass.pDepthStencilAttachment = &depthAttachmentRef;
+        if (depthInfo) {
+            subpass.pDepthStencilAttachment = &depthAttachmentRef;
+        }
 
-#if 0
-        /* create a render subbass dependency because we need the render pass to wait for the
-         * VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT stage of the graphics pipeline
-         */
-        std::array<VkSubpassDependency, 2> dependencies = {};
-
-        /* The following two fields specify the indices of the dependency and the dependent
-         * subpass. The special value VK_SUBPASS_EXTERNAL refers to the implicit subpass before
-         * or after the render pass depending on whether it is specified in srcSubpass or
-         * dstSubpass. The index 0 refers to our subpass, which is the first and only one. The
-         * dstSubpass must always be higher than srcSubpass to prevent cycles in the
-         * dependency graph.
-         */
-        dependencies[0].srcSubpass = VK_SUBPASS_EXTERNAL;
-        dependencies[0].dstSubpass = 0;
-
-        /* wait for the VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT stage */
-        dependencies[0].srcStageMask = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
-        dependencies[0].srcAccessMask = VK_ACCESS_SHADER_READ_BIT;
-
-        /* prevent the transition from happening until when we want to start writing the depth to
-         * the depth attachment.
-         */
-        dependencies[0].dstStageMask = VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
-        dependencies[0].dstAccessMask = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
-
-        // transition the layout back so the shader can read from it.
-        dependencies[1].srcSubpass = 0;
-        dependencies[1].dstSubpass = VK_SUBPASS_EXTERNAL;
-        dependencies[1].srcStageMask = VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
-        dependencies[1].srcAccessMask = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
-        dependencies[1].dstStageMask = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
-        dependencies[1].dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
-#endif
         /* create a render subbass dependency because we need the render pass to wait for the
          * VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT stage of the graphics pipeline
          */
@@ -903,37 +875,46 @@ namespace vulkan {
         m_shaderModule.reset(shaderModuleRaw, deleter);
     }
 
-    void Pipeline::createGraphicsPipeline(std::shared_ptr<FileRequester> const &requester,
-                  VkVertexInputBindingDescription const &bindingDescription,
-                  std::vector<VkVertexInputAttributeDescription> const &attributeDescriptions,
-                  VkExtent2D const &extent,
-                  std::string const vertShader,
-                  std::string const fragShader,
-                  std::shared_ptr<Pipeline> const &derivedPipeline,
-                  uint32_t nbrColorAttachments) {
-        Shader vertShaderModule(requester, m_device, vertShader);
-        Shader fragShaderModule(requester, m_device, fragShader);
+    void Pipeline::createGraphicsPipeline(
+        std::shared_ptr<FileRequester> const &requester,
+        VkVertexInputBindingDescription const &bindingDescription,
+        std::vector<VkVertexInputAttributeDescription> const &attributeDescriptions,
+        std::string const vertShader,
+        std::string const fragShader,
+        std::shared_ptr<Pipeline> const &derivedPipeline,
+        VkCullModeFlags cullMode)
+    {
+        std::shared_ptr<Shader> vertShaderModule;
+        std::shared_ptr<Shader> fragShaderModule;
+        std::vector<VkPipelineShaderStageCreateInfo> shaderStages;
 
-        /* assign shaders to stages in the graphics pipeline */
-        VkPipelineShaderStageCreateInfo vertShaderStageInfo = {};
-        vertShaderStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
-        vertShaderStageInfo.stage = VK_SHADER_STAGE_VERTEX_BIT;
-        vertShaderStageInfo.module = vertShaderModule.shader().get();
-        vertShaderStageInfo.pName = "main";
-        /* can also use pSpecializationInfo to set constants used by the shader.  This allows
-         * the usage of one shader module to be configured in different ways at pipeline creation,
-         * and still allows the shader byte code compiler to eliminate if statements dependent on
-         * the constants.
-         */
-        vertShaderStageInfo.pSpecializationInfo = nullptr;
+        if (!vertShader.empty()) {
+            /* assign shaders to stages in the graphics pipeline */
+            vertShaderModule = std::make_shared<Shader>(requester, m_device, vertShader);
+            VkPipelineShaderStageCreateInfo vertShaderStageInfo = {};
+            vertShaderStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+            vertShaderStageInfo.stage = VK_SHADER_STAGE_VERTEX_BIT;
+            vertShaderStageInfo.module = vertShaderModule->shader().get();
+            vertShaderStageInfo.pName = "main";
+            /* can also use pSpecializationInfo to set constants used by the shader.  This allows
+             * the usage of one shader module to be configured in different ways at pipeline creation,
+             * and still allows the shader byte code compiler to eliminate if statements dependent on
+             * the constants.
+             */
+            vertShaderStageInfo.pSpecializationInfo = nullptr;
+            shaderStages.push_back(vertShaderStageInfo);
+        }
 
-        VkPipelineShaderStageCreateInfo fragShaderStageInfo = {};
-        fragShaderStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
-        fragShaderStageInfo.stage = VK_SHADER_STAGE_FRAGMENT_BIT;
-        fragShaderStageInfo.module = fragShaderModule.shader().get();
-        fragShaderStageInfo.pName = "main";
-        fragShaderStageInfo.pSpecializationInfo = nullptr;
-        VkPipelineShaderStageCreateInfo shaderStages[] = {vertShaderStageInfo, fragShaderStageInfo};
+        if (!fragShader.empty()) {
+            fragShaderModule = std::make_shared<Shader>(requester, m_device, fragShader);
+            VkPipelineShaderStageCreateInfo fragShaderStageInfo = {};
+            fragShaderStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+            fragShaderStageInfo.stage = VK_SHADER_STAGE_FRAGMENT_BIT;
+            fragShaderStageInfo.module = fragShaderModule->shader().get();
+            fragShaderStageInfo.pName = "main";
+            fragShaderStageInfo.pSpecializationInfo = nullptr;
+            shaderStages.push_back(fragShaderStageInfo);
+        }
 
         /* specify the input for the vertex shader */
         VkPipelineVertexInputStateCreateInfo vertexInputInfo = {};
@@ -959,8 +940,8 @@ namespace vulkan {
         VkViewport viewport = {};
         viewport.x = 0.0f;
         viewport.y = 0.0f;
-        viewport.width = (float) extent.width;
-        viewport.height = (float) extent.height;
+        viewport.width = (float) m_extent.width;
+        viewport.height = (float) m_extent.height;
         viewport.minDepth = 0.0f;
         viewport.maxDepth = 1.0f;
 
@@ -969,7 +950,7 @@ namespace vulkan {
          */
         VkRect2D scissor = {};
         scissor.offset = {0, 0};
-        scissor.extent = extent;
+        scissor.extent = m_extent;
 
         /* can specify multiple viewports and scissors here */
         VkPipelineViewportStateCreateInfo viewportState = {};
@@ -999,7 +980,7 @@ namespace vulkan {
         rasterizer.lineWidth = 1.0f;
 
         /* can disable culling, cull front and/or back faces */
-        rasterizer.cullMode = VK_CULL_MODE_NONE; // VK_CULL_MODE_BACK_BIT;
+        rasterizer.cullMode = cullMode;
 
         /* specifies the vertex order for faces to be considered front facing */
         rasterizer.frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE;
@@ -1033,7 +1014,7 @@ namespace vulkan {
         /* per attached framebuffer color blending information */
         std::vector<VkPipelineColorBlendAttachmentState> colorBlendAttachments;
 
-        for (uint32_t i = 0 ; i < nbrColorAttachments; i++) {
+        for (size_t i = 0 ; i < m_renderPass->numberColorAttachments(); i++) {
             VkPipelineColorBlendAttachmentState colorBlendAttachment = {};
             colorBlendAttachment.colorWriteMask =
                     VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT |
@@ -1136,8 +1117,8 @@ namespace vulkan {
 
         VkGraphicsPipelineCreateInfo pipelineInfo = {};
         pipelineInfo.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
-        pipelineInfo.stageCount = 2;
-        pipelineInfo.pStages = shaderStages;
+        pipelineInfo.stageCount = shaderStages.size();
+        pipelineInfo.pStages = shaderStages.data();
         pipelineInfo.pVertexInputState = &vertexInputInfo;
         pipelineInfo.pInputAssemblyState = &inputAssembly;
         pipelineInfo.pViewportState = &viewportState;
@@ -1211,7 +1192,7 @@ namespace vulkan {
         m_commandPool.reset(commandsRaw, deleter);
     }
 
-    void SingleTimeCommands::create() {
+    void CommandBuffer::create() {
         VkCommandBufferAllocateInfo allocInfo = {};
         allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
         allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
@@ -1235,15 +1216,15 @@ namespace vulkan {
         m_commandBuffer.reset(commandBufferRaw, deleter);
     }
 
-    void SingleTimeCommands::begin() {
+    void CommandBuffer::begin() {
         VkCommandBufferBeginInfo beginInfo = {};
         beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-        beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
+        beginInfo.flags = m_usageFlag;
 
         vkBeginCommandBuffer(m_commandBuffer.get(), &beginInfo);
     }
 
-    void SingleTimeCommands::end() {
+    void CommandBuffer::end() {
         vkEndCommandBuffer(m_commandBuffer.get());
 
         VkSubmitInfo submitInfo = {};
@@ -1320,7 +1301,7 @@ namespace vulkan {
     /* copy the data from CPU readable memory in the graphics card to non-CPU readable memory */
     void Buffer::copyTo(std::shared_ptr<CommandPool> pool, Buffer const &srcBuffer,
                         VkDeviceSize size) {
-        SingleTimeCommands cmds(m_device, pool);
+        CommandBuffer cmds(m_device, pool);
         cmds.begin();
 
         VkBufferCopy copyRegion = {};
@@ -1452,9 +1433,9 @@ namespace vulkan {
     }
 
     /* get the image in the right layout before we execute a copy command */
-    void Image::transitionImageLayout(VkFormat format, VkImageLayout oldLayout,
+    void Image::transitionImageLayout(VkImageLayout oldLayout,
                                       VkImageLayout newLayout, std::shared_ptr<CommandPool> const &pool) {
-        SingleTimeCommands cmds{m_device, pool};
+        CommandBuffer cmds{m_device, pool};
         cmds.begin();
 
         /* use an image barrier to transition the layout */
@@ -1481,7 +1462,7 @@ namespace vulkan {
         if (newLayout == VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL) {
             barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
 
-            if (hasStencilComponent(format)) {
+            if (hasStencilComponent(m_format)) {
                 barrier.subresourceRange.aspectMask |= VK_IMAGE_ASPECT_STENCIL_BIT;
             }
         } else {
@@ -1544,7 +1525,7 @@ namespace vulkan {
     }
 
     void Image::copyBufferToImage(Buffer &buffer, std::shared_ptr<CommandPool> const &pool) {
-        SingleTimeCommands cmds{m_device, pool};
+        CommandBuffer cmds{m_device, pool};
         cmds.begin();
 
         VkBufferImageCopy region = {};
@@ -1579,7 +1560,7 @@ namespace vulkan {
     }
 
     void Image::copyImageToBuffer(Buffer &buffer, std::shared_ptr<CommandPool> const &pool) {
-        SingleTimeCommands cmds{m_device, pool};
+        CommandBuffer cmds{m_device, pool};
         cmds.begin();
 
         VkBufferImageCopy region = {};
@@ -1692,7 +1673,7 @@ namespace vulkan {
         /* transition the image to VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL. The image was created with
          * layout: VK_IMAGE_LAYOUT_UNDEFINED, so we use that to specify the old layout.
          */
-        image->transitionImageLayout(format, VK_IMAGE_LAYOUT_UNDEFINED,
+        image->transitionImageLayout(VK_IMAGE_LAYOUT_UNDEFINED,
                                      VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, cmdPool);
 
         image->copyBufferToImage(staging, cmdPool);
@@ -1700,7 +1681,7 @@ namespace vulkan {
         /* transition the image to VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL so that the
          * shader can read from it.
          */
-        image->transitionImageLayout(format, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+        image->transitionImageLayout(VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
                                      VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, cmdPool);
         return image;
     }

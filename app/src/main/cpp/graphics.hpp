@@ -175,12 +175,6 @@ struct DrawObjectData {
 typedef std::pair<std::shared_ptr<DrawObject>, std::shared_ptr<DrawObjectData> > DrawObjectEntry;
 typedef std::vector<DrawObjectEntry> DrawObjectTable;
 
-struct UniformBufferObject {
-    glm::mat4 model;
-    glm::mat4 view;
-    glm::mat4 proj;
-};
-
 // creates a quad with each side length 2.0f.
 void getQuad(std::vector<Vertex> &vertices, std::vector<uint32_t> &indices);
 

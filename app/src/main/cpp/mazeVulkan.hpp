@@ -1,5 +1,5 @@
 /**
- * Copyright 2019 Cerulean Quasar. All Rights Reserved.
+ * Copyright 2020 Cerulean Quasar. All Rights Reserved.
  *
  *  This file is part of AmazingLabyrinth.
  *
@@ -28,9 +28,20 @@ char constexpr const *SHADER_FRAG_FILE ="shaders/shader.frag.spv";
 char constexpr const *SHADER_LINEAR_DEPTH_VERT_FILE ="shaders/linearDepth.vert.spv";
 char constexpr const *SHADER_SIMPLE_FRAG_FILE ="shaders/simple.frag.spv";
 char constexpr const *SHADER_NORMAL_VERT_FILE ="shaders/normal.vert.spv";
+char constexpr const *SHADOW_VERT_FILE = "shaders/depthShader.vert.spv";
 
 std::vector<VkVertexInputAttributeDescription> getAttributeDescriptions();
 VkVertexInputBindingDescription getBindingDescription();
+
+struct CommonUBO {
+    glm::mat4 viewLightMatrix;
+    glm::mat4 view;
+    glm::mat4 proj;
+};
+
+struct PerObjectUBO {
+    glm::mat4 model;
+};
 
 class AmazingLabyrinthDescriptorSetLayout : public vulkan::DescriptorSetLayout {
 public:
@@ -39,10 +50,14 @@ public:
     {
         m_poolSizes[0].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
         m_poolSizes[0].descriptorCount = m_numberOfDescriptorSetsInPool;
-        m_poolSizes[1].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+        m_poolSizes[1].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
         m_poolSizes[1].descriptorCount = m_numberOfDescriptorSetsInPool;
-        m_poolSizes[2].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+        m_poolSizes[2].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
         m_poolSizes[2].descriptorCount = m_numberOfDescriptorSetsInPool;
+        m_poolSizes[3].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+        m_poolSizes[3].descriptorCount = m_numberOfDescriptorSetsInPool;
+        m_poolSizes[4].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+        m_poolSizes[4].descriptorCount = m_numberOfDescriptorSetsInPool;
         m_poolInfo = {};
         m_poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
         m_poolInfo.poolSizeCount = static_cast<uint32_t>(m_poolSizes.size());
@@ -67,7 +82,45 @@ private:
     std::shared_ptr<vulkan::Device> m_device;
     std::shared_ptr<VkDescriptorSetLayout_T> m_descriptorSetLayout;
     VkDescriptorPoolCreateInfo m_poolInfo;
-    std::array<VkDescriptorPoolSize, 3> m_poolSizes;
+    std::array<VkDescriptorPoolSize, 5> m_poolSizes;
+
+    void createDescriptorSetLayout();
+};
+
+class AmazingLabyrinthShadowsDescriptorSetLayout : public vulkan::DescriptorSetLayout {
+public:
+    AmazingLabyrinthShadowsDescriptorSetLayout(std::shared_ptr<vulkan::Device> inDevice)
+            : m_device(inDevice)
+    {
+        m_poolSizes[0].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+        m_poolSizes[0].descriptorCount = m_numberOfDescriptorSetsInPool;
+        m_poolSizes[1].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+        m_poolSizes[1].descriptorCount = m_numberOfDescriptorSetsInPool;
+        m_poolInfo = {};
+        m_poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
+        m_poolInfo.poolSizeCount = static_cast<uint32_t>(m_poolSizes.size());
+        m_poolInfo.pPoolSizes = m_poolSizes.data();
+        m_poolInfo.maxSets = m_numberOfDescriptorSetsInPool;
+        m_poolInfo.pNext = nullptr;
+
+        createDescriptorSetLayout();
+    }
+    virtual std::shared_ptr<VkDescriptorSetLayout_T> const &descriptorSetLayout() {
+        return m_descriptorSetLayout;
+    }
+    virtual uint32_t numberOfDescriptors() { return m_numberOfDescriptorSetsInPool; }
+    virtual VkDescriptorPoolCreateInfo const &poolCreateInfo() {
+        return m_poolInfo;
+    }
+    virtual ~AmazingLabyrinthShadowsDescriptorSetLayout() {}
+
+private:
+    static uint32_t constexpr m_numberOfDescriptorSetsInPool = 1024;
+
+    std::shared_ptr<vulkan::Device> m_device;
+    std::shared_ptr<VkDescriptorSetLayout_T> m_descriptorSetLayout;
+    VkDescriptorPoolCreateInfo m_poolInfo;
+    std::array<VkDescriptorPoolSize, 2> m_poolSizes;
 
     void createDescriptorSetLayout();
 };
@@ -97,27 +150,34 @@ class UniformWrapper {
 public:
     /* for passing data other than the vertex data to the vertex shader */
     std::shared_ptr<vulkan::DescriptorSet> m_descriptorSet;
+    std::shared_ptr<vulkan::DescriptorSet> m_descriptorSetShadows;
     std::shared_ptr<vulkan::ImageSampler> m_sampler;
+    std::shared_ptr<vulkan::ImageSampler> m_shadows;
     std::shared_ptr<vulkan::Buffer> m_uniformBufferLighting;
     std::shared_ptr<vulkan::Buffer> m_uniformBuffer;
+    std::shared_ptr<vulkan::Buffer> m_commonUBO;
 
     UniformWrapper(std::shared_ptr<vulkan::Device> const &inDevice,
                    std::shared_ptr<vulkan::DescriptorPools> const &descriptorPools,
+                   std::shared_ptr<vulkan::DescriptorPools> const &descriptorPoolsShadows,
                    std::shared_ptr<vulkan::ImageSampler> const &inSampler,
+                   std::shared_ptr<vulkan::ImageSampler> const &inShadows,
                    std::shared_ptr<vulkan::Buffer> const &inUniformBufferLighting,
-                   UniformBufferObject const &ubo)
-            : m_descriptorSet{},
+                   std::shared_ptr<vulkan::Buffer> const &inCommonUBO,
+                   PerObjectUBO const &ubo)
+            : m_descriptorSet{descriptorPools->allocateDescriptor()},
+              m_descriptorSetShadows{descriptorPoolsShadows->allocateDescriptor()},
               m_sampler{inSampler},
+              m_shadows{inShadows},
               m_uniformBufferLighting{inUniformBufferLighting},
-              m_uniformBuffer{}
+              m_uniformBuffer{createUniformBuffer(inDevice, sizeof (PerObjectUBO))},
+              m_commonUBO{inCommonUBO}
     {
         VkBuffer uniformBuffer;
         VkDeviceMemory uniformBufferMemory;
 
-        m_uniformBuffer = createUniformBuffer(inDevice, sizeof (UniformBufferObject));
         m_uniformBuffer->copyRawTo(&ubo, sizeof (ubo));
 
-        m_descriptorSet = descriptorPools->allocateDescriptor();
         updateDescriptorSet(inDevice);
     }
 
@@ -135,11 +195,16 @@ public:
     DrawObjectDataVulkan(std::shared_ptr<vulkan::Device> const &inDevice,
                          std::shared_ptr<vulkan::CommandPool> const &inPool,
                          std::shared_ptr<vulkan::DescriptorPools> const &inDescriptorPools,
+                         std::shared_ptr<vulkan::DescriptorPools> const &inDescriptorPoolsShadows,
                          std::shared_ptr<DrawObject> const &drawObj,
-                         std::shared_ptr<vulkan::Buffer> const &inLightingPosition)
+                         std::shared_ptr<vulkan::ImageSampler> const &inShadows,
+                         std::shared_ptr<vulkan::Buffer> const &inLightingPosition,
+                         std::shared_ptr<vulkan::Buffer> const &inCommonUBO)
             : m_device{inDevice},
               m_commandPool{inPool},
               m_descriptorPools{inDescriptorPools},
+              m_descriptorPoolsShadows{inDescriptorPoolsShadows},
+              m_shadows{inShadows},
               m_vertexBuffer{m_device, sizeof(drawObj->vertices[0]) * drawObj->vertices.size(),
                              VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
                              VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT},
@@ -147,15 +212,14 @@ public:
                             VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT,
                             VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT},
               m_uniformBufferLighting{inLightingPosition},
+              m_commonUBO{inCommonUBO},
               m_uniforms{} {
         copyVerticesToBuffer(inPool, drawObj);
         copyIndicesToBuffer(inPool, drawObj);
     }
 
-    void addUniforms(std::shared_ptr<DrawObject> const &obj,
-                     glm::mat4 const &proj, glm::mat4 const &view, TextureMap &textures);
-    void update(std::shared_ptr<DrawObject> const &obj,
-                glm::mat4 const &proj, glm::mat4 const &view, TextureMap &textures);
+    void addUniforms(std::shared_ptr<DrawObject> const &obj, TextureMap &textures);
+    void update(std::shared_ptr<DrawObject> const &obj, TextureMap &textures);
     inline void clearUniforms() { m_uniforms.clear(); }
 
     inline vulkan::Buffer const &vertexBuffer() { return m_vertexBuffer; }
@@ -167,6 +231,8 @@ private:
     std::shared_ptr<vulkan::Device> m_device;
     std::shared_ptr<vulkan::CommandPool> m_commandPool;
     std::shared_ptr<vulkan::DescriptorPools> m_descriptorPools;
+    std::shared_ptr<vulkan::DescriptorPools> m_descriptorPoolsShadows;
+    std::shared_ptr<vulkan::ImageSampler> m_shadows;
 
     /* vertex buffer and index buffer. the index buffer indicates which vertices to draw and in
      * the specified order.  Note, vertices can be listed twice if they should be part of more
@@ -176,6 +242,7 @@ private:
     vulkan::Buffer m_indexBuffer;
 
     std::shared_ptr<vulkan::Buffer> m_uniformBufferLighting;
+    std::shared_ptr<vulkan::Buffer> m_commonUBO;
     std::vector<std::shared_ptr<UniformWrapper>> m_uniforms;
 
     void copyVerticesToBuffer(std::shared_ptr<vulkan::CommandPool> const &cmdpool,
@@ -317,13 +384,18 @@ public:
                         std::shared_ptr<vulkan::Device> const &inDevice,
                         std::shared_ptr<vulkan::CommandPool> const &inPool,
                         std::shared_ptr<vulkan::DescriptorPools> const &inDescriptorPools,
+                        std::shared_ptr<vulkan::DescriptorPools> const &inDescriptorPoolsShadows,
+                        std::shared_ptr<vulkan::ImageSampler> const &inShadows,
                         uint32_t width,
                         uint32_t height)
             :LevelSequence{inRequester, width, height, false},
              m_device{inDevice},
              m_commandPool{inPool},
              m_descriptorPools{inDescriptorPools},
-             m_uniformBufferLighting{createUniformBuffer(inDevice, sizeof (glm::vec3))}
+             m_descriptorPoolsShadows{inDescriptorPoolsShadows},
+             m_uniformBufferLighting{createUniformBuffer(inDevice, sizeof (glm::vec3))},
+             m_commonUBO{createUniformBuffer(inDevice, sizeof (CommonUBO))},
+             m_shadows{inShadows}
     {
     }
 
@@ -332,15 +404,24 @@ protected:
     std::shared_ptr<TextureData> createTexture(std::shared_ptr<TextureDescription> const &textureDescription) override;
     std::shared_ptr<DrawObjectData> createObject(std::shared_ptr<DrawObject> const &obj, TextureMap &textures) override;
     void updateLevelData(DrawObjectTable &objsData, TextureMap &textures) override;
-    void setupLightingSourceBuffer() override {
+    void setupCommonBuffers() override {
         m_uniformBufferLighting->copyRawTo(&m_lightingSource, sizeof (m_lightingSource));
+
+        CommonUBO commonUBOData = {};
+        commonUBOData.proj = m_proj;
+        commonUBOData.view = m_view;
+        commonUBOData.viewLightMatrix = viewLightSource();
+        m_commonUBO->copyRawTo(&commonUBOData, sizeof (commonUBOData));
     }
 
 private:
     std::shared_ptr<vulkan::Device> m_device;
     std::shared_ptr<vulkan::CommandPool> m_commandPool;
     std::shared_ptr<vulkan::DescriptorPools> m_descriptorPools;
+    std::shared_ptr<vulkan::DescriptorPools> m_descriptorPoolsShadows;
     std::shared_ptr<vulkan::Buffer> m_uniformBufferLighting;
+    std::shared_ptr<vulkan::Buffer> m_commonUBO;
+    std::shared_ptr<vulkan::ImageSampler> m_shadows;
 };
 
 class GraphicsVulkan : public Graphics {
@@ -357,16 +438,37 @@ public:
               m_graphicsPipeline{new vulkan::Pipeline{m_gameRequester, m_device, m_swapChain->extent(),
                                                       m_renderPass, m_descriptorPools,
                                                       getBindingDescription(), getAttributeDescriptions(),
-                                                      SHADER_VERT_FILE, SHADER_FRAG_FILE, nullptr,
-                                                      true}},
+                                                      SHADER_VERT_FILE, SHADER_FRAG_FILE, nullptr}},
               m_commandPool{new vulkan::CommandPool{m_device}},
               m_depthImageView{new vulkan::ImageView{vulkan::ImageFactory::createDepthImage(m_swapChain),
-                                                     m_device->depthFormat(), VK_IMAGE_ASPECT_DEPTH_BIT}},
+                                                     VK_IMAGE_ASPECT_DEPTH_BIT}},
+              m_descriptorSetLayoutShadows{std::make_shared<AmazingLabyrinthShadowsDescriptorSetLayout>(m_device)},
+              m_descriptorPoolsShadows{std::make_shared<vulkan::DescriptorPools>(m_device, m_descriptorSetLayoutShadows)},
+              m_depthImageViewShadows{std::make_shared<vulkan::ImageView>(vulkan::ImageFactory::createDepthImage(m_device,
+                      VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, m_swapChain->extent()),
+                                      VK_IMAGE_ASPECT_DEPTH_BIT)},
+              m_samplerShadows{std::make_shared<vulkan::ImageSampler>(m_device, m_depthImageViewShadows)},
+              m_commandBufferShadows{std::make_shared<vulkan::CommandBuffer>(m_device, m_commandPool, VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT)},
+              m_renderPassShadows{vulkan::RenderPass::createDepthTextureRenderPass(m_device,
+                      std::vector<vulkan::RenderPass::ImageAttachmentInfo>{},
+                      std::make_shared<vulkan::RenderPass::ImageAttachmentInfo>(
+                              VK_ATTACHMENT_LOAD_OP_CLEAR, VK_ATTACHMENT_STORE_OP_STORE,
+                              m_depthImageViewShadows->image()->format(),
+                              VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL))},
+              m_framebufferShadows{std::make_shared<vulkan::Framebuffer>(
+                      m_device, m_renderPassShadows,
+                      std::vector<std::shared_ptr<vulkan::ImageView>>{m_depthImageViewShadows},
+                      m_depthImageViewShadows->image()->width(),
+                      m_depthImageViewShadows->image()->height())},
+              m_pipelineShadows{std::make_shared<vulkan::Pipeline>(m_gameRequester, m_device, m_swapChain->extent(),
+                      m_renderPassShadows, m_descriptorPoolsShadows, getBindingDescription(), getAttributeDescriptions(),
+                      SHADOW_VERT_FILE, "", m_graphicsPipeline, VK_CULL_MODE_FRONT_BIT)},
               m_swapChainCommands{new vulkan::SwapChainCommands{m_swapChain, m_commandPool, m_renderPass, m_depthImageView}},
               m_imageAvailableSemaphore{m_device},
               m_renderFinishedSemaphore{m_device}
     {
         m_levelSequence = std::make_shared<LevelSequenceVulkan>(m_gameRequester, m_device, m_commandPool, m_descriptorPools,
+                        m_descriptorPoolsShadows, m_samplerShadows,
                         m_swapChain->extent().width, m_swapChain->extent().height);
 
         prepareDepthResources();
@@ -405,7 +507,11 @@ public:
             std::vector<float> &depthMap,
             std::vector<glm::vec3> &normalMap);
 
-    virtual ~GraphicsVulkan() { }
+    virtual ~GraphicsVulkan() {
+        if (m_device) {
+            vkDeviceWaitIdle(m_device->logicalDevice().get());
+        }
+    }
 private:
     std::shared_ptr<vulkan::Instance> m_instance;
     std::shared_ptr<vulkan::Device> m_device;
@@ -421,6 +527,16 @@ private:
     /* depth buffer image */
     std::shared_ptr<vulkan::ImageView> m_depthImageView;
 
+    /* shadow resources */
+    std::shared_ptr<AmazingLabyrinthShadowsDescriptorSetLayout> m_descriptorSetLayoutShadows;
+    std::shared_ptr<vulkan::DescriptorPools> m_descriptorPoolsShadows;
+    std::shared_ptr<vulkan::ImageView> m_depthImageViewShadows;
+    std::shared_ptr<vulkan::ImageSampler> m_samplerShadows;
+    std::shared_ptr<vulkan::CommandBuffer> m_commandBufferShadows;
+    std::shared_ptr<vulkan::RenderPass> m_renderPassShadows;
+    std::shared_ptr<vulkan::Framebuffer> m_framebufferShadows;
+    std::shared_ptr<vulkan::Pipeline> m_pipelineShadows;
+
     std::shared_ptr<vulkan::SwapChainCommands> m_swapChainCommands;
 
     /* use semaphores to coordinate the rendering and presentation. Could also use fences
@@ -432,8 +548,17 @@ private:
 
     void cleanupSwapChain();
     void initializeCommandBuffers();
-    void initializeCommandBuffer(size_t index);
-    void initializeCommandBufferDrawObjects(VkCommandBuffer commandBuffer, DrawObjectTable const & objs);
+    void initializeCommandBuffer(
+            VkCommandBuffer const &commandBuffer,
+            VkFramebuffer const &framebuffer,
+            std::shared_ptr<vulkan::Pipeline> const &pipeline,
+            std::vector<VkClearValue> const &clearValues,
+            bool drawStarterAndFinisher);
+    void initializeCommandBuffer(uint32_t cmdBufferIndex);
+    void initializeCommandBufferDrawObjects(VkCommandBuffer commandBuffer,
+            DrawObjectTable const & objs, std::shared_ptr<vulkan::Pipeline> const &pipeline,
+            bool doShadows);
+    void prepareDepthResources();
 
     std::shared_ptr<vulkan::ImageView> runTextureComputation(
             std::vector<std::shared_ptr<DrawObjectDataVulkanDepthTexture>> const &drawObjsData,
@@ -447,7 +572,7 @@ private:
             std::string const &fragmentShader,
             std::shared_ptr<vulkan::DescriptorPools> &dscPools);
 
-    void prepareDepthResources();
+    void populateShadowMap();
 };
 
 #endif // AMAZING_LABYRINTH_MAZE_VULKAN_HPP
