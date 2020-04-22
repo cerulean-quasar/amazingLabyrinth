@@ -504,7 +504,7 @@ void GraphicsVulkan::initializeCommandBuffer(uint32_t cmdBufferIndex) {
     std::vector<VkClearValue> clearValues;
     clearValues.resize(2);
     glm::vec4 bgColor = m_levelSequence->backgroundColor();
-    clearValues[0].color = {0.1f, 0.0f, 0.0f, 1.0f};
+    clearValues[0].color = {1.0f, 0.0f, 0.0f, 1.0f};
     clearValues[1].depthStencil = {1.0, 0};
 
     initializeCommandBuffer(commandBuffer,
