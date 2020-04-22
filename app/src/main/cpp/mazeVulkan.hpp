@@ -22,6 +22,7 @@
 #include "graphicsVulkan.hpp"
 #include "mazeGraphics.hpp"
 #include "common.hpp"
+#include "../../../../../../Android/Sdk/ndk/20.1.5948944/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/include/vulkan/vulkan_core.h"
 
 char constexpr const *SHADER_VERT_FILE ="shaders/shader.vert.spv";
 char constexpr const *SHADER_FRAG_FILE ="shaders/shader.frag.spv";
@@ -397,6 +398,9 @@ public:
              m_commonUBO{createUniformBuffer(inDevice, sizeof (CommonUBO))},
              m_shadows{inShadows}
     {
+        setLightingSource();
+        setViewLightingSource();
+        updatePerspectiveMatrix(width, height);
     }
 
 protected:
@@ -445,24 +449,42 @@ public:
               m_descriptorSetLayoutShadows{std::make_shared<AmazingLabyrinthShadowsDescriptorSetLayout>(m_device)},
               m_descriptorPoolsShadows{std::make_shared<vulkan::DescriptorPools>(m_device, m_descriptorSetLayoutShadows)},
               m_depthImageViewShadows{std::make_shared<vulkan::ImageView>(vulkan::ImageFactory::createDepthImage(m_device,
+                      VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, m_swapChain->extent().width/shadowsSizeDivider,
+                              m_swapChain->extent().height/shadowsSizeDivider),
+                                      VK_IMAGE_ASPECT_DEPTH_BIT)},
+              m_depthImageViewShadowsDummy{std::make_shared<vulkan::ImageView>(vulkan::ImageFactory::createDepthImage(m_device,
                       VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, m_swapChain->extent()),
                                       VK_IMAGE_ASPECT_DEPTH_BIT)},
-              m_samplerShadows{std::make_shared<vulkan::ImageSampler>(m_device, m_depthImageViewShadows)},
+              m_shadowsColorAttachment{vulkan::ImageView::createImageViewAndImage(
+                      m_device,
+                      m_swapChain->extent().width/shadowsSizeDivider,
+                      m_swapChain->extent().height/shadowsSizeDivider,
+                      VK_FORMAT_R32G32B32A32_SFLOAT,
+                      VK_IMAGE_TILING_OPTIMAL,
+                      VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
+                      VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+                      VK_IMAGE_ASPECT_COLOR_BIT)},
+              m_samplerShadows{std::make_shared<vulkan::ImageSampler>(m_device, m_shadowsColorAttachment)},
               m_commandBufferShadows{std::make_shared<vulkan::CommandBuffer>(m_device, m_commandPool, VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT)},
               m_renderPassShadows{vulkan::RenderPass::createDepthTextureRenderPass(m_device,
-                      std::vector<vulkan::RenderPass::ImageAttachmentInfo>{},
+                      std::vector<vulkan::RenderPass::ImageAttachmentInfo>{vulkan::RenderPass::ImageAttachmentInfo{
+                          VK_ATTACHMENT_LOAD_OP_CLEAR, VK_ATTACHMENT_STORE_OP_STORE,
+                          m_shadowsColorAttachment->image()->format(),
+                          VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
+                      }},
                       std::make_shared<vulkan::RenderPass::ImageAttachmentInfo>(
                               VK_ATTACHMENT_LOAD_OP_CLEAR, VK_ATTACHMENT_STORE_OP_STORE,
                               m_depthImageViewShadows->image()->format(),
                               VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL))},
               m_framebufferShadows{std::make_shared<vulkan::Framebuffer>(
                       m_device, m_renderPassShadows,
-                      std::vector<std::shared_ptr<vulkan::ImageView>>{m_depthImageViewShadows},
+                      std::vector<std::shared_ptr<vulkan::ImageView>>{m_shadowsColorAttachment, m_depthImageViewShadows},
                       m_depthImageViewShadows->image()->width(),
                       m_depthImageViewShadows->image()->height())},
-              m_pipelineShadows{std::make_shared<vulkan::Pipeline>(m_gameRequester, m_device, m_swapChain->extent(),
+              m_pipelineShadows{std::make_shared<vulkan::Pipeline>(m_gameRequester, m_device,
+                      VkExtent2D{m_swapChain->extent().width/shadowsSizeDivider, m_swapChain->extent().height/shadowsSizeDivider},
                       m_renderPassShadows, m_descriptorPoolsShadows, getBindingDescription(), getAttributeDescriptions(),
-                      SHADOW_VERT_FILE, "", m_graphicsPipeline, VK_CULL_MODE_FRONT_BIT)},
+                      SHADOW_VERT_FILE, SHADER_SIMPLE_FRAG_FILE, m_graphicsPipeline, VK_CULL_MODE_BACK_BIT)},
               m_shadowsWaitBeforeWrite{false},
               m_shadowsAvailableForWrite{m_device},
               m_shadowsAvailableForRead{m_device},
@@ -476,11 +498,13 @@ public:
 
         prepareDepthResources();
 
-        if (!testDepthTexture(true)) {
-            throw std::runtime_error("This version of Vulkan has bugs making it impossible to get the depth texture and normal map.");
-        }
+        m_depthImageViewShadows->image()->transitionImageLayout(VK_IMAGE_LAYOUT_UNDEFINED,
+                                                  VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL, m_commandPool);
 
-        //initializeCommandBuffers();
+        if (!testDepthTexture(true)) {
+            throw std::runtime_error(
+                    "This version of Vulkan has bugs making it impossible to get the depth texture and normal map.");
+        }
     }
 
     virtual void initThread() { }
@@ -516,6 +540,7 @@ public:
         }
     }
 private:
+    static uint32_t constexpr shadowsSizeDivider = 2;
     std::shared_ptr<vulkan::Instance> m_instance;
     std::shared_ptr<vulkan::Device> m_device;
     std::shared_ptr<vulkan::SwapChain> m_swapChain;
@@ -534,6 +559,8 @@ private:
     std::shared_ptr<AmazingLabyrinthShadowsDescriptorSetLayout> m_descriptorSetLayoutShadows;
     std::shared_ptr<vulkan::DescriptorPools> m_descriptorPoolsShadows;
     std::shared_ptr<vulkan::ImageView> m_depthImageViewShadows;
+    std::shared_ptr<vulkan::ImageView> m_depthImageViewShadowsDummy;
+    std::shared_ptr<vulkan::ImageView> m_shadowsColorAttachment;
     std::shared_ptr<vulkan::ImageSampler> m_samplerShadows;
     std::shared_ptr<vulkan::CommandBuffer> m_commandBufferShadows;
     std::shared_ptr<vulkan::RenderPass> m_renderPassShadows;

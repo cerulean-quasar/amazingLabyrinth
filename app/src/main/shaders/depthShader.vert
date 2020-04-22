@@ -35,7 +35,14 @@ layout(location = 1) in vec3 inColor;
 layout(location = 2) in vec2 inTexCoord;
 layout(location = 3) in vec3 inNormal;
 
+layout(location = 0) out vec3 fragColor;
+
+out gl_PerVertex {
+    vec4 gl_Position;
+};
+
 void main() {
     gl_Position = cubo.proj * cubo.viewLightMatrix * ubo.model * vec4(inPosition, 1.0);
-    //gl_Position.z = 0.0;
+    fragColor = gl_Position.zzz/gl_Position.w;
+    //gl_Position.z = gl_Position.w - gl_Position.z;
 }

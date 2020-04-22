@@ -30,7 +30,7 @@ void LevelSequence::setView() {
 }
 
 void LevelSequence::setLightingSource() {
-    m_lightingSource = glm::vec3(0.0f, 1.0f, 1.28f);
+    m_lightingSource = glm::vec3(0.0f, 1.0f, 1.5f);
 }
 
 void LevelSequence::updateAcceleration(float x, float y, float z) {

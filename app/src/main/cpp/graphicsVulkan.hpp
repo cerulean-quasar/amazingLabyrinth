@@ -287,6 +287,14 @@ namespace vulkan {
                   finalLayout{inFinalLayout}
             {}
 
+            ImageAttachmentInfo(ImageAttachmentInfo const &other) noexcept
+                    : loadOp{other.loadOp},
+                      storeOp{other.storeOp},
+                      format{other.format},
+                      initialLayout{other.initialLayout},
+                      finalLayout{other.finalLayout}
+            {}
+
             ImageAttachmentInfo(ImageAttachmentInfo &&other) noexcept
                 : loadOp{other.loadOp},
                   storeOp{other.storeOp},
@@ -735,6 +743,19 @@ namespace vulkan {
         {
             return std::make_shared<ImageView>(std::make_shared<Image>(inDevice, inWidth, inHeight,
                     format, tiling, usage, properties), aspectFlags);
+        }
+
+        static std::shared_ptr<ImageView> createImageViewAndImage(
+                std::shared_ptr<Device> const &inDevice,
+                VkExtent2D const &extent,
+                VkFormat format,
+                VkImageTiling tiling,
+                VkImageUsageFlags usage,
+                VkMemoryPropertyFlags properties,
+                VkImageAspectFlags aspectFlags)
+        {
+            return std::make_shared<ImageView>(std::make_shared<Image>(inDevice, extent.width, extent.height,
+                                                                       format, tiling, usage, properties), aspectFlags);
         }
 
         ImageView(std::shared_ptr<Image> const &inImage,

@@ -134,7 +134,7 @@ private:
 protected:
     static float constexpr m_perspectiveViewAngle = 3.1415926f/4.0f;
     static float constexpr m_perspectiveNearPlane = 0.1f;
-    static float constexpr m_perspectiveFarPlane = 100.0f;
+    static float constexpr m_perspectiveFarPlane = 7.0f;
     glm::mat4 m_proj;
     glm::mat4 m_view;
     glm::mat4 m_viewLightingSource;
@@ -178,7 +178,7 @@ protected:
 
 private:
     glm::mat4 getViewMatrix() {
-        return glm::lookAt(glm::vec3(0.0f, 0.0f, 1.1f),
+        return glm::lookAt(glm::vec3(0.0f, 0.0f, 1.0f),
                 glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
     }
 };
