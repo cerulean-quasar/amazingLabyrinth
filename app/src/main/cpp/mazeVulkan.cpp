@@ -559,8 +559,6 @@ void GraphicsVulkan::initializeCommandBufferDrawObjects(
 }
 
 void GraphicsVulkan::drawFrame() {
-    //populateShadowMap();
-
     /* wait for presentation to finish before drawing the next frame.  Avoids a memory leak */
     vkQueueWaitIdle(m_device->presentQueue());
 
@@ -926,31 +924,4 @@ std::shared_ptr<TextureData> GraphicsVulkan::getDepthTexture(
     auto imgSampler = std::make_shared<vulkan::ImageSampler>(m_device, colorNormalImage);
 
     return std::make_shared<TextureDataVulkan>(imgSampler);
-}
-
-void GraphicsVulkan::populateShadowMap()
-{
-    VkClearValue clearValue;
-    clearValue.color = {0.0f, 0.0f, 0.0f, 1.0f};
-    std::vector<VkClearValue> clearValues{clearValue};
-    clearValue.depthStencil = {0.0f, 0};
-    clearValues.push_back(clearValue);
-
-    static bool test = true;
-    m_commandBufferShadows->begin();
-    initializeCommandBuffer(m_commandBufferShadows->commandBuffer().get(),
-            m_framebufferShadows->framebuffer().get(),
-            m_pipelineShadows, clearValues, true);
-    if (test) {
-        if (m_shadowsWaitBeforeWrite) {
-            m_commandBufferShadows->end(m_shadowsAvailableForWrite,
-                                        VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
-                                        m_shadowsAvailableForRead);
-            //m_commandBufferShadows->end();
-            //test = false;
-        } else {
-            m_shadowsWaitBeforeWrite = true;
-            m_commandBufferShadows->end(m_shadowsAvailableForRead);
-        }
-    }
 }

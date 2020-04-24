@@ -40,14 +40,10 @@ float ShadowCalculation(vec4 pos) {
 
     /* the depth buffer is using coordinates in the range: [0, 1] */
     projCoords = vec3(projCoords.x * 0.5 + 0.5, 0.5 + projCoords.y * 0.5, projCoords.z);
-
-    if (projCoords.x > 1.0 || projCoords.x < 0.0 || projCoords.y > 1.0 || projCoords.y < 0.0 || projCoords.z > 1.0) {
-        return 1.0;
-    }
     float closestDepth = texture(texShadowMap, projCoords.xy).r;
 
     float currentDepth = projCoords.z;
-    float bias = 0.001;
+    float bias = 0.0001;
     float shadow = currentDepth - bias > closestDepth ? 0.6 : 0.0;
     //float shadow = currentDepth;
     return shadow;

@@ -1742,7 +1742,10 @@ namespace vulkan {
         return image;
     }
 
-    void ImageSampler::createTextureSampler() {
+    void ImageSampler::createTextureSampler(
+        VkSamplerAddressMode beyondBorderSampling,
+        VkBorderColor borderColor)
+    {
         VkSamplerCreateInfo samplerInfo = {};
         samplerInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
 
@@ -1764,9 +1767,9 @@ namespace vulkan {
          * VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER: Return a solid color when sampling beyond
          *      the dimensions of the image.
          */
-        samplerInfo.addressModeU = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
-        samplerInfo.addressModeV = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
-        samplerInfo.addressModeW = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+        samplerInfo.addressModeU = beyondBorderSampling;
+        samplerInfo.addressModeV = beyondBorderSampling;
+        samplerInfo.addressModeW = beyondBorderSampling;
 
         /* use anisotropic filtering.  limit the amount of texel samples that will be used to
          * calculate the final color to 16.
@@ -1778,9 +1781,9 @@ namespace vulkan {
          * Only black, white, or transparent can be specified in float or int formats, no other
          * colors.
          */
-        samplerInfo.borderColor = VK_BORDER_COLOR_INT_OPAQUE_BLACK;
+        samplerInfo.borderColor = borderColor;
 
-        /* normalized coordinate system: the texels are addressed in the [0, 1) range on all axes.
+        /* normalized coordinate system: the texels are addressed in the [0, 1) range on all axises.
          * unnormalized coordinates: the texels are addressed with the ranges: [0, texWidth)
          * and [0, texHeight).  Most real world applications use normalized coordinates.
          */

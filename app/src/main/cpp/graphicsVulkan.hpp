@@ -819,7 +819,9 @@ namespace vulkan {
     public:
         ImageSampler(std::shared_ptr<Device> const &inDevice,
                      std::shared_ptr<CommandPool> const &pool,
-                     std::shared_ptr<TextureDescription> const &textureDescription)
+                     std::shared_ptr<TextureDescription> const &textureDescription,
+                     VkSamplerAddressMode beyondBorderSampling = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE,
+                     VkBorderColor borderColor = VK_BORDER_COLOR_INT_OPAQUE_BLACK)
                 : m_device{inDevice},
                   m_image{},
                   m_imageView{},
@@ -828,16 +830,19 @@ namespace vulkan {
 
             m_imageView.reset(new ImageView(m_image, VK_IMAGE_ASPECT_COLOR_BIT));
 
-            createTextureSampler();
+            createTextureSampler(beyondBorderSampling,
+                                 borderColor);
         }
 
         ImageSampler(std::shared_ptr<Device> const &inDevice,
-                std::shared_ptr<ImageView> const &inImageView)
-                : m_device{inDevice},
-                m_image{inImageView->image()},
-                m_imageView{inImageView}
+            std::shared_ptr<ImageView> const &inImageView,
+            VkSamplerAddressMode beyondBorderSampling = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE,
+            VkBorderColor borderColor = VK_BORDER_COLOR_INT_OPAQUE_BLACK)
+            : m_device{inDevice},
+              m_image{inImageView->image()},
+              m_imageView{inImageView}
         {
-            createTextureSampler();
+            createTextureSampler(beyondBorderSampling, borderColor);
         }
 
         inline std::shared_ptr<VkSampler_T> const &sampler() { return m_sampler; }
@@ -850,7 +855,9 @@ namespace vulkan {
         std::shared_ptr<ImageView> m_imageView;
         std::shared_ptr<VkSampler_T> m_sampler;
 
-        void createTextureSampler();
+        void createTextureSampler(
+                VkSamplerAddressMode beyondBorderSampling,
+                VkBorderColor borderColor);
     };
 
     class Framebuffer {
