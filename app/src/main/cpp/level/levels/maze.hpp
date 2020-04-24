@@ -268,7 +268,7 @@ public:
 
     void preGenerate() {
         numberColumns = static_cast<uint32_t>(std::floor(numberRows*m_width/m_height));
-        m_scaleWallZ = ballDiameter()/numberBlocksPerCell;
+        m_scaleWallZ = ballDiameter();
 
         prevTime = std::chrono::high_resolution_clock::now();
         glm::vec3 xaxis{1.0f, 0.0f, 0.0f};

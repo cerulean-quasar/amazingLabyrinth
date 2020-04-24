@@ -133,8 +133,8 @@ private:
 
 protected:
     static float constexpr m_perspectiveViewAngle = 3.1415926f/4.0f;
-    static float constexpr m_perspectiveNearPlane = 0.1f;
-    static float constexpr m_perspectiveFarPlane = 7.0f;
+    static float constexpr m_perspectiveNearPlane = 0.5f;
+    static float constexpr m_perspectiveFarPlane = 5.0f;
     glm::mat4 m_proj;
     glm::mat4 m_view;
     glm::mat4 m_viewLightingSource;
