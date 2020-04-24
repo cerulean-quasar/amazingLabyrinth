@@ -474,7 +474,7 @@ public:
                       std::make_shared<vulkan::RenderPass::ImageAttachmentInfo>(
                               VK_ATTACHMENT_LOAD_OP_CLEAR, VK_ATTACHMENT_STORE_OP_STORE,
                               m_depthImageViewShadows->image()->format(),
-                              VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL))},
+                              VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL))},
               m_framebufferShadows{std::make_shared<vulkan::Framebuffer>(
                       m_device, m_renderPassShadows,
                       std::vector<std::shared_ptr<vulkan::ImageView>>{m_shadowsColorAttachment, m_depthImageViewShadows},

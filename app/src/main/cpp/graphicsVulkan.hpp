@@ -52,13 +52,13 @@ namespace vulkan {
             /* required for checking for errors and getting error messages */
             //"VK_LAYER_LUNARG_standard_validation"
 
-            "VK_LAYER_GOOGLE_threading",
-            "VK_LAYER_LUNARG_parameter_validation",
-            "VK_LAYER_LUNARG_object_tracker",
-            "VK_LAYER_LUNARG_core_validation",
-            "VK_LAYER_GOOGLE_unique_objects"
+            //"VK_LAYER_GOOGLE_threading",
+            //"VK_LAYER_LUNARG_parameter_validation",
+            //"VK_LAYER_LUNARG_object_tracker",
+            //"VK_LAYER_LUNARG_core_validation",
+            //"VK_LAYER_GOOGLE_unique_objects"
 
-            //"VK_LAYER_KHRONOS_validation"
+            "VK_LAYER_KHRONOS_validation"
     };
 
     class VulkanLibrary {
