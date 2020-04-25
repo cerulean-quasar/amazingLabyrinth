@@ -61,6 +61,27 @@ public:
         GLint internalFormat;
         GLenum format;
         GLenum type;
+
+        ColorImageFormat(
+                GLint internalFormat_,
+                GLenum format_,
+                GLenum type_) {
+            internalFormat = internalFormat_;
+            format = format_;
+            type = type_;
+        }
+
+        ColorImageFormat(ColorImageFormat const &other) {
+            internalFormat = other.internalFormat;
+            format = other.format;
+            type = other.type;
+        }
+
+        ColorImageFormat(ColorImageFormat &&other) {
+            internalFormat = other.internalFormat;
+            format = other.format;
+            type = other.type;
+        }
     };
     Framebuffer(uint32_t width, uint32_t height, std::vector<ColorImageFormat> colorImageFormats);
     ~Framebuffer() {
@@ -155,13 +176,6 @@ public:
                         static_cast<uint32_t >(m_surface.height()));
         initPipeline();
 
-        if (!testDepthTexture(false)) {
-            m_useIntTexture = false;
-            if (!testDepthTexture(false)) {
-                throw std::runtime_error(
-                        "This version of OpenGL has bugs making it impossible to get the depth texture and normal map.");
-            }
-        }
     }
 
     virtual void initThread() { m_surface.initThread(); }

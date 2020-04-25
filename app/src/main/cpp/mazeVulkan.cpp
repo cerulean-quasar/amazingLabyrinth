@@ -17,6 +17,7 @@
  *  along with AmazingLabyrinth.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
+#include <unistd.h>
 #include <glm/glm.hpp>
 
 #include "mazeVulkan.hpp"
@@ -70,34 +71,90 @@ std::vector<VkVertexInputAttributeDescription> getAttributeDescriptions() {
 
 /* for accessing data other than the vertices from the shaders */
 void AmazingLabyrinthDescriptorSetLayout::createDescriptorSetLayout() {
-    /* MVP matrix */
-    VkDescriptorSetLayoutBinding uboLayoutBinding = {};
-    uboLayoutBinding.binding = 0;
-    uboLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-    uboLayoutBinding.descriptorCount = 1;
+    /* model matrix - different for each object */
+    VkDescriptorSetLayoutBinding modelMatrixBinding = {};
+    modelMatrixBinding.binding = 0;
+    modelMatrixBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+    modelMatrixBinding.descriptorCount = 1;
 
     /* only accessing the MVP matrix from the vertex shader */
-    uboLayoutBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
-    uboLayoutBinding.pImmutableSamplers = nullptr; // Optional
+    modelMatrixBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
+    modelMatrixBinding.pImmutableSamplers = nullptr; // Optional
+
+    /* view and projection matrix - the same for all objects */
+    VkDescriptorSetLayoutBinding commonDataBinding = {};
+    commonDataBinding.binding = 1;
+    commonDataBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+    commonDataBinding.descriptorCount = 1;
+    commonDataBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
+    commonDataBinding.pImmutableSamplers = nullptr; // Optional
 
     /* image sampler */
     VkDescriptorSetLayoutBinding samplerLayoutBinding = {};
-    samplerLayoutBinding.binding = 1;
+    samplerLayoutBinding.binding = 2;
     samplerLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
     samplerLayoutBinding.descriptorCount = 1;
     samplerLayoutBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
     samplerLayoutBinding.pImmutableSamplers = nullptr;
 
     VkDescriptorSetLayoutBinding lightingSourceBinding = {};
-    lightingSourceBinding.binding = 2;
+    lightingSourceBinding.binding = 3;
     lightingSourceBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
     lightingSourceBinding.descriptorCount = 1;
     lightingSourceBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
     lightingSourceBinding.pImmutableSamplers = nullptr;
 
-    std::array<VkDescriptorSetLayoutBinding, 3> bindings = {uboLayoutBinding,
+    VkDescriptorSetLayoutBinding samplerShadows = {};
+    samplerShadows.binding = 4;
+    samplerShadows.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+    samplerShadows.descriptorCount = 1;
+    samplerShadows.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+    samplerShadows.pImmutableSamplers = nullptr;
+
+    std::array<VkDescriptorSetLayoutBinding, 5> bindings = {modelMatrixBinding,
+                                                            commonDataBinding,
                                                             samplerLayoutBinding,
-                                                            lightingSourceBinding};
+                                                            lightingSourceBinding,
+                                                            samplerShadows};
+
+    VkDescriptorSetLayoutCreateInfo layoutInfo = {};
+    layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
+    layoutInfo.bindingCount = static_cast<uint32_t>(bindings.size());
+    layoutInfo.pBindings = bindings.data();
+
+    VkDescriptorSetLayout descriptorSetLayoutRaw;
+    if (vkCreateDescriptorSetLayout(m_device->logicalDevice().get(), &layoutInfo, nullptr,
+                                    &descriptorSetLayoutRaw) != VK_SUCCESS) {
+        throw std::runtime_error("failed to create descriptor set layout!");
+    }
+
+    auto const &capDevice = m_device;
+    auto deleter = [capDevice](VkDescriptorSetLayout descriptorSetLayoutRaw) {
+        vkDestroyDescriptorSetLayout(capDevice->logicalDevice().get(), descriptorSetLayoutRaw, nullptr);
+    };
+
+    m_descriptorSetLayout.reset(descriptorSetLayoutRaw, deleter);
+}
+
+/* for accessing data other than the vertices from the shaders */
+void AmazingLabyrinthShadowsDescriptorSetLayout::createDescriptorSetLayout() {
+    /* model matrix */
+    VkDescriptorSetLayoutBinding perObject = {};
+    perObject.binding = 0;
+    perObject.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+    perObject.descriptorCount = 1;
+    perObject.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
+    perObject.pImmutableSamplers = nullptr; // Optional
+
+    /* the projection, view, and view light source matrix */
+    VkDescriptorSetLayoutBinding commonData = {};
+    commonData.binding = 1;
+    commonData.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+    commonData.descriptorCount = 1;
+    commonData.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
+    commonData.pImmutableSamplers = nullptr;
+
+    std::array<VkDescriptorSetLayoutBinding, 2> bindings = {perObject, commonData};
 
     VkDescriptorSetLayoutCreateInfo layoutInfo = {};
     layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
@@ -130,9 +187,9 @@ void UniformWrapper::updateDescriptorSet(std::shared_ptr<vulkan::Device> const &
     VkDescriptorBufferInfo bufferInfo = {};
     bufferInfo.buffer = m_uniformBuffer->buffer().get();
     bufferInfo.offset = 0;
-    bufferInfo.range = sizeof(UniformBufferObject);
+    bufferInfo.range = sizeof(PerObjectUBO);
 
-    std::array<VkWriteDescriptorSet, 3> descriptorWrites = {};
+    std::array<VkWriteDescriptorSet, 5> descriptorWrites = {};
     descriptorWrites[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
     descriptorWrites[0].dstSet = m_descriptorSet->descriptorSet().get();
 
@@ -155,34 +212,65 @@ void UniformWrapper::updateDescriptorSet(std::shared_ptr<vulkan::Device> const &
     descriptorWrites[0].pImageInfo = nullptr; // Optional
     descriptorWrites[0].pTexelBufferView = nullptr; // Optional
 
-    VkDescriptorImageInfo imageInfo = {};
-    imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-    imageInfo.imageView = m_sampler->imageView()->imageView().get();
-    imageInfo.sampler = m_sampler->sampler().get();
+    VkDescriptorBufferInfo commonInfo = {};
+    commonInfo.buffer = m_commonUBO->buffer().get();
+    commonInfo.offset = 0;
+    commonInfo.range = sizeof(CommonUBO);
 
     descriptorWrites[1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
     descriptorWrites[1].dstSet = m_descriptorSet->descriptorSet().get();
     descriptorWrites[1].dstBinding = 1;
     descriptorWrites[1].dstArrayElement = 0;
-    descriptorWrites[1].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+    descriptorWrites[1].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
     descriptorWrites[1].descriptorCount = 1;
-    descriptorWrites[1].pImageInfo = &imageInfo;
+    descriptorWrites[1].pBufferInfo = &commonInfo;
+
+    VkDescriptorImageInfo imageInfo = {};
+    imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+    imageInfo.imageView = m_sampler->imageView()->imageView().get();
+    imageInfo.sampler = m_sampler->sampler().get();
+
+    descriptorWrites[2].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+    descriptorWrites[2].dstSet = m_descriptorSet->descriptorSet().get();
+    descriptorWrites[2].dstBinding = 2;
+    descriptorWrites[2].dstArrayElement = 0;
+    descriptorWrites[2].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+    descriptorWrites[2].descriptorCount = 1;
+    descriptorWrites[2].pImageInfo = &imageInfo;
 
     VkDescriptorBufferInfo bufferLightingSource = {};
     bufferLightingSource.buffer = m_uniformBufferLighting->buffer().get();
     bufferLightingSource.offset = 0;
     bufferLightingSource.range = sizeof(glm::vec3);
 
-    descriptorWrites[2].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-    descriptorWrites[2].dstSet = m_descriptorSet->descriptorSet().get();
-    descriptorWrites[2].dstBinding = 2;
-    descriptorWrites[2].dstArrayElement = 0;
-    descriptorWrites[2].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-    descriptorWrites[2].descriptorCount = 1;
-    descriptorWrites[2].pBufferInfo = &bufferLightingSource;
+    descriptorWrites[3].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+    descriptorWrites[3].dstSet = m_descriptorSet->descriptorSet().get();
+    descriptorWrites[3].dstBinding = 3;
+    descriptorWrites[3].dstArrayElement = 0;
+    descriptorWrites[3].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+    descriptorWrites[3].descriptorCount = 1;
+    descriptorWrites[3].pBufferInfo = &bufferLightingSource;
+
+    VkDescriptorImageInfo shadowInfo = {};
+    shadowInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+    shadowInfo.imageView = m_shadows->imageView()->imageView().get();
+    shadowInfo.sampler = m_shadows->sampler().get();
+
+    descriptorWrites[4].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+    descriptorWrites[4].dstSet = m_descriptorSet->descriptorSet().get();
+    descriptorWrites[4].dstBinding = 4;
+    descriptorWrites[4].dstArrayElement = 0;
+    descriptorWrites[4].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+    descriptorWrites[4].descriptorCount = 1;
+    descriptorWrites[4].pImageInfo = &shadowInfo;
 
     vkUpdateDescriptorSets(inDevice->logicalDevice().get(),
                            static_cast<uint32_t>(descriptorWrites.size()),
+                           descriptorWrites.data(), 0, nullptr);
+
+    descriptorWrites[0].dstSet = m_descriptorSetShadows->descriptorSet().get();
+    descriptorWrites[1].dstSet = m_descriptorSetShadows->descriptorSet().get();
+    vkUpdateDescriptorSets(inDevice->logicalDevice().get(), 2,
                            descriptorWrites.data(), 0, nullptr);
 }
 
@@ -201,45 +289,46 @@ void DrawObjectDataVulkan::copyIndicesToBuffer(std::shared_ptr<vulkan::CommandPo
 }
 
 void DrawObjectDataVulkan::addUniforms(std::shared_ptr<DrawObject> const &obj,
-                                       glm::mat4 const &proj, glm::mat4 const &view,
                                        TextureMap &textures) {
     if (obj->modelMatrices.size() == m_uniforms.size()) {
         return;
     }
 
-    UniformBufferObject ubo;
-    ubo.proj = proj;
-    ubo.view = view;
+    PerObjectUBO ubo;
 
     for (size_t i = m_uniforms.size(); i < obj->modelMatrices.size(); i++) {
         ubo.model = obj->modelMatrices[i];
-        TextureMap::iterator it = textures.find(obj->texture);
+        auto it = textures.find(obj->texture);
         if (it == textures.end()) {
             throw std::runtime_error("Could not find texture in texture map.");
         }
         TextureDataVulkan *textureData = static_cast<TextureDataVulkan *> (it->second.get());
-        std::shared_ptr<UniformWrapper> uniform(new UniformWrapper(m_device, m_descriptorPools,
-                                                                   textureData->sampler(), m_uniformBufferLighting, ubo));
+        auto uniform = std::make_shared<UniformWrapper>(
+                m_device,
+                m_descriptorPools,
+                m_descriptorPoolsShadows,
+                textureData->sampler(),
+                m_shadows,
+                m_uniformBufferLighting,
+                m_commonUBO,
+                ubo);
         m_uniforms.push_back(uniform);
     }
 }
 
-void DrawObjectDataVulkan::update(std::shared_ptr<DrawObject> const &obj,
-                                  glm::mat4 const &proj, glm::mat4 const &view, TextureMap &textures) {
+void DrawObjectDataVulkan::update(std::shared_ptr<DrawObject> const &obj, TextureMap &textures) {
     if (m_uniforms.size() < obj->modelMatrices.size()) {
         // a new model matrix (new object but same texture, vertices and indices).
-        addUniforms(obj, proj, view, textures);
+        addUniforms(obj, textures);
     } else if (m_uniforms.size() > obj->modelMatrices.size()) {
         // a model matrix got removed...
         m_uniforms.pop_back();
     }
 
-    UniformBufferObject ubo;
-    ubo.proj = proj;
-    ubo.view = view;
     // copy over the model matrices into the graphics card memory... they might
     // have changed.
     for (size_t j = 0; j < obj->modelMatrices.size(); j++) {
+        PerObjectUBO ubo;
         ubo.model = obj->modelMatrices[j];
         m_uniforms[j]->uniformBuffer()->copyRawTo(&ubo, sizeof (ubo));
     }
@@ -280,7 +369,7 @@ void LevelSequenceVulkan::updateLevelData(DrawObjectTable &objsData, TextureMap 
             // a completely new entry
             objData.second = createObject(objData.first, textures);
         } else {
-            data->update(objData.first, m_proj, m_view, textures);
+            data->update(objData.first, textures);
         }
     }
 }
@@ -290,11 +379,12 @@ std::shared_ptr<TextureData> LevelSequenceVulkan::createTexture(std::shared_ptr<
 }
 
 std::shared_ptr<DrawObjectData> LevelSequenceVulkan::createObject(std::shared_ptr<DrawObject> const &obj, TextureMap &textures) {
-    std::shared_ptr<DrawObjectDataVulkan> objData =
+    auto objData =
             std::make_shared<DrawObjectDataVulkan>(m_device, m_commandPool,
-                                                   m_descriptorPools, obj, m_uniformBufferLighting);
+                                                   m_descriptorPools, m_descriptorPoolsShadows, obj,
+                                                   m_shadows, m_uniformBufferLighting, m_commonUBO);
 
-    objData->addUniforms(obj, m_proj, m_view, textures);
+    objData->addUniforms(obj, textures);
     return objData;
 }
 
@@ -305,14 +395,14 @@ void GraphicsVulkan::recreateSwapChain(uint32_t width, uint32_t height) {
 
     m_swapChain.reset(new vulkan::SwapChain(m_device));
     m_depthImageView.reset(new vulkan::ImageView{vulkan::ImageFactory::createDepthImage(m_swapChain),
-                                                 m_device->depthFormat(), VK_IMAGE_ASPECT_DEPTH_BIT});
+                                                 VK_IMAGE_ASPECT_DEPTH_BIT});
     prepareDepthResources();
     m_renderPass = vulkan::RenderPass::createRenderPass(m_device, m_swapChain);
     m_graphicsPipeline.reset(new vulkan::Pipeline{m_gameRequester, m_device, m_swapChain->extent(),
                                                   m_renderPass, m_descriptorPools,
                                                   getBindingDescription(), getAttributeDescriptions(),
                                                   SHADER_VERT_FILE, SHADER_FRAG_FILE,
-                                                  nullptr, true});
+                                                  nullptr});
     m_swapChainCommands.reset(new vulkan::SwapChainCommands{m_swapChain, m_commandPool, m_renderPass,
                                                             m_depthImageView});
 }
@@ -339,8 +429,63 @@ void GraphicsVulkan::initializeCommandBuffers() {
     }
 }
 
-void GraphicsVulkan::initializeCommandBuffer(size_t index) {
-    VkCommandBuffer commandBuffer = m_swapChainCommands->commandBuffer(index);
+void GraphicsVulkan::initializeCommandBuffer(
+    VkCommandBuffer const &commandBuffer,
+    VkFramebuffer const &framebuffer,
+    std::shared_ptr<vulkan::Pipeline> const &pipeline,
+    std::vector<VkClearValue> const &clearValues,
+    bool doShadows)
+{
+    /* begin the render pass: drawing starts here*/
+    VkRenderPassBeginInfo renderPassInfo = {};
+    renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
+    renderPassInfo.renderPass = pipeline->renderPass()->renderPass().get();
+    renderPassInfo.framebuffer = framebuffer;
+    /* size of the render area */
+    renderPassInfo.renderArea.offset = {0, 0};
+    renderPassInfo.renderArea.extent = pipeline->extent();
+
+    /* the color value to use when clearing the image with VK_ATTACHMENT_LOAD_OP_CLEAR,
+     * using black with 0% opacity
+     */
+    renderPassInfo.clearValueCount = static_cast<uint32_t>(clearValues.size());
+    renderPassInfo.pClearValues = clearValues.data();
+
+    /* begin recording commands - start by beginning the render pass.
+     * none of these functions returns an error (they return void).  There will be no error
+     * handling until recording is done.
+     */
+    vkCmdBeginRenderPass(commandBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
+
+    /* bind the graphics pipeline to the command buffer, the second parameter tells Vulkan
+     * that we are binding to a graphics pipeline.
+     */
+    vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline->pipeline().get());
+
+    // the objects that stay static.
+    initializeCommandBufferDrawObjects(commandBuffer, m_levelSequence->levelStaticObjsData(), pipeline, doShadows);
+
+    // the objects that move.
+    initializeCommandBufferDrawObjects(commandBuffer, m_levelSequence->levelDynObjsData(), pipeline, doShadows);
+
+    // only do shadows for the level itself
+
+    // the level starter
+    if (!doShadows) {
+        initializeCommandBufferDrawObjects(commandBuffer, m_levelSequence->starterStaticObjsData(), pipeline, doShadows);
+        initializeCommandBufferDrawObjects(commandBuffer, m_levelSequence->starterDynObjsData(), pipeline, doShadows);
+    }
+
+    // the level finisher objects.
+    if (m_levelSequence->needFinisherObjs() && !doShadows) {
+        initializeCommandBufferDrawObjects(commandBuffer, m_levelSequence->finisherObjsData(), pipeline, doShadows);
+    }
+
+    vkCmdEndRenderPass(commandBuffer);
+}
+
+void GraphicsVulkan::initializeCommandBuffer(uint32_t cmdBufferIndex) {
+    VkCommandBuffer commandBuffer = m_swapChainCommands->commandBuffer(cmdBufferIndex);
     VkCommandBufferBeginInfo beginInfo = {};
     beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
     beginInfo.flags = VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT;
@@ -356,72 +501,49 @@ void GraphicsVulkan::initializeCommandBuffer(size_t index) {
      */
     vkBeginCommandBuffer(commandBuffer, &beginInfo);
 
-    /* begin the render pass: drawing starts here*/
-    VkRenderPassBeginInfo renderPassInfo = {};
-    renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-    renderPassInfo.renderPass = m_renderPass->renderPass().get();
-    renderPassInfo.framebuffer = m_swapChainCommands->frameBuffer(index);
-    /* size of the render area */
-    renderPassInfo.renderArea.offset = {0, 0};
-    renderPassInfo.renderArea.extent = m_swapChain->extent();
-
-    /* the color value to use when clearing the image with VK_ATTACHMENT_LOAD_OP_CLEAR,
-     * using black with 0% opacity
-     */
-    std::array<VkClearValue, 2> clearValues = {};
+    std::vector<VkClearValue> clearValues;
+    clearValues.resize(2);
     glm::vec4 bgColor = m_levelSequence->backgroundColor();
-    clearValues[0].color = {bgColor.r, bgColor.g, bgColor.b, bgColor.a};
+    clearValues[0].color = {1.0f, 0.0f, 0.0f, 1.0f};
     clearValues[1].depthStencil = {1.0, 0};
-    renderPassInfo.clearValueCount = static_cast<uint32_t>(clearValues.size());
-    renderPassInfo.pClearValues = clearValues.data();
 
-    /* begin recording commands - start by beginning the render pass.
-     * none of these functions returns an error (they return void).  There will be no error
-     * handling until recording is done.
-     */
-    vkCmdBeginRenderPass(commandBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
-
-    /* bind the graphics pipeline to the command buffer, the second parameter tells Vulkan
-     * that we are binding to a graphics pipeline.
-     */
-    vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_graphicsPipeline->pipeline().get());
-
-    // the objects that stay static.
-    initializeCommandBufferDrawObjects(commandBuffer, m_levelSequence->levelStaticObjsData());
-
-    // the objects that move.
-    initializeCommandBufferDrawObjects(commandBuffer, m_levelSequence->levelDynObjsData());
-
-    // the level starter
-    initializeCommandBufferDrawObjects(commandBuffer, m_levelSequence->starterStaticObjsData());
-    initializeCommandBufferDrawObjects(commandBuffer, m_levelSequence->starterDynObjsData());
-
-    // the level finisher objects.
-    if (m_levelSequence->needFinisherObjs()) {
-        initializeCommandBufferDrawObjects(commandBuffer, m_levelSequence->finisherObjsData());
-    }
-
-    vkCmdEndRenderPass(commandBuffer);
+    initializeCommandBuffer(commandBuffer,
+                            m_framebufferShadows->framebuffer().get(),
+                            m_pipelineShadows, clearValues, true);
+    clearValues[0].color = {bgColor.r, bgColor.g, bgColor.b, bgColor.a};
+    initializeCommandBuffer(commandBuffer,
+            m_swapChainCommands->frameBuffer(cmdBufferIndex), m_graphicsPipeline, clearValues, false);
 
     if (vkEndCommandBuffer(commandBuffer) != VK_SUCCESS) {
         throw std::runtime_error("failed to record command buffer!");
     }
 }
 
-void GraphicsVulkan::initializeCommandBufferDrawObjects(VkCommandBuffer commandBuffer, DrawObjectTable const &objs) {
+
+void GraphicsVulkan::initializeCommandBufferDrawObjects(
+    VkCommandBuffer commandBuffer,
+    DrawObjectTable const &objs,
+    std::shared_ptr<vulkan::Pipeline> const &pipeline,
+    bool doShadows)
+{
     VkDeviceSize offsets[1] = {0};
 
-    for (auto &&obj : objs) {
+    for (auto const &obj : objs) {
         DrawObjectDataVulkan *objData = dynamic_cast<DrawObjectDataVulkan*> (obj.second.get());
 
         VkBuffer vertexBuffer = objData->vertexBuffer().buffer().get();
         vkCmdBindVertexBuffers(commandBuffer, 0, 1, &vertexBuffer, offsets);
         vkCmdBindIndexBuffer(commandBuffer, objData->indexBuffer().buffer().get(), 0, VK_INDEX_TYPE_UINT32);
-        for (auto &&uniform : objData->uniforms()) {
+        for (auto const &uniform : objData->uniforms()) {
             /* The MVP matrix and texture samplers */
-            VkDescriptorSet descriptorSet = uniform->m_descriptorSet->descriptorSet().get();
+            VkDescriptorSet descriptorSet;
+            if (doShadows) {
+                descriptorSet = uniform->m_descriptorSetShadows->descriptorSet().get();
+            } else {
+                descriptorSet = uniform->m_descriptorSet->descriptorSet().get();
+            }
             vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
-                                    m_graphicsPipeline->layout().get(), 0, 1, &descriptorSet, 0, nullptr);
+                                    pipeline->layout().get(), 0, 1, &descriptorSet, 0, nullptr);
 
             /* indexed draw command:
              * parameter 1 - Command buffer for the draw command
@@ -437,8 +559,6 @@ void GraphicsVulkan::initializeCommandBufferDrawObjects(VkCommandBuffer commandB
 }
 
 void GraphicsVulkan::drawFrame() {
-    /* update the app state here */
-
     /* wait for presentation to finish before drawing the next frame.  Avoids a memory leak */
     vkQueueWaitIdle(m_device->presentQueue());
 
@@ -478,9 +598,9 @@ void GraphicsVulkan::drawFrame() {
     /* wait for the semaphore before writing to the color attachment.  This means that we
      * could start executing the vertex shader before the image is available.
      */
-    VkSemaphore waitSemaphores[] = {m_imageAvailableSemaphore.semaphore().get()};
-    VkPipelineStageFlags waitStages[] = {VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT};
-    submitInfo.waitSemaphoreCount = 1;
+    VkSemaphore waitSemaphores[] = {m_imageAvailableSemaphore.semaphore().get()/*, m_shadowsAvailableForRead.semaphore().get() */};
+    VkPipelineStageFlags waitStages[] = {VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT /*, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT */};
+    submitInfo.waitSemaphoreCount = 1;//2;
     submitInfo.pWaitSemaphores = waitSemaphores;
     submitInfo.pWaitDstStageMask = waitStages;
 
@@ -490,8 +610,8 @@ void GraphicsVulkan::drawFrame() {
     submitInfo.pCommandBuffers = &commandBuffer;
 
     /* indicate which semaphore to signal when execution is done */
-    VkSemaphore signalSemaphores[] = {m_renderFinishedSemaphore.semaphore().get()};
-    submitInfo.signalSemaphoreCount = 1;
+    VkSemaphore signalSemaphores[] = {m_renderFinishedSemaphore.semaphore().get()/*, m_shadowsAvailableForWrite.semaphore().get()*/};
+    submitInfo.signalSemaphoreCount = 1;//2;
     submitInfo.pSignalSemaphores = signalSemaphores;
 
     /* the last parameter is a fence to indicate when execution is done, but we are using
@@ -546,7 +666,7 @@ void GraphicsVulkan::drawFrame() {
 void GraphicsVulkan::prepareDepthResources() {
     VkFormat depthFormat = m_device->depthFormat();
 
-    m_depthImageView->image()->transitionImageLayout(depthFormat, VK_IMAGE_LAYOUT_UNDEFINED,
+    m_depthImageView->image()->transitionImageLayout(VK_IMAGE_LAYOUT_UNDEFINED,
                                                      VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL, m_commandPool);
 }
 
@@ -639,9 +759,15 @@ std::shared_ptr<vulkan::ImageView> GraphicsVulkan::runTextureComputation(
             VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
             VK_IMAGE_ASPECT_COLOR_BIT);
 
-    std::vector<VkFormat> formats;
-    formats.push_back(colorImageFormat);
-    auto renderPass = vulkan::RenderPass::createDepthTextureRenderPass(m_device, formats);
+    std::vector<vulkan::RenderPass::ImageAttachmentInfo> infos;
+    infos.emplace_back(VK_ATTACHMENT_LOAD_OP_CLEAR, VK_ATTACHMENT_STORE_OP_STORE,
+            colorImage->image()->format(),
+            VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL);
+    auto depthInfo = std::make_shared<vulkan::RenderPass::ImageAttachmentInfo>(
+            VK_ATTACHMENT_LOAD_OP_CLEAR, VK_ATTACHMENT_STORE_OP_DONT_CARE,
+            depthView->image()->format(),
+            VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL);
+    auto renderPass = vulkan::RenderPass::createDepthTextureRenderPass(m_device, infos, depthInfo);
 
     std::vector<std::shared_ptr<vulkan::ImageView>> attachments = {colorImage, depthView};
     auto frameBuffer = std::make_shared<vulkan::Framebuffer>(m_device, renderPass, attachments,
@@ -650,10 +776,10 @@ std::shared_ptr<vulkan::ImageView> GraphicsVulkan::runTextureComputation(
     VkExtent2D extentFB{imageWidth, imageHeight};
     auto pipeline = std::make_shared<vulkan::Pipeline>(m_gameRequester, m_device, extentFB,
                                                        renderPass, dscPools, getBindingDescription(), getAttributeDescriptions(),
-                                                       vertexShader, fragmentShader, m_graphicsPipeline, 1);
+                                                       vertexShader, fragmentShader, m_graphicsPipeline);
 
     // start recording commands
-    vulkan::SingleTimeCommands cmds{m_device, m_commandPool};
+    vulkan::CommandBuffer cmds{m_device, m_commandPool};
     cmds.begin();
 
     /* begin the render pass: drawing starts here*/
@@ -738,10 +864,10 @@ std::shared_ptr<TextureData> GraphicsVulkan::getDepthTexture(
     uint32_t imageWidth = nbrSamplesForWidth;
     uint32_t imageHeight = static_cast<uint32_t>(std::floor((imageWidth * height)/width));
     auto depthView = std::make_shared<vulkan::ImageView>(
-            vulkan::ImageFactory::createDepthImage(m_device, imageWidth, imageHeight),
-            m_device->depthFormat(),
+            vulkan::ImageFactory::createDepthImage(m_device, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT,
+                    imageWidth, imageHeight),
             VK_IMAGE_ASPECT_DEPTH_BIT);
-    depthView->image()->transitionImageLayout(m_device->depthFormat(), VK_IMAGE_LAYOUT_UNDEFINED,
+    depthView->image()->transitionImageLayout(VK_IMAGE_LAYOUT_UNDEFINED,
                                               VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL, m_commandPool);
 
     std::vector<uint32_t> indexArraySizes;
@@ -791,8 +917,9 @@ std::shared_ptr<TextureData> GraphicsVulkan::getDepthTexture(
     buffer.copyRawFrom(colorDepthMap.data(), colorDepthMap.size() * sizeof (float));
     bitmapToNormals(colorDepthMap, imageWidth, imageHeight, 4, true, normalMap);
 
-    colorNormalImage->image()->transitionImageLayout(VK_FORMAT_R32G32B32A32_SFLOAT, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
-                                                     VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, m_commandPool);
+    colorNormalImage->image()->transitionImageLayout(VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+                                                     VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+                                                     m_commandPool);
 
     auto imgSampler = std::make_shared<vulkan::ImageSampler>(m_device, colorNormalImage);
 

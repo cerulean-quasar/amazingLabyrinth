@@ -133,8 +133,8 @@ private:
 
 protected:
     static float constexpr m_perspectiveViewAngle = 3.1415926f/4.0f;
-    static float constexpr m_perspectiveNearPlane = 0.1f;
-    static float constexpr m_perspectiveFarPlane = 100.0f;
+    static float constexpr m_perspectiveNearPlane = 0.5f;
+    static float constexpr m_perspectiveFarPlane = 5.0f;
     glm::mat4 m_proj;
     glm::mat4 m_view;
     glm::mat4 m_viewLightingSource;
@@ -165,7 +165,7 @@ protected:
     void setView();
     virtual void updatePerspectiveMatrix(uint32_t surfaceWidth, uint32_t surfaceHeight) = 0;
     void setLightingSource();
-    virtual void setupLightingSourceBuffer() { /* work only needed in Vulkan */ }
+    virtual void setupCommonBuffers() { /* work only needed in Vulkan */ }
     void setViewLightingSource();
     void addObjects(DrawObjectTable &objs, TextureMap &textures);
     void addTextures(TextureMap &textures);
@@ -178,8 +178,8 @@ protected:
 
 private:
     glm::mat4 getViewMatrix() {
-        return glm::lookAt(glm::vec3(0.0f, 0.0f, 1.1f),
-                glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+        return glm::lookAt(glm::vec3(0.0f, 0.0f, 1.0f),
+                glm::vec3(0.0f, 0.0f, LevelTracker::m_maxZLevel), glm::vec3(0.0f, 1.0f, 0.0f));
     }
 };
 

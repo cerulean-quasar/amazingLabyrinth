@@ -30,7 +30,7 @@ void LevelSequence::setView() {
 }
 
 void LevelSequence::setLightingSource() {
-    m_lightingSource = glm::vec3(0.0f, 1.0f, 1.28f);
+    m_lightingSource = glm::vec3(1.0f, 1.0f, 1.5f);
 }
 
 void LevelSequence::updateAcceleration(float x, float y, float z) {
@@ -92,7 +92,7 @@ void LevelSequence::initializeLevelTracker() {
     m_levelFinisher = m_levelGroupFcns.getFinisherFcn(*m_levelTracker, x, y,
             getPerspectiveMatrixForLevel(m_surfaceWidth, m_surfaceHeight), m_view);
 
-    setupLightingSourceBuffer();
+    setupCommonBuffers();
 
     if (m_levelStarter != nullptr && ! m_levelStarter->isFinished()) {
         initializeLevelData(m_levelStarter, m_levelStarterStaticObjsData,
