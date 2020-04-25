@@ -165,8 +165,21 @@ void GraphicsGL::initPipeline() {
     m_linearDepthProgramID = loadShaders(LINEAR_DEPTH_VERT_FILE, SIMPLE_FRAG_FILE);
     m_normalProgramID = loadShaders(NORMAL_VERT_FILE, SIMPLE_FRAG_FILE);
 
+    if (!testDepthTexture(false)) {
+        m_useIntTexture = false;
+        if (!testDepthTexture(false)) {
+            throw std::runtime_error(
+                    "This version of OpenGL has bugs making it impossible to get the depth texture and normal map.");
+        }
+    }
+
+    std::vector<Framebuffer::ColorImageFormat> colorImageFormats;
     // for shadow mapping.
-    std::vector<Framebuffer::ColorImageFormat> colorImageFormats{{GL_RGBA32UI, GL_RGBA_INTEGER, GL_UNSIGNED_INT}};
+    if (m_useIntTexture) {
+        colorImageFormats.emplace_back(GL_RGBA32UI, GL_RGBA_INTEGER, GL_UNSIGNED_INT);
+    } else {
+        colorImageFormats.emplace_back(GL_RGBA8, GL_RGBA, GL_UNSIGNED_BYTE);
+    }
     m_framebufferShadowMap = std::make_shared<Framebuffer>(m_surface.width(), m_surface.height(), colorImageFormats);
 }
 
