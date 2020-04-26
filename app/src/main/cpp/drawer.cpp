@@ -1,5 +1,5 @@
 /**
- * Copyright 2019 Cerulean Quasar. All Rights Reserved.
+ * Copyright 2020 Cerulean Quasar. All Rights Reserved.
  *
  *  This file is part of Amazing Labyrinth.
  *
@@ -98,14 +98,16 @@ GameSendChannel &gameFromGuiChannel() {
     return g_diceChannel;
 }
 
-void GameWorker::initGraphics(std::shared_ptr<WindowType> surface,
+std::string GameWorker::initGraphics(std::shared_ptr<WindowType> surface,
         GameRequesterCreator requesterCreator)
 {
+    std::string error;
 #ifdef CQ_ENABLE_VULKAN
     if (m_tryVulkan) {
         try {
             m_graphics = std::make_unique<GraphicsVulkan>(surface, requesterCreator);
         } catch (std::runtime_error &e) {
+            error = std::string("Vulkan supported but not used due to: ") + e.what();
             m_tryVulkan = false;
         }
     }
@@ -116,6 +118,8 @@ void GameWorker::initGraphics(std::shared_ptr<WindowType> surface,
     if (!m_tryVulkan) {
         m_graphics = std::make_unique<GraphicsGL>(std::move(surface), requesterCreator);
     }
+
+    return std::move(error);
 }
 
 void GameWorker::drawingLoop() {

@@ -203,8 +203,12 @@ public:
 
     virtual GraphicsDescription graphicsDescription() = 0;
 
-    void sendGraphicsDescription(bool hasAccelerometer) {
-        m_gameRequester->sendGraphicsDescription(graphicsDescription(), hasAccelerometer);
+    void sendGraphicsDescription(bool hasAccelerometer, std::string vulkanError) {
+        GraphicsDescription info = graphicsDescription();
+        if (!vulkanError.empty()) {
+            info.m_extraInfo.push_back(vulkanError);
+        }
+        m_gameRequester->sendGraphicsDescription(info, hasAccelerometer);
     }
 
     void saveLevelData() {

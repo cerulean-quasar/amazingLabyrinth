@@ -1,5 +1,5 @@
 /**
- * Copyright 2019 Cerulean Quasar. All Rights Reserved.
+ * Copyright 2020 Cerulean Quasar. All Rights Reserved.
  *
  *  This file is part of AmazingLabyrinth.
  *
@@ -33,11 +33,13 @@
 std::string const KeyGraphicsName = "graphicsName";
 std::string const KeyVersionName = "versionName";
 std::string const KeyDeviceName = "deviceName";
+std::string const KeyBugInfo = "bugInfo";
 std::string const KeyHasAccelerometer = "hasAccelerometer";
 
 void handleJNIException(JNIEnv *env);
 
 class JGameBundle;
+class JStringArrayList;
 
 class JGameRequester : public std::enable_shared_from_this<JGameRequester>, public GameRequester {
 public:
@@ -63,6 +65,7 @@ public:
 
     // accessors
     JNIEnv *env() { return m_env; }
+    std::shared_ptr<JStringArrayList> createStringArrayList();
 
     // constructors
     JGameRequester(JNIEnv *inEnv, jobject inNotify, std::string inSaveGameFile, AAssetManager *mgr,
@@ -85,184 +88,77 @@ private:
     Graphics *m_graphics;
 };
 
-using GameBundleValue = boost::variant<std::string, float, std::vector<char>, bool, int>;
-using GameBundleSchema = std::map<std::string, std::type_index>;
-using GameBundle = std::map<std::string, GameBundleValue>;
-
-class GameBundleStringVisitor {
+class JStringArrayList {
 public:
-    std::string operator()(std::string str) {
-        return std::move(str);
-    }
+    size_t size() const;
+    std::string get(size_t i) const;
+    void add(std::string const &value);
 
-    std::string operator()(float f) {
-        return std::to_string(f);
-    }
+    inline jobject object() { return m_jstrArrayList.get(); }
 
-    std::string operator()(std::vector<char> const &data) {
-        return std::to_string(data.size());
-    }
+    JStringArrayList(std::shared_ptr<JGameRequester> inRequester, std::shared_ptr<_jobject> inArray,
+            std::shared_ptr<_jclass> inArrayClass = nullptr);
+private:
+    std::shared_ptr<JGameRequester> m_requester;
+    std::shared_ptr<_jobject> m_jstrArrayList;
+    std::shared_ptr<_jclass> m_arrayListClass;
+    mutable jmethodID m_midGet;
+    mutable jmethodID m_midAdd;
+    mutable jmethodID m_midSize;
 
-    std::string operator()(bool b) {
-        return std::to_string(b?1:0);
-    }
-
-    std::string operator()(int i) {
-        return std::to_string(i);
-    }
-};
-
-class GameBundleFloatVisitor {
-public:
-    float operator()(std::string const &str) {
-        return str.length();
-    }
-
-    float operator()(float f) {
-        return f;
-    }
-
-    float operator()(std::vector<char> const &data) {
-        return data.size();
-    }
-
-    float operator()(bool b) {
-        return b?1.0f:0.0f;
-    }
-
-    float operator()(int i) {
-        return i;
-    }
-};
-
-class GameBundleByteArrayVisitor {
-public:
-    std::vector<char> operator()(std::string const &str) {
-        std::vector<char> vec;
-        vec.resize(str.length());
-        memcpy(vec.data(), str.data(), str.length());
-        return std::move(vec);
-    }
-
-    std::vector<char> operator()(float f) {
-        std::string str = std::to_string(f);
-        std::vector<char> vec;
-        vec.resize(str.length());
-        memcpy(vec.data(), str.data(), str.length());
-        return std::move(vec);
-    }
-
-    std::vector<char> operator()(std::vector<char> data) {
-        return std::move(data);
-    }
-
-    std::vector<char> operator()(bool b) {
-        std::string str = std::to_string(b?1:0);
-        std::vector<char> vec;
-        vec.resize(str.length());
-        memcpy(vec.data(), str.data(), str.length());
-        return std::move(vec);
-    }
-
-    std::vector<char> operator()(int i) {
-        std::string str = std::to_string(i);
-        std::vector<char> vec;
-        vec.resize(str.length());
-        memcpy(vec.data(), str.data(), str.length());
-        return std::move(vec);
-    }
-};
-
-class GameBundleBoolVisitor {
-public:
-    bool operator()(std::string const &str) {
-        return str.length() > 0;
-    }
-
-    bool operator()(float f) {
-        return f != 0.0f;
-    }
-
-    bool operator()(std::vector<char> const &data) {
-        return data.size() > 0;
-    }
-
-    bool operator()(bool b) {
-        return b;
-    }
-
-    bool operator()(int i) {
-        return i != 0;
-    }
-};
-
-class GameBundleIntVisitor {
-public:
-    int operator()(std::string const &str) {
-        return str.length();
-    }
-
-    int operator()(float f) {
-        return static_cast<int>(std::floor(f));
-    }
-
-    int operator()(std::vector<char> const &data) {
-        return data.size();
-    }
-
-    int operator()(bool b) {
-        return b?1:0;
-    }
-
-    int operator()(int i) {
-        return i;
-    }
+    jmethodID mid(jmethodID &m, char const *name, char const *signature) const;
+    jmethodID midGet() const;
+    jmethodID midAdd() const;
+    jmethodID midSize() const;
 };
 
 class JGameBundle {
 public:
-    GameBundle getData(GameBundleSchema const &keys) const;
+    template <typename T>
+    T getDatum(std::string const &key) const;
 
     template <typename T>
-    GameBundleValue getDatum(std::string const &key) const;
-
-    void putData(GameBundle const &val);
-
-    template <typename T>
-    void putDatum(std::string const &key, GameBundleValue const &val);
+    void putDatum(std::string const &key, T const &val) {
+        throw std::runtime_error("JGameBundle: unimplemented type for putDatum");
+    }
 
     // accessors
     std::shared_ptr<_jobject> const &bundle() { return m_bundle; }
 
-    JGameBundle(std::shared_ptr<JGameRequester> inRequester, std::shared_ptr<_jobject> inBundle);
-    using GetMap = std::map<std::type_index, GameBundleValue (JGameBundle::*)(std::string const &key) const>;
-    using PutMap = std::map<std::type_index, void (JGameBundle::*)(std::string const &key, GameBundleValue const &val)>;
+    JGameBundle(std::shared_ptr<JGameRequester> inRequester, std::shared_ptr<_jobject> inBundle,
+            std::shared_ptr<_jclass> inBundleClass = nullptr);
 private:
-    std::map<std::type_index, GameBundleValue (JGameBundle::*)(std::string const &key) const> m_getDatumMap;
-    std::map<std::type_index, void (JGameBundle::*)(std::string const &key, GameBundleValue const &val)> m_putDatumMap;
     std::shared_ptr<JGameRequester> m_requester;
     std::shared_ptr<_jobject> m_bundle;
     std::shared_ptr<_jclass> m_bundleClass;
-    jmethodID m_midGetString;
-    jmethodID m_midGetFloat;
-    jmethodID m_midGetByteArray;
-    jmethodID m_midGetBool;
-    jmethodID m_midGetInt;
+    mutable jmethodID m_midGetString;
+    mutable jmethodID m_midGetStringArrayList;
+    mutable jmethodID m_midGetFloat;
+    mutable jmethodID m_midGetByteArray;
+    mutable jmethodID m_midGetBool;
+    mutable jmethodID m_midGetInt;
 
-    jmethodID m_midPutString;
-    jmethodID m_midPutFloat;
-    jmethodID m_midPutByteArray;
-    jmethodID m_midPutBool;
-    jmethodID m_midPutInt;
+    mutable jmethodID m_midPutString;
+    mutable jmethodID m_midPutStringArrayList;
+    mutable jmethodID m_midPutFloat;
+    mutable jmethodID m_midPutByteArray;
+    mutable jmethodID m_midPutBool;
+    mutable jmethodID m_midPutInt;
 
+    jmethodID mid(jmethodID &m, char const *name, char const *signature) const;
+    jmethodID midGetString() const;
+    jmethodID midGetStringArrayList() const;
+    jmethodID midGetFloat() const;
+    jmethodID midGetByteArray() const;
+    jmethodID midGetBool() const;
+    jmethodID midGetInt() const;
+
+    jmethodID midPutString() const;
+    jmethodID midPutStringArrayList() const;
+    jmethodID midPutFloat() const;
+    jmethodID midPutByteArray() const;
+    jmethodID midPutBool() const;
+    jmethodID midPutInt() const;
 };
-
-template <typename T> void insertGetDatumMapEntry(JGameBundle::GetMap &map) {
-    map.insert(std::make_pair(std::type_index(typeid(T)), &JGameBundle::getDatum<T>));
-}
-
-template <typename T> void insertPutDatumMapEntry(JGameBundle::PutMap &map) {
-    map.insert(std::make_pair(std::type_index(typeid(T)), &JGameBundle::putDatum<T>));
-}
 
 #endif // AMAZING_LABYRINTH_GAME_REQUESTER_HPP

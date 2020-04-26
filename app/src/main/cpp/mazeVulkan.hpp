@@ -520,7 +520,8 @@ public:
         auto devGraphicsDescription = m_device->properties();
         return GraphicsDescription{std::string{"Vulkan"},
                 std::move(devGraphicsDescription.m_vulkanAPIVersion),
-                std::move(devGraphicsDescription.m_name)};
+                std::move(devGraphicsDescription.m_name),
+                std::vector<std::string>{}};
     }
 
     virtual std::shared_ptr<TextureData> getDepthTexture(
@@ -539,7 +540,10 @@ public:
         }
     }
 private:
+    // use less precision for the shadow buffer because not all Vulkan drivers support drawing into
+    // a large frame buffer even though this is not reflected in VkPhysicalDeviceProperties.limits.
     static uint32_t constexpr shadowsSizeDivider = 2;
+
     std::shared_ptr<vulkan::Instance> m_instance;
     std::shared_ptr<vulkan::Device> m_device;
     std::shared_ptr<vulkan::SwapChain> m_swapChain;

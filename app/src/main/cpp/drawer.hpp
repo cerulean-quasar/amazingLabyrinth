@@ -1,5 +1,5 @@
 /**
- * Copyright 2019 Cerulean Quasar. All Rights Reserved.
+ * Copyright 2020 Cerulean Quasar. All Rights Reserved.
  *
  *  This file is part of Amazing Labyrinth.
  *
@@ -168,8 +168,8 @@ public:
             }
         }
 
-        initGraphics(std::move(inSurface), inRequesterCreator);
-        m_graphics->sendGraphicsDescription(whichSensors.test(Sensors::ACCELEROMETER_SENSOR));
+        std::string error = std::move(initGraphics(std::move(inSurface), inRequesterCreator));
+        m_graphics->sendGraphicsDescription(whichSensors.test(Sensors::ACCELEROMETER_SENSOR), error);
     }
 
     void drawingLoop();
@@ -180,7 +180,7 @@ private:
     bool m_tryVulkan;
     std::unique_ptr<Graphics> m_graphics;
 
-    void initGraphics(std::shared_ptr<WindowType> surface, GameRequesterCreator requesterCreator);
+    std::string initGraphics(std::shared_ptr<WindowType> surface, GameRequesterCreator requesterCreator);
 };
 
 #endif // AMAZING_LABYRINTH_DRAWER_HPP

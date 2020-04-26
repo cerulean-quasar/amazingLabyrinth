@@ -190,8 +190,21 @@ public:
 
     virtual void recreateSwapChain(uint32_t width, uint32_t height);
 
+    std::vector<std::string> getBugList() {
+        if (m_useIntTexture) {
+            return std::vector<std::string>();
+        } else {
+            return std::vector<std::string>{"OpenGL implementation does not support integer surfaces."};
+        }
+    }
+
     virtual GraphicsDescription graphicsDescription() {
-        return GraphicsDescription{"OpenGLES", "", ""};
+        return GraphicsDescription{
+            "OpenGLES",
+            reinterpret_cast<char const *>(glGetString(GL_VERSION)),
+            std::string(reinterpret_cast<char const *>(glGetString(GL_VENDOR))) + " " +
+                std::string(reinterpret_cast<char const*>(glGetString(GL_RENDERER))),
+            getBugList()};
     }
 
     virtual std::shared_ptr<TextureData> getDepthTexture(

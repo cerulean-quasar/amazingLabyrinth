@@ -4,4 +4,22 @@
     <string name="ok">OK</string>
     <string name="cancel">Cancel</string>
     <string name="error">Error</string>
+    <string name="about">About</string>
+    <string name="unknown">Unknown</string>
+    <string name="none">None</string>
+    <string name="yes">Yes</string>
+    <string name="no">No</string>
+    <string name="done">Done</string>
+
+    <string name="gameInfo">Game Information</string>
+    <string name="gameName">Game:</string>
+    <string name="developer">Developer:</string>
+    <string name="developerName">Cerulean Quasar</string>
+    <string name="graphics">Graphics Information:</string>
+    <string name="graphicsAPI">API:</string>
+    <string name="version">Version:</string>
+    <string name="graphicsDriverInfo">Device:</string>
+    <string name="graphicsDriverKnownIssues">Driver known issues:</string>
+    <string name="accelerometer">Accelerometer:</string>
+    <string name="hasAccelerometer">Device has Accelerometer:</string>
 </resources>

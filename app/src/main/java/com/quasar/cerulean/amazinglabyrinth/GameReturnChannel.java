@@ -13,7 +13,7 @@ public class GameReturnChannel {
 
     public void sendError(String error) {
         Bundle bundle = new Bundle();
-        bundle.putString(MySurfaceCallback.KeyError, error);
+        bundle.putString(Constants.KeyError, error);
         Message msg = new Message();
         msg.setData(bundle);
         m_notify.sendMessage(msg);

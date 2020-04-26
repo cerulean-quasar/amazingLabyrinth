@@ -1,5 +1,5 @@
 /**
- * Copyright 2019 Cerulean Quasar. All Rights Reserved.
+ * Copyright 2020 Cerulean Quasar. All Rights Reserved.
  *
  *  This file is part of AmazingLabyrinth.
  *
@@ -26,26 +26,16 @@ import android.os.Message;
 import android.view.Surface;
 import android.view.SurfaceHolder;
 
-public class MySurfaceCallback implements SurfaceHolder.Callback {
-    public static final String KeyError = "errorString";
-    private static final String KeyGraphicsName = "graphicsName";
-    private static final String KeyVersionName = "versionName";
-    private static final String KeyDeviceName = "deviceName";
-    private static final String KeyHasAccelerometer = "hasAccelerometer";
+import java.util.ArrayList;
+import java.util.Locale;
 
+public class MySurfaceCallback implements SurfaceHolder.Callback {
     private MainActivity m_app;
     private Thread m_game;
-    private Bundle m_saveData;
 
-    public MySurfaceCallback(MainActivity inApp, Bundle saveData) {
+    public MySurfaceCallback(MainActivity inApp) {
         m_app = inApp;
         m_game = null;
-
-        if (saveData != null) {
-            m_saveData = saveData.getBundle(Draw.SAVE_GAME_DATA);
-        } else {
-            m_saveData = null;
-        }
     }
 
     public void surfaceChanged(SurfaceHolder holder,
@@ -88,10 +78,39 @@ public class MySurfaceCallback implements SurfaceHolder.Callback {
     private class GameErrorHandler implements Handler.Callback {
         public boolean handleMessage(Message message) {
             Bundle data = message.getData();
-            String error = data.getString(Draw.ERROR_STRING_KEY);
+
+            // is this an error message?
+            String error = data.getString(Constants.KeyError);
             if (error != null) {
                 MySurfaceCallback.this.m_app.publishError(error);
+                return true;
             }
+
+            // is this a message about with information about the hardware/drivers?
+            String graphicsName = data.getString(Constants.KeyGraphicsName);
+            if (graphicsName != null) {
+                String version = data.getString(Constants.KeyVersionName, m_app.getString(R.string.unknown));
+                String deviceName = data.getString(Constants.KeyDeviceName, m_app.getString(R.string.unknown));
+                boolean hasAccelerometer = data.getBoolean(Constants.KeyHasAccelerometer, false);
+                ArrayList<String> driverBugInfo = null;
+                String str = null;
+                int i = 0;
+                do {
+                    str = data.getString(Constants.KeyBugInfo + Integer.toString(i));
+                    i++;
+                    if (str != null) {
+                        if (driverBugInfo == null) {
+                            driverBugInfo = new ArrayList<>();
+                        }
+                        driverBugInfo.add(str);
+                    }
+                } while (str != null);
+
+                MySurfaceCallback.this.m_app.setDeviceInfo(graphicsName, version, deviceName,
+                        hasAccelerometer, driverBugInfo);
+            }
+
+            // unknown message, ignore
             return true;
         }
     }

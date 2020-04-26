@@ -1,5 +1,5 @@
 /**
- * Copyright 2019 Cerulean Quasar. All Rights Reserved.
+ * Copyright 2020 Cerulean Quasar. All Rights Reserved.
  *
  *  This file is part of AmazingLabyrinth.
  *
@@ -33,11 +33,15 @@ public:
     std::string m_graphicsName;
     std::string m_version;
     std::string m_deviceName;
+    std::vector<std::string> m_extraInfo;
 
-    GraphicsDescription(std::string inGraphicsName, std::string inVersion, std::string inDeviceName)
+    GraphicsDescription(std::string inGraphicsName, std::string inVersion, std::string inDeviceName,
+            std::vector<std::string> &&inExtraInfo)
         : m_graphicsName{std::move(inGraphicsName)},
           m_version{std::move(inVersion)},
-          m_deviceName{std::move(inDeviceName)} {
+          m_deviceName{std::move(inDeviceName)},
+          m_extraInfo{std::move(inExtraInfo)}
+    {
     }
 };
 

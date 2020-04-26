@@ -2,12 +2,8 @@
 <menu xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto">
     <item
-        android:title="@string/select_level"
+        android:title="@string/done"
         app:showAsAction="ifRoom"
-        android:onClick="onSelectLevel"
-        />
-    <item
-        android:title="@string/about"
-        android:onClick="onAbout"
+        android:onClick="onDone"
         />
 </menu>

@@ -1,5 +1,5 @@
 /**
- * Copyright 2019 Cerulean Quasar. All Rights Reserved.
+ * Copyright 2020 Cerulean Quasar. All Rights Reserved.
  *
  *  This file is part of AmazingLabyrinth.
  *
@@ -26,9 +26,6 @@ import android.os.Message;
 import android.view.Surface;
 
 public class Draw implements Runnable {
-    public static String ERROR_STRING_KEY = "errorString";
-    public static String SAVE_GAME_DATA = "saveGameData";
-
     private Handler m_notify;
     private Surface m_drawingSurface;
     private AssetManager m_assetManager;

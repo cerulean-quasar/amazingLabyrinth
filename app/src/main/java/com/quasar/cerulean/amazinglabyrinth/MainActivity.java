@@ -1,5 +1,5 @@
 /**
- * Copyright 2019 Cerulean Quasar. All Rights Reserved.
+ * Copyright 2020 Cerulean Quasar. All Rights Reserved.
  *
  *  This file is part of AmazingLabyrinth.
  *
@@ -19,6 +19,7 @@
  */
 package com.quasar.cerulean.amazinglabyrinth;
 
+import android.content.Intent;
 import android.graphics.PixelFormat;
 
 import androidx.appcompat.app.AlertDialog;
@@ -39,7 +40,14 @@ import android.widget.LinearLayout;
 import android.widget.Spinner;
 import android.widget.TextView;
 
+import java.util.ArrayList;
+
 public class MainActivity extends AppCompatActivity implements AdapterView.OnItemSelectedListener {
+    String m_graphicsName;
+    String m_version;
+    String m_deviceName;
+    boolean m_hasAccelerometer;
+    ArrayList<String> m_driverBugInfo;
 
     // Used to load the 'native-lib' library on application startup.
     static {
@@ -59,7 +67,13 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
         drawSurfaceView.setZOrderOnTop(true);
         SurfaceHolder drawSurfaceHolder = drawSurfaceView.getHolder();
         drawSurfaceHolder.setFormat(PixelFormat.TRANSPARENT);
-        drawSurfaceHolder.addCallback(new MySurfaceCallback(this, savedInstanceState));
+        drawSurfaceHolder.addCallback(new MySurfaceCallback(this));
+
+        m_graphicsName = getString(R.string.unknown);
+        m_version = getString(R.string.unknown);
+        m_deviceName = getString(R.string.unknown);
+        m_hasAccelerometer = false;
+        m_driverBugInfo = null;
     }
 
     @Override
@@ -131,6 +145,23 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
         });
     }
 
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        // do nothing for now...
+    }
+
+    public void onAbout(MenuItem item) {
+        Intent intent = new Intent(this, AboutActivity.class);
+        intent.putExtra(Constants.KeyHasAccelerometer, m_hasAccelerometer);
+        intent.putExtra(Constants.KeyGraphicsName, m_graphicsName);
+        intent.putExtra(Constants.KeyDeviceName, m_deviceName);
+        intent.putExtra(Constants.KeyVersionName, m_version);
+        if (m_driverBugInfo != null) {
+            intent.putExtra(Constants.KeyBugInfo, m_driverBugInfo);
+        }
+        startActivityForResult(intent, Constants.AMAZING_LABYRINTH_ABOUT_ACTIVITY);
+    }
+
     public void publishError(String err) {
         if (err != null && err.length() > 0) {
             LinearLayout layout = findViewById(R.id.mainLayout);
@@ -150,5 +181,19 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
                 }
             });
         }
+    }
+
+    public void setDeviceInfo(
+            String graphicsName,
+            String version,
+            String deviceName,
+            boolean hasAccelerometer,
+            ArrayList<String> driverBugInfo)
+    {
+        m_graphicsName = graphicsName;
+        m_version = version;
+        m_deviceName = deviceName;
+        m_hasAccelerometer = hasAccelerometer;
+        m_driverBugInfo = driverBugInfo;
     }
 }
