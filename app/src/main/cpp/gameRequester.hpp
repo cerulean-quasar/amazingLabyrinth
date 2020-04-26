@@ -65,7 +65,6 @@ public:
 
     // accessors
     JNIEnv *env() { return m_env; }
-    std::shared_ptr<JStringArrayList> createStringArrayList();
 
     // constructors
     JGameRequester(JNIEnv *inEnv, jobject inNotify, std::string inSaveGameFile, AAssetManager *mgr,
@@ -88,30 +87,6 @@ private:
     Graphics *m_graphics;
 };
 
-class JStringArrayList {
-public:
-    size_t size() const;
-    std::string get(size_t i) const;
-    void add(std::string const &value);
-
-    inline jobject object() { return m_jstrArrayList.get(); }
-
-    JStringArrayList(std::shared_ptr<JGameRequester> inRequester, std::shared_ptr<_jobject> inArray,
-            std::shared_ptr<_jclass> inArrayClass = nullptr);
-private:
-    std::shared_ptr<JGameRequester> m_requester;
-    std::shared_ptr<_jobject> m_jstrArrayList;
-    std::shared_ptr<_jclass> m_arrayListClass;
-    mutable jmethodID m_midGet;
-    mutable jmethodID m_midAdd;
-    mutable jmethodID m_midSize;
-
-    jmethodID mid(jmethodID &m, char const *name, char const *signature) const;
-    jmethodID midGet() const;
-    jmethodID midAdd() const;
-    jmethodID midSize() const;
-};
-
 class JGameBundle {
 public:
     template <typename T>
@@ -132,14 +107,12 @@ private:
     std::shared_ptr<_jobject> m_bundle;
     std::shared_ptr<_jclass> m_bundleClass;
     mutable jmethodID m_midGetString;
-    mutable jmethodID m_midGetStringArrayList;
     mutable jmethodID m_midGetFloat;
     mutable jmethodID m_midGetByteArray;
     mutable jmethodID m_midGetBool;
     mutable jmethodID m_midGetInt;
 
     mutable jmethodID m_midPutString;
-    mutable jmethodID m_midPutStringArrayList;
     mutable jmethodID m_midPutFloat;
     mutable jmethodID m_midPutByteArray;
     mutable jmethodID m_midPutBool;
@@ -147,14 +120,12 @@ private:
 
     jmethodID mid(jmethodID &m, char const *name, char const *signature) const;
     jmethodID midGetString() const;
-    jmethodID midGetStringArrayList() const;
     jmethodID midGetFloat() const;
     jmethodID midGetByteArray() const;
     jmethodID midGetBool() const;
     jmethodID midGetInt() const;
 
     jmethodID midPutString() const;
-    jmethodID midPutStringArrayList() const;
     jmethodID midPutFloat() const;
     jmethodID midPutByteArray() const;
     jmethodID midPutBool() const;

@@ -56,38 +56,30 @@ std::string JGameBundle::getDatum<std::string>(std::string const &key) const {
                                    deleter);
     handleJNIException(lenv);
 
-    char const *cstr = lenv->GetStringUTFChars(jstr.get(), nullptr);
-    handleJNIException(lenv);
-    std::string str{cstr};
-    lenv->ReleaseStringUTFChars(jstr.get(), cstr);
-    handleJNIException(lenv);
+    std::string str;
+    if (jstr.get() != nullptr) {
+        char const *cstr = lenv->GetStringUTFChars(jstr.get(), nullptr);
+        handleJNIException(lenv);
+        str = cstr;
+        lenv->ReleaseStringUTFChars(jstr.get(), cstr);
+        handleJNIException(lenv);
+    }
 
     return std::move(str);
 }
 
 template <>
 std::vector<std::string> JGameBundle::getDatum<std::vector<std::string>>(std::string const &key) const {
-    JNIEnv *lenv = m_requester->env();
-    auto deleter = [lenv](jobject obj) {
-        lenv->DeleteLocalRef(obj);
-    };
-
-    std::shared_ptr<_jstring> jkey(lenv->NewStringUTF(key.c_str()), deleter);
-    handleJNIException(lenv);
-    std::shared_ptr<_jobject> jstrArrayList(
-            (jobject) lenv->CallObjectMethod(m_bundle.get(), midGetStringArrayList(), jkey.get()),
-            deleter);
-    handleJNIException(lenv);
-
-    auto arrlist = std::make_shared<JStringArrayList>(m_requester, jstrArrayList);
-
-    size_t nbrStrings = arrlist->size();
-    handleJNIException(lenv);
-
     std::vector<std::string> vec;
-    for (size_t i = 0; i < nbrStrings; i++) {
-        vec.push_back(arrlist->get(i));
-    }
+    std::string str;
+    size_t i = 0;
+    do {
+        str = std::move(getDatum<std::string>(key + std::to_string(i)));
+        if (!str.empty()) {
+            vec.push_back(str);
+        }
+        i++;
+    } while (!str.empty());
 
     return std::move(vec);
 }
@@ -183,28 +175,6 @@ void JGameBundle::putDatum<std::vector<std::string>>(std::string const &key, std
     for (size_t i = 0; i < val.size(); i++) {
         putDatum(key + std::to_string(i), val[i]);
     }
-#if 0
-    if (val.empty()) {
-        return;
-    }
-
-    JNIEnv *lenv = m_requester->env();
-    auto deleter = [lenv](jobject obj) {
-        lenv->DeleteLocalRef(obj);
-    };
-
-    std::shared_ptr<_jstring> jkey(lenv->NewStringUTF(key.c_str()), deleter);
-    handleJNIException(lenv);
-
-    auto arrlist = m_requester->createStringArrayList();
-
-    for (auto const &str : val) {
-        arrlist->add(str);
-    }
-
-    lenv->CallVoidMethod(m_bundle.get(), midPutStringArrayList(), jkey.get(), arrlist->object());
-    handleJNIException(lenv);
-#endif
 }
 
 template<>
@@ -270,90 +240,6 @@ void JGameBundle::putDatum<int>(std::string const &key, int const &val) {
 
     lenv->CallVoidMethod(m_bundle.get(), midPutInt(), jkey.get(), val);
     handleJNIException(lenv);
-}
-
-JStringArrayList::JStringArrayList(
-    std::shared_ptr<JGameRequester> inRequester,
-    std::shared_ptr<_jobject> inArray,
-    std::shared_ptr<_jclass> inArrayClass)
-    : m_requester{std::move(inRequester)},
-      m_arrayListClass{std::move(inArrayClass)},
-      m_jstrArrayList{std::move(inArray)},
-      m_midGet{},
-      m_midAdd{},
-      m_midSize{}
-{
-    if (!m_arrayListClass) {
-        JNIEnv *lenv = m_requester->env();
-        auto deleter = [lenv](jobject obj) {
-            lenv->DeleteLocalRef(obj);
-        };
-        m_arrayListClass = std::shared_ptr<_jclass>(lenv->GetObjectClass(m_jstrArrayList.get()), deleter);
-    }
-}
-
-size_t JStringArrayList::size() const {
-    JNIEnv *lenv = m_requester->env();
-
-    return static_cast<size_t>(lenv->CallIntMethod(m_jstrArrayList.get(), midSize()));
-}
-
-void JStringArrayList::add(std::string const &val) {
-    JNIEnv *lenv = m_requester->env();
-
-    auto deleter = [lenv](jobject obj) {
-        lenv->DeleteLocalRef(obj);
-    };
-
-    std::shared_ptr<_jstring> jstr(lenv->NewStringUTF(val.c_str()), deleter);
-    handleJNIException(lenv);
-
-    lenv->CallBooleanMethod(m_jstrArrayList.get(), midAdd(), jstr.get());
-}
-
-std::string JStringArrayList::get(size_t i) const {
-    JNIEnv *lenv = m_requester->env();
-    auto deleter = [lenv](jobject obj) {
-        lenv->DeleteLocalRef(obj);
-    };
-
-    std::shared_ptr<_jstring> jstr(
-            (jstring) lenv->CallObjectMethod(m_jstrArrayList.get(), midGet(), static_cast<int>(i)),
-            deleter);
-    handleJNIException(lenv);
-
-    char const *cstr = lenv->GetStringUTFChars(jstr.get(), nullptr);
-    handleJNIException(lenv);
-    std::string str{cstr};
-    lenv->ReleaseStringUTFChars(jstr.get(), cstr);
-    handleJNIException(lenv);
-
-    return std::move(str);
-}
-
-jmethodID JStringArrayList::mid(jmethodID &m, char const *name, char const *signature) const {
-    if (m) {
-        return m;
-    } else {
-        JNIEnv *lenv = m_requester->env();
-        m = lenv->GetMethodID(m_arrayListClass.get(), name, signature);
-        handleJNIException(lenv);
-        if (m == nullptr) {
-            throw std::runtime_error(std::string("Could not find ArrayList::") + name);
-        }
-        return m;
-    }
-}
-jmethodID JStringArrayList::midAdd() const {
-    return mid(m_midAdd, "add", "(Ljava/lang/Object;)Z");
-}
-
-jmethodID JStringArrayList::midGet() const {
-    return mid(m_midGet, "get", "(I)Ljava/lang/Object;");
-}
-
-jmethodID JStringArrayList::midSize() const {
-    return mid(m_midSize, "size", "()I");
 }
 
 std::shared_ptr<TextureData> JGameRequester::getDepthTexture(
@@ -512,24 +398,6 @@ std::shared_ptr<JGameBundle> JGameRequester::createBundle(std::shared_ptr<_jobje
     return std::make_shared<JGameBundle>(shared_from_this(), std::move(inBundle));
 }
 
-std::shared_ptr<JStringArrayList> JGameRequester::createStringArrayList() {
-    JNIEnv *lenv = m_env;
-    auto deleter = [lenv](jobject obj) {
-        lenv->DeleteLocalRef(obj);
-    };
-    std::shared_ptr<_jclass> arrayListClass(m_env->FindClass("java/util/ArrayList"), deleter);
-    handleJNIException(m_env);
-
-    jmethodID mid = m_env->GetMethodID(arrayListClass.get(), "<init>", "()V");
-    if (mid == nullptr) {
-        throw (std::runtime_error("Could not find method for creating an ArrayList."));
-    }
-    std::shared_ptr<_jobject> jArrayList(m_env->NewObject(arrayListClass.get(), mid), deleter);
-    handleJNIException(m_env);
-
-    return std::make_shared<JStringArrayList>(shared_from_this(), jArrayList, arrayListClass);
-}
-
 void JGameRequester::sendSaveData(std::vector<uint8_t> const &saveData) {
     std::ofstream saveDataStream(m_pathSaveFile);
 
@@ -601,11 +469,6 @@ jmethodID JGameBundle::midGetString() const {
     return mid(m_midGetString, "getString", "(Ljava/lang/String;)Ljava/lang/String;");
 }
 
-jmethodID JGameBundle::midGetStringArrayList() const {
-    return mid(m_midGetStringArrayList, "getStringArrayList",
-            "(Ljava/lang/String;)Ljava/util/ArrayList;");
-}
-
 jmethodID JGameBundle::midGetFloat() const {
     return mid(m_midGetFloat, "getFloat", "(Ljava/lang/String;)F");
 }
@@ -624,10 +487,6 @@ jmethodID JGameBundle::midGetInt() const {
 
 jmethodID JGameBundle::midPutString() const {
     return mid(m_midPutString, "putString", "(Ljava/lang/String;Ljava/lang/String;)V");
-}
-
-jmethodID JGameBundle::midPutStringArrayList() const {
-    return mid(m_midPutStringArrayList, "putStringArrayList", "(Ljava/lang/String;Ljava/util/ArrayList;)V");
 }
 
 jmethodID JGameBundle::midPutFloat() const {
