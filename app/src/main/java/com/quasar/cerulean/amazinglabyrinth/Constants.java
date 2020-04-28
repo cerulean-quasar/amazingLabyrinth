@@ -23,11 +23,15 @@ package com.quasar.cerulean.amazinglabyrinth;
 public class Constants {
     public static final String KeyError = "errorString";
 
-    // for About activity
+    // for About Activity
     public static final int AMAZING_LABYRINTH_ABOUT_ACTIVITY = 1;
     public static final String KeyGraphicsName = "graphicsName";
     public static final String KeyDeviceName = "deviceName";
     public static final String KeyVersionName = "versionName";
     public static final String KeyHasAccelerometer = "hasAccelerometer";
     public static final String KeyBugInfo = "bugInfo";
+
+    // for Show License Activity
+    public static final int AMAZING_LABYRINTH_LICENSE_ACTIVITY = 2;
+    public static final String KeyLicenseFile = "licenseFile";
 }

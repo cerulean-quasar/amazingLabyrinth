@@ -28,12 +28,14 @@ import android.os.Bundle;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
+import android.view.View;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 
 import java.util.ArrayList;
 
 public class AboutActivity extends AppCompatActivity {
+    private static final String path = "license/";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -98,5 +100,35 @@ public class AboutActivity extends AppCompatActivity {
     public void onDone(MenuItem item) {
         setResult(RESULT_OK);
         finish();
+    }
+
+    private void loadLicense(String filename) {
+        Intent intent = new Intent(this, LicenseViewerActivity.class);
+        intent.putExtra(Constants.KeyLicenseFile, filename);
+        startActivityForResult(intent, Constants.AMAZING_LABYRINTH_LICENSE_ACTIVITY);
+    }
+
+    public void onMitGlm(View v) {
+        loadLicense(path + "mitGlm.txt");
+    }
+
+    public void onMitJsonForModernCpp(View v) {
+        loadLicense(path + "mitJsonForModernCpp.txt");
+    }
+
+    public void onMitTinyObjLoader(View v) {
+        loadLicense(path + "mitTinyObjLoader.txt");
+    }
+
+    public void onMitStb(View v) {
+        loadLicense(path + "mitStb.txt");
+    }
+
+    public void onGnu3(View v) {
+        loadLicense(path + "gpl3.txt");
+    }
+
+    public void onBoost(View v) {
+        loadLicense(path + "boost.txt");
     }
 }
