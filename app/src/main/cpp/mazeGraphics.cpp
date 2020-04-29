@@ -173,6 +173,7 @@ bool LevelSequence::updateData() {
 }
 
 void LevelSequence::changeLevel(size_t level) {
+    initializeLevelTracker();
     m_levelTracker->setLevel(level);
     m_levelGroupFcns = m_levelTracker->getLevelGroupFcns();
     m_levelStarter = m_levelGroupFcns.getStarterFcn(*m_levelTracker);

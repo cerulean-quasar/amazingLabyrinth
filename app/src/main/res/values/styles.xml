@@ -1,7 +1,6 @@
 <resources>
     <attr name="divider" format="reference"/>
     <attr name="background_landscape" format="reference"/>
-    <attr name="scrollBarColor" format="reference"/>
 
     <!-- Base application theme. -->
     <style name="AppTheme" parent="Theme.AppCompat.Light.DarkActionBar">
@@ -10,7 +9,7 @@
         <item name="colorPrimaryDark">@color/colorPrimaryDark</item>
         <item name="colorAccent">@color/colorAccent</item>
         <item name="android:windowBackground">@drawable/background</item>
-        <item name="scrollBarColor">@color/green</item>
+        <item name="android:scrollbarThumbVertical">@color/green</item>
         <item name="divider">@drawable/divider</item>
     </style>
 

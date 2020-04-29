@@ -294,7 +294,7 @@ std::vector<std::string> LevelTracker::getLevelDescriptions() {
     std::vector<std::string> ret;
 
     for (int i = 0; i < getLevelTable().size(); i++) {
-        ret.push_back(std::to_string(i) + ": " + getLevelTable()[i].levelDescription);
+        ret.push_back(getLevelTable()[i].levelDescription);
     }
 
     return ret;

@@ -34,4 +34,9 @@ public class Constants {
     // for Show License Activity
     public static final int AMAZING_LABYRINTH_LICENSE_ACTIVITY = 2;
     public static final String KeyLicenseFile = "licenseFile";
+
+    // for Choose Level Activity
+    public static final int AMAZING_LABYRINTH_CHOOSE_LEVEL_ACTIVITY = 3;
+    public static final String KeySelectedLevel = "selectedLevel";
+    public static final String KeyLevels = "levels";
 }
