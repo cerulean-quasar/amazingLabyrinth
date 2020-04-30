@@ -21,6 +21,7 @@ package com.quasar.cerulean.amazinglabyrinth;
 
 import android.app.Activity;
 import android.content.Intent;
+import android.util.TypedValue;
 import android.view.Gravity;
 import android.view.View;
 import android.view.ViewGroup;
@@ -59,7 +60,10 @@ public class ChooseLevelAdaptor extends RecyclerView.Adapter<RecyclerView.ViewHo
     @Override @NonNull
     public RecyclerView.ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
         Button button = new Button(parent.getContext());
-        button.setBackgroundColor(0x2000a000);
+        TypedValue value = new TypedValue();
+        m_parentActivity.getTheme().resolveAttribute(R.attr.button_background, value, true);
+
+        button.setBackground(m_parentActivity.getResources().getDrawable(value.resourceId));
         button.setPadding(20,20,20,20);
         button.setGravity(Gravity.CENTER_HORIZONTAL);
         return new ChooseLevelViewHolder(button);

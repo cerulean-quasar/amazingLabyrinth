@@ -1,6 +1,8 @@
 <resources>
     <attr name="divider" format="reference"/>
     <attr name="background_landscape" format="reference"/>
+    <attr name="button_background" format="reference"/>
+    <attr name="app_name" format="reference"/>
 
     <!-- Base application theme. -->
     <style name="AppTheme" parent="Theme.AppCompat.Light.DarkActionBar">
@@ -11,6 +13,9 @@
         <item name="android:windowBackground">@drawable/background</item>
         <item name="android:scrollbarThumbVertical">@color/green</item>
         <item name="divider">@drawable/divider</item>
+        <item name="button_background">@drawable/button_background</item>
+        <item name="app_name">@drawable/game_name</item>
+        <item name="android:itemBackground">@color/green</item>
     </style>
 
 </resources>

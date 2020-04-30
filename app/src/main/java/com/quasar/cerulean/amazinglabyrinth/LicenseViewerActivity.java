@@ -19,10 +19,12 @@
  */
 package com.quasar.cerulean.amazinglabyrinth;
 
+import androidx.appcompat.app.ActionBar;
 import androidx.appcompat.app.AppCompatActivity;
 
 import android.content.res.AssetManager;
 import android.os.Bundle;
+import android.util.TypedValue;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
@@ -61,6 +63,15 @@ public class LicenseViewerActivity extends AppCompatActivity {
             setResult(RESULT_CANCELED);
             finish();
             return;
+        }
+
+
+        TypedValue value = new TypedValue();
+        getTheme().resolveAttribute(R.attr.app_name, value, true);
+
+        ActionBar actionBar = getSupportActionBar();
+        if (actionBar != null) {
+            actionBar.setBackgroundDrawable(getResources().getDrawable(value.resourceId));
         }
 
         m_recycler = findViewById(R.id.licenseContainer);

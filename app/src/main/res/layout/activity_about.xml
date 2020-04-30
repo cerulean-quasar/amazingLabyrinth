@@ -69,6 +69,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:onClick="onGnu3"
+            android:background="?attr/button_background"
             android:text="@string/licenseGnu3"/>
     </GridLayout>
     </LinearLayout>
@@ -94,6 +95,7 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:onClick="onMitGlm"
+                    android:background="?attr/button_background"
                     android:text="@string/licenseMIT"/>
                 <TextView
                     android:layout_width="wrap_content"
@@ -105,6 +107,7 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:onClick="onMitJsonForModernCpp"
+                    android:background="?attr/button_background"
                     android:text="@string/licenseMIT"/>
                 <TextView
                     android:layout_width="wrap_content"
@@ -116,6 +119,7 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:onClick="onBoost"
+                    android:background="?attr/button_background"
                     android:text="@string/licenseBoost"/>
                 <TextView
                     android:layout_width="wrap_content"
@@ -127,6 +131,7 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:onClick="onMitTinyObjLoader"
+                    android:background="?attr/button_background"
                     android:text="@string/licenseMIT"/>
                 <TextView
                     android:layout_width="wrap_content"
@@ -138,6 +143,7 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:onClick="onMitStb"
+                    android:background="?attr/button_background"
                     android:text="@string/licenseMIT"/>
             </GridLayout>
         </LinearLayout>

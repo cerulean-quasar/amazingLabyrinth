@@ -22,9 +22,11 @@ package com.quasar.cerulean.amazinglabyrinth;
 import android.content.Intent;
 import android.graphics.PixelFormat;
 
+import androidx.appcompat.app.ActionBar;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import android.os.Bundle;
+import android.util.TypedValue;
 import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuInflater;
@@ -34,10 +36,8 @@ import android.view.SurfaceView;
 import android.view.View;
 import android.view.WindowManager;
 import android.widget.AdapterView;
-import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.LinearLayout;
-import android.widget.Spinner;
 import android.widget.TextView;
 
 import java.util.ArrayList;
@@ -68,6 +68,16 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
         SurfaceHolder drawSurfaceHolder = drawSurfaceView.getHolder();
         drawSurfaceHolder.setFormat(PixelFormat.TRANSPARENT);
         drawSurfaceHolder.addCallback(new MySurfaceCallback(this));
+
+        setTitle("");
+
+        TypedValue value = new TypedValue();
+        getTheme().resolveAttribute(R.attr.app_name, value, true);
+
+        ActionBar actionBar = getSupportActionBar();
+        if (actionBar != null) {
+            actionBar.setBackgroundDrawable(getResources().getDrawable(value.resourceId));
+        }
 
         m_graphicsName = getString(R.string.unknown);
         m_version = getString(R.string.unknown);

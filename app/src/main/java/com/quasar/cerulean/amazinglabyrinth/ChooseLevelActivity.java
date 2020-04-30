@@ -19,11 +19,17 @@
  */
 package com.quasar.cerulean.amazinglabyrinth;
 
+import androidx.appcompat.app.ActionBar;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import android.os.Bundle;
+import android.util.TypedValue;
+import android.view.Menu;
+import android.view.MenuInflater;
+import android.view.MenuItem;
+
 import java.util.ArrayList;
 
 public class ChooseLevelActivity extends AppCompatActivity {
@@ -42,6 +48,14 @@ public class ChooseLevelActivity extends AppCompatActivity {
             return;
         }
 
+        TypedValue value = new TypedValue();
+        getTheme().resolveAttribute(R.attr.app_name, value, true);
+
+        ActionBar actionBar = getSupportActionBar();
+        if (actionBar != null) {
+            actionBar.setBackgroundDrawable(getResources().getDrawable(value.resourceId));
+        }
+
         m_recycler = findViewById(R.id.recycler);
 
         m_layoutManager = new LinearLayoutManager(this);
@@ -51,5 +65,17 @@ public class ChooseLevelActivity extends AppCompatActivity {
         m_recycler.setHasFixedSize(false);
         m_recycler.setLayoutManager(m_layoutManager);
         m_recycler.setAdapter(m_adapter);
+    }
+
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        MenuInflater inflater = getMenuInflater();
+        inflater.inflate(R.menu.choose_level_menu, menu);
+        return true;
+    }
+
+    public void onCancel(MenuItem item) {
+        setResult(RESULT_CANCELED);
+        finish();
     }
 }
