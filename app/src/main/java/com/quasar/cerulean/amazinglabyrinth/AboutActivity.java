@@ -44,6 +44,7 @@ public class AboutActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_about);
 
+        setTitle("");
 
         TypedValue value = new TypedValue();
         getTheme().resolveAttribute(R.attr.app_name, value, true);

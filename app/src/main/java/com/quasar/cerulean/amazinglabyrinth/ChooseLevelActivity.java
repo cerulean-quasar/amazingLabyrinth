@@ -48,6 +48,8 @@ public class ChooseLevelActivity extends AppCompatActivity {
             return;
         }
 
+        setTitle("");
+
         TypedValue value = new TypedValue();
         getTheme().resolveAttribute(R.attr.app_name, value, true);
 

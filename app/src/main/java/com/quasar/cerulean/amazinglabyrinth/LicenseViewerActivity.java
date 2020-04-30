@@ -48,6 +48,8 @@ public class LicenseViewerActivity extends AppCompatActivity {
 
         setContentView(R.layout.activity_license_viewer);
 
+        setTitle("");
+
         String licenseFile = getIntent().getStringExtra(Constants.KeyLicenseFile);
         if (licenseFile == null) {
             setResult(RESULT_CANCELED);

@@ -106,7 +106,7 @@ protected:
         bool wallHit = false;
         if (position.x < -m_width/2.0f + m_scaleBall * m_originalBallDiameter  / 2.0f) {
             // left wall
-            position.x = -m_width/2.0f + m_scaleBall * m_originalBallDiameter * (0.5f + 1/5.0f);
+            position.x = -m_width/2.0f + m_scaleBall * m_originalBallDiameter * (0.5f /*+ 1/5.0f*/);
             if (velocity.x < 0.0f) {
                 if (m_bounce) {
                     velocity.x = -velocity.x;
@@ -119,7 +119,7 @@ protected:
 
         if (position.x > m_width/2.0f - m_scaleBall * m_originalBallDiameter  / 2.0f) {
             // right wall
-            position.x = m_width/2.0f - m_scaleBall * m_originalBallDiameter * (0.5f + 1/5.0f);
+            position.x = m_width/2.0f - m_scaleBall * m_originalBallDiameter * (0.5f /*+ 1/5.0f*/);
             if (velocity.x > 0.0f) {
                 if (m_bounce) {
                     velocity.x = -velocity.x;
@@ -132,7 +132,7 @@ protected:
 
         if (position.y < -m_height/2.0f + m_scaleBall * m_originalBallDiameter / 2.0f) {
             // bottom wall
-            position.y = -m_height/2.0f + m_scaleBall * m_originalBallDiameter * (0.5f + 1/5.0f);
+            position.y = -m_height/2.0f + m_scaleBall * m_originalBallDiameter * (0.5f /*+ 1/5.0f*/);
             if (velocity.y < 0.0f) {
                 if (m_bounce) {
                     velocity.y = -velocity.y;
@@ -145,7 +145,7 @@ protected:
 
         if (position.y > m_height/2.0f - m_scaleBall * m_originalBallDiameter  / 2.0f) {
             // top wall
-            position.y = m_height/2.0f - m_scaleBall * m_originalBallDiameter * (0.5f + 1/5.0f);
+            position.y = m_height/2.0f - m_scaleBall * m_originalBallDiameter * (0.5f /*+ 1/5.0f*/);
             if (velocity.y > 0.0f) {
                 if (m_bounce) {
                     velocity.y = -velocity.y;
