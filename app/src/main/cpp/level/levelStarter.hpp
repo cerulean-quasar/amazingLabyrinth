@@ -34,11 +34,18 @@
 
 class LevelStarter : public Level {
 private:
-    std::string const ballImage = "textures/levelStarter/ballLevelStarter.png";
-    std::string const holeImage = "textures/levelStarter/holeLevelStarter.png";
-    std::string const corridorImageH1 = "textures/levelStarter/corridorH1.png";
-    std::string const corridorImageV = "textures/levelStarter/corridorV.png";
-    std::string const corridorImageH2 = "textures/levelStarter/corridorH2.png";
+    static char constexpr const * ballImage = "textures/levelStarter/ballLevelStarter.png";
+    static char constexpr const *corridorImage = "textures/levelStarter/corridor.png";
+    static char constexpr const *corridorBeginImage = "textures/levelStarter/corridor.png";
+    static char constexpr const *corridorEndImage = "textures/levelStarter/corridor.png";
+    static char constexpr const *corridorCornerImage = "textures/levelStarter/corridor.png";
+
+    static char constexpr const *corridorModel = "models/levelStarter/corridor.obj";
+    static char constexpr const *corridorBeginModel = "models/levelStarter/start.obj";
+    static char constexpr const *corridorEndModel = "models/levelStarter/end.obj";
+    static char constexpr const *corridorCornerModel = "models/levelStarter/corner.obj";
+
+    static float constexpr m_wallThickness = m_modelSize/10.0f;
 
     float const maxPosX;
     float const maxPosY;
@@ -51,14 +58,7 @@ private:
     uint32_t textIndex;
     bool transitionText;
 
-    // quadVertices are the vertices for the text quad, the hole quad and the corridor quad.
-    std::vector<Vertex> quadVertices;
-    std::vector<uint32_t> quadIndices;
-
     glm::vec3 textScale;
-    glm::vec3 holeScale;
-    glm::vec3 corridorVScale;
-    glm::vec3 corridorHScale;
 
     std::vector<Vertex> ballVertices;
     std::vector<uint32_t> ballIndices;
@@ -67,24 +67,20 @@ public:
     LevelStarter(std::shared_ptr<GameRequester> inGameRequester,
             float width, float height, float maxZ)
             : Level(std::move(inGameRequester), width, height, maxZ, true, 1.0f/50.0f, false),
-              maxPosX(m_width/2-ballRadius()),
-              maxPosY(m_height/2-ballRadius()),
+              maxPosX(m_width/2-ballRadius() - m_wallThickness*ballDiameter()/m_modelSize),
+              maxPosY(m_height/2-ballRadius() - m_wallThickness*ballDiameter()/m_modelSize),
               errVal(ballDiameter()/5.0f)
     {
         prevTime = std::chrono::high_resolution_clock::now();
-        getQuad(quadVertices, quadIndices);
         loadModel(m_gameRequester->getAssetStream(MODEL_BALL), ballVertices, ballIndices);
 
         textIndex = 0;
         transitionText = false;
 
         textScale = {m_width/2-m_scaleBall, m_height/2-2*m_scaleBall, 1.0f};
-        holeScale = {m_scaleBall, m_scaleBall, 1.0f};
-        corridorHScale = {m_width/2, m_scaleBall, 1.0f};
-        corridorVScale = {m_scaleBall, m_height/2-2*m_scaleBall, 1.0f};
 
         m_ball.prevPosition = { 10.0f, 0.0f, 0.0f};
-        m_ball.position = {-maxPosX, -maxPosY, m_mazeFloorZ + ballRadius()};
+        m_ball.position = {-maxPosX, -maxPosY, m_mazeFloorZ - ballRadius()};
         m_ball.velocity = {0.0f, 0.0f, 0.0f};
         m_ball.acceleration = {0.0f, 0.0f, 0.0f};
         m_ball.totalRotated = glm::quat();
