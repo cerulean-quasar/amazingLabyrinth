@@ -448,13 +448,13 @@ public:
               m_descriptorSetLayoutShadows{std::make_shared<AmazingLabyrinthShadowsDescriptorSetLayout>(m_device)},
               m_descriptorPoolsShadows{std::make_shared<vulkan::DescriptorPools>(m_device, m_descriptorSetLayoutShadows)},
               m_depthImageViewShadows{std::make_shared<vulkan::ImageView>(vulkan::ImageFactory::createDepthImage(m_device,
-                      VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT, m_swapChain->extent().width/shadowsSizeDivider,
-                              m_swapChain->extent().height/shadowsSizeDivider),
+                      VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT, getShadowsFramebufferWidth(),
+                                      getShadowsFramebufferHeigth()),
                                       VK_IMAGE_ASPECT_DEPTH_BIT)},
               m_shadowsColorAttachment{vulkan::ImageView::createImageViewAndImage(
                       m_device,
-                      m_swapChain->extent().width/shadowsSizeDivider,
-                      m_swapChain->extent().height/shadowsSizeDivider,
+                      getShadowsFramebufferWidth(),
+                      getShadowsFramebufferHeigth(),
                       VK_FORMAT_R32G32B32A32_SFLOAT,
                       VK_IMAGE_TILING_OPTIMAL,
                       VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
@@ -481,10 +481,9 @@ public:
                       m_depthImageViewShadows->image()->width(),
                       m_depthImageViewShadows->image()->height())},
               m_pipelineShadows{std::make_shared<vulkan::Pipeline>(m_gameRequester, m_device,
-                      VkExtent2D{m_swapChain->extent().width/shadowsSizeDivider, m_swapChain->extent().height/shadowsSizeDivider},
+                      VkExtent2D{getShadowsFramebufferWidth(), getShadowsFramebufferHeigth()},
                       m_renderPassShadows, m_descriptorPoolsShadows, getBindingDescription(), getAttributeDescriptions(),
                       SHADOW_VERT_FILE, SHADER_SIMPLE_FRAG_FILE, m_graphicsPipeline, VK_CULL_MODE_FRONT_BIT)},
-              m_shadowsWaitBeforeWrite{false},
               m_shadowsAvailableForWrite{m_device},
               m_shadowsAvailableForRead{m_device},
               m_swapChainCommands{new vulkan::SwapChainCommands{m_swapChain, m_commandPool, m_renderPass, m_depthImageView}},
@@ -540,9 +539,14 @@ public:
         }
     }
 private:
-    // use less precision for the shadow buffer because not all Vulkan drivers support drawing into
-    // a large frame buffer even though this is not reflected in VkPhysicalDeviceProperties.limits.
-    static uint32_t constexpr shadowsSizeDivider = 2;
+    // use less precision for the shadow buffer
+    static float constexpr shadowsSizeMultiplier = 1.0f;
+    uint32_t getShadowsFramebufferHeigth() {
+        return static_cast<uint32_t>(std::floor(m_swapChain->extent().height * shadowsSizeMultiplier));
+    }
+    uint32_t getShadowsFramebufferWidth() {
+        return static_cast<uint32_t>(std::floor(m_swapChain->extent().width * shadowsSizeMultiplier));
+    }
 
     std::shared_ptr<vulkan::Instance> m_instance;
     std::shared_ptr<vulkan::Device> m_device;
@@ -568,7 +572,6 @@ private:
     std::shared_ptr<vulkan::RenderPass> m_renderPassShadows;
     std::shared_ptr<vulkan::Framebuffer> m_framebufferShadows;
     std::shared_ptr<vulkan::Pipeline> m_pipelineShadows;
-    bool m_shadowsWaitBeforeWrite;
     vulkan::Semaphore m_shadowsAvailableForWrite;
     vulkan::Semaphore m_shadowsAvailableForRead;
 
