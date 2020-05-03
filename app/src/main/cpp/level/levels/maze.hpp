@@ -28,7 +28,6 @@
 #include <string>
 #include <array>
 
-#include "../../vulkanWrapper.hpp"
 #include "../../graphics.hpp"
 #include "../levelFinish.hpp"
 #include "../level.hpp"

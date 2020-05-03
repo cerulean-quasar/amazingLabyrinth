@@ -7,7 +7,11 @@ cmake_minimum_required(VERSION 3.4.1)
 
 set (platform64_files)
 if ((NOT ${CMAKE_ANDROID_ARCH_ABI} STREQUAL x86) AND (NOT ${CMAKE_ANDROID_ARCH_ABI} STREQUAL armeabi-v7a))
-    list(APPEND platform64_files src/main/cpp/graphicsVulkan.cpp src/main/cpp/mazeVulkan.cpp src/main/cpp/vulkanWrapper.cpp src/main/cpp/vk_mem_alloc.cpp)
+    list(APPEND platform64_files
+            ${ANDROID_NDK}/sources/third_party/vulkan/src/common/vulkan_wrapper.cpp
+            src/main/cpp/graphicsVulkan.cpp
+            src/main/cpp/mazeVulkan.cpp
+            src/main/cpp/vk_mem_alloc.cpp)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DCQ_ENABLE_VULKAN")
 endif ((NOT ${CMAKE_ANDROID_ARCH_ABI} STREQUAL x86) AND (NOT ${CMAKE_ANDROID_ARCH_ABI} STREQUAL armeabi-v7a))
 
@@ -69,6 +73,7 @@ find_library( # Sets the name of the path variable.
 
 include_directories(${ANDROID_NDK}/sysroot/usr/include/android)
 include_directories(${ANDROID_NDK}/sources/third_party/vulkan/src/libs)
+include_directories(${ANDROID_NDK}/sources/third_party/vulkan/src/common)
 include_directories(APP_GLUE_DIR ${ANDROID_NDK}/sources/android/native_app_glue)
 include_directories(/opt/glm-0.9.9.5/glm)
 include_directories(/opt/tinyobjloader/include)

@@ -21,7 +21,7 @@
 #define AMAZING_LABYRINTH_GRAPHICS_VULKAN_HPP
 // vulkanWrapper.hpp must come before vk_mem_alloc.h because vk_mem_alloc.h includes vulkan/vulkan.h
 // and I don't want the prototypes from there, I want the ones from vulkanWrapper.hpp.
-#include "vulkanWrapper.hpp"
+#include <vulkan_wrapper.h>
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wnullability-completeness"
 #pragma clang diagnostic ignored "-Wunused-parameter"
@@ -72,7 +72,7 @@ namespace vulkan {
     class VulkanLibrary {
     public:
         VulkanLibrary() {
-            if (!loadVulkan()) {
+            if (!InitVulkan()) {
                 throw std::runtime_error("Could not find vulkan library.");
             }
         }
