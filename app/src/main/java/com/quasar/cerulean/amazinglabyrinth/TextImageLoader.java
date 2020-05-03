@@ -20,8 +20,8 @@ public class TextImageLoader {
         Paint paint = new Paint();
         paint.setTextAlign(Paint.Align.CENTER);
         paint.setTextSize(50.0f);
-        canvas.drawARGB(200,128,128,128);
-        paint.setARGB(255, 0, 255, 0);
+        canvas.drawARGB(200,255,255,255);
+        paint.setARGB(255, 0, 0, 0);
         for (int i=0; i < texts.length; i++) {
             canvas.drawText(texts[i], 200, 100+50*i, paint);
         }

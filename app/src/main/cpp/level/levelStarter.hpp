@@ -37,7 +37,7 @@ private:
     static char constexpr const * ballImage = "textures/levelStarter/ballLevelStarter.png";
     static char constexpr const *corridorImage = "textures/levelStarter/corridor.png";
     static char constexpr const *corridorBeginImage = "textures/levelStarter/corridor.png";
-    static char constexpr const *corridorEndImage = "textures/levelStarter/corridor.png";
+    static char constexpr const *corridorEndImage = "textures/levelStarter/end.png";
     static char constexpr const *corridorCornerImage = "textures/levelStarter/corridor.png";
 
     static char constexpr const *corridorModel = "models/levelStarter/corridor.obj";
