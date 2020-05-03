@@ -25,7 +25,7 @@
 template <>
 std::vector<uint8_t> saveGameData<void>(
         std::shared_ptr<GameSaveData> const &gameData,
-        std::shared_ptr<void> const &levelData)
+        std::shared_ptr<void> const &)
 {
     nlohmann::json j;
     j[GameSaveDataVersion] = gameData->version;

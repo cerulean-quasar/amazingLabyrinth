@@ -499,7 +499,7 @@ public:
         m_depthImageViewShadows->image()->transitionImageLayout(VK_IMAGE_LAYOUT_UNDEFINED,
                                                   VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL, m_commandPool);
 
-        if (!testDepthTexture(true)) {
+        if (!testDepthTexture()) {
             throw std::runtime_error(
                     "This version of Vulkan has bugs making it impossible to get the depth texture and normal map.");
         }

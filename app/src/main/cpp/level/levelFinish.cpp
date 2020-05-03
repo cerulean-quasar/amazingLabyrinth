@@ -32,7 +32,7 @@ ManyQuadCoverUpLevelFinish::ManyQuadCoverUpLevelFinish(
             if (!translateVectors.empty()) {
                 uint32_t index = random.getUInt(0, translateVectors.size());
                 auto it = translateVectors.begin();
-                for (int k = 0; k < index; k++) {
+                for (uint32_t k = 0; k < index; k++) {
                     it++;
                 }
                 translateVectors.insert(it, glm::vec3(m_width / (totalNumberObjectsForSide - 1) * i - m_width/2.0f,

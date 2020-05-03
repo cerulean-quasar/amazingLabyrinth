@@ -83,6 +83,7 @@ public:
 };
 
 // TODO: can remove, testing
+/*
 class TextureDescriptionDummy : public TextureDescription {
 private:
 protected:
@@ -97,6 +98,7 @@ public:
         return std::vector<char>();
     }
 };
+ */
 
 class TextureDescriptionPath : public TextureDescription {
 private:

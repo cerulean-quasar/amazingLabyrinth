@@ -208,7 +208,7 @@ bool testMap(
     return true;
 }
 
-bool Graphics::testDepthTexture(bool depth0to1) {
+bool Graphics::testDepthTexture() {
     float modelSize = 2.0f;
 
     auto obj = std::make_shared<DrawObject>();

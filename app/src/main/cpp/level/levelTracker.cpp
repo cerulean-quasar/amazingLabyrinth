@@ -293,7 +293,7 @@ void LevelTracker::gotoNextLevel() {
 std::vector<std::string> LevelTracker::getLevelDescriptions() {
     std::vector<std::string> ret;
 
-    for (int i = 0; i < getLevelTable().size(); i++) {
+    for (size_t i = 0; i < getLevelTable().size(); i++) {
         ret.push_back(getLevelTable()[i].levelDescription);
     }
 

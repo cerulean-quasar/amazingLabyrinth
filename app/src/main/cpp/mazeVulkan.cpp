@@ -388,7 +388,7 @@ std::shared_ptr<DrawObjectData> LevelSequenceVulkan::createObject(std::shared_pt
     return objData;
 }
 
-void GraphicsVulkan::recreateSwapChain(uint32_t width, uint32_t height) {
+void GraphicsVulkan::recreateSwapChain(uint32_t, uint32_t) {
     vkDeviceWaitIdle(m_device->logicalDevice().get());
 
     cleanupSwapChain();

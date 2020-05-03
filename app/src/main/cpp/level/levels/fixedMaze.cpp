@@ -41,7 +41,7 @@ void boundsCheck(int32_t &cell, size_t size) {
         return;
     }
 
-    if (cell > size - 1) {
+    if (cell > static_cast<int32_t>(size) - 1) {
         cell = size - 1;
     }
 }
@@ -459,7 +459,7 @@ void FixedMaze::getLevelFinisherCenter(float &x, float &y) {
 }
 
 FixedMaze::FixedMaze(std::shared_ptr<GameRequester> inGameRequester,
-    std::shared_ptr<FixedMazeSaveData> sd,
+    std::shared_ptr<FixedMazeSaveData>,
     float width, float height, float mazeFloorZ)
     : Level{inGameRequester, width, height, mazeFloorZ, false, 1.0f/50.0f},
     m_extraBounce{1.0f},

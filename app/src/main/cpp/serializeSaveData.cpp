@@ -1,5 +1,5 @@
 /**
- * Copyright 2019 Cerulean Quasar. All Rights Reserved.
+ * Copyright 2020 Cerulean Quasar. All Rights Reserved.
  *
  *  This file is part of AmazingLabyrinth.
  *
@@ -89,7 +89,7 @@ struct LevelRestoreTableEntry {
     LevelRestoreTableEntry(LevelGroup (*getLevelGroupFcn)(std::shared_ptr<void> const &),
                            std::string levelName_, std::string levelDescription_)
             : restoreFcn(
-            [getLevelGroupFcn] (nlohmann::json const *j, std::string const& levelName) -> RestoreData {
+            [getLevelGroupFcn] (nlohmann::json const *, std::string const& levelName) -> RestoreData {
                 std::shared_ptr<void> levelSaveData;
                 return { levelName, getLevelGroupFcn(levelSaveData)};
             }),

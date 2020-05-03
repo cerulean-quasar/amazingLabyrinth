@@ -137,7 +137,7 @@ std::shared_ptr<TextureData> LevelSequenceGL::createTexture(std::shared_ptr<Text
     return std::make_shared<TextureDataGL>(textureDescription);
 }
 
-std::shared_ptr<DrawObjectData> LevelSequenceGL::createObject(std::shared_ptr<DrawObject> const &obj, TextureMap &textures) {
+std::shared_ptr<DrawObjectData> LevelSequenceGL::createObject(std::shared_ptr<DrawObject> const &obj, TextureMap &) {
     return std::make_shared<DrawObjectDataGL>(obj);
 }
 
@@ -165,9 +165,9 @@ void GraphicsGL::initPipeline() {
     m_linearDepthProgramID = loadShaders(LINEAR_DEPTH_VERT_FILE, SIMPLE_FRAG_FILE);
     m_normalProgramID = loadShaders(NORMAL_VERT_FILE, SIMPLE_FRAG_FILE);
 
-    if (!testDepthTexture(false)) {
+    if (!testDepthTexture()) {
         m_useIntTexture = false;
-        if (!testDepthTexture(false)) {
+        if (!testDepthTexture()) {
             throw std::runtime_error(
                     "This version of OpenGL has bugs making it impossible to get the depth texture and normal map.");
         }
@@ -813,6 +813,6 @@ GLuint GraphicsGL::loadShaders(std::string const &vertexShaderFile, std::string 
     return ProgramID;
 }
 
-void GraphicsGL::recreateSwapChain(uint32_t width, uint32_t height) {
+void GraphicsGL::recreateSwapChain(uint32_t, uint32_t) {
     // do nothing
 }

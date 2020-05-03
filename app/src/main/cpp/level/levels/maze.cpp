@@ -267,7 +267,7 @@ void Maze::generateBFS() {
             size_t size = path.size();
             unsigned int i = size == 0 ? 0 : random.getUInt(0, path.size());
             auto it = path.begin();
-            for (int j = 0; j < i; j++, it++)
+            for (unsigned int j = 0; j < i; j++, it++)
                 /* do nothing */;
             path.insert(it, next);
         }

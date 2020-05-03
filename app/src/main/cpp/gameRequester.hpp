@@ -93,7 +93,7 @@ public:
     T getDatum(std::string const &key) const;
 
     template <typename T>
-    void putDatum(std::string const &key, T const &val) {
+    void putDatum(std::string const &, T const &) {
         throw std::runtime_error("JGameBundle: unimplemented type for putDatum");
     }
 

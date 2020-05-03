@@ -17,7 +17,6 @@
  *  along with AmazingLabyrinth.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
-#include <stb_image.h>
 
 #include "graphicsVulkan.hpp"
 

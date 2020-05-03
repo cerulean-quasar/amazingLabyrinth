@@ -242,7 +242,7 @@ protected:
     static float constexpr m_depthTextureNearPlane = 0.1f;
     static float constexpr m_depthTextureFarPlane = 10.0f;
 
-    bool testDepthTexture(bool depth0to1);
+    bool testDepthTexture();
 };
 
 #endif // AMAZING_LABYRINTH_MAZE_GRAPHICS_HPP

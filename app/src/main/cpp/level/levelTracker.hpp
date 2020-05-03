@@ -118,7 +118,7 @@ private:
     // otherwise we are in the level and the level starter function should return nullptr.
     static GetStarterFcn getStarterFcn(bool required, std::vector<std::string> &&levelBeginStrings) {
         if (!required) {
-            return GetStarterFcn([] (LevelTracker &tracker) {
+            return GetStarterFcn([] (LevelTracker &) {
                 return nullptr;
             });
         }

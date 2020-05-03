@@ -32,7 +32,7 @@ char constexpr const *SaveGameFileName = "amazingLabyrinthSaveGameFile.cbor";
 extern "C" JNIEXPORT void JNICALL
 Java_com_quasar_cerulean_amazinglabyrinth_Draw_startGame(
         JNIEnv *env,
-        jobject thisptr,
+        jobject,
         jobject jdrawingSurface,
         jobject jassetManager,
         jstring jsaveDataDir,
@@ -91,16 +91,16 @@ Java_com_quasar_cerulean_amazinglabyrinth_Draw_startGame(
 
 extern "C" JNIEXPORT void JNICALL
 Java_com_quasar_cerulean_amazinglabyrinth_Draw_tellDrawerStop(
-        JNIEnv *env,
-        jclass jclassptr)
+        JNIEnv *,
+        jclass)
 {
     gameFromGuiChannel().sendStopDrawingEvent();
 }
 
 extern "C" JNIEXPORT void JNICALL
 Java_com_quasar_cerulean_amazinglabyrinth_Draw_tellDrawerSendSaveData(
-        JNIEnv *env,
-        jclass jclassptr)
+        JNIEnv *,
+        jclass)
 {
     auto ev = std::make_shared<SaveLevelDataEvent>();
     gameFromGuiChannel().sendEvent(ev);
@@ -108,8 +108,8 @@ Java_com_quasar_cerulean_amazinglabyrinth_Draw_tellDrawerSendSaveData(
 
 extern "C" JNIEXPORT void JNICALL
 Java_com_quasar_cerulean_amazinglabyrinth_Draw_tellDrawerSurfaceChanged(
-        JNIEnv *env,
-        jclass jclassptr,
+        JNIEnv *,
+        jclass,
         jint jwidth,
         jint jheight)
 {
@@ -119,8 +119,8 @@ Java_com_quasar_cerulean_amazinglabyrinth_Draw_tellDrawerSurfaceChanged(
 
 extern "C" JNIEXPORT void JNICALL
 Java_com_quasar_cerulean_amazinglabyrinth_Draw_tellDrawerSwitchLevel(
-        JNIEnv *env,
-        jclass jclassptr,
+        JNIEnv *,
+        jclass,
         jint jlevel)
 {
     auto ev = std::make_shared<LevelChangedEvent>(jlevel);
@@ -130,11 +130,11 @@ Java_com_quasar_cerulean_amazinglabyrinth_Draw_tellDrawerSwitchLevel(
 extern "C" JNIEXPORT jobjectArray JNICALL
 Java_com_quasar_cerulean_amazinglabyrinth_Draw_getLevelList(
         JNIEnv *env,
-        jclass jclassptr)
+        jclass)
 {
     std::vector<std::string> levels = LevelTracker::getLevelDescriptions();
     jobjectArray ret = (jobjectArray)env->NewObjectArray(levels.size(), env->FindClass("java/lang/String"), nullptr);
-    for (int i = 0; i < levels.size(); i++) {
+    for (size_t i = 0; i < levels.size(); i++) {
         env->SetObjectArrayElement(ret, i, env->NewStringUTF(levels[i].c_str()));
     }
 

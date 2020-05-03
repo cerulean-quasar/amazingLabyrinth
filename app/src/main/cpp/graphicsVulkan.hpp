@@ -19,7 +19,15 @@
  */
 #ifndef AMAZING_LABYRINTH_GRAPHICS_VULKAN_HPP
 #define AMAZING_LABYRINTH_GRAPHICS_VULKAN_HPP
+// vulkanWrapper.hpp must come before vk_mem_alloc.h because vk_mem_alloc.h includes vulkan/vulkan.h
+// and I don't want the prototypes from there, I want the ones from vulkanWrapper.hpp.
 #include "vulkanWrapper.hpp"
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wnullability-completeness"
+#pragma clang diagnostic ignored "-Wunused-parameter"
+//#include "vk_mem_alloc.h"
+#pragma clang diagnostic pop
+
 
 #include <stdexcept>
 #include <functional>
@@ -97,14 +105,14 @@ namespace vulkan {
         std::shared_ptr<VkSurfaceKHR_T> m_surface;
 
         static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(
-                VkDebugReportFlagsEXT flags,
-                VkDebugReportObjectTypeEXT objType,
-                uint64_t obj,
-                size_t location,
-                int32_t code,
-                const char *layerPrefix,
+                VkDebugReportFlagsEXT,
+                VkDebugReportObjectTypeEXT,
+                uint64_t,
+                size_t,
+                int32_t,
+                const char *,
                 const char *msg,
-                void *userData) {
+                void *) {
 
             std::cerr << "validation layer: " << msg << std::endl;
 
@@ -956,7 +964,7 @@ namespace vulkan {
             // The swap chain images are owned by the swap chain.  They go away when the swap chain
             // is destroyed.  So make sure the swap chain hangs around until all the images are
             // deleted.  So add it as a capture in the deleter.
-            auto deleter = [inSwapChain](VkImage imageRaw) {
+            auto deleter = [inSwapChain](VkImage) {
                 // do nothing
             };
 

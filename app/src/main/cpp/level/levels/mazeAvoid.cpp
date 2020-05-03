@@ -21,7 +21,7 @@
 #include "mazeAvoid.hpp"
 #include "maze.hpp"
 
-bool MazeAvoid::checkFinishCondition(float timeDiff) {
+bool MazeAvoid::checkFinishCondition(float) {
     for (auto avoidObj : m_avoidObjectLocations) {
         if (ballInProximity(avoidObj.x, avoidObj.y)) {
             // send the ball back to the start because it hit one of the objects it was supposed

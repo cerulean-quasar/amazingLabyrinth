@@ -49,7 +49,7 @@ void MovingQuadsLevel::generate() {
     // The moving quads move at a random speed in the x direction.  There is a random number of
     // them in each row.
     Random randomGenerator;
-    for (int i = 0; i < numberOfMidQuadRows; i++) {
+    for (uint32_t i = 0; i < numberOfMidQuadRows; i++) {
         MovingQuadRow row;
         int numberOfQuadsInRow = randomGenerator.getUInt(minQuadsInRow, maxQuadsInRow);
         int direction = randomGenerator.getUInt(0,1) * 2 - 1;
@@ -218,8 +218,8 @@ bool MovingQuadsLevel::updateDynamicDrawObjects(DrawObjectTable &objs, TextureMa
                 glm::mat4_cast(m_ball.totalRotated) * ballScaleMatrix();
 
         // next, the moving quads
-        for (int i = 1; i < objs.size(); i++) {
-            for (int j = 0; j < objs[i].first->modelMatrices.size(); j++) {
+        for (size_t i = 1; i < objs.size(); i++) {
+            for (size_t j = 0; j < objs[i].first->modelMatrices.size(); j++) {
                 objs[i].first->modelMatrices[j] = glm::translate(glm::mat4(1.0f), m_movingQuads[i-1].positions[j]) *
                         glm::scale(glm::mat4(1.0f), m_movingQuads[i-1].scale);
             }

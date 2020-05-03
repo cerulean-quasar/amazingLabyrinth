@@ -7,7 +7,7 @@ cmake_minimum_required(VERSION 3.4.1)
 
 set (platform64_files)
 if ((NOT ${CMAKE_ANDROID_ARCH_ABI} STREQUAL x86) AND (NOT ${CMAKE_ANDROID_ARCH_ABI} STREQUAL armeabi-v7a))
-    list(APPEND platform64_files src/main/cpp/graphicsVulkan.cpp src/main/cpp/mazeVulkan.cpp src/main/cpp/vulkanWrapper.cpp)
+    list(APPEND platform64_files src/main/cpp/graphicsVulkan.cpp src/main/cpp/mazeVulkan.cpp src/main/cpp/vulkanWrapper.cpp src/main/cpp/vk_mem_alloc.cpp)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DCQ_ENABLE_VULKAN")
 endif ((NOT ${CMAKE_ANDROID_ARCH_ABI} STREQUAL x86) AND (NOT ${CMAKE_ANDROID_ARCH_ABI} STREQUAL armeabi-v7a))
 
@@ -75,13 +75,14 @@ include_directories(/opt/tinyobjloader/include)
 include_directories(/opt/stb/include)
 include_directories(/opt/jsonforcpp)
 include_directories(/opt/boost_1_70_0)
+include_directories(/opt/VulkanMemoryAllocator)
 set(BOOST_ROOT "/opt/boost_1_70_0")
 
 set(CQ_COMPILE_FLAGS)
 if (${CMAKE_BUILD_TYPE} STREQUAL Debug)
     list(APPEND CQ_COMPILE_FLAGS -DDEBUG)
 endif(${CMAKE_BUILD_TYPE} STREQUAL Debug)
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Werror -std=c++14 ${CQ_COMPILE_FLAGS}")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Werror -Wno-unused-parameter -W -std=c++14 ${CQ_COMPILE_FLAGS}")
 
 # GLM #defines:
 # (1) GLM_FORCE_DEPTH_ZERO_TO_ONE: tell GLM to use 0 to 1 for the depth.  We will translate to OpenGL's
