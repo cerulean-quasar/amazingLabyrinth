@@ -540,7 +540,7 @@ public:
     }
 private:
     // use less precision for the shadow buffer
-    static float constexpr shadowsSizeMultiplier = 1.0f;
+    static float constexpr shadowsSizeMultiplier = 0.5f;
     uint32_t getShadowsFramebufferHeigth() {
         return static_cast<uint32_t>(std::floor(m_swapChain->extent().height * shadowsSizeMultiplier));
         //return m_swapChain->extent().height;
