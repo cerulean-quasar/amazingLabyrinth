@@ -460,6 +460,24 @@ namespace vulkan {
         return requiredExtensions.empty();
     }
 
+    void Device::createAllocator() {
+        VmaAllocatorCreateInfo allocatorInfo = {};
+        allocatorInfo.physicalDevice = m_physicalDevice;
+        allocatorInfo.device = m_logicalDevice.get();
+        allocatorInfo.instance = m_instance->instance().get();
+
+        auto deleter = [](VmaAllocator allocatorRaw) -> void {
+            vmaDestroyAllocator(allocatorRaw);
+        };
+
+        VmaAllocator allocatorRaw;
+        VkResult result = vmaCreateAllocator(&allocatorInfo, &allocatorRaw);
+        if (result != VK_SUCCESS) {
+            throw std::runtime_error("Failed to create allocator.");
+        }
+        m_allocator = std::shared_ptr<VmaAllocator_T>(allocatorRaw, deleter);
+    }
+
     /**
      * create the swap chain.
      */
@@ -1304,7 +1322,7 @@ namespace vulkan {
     }
 
     void Buffer::createBuffer(VkDeviceSize size, VkBufferUsageFlags usage,
-                              VkMemoryPropertyFlags properties) {
+                              VkMemoryPropertyFlags propertyFlags) {
         VkBufferCreateInfo bufferInfo = {};
         bufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
         bufferInfo.size = size;
@@ -1315,39 +1333,10 @@ namespace vulkan {
         /* the buffer will only be used by the graphics queue, so use exclusive sharing mode */
         bufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 
-        VkBuffer buf;
-        if (vkCreateBuffer(m_device->logicalDevice().get(), &bufferInfo, nullptr, &buf) != VK_SUCCESS) {
-            throw std::runtime_error("failed to create buffer!");
-        }
+        VmaAllocationCreateInfo allocInfo = {};
+        allocInfo.requiredFlags = propertyFlags;
 
-        auto const &capDevice = m_device;
-        auto bufdeleter = [capDevice](VkBuffer buf) {
-            vkDestroyBuffer(capDevice->logicalDevice().get(), buf, nullptr);
-        };
-
-        m_buffer.reset(buf, bufdeleter);
-
-        VkMemoryRequirements memRequirements;
-        vkGetBufferMemoryRequirements(m_device->logicalDevice().get(), m_buffer.get(), &memRequirements);
-
-        VkMemoryAllocateInfo allocInfo = {};
-        allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
-        allocInfo.allocationSize = memRequirements.size;
-        allocInfo.memoryTypeIndex = m_device->findMemoryType(memRequirements.memoryTypeBits, properties);
-
-        VkDeviceMemory bufmem;
-        if (vkAllocateMemory(m_device->logicalDevice().get(), &allocInfo, nullptr, &bufmem) != VK_SUCCESS) {
-            throw std::runtime_error("Failed to allocate buffer memory!");
-        }
-
-        auto bufmemdeleter = [capDevice](VkDeviceMemory bufmem) {
-            vkFreeMemory(capDevice->logicalDevice().get(), bufmem, nullptr);
-        };
-
-        m_bufferMemory.reset(bufmem, bufmemdeleter);
-
-        VkResult result = vkBindBufferMemory(m_device->logicalDevice().get(), m_buffer.get(), m_bufferMemory.get(),
-                                             0 /* offset into the memory */);
+        VkResult result = vmaCreateBuffer(m_device->allocator().get(), &bufferInfo, &allocInfo, &m_buffer, &m_allocation, nullptr);
         if (result != VK_SUCCESS) {
             throw (std::runtime_error("Failed to bind buffer to memory!"));
         }
@@ -1361,32 +1350,32 @@ namespace vulkan {
 
         VkBufferCopy copyRegion = {};
         copyRegion.size = size;
-        vkCmdCopyBuffer(cmds.commandBuffer().get(), srcBuffer.m_buffer.get(),
-                        m_buffer.get(), 1, &copyRegion);
+        vkCmdCopyBuffer(cmds.commandBuffer().get(), srcBuffer.m_buffer,
+                        m_buffer, 1, &copyRegion);
 
         cmds.end();
     }
 
+    /* copy data from CPU memory to graphics memory */
     void Buffer::copyRawTo(void const *dataRaw, size_t size) {
         void *data;
-        VkResult result = vkMapMemory(m_device->logicalDevice().get(), m_bufferMemory.get(), 0,
-                size, 0, &data);
+        VkResult result = vmaMapMemory(m_device->allocator().get(), m_allocation, &data);
         if (result != VK_SUCCESS) {
             throw (std::runtime_error("Can't map memory."));
         }
         memcpy(data, dataRaw, size);
-        vkUnmapMemory(m_device->logicalDevice().get(), m_bufferMemory.get());
+        vmaUnmapMemory(m_device->allocator().get(), m_allocation);
     }
 
+    /* copy data from graphics memory to CPU memory */
     void Buffer::copyRawFrom(void *dataRaw, size_t size) const {
         void *data;
-        VkResult result = vkMapMemory(m_device->logicalDevice().get(), m_bufferMemory.get(), 0,
-                                      size, 0, &data);
+        VkResult result = vmaMapMemory(m_device->allocator().get(), m_allocation, &data);
         if (result != VK_SUCCESS) {
             throw (std::runtime_error("Can't map memory."));
         }
         memcpy(dataRaw, data, size);
-        vkUnmapMemory(m_device->logicalDevice().get(), m_bufferMemory.get());
+        vmaUnmapMemory(m_device->allocator().get(), m_allocation);
     }
 
     void Semaphore::createSemaphore() {
@@ -1608,7 +1597,7 @@ namespace vulkan {
                 1
         };
 
-        vkCmdCopyBufferToImage(cmds.commandBuffer().get(), buffer.buffer().get(),
+        vkCmdCopyBufferToImage(cmds.commandBuffer().get(), buffer.buffer(),
                                m_image.get(), VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &region);
 
         cmds.end();
@@ -1645,7 +1634,7 @@ namespace vulkan {
 
         vkCmdCopyImageToBuffer(cmds.commandBuffer().get(),
                                m_image.get(), VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
-                               buffer.buffer().get(),
+                               buffer.buffer(),
                                1, &region);
 
         cmds.end();
@@ -1713,10 +1702,7 @@ namespace vulkan {
                        VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
                        VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
 
-        void *data;
-        vkMapMemory(device->logicalDevice().get(), staging.memory().get(), 0, imageSize, 0, &data);
-        memcpy(data, pixels.data(), static_cast<size_t>(imageSize));
-        vkUnmapMemory(device->logicalDevice().get(), staging.memory().get());
+        staging.copyRawTo(pixels.data(), static_cast<size_t>(imageSize));
 
         VkFormat format = VK_FORMAT_R8G8B8A8_UNORM;//VK_FORMAT_R8_UNORM;
         std::shared_ptr<Image> image(

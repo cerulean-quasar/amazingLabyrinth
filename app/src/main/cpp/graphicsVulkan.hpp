@@ -19,13 +19,14 @@
  */
 #ifndef AMAZING_LABYRINTH_GRAPHICS_VULKAN_HPP
 #define AMAZING_LABYRINTH_GRAPHICS_VULKAN_HPP
-// vulkanWrapper.hpp must come before vk_mem_alloc.h because vk_mem_alloc.h includes vulkan/vulkan.h
-// and I don't want the prototypes from there, I want the ones from vulkanWrapper.hpp.
+// vulkan_wrapper.h must come before vk_mem_alloc.h because vk_mem_alloc.h includes vulkan/vulkan.h
+// and I don't want the prototypes from there, I want the ones from vulkan_wrapper.h.
 #include <vulkan_wrapper.h>
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wnullability-completeness"
+#pragma clang diagnostic ignored "-Wmissing-field-initializers"
 #pragma clang diagnostic ignored "-Wunused-parameter"
-//#include "vk_mem_alloc.h"
+#include "vk_mem_alloc.h"
 #pragma clang diagnostic pop
 
 
@@ -171,6 +172,7 @@ namespace vulkan {
                 : m_instance (inInstance),
                   m_physicalDevice{},
                   m_logicalDevice{},
+                  m_allocator{},
                   m_graphicsQueue{},
                   m_presentQueue{},
                   m_depthFormat{} {
@@ -181,6 +183,7 @@ namespace vulkan {
                                                 VK_IMAGE_TILING_OPTIMAL,
                                                 VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT);
 
+            createAllocator();
         }
 
         DeviceProperties properties();
@@ -201,6 +204,8 @@ namespace vulkan {
 
         inline std::shared_ptr<VkDevice_T> const &logicalDevice() { return m_logicalDevice; }
 
+        inline std::shared_ptr<VmaAllocator_T> const &allocator() { return m_allocator; }
+
         inline VkPhysicalDevice physicalDevice() { return m_physicalDevice; }
 
         inline VkQueue graphicsQueue() { return m_graphicsQueue; }
@@ -220,6 +225,9 @@ namespace vulkan {
 
         std::shared_ptr<VkDevice_T> m_logicalDevice;
 
+        // Vulkan Memory Allocator objects
+        std::shared_ptr<VmaAllocator_T> m_allocator;
+
         // the graphics and present queues are really part of the logical device and don't need to be freed.
         VkQueue m_graphicsQueue;
         VkQueue m_presentQueue;
@@ -236,6 +244,8 @@ namespace vulkan {
         void pickPhysicalDevice();
 
         void createLogicalDevice();
+
+        void createAllocator();
 
         bool isDeviceSuitable(VkPhysicalDevice device);
 
@@ -642,7 +652,7 @@ namespace vulkan {
                VkMemoryPropertyFlags properties)
                 : m_device{inDevice},
                   m_buffer{},
-                  m_bufferMemory{} {
+                  m_allocation{} {
             createBuffer(size, usage, properties);
         }
 
@@ -656,23 +666,21 @@ namespace vulkan {
         void copyRawTo(void const *dataRaw, size_t size);
         void copyRawFrom(void *dataRaw, size_t size) const;
 
-        inline std::shared_ptr<VkBuffer_T> const &buffer() const { return m_buffer; }
-        inline std::shared_ptr<VkDeviceMemory_T> const &memory() const { return m_bufferMemory; }
+        inline VkBuffer const &buffer() const { return m_buffer; }
 
         ~Buffer() {
             /* ensure order of destruction.
              * free the memory after the buffer has been destroyed because the buffer is bound to
              * the memory, so the buffer is still using the memory until the buffer is destroyed.
              */
-            m_buffer.reset();
-            m_bufferMemory.reset();
+            vmaDestroyBuffer(m_device->allocator().get(), m_buffer, m_allocation);
         }
 
     private:
         std::shared_ptr<Device> m_device;
 
-        std::shared_ptr<VkBuffer_T> m_buffer;
-        std::shared_ptr<VkDeviceMemory_T> m_bufferMemory;
+        VkBuffer m_buffer;
+        VmaAllocation m_allocation;
 
         void createBuffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties);
     };

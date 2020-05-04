@@ -292,7 +292,7 @@ public:
 private:
     void updateDescriptorSet(std::shared_ptr<vulkan::Device> const &inDevice) {
         VkDescriptorBufferInfo bufferInfo = {};
-        bufferInfo.buffer = m_uniformBuffer->buffer().get();
+        bufferInfo.buffer = m_uniformBuffer->buffer();
         bufferInfo.offset = 0;
         bufferInfo.range = sizeof (UniformBufferObjectDepthTexture);
 

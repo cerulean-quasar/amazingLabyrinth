@@ -185,7 +185,7 @@ std::shared_ptr<vulkan::Buffer> createUniformBuffer(
 /* descriptor set for the MVP matrix and texture samplers */
 void UniformWrapper::updateDescriptorSet(std::shared_ptr<vulkan::Device> const &inDevice) {
     VkDescriptorBufferInfo bufferInfo = {};
-    bufferInfo.buffer = m_uniformBuffer->buffer().get();
+    bufferInfo.buffer = m_uniformBuffer->buffer();
     bufferInfo.offset = 0;
     bufferInfo.range = sizeof(PerObjectUBO);
 
@@ -213,7 +213,7 @@ void UniformWrapper::updateDescriptorSet(std::shared_ptr<vulkan::Device> const &
     descriptorWrites[0].pTexelBufferView = nullptr; // Optional
 
     VkDescriptorBufferInfo commonInfo = {};
-    commonInfo.buffer = m_commonUBO->buffer().get();
+    commonInfo.buffer = m_commonUBO->buffer();
     commonInfo.offset = 0;
     commonInfo.range = sizeof(CommonUBO);
 
@@ -239,7 +239,7 @@ void UniformWrapper::updateDescriptorSet(std::shared_ptr<vulkan::Device> const &
     descriptorWrites[2].pImageInfo = &imageInfo;
 
     VkDescriptorBufferInfo bufferLightingSource = {};
-    bufferLightingSource.buffer = m_uniformBufferLighting->buffer().get();
+    bufferLightingSource.buffer = m_uniformBufferLighting->buffer();
     bufferLightingSource.offset = 0;
     bufferLightingSource.range = sizeof(glm::vec3);
 
@@ -531,9 +531,9 @@ void GraphicsVulkan::initializeCommandBufferDrawObjects(
     for (auto const &obj : objs) {
         DrawObjectDataVulkan *objData = dynamic_cast<DrawObjectDataVulkan*> (obj.second.get());
 
-        VkBuffer vertexBuffer = objData->vertexBuffer().buffer().get();
+        VkBuffer vertexBuffer = objData->vertexBuffer().buffer();
         vkCmdBindVertexBuffers(commandBuffer, 0, 1, &vertexBuffer, offsets);
-        vkCmdBindIndexBuffer(commandBuffer, objData->indexBuffer().buffer().get(), 0, VK_INDEX_TYPE_UINT32);
+        vkCmdBindIndexBuffer(commandBuffer, objData->indexBuffer().buffer(), 0, VK_INDEX_TYPE_UINT32);
         for (auto const &uniform : objData->uniforms()) {
             /* The MVP matrix and texture samplers */
             VkDescriptorSet descriptorSet;
@@ -812,10 +812,10 @@ std::shared_ptr<vulkan::ImageView> GraphicsVulkan::runTextureComputation(
     size_t i = 0;
     VkDeviceSize offsets[1] = {0};
     for (auto const &drawObjData : drawObjsData) {
-        VkBuffer vertexBufferRaw = drawObjData->vertexBuffer().buffer().get();
+        VkBuffer vertexBufferRaw = drawObjData->vertexBuffer().buffer();
         vkCmdBindVertexBuffers(cmds.commandBuffer().get(), 0, 1, &vertexBufferRaw, offsets);
 
-        vkCmdBindIndexBuffer(cmds.commandBuffer().get(), drawObjData->indexBuffer().buffer().get(), 0,
+        vkCmdBindIndexBuffer(cmds.commandBuffer().get(), drawObjData->indexBuffer().buffer(), 0,
                              VK_INDEX_TYPE_UINT32);
 
         for (auto const &uniform : drawObjData->uniforms()) {
