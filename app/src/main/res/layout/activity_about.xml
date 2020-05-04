@@ -145,6 +145,18 @@
                     android:onClick="onMitStb"
                     android:background="?attr/button_background"
                     android:text="@string/licenseMIT"/>
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:paddingEnd="10dp"
+                    android:paddingStart="10dp"
+                    android:text="@string/thirdPartyVulkanMemoryAllocator"/>
+                <Button
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:onClick="onMitVulkanMemoryAllocator"
+                    android:background="?attr/button_background"
+                    android:text="@string/licenseMIT"/>
             </GridLayout>
         </LinearLayout>
     <LinearLayout

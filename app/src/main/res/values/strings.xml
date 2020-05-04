@@ -29,6 +29,7 @@
     <string name="thirdPartyBoost">Boost</string>
     <string name="thirdPartyTinyObjLoader">tinyobjloader</string>
     <string name="thirdPartyStbImage">STB</string>
+    <string name="thirdPartyVulkanMemoryAllocator">Vulkan Memory Allocator</string>
 
     <string name="license">License:</string>
     <string name="licenseMIT">MIT License</string>

@@ -143,4 +143,8 @@ public class AboutActivity extends AppCompatActivity {
     public void onBoost(View v) {
         loadLicense(path + "boost.txt");
     }
+
+    public void onMitVulkanMemoryAllocator(View v) {
+        loadLicense(path + "mitVulkanMemoryAllocator.txt");
+    }
 }
