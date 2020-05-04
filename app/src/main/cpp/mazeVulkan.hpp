@@ -182,8 +182,8 @@ public:
     }
 
     inline std::shared_ptr<vulkan::DescriptorSet> const &descriptorSet() { return m_descriptorSet; }
-    inline std::shared_ptr<vulkan::Buffer> const &uniformBuffer() { return m_uniformBuffer; }
-    inline std::shared_ptr<vulkan::Buffer> const &uniformBufferLighting() { return m_uniformBufferLighting; }
+    inline std::shared_ptr<vulkan::Buffer> &uniformBuffer() { return m_uniformBuffer; }
+    inline std::shared_ptr<vulkan::Buffer> &uniformBufferLighting() { return m_uniformBufferLighting; }
     inline std::shared_ptr<vulkan::ImageSampler> const &imageSampler() { return m_sampler; }
 
 private:
@@ -540,7 +540,7 @@ public:
     }
 private:
     // use less precision for the shadow buffer
-    static float constexpr shadowsSizeMultiplier = 0.5f;
+    static float constexpr shadowsSizeMultiplier = 1.0f;
     uint32_t getShadowsFramebufferHeigth() {
         return static_cast<uint32_t>(std::floor(m_swapChain->extent().height * shadowsSizeMultiplier));
         //return m_swapChain->extent().height;

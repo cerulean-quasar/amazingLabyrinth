@@ -19,6 +19,7 @@
  */
 
 #include "graphicsVulkan.hpp"
+#include "../../../../../../Android/Sdk/ndk/21.0.6113669/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/include/vulkan/vulkan.h"
 
 namespace vulkan {
 /**
@@ -1441,39 +1442,15 @@ namespace vulkan {
         /* for sparse images.  We don't use it here. */
         imageInfo.flags = 0; // Optional
 
-        VkImage imageRaw;
-        if (vkCreateImage(m_device->logicalDevice().get(), &imageInfo, nullptr, &imageRaw) != VK_SUCCESS) {
-            throw std::runtime_error("failed to create image!");
+
+        VmaAllocationCreateInfo allocInfo = {};
+        allocInfo.requiredFlags = properties;
+
+        VkResult result = vmaCreateImage(m_device->allocator().get(), &imageInfo, &allocInfo,
+                &m_image, &m_allocation, nullptr);
+        if (result != VK_SUCCESS) {
+            throw std::runtime_error("Could not allocate image!");
         }
-
-        auto const &capDevice = m_device;
-        auto imageDeleter = [capDevice](VkImage imageRaw) {
-            vkDestroyImage(capDevice->logicalDevice().get(), imageRaw, nullptr);
-        };
-
-        m_image.reset(imageRaw, imageDeleter);
-
-        VkMemoryRequirements memRequirements;
-        vkGetImageMemoryRequirements(m_device->logicalDevice().get(), m_image.get(), &memRequirements);
-
-        VkMemoryAllocateInfo allocInfo = {};
-        allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
-        allocInfo.allocationSize = memRequirements.size;
-        allocInfo.memoryTypeIndex = m_device->findMemoryType(memRequirements.memoryTypeBits, properties);
-
-        VkDeviceMemory imageMemoryRaw;
-        if (vkAllocateMemory(m_device->logicalDevice().get(), &allocInfo, nullptr, &imageMemoryRaw) !=
-            VK_SUCCESS) {
-            throw std::runtime_error("failed to allocate image memory!");
-        }
-
-        auto memoryDeleter = [capDevice](VkDeviceMemory imageMemoryRaw) {
-            vkFreeMemory(capDevice->logicalDevice().get(), imageMemoryRaw, nullptr);
-        };
-
-        m_imageMemory.reset(imageMemoryRaw, memoryDeleter);
-
-        vkBindImageMemory(m_device->logicalDevice().get(), m_image.get(), m_imageMemory.get(), 0);
     }
 
     /* get the image in the right layout before we execute a copy command */
@@ -1497,7 +1474,7 @@ namespace vulkan {
         /* define the image that is affected and the part of the image.  our image is not an array
          * and does not have mipmapping levels.  Only specify one level and layer.
          */
-        barrier.image = m_image.get();
+        barrier.image = m_image;
         barrier.subresourceRange.baseMipLevel = 0;
         barrier.subresourceRange.levelCount = 1;
         barrier.subresourceRange.baseArrayLayer = 0;
@@ -1598,7 +1575,7 @@ namespace vulkan {
         };
 
         vkCmdCopyBufferToImage(cmds.commandBuffer().get(), buffer.buffer(),
-                               m_image.get(), VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &region);
+                               m_image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &region);
 
         cmds.end();
     }
@@ -1633,9 +1610,8 @@ namespace vulkan {
         };
 
         vkCmdCopyImageToBuffer(cmds.commandBuffer().get(),
-                               m_image.get(), VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
-                               buffer.buffer(),
-                               1, &region);
+                               m_image, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+                               buffer.buffer(), 1, &region);
 
         cmds.end();
     }
@@ -1643,7 +1619,7 @@ namespace vulkan {
     void ImageView::createImageView(VkFormat format, VkImageAspectFlags aspectFlags) {
         VkImageViewCreateInfo createInfo = {};
         createInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
-        createInfo.image = m_image->image().get();
+        createInfo.image = m_image->image();
 
         /* specify how the image data should be interpreted. viewType allows you
          * to treat images as 1D textures, 2D textures 3D textures and cube maps.

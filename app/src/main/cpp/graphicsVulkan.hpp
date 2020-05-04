@@ -666,7 +666,8 @@ namespace vulkan {
         void copyRawTo(void const *dataRaw, size_t size);
         void copyRawFrom(void *dataRaw, size_t size) const;
 
-        inline VkBuffer const &buffer() const { return m_buffer; }
+        inline VkBuffer &buffer() { return m_buffer; }
+        inline VkBuffer const &cbuffer() const { return m_buffer; }
 
         ~Buffer() {
             /* ensure order of destruction.
@@ -693,22 +694,24 @@ namespace vulkan {
               VkMemoryPropertyFlags properties)
                 : m_device{inDevice},
                   m_image{},
-                  m_imageMemory{},
+                  m_allocation{},
                   m_format{inFormat},
                   m_width{inWidth},
-                  m_height{inHeight} {
+                  m_height{inHeight},
+                  m_needsFree{true} {
             createImage(inFormat, tiling, usage, properties);
         }
 
         // Image was created by another object, but we are to manage it.
-        Image(std::shared_ptr<Device> const &inDevice, std::shared_ptr<VkImage_T> const &inImage,
+        Image(std::shared_ptr<Device> const &inDevice, VkImage inImage,
               VkFormat inFormat, uint32_t inWidth, uint32_t inHeight)
                 : m_device{inDevice},
                   m_image{inImage},
-                  m_imageMemory{},
+                  m_allocation{},
                   m_format{inFormat},
                   m_width{inWidth},
-                  m_height{inHeight} {
+                  m_height{inHeight},
+                  m_needsFree{false} {
         }
 
         void copyBufferToImage(Buffer &buffer, std::shared_ptr<CommandPool> const &pool);
@@ -719,23 +722,25 @@ namespace vulkan {
                                    VkImageLayout newLayout, std::shared_ptr<CommandPool> const &pool);
 
         virtual ~Image() {
-            m_image.reset();
-            m_imageMemory.reset();
+            if (m_needsFree) {
+                vmaDestroyImage(m_device->allocator().get(), m_image, m_allocation);
+            }
         }
 
         inline VkFormat format() { return m_format; }
         inline std::shared_ptr<Device> const &device() { return m_device; }
-        inline std::shared_ptr<VkImage_T> const &image() { return m_image; }
+        inline VkImage &image() { return m_image; }
         inline uint32_t width() { return m_width; }
         inline uint32_t height() { return m_height; }
     protected:
         std::shared_ptr<Device> m_device;
 
-        std::shared_ptr<VkImage_T> m_image;
-        std::shared_ptr<VkDeviceMemory_T> m_imageMemory;
+        VkImage m_image;
+        VmaAllocation m_allocation;
         VkFormat m_format;
         uint32_t m_width;
         uint32_t m_height;
+        bool m_needsFree;
 
         void createImage(VkFormat format, VkImageTiling tiling,
                          VkImageUsageFlags usage, VkMemoryPropertyFlags properties);
@@ -969,19 +974,11 @@ namespace vulkan {
             vkGetSwapchainImagesKHR(m_swapChain->device()->logicalDevice().get(), m_swapChain->swapChain().get(),
                                     &imageCount, m_images.data());
 
-            // The swap chain images are owned by the swap chain.  They go away when the swap chain
-            // is destroyed.  So make sure the swap chain hangs around until all the images are
-            // deleted.  So add it as a capture in the deleter.
-            auto deleter = [inSwapChain](VkImage) {
-                // do nothing
-            };
 
             for (auto &img : m_images) {
-                std::shared_ptr<VkImage_T> imgptr(img, deleter);
                 VkExtent2D ext = m_swapChain->extent();
-                ImageView imageView{
-                        std::shared_ptr<Image>(new Image(m_swapChain->device(), imgptr,
-                                m_swapChain->imageFormat(), ext.width, ext.height)),
+                ImageView imageView{std::make_shared<Image>(m_swapChain->device(), img,
+                                m_swapChain->imageFormat(), ext.width, ext.height),
                         VK_IMAGE_ASPECT_COLOR_BIT};
                 m_imageViews.push_back(imageView);
             }

@@ -531,9 +531,9 @@ void GraphicsVulkan::initializeCommandBufferDrawObjects(
     for (auto const &obj : objs) {
         DrawObjectDataVulkan *objData = dynamic_cast<DrawObjectDataVulkan*> (obj.second.get());
 
-        VkBuffer vertexBuffer = objData->vertexBuffer().buffer();
+        VkBuffer vertexBuffer = objData->vertexBuffer().cbuffer();
         vkCmdBindVertexBuffers(commandBuffer, 0, 1, &vertexBuffer, offsets);
-        vkCmdBindIndexBuffer(commandBuffer, objData->indexBuffer().buffer(), 0, VK_INDEX_TYPE_UINT32);
+        vkCmdBindIndexBuffer(commandBuffer, objData->indexBuffer().cbuffer(), 0, VK_INDEX_TYPE_UINT32);
         for (auto const &uniform : objData->uniforms()) {
             /* The MVP matrix and texture samplers */
             VkDescriptorSet descriptorSet;
@@ -812,10 +812,10 @@ std::shared_ptr<vulkan::ImageView> GraphicsVulkan::runTextureComputation(
     size_t i = 0;
     VkDeviceSize offsets[1] = {0};
     for (auto const &drawObjData : drawObjsData) {
-        VkBuffer vertexBufferRaw = drawObjData->vertexBuffer().buffer();
+        VkBuffer vertexBufferRaw = drawObjData->vertexBuffer().cbuffer();
         vkCmdBindVertexBuffers(cmds.commandBuffer().get(), 0, 1, &vertexBufferRaw, offsets);
 
-        vkCmdBindIndexBuffer(cmds.commandBuffer().get(), drawObjData->indexBuffer().buffer(), 0,
+        vkCmdBindIndexBuffer(cmds.commandBuffer().get(), drawObjData->indexBuffer().cbuffer(), 0,
                              VK_INDEX_TYPE_UINT32);
 
         for (auto const &uniform : drawObjData->uniforms()) {
