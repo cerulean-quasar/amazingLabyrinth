@@ -42,9 +42,6 @@ public class LicenseViewerActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        String themeName = "AppTheme";
-        int currentThemeId = getResources().getIdentifier(themeName, "style", getPackageName());
-        setTheme(currentThemeId);
 
         setContentView(R.layout.activity_license_viewer);
 

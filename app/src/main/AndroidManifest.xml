@@ -8,13 +8,14 @@
         android:label="@string/app_name"
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
-        android:theme="@style/AppTheme">
-        <activity android:name=".ChooseLevelActivity"></activity>
-        <activity android:name=".LicenseViewerActivity" />
-        <activity android:name=".AboutActivity" />
+        android:theme="@style/AppThemeGui">
+        <activity android:name=".ChooseLevelActivity"/>
+        <activity android:name=".LicenseViewerActivity"/>
+        <activity android:name=".AboutActivity"/>
         <activity
             android:name=".MainActivity"
-            android:screenOrientation="portrait">
+            android:screenOrientation="portrait"
+            android:theme="@style/AppTheme">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
 

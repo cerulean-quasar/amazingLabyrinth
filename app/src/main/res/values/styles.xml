@@ -10,12 +10,16 @@
         <item name="colorPrimary">@color/colorPrimary</item>
         <item name="colorPrimaryDark">@color/colorPrimaryDark</item>
         <item name="colorAccent">@color/colorAccent</item>
-        <item name="android:windowBackground">@drawable/background</item>
         <item name="android:scrollbarThumbVertical">@color/green</item>
         <item name="divider">@drawable/divider</item>
         <item name="button_background">@drawable/button_background</item>
         <item name="app_name">@drawable/game_name</item>
         <item name="android:itemBackground">@color/green</item>
+    </style>
+
+    <style name="AppThemeGui" parent="AppTheme">
+        <!-- Customize your theme here. -->
+        <item name="android:windowBackground">@drawable/background</item>
     </style>
 
 </resources>
