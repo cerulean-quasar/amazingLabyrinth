@@ -1,5 +1,5 @@
 /**
- * Copyright 2019 Cerulean Quasar. All Rights Reserved.
+ * Copyright 2020 Cerulean Quasar. All Rights Reserved.
  *
  *  This file is part of AmazingLabyrinth.
  *
@@ -56,16 +56,18 @@ char constexpr const *GameSaveDataVersion = "GameSaveDataVersion";
 char constexpr const *GameSaveDataLevelName = "LevelName";
 char constexpr const *GameSaveDataScreenSize = "ScreenSize";
 char constexpr const *GameSaveDataLevel = "LevelSaveData";
+char constexpr const *GameSaveDataNeedsStarter = "LevelNeedsStarter";
 
 template <typename LevelSaveDataType>
 std::vector<uint8_t> saveGameData(
         std::shared_ptr<GameSaveData> const &gameData,
-std::shared_ptr<LevelSaveDataType> const &levelData)
+        std::shared_ptr<LevelSaveDataType> const &levelData)
 {
     nlohmann::json j;
     j[GameSaveDataVersion] = gameData->version;
     j[GameSaveDataScreenSize] = gameData->screenSize;
     j[GameSaveDataLevelName] = gameData->levelName;
+    j[GameSaveDataNeedsStarter] = gameData->needsStarter;
 
     if (levelData != nullptr) {
         j[GameSaveDataLevel] = *levelData;

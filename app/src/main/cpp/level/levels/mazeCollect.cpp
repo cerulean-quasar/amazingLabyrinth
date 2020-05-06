@@ -20,6 +20,7 @@
 
 #include "mazeCollect.hpp"
 #include "maze.hpp"
+#include "../level.hpp"
 
 bool MazeCollect::checkFinishCondition(float timeDiff) {
     uint32_t nbrItemsCollected = 0;
@@ -65,6 +66,9 @@ bool MazeCollect::checkFinishCondition(float timeDiff) {
 
 void MazeCollect::generateCollectBallModelMatrices() {
     // generate the items to collect
+    std::vector<std::pair<uint32_t, uint32_t>> itemsRC;
+    itemsRC.emplace_back(m_rowEnd, m_colEnd);
+    itemsRC.emplace_back(m_ballCell.row, m_ballCell.col);
     while (m_collectionObjectLocations.size() < nbrItemsToCollect) {
         uint32_t row = random.getUInt(0, numberRows-1);
         uint32_t col = random.getUInt(0, numberColumns-1);
@@ -75,14 +79,16 @@ void MazeCollect::generateCollectBallModelMatrices() {
                       random.getFloat(topWall(row)+ballRadius(), bottomWall(row)-ballRadius()),
                       getBallZPosition()};
         bool tooClose = false;
-        for (auto const &collectionObjectLocation : m_collectionObjectLocations) {
-            if (glm::length(pos - collectionObjectLocation.second) < (m_width+m_height)/32) {
+        for (auto const &itemRC : itemsRC) {
+            if (std::abs(static_cast<int32_t>(itemRC.first) - static_cast<int32_t>(row)) +
+                std::abs(static_cast<int32_t>(itemRC.second) - static_cast<int32_t>(col)) < 3) {
                 tooClose = true;
             }
         }
 
         if (!tooClose) {
             m_collectionObjectLocations.emplace_back(false, pos);
+            itemsRC.emplace_back(row, col);
         }
     }
 

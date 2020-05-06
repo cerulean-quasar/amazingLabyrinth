@@ -67,8 +67,9 @@ public:
 
     void saveLevelData() {
         Point<uint32_t> screenSize{m_surfaceWidth, m_surfaceHeight};
-        auto gd = std::make_shared<GameSaveData>(screenSize, m_levelTracker->getLevelName());
-        if (m_levelStarter == nullptr) {
+        auto gd = std::make_shared<GameSaveData>(screenSize, m_levelTracker->getLevelName(),
+                m_levelStarter != nullptr);
+        if (m_level != nullptr) {
             auto saveFcn = m_level->getSaveLevelDataFcn();
             auto saveData = saveFcn(gd);
             m_gameRequester->sendSaveData(saveData);

@@ -62,9 +62,9 @@ void LevelSequence::addObjects(DrawObjectTable &objs, TextureMap &textures) {
 }
 
 void LevelSequence::addTextures(TextureMap &textures) {
-    for (auto it = textures.begin(); it != textures.end(); it++) {
-        if (it->second.get() == nullptr) {
-            it->second = createTexture(it->first);
+    for (auto &texture : textures) {
+        if (texture.second.get() == nullptr) {
+            texture.second = createTexture(texture.first);
         }
     }
 }
@@ -129,6 +129,8 @@ bool LevelSequence::updateData() {
 
                 m_level = m_levelGroupFcns.getLevelFcn(*m_levelTracker);
                 initializeLevelData(m_level, m_staticObjsData, m_dynObjsData, m_texturesLevel);
+
+                saveLevelData();
 
                 m_levelFinisher->unveilNewLevel();
                 return false;

@@ -18,6 +18,8 @@
  *
  */
 
+#include <vector>
+
 #include "mazeAvoid.hpp"
 #include "maze.hpp"
 
@@ -45,6 +47,10 @@ void MazeAvoid::generateAvoidModelMatrices() {
         glm::vec3 pos = getCellCenterPosition(row, col);
         int wall = random.getUInt(0, 3);
         bool selected = false;
+
+        std::vector<std::pair<uint32_t, uint32_t>> itemsRC;
+        itemsRC.emplace_back(m_rowEnd, m_colEnd);
+        itemsRC.emplace_back(m_ballStartR, m_ballStartC);
         while (!selected) {
             switch (wall) {
                 case 0:
@@ -77,25 +83,18 @@ void MazeAvoid::generateAvoidModelMatrices() {
                     wall = 0;
             }
         }
-        /*
-        glm::vec3 pos{random.getFloat(leftWall(col)+scale/2.0f, rightWall(col)-scale/2.0f),
-                      random.getFloat(topWall(row)+scale/2.0f, bottomWall(row)-scale/2.0f),
-                      getBallZPosition()}; */
+
         bool tooClose = false;
-        for (auto const &avoidObj : m_avoidObjectLocations) {
-            if (glm::length(pos - avoidObj) < (m_diagonal)/50.0f) {
+        for (auto const &itemRC : itemsRC) {
+            if (std::abs(static_cast<int32_t>(itemRC.first) - static_cast<int32_t>(row)) +
+                std::abs(static_cast<int32_t>(itemRC.second) - static_cast<int32_t>(col)) < 3) {
                 tooClose = true;
             }
         }
 
-        if (glm::length(pos - getCellCenterPosition(m_rowEnd, m_colEnd)) < m_diagonal/50.0f) {
-            tooClose = true;
-        } else if (glm::length(pos - getCellCenterPosition(m_ballStartR, m_ballStartC)) < m_diagonal/50.0f) {
-            tooClose = true;
-        }
-
         if (!tooClose) {
             m_avoidObjectLocations.push_back(pos);
+            itemsRC.emplace_back(row, col);
         }
     }
 }

@@ -1,5 +1,5 @@
 /**
- * Copyright 2019 Cerulean Quasar. All Rights Reserved.
+ * Copyright 2020 Cerulean Quasar. All Rights Reserved.
  *
  *  This file is part of AmazingLabyrinth.
  *
@@ -49,21 +49,26 @@ struct GameSaveData {
     int version;
     Point<uint32_t> screenSize;
     std::string levelName;
+    bool needsStarter;
     GameSaveData(
         Point<uint32_t> const &screenSize_,
-        std::string const &levelName_) :
+        std::string const &levelName_,
+        bool needsStarter_) :
         version(GameSaveDataVersionValue),
         screenSize(screenSize_),
-        levelName(levelName_)
+        levelName(levelName_),
+        needsStarter(needsStarter_)
     {}
 
     GameSaveData(
             int version_,
             Point<uint32_t> const &screenSize_,
-            std::string const &levelName_) :
+            std::string const &levelName_,
+            bool needsStarter_) :
             version(version_),
             screenSize(screenSize_),
-            levelName(levelName_)
+            levelName(levelName_),
+            needsStarter(needsStarter_)
     {}
 };
 

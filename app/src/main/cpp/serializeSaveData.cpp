@@ -60,14 +60,14 @@ void from_json(nlohmann::json const &j, LevelSaveData &val) {
     val.m_version = j[LevelVersion].get<int>();
 }
 
-using RestoreLevelFromDataFcn = std::function<RestoreData(nlohmann::json const *, std::string const&)>;
+using RestoreLevelFromDataFcn = std::function<RestoreData(nlohmann::json const *, std::string, bool)>;
 
 struct LevelRestoreTableEntry {
     template <typename LevelSaveDataType>
-    LevelRestoreTableEntry(LevelGroup (*getLevelGroupFcn)(std::shared_ptr<LevelSaveDataType> const &),
+    LevelRestoreTableEntry(LevelGroup (*getLevelGroupFcn)(std::shared_ptr<LevelSaveDataType> const &, bool),
                            std::string levelName_, std::string levelDescription_)
             : restoreFcn(
-            [getLevelGroupFcn] (nlohmann::json const *j, std::string const& levelName) -> RestoreData {
+            [getLevelGroupFcn] (nlohmann::json const *j, std::string levelName, bool needsStarter) -> RestoreData {
                 std::shared_ptr<LevelSaveDataType> levelSaveData;
                 if (j != nullptr) {
                     auto jobj = j->find(GameSaveDataLevel);
@@ -78,23 +78,23 @@ struct LevelRestoreTableEntry {
                     }
                 }
 
-                return { levelName, getLevelGroupFcn(levelSaveData)};
+                return { std::move(levelName), getLevelGroupFcn(levelSaveData, needsStarter)};
             }),
-              levelName(std::move(levelName_)),
-              levelDescription(std::move(levelDescription_))
+            levelName(std::move(levelName_)),
+            levelDescription(std::move(levelDescription_))
     {}
 
     // TODO: override should not be necessary after full implementation completed
     template <>
-    LevelRestoreTableEntry(LevelGroup (*getLevelGroupFcn)(std::shared_ptr<void> const &),
+    LevelRestoreTableEntry(LevelGroup (*getLevelGroupFcn)(std::shared_ptr<void> const &, bool),
                            std::string levelName_, std::string levelDescription_)
             : restoreFcn(
-            [getLevelGroupFcn] (nlohmann::json const *, std::string const& levelName) -> RestoreData {
+            [getLevelGroupFcn] (nlohmann::json const *, std::string levelName, bool needsStarter) -> RestoreData {
                 std::shared_ptr<void> levelSaveData;
-                return { levelName, getLevelGroupFcn(levelSaveData)};
+                return { levelName, getLevelGroupFcn(levelSaveData, needsStarter)};
             }),
-              levelName(std::move(levelName_)),
-              levelDescription(std::move(levelDescription_))
+            levelName(std::move(levelName_)),
+            levelDescription(std::move(levelDescription_))
     {}
 
     RestoreLevelFromDataFcn restoreFcn;
@@ -130,7 +130,7 @@ LevelTable const &getLevelTable() {
             for (auto const &levelRestoreEntry : restoreTable) {
                 levelTable.push_back(LevelEntry{levelRestoreEntry.levelName,
                                       levelRestoreEntry.levelDescription,
-                                      levelRestoreEntry.restoreFcn(nullptr, levelRestoreEntry.levelName).levelGroupFcns});
+                                      levelRestoreEntry.restoreFcn(nullptr, levelRestoreEntry.levelName, true).levelGroupFcns});
             }
         }
     };
@@ -154,7 +154,7 @@ LevelMap const &getLevelMap() {
 }
 
 RestoreData createLevelFromRestore() {
-    return getRestoreLevelTable()[0].restoreFcn(nullptr, getRestoreLevelTable()[0].levelName);
+    return getRestoreLevelTable()[0].restoreFcn(nullptr, getRestoreLevelTable()[0].levelName, true);
 }
 
 RestoreData createLevelFromRestore(std::vector<uint8_t> const &saveData, Point<uint32_t> const &screenSize) {
@@ -163,7 +163,8 @@ RestoreData createLevelFromRestore(std::vector<uint8_t> const &saveData, Point<u
 
         auto gb = std::make_shared<GameSaveData>(j[GameSaveDataVersion].get<int>(),
             j[GameSaveDataScreenSize].get<Point<uint32_t>>(),
-            j[GameSaveDataLevelName].get<std::string>());
+            j[GameSaveDataLevelName].get<std::string>(),
+            j[GameSaveDataNeedsStarter].get<bool>());
 
         auto jobj = j.find(GameSaveDataLevel);
         bool ignoreLevelData = false;
@@ -174,9 +175,9 @@ RestoreData createLevelFromRestore(std::vector<uint8_t> const &saveData, Point<u
         auto it = getLevelMap().find(gb->levelName);
         if (it != getLevelMap().end()) {
             if (ignoreLevelData) {
-                return it->second(nullptr, it->first);
+                return it->second(nullptr, it->first, true);
             } else {
-                return it->second(&j, it->first);
+                return it->second(&j, it->first, gb->needsStarter);
             }
         } else {
             return createLevelFromRestore();

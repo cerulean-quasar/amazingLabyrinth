@@ -1,5 +1,5 @@
 /**
- * Copyright 2019 Cerulean Quasar. All Rights Reserved.
+ * Copyright 2020 Cerulean Quasar. All Rights Reserved.
  *
  *  This file is part of AmazingLabyrinth.
  *
@@ -34,9 +34,9 @@ float constexpr LevelTracker::m_maxZLevelStarter;
 float constexpr LevelTracker::m_maxZLevel;
 float constexpr LevelTracker::m_maxZLevelFinisher;
 
-LevelGroup LevelTracker::getLevelGroupBeginning(std::shared_ptr<OpenAreaLevelSaveData> const &levelBundle) {
+LevelGroup LevelTracker::getLevelGroupBeginning(std::shared_ptr<OpenAreaLevelSaveData> const &levelBundle, bool needsStarter) {
     return {
-        getStarterFcn(levelBundle == nullptr, std::vector<std::string>{
+        getStarterFcn(needsStarter, std::vector<std::string>{
             "In the\nbeginning of\nthe universe\nof mazes...",
             "...there was\nnothing except\nfor a ball and\na strange\nspacial anomaly."}),
         GetLevelFcn([levelBundle](LevelTracker &tracker) {
@@ -53,9 +53,9 @@ LevelGroup LevelTracker::getLevelGroupBeginning(std::shared_ptr<OpenAreaLevelSav
     };
 }
 
-LevelGroup LevelTracker::getLevelGroupLonelyPlanet(std::shared_ptr<AvoidVortexLevelSaveData> const &levelBundle) {
+LevelGroup LevelTracker::getLevelGroupLonelyPlanet(std::shared_ptr<AvoidVortexLevelSaveData> const &levelBundle, bool needsStarter) {
     return {
-        getStarterFcn(levelBundle == nullptr, std::vector<std::string>{
+        getStarterFcn(needsStarter, std::vector<std::string>{
             "Now the maze\nuniverse is\nfilled with stars\nand black holes...",
             "...and a lonely\nice planet seeks\nout the warmth\nof a star."}),
         GetLevelFcn([levelBundle](LevelTracker &tracker) {
@@ -74,9 +74,9 @@ LevelGroup LevelTracker::getLevelGroupLonelyPlanet(std::shared_ptr<AvoidVortexLe
     };
 }
 
-LevelGroup LevelTracker::getLevelGroupPufferFish(std::shared_ptr<MazeSaveData> const &levelBundle) {
+LevelGroup LevelTracker::getLevelGroupPufferFish(std::shared_ptr<MazeSaveData> const &levelBundle, bool needsStarter) {
     return {
-        getStarterFcn(levelBundle == nullptr, std::vector<std::string>{
+        getStarterFcn(needsStarter, std::vector<std::string>{
             "On the planet,\nthe ice begins\nto melt\nand life ignites...",
             "...here, a puffer\nfish is looking\nfor a kelp meal."}),
         GetLevelFcn([levelBundle](LevelTracker &tracker) {
@@ -105,9 +105,9 @@ LevelGroup LevelTracker::getLevelGroupPufferFish(std::shared_ptr<MazeSaveData> c
     };
 }
 
-LevelGroup LevelTracker::getLevelGroupRolarBear(std::shared_ptr<MovingQuadsLevelSaveData> const &levelBundle) {
+LevelGroup LevelTracker::getLevelGroupRolarBear(std::shared_ptr<MovingQuadsLevelSaveData> const &levelBundle, bool needsStarter) {
     return {
-        getStarterFcn(levelBundle == nullptr, std::vector<std::string>{
+        getStarterFcn(needsStarter, std::vector<std::string>{
             "As the ice\nplanet warms\nand the ice\nmelts...",
             "...an over hot\nrolar bear\nyearns for\nthe cold of the\nnorth pole."}),
         GetLevelFcn([levelBundle](LevelTracker &tracker) {
@@ -129,9 +129,9 @@ LevelGroup LevelTracker::getLevelGroupRolarBear(std::shared_ptr<MovingQuadsLevel
     };
 }
 
-LevelGroup LevelTracker::getLevelGroupBee1(std::shared_ptr<MazeSaveData> const &levelBundle) {
+LevelGroup LevelTracker::getLevelGroupBee1(std::shared_ptr<MazeSaveData> const &levelBundle, bool needsStarter) {
     return {
-        getStarterFcn(levelBundle == nullptr, std::vector<std::string>{
+        getStarterFcn(needsStarter, std::vector<std::string>{
             "Next comes an\nage when\nflowers covered\nthe planet...",
             "...and one roller\nbee seeks out\nthe nectar\nof a large flower."}),
         GetLevelFcn([levelBundle](LevelTracker &tracker) {
@@ -166,9 +166,9 @@ LevelGroup LevelTracker::getLevelGroupBee1(std::shared_ptr<MazeSaveData> const &
     };
 }
 
-LevelGroup LevelTracker::getLevelGroupBee2(std::shared_ptr<MazeSaveData> const &levelBundle) {
+LevelGroup LevelTracker::getLevelGroupBee2(std::shared_ptr<MazeSaveData> const &levelBundle, bool needsStarter) {
     return {
-        getStarterFcn(levelBundle == nullptr, std::vector<std::string>{
+        getStarterFcn(needsStarter, std::vector<std::string>{
             "The plants have\nbecome more\nnumerous\nand the\nroller bee...",
             "...has to search\nlong and hard\nfor the\nlarge flower."}),
         GetLevelFcn([levelBundle](LevelTracker &tracker) {
@@ -203,15 +203,15 @@ LevelGroup LevelTracker::getLevelGroupBee2(std::shared_ptr<MazeSaveData> const &
     };
 }
 
-LevelGroup LevelTracker::getLevelGroupCat(std::shared_ptr<MazeCollectSaveData> const &levelBundle) {
+LevelGroup LevelTracker::getLevelGroupCat(std::shared_ptr<MazeCollectSaveData> const &levelBundle, bool needsStarter) {
     return {
-        getStarterFcn(levelBundle == nullptr, std::vector<std::string>{
+        getStarterFcn(needsStarter, std::vector<std::string>{
             "In the jungle,\na mother cat...",
             "...searches\nfor her\nlost kittens."}),
         GetLevelFcn([levelBundle](LevelTracker &tracker) {
             std::shared_ptr<MazeCollect> level;
             if (levelBundle == nullptr) {
-                Maze::CreateParameters parameters = { 10, Maze::DFS };
+                Maze::CreateParameters parameters = { 10, Maze::BFS };
                 level = tracker.getLevel<MazeCollect>(parameters);
             } else {
                 level = tracker.getLevel<MazeCollect>(levelBundle);
@@ -234,15 +234,15 @@ LevelGroup LevelTracker::getLevelGroupCat(std::shared_ptr<MazeCollectSaveData> c
     };
 }
 
-LevelGroup LevelTracker::getLevelGroupBunny(std::shared_ptr<MazeAvoidSaveData> const &levelBundle) {
+LevelGroup LevelTracker::getLevelGroupBunny(std::shared_ptr<MazeAvoidSaveData> const &levelBundle, bool needsStarter) {
     return {
-            getStarterFcn(levelBundle == nullptr, std::vector<std::string>{
+            getStarterFcn(needsStarter, std::vector<std::string>{
                     "In the marsh,\na bunny seeks\na carrot...",
                     "...be carefull\nof quicksand!"}),
             GetLevelFcn([levelBundle](LevelTracker &tracker) {
                 std::shared_ptr<MazeAvoid> level;
                 if (levelBundle == nullptr) {
-                    Maze::CreateParameters parameters = { 10, Maze::BFS };
+                    Maze::CreateParameters parameters = { 10, Maze::DFS };
                     level = tracker.getLevel<MazeAvoid>(parameters);
                 } else {
                     level = tracker.getLevel<MazeAvoid>(levelBundle);
@@ -265,9 +265,9 @@ LevelGroup LevelTracker::getLevelGroupBunny(std::shared_ptr<MazeAvoidSaveData> c
     };
 }
 
-LevelGroup LevelTracker::getLevelGroupFrog(std::shared_ptr<FixedMazeSaveData> const &levelBundle) {
+LevelGroup LevelTracker::getLevelGroupFrog(std::shared_ptr<FixedMazeSaveData> const &levelBundle, bool needsStarter) {
     return {
-            getStarterFcn(levelBundle == nullptr, std::vector<std::string>{
+            getStarterFcn(needsStarter, std::vector<std::string>{
                     "In a forest,\na frog\nseeks a fly.",
                     "Watch out for\nmushrooms, they\nare bouncy!"}),
             GetLevelFcn([levelBundle](LevelTracker &tracker) {

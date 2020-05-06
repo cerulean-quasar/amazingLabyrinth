@@ -58,15 +58,15 @@ public:
     static std::vector<std::string> getLevelDescriptions();
     static bool validLevel(uint32_t level) { return level < getLevelTable().size(); }
 
-    static LevelGroup getLevelGroupBeginning(std::shared_ptr<OpenAreaLevelSaveData> const &levelSaveData);
-    static LevelGroup getLevelGroupLonelyPlanet(std::shared_ptr<AvoidVortexLevelSaveData> const &levelSaveData);
-    static LevelGroup getLevelGroupPufferFish(std::shared_ptr<MazeSaveData> const &levelSaveData);
-    static LevelGroup getLevelGroupRolarBear(std::shared_ptr<MovingQuadsLevelSaveData> const &levelSaveData);
-    static LevelGroup getLevelGroupBee1(std::shared_ptr<MazeSaveData> const &levelSaveData);
-    static LevelGroup getLevelGroupBee2(std::shared_ptr<MazeSaveData> const &levelSaveData);
-    static LevelGroup getLevelGroupCat(std::shared_ptr<MazeCollectSaveData> const &levelSaveData);
-    static LevelGroup getLevelGroupBunny(std::shared_ptr<MazeAvoidSaveData> const &levelBundle);
-    static LevelGroup getLevelGroupFrog(std::shared_ptr<FixedMazeSaveData> const &levelBundle);
+    static LevelGroup getLevelGroupBeginning(std::shared_ptr<OpenAreaLevelSaveData> const &levelSaveData, bool needsStarter);
+    static LevelGroup getLevelGroupLonelyPlanet(std::shared_ptr<AvoidVortexLevelSaveData> const &levelSaveData, bool needsStarter);
+    static LevelGroup getLevelGroupPufferFish(std::shared_ptr<MazeSaveData> const &levelSaveData, bool needsStarter);
+    static LevelGroup getLevelGroupRolarBear(std::shared_ptr<MovingQuadsLevelSaveData> const &levelSaveData, bool needsStarter);
+    static LevelGroup getLevelGroupBee1(std::shared_ptr<MazeSaveData> const &levelSaveData, bool needsStarter);
+    static LevelGroup getLevelGroupBee2(std::shared_ptr<MazeSaveData> const &levelSaveData, bool needsStarter);
+    static LevelGroup getLevelGroupCat(std::shared_ptr<MazeCollectSaveData> const &levelSaveData, bool needsStarter);
+    static LevelGroup getLevelGroupBunny(std::shared_ptr<MazeAvoidSaveData> const &levelBundle, bool needsStarter);
+    static LevelGroup getLevelGroupFrog(std::shared_ptr<FixedMazeSaveData> const &levelBundle, bool needsStarter);
 
     void setLevel(std::string const &levelName) {
         size_t i = 0;
