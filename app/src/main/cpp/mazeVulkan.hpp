@@ -376,6 +376,10 @@ class LevelSequenceVulkan : public LevelSequence {
 public:
     glm::mat4 getPerspectiveMatrixForLevel(uint32_t surfaceWidth, uint32_t surfaceHeight) override;
 
+    void updatePretransform(glm::mat4 pretransform) override {
+        m_preTransform = pretransform;
+    }
+
     inline bool needsInitializeCommandBuffers() { return m_level->isFinished() ||
                                                          m_levelFinisher->isUnveiling() || m_texturesChanged; }
     inline void doneInitializingCommandBuffers() { m_texturesChanged = false; }
@@ -387,7 +391,8 @@ public:
                         std::shared_ptr<vulkan::DescriptorPools> const &inDescriptorPoolsShadows,
                         std::shared_ptr<vulkan::ImageSampler> const &inShadows,
                         uint32_t width,
-                        uint32_t height)
+                        uint32_t height,
+                        glm::mat4 preTransform)
             :LevelSequence{inRequester, width, height, false},
              m_device{inDevice},
              m_commandPool{inPool},
@@ -395,7 +400,8 @@ public:
              m_descriptorPoolsShadows{inDescriptorPoolsShadows},
              m_uniformBufferLighting{createUniformBuffer(inDevice, sizeof (glm::vec3))},
              m_commonUBO{createUniformBuffer(inDevice, sizeof (CommonUBO))},
-             m_shadows{inShadows}
+             m_shadows{inShadows},
+             m_preTransform{preTransform}
     {
         setLightingSource();
         setViewLightingSource();
@@ -425,6 +431,7 @@ private:
     std::shared_ptr<vulkan::Buffer> m_uniformBufferLighting;
     std::shared_ptr<vulkan::Buffer> m_commonUBO;
     std::shared_ptr<vulkan::ImageSampler> m_shadows;
+    glm::mat4 m_preTransform;
 };
 
 class GraphicsVulkan : public Graphics {
@@ -484,15 +491,13 @@ public:
                       VkExtent2D{getShadowsFramebufferWidth(), getShadowsFramebufferHeigth()},
                       m_renderPassShadows, m_descriptorPoolsShadows, getBindingDescription(), getAttributeDescriptions(),
                       SHADOW_VERT_FILE, SHADER_SIMPLE_FRAG_FILE, m_graphicsPipeline, VK_CULL_MODE_FRONT_BIT)},
-              m_shadowsAvailableForWrite{m_device},
-              m_shadowsAvailableForRead{m_device},
               m_swapChainCommands{new vulkan::SwapChainCommands{m_swapChain, m_commandPool, m_renderPass, m_depthImageView}},
               m_imageAvailableSemaphore{m_device},
               m_renderFinishedSemaphore{m_device}
     {
         m_levelSequence = std::make_shared<LevelSequenceVulkan>(m_gameRequester, m_device, m_commandPool, m_descriptorPools,
                         m_descriptorPoolsShadows, m_samplerShadows,
-                        m_swapChain->extent().width, m_swapChain->extent().height);
+                        m_swapChain->extent().width, m_swapChain->extent().height, preTransform());
 
         prepareDepthResources();
 
@@ -538,6 +543,9 @@ public:
             vkDeviceWaitIdle(m_device->logicalDevice().get());
         }
     }
+protected:
+    glm::mat4 preTransform();
+
 private:
     // use less precision for the shadow buffer
     static float constexpr shadowsSizeMultiplier = 0.5f;
@@ -575,8 +583,6 @@ private:
     std::shared_ptr<vulkan::RenderPass> m_renderPassShadows;
     std::shared_ptr<vulkan::Framebuffer> m_framebufferShadows;
     std::shared_ptr<vulkan::Pipeline> m_pipelineShadows;
-    vulkan::Semaphore m_shadowsAvailableForWrite;
-    vulkan::Semaphore m_shadowsAvailableForRead;
 
     std::shared_ptr<vulkan::SwapChainCommands> m_swapChainCommands;
 

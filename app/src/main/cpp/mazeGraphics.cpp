@@ -34,9 +34,9 @@ void LevelSequence::setLightingSource() {
 }
 
 void LevelSequence::updateAcceleration(float x, float y, float z) {
-    if (m_levelStarter.get() != nullptr) {
+    if (m_levelStarter) {
         m_levelStarter->updateAcceleration(x, y, z);
-    } else {
+    } else if (m_level) {
         m_level->updateAcceleration(x, y, z);
     }
 }
@@ -193,6 +193,49 @@ void LevelSequence::changeLevel(size_t level) {
     m_levelFinisher = m_levelGroupFcns.getFinisherFcn(*m_levelTracker, x, y, m_proj, m_view);
 
     m_levelStarter->start();
+}
+
+// Called in preparation to calling notifySurfaceChanged
+void LevelSequence::cleanupLevelData() {
+    m_levelStarterDynObjsData.clear();
+    m_levelStarterStaticObjsData.clear();
+    m_texturesLevelStarter.clear();
+
+    m_staticObjsData.clear();
+    m_dynObjsData.clear();
+    m_texturesLevel.clear();
+
+    m_levelFinisherObjsData.clear();
+    m_texturesLevelFinisher.clear();
+}
+
+void LevelSequence::notifySurfaceChanged(uint32_t surfaceWidth, uint32_t surfaceHeight, glm::mat4 preTransform) {
+    updatePretransform(preTransform);
+    m_surfaceWidth = surfaceWidth;
+    m_surfaceHeight = surfaceHeight;
+    updatePerspectiveMatrix(surfaceWidth, surfaceHeight);
+    setupCommonBuffers();
+    glm::mat4 projForLevel = getPerspectiveMatrixForLevel(m_surfaceWidth, m_surfaceHeight);
+    m_levelTracker->updateProjView(projForLevel, m_view);
+    m_levelGroupFcns = m_levelTracker->getLevelGroupFcns();
+
+    // need to regenerate the maze if the width/height of the surface changed.
+    if (m_levelStarter) {
+        m_levelStarter = m_levelGroupFcns.getStarterFcn(*m_levelTracker);
+        initializeLevelData(m_levelStarter, m_levelStarterStaticObjsData,
+                            m_levelStarterDynObjsData, m_texturesLevelStarter);
+    }
+
+    m_level = m_levelGroupFcns.getLevelFcn(*m_levelTracker);
+    initializeLevelData(m_level, m_staticObjsData, m_dynObjsData, m_texturesLevel);
+
+    m_levelFinisherObjsData.clear();
+    m_texturesLevelFinisher.clear();
+    float x, y;
+    m_level->getLevelFinisherCenter(x, y);
+    m_levelFinisher = m_levelGroupFcns.getFinisherFcn(*m_levelTracker, x, y, projForLevel, m_view);
+
+    saveLevelData();
 }
 
 template <typename data_type>

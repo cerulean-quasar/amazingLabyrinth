@@ -155,8 +155,8 @@ void LevelSequenceGL::updateLevelData(DrawObjectTable &objsData, TextureMap &tex
     }
 }
 
-void GraphicsGL::initPipeline() {
-    glViewport(0, 0, m_surface.width(), m_surface.height());
+void GraphicsGL::initPipeline(bool testFramebuffer) {
+    glViewport(0, 0, m_surface->width(), m_surface->height());
 
     programID = loadShaders(SHADER_VERT_FILE, SHADER_FRAG_FILE);
     depthProgramID = loadShaders(DEPTH_VERT_FILE, SIMPLE_FRAG_FILE);
@@ -165,11 +165,13 @@ void GraphicsGL::initPipeline() {
     m_linearDepthProgramID = loadShaders(LINEAR_DEPTH_VERT_FILE, SIMPLE_FRAG_FILE);
     m_normalProgramID = loadShaders(NORMAL_VERT_FILE, SIMPLE_FRAG_FILE);
 
-    if (!testDepthTexture()) {
-        m_useIntTexture = false;
+    if (testFramebuffer) {
         if (!testDepthTexture()) {
-            throw std::runtime_error(
-                    "This version of OpenGL has bugs making it impossible to get the depth texture and normal map.");
+            m_useIntTexture = false;
+            if (!testDepthTexture()) {
+                throw std::runtime_error(
+                        "This version of OpenGL has bugs making it impossible to get the depth texture and normal map.");
+            }
         }
     }
 
@@ -180,7 +182,7 @@ void GraphicsGL::initPipeline() {
     } else {
         colorImageFormats.emplace_back(GL_RGBA8, GL_RGBA, GL_UNSIGNED_BYTE);
     }
-    m_framebufferShadowMap = std::make_shared<Framebuffer>(m_surface.width(), m_surface.height(), colorImageFormats);
+    m_framebufferShadowMap = std::make_shared<Framebuffer>(m_surface->width(), m_surface->height(), colorImageFormats);
 }
 
 Framebuffer::Framebuffer(uint32_t width, uint32_t height, std::vector<Framebuffer::ColorImageFormat> colorImageFormats)
@@ -523,7 +525,7 @@ std::shared_ptr<TextureData> GraphicsGL::getDepthTextureTemplate(
     checkGraphicsError();
 
     // set the viewport back for the rendering to the screen
-    glViewport(0, 0, m_surface.width(), m_surface.height());
+    glViewport(0, 0, m_surface->width(), m_surface->height());
     checkGraphicsError();
 
     return std::make_shared<TextureDataGL>(fb.acquireDepthImage());
@@ -585,7 +587,7 @@ void GraphicsGL::drawFrame() {
     if (m_levelSequence->needFinisherObjs()) {
         drawObjects(m_levelSequence->finisherObjsData(), m_levelSequence->finisherTextures());
     }
-    eglSwapBuffers(m_surface.display(), m_surface.surface());
+    eglSwapBuffers(m_surface->display(), m_surface->surface());
 }
 
 void GraphicsGL::drawObjects(DrawObjectTable const &objsData, TextureMap const &textures) {
@@ -813,6 +815,19 @@ GLuint GraphicsGL::loadShaders(std::string const &vertexShaderFile, std::string 
     return ProgramID;
 }
 
-void GraphicsGL::recreateSwapChain(uint32_t, uint32_t) {
-    // do nothing
+void GraphicsGL::recreateSwapChain(uint32_t width, uint32_t height) {
+    if (m_surface->width() == width && m_surface->height() == height) {
+        return;
+    }
+    m_levelSequence->cleanupLevelData();
+    destroyResources();
+
+    auto window = m_surface->window();
+    m_surface.reset();
+
+    m_surface = std::make_shared<graphicsGL::Surface>(window);
+
+    initPipeline(false);
+
+    m_levelSequence->notifySurfaceChanged(m_surface->width(), m_surface->height());
 }

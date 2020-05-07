@@ -84,6 +84,10 @@ public:
     void updateAcceleration(float x, float y, float z);
     void changeLevel(size_t level);
 
+    void notifySurfaceChanged(uint32_t surfaceWidth, uint32_t surfaceHeight, glm::mat4 preTransform = glm::mat4(1.0f));
+    virtual void updatePretransform(glm::mat4 pretransform) = 0;
+    void cleanupLevelData();
+
     LevelSequence(std::shared_ptr<GameRequester> inRequester,
                   uint32_t surfaceWidth,
                   uint32_t surfaceHeight,
@@ -176,7 +180,6 @@ protected:
     virtual std::shared_ptr<TextureData> createTexture(std::shared_ptr<TextureDescription> const &textureDescription) = 0;
     virtual std::shared_ptr<DrawObjectData> createObject(std::shared_ptr<DrawObject> const &obj, TextureMap &textures) = 0;
     virtual void updateLevelData(DrawObjectTable &objsData, TextureMap &textures) = 0;
-
 private:
     glm::mat4 getViewMatrix() {
         return glm::lookAt(glm::vec3(0.0f, 0.0f, 1.0f),

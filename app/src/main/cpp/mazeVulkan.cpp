@@ -345,7 +345,8 @@ glm::mat4 LevelSequenceVulkan::getPerspectiveMatrixForLevel(uint32_t surfaceWidt
 }
 
 void LevelSequenceVulkan::updatePerspectiveMatrix(uint32_t surfaceWidth, uint32_t surfaceHeight) {
-    m_proj = getPerspectiveMatrix(m_perspectiveViewAngle,
+    m_proj = m_preTransform *
+             getPerspectiveMatrix(m_perspectiveViewAngle,
                                 surfaceWidth / static_cast<float>(surfaceHeight),
                                 m_perspectiveNearPlane, m_perspectiveFarPlane,
                                 true, true);
@@ -388,29 +389,115 @@ std::shared_ptr<DrawObjectData> LevelSequenceVulkan::createObject(std::shared_pt
     return objData;
 }
 
-void GraphicsVulkan::recreateSwapChain(uint32_t, uint32_t) {
+glm::mat4 GraphicsVulkan::preTransform() {
+    glm::mat4 preTransformRet{1.0f};
+
+    switch (m_swapChain->preTransform()) {
+        case VK_SURFACE_TRANSFORM_ROTATE_90_BIT_KHR:
+            preTransformRet = glm::rotate(glm::mat4(1.0f), glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+            break;
+        case VK_SURFACE_TRANSFORM_ROTATE_180_BIT_KHR:
+            preTransformRet = glm::rotate(glm::mat4(1.0f), glm::radians(180.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+            break;
+        case VK_SURFACE_TRANSFORM_ROTATE_270_BIT_KHR:
+            preTransformRet = glm::rotate(glm::mat4(1.0f), glm::radians(270.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+            break;
+        case VK_SURFACE_TRANSFORM_HORIZONTAL_MIRROR_BIT_KHR:
+            preTransformRet[0][0] = -1.0f;
+            break;
+        case VK_SURFACE_TRANSFORM_HORIZONTAL_MIRROR_ROTATE_90_BIT_KHR:
+            preTransformRet[0][0] = -1.0f;
+            preTransformRet = glm::rotate(glm::mat4(1.0f), glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f)) * preTransformRet;
+            break;
+        case VK_SURFACE_TRANSFORM_HORIZONTAL_MIRROR_ROTATE_180_BIT_KHR:
+            preTransformRet[0][0] = -1.0f;
+            preTransformRet = glm::rotate(glm::mat4(1.0f), glm::radians(180.0f), glm::vec3(0.0f, 0.0f, 1.0f)) * preTransformRet;
+            break;
+        case VK_SURFACE_TRANSFORM_HORIZONTAL_MIRROR_ROTATE_270_BIT_KHR:
+            preTransformRet[0][0] = -1.0f;
+            preTransformRet = glm::rotate(glm::mat4(1.0f), glm::radians(270.0f), glm::vec3(0.0f, 0.0f, 1.0f)) * preTransformRet;
+            break;
+        case VK_SURFACE_TRANSFORM_IDENTITY_BIT_KHR:
+        default:
+            break;
+    }
+
+    return preTransformRet;
+}
+
+void GraphicsVulkan::recreateSwapChain(uint32_t width, uint32_t height) {
+    VkExtent2D extent = m_swapChain->extent();
+
+    // android sends a surface change message right after starting with the same surface width
+    // and height.  Avoid recreating everything in that case.
+    if (width == extent.width && height == extent.height) {
+        return;
+    }
+
     vkDeviceWaitIdle(m_device->logicalDevice().get());
 
     cleanupSwapChain();
 
-    m_swapChain.reset(new vulkan::SwapChain(m_device));
-    m_depthImageView.reset(new vulkan::ImageView{vulkan::ImageFactory::createDepthImage(m_swapChain),
-                                                 VK_IMAGE_ASPECT_DEPTH_BIT});
+    m_swapChain = std::make_shared<vulkan::SwapChain>(m_device, width, height);
+    m_depthImageView = std::make_shared<vulkan::ImageView>(vulkan::ImageFactory::createDepthImage(m_swapChain),
+                                                 VK_IMAGE_ASPECT_DEPTH_BIT);
     prepareDepthResources();
     m_renderPass = vulkan::RenderPass::createRenderPass(m_device, m_swapChain);
-    m_graphicsPipeline.reset(new vulkan::Pipeline{m_gameRequester, m_device, m_swapChain->extent(),
+    m_graphicsPipeline = std::make_shared<vulkan::Pipeline>(m_gameRequester, m_device, m_swapChain->extent(),
                                                   m_renderPass, m_descriptorPools,
                                                   getBindingDescription(), getAttributeDescriptions(),
                                                   SHADER_VERT_FILE, SHADER_FRAG_FILE,
-                                                  nullptr});
-    m_swapChainCommands.reset(new vulkan::SwapChainCommands{m_swapChain, m_commandPool, m_renderPass,
-                                                            m_depthImageView});
+                                                  nullptr);
+    m_swapChainCommands = std::make_shared<vulkan::SwapChainCommands>(m_swapChain, m_commandPool, m_renderPass, m_depthImageView);
+
+    // Shadows
+    m_depthImageViewShadows = std::make_shared<vulkan::ImageView>(
+        vulkan::ImageFactory::createDepthImage(m_device, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT,
+            getShadowsFramebufferWidth(), getShadowsFramebufferHeigth()),
+        VK_IMAGE_ASPECT_DEPTH_BIT);
+    m_shadowsColorAttachment = vulkan::ImageView::createImageViewAndImage(
+        m_device,
+        getShadowsFramebufferWidth(),
+        getShadowsFramebufferHeigth(),
+        VK_FORMAT_R32G32B32A32_SFLOAT,
+        VK_IMAGE_TILING_OPTIMAL,
+        VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
+        VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+        VK_IMAGE_ASPECT_COLOR_BIT);
+    m_renderPassShadows = vulkan::RenderPass::createDepthTextureRenderPass(m_device,
+        std::vector<vulkan::RenderPass::ImageAttachmentInfo>{vulkan::RenderPass::ImageAttachmentInfo{
+            VK_ATTACHMENT_LOAD_OP_CLEAR, VK_ATTACHMENT_STORE_OP_STORE,
+            m_shadowsColorAttachment->image()->format(),
+            VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
+            }},
+        std::make_shared<vulkan::RenderPass::ImageAttachmentInfo>(
+            VK_ATTACHMENT_LOAD_OP_CLEAR, VK_ATTACHMENT_STORE_OP_STORE,
+            m_depthImageViewShadows->image()->format(),
+            VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL));
+    m_framebufferShadows =std::make_shared<vulkan::Framebuffer>(
+        m_device, m_renderPassShadows,
+        std::vector<std::shared_ptr<vulkan::ImageView>>{m_shadowsColorAttachment, m_depthImageViewShadows},
+        getShadowsFramebufferWidth(),
+        getShadowsFramebufferHeigth());
+    m_pipelineShadows = std::make_shared<vulkan::Pipeline>(m_gameRequester, m_device,
+        VkExtent2D{getShadowsFramebufferWidth(), getShadowsFramebufferHeigth()},
+        m_renderPassShadows, m_descriptorPoolsShadows, getBindingDescription(), getAttributeDescriptions(),
+        SHADOW_VERT_FILE, SHADER_SIMPLE_FRAG_FILE, m_graphicsPipeline, VK_CULL_MODE_FRONT_BIT);
+
+    extent = m_swapChain->extent();
+    m_levelSequence->notifySurfaceChanged(extent.width, extent.height, preTransform());
 }
 
 void GraphicsVulkan::cleanupSwapChain() {
     if (m_device->logicalDevice().get() == VK_NULL_HANDLE) {
         return;
     }
+
+    m_levelSequence->cleanupLevelData();
+    m_renderPassShadows.reset();
+    m_framebufferShadows.reset();
+    m_depthImageViewShadows.reset();
+    m_shadowsColorAttachment.reset();
 
     m_swapChainCommands.reset();
 

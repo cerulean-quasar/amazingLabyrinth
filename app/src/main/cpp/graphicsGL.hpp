@@ -1,5 +1,5 @@
 /**
- * Copyright 2019 Cerulean Quasar. All Rights Reserved.
+ * Copyright 2020 Cerulean Quasar. All Rights Reserved.
  *
  *  This file is part of AmazingLabyrinth.
  *
@@ -46,10 +46,11 @@ namespace graphicsGL {
         void initThread();
         void cleanupThread();
 
-        inline int width() { return m_width; }
-        inline int height() { return m_height; }
+        inline uint32_t width() { return static_cast<uint32_t>(m_width); }
+        inline uint32_t height() { return static_cast<uint32_t>(m_height); }
         inline EGLSurface surface() { return m_surface; }
         inline EGLDisplay display() { return m_display; }
+        inline std::shared_ptr<WindowType> window() { return m_window; }
 
         ~Surface() {
             destroyWindow();

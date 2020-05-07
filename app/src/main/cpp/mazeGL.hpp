@@ -146,6 +146,7 @@ private:
 class LevelSequenceGL : public LevelSequence {
 public:
     glm::mat4 getPerspectiveMatrixForLevel(uint32_t surfaceWidth, uint32_t surfaceHeight) override;
+    void updatePretransform(glm::mat4) override { /* do nothing */ }
 
     LevelSequenceGL(std::shared_ptr<GameRequester> inRequester, uint32_t width, uint32_t height)
             : LevelSequence{inRequester, width, height, true}
@@ -164,7 +165,7 @@ public:
     GraphicsGL(std::shared_ptr<WindowType> window,
                GameRequesterCreator inRequesterCreator)
             : Graphics{inRequesterCreator},
-              m_surface{std::move(window)},
+              m_surface{std::make_shared<graphicsGL::Surface>(std::move(window))},
               programID{},
               depthProgramID{},
               m_linearDepthProgramID{},
@@ -172,15 +173,15 @@ public:
               m_useIntTexture{true},
               m_framebufferShadowMap{}
     {
-        m_levelSequence = std::make_shared<LevelSequenceGL>(m_gameRequester, static_cast<uint32_t>(m_surface.width()),
-                        static_cast<uint32_t >(m_surface.height()));
+        m_levelSequence = std::make_shared<LevelSequenceGL>(m_gameRequester, static_cast<uint32_t>(m_surface->width()),
+                        static_cast<uint32_t >(m_surface->height()));
         initPipeline();
 
     }
 
-    virtual void initThread() { m_surface.initThread(); }
+    virtual void initThread() { m_surface->initThread(); }
 
-    virtual void cleanupThread() { m_surface.cleanupThread(); }
+    virtual void cleanupThread() { m_surface->cleanupThread(); }
 
     virtual bool updateData() { return m_levelSequence->updateData(); }
 
@@ -218,13 +219,10 @@ public:
             std::vector<glm::vec3> &normalMap);
 
     virtual ~GraphicsGL() {
-        glDeleteShader(programID);
-        glDeleteShader(depthProgramID);
-        glDeleteShader(m_linearDepthProgramID);
-        glDeleteShader(m_normalProgramID);
+        destroyResources();
     }
 private:
-    graphicsGL::Surface m_surface;
+    std::shared_ptr<graphicsGL::Surface> m_surface;
     GLuint programID;
     GLuint depthProgramID;
     GLuint m_linearDepthProgramID;
@@ -234,7 +232,7 @@ private:
     std::shared_ptr<Framebuffer> m_framebufferShadowMap;
 
     GLuint loadShaders(std::string const &vertexShaderFile, std::string const &fragmentShaderFile);
-    void initPipeline();
+    void initPipeline(bool testFramebuffer = true);
     void drawObjects(DrawObjectTable const &objsData, TextureMap const &textures);
     void drawObject(GLuint programID, bool needsNormal, GLuint vertex, GLuint index,
                     unsigned long nbrIndices, GLuint texture, glm::mat4 const &modelMatrix);
@@ -253,6 +251,14 @@ private:
             float nearestDepth,
             std::vector<float> &depthMap, /* output */
             std::vector<glm::vec3> &normalMap); /* output */
+
+    void destroyResources() {
+        glDeleteShader(programID);
+        glDeleteShader(depthProgramID);
+        glDeleteShader(m_linearDepthProgramID);
+        glDeleteShader(m_normalProgramID);
+        m_framebufferShadowMap.reset();
+    }
 };
 
 #endif // AMAZING_LABYRINTH_MAZE_GL_HPP

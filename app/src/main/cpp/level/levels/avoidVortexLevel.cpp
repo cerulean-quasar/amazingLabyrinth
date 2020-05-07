@@ -51,7 +51,7 @@ void AvoidVortexLevel::postGenerate() {
 void AvoidVortexLevel::generate() {
     /* ensure that the ball and hole are not near each other. They need to be farther apart than
      * the vortexes.  To make the maze fun and harder. */
-    float smallestDistance = 4*ballDiameter();
+    float smallestDistance = ballDiameter();
     do {
         holePosition.x = random.getFloat(-maxX, maxX);
         holePosition.y = random.getFloat(-maxY, maxY);

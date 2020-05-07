@@ -100,6 +100,11 @@ public:
             : m_gameRequester{std::move(inGameRequester)},
               m_currentLevel{}
     {
+        updateProjView(proj, view);
+    }
+
+    void updateProjView(glm::mat4 const &proj, glm::mat4 const &view)
+    {
         auto wh = getWidthHeight(m_maxZLevel, proj, view);
         m_widthLevel = wh.first;
         m_heightLevel = wh.second;

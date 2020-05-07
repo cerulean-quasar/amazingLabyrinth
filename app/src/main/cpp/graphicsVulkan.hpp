@@ -49,6 +49,7 @@
 #include "level/levelFinish.hpp"
 #include "level/levelTracker.hpp"
 #include "level/levelStarter.hpp"
+#include "../../../../../../Android/Sdk/ndk/21.0.6113669/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/include/vulkan/vulkan.h"
 
 namespace vulkan {
 #ifdef DEBUG
@@ -254,25 +255,28 @@ namespace vulkan {
 
     class SwapChain {
     public:
-        SwapChain(std::shared_ptr<Device> inDevice)
+        SwapChain(std::shared_ptr<Device> inDevice, uint32_t width = 0, uint32_t height = 0)
                 : m_device(inDevice),
                   m_swapChain{VK_NULL_HANDLE},
                   m_imageFormat{},
-                  m_extent{} {
-            createSwapChain();
+                  m_extent{},
+                  m_preTransform{} {
+            createSwapChain(width, height);
         }
 
         inline std::shared_ptr<Device> const &device() { return m_device; }
         inline std::shared_ptr<VkSwapchainKHR_T> const &swapChain() {return m_swapChain; }
         inline VkFormat imageFormat() { return m_imageFormat; }
         inline VkExtent2D extent() { return m_extent; }
+        inline VkSurfaceTransformFlagsKHR preTransform() { return m_preTransform; }
     private:
         std::shared_ptr<Device> m_device;
         std::shared_ptr<VkSwapchainKHR_T> m_swapChain;
         VkFormat m_imageFormat;
         VkExtent2D m_extent;
+        VkSurfaceTransformFlagsKHR m_preTransform;
 
-        void createSwapChain();
+        void createSwapChain(uint32_t width, uint32_t height);
 
         VkSurfaceFormatKHR
         chooseSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR> &availableFormats);
@@ -280,7 +284,8 @@ namespace vulkan {
         VkPresentModeKHR
         chooseSwapPresentMode(const std::vector<VkPresentModeKHR> availablePresentModes);
 
-        VkExtent2D chooseSwapExtent(const VkSurfaceCapabilitiesKHR &capabilities);
+        VkExtent2D chooseSwapExtent(const VkSurfaceCapabilitiesKHR &capabilities,
+                                    uint32_t width, uint32_t height);
     };
 
     class RenderPass {
