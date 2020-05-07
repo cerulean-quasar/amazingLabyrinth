@@ -875,6 +875,10 @@ namespace vulkan {
         inline std::shared_ptr<Image> const &image() { return m_image; }
         inline std::shared_ptr<ImageView> const &imageView() { return m_imageView; }
 
+        inline void updateImageView(std::shared_ptr<ImageView> const &imgview) {
+            m_imageView = imgview;
+            m_image = imgview->image();
+        }
     private:
         std::shared_ptr<Device> m_device;
         std::shared_ptr<Image> m_image;

@@ -43,7 +43,7 @@ public class MySurfaceCallback implements SurfaceHolder.Callback {
                                int width,
                                int height)
     {
-        Draw.surfaceChanged(width, height);
+        Draw.surfaceChanged(width, height, getRotation());
     }
 
     public void surfaceCreated(SurfaceHolder holder) {
@@ -59,7 +59,7 @@ public class MySurfaceCallback implements SurfaceHolder.Callback {
 
         if (m_game == null) {
             Handler notify = new Handler(new GameErrorHandler());
-            m_game = new Thread(new Draw(notify, drawSurface, m_app.getAssets(), m_app.getFilesDir().toString()));
+            m_game = new Thread(new Draw(notify, drawSurface, m_app.getAssets(), m_app.getFilesDir().toString(), getRotation()));
             m_game.start();
         }
     }
@@ -72,6 +72,20 @@ public class MySurfaceCallback implements SurfaceHolder.Callback {
             } catch (InterruptedException e) {
             }
             m_game = null;
+        }
+    }
+
+    private float getRotation() {
+        switch (m_app.getRotation()) {
+            case Surface.ROTATION_90:
+                return Draw.ROTATION_90;
+            case Surface.ROTATION_180:
+                return Draw.ROTATION_180;
+            case Surface.ROTATION_270:
+                return Draw.ROTATION_270;
+            case Surface.ROTATION_0:
+            default:
+                return Draw.ROTATION_0;
         }
     }
 

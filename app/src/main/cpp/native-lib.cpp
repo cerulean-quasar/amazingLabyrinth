@@ -36,7 +36,8 @@ Java_com_quasar_cerulean_amazinglabyrinth_Draw_startGame(
         jobject jdrawingSurface,
         jobject jassetManager,
         jstring jsaveDataDir,
-        jobject jReturnChannel)
+        jobject jReturnChannel,
+        jfloat jrotationAngle)
 {
     std::string saveDataFile;
     try {
@@ -80,7 +81,7 @@ Java_com_quasar_cerulean_amazinglabyrinth_Draw_startGame(
     std::shared_ptr<WindowType> surface(window, deleter);
 
     try {
-        GameWorker worker{surface, requesterCreator, true, /* useLegacy */ false};
+        GameWorker worker{surface, requesterCreator, true, /* useLegacy */ false, jrotationAngle};
         worker.drawingLoop();
     } catch (std::runtime_error &e) {
         // TODO: manage exception handling in Graphics.
@@ -111,9 +112,10 @@ Java_com_quasar_cerulean_amazinglabyrinth_Draw_tellDrawerSurfaceChanged(
         JNIEnv *,
         jclass,
         jint jwidth,
-        jint jheight)
+        jint jheight,
+        jfloat jrotationAngle)
 {
-    auto ev = std::make_shared<SurfaceChangedEvent>(jwidth, jheight);
+    auto ev = std::make_shared<SurfaceChangedEvent>(jwidth, jheight, jrotationAngle);
     gameFromGuiChannel().sendEvent(ev);
 }
 

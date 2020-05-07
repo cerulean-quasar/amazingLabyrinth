@@ -437,8 +437,9 @@ private:
 class GraphicsVulkan : public Graphics {
 public:
     GraphicsVulkan(std::shared_ptr<WindowType> window,
-            GameRequesterCreator inRequesterCreator)
-            : Graphics{inRequesterCreator},
+            GameRequesterCreator inRequesterCreator,
+            float rotationAngle)
+            : Graphics{inRequesterCreator, rotationAngle},
               m_instance{new vulkan::Instance(std::move(window))},
               m_device{new vulkan::Device{m_instance}},
               m_swapChain{new vulkan::SwapChain{m_device}},

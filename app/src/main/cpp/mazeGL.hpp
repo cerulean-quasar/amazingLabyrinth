@@ -163,8 +163,9 @@ protected:
 class GraphicsGL : public Graphics {
 public:
     GraphicsGL(std::shared_ptr<WindowType> window,
-               GameRequesterCreator inRequesterCreator)
-            : Graphics{inRequesterCreator},
+               GameRequesterCreator inRequesterCreator,
+               float rotationAngle)
+            : Graphics{inRequesterCreator, rotationAngle},
               m_surface{std::make_shared<graphicsGL::Surface>(std::move(window))},
               programID{},
               depthProgramID{},

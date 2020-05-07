@@ -68,6 +68,7 @@ public:
         bool needsRedraw = graphics->updateData();
         graphics->drawFrame();
 
+        graphics->changeRotationAngle(m_rotationAngle);
         graphics->recreateSwapChain(m_width, m_height);
 
         // redraw the frame right away and then return false because this event means that we
@@ -79,15 +80,17 @@ public:
 
     evtype type() override { return surfaceChanged; }
 
-    SurfaceChangedEvent(uint32_t width, uint32_t height)
+    SurfaceChangedEvent(uint32_t width, uint32_t height, float rotationAngle)
             : m_width(width),
-              m_height(height) {
-    }
+              m_height(height),
+              m_rotationAngle(rotationAngle)
+    {}
 
     ~SurfaceChangedEvent() override = default;
 private:
     uint32_t m_width;
     uint32_t m_height;
+    float m_rotationAngle;
 };
 
 class LevelChangedEvent : public DrawEvent {
@@ -154,7 +157,8 @@ public:
     GameWorker(std::shared_ptr<WindowType> inSurface,
                GameRequesterCreator inRequesterCreator,
                bool inUseGravity,
-               bool inUseLegacy)
+               bool inUseLegacy,
+               float rotationAngle)
             : m_whichSensors{},
               m_tryVulkan{!inUseLegacy},
               m_graphics{}
@@ -168,7 +172,7 @@ public:
             }
         }
 
-        std::string error = std::move(initGraphics(std::move(inSurface), inRequesterCreator));
+        std::string error = std::move(initGraphics(std::move(inSurface), inRequesterCreator, rotationAngle));
         m_graphics->sendGraphicsDescription(whichSensors.test(Sensors::ACCELEROMETER_SENSOR), error);
     }
 
@@ -180,7 +184,8 @@ private:
     bool m_tryVulkan;
     std::unique_ptr<Graphics> m_graphics;
 
-    std::string initGraphics(std::shared_ptr<WindowType> surface, GameRequesterCreator requesterCreator);
+    std::string initGraphics(std::shared_ptr<WindowType> surface, GameRequesterCreator requesterCreator,
+            float rotationAngle);
 };
 
 #endif // AMAZING_LABYRINTH_DRAWER_HPP

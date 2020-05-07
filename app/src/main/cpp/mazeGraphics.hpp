@@ -191,8 +191,18 @@ class Graphics {
 public:
     virtual void initThread()=0;
 
+    void changeRotationAngle(float rotationAngle) {
+        m_rotationAngle = rotationAngle;
+    }
+
     void updateAcceleration(float x, float y, float z) {
-        m_levelSequence->updateAcceleration(x, y, z);
+        glm::vec4 acceleration{x, y, z, 1.0f};
+        glm::mat4 rotation = glm::rotate(glm::mat4{1.0f}, glm::radians(m_rotationAngle), glm::vec3{0.0f, 0.0f, 1.0f});
+        acceleration = rotation * acceleration;
+        m_levelSequence->updateAcceleration(
+                acceleration.x/acceleration.w,
+                acceleration.y/acceleration.w,
+                acceleration.z/acceleration.w);
     }
 
     void changeLevel(size_t level) {
@@ -232,9 +242,11 @@ public:
             std::vector<float> &depthValues,
             std::vector<glm::vec3> &normalMap) = 0;
 
-    explicit Graphics(GameRequesterCreator inRequesterCreator)
+    explicit Graphics(GameRequesterCreator inRequesterCreator,
+            float inRotationAngle)
         : m_gameRequester{inRequesterCreator(this)},
-        m_levelSequence{}
+        m_levelSequence{},
+        m_rotationAngle{inRotationAngle}
     {}
 
     virtual ~Graphics() = default;
@@ -242,6 +254,7 @@ public:
 protected:
     std::shared_ptr<GameRequester> m_gameRequester;
     std::shared_ptr<LevelSequence> m_levelSequence;
+    float m_rotationAngle;
 
     static float constexpr m_depthTextureNearPlane = 0.1f;
     static float constexpr m_depthTextureFarPlane = 10.0f;

@@ -27,10 +27,12 @@ import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.TypedValue;
+import android.view.Display;
 import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
+import android.view.Surface;
 import android.view.SurfaceHolder;
 import android.view.SurfaceView;
 import android.view.View;
@@ -224,5 +226,10 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
         m_deviceName = deviceName;
         m_hasAccelerometer = hasAccelerometer;
         m_driverBugInfo = driverBugInfo;
+    }
+
+    public int getRotation() {
+        SurfaceView drawSurfaceView = findViewById(R.id.mainDrawingSurface);
+        return drawSurfaceView.getDisplay().getRotation();
     }
 }

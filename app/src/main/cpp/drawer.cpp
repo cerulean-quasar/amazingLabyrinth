@@ -99,13 +99,14 @@ GameSendChannel &gameFromGuiChannel() {
 }
 
 std::string GameWorker::initGraphics(std::shared_ptr<WindowType> surface,
-        GameRequesterCreator requesterCreator)
+        GameRequesterCreator requesterCreator,
+        float rotationAngle)
 {
     std::string error;
 #ifdef CQ_ENABLE_VULKAN
     if (m_tryVulkan) {
         try {
-            m_graphics = std::make_unique<GraphicsVulkan>(surface, requesterCreator);
+            m_graphics = std::make_unique<GraphicsVulkan>(surface, requesterCreator, rotationAngle);
         } catch (std::runtime_error &e) {
             error = std::string("Vulkan supported but not used due to: ") + e.what();
             m_tryVulkan = false;
@@ -116,7 +117,7 @@ std::string GameWorker::initGraphics(std::shared_ptr<WindowType> surface,
 #endif
 
     if (!m_tryVulkan) {
-        m_graphics = std::make_unique<GraphicsGL>(std::move(surface), requesterCreator);
+        m_graphics = std::make_unique<GraphicsGL>(std::move(surface), requesterCreator, rotationAngle);
     }
 
     return std::move(error);

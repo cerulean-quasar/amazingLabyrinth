@@ -464,6 +464,7 @@ void GraphicsVulkan::recreateSwapChain(uint32_t width, uint32_t height) {
         VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
         VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
         VK_IMAGE_ASPECT_COLOR_BIT);
+    m_samplerShadows->updateImageView(m_shadowsColorAttachment);
     m_renderPassShadows = vulkan::RenderPass::createDepthTextureRenderPass(m_device,
         std::vector<vulkan::RenderPass::ImageAttachmentInfo>{vulkan::RenderPass::ImageAttachmentInfo{
             VK_ATTACHMENT_LOAD_OP_CLEAR, VK_ATTACHMENT_STORE_OP_STORE,
