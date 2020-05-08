@@ -455,7 +455,11 @@ namespace vulkan {
         }
 
         bool hasAvailableDescriptorSets() {
-            return m_totalDescriptorsAllocated < m_totalDescriptorsInPool;
+            /* Purposely returning that we are out of descriptors one less than we have to because
+             * on Google Pixel 4, it returns that there are no more descriptors when there should be
+             * one left.
+             */
+            return m_totalDescriptorsAllocated < m_totalDescriptorsInPool - 1;
         }
     };
 
