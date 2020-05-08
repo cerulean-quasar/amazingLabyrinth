@@ -183,6 +183,7 @@ private:
     std::bitset<3> m_whichSensors;
     bool m_tryVulkan;
     std::unique_ptr<Graphics> m_graphics;
+    static uint32_t constexpr m_maxIterationsIdle = 20000;
 
     std::string initGraphics(std::shared_ptr<WindowType> surface, GameRequesterCreator requesterCreator,
             float rotationAngle);

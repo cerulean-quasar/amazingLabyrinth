@@ -58,6 +58,7 @@ public class MySurfaceCallback implements SurfaceHolder.Callback {
         Surface drawSurface = holder.getSurface();
 
         if (m_game == null) {
+            m_app.keepAppAlive(true);
             Handler notify = new Handler(new GameErrorHandler());
             m_game = new Thread(new Draw(notify, drawSurface, m_app.getAssets(), m_app.getFilesDir().toString(), getRotation()));
             m_game.start();
@@ -100,6 +101,12 @@ public class MySurfaceCallback implements SurfaceHolder.Callback {
                 return true;
             }
 
+            if (data.containsKey(Constants.KeyEnableKeepAlive)) {
+                boolean keepAlive = data.getBoolean(Constants.KeyEnableKeepAlive, false);
+                MySurfaceCallback.this.m_app.keepAppAlive(keepAlive);
+                return true;
+            }
+
             // is this a message about with information about the hardware/drivers?
             String graphicsName = data.getString(Constants.KeyGraphicsName);
             if (graphicsName != null) {
@@ -122,6 +129,7 @@ public class MySurfaceCallback implements SurfaceHolder.Callback {
 
                 MySurfaceCallback.this.m_app.setDeviceInfo(graphicsName, version, deviceName,
                         hasAccelerometer, driverBugInfo);
+                return true;
             }
 
             // unknown message, ignore

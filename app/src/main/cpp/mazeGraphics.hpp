@@ -225,6 +225,10 @@ public:
         m_gameRequester->sendGraphicsDescription(info, hasAccelerometer);
     }
 
+    void sendKeepAliveEnabled(bool keepAliveEnabled) {
+        m_gameRequester->sendKeepAliveEnabled(keepAliveEnabled);
+    }
+
     void saveLevelData() {
         return m_levelSequence->saveLevelData();
     }

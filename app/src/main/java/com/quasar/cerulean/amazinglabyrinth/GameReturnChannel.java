@@ -11,6 +11,14 @@ public class GameReturnChannel {
         m_notify = inNotify;
     }
 
+    public void sendKeepAliveEnabled(boolean keepAliveEnabled) {
+        Bundle bundle = new Bundle();
+        bundle.putBoolean(Constants.KeyEnableKeepAlive, keepAliveEnabled);
+        Message msg = new Message();
+        msg.setData(bundle);
+        m_notify.sendMessage(msg);
+    }
+
     public void sendError(String error) {
         Bundle bundle = new Bundle();
         bundle.putString(Constants.KeyError, error);

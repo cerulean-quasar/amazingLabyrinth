@@ -22,6 +22,7 @@ package com.quasar.cerulean.amazinglabyrinth;
 
 public class Constants {
     public static final String KeyError = "errorString";
+    public static final String KeyEnableKeepAlive = "keepAlive";
 
     // for About Activity
     public static final int AMAZING_LABYRINTH_ABOUT_ACTIVITY = 1;

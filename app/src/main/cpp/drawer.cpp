@@ -129,6 +129,8 @@ void GameWorker::drawingLoop() {
         sensor = std::make_unique<Sensors>(m_whichSensors);
     }
 
+    uint32_t nbrIterationsIdle = 0;
+    bool keepAliveEnabled = true;
     while (true) {
         if (sensor != nullptr && sensor->hasAccelerometerEvents()) {
             std::vector<Sensors::AccelerationEvent> events = sensor->getAccelerometerEvents();
@@ -164,9 +166,23 @@ void GameWorker::drawingLoop() {
         bool needsRedraw = m_graphics->updateData();
         if (needsRedraw || nbrRequireRedraw > 0) {
             m_graphics->drawFrame();
+            timeval tv = {0, 100};
+            select(0, nullptr, nullptr, nullptr, &tv);
+            nbrIterationsIdle = 0;
         } else {
             timeval tv = {0, 1000};
             select(0, nullptr, nullptr, nullptr, &tv);
+            if (nbrIterationsIdle <= m_maxIterationsIdle) {
+                nbrIterationsIdle++;
+            }
+        }
+
+        if (keepAliveEnabled && nbrIterationsIdle > m_maxIterationsIdle) {
+            m_graphics->sendKeepAliveEnabled(false);
+            keepAliveEnabled = false;
+        } else if (!keepAliveEnabled && nbrIterationsIdle == 0) {
+            m_graphics->sendKeepAliveEnabled(true);
+            keepAliveEnabled = true;
         }
     }
 }

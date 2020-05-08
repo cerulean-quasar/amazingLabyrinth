@@ -71,6 +71,7 @@ public:
     virtual void sendError(char const *error) = 0;
     virtual void sendGraphicsDescription(GraphicsDescription const &description, bool hasAccelerometer) = 0;
     virtual void sendSaveData(std::vector<uint8_t> const &saveData) = 0;
+    virtual void sendKeepAliveEnabled(bool keepAliveEnabled) = 0;
     virtual std::vector<char> getTextImage(std::string text, uint32_t &width, uint32_t &height,
             uint32_t &channels) = 0;
     virtual RestoreData getSaveData(Point<uint32_t> const &screenSize) = 0;

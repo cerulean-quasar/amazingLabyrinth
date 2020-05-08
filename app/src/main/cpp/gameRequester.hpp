@@ -47,6 +47,7 @@ public:
     void sendError(char const *error) override;
     void sendGraphicsDescription(GraphicsDescription const &description, bool hasAccelerometer) override;
     void sendSaveData(std::vector<uint8_t> const &saveData) override;
+    void sendKeepAliveEnabled(bool keepAliveEnabled) override;
     std::vector<char> getTextImage(std::string text, uint32_t &width, uint32_t &height,
         uint32_t &channels) override;
     std::unique_ptr<std::streambuf> getAssetStream(std::string const &file) override {

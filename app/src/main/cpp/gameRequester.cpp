@@ -352,6 +352,24 @@ void JGameRequester::sendError(char const *error) {
     }
 }
 
+void JGameRequester::sendKeepAliveEnabled(bool keepAliveEnabled) {
+    JNIEnv *lenv = m_env;
+    auto deleter = [lenv](jobject obj) {
+        lenv->DeleteLocalRef(obj);
+    };
+
+    std::shared_ptr<_jclass> notifyClass(m_env->GetObjectClass(m_notify), deleter);
+    if (m_env->ExceptionCheck()) {
+        m_env->ExceptionClear();
+        return;
+    }
+    jmethodID mid = m_env->GetMethodID(notifyClass.get(), "sendKeepAliveEnabled", "(Z)V");
+    if (mid == nullptr) {
+        return;
+    }
+    m_env->CallVoidMethod(m_notify, mid, keepAliveEnabled);
+}
+
 void JGameRequester::sendGraphicsDescription(GraphicsDescription const &description,
                                            bool hasAccelerometer) {
     auto bundle = createBundle();

@@ -60,8 +60,7 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
-        /* Keep the screen on even though the user is not tapping it. */
-        getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+        keepAppAlive(true);
 
         setContentView(R.layout.activity_main);
 
@@ -129,45 +128,6 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
         intent.putExtra(Constants.KeyLevels, arrlist);
 
         startActivityForResult(intent, Constants.AMAZING_LABYRINTH_CHOOSE_LEVEL_ACTIVITY);
-        /*
-        LinearLayout layout = findViewById(R.id.mainLayout);
-        LayoutInflater inflater = getLayoutInflater();
-
-        LinearLayout selectLevelLayout = (LinearLayout) inflater.inflate(R.layout.select_level_dialog,
-                layout, false);
-        Spinner spinner = selectLevelLayout.findViewById(R.id.select_level_spinner);
-        ArrayAdapter<String> adapter = new ArrayAdapter<String>(this,
-                android.R.layout.simple_spinner_item, Draw.levelList());
-        // Specify the layout to use when the list of choices appears
-        adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
-        // Apply the adapter to the spinner
-        spinner.setAdapter(adapter);
-        Button okButton = selectLevelLayout.findViewById(R.id.select_level_ok);
-        Button cancelButton = selectLevelLayout.findViewById(R.id.select_level_cancel);
-        final AlertDialog selectLevelDialog = new AlertDialog.Builder(this).
-                setTitle(R.string.select_level).setView(selectLevelLayout).show();
-        okButton.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                Spinner spinner = selectLevelDialog.findViewById(R.id.select_level_spinner);
-                int pos = spinner.getSelectedItemPosition();
-                if (pos == Spinner.INVALID_POSITION) {
-                    selectLevelDialog.dismiss();
-                } else {
-                    Draw.switchLevel(pos);
-                }
-                selectLevelDialog.dismiss();
-            }
-        });
-
-        cancelButton.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                selectLevelDialog.dismiss();
-            }
-        });
-
-         */
     }
 
     @Override
@@ -231,5 +191,14 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
     public int getRotation() {
         SurfaceView drawSurfaceView = findViewById(R.id.mainDrawingSurface);
         return drawSurfaceView.getDisplay().getRotation();
+    }
+
+    public void keepAppAlive(boolean keepAlive) {
+        if (keepAlive) {
+            /* Keep the screen on even though the user is not tapping it. */
+            getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+        } else {
+            getWindow().clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+        }
     }
 }
