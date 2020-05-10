@@ -39,42 +39,7 @@
 #include "graphics.hpp"
 
 
-bool Vertex::operator==(const Vertex& other) const {
-    return pos == other.pos && color == other.color && texCoord == other.texCoord && normal == other.normal;
-}
-
-// creates a quad with each side length 2.0f.
-void getQuad(std::vector<Vertex> &vertices, std::vector<uint32_t> &indices) {
-    Vertex vertex = {};
-    vertex.color = {0.2f, 0.2f, 0.2f };
-    vertex.normal = {0.0f, 0.0f, 1.0f };
-
-    vertex.pos = { -1.0f, 1.0f, 0.0f };
-    vertex.texCoord = {0.0f, 0.0f };
-    vertices.push_back(vertex);
-
-    vertex.pos = { -1.0f, -1.0f, 0.0f };
-    vertex.texCoord = {0.0f, 1.0f };
-    vertices.push_back(vertex);
-
-    vertex.pos = { 1.0f, -1.0f, 0.0f };
-    vertex.texCoord = {1.0f, 1.0f };
-    vertices.push_back(vertex);
-
-    vertex.pos = { 1.0f, 1.0f, 0.0f };
-    vertex.texCoord = {1.0f, 0.0f };
-    vertices.push_back(vertex);
-
-    indices.push_back(0);
-    indices.push_back(1);
-    indices.push_back(2);
-
-    indices.push_back(0);
-    indices.push_back(2);
-    indices.push_back(3);
-
-}
-
+#if 0
 void loadModel(
         std::unique_ptr<std::streambuf> const &modelStreamBuf,
         std::vector<Vertex> &vertices,
@@ -168,6 +133,7 @@ void loadModel(
         }
     }
 }
+#endif
 
 int istreamRead(void *userData, char *data, int size) {
     std::istream *stream = static_cast<std::istream*>(userData);

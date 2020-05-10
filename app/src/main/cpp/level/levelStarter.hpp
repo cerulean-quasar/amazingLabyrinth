@@ -72,7 +72,11 @@ public:
               errVal(ballDiameter()/5.0f)
     {
         prevTime = std::chrono::high_resolution_clock::now();
-        loadModel(m_gameRequester->getAssetStream(MODEL_BALL), ballVertices, ballIndices);
+
+        std::pair<std::vector<Vertex>, std::vector<uint32_t>> vi;
+        loadModel(m_gameRequester->getAssetStream(MODEL_BALL), vi);
+        ballVertices = std::move(vi.first);
+        ballIndices = std::move(vi.second);
 
         textIndex = 0;
         transitionText = false;

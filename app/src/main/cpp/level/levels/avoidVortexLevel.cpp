@@ -23,7 +23,11 @@
 #include "../level.hpp"
 
 void AvoidVortexLevel::loadModels() {
-    loadModel(m_gameRequester->getAssetStream(MODEL_BALL), ballVertices, ballIndices);
+    std::pair<std::vector<Vertex>, std::vector<uint32_t>> vi;
+    loadModel(m_gameRequester->getAssetStream(MODEL_BALL), vi);
+    std::swap(vi.first, ballVertices);
+    std::swap(vi.second, ballIndices);
+
     getQuad(quadVertices, quadIndices);
 }
 

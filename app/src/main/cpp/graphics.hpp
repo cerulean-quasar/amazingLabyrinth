@@ -1,5 +1,5 @@
 /**
- * Copyright 2019 Cerulean Quasar. All Rights Reserved.
+ * Copyright 2020 Cerulean Quasar. All Rights Reserved.
  *
  *  This file is part of AmazingLabyrinth.
  *
@@ -26,45 +26,12 @@
 
 #include <glm/glm.hpp>
 
-class GameRequester;
+#include "modelLoader.hpp"
 
-constexpr float screenMaxX = 0.8f;
-constexpr float screenMaxY = 1.0f;
+class GameRequester;
 
 static std::string const MODEL_WALL("models/wall.obj");
 static std::string const MODEL_BALL("models/ball.obj");
-
-struct Vertex {
-    glm::vec3 pos;
-    glm::vec3 color;
-    glm::vec2 texCoord;
-    glm::vec3 normal;
-
-    bool operator==(const Vertex& other) const;
-};
-
-namespace std {
-    template<> struct hash<glm::vec3> {
-        size_t operator()(glm::vec3 vector) const {
-            return ((hash<float>()(vector.x) ^
-                     (hash<float>()(vector.y) << 1)) >> 1) ^
-                   (hash<float>()(vector.z) << 1);
-        }
-    };
-
-    template<> struct hash<glm::vec2> {
-        size_t operator()(glm::vec2 vector) const {
-            return (hash<float>()(vector.x) ^ (hash<float>()(vector.y) << 1));
-        }
-    };
-
-    template<> struct hash<Vertex> {
-        size_t operator()(Vertex const& vertex) const {
-            return ((((hash<glm::vec3>()(vertex.pos) ^ (hash<glm::vec3>()(vertex.color) << 1)) >> 1) ^
-                     (hash<glm::vec2>()(vertex.texCoord) << 1)) >> 1) ^ (hash<glm::vec3>()(vertex.normal) << 1);
-        }
-    };
-}
 
 class TextureDescriptionPtrLess;
 
@@ -176,15 +143,6 @@ struct DrawObjectData {
 
 typedef std::pair<std::shared_ptr<DrawObject>, std::shared_ptr<DrawObjectData> > DrawObjectEntry;
 typedef std::vector<DrawObjectEntry> DrawObjectTable;
-
-// creates a quad with each side length 2.0f.
-void getQuad(std::vector<Vertex> &vertices, std::vector<uint32_t> &indices);
-
-void loadModel(
-        std::unique_ptr<std::streambuf> const &modelStreamBuf,
-        std::vector<Vertex> &vertices,
-        std::vector<uint32_t> &indices,
-        std::pair<std::vector<Vertex>, std::vector<uint32_t>> *verticesWithVertexNormals = nullptr);
 
 int istreamRead(void *userData, char *data, int size);
 void istreamSkip(void *userData, int n);

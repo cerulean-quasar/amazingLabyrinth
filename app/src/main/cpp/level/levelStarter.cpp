@@ -175,7 +175,10 @@ bool LevelStarter::updateStaticDrawObjects(DrawObjectTable &drawObjsData, Textur
 
     // the start of maze
     auto obj = std::make_shared<DrawObject>();
-    loadModel(m_gameRequester->getAssetStream(corridorBeginModel), obj->vertices, obj->indices);
+    std::pair<std::vector<Vertex>, std::vector<uint32_t>> vi;
+    loadModel(m_gameRequester->getAssetStream(corridorBeginModel), vi);
+    std::swap(vi.first, obj->vertices);
+    std::swap(vi.second, obj->indices);
     obj->texture = std::make_shared<TextureDescriptionPath>(m_gameRequester, corridorBeginImage);
     textures.insert(std::make_pair(obj->texture, std::shared_ptr<TextureData>()));
     obj->modelMatrices.push_back(
@@ -185,7 +188,9 @@ bool LevelStarter::updateStaticDrawObjects(DrawObjectTable &drawObjsData, Textur
 
     // the end of maze
     obj = std::make_shared<DrawObject>();
-    loadModel(m_gameRequester->getAssetStream(corridorEndModel), obj->vertices, obj->indices);
+    loadModel(m_gameRequester->getAssetStream(corridorEndModel), vi);
+    std::swap(vi.first, obj->vertices);
+    std::swap(vi.second, obj->indices);
     obj->texture = std::make_shared<TextureDescriptionPath>(m_gameRequester, corridorEndImage);
     textures.insert(std::make_pair(obj->texture, std::shared_ptr<TextureData>()));
     obj->modelMatrices.push_back(
@@ -195,7 +200,9 @@ bool LevelStarter::updateStaticDrawObjects(DrawObjectTable &drawObjsData, Textur
 
     // the corners of the maze
     obj = std::make_shared<DrawObject>();
-    loadModel(m_gameRequester->getAssetStream(corridorCornerModel), obj->vertices, obj->indices);
+    loadModel(m_gameRequester->getAssetStream(corridorCornerModel), vi);
+    std::swap(vi.first, obj->vertices);
+    std::swap(vi.second, obj->indices);
     obj->texture = std::make_shared<TextureDescriptionPath>(m_gameRequester, corridorCornerImage);
     textures.insert(std::make_pair(obj->texture, std::shared_ptr<TextureData>()));
 
@@ -213,7 +220,9 @@ bool LevelStarter::updateStaticDrawObjects(DrawObjectTable &drawObjsData, Textur
 
     // corridors
     obj = std::make_shared<DrawObject>();
-    loadModel(m_gameRequester->getAssetStream(corridorModel), obj->vertices, obj->indices);
+    loadModel(m_gameRequester->getAssetStream(corridorModel), vi);
+    std::swap(vi.first, obj->vertices);
+    std::swap(vi.second, obj->indices);
     std::shared_ptr<TextureDescription> textureCorridor = std::make_shared<TextureDescriptionPath>(
             m_gameRequester, corridorImage);
     textures.insert(std::make_pair(textureCorridor, std::shared_ptr<TextureData>()));
