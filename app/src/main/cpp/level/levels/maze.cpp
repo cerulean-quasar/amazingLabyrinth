@@ -286,7 +286,7 @@ Cell const &Maze::getCell(unsigned int row, unsigned int column) {
 
 void Maze::loadModels() {
     std::pair<std::vector<Vertex>, std::vector<uint32_t>> vi;
-    loadModel(m_gameRequester->getAssetStream(MODEL_BALL), vi);
+    loadModel(m_gameRequester->getAssetStream(MODEL_WALL), vi);
     std::swap(vi.first, vertices);
     std::swap(vi.second, indices);
 

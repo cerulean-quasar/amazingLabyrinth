@@ -272,8 +272,8 @@ LevelGroup LevelTracker::getLevelGroupFrog(std::shared_ptr<FixedMazeSaveData> co
                     "Watch out for\nmushrooms, they\nare bouncy!"}),
             GetLevelFcn([levelBundle](LevelTracker &tracker) {
                 auto level = tracker.getLevel<FixedMaze>(levelBundle);
-                level->initSetBallInfo("models/frog.obj", "textures/frog/frog.png");
-                level->initSetFloorInfo("models/frogFloor.obj", "textures/frog/frogFloor.png");
+                level->initSetBallInfo("models/frog.modelcbor", "textures/frog/frog.png");
+                level->initSetFloorInfo("models/frogFloor.modelcbor", "textures/frog/frogFloor.png");
                 level->initSetBounceParameters(1/20.0f, 1/50.0f);
                 level->init();
                 return level;

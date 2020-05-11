@@ -30,8 +30,8 @@
 
 class GameRequester;
 
-static std::string const MODEL_WALL("models/wall.obj");
-static std::string const MODEL_BALL("models/ball.obj");
+static std::string const MODEL_WALL("models/wall.modelcbor");
+static std::string const MODEL_BALL("models/ball.modelcbor");
 
 class TextureDescriptionPtrLess;
 

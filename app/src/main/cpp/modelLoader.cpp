@@ -71,6 +71,160 @@ void from_json(nlohmann::json const &j, Vertex &v) {
     v.texCoord = j[KeyTextureCoordinate].get<glm::vec2>();
 }
 
+class LoadModelSaxClass {
+public:
+    LoadModelSaxClass(bool receiveVertexNormals = false)
+        : m_state{state::receivingKey},
+        m_receiveVertexNormals{receiveVertexNormals},
+        m_v {glm::vec3{0.0f, 0.0f, 0.0f},
+             glm::vec3{0.2f, 0.2f, 0.2f},
+             glm::vec2{0.0f, 0.0f},
+             glm::vec3{0.0f, 0.0f, 0.0f}}
+    {}
+
+    void fillVerticesWithFaceNormals(std::pair<std::vector<Vertex>, std::vector<uint32_t>> &v) {
+        v.first = std::move(m_verticesWithFaceNormals.first);
+        v.second = std::move(m_verticesWithFaceNormals.second);
+    }
+
+    void fillVerticesWithVertexNormals(std::pair<std::vector<Vertex>, std::vector<uint32_t>> &v) {
+        v.first = std::move(m_verticesWithVertexNormals.first);
+        v.second = std::move(m_verticesWithVertexNormals.second);
+    }
+
+    // called when null is parsed
+    bool null() { return true; }
+
+    // called when a boolean is parsed; value is passed
+    bool boolean(bool) { return true; }
+
+    // called when a signed or unsigned integer number is parsed; value is passed
+    bool number_integer(nlohmann::json::number_integer_t val) {
+        // if the integer is less than 0, that is an unexpected value and we don't know what
+        // to do with it, error out.
+        if (val < 0) {
+            return false;
+        }
+        return processUnsignedInteger(static_cast<uint32_t>(val));
+    }
+
+    bool number_unsigned(nlohmann::json::number_unsigned_t val) {
+        return processUnsignedInteger(static_cast<uint32_t>(val));
+    }
+
+    // called when a floating-point number is parsed; value and original string is passed
+    bool number_float(nlohmann::json::number_float_t val, nlohmann::json::string_t const &) {
+        if (m_state == state::receivingFaceNormals || m_state == state::receivingVertexNormals) {
+            switch (m_substate) {
+            case substate::px:
+                m_v.pos.x = val;
+                m_substate = substate::py;
+                break;
+            case substate::py:
+                m_v.pos.y = val;
+                m_substate = substate::pz;
+                break;
+            case substate::pz:
+                m_v.pos.z = val;
+                m_substate = substate::nx;
+                break;
+            case substate::nx:
+                m_v.normal.x = val;
+                m_substate = substate::ny;
+                break;
+            case substate::ny:
+                m_v.normal.y = val;
+                m_substate = substate::nz;
+                break;
+            case substate::nz:
+                m_v.normal.z = val;
+                if (m_state == state::receivingFaceNormals) {
+                    m_substate = substate::tx;
+                } else {
+                    m_v.texCoord = glm::vec2{0.0f, 0.0f};
+                    m_verticesWithVertexNormals.first.push_back(m_v);
+                    m_substate = substate::px;
+                }
+                break;
+            case substate::tx:
+                m_v.texCoord.x = val;
+                m_substate = substate::ty;
+                break;
+            case substate::ty:
+                m_v.texCoord.y = val;
+                m_verticesWithFaceNormals.first.push_back(m_v);
+                m_substate = substate::px;
+                break;
+            }
+        }
+
+        return true;
+    }
+
+    // called when a string is parsed; value is passed and can be safely moved away
+    bool string(nlohmann::json::string_t &) { return true; }
+
+    // called when an object or array begins or ends, resp. The number of elements is passed (or -1 if not known)
+    bool start_object(std::size_t) { return true; }
+    bool end_object() { return true; }
+    bool start_array(std::size_t) { return true; }
+    bool end_array() { return true; }
+    // called when an object key is parsed; value is passed and can be safely moved away
+    bool key(nlohmann::json::string_t& val) {
+        if (val == KeyVerticesWithFaceNormals) {
+            m_state = state::receivingFaceNormals;
+            m_substate = substate::px;
+        } else if (val == KeyVerticesWithVertexNormals) {
+            m_state = state::receivingVertexNormals;
+            m_substate = substate::px;
+        } else if (val == KeyIndicesForFaceNormals) {
+            m_state = state::receivingFaceNormalIndices;
+        } else if (val == KeyIndicesForVertexNormals) {
+            m_state = state::receivingVertexNormalIndices;
+        }
+
+        return true;
+    }
+
+    // called when a parse error occurs; byte position, the last token, and an exception is passed
+    bool parse_error(std::size_t /*position*/, const std::string& /*last_token*/, const nlohmann::json::exception& ex) {
+        throw std::runtime_error(ex.what());
+    }
+private:
+    bool processUnsignedInteger(uint32_t val) {
+        if (m_state == state::receivingFaceNormalIndices) {
+            m_verticesWithFaceNormals.second.push_back(val);
+        } else if (m_state == state::receivingVertexNormalIndices) {
+            m_verticesWithVertexNormals.second.push_back(val);
+        }
+
+        // ignore integers received if not in the proper state: the file could contain vertex normals
+        // but we don't need them.
+        return true;
+    }
+
+    enum state {
+        receivingKey = 0,
+        receivingVertexNormals = 1,
+        receivingFaceNormals = 2,
+        receivingVertexNormalIndices = 3,
+        receivingFaceNormalIndices = 4
+    };
+
+    enum substate {
+        px, py, pz,
+        nx, ny, nz,
+        tx, ty
+    };
+
+    state m_state;
+    bool m_receiveVertexNormals;
+    std::pair<std::vector<Vertex>, std::vector<uint32_t>> m_verticesWithFaceNormals;
+    std::pair<std::vector<Vertex>, std::vector<uint32_t>> m_verticesWithVertexNormals;
+    substate m_substate;
+    Vertex m_v;
+};
+
 bool loadModel(
     std::unique_ptr<std::streambuf> const &modelStreamBuf,
     std::pair<std::vector<Vertex>, std::vector<uint32_t>> &verticesWithFaceNormals,
@@ -79,27 +233,15 @@ bool loadModel(
     size_t constexpr block_size = 1024;
 
     std::istream assetIstream(modelStreamBuf.get());
-    std::vector<uint8_t> vec;
-    vec.resize(block_size);
-    std::vector<uint8_t> data;
-    while (assetIstream) {
-        assetIstream.read(reinterpret_cast<char *>(vec.data()), vec.size());
-        int readlen = assetIstream.gcount();
-        if (readlen > 0) {
-            data.resize(data.size() + readlen);
-            memcpy(data.data() + data.size() - readlen, vec.data(), static_cast<size_t>(readlen));
-        }
-    }
 
     try {
-        nlohmann::json j = nlohmann::json::from_cbor(data);
-        if (verticesWithVertexNormals) {
-            (*verticesWithVertexNormals).first = j[KeyVerticesWithVertexNormals].get<std::vector<Vertex>>();
-            (*verticesWithVertexNormals).second = j[KeyIndicesForVertexNormals].get<std::vector<uint32_t>>();
-        }
+        LoadModelSaxClass sax(verticesWithVertexNormals != nullptr);
 
-        verticesWithFaceNormals.first = j[KeyVerticesWithFaceNormals].get<std::vector<Vertex>>();
-        verticesWithFaceNormals.second = j[KeyIndicesForFaceNormals].get<std::vector<uint32_t>>();
+        nlohmann::json j = nlohmann::json::sax_parse(assetIstream, &sax, nlohmann::json::input_format_t::cbor);
+        sax.fillVerticesWithFaceNormals(verticesWithFaceNormals);
+        if (verticesWithVertexNormals) {
+            sax.fillVerticesWithVertexNormals(*verticesWithVertexNormals);
+        }
     } catch (...) {
         return false;
     }

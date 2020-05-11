@@ -40,10 +40,10 @@ private:
     static char constexpr const *corridorEndImage = "textures/levelStarter/end.png";
     static char constexpr const *corridorCornerImage = "textures/levelStarter/corridor.png";
 
-    static char constexpr const *corridorModel = "models/levelStarter/corridor.obj";
-    static char constexpr const *corridorBeginModel = "models/levelStarter/start.obj";
-    static char constexpr const *corridorEndModel = "models/levelStarter/end.obj";
-    static char constexpr const *corridorCornerModel = "models/levelStarter/corner.obj";
+    static char constexpr const *corridorModel = "models/levelStarter/corridor.modelcbor";
+    static char constexpr const *corridorBeginModel = "models/levelStarter/start.modelcbor";
+    static char constexpr const *corridorEndModel = "models/levelStarter/end.modelcbor";
+    static char constexpr const *corridorCornerModel = "models/levelStarter/corner.modelcbor";
 
     static float constexpr m_wallThickness = m_modelSize/10.0f;
 
