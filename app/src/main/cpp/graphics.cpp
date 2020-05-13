@@ -32,9 +32,6 @@
 #include <stb_image.h>
 #pragma clang diagnostic pop
 
-#define TINYOBJLOADER_IMPLEMENTATION
-#include <tiny_obj_loader.h>
-
 #include "common.hpp"
 #include "graphics.hpp"
 

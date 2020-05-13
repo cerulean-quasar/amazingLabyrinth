@@ -528,16 +528,46 @@ void FixedMaze::init()
 {
     m_prevTime = std::chrono::high_resolution_clock::now();
 
+    auto time0 = std::chrono::high_resolution_clock::now();
+    std::pair<std::vector<Vertex>, std::vector<uint32_t>> verticesWithVertexNormals1;
+    std::pair<std::vector<Vertex>, std::vector<uint32_t>> vi1;
+    loadModelFromObj2(m_gameRequester->getAssetStream("models/frogFloor.obj"), vi1, &verticesWithVertexNormals1);
+
+    auto time1 = std::chrono::high_resolution_clock::now();
+    float timediff0 = std::chrono::duration<float, std::chrono::seconds::period>(time1 - time0).count();
+    auto time0a = std::chrono::high_resolution_clock::now();
+    vi1.first.clear();
+    vi1.second.clear();
+    loadModelFromObj2(m_gameRequester->getAssetStream("models/frogFloor.obj"), vi1, nullptr);
+
+    auto time1b = std::chrono::high_resolution_clock::now();
+    float timediff0a = std::chrono::duration<float, std::chrono::seconds::period>(time1b - time0a).count();
     std::pair<std::vector<Vertex>, std::vector<uint32_t>> vi;
     loadModel(m_gameRequester->getAssetStream(m_ballModel), vi);
     std::swap(vi.first, m_ballVertices);
     std::swap(vi.second, m_ballIndices);
 
+    auto time1a = std::chrono::high_resolution_clock::now();
+    float timediff1a = std::chrono::duration<float, std::chrono::seconds::period>(time1a - time1b).count();
     m_floor = std::make_shared<DrawObject>();
     std::pair<std::vector<Vertex>, std::vector<uint32_t>> verticesWithVertexNormals;
     loadModel(m_gameRequester->getAssetStream(m_floorModel), vi, &verticesWithVertexNormals);
     std::swap(vi.first, m_floor->vertices);
     std::swap(vi.second, m_floor->indices);
+    auto time2 = std::chrono::high_resolution_clock::now();
+    float timediff = std::chrono::duration<float, std::chrono::seconds::period>(time2 - time1a).count();
+
+    std::pair<std::vector<Vertex>, std::vector<uint32_t>> verticesWithVertexNormals2;
+    std::pair<std::vector<Vertex>, std::vector<uint32_t>> vi2;
+    loadModel2(m_gameRequester->getAssetStream("models/frogFloor.modelcbor2"), vi2, &verticesWithVertexNormals2);
+    auto time2b = std::chrono::high_resolution_clock::now();
+    float timediff2b = std::chrono::duration<float, std::chrono::seconds::period>(time2b - time2).count();
+
+    vi2.first.clear();
+    vi2.second.clear();
+    loadModel2(m_gameRequester->getAssetStream("models/frogFloor.modelcbor2"), vi2, nullptr);
+    auto time2c = std::chrono::high_resolution_clock::now();
+    float timediff2c = std::chrono::duration<float, std::chrono::seconds::period>(time2c - time2b).count();
 
     // For getting the depth map and normal map
     auto worldObj = std::make_shared<DrawObject>();
@@ -585,5 +615,10 @@ void FixedMaze::init()
             break;
         }
     } while (m_ball.position.z > m_mazeFloorZ + m_floatErrorAmount || m_ball.position.z < m_mazeFloorZ - m_floatErrorAmount);
+    auto time3 = std::chrono::high_resolution_clock::now();
+    float timediff1 = std::chrono::duration<float, std::chrono::seconds::period>(time3 - time1).count();
+    loadModelFromObj3(m_gameRequester->getAssetStream(m_floorModel), vi, &verticesWithVertexNormals);
+    auto time4 = std::chrono::high_resolution_clock::now();
+    float timediff2 = std::chrono::duration<float, std::chrono::seconds::period>(time4 - time3).count();
     m_ball.position.z += ballRadius();
 }

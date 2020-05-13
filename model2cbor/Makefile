@@ -7,8 +7,9 @@ CPPFLAGS := -Wall -Werror -std=c++14 -I$(JSON_INCLUDE_PATH) -I$(AMAZING_LABYRINT
 DBGFLAGS = -ggdb
 NDBGFLAGS = -O3
 OBJS = model2cbor.o modelLoader.o
+OBJS2 = model2cbor2.o modelLoader.o
 
-all: model2cbor cbor2json
+all: model2cbor2 model2cbor cbor2json
 
 modelLoader.o : $(AMAZING_LABYRINTH)/modelLoader.cpp
 	g++ $(CPPFLAGS) $(DBGFLAGS) -c -o $@ $<
@@ -18,6 +19,9 @@ modelLoader.o : $(AMAZING_LABYRINTH)/modelLoader.cpp
 
 model2cbor: $(OBJS)
 	g++ -o model2cbor $^ /usr/lib/x86_64-linux-gnu/libcbor.so
+
+model2cbor2: $(OBJS2)
+	g++ -o model2cbor2 $^ /usr/lib/x86_64-linux-gnu/libcbor.so
 
 cbor2json: cbor2json.cpp
 	g++ $(CPPFLAGS) -o cbor2json $^

@@ -12,7 +12,7 @@
 
 #include <cbor.h>
 
-#define TINYOBJLOADER_IMPLEMENTATION
+//#define TINYOBJLOADER_IMPLEMENTATION
 #include <tiny_obj_loader.h>
 
 #include <graphics.hpp>
@@ -237,7 +237,11 @@ void loadModelFromObj(
 
     std::unordered_map<Vertex, uint32_t> uniqueVertices = {};
     std::unordered_map<Vertex, uint32_t> uniqueVerticesWithVertexNormals = {};
+    std::cout << "number vertices: " << attrib.vertices.size() << std::endl;
+    std::cout << "number normals: " << attrib.normals.size() << std::endl;
+    std::cout << "number texture coordinates: " << attrib.texcoords.size() << std::endl;
     for (const auto& shape : shapes) {
+        std::cout << "number indices: " << shape.mesh.indices.size() << std::endl;
         std::unordered_map<glm::vec3, glm::vec3> vertexNormals;
         if (verticesWithVertexNormals) {
             for (const auto &index : shape.mesh.indices) {
@@ -285,6 +289,7 @@ void loadModelFromObj(
 
             if (verticesWithVertexNormals) {
                 Vertex vertexWithVertexNormal = vertex;
+                vertexWithVertexNormal.texCoord = {0.0f, 0.0f};
                 auto it = vertexNormals.find(vertexWithVertexNormal.pos);
                 if (it == vertexNormals.end()) {
                     throw std::runtime_error("Vertex normal not found when loading model");
