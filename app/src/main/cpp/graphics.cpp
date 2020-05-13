@@ -162,7 +162,7 @@ std::vector<char> TextureDescriptionPath::getData(uint32_t &texWidth, uint32_t &
     stbi_uc *pixels = stbi_load_from_callbacks(&clbk, &imageStream, &w, &h, &c, STBI_rgb_alpha);
     texWidth = static_cast<uint32_t> (w);
     texHeight = static_cast<uint32_t> (h);
-    texChannels = static_cast<uint32_t> (c);
+    texChannels = 4;
 
     std::vector<char> data;
     unsigned int size = texWidth*texHeight*texChannels;

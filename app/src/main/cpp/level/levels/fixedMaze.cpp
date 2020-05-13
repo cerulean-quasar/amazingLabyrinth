@@ -552,8 +552,6 @@ void FixedMaze::init()
     m_floor = std::make_shared<DrawObject>();
     std::pair<std::vector<Vertex>, std::vector<uint32_t>> verticesWithVertexNormals;
     loadModel(m_gameRequester->getAssetStream(m_floorModel), vi, &verticesWithVertexNormals);
-    std::swap(vi.first, m_floor->vertices);
-    std::swap(vi.second, m_floor->indices);
     auto time2 = std::chrono::high_resolution_clock::now();
     float timediff = std::chrono::duration<float, std::chrono::seconds::period>(time2 - time1a).count();
 
@@ -566,13 +564,15 @@ void FixedMaze::init()
     vi2.first.clear();
     vi2.second.clear();
     loadModel2(m_gameRequester->getAssetStream("models/frogFloor.modelcbor2"), vi2, nullptr);
+    std::swap(vi2.first, m_floor->vertices);
+    std::swap(vi2.second, m_floor->indices);
     auto time2c = std::chrono::high_resolution_clock::now();
     float timediff2c = std::chrono::duration<float, std::chrono::seconds::period>(time2c - time2b).count();
 
     // For getting the depth map and normal map
     auto worldObj = std::make_shared<DrawObject>();
-    worldObj->vertices = std::move(verticesWithVertexNormals.first);
-    worldObj->indices = std::move(verticesWithVertexNormals.second);
+    worldObj->vertices = std::move(verticesWithVertexNormals2.first);
+    worldObj->indices = std::move(verticesWithVertexNormals2.second);
     worldObj->modelMatrices.push_back(
             glm::translate(glm::mat4(1.0f), glm::vec3{0.0f, 0.0f, m_mazeFloorZ}) *
             glm::scale(glm::mat4(1.0f), glm::vec3{m_height/m_modelSize, m_height/m_modelSize, 1.0f}) *
