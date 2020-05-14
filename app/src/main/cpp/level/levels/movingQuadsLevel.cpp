@@ -25,7 +25,10 @@
 #include "../level.hpp"
 
 void MovingQuadsLevel::loadModels() {
-    loadModel(m_gameRequester->getAssetStream(MODEL_BALL), m_ballVertices, m_ballIndices);
+    std::pair<std::vector<Vertex>, std::vector<uint32_t>> v;
+    loadModel(m_gameRequester->getAssetStream(MODEL_BALL), v);
+    std::swap(v.first, m_ballVertices);
+    std::swap(v.second, m_ballIndices);
     getQuad(m_quadVertices, m_quadIndices);
 }
 

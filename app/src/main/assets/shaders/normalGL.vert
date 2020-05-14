@@ -36,7 +36,7 @@ varying vec3 fragNormal;
 
 void main() {
     vec4 pos = proj * view * model * vec4(inPosition, 1.0);
-    vec4 normalVec = normalMatrix * vec4(inNormal, 1.0);
+    vec4 normalVec = normalMatrix * vec4(normalize(inNormal), 1.0);
     if (normalVec.z/normalVec.w < 0.0) {
         gl_Position = vec4(pos.x, pos.y, pos.w, pos.w);
     } else {

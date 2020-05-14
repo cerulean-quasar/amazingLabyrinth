@@ -136,6 +136,10 @@ public class AboutActivity extends AppCompatActivity {
         loadLicense(path + "mitStb.txt");
     }
 
+    public void onMitLibcbor(View v) {
+        loadLicense(path + "mitLibcbor.txt");
+    }
+
     public void onGnu3(View v) {
         loadLicense(path + "gpl3.txt");
     }

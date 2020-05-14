@@ -30,6 +30,7 @@ add_library( # Sets the name of the library.
         src/main/cpp/gameRequester.cpp
         src/main/cpp/android.cpp
         src/main/cpp/graphics.cpp
+        src/main/cpp/modelLoader.cpp
         src/main/cpp/graphicsGL.cpp
         src/main/cpp/mazeGraphics.cpp
         src/main/cpp/mazeGL.cpp

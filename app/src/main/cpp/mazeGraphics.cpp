@@ -69,16 +69,18 @@ void LevelSequence::addTextures(TextureMap &textures) {
     }
 }
 
-void LevelSequence::initializeLevelTracker() {
+bool LevelSequence::initializeLevelTracker() {
     if (m_levelTracker != nullptr) {
-        return;
+        return false;
     }
 
     setView();
     updatePerspectiveMatrix(m_surfaceWidth, m_surfaceHeight);
 
     m_levelTracker = std::make_shared<LevelTracker>(m_gameRequester,
-        getPerspectiveMatrixForLevel(m_surfaceWidth, m_surfaceHeight), m_view);
+                                                    getPerspectiveMatrixForLevel(m_surfaceWidth,
+                                                                                 m_surfaceHeight),
+                                                    m_view);
 
     setLightingSource();
     setViewLightingSource();
@@ -87,6 +89,8 @@ void LevelSequence::initializeLevelTracker() {
     m_level = m_levelGroupFcns.getLevelFcn(*m_levelTracker);
     m_levelStarter = m_levelGroupFcns.getStarterFcn(*m_levelTracker);
 
+    m_levelFinisherObjsData.clear();
+    m_texturesLevelFinisher.clear();
     float x, y;
     m_level->getLevelFinisherCenter(x, y);
     m_levelFinisher = m_levelGroupFcns.getFinisherFcn(*m_levelTracker, x, y,
@@ -99,6 +103,8 @@ void LevelSequence::initializeLevelTracker() {
                             m_levelStarterDynObjsData, m_texturesLevelStarter);
     }
     initializeLevelData(m_level, m_staticObjsData, m_dynObjsData, m_texturesLevel);
+
+    return true;
 }
 
 bool LevelSequence::updateData() {
@@ -175,24 +181,26 @@ bool LevelSequence::updateData() {
 }
 
 void LevelSequence::changeLevel(size_t level) {
-    initializeLevelTracker();
-    m_levelTracker->setLevel(level);
-    m_levelGroupFcns = m_levelTracker->getLevelGroupFcns();
-    m_levelStarter = m_levelGroupFcns.getStarterFcn(*m_levelTracker);
-    initializeLevelData(m_levelStarter, m_levelStarterStaticObjsData,
-                        m_levelStarterDynObjsData, m_texturesLevelStarter);
+    m_levelGroupFcns = LevelTracker::getLevelGroupFcns(level);
+    m_levelName = LevelTracker::getLevelName(level);
+    if (!initializeLevelTracker()) {
+        cleanupLevelData();
+        m_levelTracker->setLevel(m_levelName);
+        m_level = m_levelGroupFcns.getLevelFcn(*m_levelTracker);
+        m_levelStarter = m_levelGroupFcns.getStarterFcn(*m_levelTracker);
 
-    m_level = m_levelGroupFcns.getLevelFcn(*m_levelTracker);
-    initializeLevelData(m_level, m_staticObjsData, m_dynObjsData, m_texturesLevel);
+        float x, y;
+        m_level->getLevelFinisherCenter(x, y);
+        m_levelFinisher = m_levelGroupFcns.getFinisherFcn(*m_levelTracker, x, y,
+                                                          getPerspectiveMatrixForLevel(m_surfaceWidth, m_surfaceHeight), m_view);
 
-    m_levelFinisherObjsData.clear();
-    m_texturesLevelFinisher.clear();
+        if (m_levelStarter != nullptr && ! m_levelStarter->isFinished()) {
+            initializeLevelData(m_levelStarter, m_levelStarterStaticObjsData,
+                                m_levelStarterDynObjsData, m_texturesLevelStarter);
+        }
+        initializeLevelData(m_level, m_staticObjsData, m_dynObjsData, m_texturesLevel);
 
-    float x, y;
-    m_level->getLevelFinisherCenter(x, y);
-    m_levelFinisher = m_levelGroupFcns.getFinisherFcn(*m_levelTracker, x, y, m_proj, m_view);
-
-    m_levelStarter->start();
+    }
 }
 
 // Called in preparation to calling notifySurfaceChanged

@@ -165,7 +165,7 @@ protected:
     std::shared_ptr<LevelStarter> m_levelStarter;
 
     /* initialize the level tracker and all the level data */
-    void initializeLevelTracker();
+    bool initializeLevelTracker();
 
     void setView();
     virtual void updatePerspectiveMatrix(uint32_t surfaceWidth, uint32_t surfaceHeight) = 0;

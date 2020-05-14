@@ -21,7 +21,10 @@
 #include "../level.hpp"
 
 void OpenAreaLevel::loadModels() {
-    loadModel(m_gameRequester->getAssetStream(MODEL_BALL), ballVertices, ballIndices);
+    std::pair<std::vector<Vertex>, std::vector<uint32_t>> v;
+    loadModel(m_gameRequester->getAssetStream(MODEL_BALL), v);
+    std::swap(v.first, ballVertices);
+    std::swap(v.second, ballIndices);
     getQuad(holeVertices, holeIndices);
 }
 

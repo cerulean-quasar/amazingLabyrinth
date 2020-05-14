@@ -89,6 +89,17 @@ public:
         return getLevelTable()[m_currentLevel].levelName;
     }
 
+    static std::string getLevelName(uint32_t level) {
+        return getLevelTable()[level].levelName;
+    }
+
+    static LevelGroup getLevelGroupFcns(uint32_t level) {
+        if (!validLevel(level)) {
+            level = 0;
+        }
+        return getLevelTable()[level].levelGroup;
+    }
+
     LevelGroup getLevelGroupFcns() {
         return getLevelTable()[m_currentLevel].levelGroup;
     }

@@ -528,17 +528,21 @@ void FixedMaze::init()
 {
     m_prevTime = std::chrono::high_resolution_clock::now();
 
-    loadModel(m_gameRequester->getAssetStream(m_ballModel), m_ballVertices, m_ballIndices);
+    std::pair<std::vector<Vertex>, std::vector<uint32_t>> v;
+    loadModel(m_gameRequester->getAssetStream(m_ballModel), v);
+    std::swap(v.first, m_ballVertices);
+    std::swap(v.second, m_ballIndices);
 
     m_floor = std::make_shared<DrawObject>();
     std::pair<std::vector<Vertex>, std::vector<uint32_t>> verticesWithVertexNormals;
-    loadModel(m_gameRequester->getAssetStream(m_floorModel), m_floor->vertices,
-            m_floor->indices, &verticesWithVertexNormals);
+    loadModel(m_gameRequester->getAssetStream(m_floorModel), v, &verticesWithVertexNormals);
+    std::swap(v.first, m_floor->vertices);
+    std::swap(v.second, m_floor->indices);
 
     // For getting the depth map and normal map
     auto worldObj = std::make_shared<DrawObject>();
-    worldObj->vertices = verticesWithVertexNormals.first;
-    worldObj->indices = verticesWithVertexNormals.second;
+    std::swap(worldObj->vertices, verticesWithVertexNormals.first);
+    std::swap(worldObj->indices, verticesWithVertexNormals.second);
     worldObj->modelMatrices.push_back(
             glm::translate(glm::mat4(1.0f), glm::vec3{0.0f, 0.0f, m_mazeFloorZ}) *
             glm::scale(glm::mat4(1.0f), glm::vec3{m_height/m_modelSize, m_height/m_modelSize, 1.0f}) *

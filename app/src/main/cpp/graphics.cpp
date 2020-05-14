@@ -32,142 +32,8 @@
 #include <stb_image.h>
 #pragma clang diagnostic pop
 
-#define TINYOBJLOADER_IMPLEMENTATION
-#include <tiny_obj_loader.h>
-
 #include "common.hpp"
 #include "graphics.hpp"
-
-
-bool Vertex::operator==(const Vertex& other) const {
-    return pos == other.pos && color == other.color && texCoord == other.texCoord && normal == other.normal;
-}
-
-// creates a quad with each side length 2.0f.
-void getQuad(std::vector<Vertex> &vertices, std::vector<uint32_t> &indices) {
-    Vertex vertex = {};
-    vertex.color = {0.2f, 0.2f, 0.2f };
-    vertex.normal = {0.0f, 0.0f, 1.0f };
-
-    vertex.pos = { -1.0f, 1.0f, 0.0f };
-    vertex.texCoord = {0.0f, 0.0f };
-    vertices.push_back(vertex);
-
-    vertex.pos = { -1.0f, -1.0f, 0.0f };
-    vertex.texCoord = {0.0f, 1.0f };
-    vertices.push_back(vertex);
-
-    vertex.pos = { 1.0f, -1.0f, 0.0f };
-    vertex.texCoord = {1.0f, 1.0f };
-    vertices.push_back(vertex);
-
-    vertex.pos = { 1.0f, 1.0f, 0.0f };
-    vertex.texCoord = {1.0f, 0.0f };
-    vertices.push_back(vertex);
-
-    indices.push_back(0);
-    indices.push_back(1);
-    indices.push_back(2);
-
-    indices.push_back(0);
-    indices.push_back(2);
-    indices.push_back(3);
-
-}
-
-void loadModel(
-        std::unique_ptr<std::streambuf> const &modelStreamBuf,
-        std::vector<Vertex> &vertices,
-        std::vector<uint32_t> &indices,
-        std::pair<std::vector<Vertex>, std::vector<uint32_t>> *verticesWithVertexNormals)
-{
-    tinyobj::attrib_t attrib;
-    std::vector<tinyobj::shape_t> shapes;
-    std::vector<tinyobj::material_t> materials;
-    std::string err;
-
-    std::istream assetIstream(modelStreamBuf.get());
-
-    if (!tinyobj::LoadObj(&attrib, &shapes, &materials, &err, &assetIstream)) {
-        throw std::runtime_error(err);
-    }
-
-    std::unordered_map<Vertex, uint32_t> uniqueVertices = {};
-    std::unordered_map<Vertex, uint32_t> uniqueVerticesWithVertexNormals = {};
-    for (const auto& shape : shapes) {
-        std::unordered_map<glm::vec3, glm::vec3> vertexNormals;
-        if (verticesWithVertexNormals) {
-            for (const auto &index : shape.mesh.indices) {
-                glm::vec3 pos = {
-                        attrib.vertices[3 * index.vertex_index + 0],
-                        attrib.vertices[3 * index.vertex_index + 1],
-                        attrib.vertices[3 * index.vertex_index + 2]
-                };
-
-                glm::vec3 normal = {attrib.normals[3 * index.normal_index + 0],
-                                    attrib.normals[3 * index.normal_index + 1],
-                                    attrib.normals[3 * index.normal_index + 2]};
-
-                auto it = vertexNormals.find(pos);
-                if (it == vertexNormals.end()) {
-                    vertexNormals.insert(std::make_pair(pos, normal));
-                } else {
-                    it->second += normal;
-                }
-            }
-
-            for (auto &item: vertexNormals) {
-                item.second = glm::normalize(item.second);
-            }
-        }
-
-        for (const auto& index : shape.mesh.indices) {
-            Vertex vertex = {};
-            vertex.pos = {
-                    attrib.vertices[3 * index.vertex_index + 0],
-                    attrib.vertices[3 * index.vertex_index + 1],
-                    attrib.vertices[3 * index.vertex_index + 2]
-            };
-
-            if (attrib.texcoords.size() > 0) {
-                vertex.texCoord = {
-                        attrib.texcoords[2 * index.texcoord_index + 0],
-                        1.0f - attrib.texcoords[2 * index.texcoord_index + 1]
-                };
-            } else {
-                vertex.texCoord = {0.0f, 0.0f};
-            }
-
-            vertex.color = {0.2f, 0.2f, 0.2f};
-
-            if (verticesWithVertexNormals) {
-                Vertex vertexWithVertexNormal = vertex;
-                auto it = vertexNormals.find(vertexWithVertexNormal.pos);
-                if (it == vertexNormals.end()) {
-                    throw std::runtime_error("Vertex normal not found when loading model");
-                }
-                vertexWithVertexNormal.normal = it->second;
-                if (uniqueVerticesWithVertexNormals.count(vertexWithVertexNormal) == 0) {
-                    uniqueVerticesWithVertexNormals[vertexWithVertexNormal] = static_cast<uint32_t>(verticesWithVertexNormals->first.size());
-                    verticesWithVertexNormals->first.push_back(vertexWithVertexNormal);
-                }
-
-                verticesWithVertexNormals->second.push_back(uniqueVerticesWithVertexNormals[vertexWithVertexNormal]);
-            }
-
-            vertex.normal = {attrib.normals[3 * index.normal_index + 0],
-                                attrib.normals[3 * index.normal_index + 1],
-                                attrib.normals[3 * index.normal_index + 2]};
-
-            if (uniqueVertices.count(vertex) == 0) {
-                uniqueVertices[vertex] = static_cast<uint32_t>(vertices.size());
-                vertices.push_back(vertex);
-            }
-
-            indices.push_back(uniqueVertices[vertex]);
-        }
-    }
-}
 
 int istreamRead(void *userData, char *data, int size) {
     std::istream *stream = static_cast<std::istream*>(userData);
@@ -199,7 +65,7 @@ std::vector<char> TextureDescriptionPath::getData(uint32_t &texWidth, uint32_t &
     stbi_uc *pixels = stbi_load_from_callbacks(&clbk, &imageStream, &w, &h, &c, STBI_rgb_alpha);
     texWidth = static_cast<uint32_t> (w);
     texHeight = static_cast<uint32_t> (h);
-    texChannels = static_cast<uint32_t> (c);
+    texChannels = 4;
 
     std::vector<char> data;
     unsigned int size = texWidth*texHeight*texChannels;

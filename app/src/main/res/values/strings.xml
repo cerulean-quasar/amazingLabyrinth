@@ -30,10 +30,17 @@
     <string name="thirdPartyTinyObjLoader">tinyobjloader</string>
     <string name="thirdPartyStbImage">STB</string>
     <string name="thirdPartyVulkanMemoryAllocator">Vulkan Memory Allocator</string>
+    <string name="thirdPartyLibcbor">libcbor</string>
 
     <string name="license">License:</string>
     <string name="licenseMIT">MIT License</string>
     <string name="licenseCreativeCommons">Creative Commons Zero\nv1.0 Universal</string>
     <string name="licenseBoost">Boost License</string>
     <string name="licenseGnu3">GNU General Public License 3</string>
+
+    <string name="thirdPartyThanksTools">Many thanks to the following third party tools this project uses:</string>
+    <string name="thirdPartyGimp">GIMP</string>
+    <string name="thirdPartyBlender">Blender</string>
+    <string name="thirdPartyPngquant">pngquant</string>
+    <string name="thirdPartyXcf2png">xcf2png</string>
 </resources>

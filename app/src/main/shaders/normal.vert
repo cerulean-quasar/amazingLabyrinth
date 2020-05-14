@@ -40,7 +40,7 @@ out gl_PerVertex {
 
 void main() {
     vec4 pos = ubo.mvp * vec4(inPosition, 1.0);
-    vec4 normalVec = transpose(inverse(ubo.model)) * vec4(inNormal, 1.0);
+    vec4 normalVec = transpose(inverse(ubo.model)) * vec4(normalize(inNormal), 1.0);
     if (normalVec.z/normalVec.w < 0.0) {
         gl_Position = vec4(pos.x, pos.y, pos.w, pos.w);
     } else {
