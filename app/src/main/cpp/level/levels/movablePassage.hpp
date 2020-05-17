@@ -25,6 +25,8 @@
 #include <functional>
 #include <memory>
 #include <vector>
+#include <array>
+
 #include <glm/glm.hpp>
 #include <glm/gtc/quaternion.hpp>
 #include <glm/gtc/matrix_transform.hpp>
@@ -38,69 +40,439 @@ struct MovablePassageSaveData : public LevelSaveData {
     MovablePassageSaveData() : LevelSaveData{m_movablePassageVersion} {}
 };
 
-class MovablePassage;
 class Component {
-    friend MovablePassage;
 public:
+    enum CellWall {
+        wallRight = 0,
+        wallUp,
+        wallLeft,
+        wallDown,
+        wallMax = 3,
+        noWall
+    };
+    enum ExitPoint {
+        exitRight = 0,
+        exitUp,
+        exitLeft,
+        exitDown,
+        maxExitPoint = 3
+    };
+
     enum ComponentType {
-        straight = 1,
-        tjunction = 2,
-        crossjunction = 3,
-        turn = 4,
-        uturn = 5
+        straight = 0,
+        tjunction,
+        crossjunction,
+        turn,
+        open,
+        closedBottom,
+        closedCorner,
+        goal,
+        maxComponentType = 8
+    };
+
+    Component::CellWall moveBallInCell(size_t placementIndex, glm::vec3 &position, float &timediff, glm::vec3 const &velocity) {
+        glm::mat4 rot = glm::rotate(glm::mat4{1.0f}, -m_placements[placementIndex].m_rotationAngle,
+                glm::vec3{0.0f, 0.0f, 1.0f});
+        glm::vec4 rpos4 = rot * glm::vec4{position.x, position.y, position.z, 0.0f};
+        glm::vec4 rvel4 = rot * glm::vec4{velocity.x, velocity.y, 0.0f, 0.0f};
+        glm::vec3 rpos = glm::vec3{rpos4.x, rpos4.y, rpos4.z};
+        glm::vec3 rvel = glm::vec3{rvel4.x, rvel4.y, rvel4.z};
+        auto ret = moveBallInCellFuncs[m_componentType](rpos, timediff, rvel);
+        rot = glm::rotate(glm::mat4{1.0f}, m_placements[placementIndex], glm::vec3{0.0f, 0.0f, 1.0f});
+        rpos4 = rot * glm::vec4{rpos.x, rpos.y, rpos.z, 0.0f};
+        position = glm::vec3{rpos4.x, rpos4.y, rpos4.z};
+        if (ret != CellWall::noWall) {
+            auto nbr90degreeRotations = 4-static_cast<uint32_t>(
+                    std::floor(m_placements[placementIndex].m_rotationAngle/glm::radians(90.0f)));
+            ret = (ret + nbr90degreeRotations) % (CellWall::wallMax+1);
+        }
+        return ret;
+    }
+
+    // start < end
+    // returns true if an end point is hit, false otherwise.
+    bool moveBall(float &pos, float &timediff, float start, float end, float speed) {
+        float posnext = pos + speed * timediff;
+        if (posnext <= start) {
+            timediff -= (start - pos)/speed;
+            pos = start;
+            return true;
+        } else if (posnext >= end) {
+            timediff -= (end - pos)/speed;
+            pos = end;
+            return true;
+        } else {
+            pos = posnext;
+            timediff = 0.0f;
+            return false;
+        }
+    }
+
+    using MoveBallInCellFunc = std::function<Component::CellWall(glm::vec3 &, float &, glm::vec3 const &)>;
+    static std::array<MoveBallInCellFunc, ComponentType::maxComponentType + 1> constexpr const moveBallInCellFuncs = {
+        // straight
+        MoveBallInCellFunc(
+            [](glm::vec3 &position, float &timediff, glm::vec3 const &velocity) -> Component::CellWall {
+                position.x = 0.0f;
+                bool ret = moveBall(position.y, timediff, -m_componentSize/2, m_componentSize/2, velocity.y);
+                if (ret && position.y >= m_componentSize/2.0f) {
+                    return CellWall::wallUp;
+                } else if (ret && position.y <= -m_componentSize/2.0f) {
+                    return CellWall::wallDown;
+                } else {
+                    return CellWall::noWall;
+                }
+            }),
+
+        // T-Junction
+        MoveBallInCellFunc(
+            [](glm::vec3 &position, float &timediff, glm::vec3 const &velocity) -> Component::CellWall {
+                if (position.y > 0.0f) {
+                    position.y = 0.0f;
+                }
+
+                if (position.y == 0.0f && position.x == 0.0f) {
+                    if (std::fabs(velocity.x) > std::fabs(velocity.y) || velocity.y > 0.0f) {
+                        bool ret = moveBall(position.x, timediff, -m_componentSize/2,
+                                m_componentSize/2, velocity.x);
+                        if (ret && position.x <= -m_componentSize/2) {
+                            return CellWall::wallLeft;
+                        } else if (ret && position.x >= m_componentSize/2) {
+                            return CellWall::wallRight;
+                        } else {
+                            return CellWall::noWall;
+                        }
+                    } else {
+                        bool ret = moveBall(position.y, timediff, -m_componentSize/2, 0.0f, velocity.y);
+                        if (ret && position.y <= -m_componentSize/2) {
+                            return CellWall::wallDown;
+                        } else {
+                            return CellWall::noWall;
+                        }
+                    }
+                }
+                if (position.y < 0.0f) {
+                    position.x = 0.0f;
+                    bool ret = moveBall(position.y, timediff, -m_componentSize/2, 0.0f, velocity.y);
+                    if (ret && position.y == 0.0f) {
+                        return moveBallInCellFuncs[ComponentType::tjunction](position, timediff, velocity);
+                    } else if (ret) {
+                        return CellWall::wallDown;
+                    } else {
+                        return CellWall::noWall;
+                    }
+                }
+                if (position.x < 0.0f) {
+                    position.y = 0.0f;
+                    bool ret = moveBall(position.x, timediff, -m_componentSize/2, 0.0f, velocity.x);
+                    if (ret && position.x == 0.0f) {
+                        return moveBallInCellFuncs[ComponentType::tjunction](position, timediff, velocity);
+                    } else if (ret) {
+                        return CellWall::wallLeft;
+                    } else {
+                        return CellWall::noWall;
+                    }
+                }
+                if (position.x > 0.0f) {
+                    position.y = 0.0f;
+                    bool ret = moveBall(position.x, timediff, 0.0f, m_componentSize/2, velocity.x);
+                    if (ret && position.x == 0.0f) {
+                        return moveBallInCellFuncs[ComponentType::tjunction](position, timediff, velocity);
+                    } else if (ret) {
+                        return CellWall::wallRight;
+                    } else {
+                        return CellWall::noWall;
+                    }
+                }
+            }),
+
+        // cross junction
+        MoveBallInCellFunc(
+            [](glm::vec3 &position, float &timediff, glm::vec3 const &velocity) -> Component::CellWall {
+                if (position.y == 0.0f && position.x == 0.0f) {
+                    if (std::fabs(velocity.x) > std::fabs(velocity.y)) {
+                        bool ret = moveBall(position.x, timediff, -m_componentSize/2,
+                                            m_componentSize/2, velocity.x);
+                        if (ret && position.x <= -m_componentSize/2) {
+                            return CellWall::wallLeft;
+                        } else if (ret && position.x >= m_componentSize/2) {
+                            return CellWall::wallRight;
+                        } else {
+                            return CellWall::noWall;
+                        }
+                    } else {
+                        bool ret = moveBall(position.y, timediff, -m_componentSize/2, m_componentSize/2, velocity.y);
+                        if (ret && position.y <= -m_componentSize/2) {
+                            return CellWall::wallDown;
+                        } else if (ret) {
+                            return CellWall::wallUp;
+                        } else {
+                            return CellWall::noWall;
+                        }
+                    }
+                }
+                if (position.y < 0.0f) {
+                    position.x = 0.0f;
+                    bool ret = moveBall(position.y, timediff, -m_componentSize/2, 0.0f, velocity.y);
+                    if (ret && position.y == 0.0f) {
+                        return moveBallInCellFuncs[ComponentType::tjunction](position, timediff, velocity);
+                    } else if (ret) {
+                        return CellWall::wallDown;
+                    } else {
+                        return CellWall::noWall;
+                    }
+                }
+                if (position.y > 0.0f) {
+                    position.x = 0.0f;
+                    bool ret = moveBall(position.y, timediff, 0.0f, m_componentSize/2, velocity.y);
+                    if (ret && position.y == 0.0f) {
+                        return moveBallInCellFuncs[ComponentType::tjunction](position, timediff, velocity);
+                    } else if (ret) {
+                        return CellWall::wallUp;
+                    } else {
+                        return CellWall::noWall;
+                    }
+                }
+                if (position.x < 0.0f) {
+                    position.y = 0.0f;
+                    bool ret = moveBall(position.x, timediff, -m_componentSize/2, 0.0f, velocity.x);
+                    if (ret && position.x == 0.0f) {
+                        return moveBallInCellFuncs[ComponentType::tjunction](position, timediff, velocity);
+                    } else if (ret) {
+                        return CellWall::wallLeft;
+                    } else {
+                        return CellWall::noWall;
+                    }
+                }
+                if (position.x > 0.0f) {
+                    position.y = 0.0f;
+                    bool ret = moveBall(position.x, timediff, 0.0f, m_componentSize/2, velocity.x);
+                    if (ret && position.x == 0.0f) {
+                        return moveBallInCellFuncs[ComponentType::tjunction](position, timediff, velocity);
+                    } else if (ret) {
+                        return CellWall::wallRight;
+                    } else {
+                        return CellWall::noWall;
+                    }
+                }
+            }),
+        MoveBallInCellFunc(
+            [](glm::vec3 &position, glm::vec3 const &velocity, float &timediff) -> uint32_t {
+                Component::CellWall wall = CellWall::noWall;
+
+                return wall;
+            }),
+        MoveBallInCellFunc(
+            [](glm::vec3 &position, glm::vec3 const &velocity, float &timediff) -> uint32_t {
+                Component::CellWall wall = CellWall::noWall;
+
+                return wall;
+            }),
+        MoveBallInCellFunc(
+            [](glm::vec3 &position, glm::vec3 const &velocity, float &timediff) -> uint32_t {
+                Component::CellWall wall = CellWall::noWall;
+
+                return wall;
+            }),
+        MoveBallInCellFunc(
+            [](glm::vec3 &position, glm::vec3 const &velocity, float &timediff) -> uint32_t {
+                Component::CellWall wall = CellWall::noWall;
+
+                return wall;
+            }),
+        MoveBallInCellFunc(
+            [](glm::vec3 &position, glm::vec3 const &velocity, float &timediff) -> uint32_t {
+                Component::CellWall wall = CellWall::noWall;
+
+                return wall;
+            }),
     };
 
     struct Placement {
-        glm::vec3 m_position;
+        uint32_t m_row;
+        uint32_t m_col;
         float m_rotationAngle; /*radians */
         bool m_lockedIntoPlace;
+        bool m_lockedIntoPlaceForever;
+        bool m_inPath;
 
-        Placement(glm::vec3 const &position,
+        Placement(uint32_t row = 0,
+                uint32_t col = 0,
                 float rotationAngle = 0.0f, /* radians */
-                bool lockedIntoPlace = false)
-            : m_position{position},
+                bool lockedIntoPlace = false,
+                bool lockedIntoPlaceForever = false,
+                bool inPath = false)
+            : m_row{row},
+            m_col{col},
             m_rotationAngle{rotationAngle},
-            m_lockedIntoPlace{lockedIntoPlace}
+            m_lockedIntoPlace{lockedIntoPlace},
+            m_lockedIntoPlaceForever{lockedIntoPlaceForever},
+            m_inPath{inPath}
         {
         }
     };
 
-    void add(glm::vec3 position) {
-        m_placements.emplace_back(position);
+    uint32_t add(
+            uint32_t row = 0,
+            uint32_t col = 0,
+            float rotationAngle = 0.0f, /* radians */
+            bool lockedIntoPlace = false,
+            bool inPath = false)
+    {
+        m_placements.emplace_back(row, col, rotationAngle, lockedIntoPlace, inPath);
     }
 
-    Component(ComponentType inType)
-        : m_componentType{inType}
-    {
+    bool hasExitAt(ExitPoint exitPoint, size_t placementNumber) {
+        // rotate the exitPoint that we are checking backwards by the amount the component is
+        // rotated forwards so that we only have to do this once.  Rotating backwards is the same
+        // as going around a whole turn minus the angle the component is rotated by.
+        auto nbr90degreeRotations = 4-static_cast<uint32_t>(
+                std::floor(m_placements[placementNumber].m_rotationAngle/glm::radians(90.0f)));
+        exitPoint = (exitPoint + nbr90degreeRotations) % (ExitPoint::maxExitPoint+1);
+        for (auto p : m_exitPoints) {
+            if (exitPoint == p) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     bool operator==(Component const &other) { return other.m_componentType == m_componentType; }
     bool operator<(Component const &other) { return m_componentType < other.m_componentType; }
+    auto placementsBegin() { return m_placements.begin(); }
+    auto placementsEnd() { return m_placements.end(); }
+
+    void setSize(float tileSize) { m_componentSize = tileSize; }
+
+    Component(ComponentType inType, float componentSize = 0.0f)
+        : m_componentType{inType},
+        m_componentSize{componentSize}
+    {
+        switch (m_componentType) {
+            case ComponentType::crossjunction:
+                m_exitPoints.push_back(ExitPoint::exitRight);
+                m_exitPoints.push_back(ExitPoint::exitUp);
+                m_exitPoints.push_back(ExitPoint::exitLeft);
+                m_exitPoints.push_back(ExitPoint::exitDown);
+                break;
+            case ComponentType::tjunction:
+                m_exitPoints.push_back(ExitPoint::exitRight);
+                m_exitPoints.push_back(ExitPoint::exitLeft);
+                m_exitPoints.push_back(ExitPoint::exitDown);
+                break;
+            case ComponentType::straight:
+                m_exitPoints.push_back(ExitPoint::exitUp);
+                m_exitPoints.push_back(ExitPoint::exitDown);
+                break;
+            case ComponentType::turn:
+                m_exitPoints.push_back(ExitPoint::exitLeft);
+                m_exitPoints.push_back(ExitPoint::exitDown);
+                break;
+            default:
+                // ComponentType::open is special - it can roll around in it freely and exit in
+                // any direction.
+                // ComponentType::closedBottom is also special - it can roll around in it freely
+                // except for the bottom.
+                // ComponentType::closedCorner is also special - it can roll around freely
+                // except for the corner.
+                // ComponentType::goal is also special - when it gets there, the level is finished.
+                break;
+        }
+    }
 
 private:
-    ComponentType m_componentType;
+    ComponentType const m_componentType;
+    float m_componentSize;
     std::vector<Placement> m_placements;
+    std::vector<ExitPoint> m_exitPoints;
+};
+
+class GameBoardBlock {
+public:
+    enum BlockType {
+        begin,
+        onBoard,
+        offBoard,
+        end
+    };
+
+    BlockType blockType() { return m_blockType; }
+    std::shared_ptr<Component> &component() { return m_component; }
+    size_t placementIndex() { return m_placementIndex; }
+
+    void setBlockType(BlockType blockType) { m_blockType = blockType; }
+
+    void setComponent(std::shared_ptr<Component> component, size_t placementIndex) {
+        m_component = std::move(component);
+        m_placementIndex = placementIndex;
+    }
+
+    GameBoardBlock(
+        BlockType blockType = BlockType::onBoard,
+        std::shared_ptr<Component> component = nullptr,
+        size_t placementIndex = 0)
+        : m_blockType{blockType},
+        m_component{component},
+        m_placementIndex{placementIndex}
+    {
+    }
+private:
+    BlockType m_blockType;
+    std::shared_ptr<Component> m_component;
+    size_t m_placementIndex;
+};
+
+class GameBoard {
+public:
+    static uint32_t constexpr m_nbrTileRowsForStart = 2;
+    static uint32_t constexpr m_nbrTileRowsForEnd = 2;
+
+    uint32_t widthInTiles() { return m_blocks.empty() ? 0 : m_blocks[0].size(); }
+    uint32_t heightInTiles() { return m_blocks.size(); }
+
+    void initialize(float width, float height, glm::vec3 const &pos, uint32_t rows, uint32_t cols) {
+        m_width = width;
+        m_height = height;
+        m_centerPos = pos;
+        m_blocks.resize(rows);
+        for (auto &block : m_blocks) {
+            block.resize(cols);
+        }
+    }
+
+    /* row 0 is on the bottom, col 0 is on the left */
+    glm::vec3 position(uint32_t row, uint32_t col) {
+        return glm::vec3 {
+            m_width/m_blocks[0].size() * col - m_width + m_centerPos.x,
+            m_height/m_blocks.size() * row - m_height + m_centerPos.y,
+            m_centerPos.z};
+    }
+
+    GameBoardBlock &block(uint32_t row, uint32_t col) { return m_blocks[row][col]; }
+    GameBoardBlock::BlockType blockType(uint32_t row, uint32_t col) { return m_blocks[row][col].blockType(); }
+
+    GameBoard()
+            : m_width{0.0f},
+              m_height{0.0f},
+              m_centerPos{0.0f, 0.0f, 0.0f}
+    {}
+private:
+    float m_width;
+    float m_height;
+    glm::vec3 m_centerPos;
+    std::vector<std::vector<GameBoardBlock>> m_blocks;
 };
 
 class MovablePassage : public Level {
 public:
-    static float constexpr MODEL_MAXZ = 1.0f;
-    glm::vec4 getBackgroundColor() override;
+    glm::vec4 getBackgroundColor() override { return {1.0f, 1.0f, 1.0f, 1.0f}; };
     bool updateData() override;
     bool updateStaticDrawObjects(DrawObjectTable &objs, TextureMap &textures) override;
     bool updateDynamicDrawObjects(DrawObjectTable &objs, TextureMap &textures, bool &texturesChanged) override;
-    void start() override;
-    void getLevelFinisherCenter(float &x, float &y) override;
+    void start() override { m_prevTime = std::chrono::high_resolution_clock::now(); }
+    void getLevelFinisherCenter(float &x, float &y) override { x = 0.0f; y = 0.0f };
     SaveLevelDataFcn getSaveLevelDataFcn() override;
-
-    MovablePassage(
-        std::shared_ptr<GameRequester> inGameRequester,
-        std::shared_ptr<MovablePassageSaveData> sd,
-        float width, float height, float maxZ)
-        : Level(inGameRequester, width, height, maxZ, true, 1/50.0f, false),
-        m_components{},
-        m_nbrComponents{0}
-    {}
 
     void initSetBallInfo(
         std::string const &ballModel,
@@ -110,22 +482,17 @@ public:
         m_ballTextureName = ballTexture;
     }
 
-    void initSetFloorInfo(
+    void initSetGameBoard(
         uint32_t nbrTilesX,
-        uint32_t nbrTilesY,
-        std::string const &floorTexture)
-    {
-        m_floorTexture = floorTexture;
-    }
+        uint32_t nbrTilesY);
 
     void initAddType(
         Component::ComponentType inComponentType,
         uint32_t nbrComponents,
         std::string &texture)
     {
-        auto insertResult = m_components.emplace(inComponentType);
         for (uint32_t i = 0; i < nbrComponents; i++) {
-            insertResult.first->add(glm::vec3{0.0f, 0.0f, 0.0f});
+            m_components[inComponentType]->add(glm::vec3{0.0f, 0.0f, 0.0f});
             m_nbrComponents++;
         }
     }
@@ -134,16 +501,33 @@ public:
 
     ~MovablePassage() override = default;
 
+    MovablePassage(
+            std::shared_ptr<GameRequester> inGameRequester,
+            std::shared_ptr<MovablePassageSaveData> sd,
+            float width, float height, float maxZ)
+            : Level(inGameRequester, width, height, maxZ, true, 1/50.0f, false),
+              m_components{
+                      std::make_shared<Component>(Component::ComponentType::straight),
+                      std::make_shared<Component>(Component::ComponentType::tjunction),
+                      std::make_shared<Component>(Component::ComponentType::crossjunction),
+                      std::make_shared<Component>(Component::ComponentType::turn)},
+              m_fixedComponent{std::make_shared<Component>(Component::ComponentType::straight)},
+              m_nbrComponents{0},
+              m_gameBoard{}
+    {
+    }
+
 private:
-    static uint32_t constexpr m_nbrTileRowsForStart = 2;
-    static uint32_t constexpr m_nbrTileRowsForEnd = 2;
+    uint32_t m_ballRow;
+    uint32_t m_ballCol;
+    bool m_ballAtStart;
     std::chrono::high_resolution_clock::time_point m_prevTime;
     std::string m_ballModel;
     std::string m_ballTextureName;
     std::string m_floorTexture;
-    std::set<Component> m_components;
-    Component m_fixedComponents;
-    float m_tileSize;
+    std::array<std::shared_ptr<Component>, Component::ComponentType::maxComponentType + 1> m_components;
+    std::shared_ptr<Component> m_fixedComponent;
+    GameBoard m_gameBoard;
     uint32_t m_nbrComponents;
     uint32_t m_nbrTilesX;
     uint32_t m_nbrTilesY;

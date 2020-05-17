@@ -18,14 +18,14 @@
  *
  */
 #include "movablePassage.hpp"
+#include "../level.hpp"
 
-void MovablePassage::initDone() {
-    if (m_nbrComponents == 0 || m_nbrTilesX == 0 || m_nbrTilesY == 0) {
-        throw std::runtime_error("MovablePassage maze not properly initialized");
-    }
-
-    float tileSizeX = m_width/m_nbrTilesX;
-    float tileSizeY = m_height/(m_nbrTilesY + m_nbrTileRowsForStart + m_nbrTileRowsForEnd);
+void MovablePassage::initSetGameBoard(
+        uint32_t nbrTilesX,
+        uint32_t nbrTilesY) {
+    float tileSizeX = m_width / m_nbrTilesX;
+    float tileSizeY = m_height / (m_nbrTilesY + GameBoard::m_nbrTileRowsForStart +
+                                  GameBoard::m_nbrTileRowsForEnd);
     float tileSize = tileSizeX < tileSizeY ? tileSizeX : tileSizeY;
     uint32_t nbrExtraTileRowsX = static_cast<uint32_t>(std::floor(
             (m_width - tileSize * m_nbrTilesX) / tileSize));
@@ -40,9 +40,11 @@ void MovablePassage::initDone() {
     // get some more space by making the movable space less.
     if (nbrExtraTilesX + nbrExtraTilesY < m_nbrComponents) {
         uint32_t moreExtraComponentsRequired = m_nbrComponents - (nbrExtraTilesX + nbrExtraTilesY);
-        uint32_t nbrExtraPerimeters = moreExtraComponentsRequired/(2*m_nbrTilesX + 2*m_nbrTilesY) + 1;
-        tileSizeX = m_width/(m_nbrTilesX + 2 * nbrExtraPerimeters);
-        tileSizeY = m_height/(m_nbrTilesY + m_nbrTileRowsForStart + m_nbrTileRowsForEnd + 2 * nbrExtraPerimeters);
+        uint32_t nbrExtraPerimeters =
+                moreExtraComponentsRequired / (2 * m_nbrTilesX + 2 * m_nbrTilesY) + 1;
+        tileSizeX = m_width / (m_nbrTilesX + 2 * nbrExtraPerimeters);
+        tileSizeY = m_height / (m_nbrTilesY + GameBoard::m_nbrTileRowsForStart +
+                                GameBoard::m_nbrTileRowsForEnd + 2 * nbrExtraPerimeters);
         tileSize = tileSizeX < tileSizeY ? tileSizeX : tileSizeY;
 
         nbrExtraTileRowsX = static_cast<uint32_t>(std::floor(
@@ -55,59 +57,154 @@ void MovablePassage::initDone() {
         nbrExtraTilesY = nbrExtraTileRowsY * m_nbrTilesX - 2 * nbrExtraTileRowsY;
     }
 
-    for (uint32_t k = 0; k < nbrExtraTileRowsY; k++) {
-        if (k % 2 == 0) {
-            glm::vec3 pos{-m_width / 2 + (m_nbrTilesX + nbrExtraTileRowsY) / 2 * tileSize,
-                          m_height / 2 - tileSize/2 - m_nbrTileRowsForEnd*tileSize - tileSize * k/2,
-                          m_mazeFloorZ};
-            m_fixedComponents.add(pos);
-        } else {
-            glm::vec3 pos{-m_width / 2 + (m_nbrTilesX + nbrExtraTileRowsY) / 2 * tileSize,
-                          -m_height / 2 + tileSize/2 + m_nbrTileRowsForStart*tileSize + tileSize * k/2,
-                          m_mazeFloorZ};
-            m_fixedComponents.add(pos);
+    m_gameBoard.initialize(
+            (m_nbrTilesX + nbrExtraTileRowsX) * tileSize,
+            (m_nbrTilesY + nbrExtraTileRowsY + GameBoard::m_nbrTileRowsForEnd +
+             GameBoard::m_nbrTileRowsForStart) * tileSize,
+            glm::vec3{0.0f, 0.0f, 0.0f},
+            m_nbrTilesY + nbrExtraTileRowsY, m_nbrTilesX + nbrExtraTileRowsX);
+    if (m_gameBoard.heightInTiles() == 0 || m_gameBoard.widthInTiles() == 0) {
+        throw std::runtime_error("MovablePassage game board blocks not initialized properly");
+    }
+
+    // The main board area for constructing the tunnel
+    for (uint32_t k = nbrExtraTileRowsX / 2; k < m_nbrTilesX - nbrExtraTileRowsX; k++) {
+        for (uint32_t l = nbrExtraTileRowsY / 2; l < m_nbrTilesY - nbrExtraTileRowsY; l++) {
+            m_gameBoard.block(k, l).setBlockType(GameBoardBlock::BlockType::onBoard);
         }
     }
 
-    uint32_t i = 0;
-    uint32_t j = 0;
-    bool addingTopBottom = true;
+    uint32_t col = (m_nbrTilesX + nbrExtraTileRowsX) / 2;
+    // the fixed tunnel through the places for extra tunnel pieces at the bottom.
+    for (uint32_t k = GameBoard::m_nbrTileRowsForStart; k < nbrExtraTileRowsY / 2; k++) {
+        auto &comp = m_components[Component::ComponentType::straight];
+        auto pos = comp->add(k, col, 0.0f, true, true);
+        auto &block = m_gameBoard.block(k, col);
+        block.setComponent(comp, pos);
+        block.setBlockType(GameBoardBlock::BlockType::onBoard);
+    }
+
+    // the fixed tunnel through the places for extra tunnel pieces at the top.
+    for (uint32_t k = m_nbrTilesY - nbrExtraTileRowsY / 2 + GameBoard::m_nbrTileRowsForStart;
+         k < m_nbrTilesY + nbrExtraTileRowsY + GameBoard::m_nbrTileRowsForStart;
+         k++)
+    {
+        auto &comp = m_components[Component::ComponentType::straight];
+        auto pos = comp->add(k, col, 0.0f, true, true);
+        auto &block = m_gameBoard.block(k, col);
+        block.setComponent(comp, pos);
+        block.setBlockType(GameBoardBlock::BlockType::onBoard);
+    }
+
+    // The start
+    for (uint32_t k = 0; k < GameBoard::m_nbrTileRowsForStart; k++) {
+        for (uint32_t l = 0; l < m_gameBoard.widthInTiles(); l++) {
+            Component::ComponentType type = Component::ComponentType::open;
+            float rotation = 0.0f;
+            if (k == 0) {
+                if (l == 0) {
+                    type = Component::ComponentType::closedCorner;
+                } else if (l == m_gameBoard.widthInTiles() - 1) {
+                    type = Component::ComponentType::closedCorner;
+                    rotation = glm::radians(90.0f);
+                } else {
+                    type = Component::ComponentType::closedBottom;
+                }
+            } else if (k == GameBoard::m_nbrTileRowsForStart - 1) {
+                if (l == 0) {
+                    type = Component::ComponentType::closedCorner;
+                    rotation = glm::radians(270.0f);
+                } else if (l == m_gameBoard.widthInTiles() - 1) {
+                    type = Component::ComponentType::closedCorner;
+                    rotation = glm::radians(180.0f);
+                } else {
+                    type = Component::ComponentType::closedBottom;
+                    rotation = glm::radians(180.0f);
+                }
+            } else if (l == 0) {
+                type = Component::ComponentType::closedBottom;
+                rotation = glm::radians(270.0f);
+            } else if (l == m_gameBoard.widthInTiles() - 1) {
+                type = Component::ComponentType::closedBottom;
+                rotation = glm::radians(90.0f);
+            }
+            auto &comp = m_components[type];
+            auto pos = comp->add(k, l, rotation, true, true);
+            auto &block = m_gameBoard.block(k, l);
+            block.setComponent(comp, pos);
+            block.setBlockType(GameBoardBlock::BlockType::begin);
+        }
+    }
+
+    // The end
+    for (uint32_t k = m_gameBoard.heightInTiles() - GameBoard::m_nbrTileRowsForEnd;
+         k < m_gameBoard.heightInTiles();
+         k++)
+    {
+        for (uint32_t l = 0; l < m_gameBoard.widthInTiles(); l++) {
+            auto &block = m_gameBoard.block(0, l);
+            block.setBlockType(GameBoardBlock::BlockType::end);
+        }
+    }
+
     for (auto &component : m_components) {
-        for (auto &pos : component.m_placements) {
-            pos.m_position.z = m_mazeFloorZ;
-            if (addingTopBottom) {
-                if (i == (m_nbrTilesX + nbrExtraTileRowsY)/2) {
-                    // skip the mid row position because it is used for the fixed tunnels.
-                    i++;
+        component->setSize(tileSize);
+    }
+}
+
+void MovablePassage::initDone() {
+    if (m_nbrComponents == 0) {
+        throw std::runtime_error("MovablePassage components not initialized properly");
+    }
+
+    // place the passage components in the off board sections
+    auto it1 = m_components.begin();
+    auto end1 = m_components.end();
+    auto it2 = (*it1)->placementsBegin();
+    auto end2 = (*it1)->placementsEnd();
+    uint32_t m = 0;
+    bool finished = false;
+    for (uint32_t k = 0; k < m_gameBoard.widthInTiles() && !finished; k++){
+        for (uint32_t l = 0; l < m_gameBoard.heightInTiles(); l++) {
+            auto &block = m_gameBoard.block(k,l);
+            if (it2 != end2 && block.blockType() == GameBoardBlock::BlockType::offBoard && block.component() == nullptr) {
+                block.setComponent(*it1, m);
+                it2->m_row = k;
+                it2->m_col = l;
+
+                it2++;
+                m++;
+            }
+            if (it2 == end2) {
+                it1++;
+
+                if (it1 == end1) {
+                    finished = true;
+                    break;
                 }
-                pos.m_position.y = (j % 2 == 0) ?
-                       m_height/2 - tileSize/2 - m_nbrTileRowsForEnd * tileSize - tileSize * j/2 :
-                       -m_height/2 + tileSize/2 - m_nbrTileRowsForStart * tileSize - tileSize * j/2;
-                pos.m_position.x = -m_width / 2 + tileSize / 2 + tileSize * i;
-                i++;
-                if (i > m_nbrTilesX + nbrExtraTileRowsY) {
-                    j++;
-                    i = 0;
-                    if (j > nbrExtraTileRowsY) {
-                        addingTopBottom = false;
-                        j = 0;
-                        i = 0;
-                    }
-                }
-            } else {
-                pos.m_position.x = (i % 2 == 0) ?
-                                   m_width / 2 - tileSize / 2 - tileSize * i / 2 :
-                                   -m_width / 2 + tileSize / 2 + tileSize * i / 2;
-                pos.m_position.y = -m_height/2 +
-                        (1/2.0f + m_nbrTileRowsForStart + nbrExtraTileRowsY + j)*tileSize;
-                j++;
-                if (j > m_nbrTilesY) {
-                    i++;
-                    j = 0;
-                }
+
+                m = 0;
+                it2 = (*it1)->placementsBegin();
+                end2 = (*it1)->placementsEnd();
             }
         }
     }
 
-    m_tileSize = tileSize;
+    m_ballRow = 0;
+    m_ballCol = m_gameBoard.widthInTiles() / 2;
+    m_ball.position = m_gameBoard.position(m_ballRow, m_ballCol);
+}
+
+bool MovablePassage::updateData() {
+    auto currentTime = std::chrono::high_resolution_clock::now();
+    float timeDiff = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - m_prevTime).count();
+    m_prevTime = currentTime;
+
+    glm::vec3 position = m_ball.position;
+    glm::vec3 prevPosition = position;
+    glm::vec3 velocity = getUpdatedVelocity(m_ball.acceleration, timeDiff);
+    glm::vec3 posFromCenter = m_gameBoard.position(m_ballRow, m_ballCol) - position;
+    auto &block = m_gameBoard.block(m_ballRow, m_ballCol);
+    Component::CellWall wall = block.component()->moveBallInCell(
+                block.placementIndex(), posFromCenter, velocity, timeDiff);
 }
