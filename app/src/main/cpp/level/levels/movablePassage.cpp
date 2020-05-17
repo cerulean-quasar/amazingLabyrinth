@@ -206,5 +206,65 @@ bool MovablePassage::updateData() {
     glm::vec3 posFromCenter = m_gameBoard.position(m_ballRow, m_ballCol) - position;
     auto &block = m_gameBoard.block(m_ballRow, m_ballCol);
     Component::CellWall wall = block.component()->moveBallInCell(
-                block.placementIndex(), posFromCenter, velocity, timeDiff);
+                block.placementIndex(), posFromCenter, timeDiff, velocity);
+    size_t ballRowNext = m_ballRow;
+    size_t ballColNext = m_ballCol;
+    Component::CellWall wallNextCell;
+    switch (wall) {
+    case Component::CellWall::noWall:
+        m_ball.position = m_gameBoard.position(m_ballRow, m_ballCol) - posFromCenter;
+        m_ball.prevPosition = prevPosition;
+        return drawingNecessary();
+    case Component::CellWall::wallRight:
+        if (ballRowNext != m_gameBoard.widthInTiles() - 1) {
+            ballRowNext++;
+            wallNextCell = Component::CellWall::wallLeft;
+        }
+        break;
+    case Component::CellWall::wallUp:
+        if (ballColNext != m_gameBoard.heightInTiles() - 1) {
+            ballColNext++;
+            wallNextCell = Component::CellWall::wallDown;
+        }
+        break;
+    case Component::CellWall::wallLeft:
+        if (ballRowNext != 0) {
+            ballRowNext--;
+            wallNextCell = Component::CellWall::wallRight;
+        }
+        break;
+    case Component::CellWall::wallDown:
+        if (ballColNext != 0) {
+            ballColNext--;
+            wallNextCell = Component::CellWall::wallUp;
+        }
+    }
+
+    // the ball is rolling off the game board area - move to the edge and return
+    if (m_ballRow == ballRowNext && m_ballCol == ballColNext) {
+        m_ball.position = m_gameBoard.position(m_ballRow, m_ballCol) - posFromCenter;
+        m_ball.prevPosition = prevPosition;
+        m_ball.velocity = {0.0f, 0.0f, 0.0f};
+        return drawingNecessary();
+    }
+
+    auto &nextBlock = m_gameBoard.block(ballRowNext, ballColNext);
+    if (nextBlock.blockType() == GameBoardBlock::BlockType::offBoard ||
+        nextBlock.component() == nullptr)
+    {
+        m_ball.position = m_gameBoard.position(m_ballRow, m_ballCol) - posFromCenter;
+        m_ball.prevPosition = prevPosition;
+        m_ball.velocity = {0.0f, 0.0f, 0.0f};
+        return drawingNecessary();
+    }
+
+    if (!nextBlock.component()->hasWallAt(wallNextCell, nextBlock.placementIndex())) {
+        // ball allowed to advance into next door cell
+        Component::Placement &placement = nextBlock.component()->placement(nextBlock.placementIndex());
+        if (placement.m_inPath) {
+            
+        }
+        m_ballCol = ballColNext;
+        m_ballRow = ballRowNext;
+    }
 }
