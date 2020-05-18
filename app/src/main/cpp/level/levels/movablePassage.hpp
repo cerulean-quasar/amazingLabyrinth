@@ -409,21 +409,23 @@ public:
         uint32_t m_col;
         float m_rotationAngle; /*radians */
         bool m_lockedIntoPlace;
-        bool m_lockedIntoPlaceForever;
-        bool m_inPath;
+        std::pair<std::shared_ptr<Component>, size_t> m_prev;
+        std::pair<std::shared_ptr<Component>, size_t> m_next;
 
         Placement(uint32_t row = 0,
                 uint32_t col = 0,
                 float rotationAngle = 0.0f, /* radians */
                 bool lockedIntoPlace = false,
-                bool lockedIntoPlaceForever = false,
-                bool inPath = false)
+                std::shared_ptr<Component> prevComponent = nullptr,
+                size_t prevIndex = 0,
+                std::shared_ptr<Component> nextComponent = nullptr,
+                size_t nextIndex = 0)
             : m_row{row},
             m_col{col},
             m_rotationAngle{rotationAngle},
             m_lockedIntoPlace{lockedIntoPlace},
-            m_lockedIntoPlaceForever{lockedIntoPlaceForever},
-            m_inPath{inPath}
+            m_prev{std::make_pair(prevComponent, prevIndex)},
+            m_next{std::make_pair(nextComponent, nextIndex)}
         {
         }
     };
@@ -433,9 +435,13 @@ public:
             uint32_t col = 0,
             float rotationAngle = 0.0f, /* radians */
             bool lockedIntoPlace = false,
-            bool inPath = false)
+            std::shared_ptr<Component> prevComponent = nullptr,
+            size_t prevIndex = 0,
+            std::shared_ptr<Component> nextComponent = nullptr,
+            size_t nextIndex = 0)
     {
-        m_placements.emplace_back(row, col, rotationAngle, lockedIntoPlace, inPath);
+        m_placements.emplace_back(row, col, rotationAngle, lockedIntoPlace,
+                prevComponent, prevIndex, nextComponent, nextIndex);
     }
 
     bool hasWallAt(CellWall wall, size_t placementNumber) {
@@ -453,6 +459,7 @@ public:
     auto placementsBegin() { return m_placements.begin(); }
     auto placementsEnd() { return m_placements.end(); }
     Placement &placement(size_t index) { return m_placements[index]; }
+    size_t nbrPlacements() { return m_placements.size(); }
 
     void setSize(float tileSize) { m_componentSize = tileSize; }
 
@@ -616,26 +623,30 @@ public:
                       std::make_shared<Component>(Component::ComponentType::straight),
                       std::make_shared<Component>(Component::ComponentType::tjunction),
                       std::make_shared<Component>(Component::ComponentType::crossjunction),
-                      std::make_shared<Component>(Component::ComponentType::turn)},
-              m_fixedComponent{std::make_shared<Component>(Component::ComponentType::straight)},
+                      std::make_shared<Component>(Component::ComponentType::turn),
+                      std::make_shared<Component>(Component::ComponentType::open),
+                      std::make_shared<Component>(Component::ComponentType::closedBottom),
+                      std::make_shared<Component>(Component::ComponentType::closedCorner)},
+              m_gameBoard{},
               m_nbrComponents{0},
-              m_gameBoard{}
+              m_nbrTilesX{0},
+              m_nbrTilesY{0},
+              m_texturesChanged{true}
     {
     }
 
 private:
     uint32_t m_ballRow;
     uint32_t m_ballCol;
-    bool m_ballAtStart;
     std::chrono::high_resolution_clock::time_point m_prevTime;
-    std::string m_ballModel;
-    std::string m_ballTextureName;
-    std::string m_floorTexture;
-    std::array<std::shared_ptr<Component>, Component::ComponentType::maxComponentType + 1> m_components;
-    std::shared_ptr<Component> m_fixedComponent;
+
+    // exclude the goal type
+    std::array<std::shared_ptr<Component>, Component::ComponentType::maxComponentType> m_components;
+
     GameBoard m_gameBoard;
     uint32_t m_nbrComponents;
     uint32_t m_nbrTilesX;
     uint32_t m_nbrTilesY;
+    bool m_texturesChanged;
 };
 #endif /* AMAZING_LABYRINTH_MOVABLE_PASSAGE_HPP */
