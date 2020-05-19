@@ -49,7 +49,10 @@ bool GameBoard::drag(glm::vec2 const &startPosition, glm::vec2 const &distance) 
     if (!m_moveInProgress) {
         if ((b.blockType() == GameBoardBlock::BlockType::offBoard ||
              b.blockType() == GameBoardBlock::BlockType::onBoard) &&
-            b.component() != nullptr) {
+            b.component() != nullptr &&
+            b.component()->type() != Component::ComponentType::noMovementRock &&
+            b.component()->type() != Component::ComponentType::noMovementDirt)
+        {
             auto component = b.component();
             auto &placement = component->placement(b.placementIndex());
             if (!placement.lockedIntoPlace() && placement.prev().first == nullptr) {
@@ -74,21 +77,33 @@ bool GameBoard::dragEnded(glm::vec2 const &endPosition) {
 
     std::pair<uint32_t, uint32_t> rc = findRC(endPosition);
     auto &bEnd = m_blocks[rc.first][rc.second];
-    if (bEnd.component() != nullptr || (bEnd.blockType() != GameBoardBlock::BlockType::onBoard &&
-        bEnd.blockType() != GameBoardBlock::BlockType::offBoard))
+    if ((bEnd.component() != nullptr &&
+         bEnd.component()->type() == Component::ComponentType::noMovementDirt &&
+         bEnd.blockType() == GameBoardBlock::BlockType::onBoard) ||
+        (bEnd.component() != nullptr &&
+         bEnd.component()->type() == Component::ComponentType::noMovementRock &&
+         bEnd.blockType() != GameBoardBlock::BlockType::offBoard))
     {
-        bEnd.component()->placement(bEnd.placementIndex()).moveDone();
-
-        // we still need to redraw even if the move failed.  to move the component back to the
-        // original spot.
+        // a move was started and it succeeded.  It needs to be completed now.
+        auto &b = m_blocks[m_moveStartingPosition.first][m_moveStartingPosition.second];
+        b.component()->placement(b.placementIndex()).moveDone();
+        b.component()->placement(b.placementIndex()).setRC(rc.first, rc.second);
+        bEnd.component()->placement(bEnd.placementIndex()).setRC(m_moveStartingPosition.first,
+                                                                 m_moveStartingPosition.second);
+        auto tmp = b.component();
+        auto tmpIndex = b.placementIndex();
+        b.setComponent(bEnd.component(), bEnd.placementIndex());
+        bEnd.setComponent(tmp, tmpIndex);
+        m_moveInProgress = false;
         return true;
     }
 
-    // a move started and needs to be completed now.
-    auto &b = m_blocks[m_moveStartingPosition.first][m_moveStartingPosition.second];
-    b.component()->placement(b.placementIndex()).moveDone();
-    b.component()->placement(bEnd.placementIndex()).setRC(rc.first, rc.second);
-    m_moveInProgress = false;
+    // move failed - there is a non-dirt component at the spot to be moved to,
+    // or the target spot is end or start space on the board.
+    bEnd.component()->placement(bEnd.placementIndex()).moveDone();
+
+    // we still need to redraw even if the move failed.  to move the component back to the
+    // original spot.
     return true;
 }
 
@@ -276,6 +291,23 @@ void MovablePassage::initDone() {
                 m = 0;
                 it2 = (*it1)->placementsBegin();
                 end2 = (*it1)->placementsEnd();
+            }
+        }
+    }
+
+    std::shared_ptr<Component> dirt = m_components[Component::ComponentType::noMovementDirt];
+    std::shared_ptr<Component> rock = m_components[Component::ComponentType::noMovementRock];
+    for (uint32_t k = 0; k < m_gameBoard.widthInTiles(); k++) {
+        for (uint32_t l = 0; l < m_gameBoard.heightInTiles(); l++) {
+            auto &b = m_gameBoard.block(k,l);
+            if (b.component() == nullptr) {
+                if (b.blockType() == GameBoardBlock::BlockType::offBoard) {
+                    dirt->add(k, l, 0.0f);
+                    b.setComponent(dirt, dirt->nbrPlacements() - 1);
+                } else {
+                    rock->add(k, l, 0.0f);
+                    b.setComponent(rock, rock->nbrPlacements() - 1);
+                }
             }
         }
     }
@@ -475,6 +507,31 @@ bool MovablePassage::updateStaticDrawObjects(DrawObjectTable &objs, TextureMap &
                         glm::rotate(glm::mat4(1.0f), placement.rotationAngle(), glm::vec3{0.0f, 0.0f, 1.0f}) *
                         glm::scale(glm::mat4(1.0f), glm::vec3(scale, scale, scale)));
                     break;
+            }
+        }
+    }
+}
+
+bool MovablePassage::updateDynamicDrawObjects(DrawObjectTable &objs, TextureMap &textures, bool &texturesChanged) {
+    glm::vec3 zaxis{0.0f, 0.0f, 1.0f};
+    if (objs.empty()) {
+        std::pair<std::vector<Vertex>, std::vector<uint32_t>> v;
+        for (auto const &component: m_components) {
+            auto obj = std::make_shared<DrawObject>();
+            if (m_componentModels[component->type()].empty()) {
+                getQuad(obj->vertices, obj->indices);
+            } else {
+                loadModel(m_gameRequester->getAssetStream(m_componentModels[component->type()]), v);
+                std::swap(v.first, obj->vertices);
+                std::swap(v.second, obj->indices);
+            }
+            obj->texture = std::make_shared<TextureDescriptionPath>(
+                    m_gameRequester, m_componentTextures[component->type()]);
+            for (auto it = component->placementsBegin(); it != component->placementsEnd(); it++) {
+                float size = component->componentSize()/m_modelSize;
+                obj->modelMatrices.push_back(glm::translate(glm::mat4(1.0f), m_gameBoard.position(it->row(), it->col())) *
+                    glm::rotate(glm::mat4(1.0f), it->rotationAngle(), zaxis) *
+                    glm::scale(glm::mat4(1.0f), glm::vec3{size, size, size}));
             }
         }
     }

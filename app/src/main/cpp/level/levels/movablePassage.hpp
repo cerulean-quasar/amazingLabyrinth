@@ -66,8 +66,12 @@ public:
         open,
         closedBottom,
         closedCorner,
+        maxComponentAllowingBall = 7,
         goal,
-        maxComponentType = 8
+        noMovementDirt,
+        noMovementRock,
+        maxComponentType = 10
+
     };
 
     CellWall moveBallInCell(size_t placementIndex, glm::vec3 &position, float &timediff, glm::vec3 &velocity) {
@@ -154,7 +158,7 @@ public:
     }
 
     using MoveBallInCellFunc = std::function<Component::CellWall(glm::vec3 &, float &, glm::vec3 &)>;
-    static std::array<MoveBallInCellFunc, ComponentType::maxComponentType + 1> constexpr const moveBallInCellFuncs = {
+    static std::array<MoveBallInCellFunc, ComponentType::maxComponentAllowingBall + 1> constexpr const moveBallInCellFuncs = {
         // straight
         MoveBallInCellFunc(
             [](glm::vec3 &position, float &timediff, glm::vec3 &velocity) -> Component::CellWall {
@@ -394,14 +398,7 @@ public:
                     return CellWall::noWall;
                 }
                 return wall;
-            }),
-
-        // goal
-        MoveBallInCellFunc(
-            [](glm::vec3 &position, glm::vec3 const &velocity, float &timediff) -> uint32_t {
-                timediff = 0.0f;
-                return CellWall::noWall;
-            }),
+            })
     };
 
     class Placement {
@@ -490,6 +487,7 @@ public:
     auto type() { return m_componentType; }
     Placement &placement(size_t index) { return m_placements[index]; }
     size_t nbrPlacements() { return m_placements.size(); }
+    float componentSize() { return m_componentSize; }
 
     void setSize(float tileSize) { m_componentSize = tileSize; }
 
@@ -515,6 +513,13 @@ public:
         case ComponentType::closedCorner:
             m_cellWalls.insert(CellWall::wallDown);
             m_cellWalls.insert(CellWall::wallLeft);
+            break;
+        case ComponentType::noMovementDirt:
+        case ComponentType::noMovementRock:
+            m_cellWalls.insert(CellWall::wallRight);
+            m_cellWalls.insert(CellWall::wallUp);
+            m_cellWalls.insert(CellWall::wallLeft);
+            m_cellWalls.insert(CellWall::wallDown);
             break;
         case ComponentType::open:
         case ComponentType::crossjunction:
@@ -601,7 +606,7 @@ public:
     glm::vec3 centerPositionEndObject() {
         return glm::vec3{m_width/2.0f + m_centerPos.x,
                          m_height/m_blocks.size()*(m_blocks.size() - m_nbrTileRowsForEnd/2) + m_centerPos.y,
-                         m_centerPos.z-m_blockSize};
+                         m_centerPos.z};
     }
 
     glm::vec3 scaleEndObject() {
@@ -683,13 +688,16 @@ public:
                       std::make_shared<Component>(Component::ComponentType::turn),
                       std::make_shared<Component>(Component::ComponentType::open),
                       std::make_shared<Component>(Component::ComponentType::closedBottom),
-                      std::make_shared<Component>(Component::ComponentType::closedCorner)},
+                      std::make_shared<Component>(Component::ComponentType::closedCorner),
+                      std::make_shared<Component>(Component::ComponentType::goal),
+                      std::make_shared<Component>(Component::ComponentType::noMovementDirt),
+                      std::make_shared<Component>(Component::ComponentType::noMovementRock)},
               m_gameBoard{},
-              m_nbrComponents{0},
-              m_nbrTilesX{0},
-              m_nbrTilesY{0},
-              m_texturesChanged{true},
-              m_initDone{false}
+                      m_nbrComponents{0},
+                      m_nbrTilesX{0},
+                      m_nbrTilesY{0},
+                      m_texturesChanged{true},
+                      m_initDone{false}
     {
     }
 
@@ -711,12 +719,8 @@ private:
 
     std::string m_ballModel;
     std::string m_ballTextureName;
-    std::string m_endTileTexture;
-    std::string m_startCornerModel;
-    std::string m_startCornerTexture;
-    std::string m_startSideModel;
-    std::string m_startSideTexture;
-    std::string m_startCenterModel;
-    std::string m_startCenterTexture;
+
+    std::array<std::string, Component::ComponentType::maxComponentType> m_componentModels;
+    std::array<std::string, Component::ComponentType::maxComponentType> m_componentTextures;
 };
 #endif /* AMAZING_LABYRINTH_MOVABLE_PASSAGE_HPP */
