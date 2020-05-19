@@ -211,6 +211,10 @@ protected:
 private:
     // x and y are in pixels off set from the bottom left corner
     inline std::pair<float, float> getCoordsAtDepth(float x, float y) {
+        float z = LevelTracker::m_maxZLevel;
+        if (m_level) {
+            z = m_level->getZForTapCoords();
+        }
 
         return getXYAtZ(x/m_surfaceWidth*2.0f - 1.0f,
             y/m_surfaceHeight*2.0f - 1.0f, LevelTracker::m_maxZLevel,

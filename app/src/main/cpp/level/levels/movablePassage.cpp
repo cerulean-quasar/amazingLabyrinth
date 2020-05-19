@@ -238,6 +238,8 @@ void MovablePassage::initSetGameBoard(
     for (auto &component : m_components) {
         component->setSize(tileSize);
     }
+
+    m_gameBoard.setBlockSize(tileSize);
 }
 
 void MovablePassage::initDone() {
@@ -403,6 +405,77 @@ bool MovablePassage::updateData() {
             }
             m_ballCol = ballColNext;
             m_ballRow = ballRowNext;
+        }
+    }
+}
+
+bool MovablePassage::updateStaticDrawObjects(DrawObjectTable &objs, TextureMap &textures) {
+    if (!m_initDone || !objs.empty()) {
+        return false;
+    }
+
+    auto obj = std::make_shared<DrawObject>();
+    getQuad(obj->vertices, obj->indices);
+    glm::vec3 endPosition = m_gameBoard.centerPositionEndObject();
+    glm::vec3 endScale = m_gameBoard.scaleEndObject();
+    endScale.x /= m_modelSize;
+    endScale.y /= m_modelSize;
+    obj->modelMatrices.push_back(glm::translate(glm::mat4(1.0f), endPosition) *
+        glm::scale(glm::mat4(1.0f), endScale));
+    obj->texture = std::make_shared<TextureDescriptionPath>(m_gameRequester, m_endTileTexture);
+    textures.insert(std::make_pair(obj->texture, std::shared_ptr<TextureData>()));
+    objs.push_back(std::make_pair(obj, std::shared_ptr<DrawObjectData>()));
+
+    std::pair<std::vector<Vertex>, std::vector<uint32_t>> v;
+    loadModel(m_gameRequester->getAssetStream(m_startCornerModel), v);
+    auto objStartCorner = std::make_shared<DrawObject>();
+    std::swap(objStartCorner->vertices, v.first);
+    std::swap(objStartCorner->indices, v.second);
+    objStartCorner->texture = std::make_shared<TextureDescriptionPath>(m_gameRequester, m_startCornerTexture);
+    textures.insert(std::make_pair(objStartCorner->texture, std::shared_ptr<DrawObjectData>()));
+
+    loadModel(m_gameRequester->getAssetStream(m_startSideModel), v);
+    auto objStartSide = std::make_shared<DrawObject>();
+    std::swap(objStartSide->vertices, v.first);
+    std::swap(objStartSide->indices, v.second);
+    objStartSide->texture = std::make_shared<TextureDescriptionPath>(m_gameRequester, m_startSideTexture);
+    textures.insert(std::make_pair(objStartSide->texture, std::shared_ptr<TextureData>()));
+
+    loadModel(m_gameRequester->getAssetStream(m_startCenterModel), v);
+    auto objStartCenter = std::make_shared<DrawObject>();
+    std::swap(objStartCenter->vertices, v.first);
+    std::swap(objStartCenter->indices, v.second);
+    objStartCenter->texture = std::make_shared<TextureDescriptionPath>(m_gameRequester, m_startCenterTexture);
+    textures.insert(std::make_pair(objStartCenter->texture, std::shared_ptr<TextureData>()));
+
+    float scale = m_gameBoard.blockSize()/m_modelSize;
+    bool done = false;
+    for (uint32_t i = 0; i < m_gameBoard.heightInTiles() && !done; i++) {
+        for (uint32_t j = 0; j < m_gameBoard.widthInTiles(); j++) {
+            if (m_gameBoard.blockType(i,j) != GameBoardBlock::BlockType::begin) {
+                done = true;
+                break;
+            }
+            auto &component = m_gameBoard.block(i,j).component();
+            size_t placementIndex = m_gameBoard.block(i,j).placementIndex();
+            auto &placement = component->placement(placementIndex);
+            switch (component->type()) {
+                case Component::ComponentType::closedCorner:
+                    objStartCorner->modelMatrices.push_back(glm::translate(glm::mat4(1.0f), m_gameBoard.position(i,j)) *
+                        glm::rotate(glm::mat4(1.0f), placement.rotationAngle(), glm::vec3{0.0f, 0.0f, 1.0f}) *
+                        glm::scale(glm::mat4(1.0f), glm::vec3(scale, scale, scale)));
+                    break;
+                case Component::ComponentType::closedBottom:
+                    objStartSide->modelMatrices.push_back(glm::translate(glm::mat4(1.0f), m_gameBoard.position(i,j)) *
+                        glm::rotate(glm::mat4(1.0f), placement.rotationAngle(), glm::vec3{0.0f, 0.0f, 1.0f}) *
+                        glm::scale(glm::mat4(1.0f), glm::vec3(scale, scale, scale)));
+                    break;
+                case Component::ComponentType::open:
+                    objStartCenter->modelMatrices.push_back(glm::translate(glm::mat4(1.0f), m_gameBoard.position(i,j)) *
+                        glm::rotate(glm::mat4(1.0f), placement.rotationAngle(), glm::vec3{0.0f, 0.0f, 1.0f}) *
+                        glm::scale(glm::mat4(1.0f), glm::vec3(scale, scale, scale)));
+                    break;
+            }
         }
     }
 }

@@ -487,6 +487,7 @@ public:
     bool operator<(Component const &other) { return m_componentType < other.m_componentType; }
     auto placementsBegin() { return m_placements.begin(); }
     auto placementsEnd() { return m_placements.end(); }
+    auto type() { return m_componentType; }
     Placement &placement(size_t index) { return m_placements[index]; }
     size_t nbrPlacements() { return m_placements.size(); }
 
@@ -567,7 +568,7 @@ private:
 
 class GameBoard {
 public:
-    static uint32_t constexpr m_nbrTileRowsForStart = 2;
+    static uint32_t constexpr m_nbrTileRowsForStart = 4;
     static uint32_t constexpr m_nbrTileRowsForEnd = 2;
 
     uint32_t widthInTiles() { return m_blocks.empty() ? 0 : m_blocks[0].size(); }
@@ -576,6 +577,8 @@ public:
     bool dragEnded(glm::vec2 const &endPosition);
     bool tap(glm::vec2 const &position);
     std::pair<uint32_t, uint32_t> findRC(glm::vec2 postion);
+    void setBlockSize(float blockSize) { m_blockSize = blockSize; }
+    float blockSize() { return m_blockSize; }
 
     void initialize(float width, float height, glm::vec3 const &pos, uint32_t rows, uint32_t cols) {
         m_width = width;
@@ -590,9 +593,19 @@ public:
     /* row 0 is on the bottom, col 0 is on the left */
     glm::vec3 position(uint32_t row, uint32_t col) {
         return glm::vec3 {
-            m_width/m_blocks[0].size() * col - m_width + m_centerPos.x,
-            m_height/m_blocks.size() * row - m_height + m_centerPos.y,
-            m_centerPos.z};
+            m_blockSize * col - m_width/2 + m_centerPos.x,
+            m_blockSize * row - m_height/2 + m_centerPos.y,
+            m_centerPos.z - m_blockSize/2.0f};
+    }
+
+    glm::vec3 centerPositionEndObject() {
+        return glm::vec3{m_width/2.0f + m_centerPos.x,
+                         m_height/m_blocks.size()*(m_blocks.size() - m_nbrTileRowsForEnd/2) + m_centerPos.y,
+                         m_centerPos.z-m_blockSize};
+    }
+
+    glm::vec3 scaleEndObject() {
+        return glm::vec3{m_width, m_height/m_blocks.size() * m_nbrTileRowsForEnd, 1.0f};
     }
 
     GameBoardBlock &block(uint32_t row, uint32_t col) { return m_blocks[row][col]; }
@@ -606,7 +619,12 @@ public:
 private:
     float m_width;
     float m_height;
+
+    // expected to be set to the x, y center of the game board and z is set to the where
+    // the tops of the components should go.
     glm::vec3 m_centerPos;
+
+    float m_blockSize;
     std::vector<std::vector<GameBoardBlock>> m_blocks;
     bool m_moveInProgress;
     std::pair<uint32_t, uint32_t> m_moveStartingPosition;
@@ -657,6 +675,7 @@ public:
             std::shared_ptr<MovablePassageSaveData> sd,
             float width, float height, float maxZ)
             : Level(inGameRequester, width, height, maxZ, true, 1/50.0f, false),
+              m_zdrawTopsOfObjects{m_mazeFloorZ},
               m_components{
                       std::make_shared<Component>(Component::ComponentType::straight),
                       std::make_shared<Component>(Component::ComponentType::tjunction),
@@ -675,6 +694,7 @@ public:
     }
 
 private:
+    float const m_zdrawTopsOfObjects;
     uint32_t m_ballRow;
     uint32_t m_ballCol;
     std::chrono::high_resolution_clock::time_point m_prevTime;
@@ -691,5 +711,12 @@ private:
 
     std::string m_ballModel;
     std::string m_ballTextureName;
+    std::string m_endTileTexture;
+    std::string m_startCornerModel;
+    std::string m_startCornerTexture;
+    std::string m_startSideModel;
+    std::string m_startSideTexture;
+    std::string m_startCenterModel;
+    std::string m_startCenterTexture;
 };
 #endif /* AMAZING_LABYRINTH_MOVABLE_PASSAGE_HPP */
