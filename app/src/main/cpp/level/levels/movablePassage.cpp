@@ -20,6 +20,93 @@
 #include "movablePassage.hpp"
 #include "../level.hpp"
 
+std::pair<uint32_t, uint32_t> GameBoard::findRC(glm::vec2 position) {
+    uint32_t row;
+    uint32_t col;
+
+    row = static_cast<uint32_t>(std::floor((position.x/m_width + 0.5f) * m_blocks[0].size()));
+    col = static_cast<uint32_t>(std::floor((position.y/m_height + 0.5f) * m_blocks.size()));
+
+    return std::make_pair(row, col);
+}
+
+// returs true if a redraw is needed.
+// expects the position and distance in world space.
+// the distance is relative to the previous moved position, not relative to the start position.
+bool GameBoard::drag(glm::vec2 const &startPosition, glm::vec2 const &distance) {
+    std::pair<uint32_t, uint32_t> rc = findRC(startPosition);
+    if (m_moveInProgress) {
+        if (rc.first != m_moveStartingPosition.first || rc.second != m_moveStartingPosition.second) {
+            // a move started, but the previous one never completed.  Just move the old piece back
+            // in place and start the new move
+            auto &b = m_blocks[m_moveStartingPosition.first][m_moveStartingPosition.second];
+            b.component()->placement(b.placementIndex()).moveDone();
+            m_moveStartingPosition = rc;
+            m_moveInProgress = false;
+        }
+    }
+    auto &b = m_blocks[rc.first][rc.second];
+    if (!m_moveInProgress) {
+        if ((b.blockType() == GameBoardBlock::BlockType::offBoard ||
+             b.blockType() == GameBoardBlock::BlockType::onBoard) &&
+            b.component() != nullptr) {
+            auto component = b.component();
+            auto &placement = component->placement(b.placementIndex());
+            if (!placement.lockedIntoPlace() && placement.prev().first == nullptr) {
+                m_moveInProgress = true;
+            }
+        } else {
+            return false;
+        }
+    }
+    if (m_moveInProgress) {
+        b.component()->placement(b.placementIndex()).movePlacement(distance);
+    }
+    return true;
+}
+
+// returs true if a redraw is needed.
+// expects the position in world space.
+bool GameBoard::dragEnded(glm::vec2 const &endPosition) {
+    if (!m_moveInProgress) {
+        return false;
+    }
+
+    std::pair<uint32_t, uint32_t> rc = findRC(endPosition);
+    auto &bEnd = m_blocks[rc.first][rc.second];
+    if (bEnd.component() != nullptr || (bEnd.blockType() != GameBoardBlock::BlockType::onBoard &&
+        bEnd.blockType() != GameBoardBlock::BlockType::offBoard))
+    {
+        bEnd.component()->placement(bEnd.placementIndex()).moveDone();
+
+        // we still need to redraw even if the move failed.  to move the component back to the
+        // original spot.
+        return true;
+    }
+
+    // a move started and needs to be completed now.
+    auto &b = m_blocks[m_moveStartingPosition.first][m_moveStartingPosition.second];
+    b.component()->placement(b.placementIndex()).moveDone();
+    b.component()->placement(bEnd.placementIndex()).setRC(rc.first, rc.second);
+    m_moveInProgress = false;
+    return true;
+}
+
+bool GameBoard::tap(glm::vec2 const &position) {
+    std::pair<uint32_t, uint32_t> rc = findRC(position);
+    auto &b = m_blocks[rc.first][rc.second];
+    if (b.component() == nullptr || (b.blockType() != GameBoardBlock::BlockType::onBoard &&
+        b.blockType() != GameBoardBlock::BlockType::offBoard))
+    {
+        return false;
+    }
+    auto &placement = b.component()->placement(b.placementIndex());
+    if (placement.lockedIntoPlace() && placement.prev().first != nullptr) {
+        return false;
+    }
+    placement.rotate();
+}
+
 void MovablePassage::initSetGameBoard(
         uint32_t nbrTilesX,
         uint32_t nbrTilesY) {
@@ -194,9 +281,14 @@ void MovablePassage::initDone() {
     m_ballRow = 0;
     m_ballCol = m_gameBoard.widthInTiles() / 2;
     m_ball.position = m_gameBoard.position(m_ballRow, m_ballCol);
+    m_initDone = true;
 }
 
 bool MovablePassage::updateData() {
+    if (!m_initDone) {
+        return false;
+    }
+
     auto currentTime = std::chrono::high_resolution_clock::now();
     float timeDiff = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - m_prevTime).count();
     m_prevTime = currentTime;
@@ -282,12 +374,12 @@ bool MovablePassage::updateData() {
                     nextBlock.placementIndex());
             Component::Placement &oldPlacement = block.component()->placement(
                     block.placementIndex());
-            if (placement.m_next.first != nullptr) {
-                if (placement.m_next.first == block.component() &&
-                    placement.m_next.second == block.placementIndex()) {
+            if (placement.next().first != nullptr) {
+                if (placement.next().first == block.component() &&
+                    placement.next().second == block.placementIndex()) {
                     // We are going backwards.  Unblock block that we were at and move on.
-                    oldPlacement.m_next = std::make_pair(nullptr, 0);
-                    oldPlacement.m_prev = std::make_pair(nullptr, 0);
+                    oldPlacement.next() = std::make_pair(nullptr, 0);
+                    oldPlacement.prev() = std::make_pair(nullptr, 0);
                 } else {
                     // We encountered a loop.  Unblock the entire loop
                     std::shared_ptr<Component> nextComponent = nextBlock.component();
@@ -295,22 +387,42 @@ bool MovablePassage::updateData() {
                     std::shared_ptr<Component> loopComponent = block.component();
                     size_t loopIndex = block.placementIndex();
                     while (loopComponent != nextComponent && loopIndex != index) {
-                        auto tmp = loopComponent->placement(loopIndex).m_prev;
+                        auto tmp = loopComponent->placement(loopIndex).prev();
                         auto &loopPlacement = loopComponent->placement(loopIndex);
-                        loopPlacement.m_prev = std::make_pair(nullptr, 0);
-                        loopPlacement.m_next = std::make_pair(nullptr, 0);
+                        loopPlacement.prev() = std::make_pair(nullptr, 0);
+                        loopPlacement.next() = std::make_pair(nullptr, 0);
                         loopComponent = tmp.first;
                         loopIndex = tmp.second;
                     }
                 }
             } else {
                 // the ball is entering a new cell that is not in its path yet.
-                placement.m_prev = std::make_pair(block.component(), block.placementIndex());
-                oldPlacement.m_next = std::make_pair(nextBlock.component(),
+                placement.prev() = std::make_pair(block.component(), block.placementIndex());
+                oldPlacement.next() = std::make_pair(nextBlock.component(),
                                                      nextBlock.placementIndex());
             }
             m_ballCol = ballColNext;
             m_ballRow = ballRowNext;
         }
     }
+}
+
+bool MovablePassage::drag(float startX, float startY, float distanceX, float distanceY) {
+    if (!m_initDone) {
+        return false;
+    }
+
+    glm::vec2 startPosition{startX, startY};
+    glm::vec2 distance{distanceX, distanceY};
+    return m_gameBoard.drag(startPosition, distance);
+}
+
+bool MovablePassage::dragEnded(float x, float y) {
+    glm::vec2 endPosition{x, y};
+    return m_gameBoard.dragEnded(endPosition);
+}
+
+bool MovablePassage::tap(float x, float y) {
+    glm::vec2 position{x, y};
+    return m_gameBoard.tap(position);
 }

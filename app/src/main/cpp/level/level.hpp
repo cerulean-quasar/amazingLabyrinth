@@ -174,6 +174,10 @@ public:
         y = 0.0f;
     }
 
+    virtual bool tap(float, float) { return false; }
+    virtual bool drag(float, float, float, float) { return false; }
+    virtual bool dragEnded(float, float) { return false; }
+
     using SaveLevelDataFcn = std::function<std::vector<uint8_t>(std::shared_ptr<GameSaveData> gsd)>;
     virtual SaveLevelDataFcn getSaveLevelDataFcn();
     static SaveLevelDataFcn  getBasicSaveLevelDataFcn();

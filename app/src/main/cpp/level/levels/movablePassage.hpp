@@ -404,14 +404,8 @@ public:
             }),
     };
 
-    struct Placement {
-        uint32_t m_row;
-        uint32_t m_col;
-        float m_rotationAngle; /*radians */
-        bool m_lockedIntoPlace;
-        std::pair<std::shared_ptr<Component>, size_t> m_prev;
-        std::pair<std::shared_ptr<Component>, size_t> m_next;
-
+    class Placement {
+    public:
         Placement(uint32_t row = 0,
                 uint32_t col = 0,
                 float rotationAngle = 0.0f, /* radians */
@@ -425,9 +419,44 @@ public:
             m_rotationAngle{rotationAngle},
             m_lockedIntoPlace{lockedIntoPlace},
             m_prev{std::make_pair(prevComponent, prevIndex)},
-            m_next{std::make_pair(nextComponent, nextIndex)}
+            m_next{std::make_pair(nextComponent, nextIndex)},
+            m_moveInProgress{false},
+            m_moveInProgress{0.0f, 0.0f, 0.0f}
         {
         }
+
+        /* accessors */
+        uint32_t row() { return m_row; }
+        uint32_t col() { return m_col; }
+        float rotationAngle () { return m_rotationAngle; }
+        bool lockedIntoPlace() { return m_lockedIntoPlace; }
+        auto &prev() { return m_prev; }
+        auto &next() { return m_next; }
+
+        /* setters */
+        void setRC(uint32_t row, uint32_t col) { m_row = row; m_col = col; }
+        void rotate() { m_rotationAngle += glm::radians(90.0f); }
+
+        void movePlacement(glm::vec2 const &fractionalMove) {
+            if (m_moveInProgress) {
+                m_movePositionSoFar += fractionalMove;
+            } else {
+                m_moveInProgress = true;
+                m_movePositionSoFar = fractionalMove;
+            }
+        }
+        void moveDone() {
+            m_moveInProgress = false;
+        }
+    private:
+        uint32_t m_row;
+        uint32_t m_col;
+        float m_rotationAngle; /*radians */
+        bool m_lockedIntoPlace;
+        std::pair<std::shared_ptr<Component>, size_t> m_prev;
+        std::pair<std::shared_ptr<Component>, size_t> m_next;
+        bool m_moveInProgress;
+        glm::vec2 m_movePositionSoFar;
     };
 
     uint32_t add(
@@ -543,6 +572,10 @@ public:
 
     uint32_t widthInTiles() { return m_blocks.empty() ? 0 : m_blocks[0].size(); }
     uint32_t heightInTiles() { return m_blocks.size(); }
+    bool drag(glm::vec2 const &startPosition, glm::vec2 const &distance);
+    bool dragEnded(glm::vec2 const &endPosition);
+    bool tap(glm::vec2 const &position);
+    std::pair<uint32_t, uint32_t> findRC(glm::vec2 postion);
 
     void initialize(float width, float height, glm::vec3 const &pos, uint32_t rows, uint32_t cols) {
         m_width = width;
@@ -575,10 +608,15 @@ private:
     float m_height;
     glm::vec3 m_centerPos;
     std::vector<std::vector<GameBoardBlock>> m_blocks;
+    bool m_moveInProgress;
+    std::pair<uint32_t, uint32_t> m_moveStartingPosition;
 };
 
 class MovablePassage : public Level {
 public:
+    bool drag(float startX, float startY, float distanceX, float distanceY) override;
+    bool dragEnded(float x, float y) override;
+    bool tap(float x, float y) override;
     glm::vec4 getBackgroundColor() override { return {1.0f, 1.0f, 1.0f, 1.0f}; };
     bool updateData() override;
     bool updateStaticDrawObjects(DrawObjectTable &objs, TextureMap &textures) override;
@@ -631,7 +669,8 @@ public:
               m_nbrComponents{0},
               m_nbrTilesX{0},
               m_nbrTilesY{0},
-              m_texturesChanged{true}
+              m_texturesChanged{true},
+              m_initDone{false}
     {
     }
 
@@ -648,5 +687,9 @@ private:
     uint32_t m_nbrTilesX;
     uint32_t m_nbrTilesY;
     bool m_texturesChanged;
+    bool m_initDone;
+
+    std::string m_ballModel;
+    std::string m_ballTextureName;
 };
 #endif /* AMAZING_LABYRINTH_MOVABLE_PASSAGE_HPP */

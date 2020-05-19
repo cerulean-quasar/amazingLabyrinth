@@ -116,7 +116,7 @@ private:
 class DragEvent : public DrawEvent {
 public:
     bool operator() (std::unique_ptr<Graphics> &graphics) override {
-        return graphics->tellLevelDrag(m_startX, m_startY, m_distanceX, m_distanceY);
+        return graphics->drag(m_startX, m_startY, m_distanceX, m_distanceY);
     }
 
     evtype type() override { return levelChanged; }
@@ -129,12 +129,52 @@ public:
     {
     }
 
-    ~LevelChangedEvent() override = default;
+    ~DragEvent() override = default;
 private:
     float m_startX;
     float m_startY;
     float m_distanceX;
     float m_distanceY;
+};
+
+class DragEndedEvent : public DrawEvent {
+public:
+    bool operator() (std::unique_ptr<Graphics> &graphics) override {
+        return graphics->dragEnded(m_x, m_y);
+    }
+
+    evtype type() override { return levelChanged; }
+
+    DragEndedEvent(float x, float y)
+            : m_x{x},
+              m_y{y}
+    {
+    }
+
+    ~DragEndedEvent() override = default;
+private:
+    float m_x;
+    float m_y;
+};
+
+class TapEvent : public DrawEvent {
+public:
+    bool operator() (std::unique_ptr<Graphics> &graphics) override {
+        return graphics->tap(m_x, m_y);
+    }
+
+    evtype type() override { return levelChanged; }
+
+    TapEvent(float x, float y)
+            : m_x{x},
+              m_y{y}
+    {
+    }
+
+    ~TapEvent() override = default;
+private:
+    float m_x;
+    float m_y;
 };
 
 class SaveLevelDataEvent : public DrawEvent {

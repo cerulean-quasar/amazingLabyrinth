@@ -59,6 +59,13 @@ std::pair<float, float> getWidthHeight(
         glm::mat4 const &proj,
         glm::mat4 const &view);
 
+std::pair<float, float> getXYAtZ(
+        float x,
+        float y,
+        float depth,
+        glm::mat4 const &proj,
+        glm::mat4 const &view);
+
 float transformRange(
         float colorValue,
         float fromLowest,
