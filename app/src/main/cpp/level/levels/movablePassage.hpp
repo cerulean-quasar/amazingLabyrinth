@@ -42,6 +42,12 @@ struct MovablePassageSaveData : public LevelSaveData {
 
 class Component {
 public:
+    enum MovableType {
+        noneAssigned = 0,
+        staticObj,
+        dynamicObj
+    };
+
     enum CellWall {
         wallRight = 0,
         wallUp,
@@ -49,13 +55,6 @@ public:
         wallDown,
         wallMax = 3,
         noWall
-    };
-    enum ExitPoint {
-        exitRight = 0,
-        exitUp,
-        exitLeft,
-        exitDown,
-        maxExitPoint = 3
     };
 
     enum ComponentType {
@@ -67,11 +66,9 @@ public:
         closedBottom,
         closedCorner,
         maxComponentAllowingBall = 7,
-        goal,
         noMovementDirt,
         noMovementRock,
-        maxComponentType = 10
-
+        maxComponentType = 9
     };
 
     CellWall moveBallInCell(size_t placementIndex, glm::vec3 &position, float &timediff, glm::vec3 &velocity) {
@@ -418,7 +415,7 @@ public:
             m_prev{std::make_pair(prevComponent, prevIndex)},
             m_next{std::make_pair(nextComponent, nextIndex)},
             m_moveInProgress{false},
-            m_moveInProgress{0.0f, 0.0f, 0.0f}
+            m_movePositionSoFar{0.0f, 0.0f}
         {
         }
 
@@ -429,6 +426,7 @@ public:
         bool lockedIntoPlace() { return m_lockedIntoPlace; }
         auto &prev() { return m_prev; }
         auto &next() { return m_next; }
+        glm::vec2 movePositionSoFar() { return m_movePositionSoFar; }
 
         /* setters */
         void setRC(uint32_t row, uint32_t col) { m_row = row; m_col = col; }
@@ -490,10 +488,17 @@ public:
     float componentSize() { return m_componentSize; }
 
     void setSize(float tileSize) { m_componentSize = tileSize; }
+    void setObjReference(MovableType objType, uint32_t ref) {
+        m_objReference.first = objType;
+        m_objReference.second = ref;
+    }
+
+    std::pair<MovableType, uint32_t> objReference() { return m_objReference; }
 
     Component(ComponentType inType, float componentSize = 0.0f)
         : m_componentType{inType},
-        m_componentSize{componentSize}
+        m_componentSize{componentSize},
+        m_objReference{MovableType::noneAssigned, 0}
     {
         switch (m_componentType) {
         case ComponentType::tjunction:
@@ -523,7 +528,6 @@ public:
             break;
         case ComponentType::open:
         case ComponentType::crossjunction:
-        case ComponentType::goal:
         default:
             break;
         }
@@ -534,6 +538,7 @@ private:
     float m_componentSize;
     std::vector<Placement> m_placements;
     std::set<CellWall> m_cellWalls;
+    std::pair<MovableType, uint32_t> m_objReference;
 };
 
 class GameBoardBlock {
@@ -584,6 +589,8 @@ public:
     std::pair<uint32_t, uint32_t> findRC(glm::vec2 postion);
     void setBlockSize(float blockSize) { m_blockSize = blockSize; }
     float blockSize() { return m_blockSize; }
+    bool isMoveInProgress() { return m_moveInProgress; }
+    std::pair<uint32_t, uint32_t> moveRC() { return m_moveStartingPosition; }
 
     void initialize(float width, float height, glm::vec3 const &pos, uint32_t rows, uint32_t cols) {
         m_width = width;
@@ -681,6 +688,7 @@ public:
             float width, float height, float maxZ)
             : Level(inGameRequester, width, height, maxZ, true, 1/50.0f, false),
               m_zdrawTopsOfObjects{m_mazeFloorZ},
+              m_zMovingPlacement{m_mazeFloorZ + m_scaleBall},
               m_components{
                       std::make_shared<Component>(Component::ComponentType::straight),
                       std::make_shared<Component>(Component::ComponentType::tjunction),
@@ -689,25 +697,25 @@ public:
                       std::make_shared<Component>(Component::ComponentType::open),
                       std::make_shared<Component>(Component::ComponentType::closedBottom),
                       std::make_shared<Component>(Component::ComponentType::closedCorner),
-                      std::make_shared<Component>(Component::ComponentType::goal),
                       std::make_shared<Component>(Component::ComponentType::noMovementDirt),
                       std::make_shared<Component>(Component::ComponentType::noMovementRock)},
               m_gameBoard{},
-                      m_nbrComponents{0},
-                      m_nbrTilesX{0},
-                      m_nbrTilesY{0},
-                      m_texturesChanged{true},
-                      m_initDone{false}
+              m_nbrComponents{0},
+              m_nbrTilesX{0},
+              m_nbrTilesY{0},
+              m_texturesChanged{true},
+              m_initDone{false},
+              m_objsReferenceBall{0}
     {
     }
 
 private:
+    float const m_zMovingPlacement;
     float const m_zdrawTopsOfObjects;
     uint32_t m_ballRow;
     uint32_t m_ballCol;
     std::chrono::high_resolution_clock::time_point m_prevTime;
 
-    // exclude the goal type
     std::array<std::shared_ptr<Component>, Component::ComponentType::maxComponentType> m_components;
 
     GameBoard m_gameBoard;
@@ -719,8 +727,10 @@ private:
 
     std::string m_ballModel;
     std::string m_ballTextureName;
+    uint32_t m_objsReferenceBall;
 
     std::array<std::string, Component::ComponentType::maxComponentType> m_componentModels;
     std::array<std::string, Component::ComponentType::maxComponentType> m_componentTextures;
+    std::string m_componentTextureEnd;
 };
 #endif /* AMAZING_LABYRINTH_MOVABLE_PASSAGE_HPP */
