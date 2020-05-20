@@ -151,8 +151,10 @@ void GameWorker::drawingLoop() {
                         return;
                     case DrawEvent::surfaceChanged:
                     case DrawEvent::saveLevelData:
-                    case DrawEvent::tiltMaze:
                     case DrawEvent::levelChanged:
+                    case DrawEvent::tap:
+                    case DrawEvent::drag:
+                    case DrawEvent::dragEnded:
                         if ((*event)(m_graphics)) {
                             nbrRequireRedraw++;
                         }

@@ -72,21 +72,21 @@ public:
     };
 
     CellWall moveBallInCell(size_t placementIndex, glm::vec3 &position, float &timediff, glm::vec3 &velocity) {
-        glm::mat4 rot = glm::rotate(glm::mat4{1.0f}, m_placements[placementIndex].m_rotationAngle,
+        glm::mat4 rot = glm::rotate(glm::mat4{1.0f}, m_placements[placementIndex].rotationAngle(),
                 glm::vec3{0.0f, 0.0f, 1.0f});
         glm::vec4 rpos4 = rot * glm::vec4{position.x, position.y, position.z, 0.0f};
         glm::vec4 rvel4 = rot * glm::vec4{velocity.x, velocity.y, 0.0f, 0.0f};
         glm::vec3 rpos = glm::vec3{rpos4.x, rpos4.y, rpos4.z};
         glm::vec3 rvel = glm::vec3{rvel4.x, rvel4.y, rvel4.z};
-        auto ret = moveBallInCellFuncs[m_componentType](rpos, timediff, rvel);
-        rot = glm::rotate(glm::mat4{1.0f}, -m_placements[placementIndex].m_rotationAngle,
+        CellWall ret = moveBallInCellFuncs[m_componentType](rpos, timediff, rvel);
+        rot = glm::rotate(glm::mat4{1.0f}, -m_placements[placementIndex].rotationAngle(),
                 glm::vec3{0.0f, 0.0f, 1.0f});
         rpos4 = rot * glm::vec4{rpos.x, rpos.y, rpos.z, 0.0f};
         position = glm::vec3{rpos4.x, rpos4.y, rpos4.z};
         if (ret != CellWall::noWall) {
-            auto nbr90degreeRotations = 4-static_cast<uint32_t>(
-                    std::floor(m_placements[placementIndex].m_rotationAngle/glm::radians(90.0f)));
-            ret = (ret + nbr90degreeRotations) % (CellWall::wallMax+1);
+            uint32_t nbr90degreeRotations = 4-static_cast<uint32_t>(
+                    std::floor(m_placements[placementIndex].rotationAngle()/glm::radians(90.0f)));
+            ret = static_cast<CellWall>((ret + nbr90degreeRotations) % (CellWall::wallMax+1));
         }
         return ret;
     }
@@ -151,14 +151,17 @@ public:
             position += velocity * timeDiffTillEdge;
             timediff -= timeDiffTillEdge;
             return CellWall::wallDown;
+        } else {
+            // shouldn't happen
+            return CellWall::noWall;
         }
     }
 
     using MoveBallInCellFunc = std::function<Component::CellWall(glm::vec3 &, float &, glm::vec3 &)>;
-    static std::array<MoveBallInCellFunc, ComponentType::maxComponentAllowingBall + 1> constexpr const moveBallInCellFuncs = {
+    std::array<MoveBallInCellFunc, ComponentType::maxComponentAllowingBall + 1> const moveBallInCellFuncs = {
         // straight
         MoveBallInCellFunc(
-            [](glm::vec3 &position, float &timediff, glm::vec3 &velocity) -> Component::CellWall {
+            [&](glm::vec3 &position, float &timediff, glm::vec3 &velocity) -> Component::CellWall {
                 position.x = 0.0f;
                 bool ret = moveBall(position.y, timediff, -m_componentSize/2, m_componentSize/2, velocity.y);
                 if (ret && position.y >= m_componentSize/2.0f) {
@@ -172,7 +175,7 @@ public:
 
         // T-Junction
         MoveBallInCellFunc(
-            [](glm::vec3 &position, float &timediff, glm::vec3 &velocity) -> Component::CellWall {
+            [&](glm::vec3 &position, float &timediff, glm::vec3 &velocity) -> Component::CellWall {
                 if (position.y > 0.0f) {
                     position.y = 0.0f;
                 }
@@ -236,11 +239,12 @@ public:
                         return CellWall::noWall;
                     }
                 }
+                return CellWall::noWall;
             }),
 
         // cross junction
         MoveBallInCellFunc(
-            [](glm::vec3 &position, float &timediff, glm::vec3 &velocity) -> Component::CellWall {
+            [&](glm::vec3 &position, float &timediff, glm::vec3 &velocity) -> Component::CellWall {
                 if (position.y == 0.0f && position.x == 0.0f) {
                     if (std::fabs(velocity.x) > std::fabs(velocity.y)) {
                         bool ret = moveBall(position.x, timediff, -m_componentSize/2,
@@ -307,11 +311,13 @@ public:
                         return CellWall::noWall;
                     }
                 }
+
+                return CellWall::noWall;
             }),
 
         // turn
         MoveBallInCellFunc(
-            [](glm::vec3 &position, float &timediff, glm::vec3 &velocity) -> Component::CellWall {
+            [&](glm::vec3 &position, float &timediff, glm::vec3 &velocity) -> Component::CellWall {
                 if (position.y > 0.0f) {
                     position.y = 0.0f;
                 }
@@ -365,17 +371,19 @@ public:
                         return CellWall::noWall;
                     }
                 }
+
+                return CellWall::noWall;
             }),
 
         // open area
         MoveBallInCellFunc(
-            [](glm::vec3 &position, float &timediff, glm::vec3 &velocity) -> Component::CellWall {
+            [&](glm::vec3 &position, float &timediff, glm::vec3 &velocity) -> Component::CellWall {
                 return moveBallInOpenArea(position, timediff, velocity);
             }),
 
         // closed bottom
         MoveBallInCellFunc(
-            [](glm::vec3 &position, float &timediff, glm::vec3 &velocity) -> Component::CellWall {
+            [&](glm::vec3 &position, float &timediff, glm::vec3 &velocity) -> Component::CellWall {
                 CellWall wall = moveBallInOpenArea(position, timediff, velocity);
                 if (wall == CellWall::wallDown) {
                     timediff = 0.0f;
@@ -387,7 +395,7 @@ public:
 
         // closed corner
         MoveBallInCellFunc(
-            [](glm::vec3 &position, float &timediff, glm::vec3 &velocity) -> Component::CellWall {
+            [&](glm::vec3 &position, float &timediff, glm::vec3 &velocity) -> Component::CellWall {
                 CellWall wall = moveBallInOpenArea(position, timediff, velocity);
                 if (wall == CellWall::wallDown || wall == CellWall::wallLeft) {
                     timediff = 0.0f;
@@ -466,6 +474,7 @@ public:
     {
         m_placements.emplace_back(row, col, rotationAngle, lockedIntoPlace,
                 prevComponent, prevIndex, nextComponent, nextIndex);
+        return m_placements.size() - 1;
     }
 
     bool hasWallAt(CellWall wall, size_t placementNumber) {
@@ -473,8 +482,8 @@ public:
         // rotated forwards so that we only have to do this once.  Rotating backwards is the same
         // as going around a whole turn minus the angle the component is rotated by.
         auto nbr90degreeRotations = 4-static_cast<uint32_t>(
-                std::floor(m_placements[placementNumber].m_rotationAngle/glm::radians(90.0f)));
-        wall = (wall + nbr90degreeRotations) % (CellWall::wallMax+1);
+                std::floor(m_placements[placementNumber].rotationAngle()/glm::radians(90.0f)));
+        wall = static_cast<CellWall>((wall + nbr90degreeRotations) % (CellWall::wallMax+1));
         return m_cellWalls.count(wall) > 0;
     }
 
@@ -652,8 +661,8 @@ public:
     bool updateStaticDrawObjects(DrawObjectTable &objs, TextureMap &textures) override;
     bool updateDynamicDrawObjects(DrawObjectTable &objs, TextureMap &textures, bool &texturesChanged) override;
     void start() override { m_prevTime = std::chrono::high_resolution_clock::now(); }
-    void getLevelFinisherCenter(float &x, float &y) override { x = 0.0f; y = 0.0f };
-    SaveLevelDataFcn getSaveLevelDataFcn() override;
+    void getLevelFinisherCenter(float &x, float &y) override { x = 0.0f; y = 0.0f; };
+    //SaveLevelDataFcn getSaveLevelDataFcn() override;
 
     void initSetBallInfo(
         std::string const &ballModel,
@@ -670,10 +679,17 @@ public:
     void initAddType(
         Component::ComponentType inComponentType,
         uint32_t nbrComponents,
-        std::string &texture)
+        std::string const &model,
+        std::string const &texture)
     {
+        if (!texture.empty()) {
+            m_componentTextures[inComponentType] = texture;
+        }
+        if (!model.empty()) {
+            m_componentModels[inComponentType] = model;
+        }
         for (uint32_t i = 0; i < nbrComponents; i++) {
-            m_components[inComponentType]->add(glm::vec3{0.0f, 0.0f, 0.0f});
+            m_components[inComponentType]->add();
             m_nbrComponents++;
         }
     }
@@ -684,7 +700,7 @@ public:
 
     MovablePassage(
             std::shared_ptr<GameRequester> inGameRequester,
-            std::shared_ptr<MovablePassageSaveData> sd,
+            std::shared_ptr<MovablePassageSaveData> /*sd*/,
             float width, float height, float maxZ)
             : Level(inGameRequester, width, height, maxZ, true, 1/50.0f, false),
               m_zdrawTopsOfObjects{m_mazeFloorZ},
@@ -701,8 +717,6 @@ public:
                       std::make_shared<Component>(Component::ComponentType::noMovementRock)},
               m_gameBoard{},
               m_nbrComponents{0},
-              m_nbrTilesX{0},
-              m_nbrTilesY{0},
               m_texturesChanged{true},
               m_initDone{false},
               m_objsReferenceBall{0}
@@ -720,8 +734,6 @@ private:
 
     GameBoard m_gameBoard;
     uint32_t m_nbrComponents;
-    uint32_t m_nbrTilesX;
-    uint32_t m_nbrTilesY;
     bool m_texturesChanged;
     bool m_initDone;
 
