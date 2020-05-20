@@ -152,13 +152,18 @@ void MovablePassage::initSetGameBoard(
 
         nbrExtraTileRowsX = static_cast<uint32_t>(std::floor(
                 (m_width - tileSize * nbrTilesX) / tileSize));
-        nbrExtraTilesX = nbrExtraTileRowsX * nbrTilesX;
 
         // minus 2 * nbrExtraTileRowsY for up tunnel components
         nbrExtraTileRowsY = static_cast<uint32_t>(std::floor(
                 (m_height - tileSize * nbrTilesY) / tileSize));
-        nbrExtraTilesY = nbrExtraTileRowsY * nbrTilesX - 2 * nbrExtraTileRowsY;
     }
+
+    m_gameBoardStartRowColumn.first = nbrExtraTileRowsX/2;
+    m_gameBoardStartRowColumn.second = GameBoard::m_nbrTileRowsForStart + nbrExtraTileRowsY/2;
+
+    m_gameBoardEndRowColumn.first = nbrTilesX - nbrExtraTileRowsX/2 + nbrExtraTileRowsX%2;
+    m_gameBoardEndRowColumn.second = nbrTilesY - nbrExtraTileRowsY/2 + nbrExtraTileRowsY%2 -
+            GameBoard::m_nbrTileRowsForEnd;
 
     m_gameBoard.initialize(
             (nbrTilesX + nbrExtraTileRowsX) * tileSize,
@@ -171,8 +176,8 @@ void MovablePassage::initSetGameBoard(
     }
 
     // The main board area for constructing the tunnel
-    for (uint32_t k = nbrExtraTileRowsX / 2; k < nbrTilesX - nbrExtraTileRowsX; k++) {
-        for (uint32_t l = nbrExtraTileRowsY / 2; l < nbrTilesY - nbrExtraTileRowsY; l++) {
+    for (uint32_t k = m_gameBoardStartRowColumn.first; k < m_gameBoardEndRowColumn.first; k++) {
+        for (uint32_t l = m_gameBoardStartRowColumn.second; l < m_gameBoardEndRowColumn.second; l++) {
             m_gameBoard.block(k, l).setBlockType(GameBoardBlock::BlockType::onBoard);
         }
     }
@@ -295,10 +300,22 @@ void MovablePassage::initDone() {
         }
     }
 
-    std::shared_ptr<Component> dirt = m_components[Component::ComponentType::noMovementDirt];
+    // add the rock segments that were requested of us.
     std::shared_ptr<Component> rock = m_components[Component::ComponentType::noMovementRock];
+    for (auto const &rc: m_addedRocks) {
+        uint32_t row = rc.first + m_gameBoardStartRowColumn.first;
+        uint32_t col = rc.second + m_gameBoardStartRowColumn.second;
+
+        size_t placementIndex = rock->add(row, col, 0.0f, true);
+        auto &block = m_gameBoard.block(row, col);
+        block.setComponent(rock, placementIndex);
+    }
+
+    // add the dirt and rock placements for parts of the board that are not covered yet.
+    // rock for the off board placements, dirt for the on board
+    std::shared_ptr<Component> dirt = m_components[Component::ComponentType::noMovementDirt];
     for (uint32_t k = 0; k < m_gameBoard.widthInTiles(); k++) {
-        for (uint32_t l = 0; l < m_gameBoard.heightInTiles(); l++) {
+        for (uint32_t l = 0; l < m_gameBoard.heightInTiles() - GameBoard::m_nbrTileRowsForEnd; l++) {
             auto &b = m_gameBoard.block(k,l);
             if (b.component() == nullptr) {
                 if (b.blockType() == GameBoardBlock::BlockType::offBoard) {

@@ -286,6 +286,30 @@ LevelGroup LevelTracker::getLevelGroupFrog(std::shared_ptr<FixedMazeSaveData> co
     };
 }
 
+LevelGroup LevelTracker::getLevelGroupGopher(
+        std::shared_ptr<MovablePassageSaveData> const &levelBundle,
+        bool needsStarter)
+{
+    return {
+            getStarterFcn(needsStarter, std::vector<std::string>{
+                    "Underground a gopher\nsearches for\na juicy beet.",
+                    "Help the gopher\nbuild a tunnel\nto the beet."}),
+            GetLevelFcn([levelBundle](LevelTracker &tracker) {
+                auto level = tracker.getLevel<FixedMaze>(levelBundle);
+                level->initSetBallInfo("models/frog/frog.modelcbor", "textures/frog/frog.png");
+                level->initSetFloorInfo("models/frog/frogFloor.modelcbor", "textures/frog/frogFloor.png");
+                level->initSetBounceParameters(1/20.0f, 1/50.0f);
+                level->init();
+                return level;
+            }),
+            GetFinisherFcn([](LevelTracker &tracker, float centerX, float centerY, glm::mat4 const &proj, glm::mat4 const &view) {
+                auto levelFinish = tracker.getFinisher<ManyQuadCoverUpLevelFinish>(centerX, centerY, proj, view);
+                levelFinish->initAddTexture("textures/bunny/hole.png");
+                return levelFinish;
+            })
+    };
+}
+
 void LevelTracker::gotoNextLevel() {
     m_currentLevel = (m_currentLevel + 1) % getLevelTable().size();
 }

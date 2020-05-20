@@ -115,7 +115,8 @@ LevelRestoreTable const &getRestoreLevelTable() {
             LevelRestoreTableEntry{LevelTracker::getLevelGroupBee2, LevelTracker::bee2, "The search"},
             LevelRestoreTableEntry{LevelTracker::getLevelGroupCat, LevelTracker::cat, "The cat"},
             LevelRestoreTableEntry{LevelTracker::getLevelGroupBunny, LevelTracker::bunny, "The bunny"},
-            LevelRestoreTableEntry{LevelTracker::getLevelGroupFrog, LevelTracker::frog, "The frog"}};
+            LevelRestoreTableEntry{LevelTracker::getLevelGroupFrog, LevelTracker::frog, "The frog"},
+            LevelRestoreTableEntry{LevelTracker::getLevelGroupGopher, LevelTracker::gopher, "The gopher"}};
     return levelRestoreTable;
 }
 

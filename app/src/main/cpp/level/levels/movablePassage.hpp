@@ -672,6 +672,7 @@ public:
         m_ballTextureName = ballTexture;
     }
 
+    // all the compoents should be added before calling this function.
     void initSetGameBoard(
         uint32_t nbrTilesX,
         uint32_t nbrTilesY);
@@ -694,6 +695,14 @@ public:
         }
     }
 
+    void initAddRock(
+        uint32_t row,
+        uint32_t col)
+    {
+        m_addedRocks.emplace_back(row, col);
+    }
+
+    // all other init functions before calling this function or starting the level
     void initDone();
 
     ~MovablePassage() override = default;
@@ -744,5 +753,15 @@ private:
     std::array<std::string, Component::ComponentType::maxComponentType> m_componentModels;
     std::array<std::string, Component::ComponentType::maxComponentType> m_componentTextures;
     std::string m_componentTextureEnd;
+
+    // rocks row and col do not consider the off game squares or the start or end.  Just
+    // the middle of the game board.  (0,0) is at the bottom left part of the board.
+    std::vector<std::pair<uint32_t, uint32_t>> m_addedRocks;
+
+    // the row and column which starts the area in which users can place blocks
+    std::pair<uint32_t, uint32_t> m_gameBoardStartRowColumn;
+
+    // the row and column which ends the area in which users can place blocks
+    std::pair<uint32_t, uint32_t> m_gameBoardEndRowColumn;
 };
 #endif /* AMAZING_LABYRINTH_MOVABLE_PASSAGE_HPP */
