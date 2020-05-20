@@ -662,8 +662,9 @@ public:
     bool updateDynamicDrawObjects(DrawObjectTable &objs, TextureMap &textures, bool &texturesChanged) override;
     void start() override { m_prevTime = std::chrono::high_resolution_clock::now(); }
     void getLevelFinisherCenter(float &x, float &y) override { x = 0.0f; y = 0.0f; };
-    //SaveLevelDataFcn getSaveLevelDataFcn() override;
+    SaveLevelDataFcn getSaveLevelDataFcn() override;
 
+    // this function can be called at any time before the level is started.
     void initSetBallInfo(
         std::string const &ballModel,
         std::string const &ballTexture)
@@ -672,11 +673,38 @@ public:
         m_ballTextureName = ballTexture;
     }
 
+    // this function can be called at any time before the level is started.
+    void initSetGameBoardInfo(
+            std::string const &blockedRockTexture,
+            std::string const &blockedDirtTexture,
+            std::string const &startCornerModel,
+            std::string const &startCornerTexture,
+            std::string const &startSideModel,
+            std::string const &startSideTexture,
+            std::string const &startOpenModel,
+            std::string const &startOpenTexture)
+    {
+        m_componentTextures[Component::ComponentType::noMovementRock] = blockedRockTexture;
+        m_componentTextures[Component::ComponentType::noMovementDirt] = blockedDirtTexture;
+
+        m_componentModels[Component::ComponentType::closedCorner] = startCornerModel;
+        m_componentTextures[Component::ComponentType::closedCorner] = startCornerTexture;
+
+        m_componentModels[Component::ComponentType::closedBottom] = startSideModel;
+        m_componentTextures[Component::ComponentType::closedBottom] = startSideTexture;
+
+        m_componentModels[Component::ComponentType::open] = startOpenModel;
+        m_componentTextures[Component::ComponentType::open] = startOpenTexture;
+    }
+
     // all the compoents should be added before calling this function.
     void initSetGameBoard(
         uint32_t nbrTilesX,
         uint32_t nbrTilesY);
 
+    // this function can be called anytime before initSetGameBoard. This function must be called for
+    // Component::ComponentType::straight even if the user is not allowed to use the straight
+    // component.
     void initAddType(
         Component::ComponentType inComponentType,
         uint32_t nbrComponents,
@@ -695,6 +723,7 @@ public:
         }
     }
 
+    // this function can be called at any time before initDone.
     void initAddRock(
         uint32_t row,
         uint32_t col)

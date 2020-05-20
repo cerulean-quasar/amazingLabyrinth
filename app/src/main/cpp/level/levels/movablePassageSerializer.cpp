@@ -31,7 +31,7 @@ void from_json(nlohmann::json const &j, MovablePassageSaveData &val) {
     from_json(j, boost::implicit_cast<LevelSaveData&>(val));
 }
 
-Level::SaveLevelDataFcn FixedMaze::getSaveLevelDataFcn() {
+Level::SaveLevelDataFcn MovablePassage::getSaveLevelDataFcn() {
     auto sd = std::make_shared<MovablePassageSaveData>();
     return {[sd](std::shared_ptr<GameSaveData> gsd) -> std::vector<uint8_t> {
         return saveGameData(gsd, sd);

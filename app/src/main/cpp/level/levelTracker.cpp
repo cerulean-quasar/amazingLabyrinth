@@ -292,14 +292,25 @@ LevelGroup LevelTracker::getLevelGroupGopher(
 {
     return {
             getStarterFcn(needsStarter, std::vector<std::string>{
-                    "Underground a gopher\nsearches for\na juicy beet.",
+                    "Underground, a gopher\nsearches for\na juicy beet.",
                     "Help the gopher\nbuild a tunnel\nto the beet."}),
             GetLevelFcn([levelBundle](LevelTracker &tracker) {
-                auto level = tracker.getLevel<FixedMaze>(levelBundle);
-                level->initSetBallInfo("models/frog/frog.modelcbor", "textures/frog/frog.png");
-                level->initSetFloorInfo("models/frog/frogFloor.modelcbor", "textures/frog/frogFloor.png");
-                level->initSetBounceParameters(1/20.0f, 1/50.0f);
-                level->init();
+                auto level = tracker.getLevel<MovablePassage>(levelBundle);
+                level->initSetBallInfo("models/gopher/gopher.modelcbor", "textures/gopher/gopher.png");
+                level->initSetGameBoardInfo("textures/gopher/rock.png", "textures/gopher/dirt.png",
+                        "models/gopher/startCorner.modelcbor", "textures/gopher/startCorner.png",
+                        "models/gopher/startSide.modelcbor", "textures/gopher/startSide.png",
+                        "models/gopher/startOpen.modelcbor", "textures/gopher/startOpen.png");
+                level->initAddRock(4,4);
+                level->initAddRock(5,5);
+                level->initAddType(Component::ComponentType::straight, 2,
+                    "models/gopher/straight.modelcbor", "textures/gopher/straight.png");
+                level->initAddType(Component::ComponentType::turn, 10,
+                    "models/gopher/turn.modelcbor", "textures/gopher/turn.modelcbor");
+                level->initAddType(Component::ComponentType::tjunction, 1,
+                    "models/gopher/tjunction.modelcbor", "textures/gopher/tjunction.modelcbor");
+                level->initAddType(Component::ComponentType::crossjunction, 2,
+                    "models/gopher/crossjunction.modelcbor", "textures/gopher/crossjunction.modelcbor");
                 return level;
             }),
             GetFinisherFcn([](LevelTracker &tracker, float centerX, float centerY, glm::mat4 const &proj, glm::mat4 const &view) {
