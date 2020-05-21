@@ -651,6 +651,7 @@ private:
     std::pair<uint32_t, uint32_t> m_moveStartingPosition;
 };
 
+// All models expected to be exported with Z-up, Y-forward.
 class MovablePassage : public Level {
 public:
     bool drag(float startX, float startY, float distanceX, float distanceY) override;
