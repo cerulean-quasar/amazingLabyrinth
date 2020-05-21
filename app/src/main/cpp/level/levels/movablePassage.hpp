@@ -556,6 +556,7 @@ public:
         begin,
         onBoard,
         offBoard,
+        endOffBoard,
         end
     };
 
@@ -613,20 +614,22 @@ public:
 
     /* row 0 is on the bottom, col 0 is on the left */
     glm::vec3 position(uint32_t row, uint32_t col) {
-        return glm::vec3 {
-            m_blockSize * col - m_width/2 + m_centerPos.x,
-            m_blockSize * row - m_height/2 + m_centerPos.y,
-            m_centerPos.z - m_blockSize/2.0f};
-    }
-
-    glm::vec3 centerPositionEndObject() {
-        return glm::vec3{m_width/2.0f + m_centerPos.x,
-                         m_height/m_blocks.size()*(m_blocks.size() - m_nbrTileRowsForEnd/2) + m_centerPos.y,
-                         m_centerPos.z};
+        if (m_blocks[row][col].blockType() == GameBoardBlock::BlockType::end ||
+            m_blocks[row][col].blockType() == GameBoardBlock::BlockType::endOffBoard) {
+            return glm::vec3 {
+                    m_blockSize * col - m_width / 2 + m_centerPos.x,
+                    m_blockSize * (m_blocks.size() - m_nbrTileRowsForEnd/2.0f),
+                    m_centerPos.z - 3*m_blockSize/4.0f };
+        } else {
+            return glm::vec3{
+                    m_blockSize * col - m_width / 2 + m_centerPos.x,
+                    m_blockSize * row - m_height / 2 + m_centerPos.y,
+                    m_centerPos.z - m_blockSize / 2.0f};
+        }
     }
 
     glm::vec3 scaleEndObject() {
-        return glm::vec3{m_width, m_height/m_blocks.size() * m_nbrTileRowsForEnd, 1.0f};
+        return glm::vec3{m_blockSize, m_blockSize * m_nbrTileRowsForEnd, 1.0f};
     }
 
     GameBoardBlock &block(uint32_t row, uint32_t col) { return m_blocks[row][col]; }
@@ -649,6 +652,14 @@ private:
     std::vector<std::vector<GameBoardBlock>> m_blocks;
     bool m_moveInProgress;
     std::pair<uint32_t, uint32_t> m_moveStartingPosition;
+
+    bool hasMovableComponent(GameBoardBlock &b) {
+        return (b.blockType() == GameBoardBlock::BlockType::offBoard ||
+                b.blockType() == GameBoardBlock::BlockType::onBoard) &&
+               b.component() != nullptr &&
+               b.component()->type() != Component::ComponentType::noMovementRock &&
+               b.component()->type() != Component::ComponentType::noMovementDirt;
+    }
 };
 
 // All models expected to be exported with Z-up, Y-forward.
@@ -678,6 +689,8 @@ public:
     void initSetGameBoardInfo(
             std::string const &blockedRockTexture,
             std::string const &blockedDirtTexture,
+            std::string const &componentTextureEnd,
+            std::string const &textureEndOffBoard,
             std::string const &startCornerModel,
             std::string const &startCornerTexture,
             std::string const &startSideModel,
@@ -687,6 +700,9 @@ public:
     {
         m_componentTextures[Component::ComponentType::noMovementRock] = blockedRockTexture;
         m_componentTextures[Component::ComponentType::noMovementDirt] = blockedDirtTexture;
+
+        m_componentTextureEnd = componentTextureEnd;
+        m_textureEndOffBoard = textureEndOffBoard;
 
         m_componentModels[Component::ComponentType::closedCorner] = startCornerModel;
         m_componentTextures[Component::ComponentType::closedCorner] = startCornerTexture;
@@ -701,7 +717,9 @@ public:
     // all the compoents should be added before calling this function.
     void initSetGameBoard(
         uint32_t nbrTilesX,
-        uint32_t nbrTilesY);
+        uint32_t nbrTilesY,
+        uint32_t startCplumn,
+        uint32_t endColumn);
 
     // this function can be called anytime before initSetGameBoard. This function must be called for
     // Component::ComponentType::straight even if the user is not allowed to use the straight
@@ -783,6 +801,7 @@ private:
     std::array<std::string, Component::ComponentType::maxComponentType> m_componentModels;
     std::array<std::string, Component::ComponentType::maxComponentType> m_componentTextures;
     std::string m_componentTextureEnd;
+    std::string m_textureEndOffBoard;
 
     // rocks row and col do not consider the off game squares or the start or end.  Just
     // the middle of the game board.  (0,0) is at the bottom left part of the board.
@@ -793,5 +812,8 @@ private:
 
     // the row and column which ends the area in which users can place blocks
     std::pair<uint32_t, uint32_t> m_gameBoardEndRowColumn;
+
+    // the column in which the end tile is located.
+    uint32_t m_columnEndPosition;
 };
 #endif /* AMAZING_LABYRINTH_MOVABLE_PASSAGE_HPP */

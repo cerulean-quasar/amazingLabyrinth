@@ -296,21 +296,24 @@ LevelGroup LevelTracker::getLevelGroupGopher(
                     "Help the gopher\nbuild a tunnel\nto the beet."}),
             GetLevelFcn([levelBundle](LevelTracker &tracker) {
                 auto level = tracker.getLevel<MovablePassage>(levelBundle);
-                level->initSetBallInfo("models/gopher/gopher.modelcbor", "textures/gopher/gopher.png");
+                level->initSetBallInfo("models/ball.modelcbor", "textures/gopher/gopher.png");
                 level->initSetGameBoardInfo("textures/gopher/rock.png", "textures/gopher/dirt.png",
-                        "models/gopher/startCorner.modelcbor", "textures/gopher/startCorner.png",
-                        "models/gopher/startSide.modelcbor", "textures/gopher/startSide.png",
-                        "models/gopher/startOpen.modelcbor", "textures/gopher/startOpen.png");
+                        "textures/gopher/end.png", "textures/gopher/endOffBoard.png",
+                        "models/gopher/startCorner.modelcbor", "textures/gopher/dirt.png",
+                        "models/gopher/startSide.modelcbor", "textures/gopher/dirt.png",
+                        "models/gopher/startOpen.modelcbor", "textures/gopher/dirt.png");
                 level->initAddRock(4,4);
                 level->initAddRock(5,5);
                 level->initAddType(Component::ComponentType::straight, 2,
-                    "models/gopher/straight.modelcbor", "textures/gopher/straight.png");
+                    "models/gopher/straight.modelcbor", "textures/gopher/dirt.png");
                 level->initAddType(Component::ComponentType::turn, 10,
-                    "models/gopher/turn.modelcbor", "textures/gopher/turn.modelcbor");
+                    "models/gopher/turn.modelcbor", "textures/gopher/dirt.png");
                 level->initAddType(Component::ComponentType::tjunction, 1,
-                    "models/gopher/tjunction.modelcbor", "textures/gopher/tjunction.modelcbor");
+                    "models/gopher/tjunction.modelcbor", "textures/gopher/dirt.png");
                 level->initAddType(Component::ComponentType::crossjunction, 2,
-                    "models/gopher/crossjunction.modelcbor", "textures/gopher/crossjunction.modelcbor");
+                    "models/gopher/crossjunction.modelcbor", "textures/gopher/dirt.png");
+                level->initSetGameBoard(10, 10, 1, 8);
+                level->initDone();
                 return level;
             }),
             GetFinisherFcn([](LevelTracker &tracker, float centerX, float centerY, glm::mat4 const &proj, glm::mat4 const &view) {

@@ -47,12 +47,7 @@ bool GameBoard::drag(glm::vec2 const &startPosition, glm::vec2 const &distance) 
     }
     auto &b = m_blocks[rc.first][rc.second];
     if (!m_moveInProgress) {
-        if ((b.blockType() == GameBoardBlock::BlockType::offBoard ||
-             b.blockType() == GameBoardBlock::BlockType::onBoard) &&
-            b.component() != nullptr &&
-            b.component()->type() != Component::ComponentType::noMovementRock &&
-            b.component()->type() != Component::ComponentType::noMovementDirt)
-        {
+        if (hasMovableComponent(b)) {
             auto component = b.component();
             auto &placement = component->placement(b.placementIndex());
             if (!placement.lockedIntoPlace() && placement.prev().first == nullptr) {
@@ -110,9 +105,7 @@ bool GameBoard::dragEnded(glm::vec2 const &endPosition) {
 bool GameBoard::tap(glm::vec2 const &position) {
     std::pair<uint32_t, uint32_t> rc = findRC(position);
     auto &b = m_blocks[rc.first][rc.second];
-    if (b.component() == nullptr || (b.blockType() != GameBoardBlock::BlockType::onBoard &&
-        b.blockType() != GameBoardBlock::BlockType::offBoard))
-    {
+    if (hasMovableComponent(b)) {
         return false;
     }
     auto &placement = b.component()->placement(b.placementIndex());
@@ -125,7 +118,9 @@ bool GameBoard::tap(glm::vec2 const &position) {
 
 void MovablePassage::initSetGameBoard(
         uint32_t nbrTilesX,
-        uint32_t nbrTilesY) {
+        uint32_t nbrTilesY,
+        uint32_t startColumn,
+        uint32_t endColumn) {
     float tileSizeX = m_width / nbrTilesX;
     float tileSizeY = m_height / (nbrTilesY + GameBoard::m_nbrTileRowsForStart +
                                   GameBoard::m_nbrTileRowsForEnd);
@@ -225,6 +220,9 @@ void MovablePassage::initSetGameBoard(
                 } else if (l == m_gameBoard.widthInTiles() - 1) {
                     type = Component::ComponentType::closedCorner;
                     rotation = glm::radians(180.0f);
+                } else if (l == startColumn) {
+                    type = Component::ComponentType::open;
+                    rotation = 0.0f;
                 } else {
                     type = Component::ComponentType::closedBottom;
                     rotation = glm::radians(180.0f);
@@ -250,8 +248,15 @@ void MovablePassage::initSetGameBoard(
          k++)
     {
         for (uint32_t l = 0; l < m_gameBoard.widthInTiles(); l++) {
-            auto &block = m_gameBoard.block(0, l);
-            block.setBlockType(GameBoardBlock::BlockType::end);
+            auto &block = m_gameBoard.block(k, l);
+            if (k == m_gameBoard.heightInTiles() - GameBoard::m_nbrTileRowsForEnd &&
+                l == m_gameBoardStartRowColumn.second + endColumn)
+            {
+                block.setBlockType(GameBoardBlock::BlockType::end);
+                m_columnEndPosition = l;
+            } else {
+                block.setBlockType(GameBoardBlock::endOffBoard);
+            }
             // don't set a component - we detect the end by the block type
         }
     }
@@ -468,16 +473,28 @@ bool MovablePassage::updateStaticDrawObjects(DrawObjectTable &objs, TextureMap &
         return false;
     }
 
-    auto objEnd = std::make_shared<DrawObject>();
-    getQuad(objEnd->vertices, objEnd->indices);
-    glm::vec3 endPosition = m_gameBoard.centerPositionEndObject();
     glm::vec3 endScale = m_gameBoard.scaleEndObject();
     endScale.x /= m_modelSize;
     endScale.y /= m_modelSize;
-    objEnd->modelMatrices.push_back(glm::translate(glm::mat4(1.0f), endPosition) *
-        glm::scale(glm::mat4(1.0f), endScale));
+    auto objEnd = std::make_shared<DrawObject>();
+    auto objEndOffBoard = std::make_shared<DrawObject>();
+    getQuad(objEnd->vertices, objEnd->indices);
+    getQuad(objEndOffBoard->vertices, objEndOffBoard->indices);
     objEnd->texture = std::make_shared<TextureDescriptionPath>(m_gameRequester, m_componentTextureEnd);
+    objEndOffBoard->texture = std::make_shared<TextureDescriptionPath>(m_gameRequester, m_textureEndOffBoard);
     textures.insert(std::make_pair(objEnd->texture, std::shared_ptr<TextureData>()));
+    textures.insert(std::make_pair(objEndOffBoard->texture, std::shared_ptr<TextureData>()));
+    for (uint32_t col = 0; col < m_gameBoard.widthInTiles(); col++) {
+        glm::vec3 endPosition = m_gameBoard.position(
+                m_gameBoard.heightInTiles() - m_gameBoard.m_nbrTileRowsForEnd, col);
+        if (col == m_columnEndPosition) {
+            objEnd->modelMatrices.push_back(glm::translate(glm::mat4(1.0f), endPosition) *
+                                            glm::scale(glm::mat4(1.0f), endScale));
+        } else {
+            objEndOffBoard->modelMatrices.push_back(glm::translate(glm::mat4(1.0f), endPosition) *
+                                            glm::scale(glm::mat4(1.0f), endScale));
+        }
+    }
     uint32_t refEnd = objs.size();
     objs.push_back(std::make_pair(objEnd, std::shared_ptr<DrawObjectData>()));
 
