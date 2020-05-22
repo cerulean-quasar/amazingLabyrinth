@@ -65,10 +65,10 @@ public:
         open,
         closedBottom,
         closedCorner,
-        maxComponentAllowingBall = 7,
+        maxComponentAllowingBall = 6,
         noMovementDirt,
         noMovementRock,
-        maxComponentType = 9
+        maxComponentType = 8
     };
 
     CellWall moveBallInCell(size_t placementIndex, glm::vec3 &position, float &timediff, glm::vec3 &velocity) {
@@ -572,7 +572,7 @@ public:
     }
 
     GameBoardBlock(
-        BlockType blockType = BlockType::onBoard,
+        BlockType blockType = BlockType::offBoard,
         std::shared_ptr<Component> component = nullptr,
         size_t placementIndex = 0)
         : m_blockType{blockType},
@@ -597,14 +597,14 @@ public:
     bool dragEnded(glm::vec2 const &endPosition);
     bool tap(glm::vec2 const &position);
     std::pair<uint32_t, uint32_t> findRC(glm::vec2 postion);
-    void setBlockSize(float blockSize) { m_blockSize = blockSize; }
     float blockSize() { return m_blockSize; }
     bool isMoveInProgress() { return m_moveInProgress; }
     std::pair<uint32_t, uint32_t> moveRC() { return m_moveStartingPosition; }
 
-    void initialize(float width, float height, glm::vec3 const &pos, uint32_t rows, uint32_t cols) {
-        m_width = width;
-        m_height = height;
+    void initialize(float tileSize, glm::vec3 const &pos, uint32_t rows, uint32_t cols) {
+        m_blockSize = tileSize;
+        m_width = cols * tileSize;
+        m_height = rows * tileSize;
         m_centerPos = pos;
         m_blocks.resize(rows);
         for (auto &block : m_blocks) {
@@ -614,18 +614,18 @@ public:
 
     /* row 0 is on the bottom, col 0 is on the left */
     glm::vec3 position(uint32_t row, uint32_t col) {
+        float x, y, z;
+        x = m_blockSize * (col + 0.5f) - m_width / 2 + m_centerPos.x;
         if (m_blocks[row][col].blockType() == GameBoardBlock::BlockType::end ||
             m_blocks[row][col].blockType() == GameBoardBlock::BlockType::endOffBoard) {
-            return glm::vec3 {
-                    m_blockSize * col - m_width / 2 + m_centerPos.x,
-                    m_blockSize * (m_blocks.size() - m_nbrTileRowsForEnd/2.0f),
-                    m_centerPos.z - 3*m_blockSize/4.0f };
+            y = m_blockSize * (m_blocks.size() - m_nbrTileRowsForEnd/2.0f) - m_height/2 + m_centerPos.y;
+            //z = m_centerPos.z - m_blockSize / 2.0f;
+            z = m_centerPos.z - 3*m_blockSize/4.0f ;
         } else {
-            return glm::vec3{
-                    m_blockSize * col - m_width / 2 + m_centerPos.x,
-                    m_blockSize * row - m_height / 2 + m_centerPos.y,
-                    m_centerPos.z - m_blockSize / 2.0f};
+            y = m_blockSize * (row + 0.5f) - m_height / 2 + m_centerPos.y;
+            z = m_centerPos.z - m_blockSize / 2.0f;
         }
+        return glm::vec3 { x, y, z };
     }
 
     glm::vec3 scaleEndObject() {
@@ -787,7 +787,7 @@ private:
     uint32_t m_ballCol;
     std::chrono::high_resolution_clock::time_point m_prevTime;
 
-    std::array<std::shared_ptr<Component>, Component::ComponentType::maxComponentType> m_components;
+    std::array<std::shared_ptr<Component>, Component::ComponentType::maxComponentType + 1> m_components;
 
     GameBoard m_gameBoard;
     uint32_t m_nbrComponents;
@@ -798,8 +798,8 @@ private:
     std::string m_ballTextureName;
     uint32_t m_objsReferenceBall;
 
-    std::array<std::string, Component::ComponentType::maxComponentType> m_componentModels;
-    std::array<std::string, Component::ComponentType::maxComponentType> m_componentTextures;
+    std::array<std::string, Component::ComponentType::maxComponentType + 1> m_componentModels;
+    std::array<std::string, Component::ComponentType::maxComponentType + 1> m_componentTextures;
     std::string m_componentTextureEnd;
     std::string m_textureEndOffBoard;
 

@@ -131,7 +131,8 @@ void MovablePassage::initSetGameBoard(
 
     // minus 2 * nbrExtraTileRowsY for up tunnel components
     uint32_t nbrExtraTileRowsY = static_cast<uint32_t>(std::floor(
-            (m_height - tileSize * nbrTilesY) / tileSize));
+            (m_height - tileSize * (nbrTilesY +
+                    GameBoard::m_nbrTileRowsForEnd + GameBoard::m_nbrTileRowsForStart)) / tileSize));
     uint32_t nbrExtraTilesY = nbrExtraTileRowsY * nbrTilesX - 2 * nbrExtraTileRowsY;
 
     // we have a device with a screen of a similar size to our tunnel building area,
@@ -146,55 +147,54 @@ void MovablePassage::initSetGameBoard(
         tileSize = tileSizeX < tileSizeY ? tileSizeX : tileSizeY;
 
         nbrExtraTileRowsX = static_cast<uint32_t>(std::floor(
-                (m_width - tileSize * nbrTilesX) / tileSize));
+                m_width/tileSize - nbrTilesX));
 
         // minus 2 * nbrExtraTileRowsY for up tunnel components
         nbrExtraTileRowsY = static_cast<uint32_t>(std::floor(
-                (m_height - tileSize * nbrTilesY) / tileSize));
+                m_height / tileSize - (nbrTilesY +
+                     GameBoard::m_nbrTileRowsForStart +
+                     GameBoard::m_nbrTileRowsForEnd)));
     }
 
-    m_gameBoardStartRowColumn.first = nbrExtraTileRowsX/2;
-    m_gameBoardStartRowColumn.second = GameBoard::m_nbrTileRowsForStart + nbrExtraTileRowsY/2;
+    m_gameBoardStartRowColumn.first = GameBoard::m_nbrTileRowsForStart + nbrExtraTileRowsY/2;
+    m_gameBoardStartRowColumn.second = nbrExtraTileRowsX/2;
 
-    m_gameBoardEndRowColumn.first = nbrTilesX - nbrExtraTileRowsX/2 + nbrExtraTileRowsX%2;
-    m_gameBoardEndRowColumn.second = nbrTilesY - nbrExtraTileRowsY/2 + nbrExtraTileRowsY%2 -
-            GameBoard::m_nbrTileRowsForEnd;
+    m_gameBoardEndRowColumn.first = GameBoard::m_nbrTileRowsForStart + nbrTilesY + nbrExtraTileRowsY/2 - 1;
+    m_gameBoardEndRowColumn.second = nbrTilesX + nbrExtraTileRowsX/2 - 1;
 
     m_gameBoard.initialize(
-            (nbrTilesX + nbrExtraTileRowsX) * tileSize,
-            (nbrTilesY + nbrExtraTileRowsY + GameBoard::m_nbrTileRowsForEnd +
-             GameBoard::m_nbrTileRowsForStart) * tileSize,
-            glm::vec3{0.0f, 0.0f, 0.0f},
-            nbrTilesY + nbrExtraTileRowsY, nbrTilesX + nbrExtraTileRowsX);
+            tileSize,
+            glm::vec3{0.0f, 0.0f, m_mazeFloorZ},
+            nbrTilesY + nbrExtraTileRowsY + GameBoard::m_nbrTileRowsForStart + GameBoard::m_nbrTileRowsForEnd,
+            nbrTilesX + nbrExtraTileRowsX);
     if (m_gameBoard.heightInTiles() == 0 || m_gameBoard.widthInTiles() == 0) {
         throw std::runtime_error("MovablePassage game board blocks not initialized properly");
     }
 
     // The main board area for constructing the tunnel
-    for (uint32_t k = m_gameBoardStartRowColumn.first; k < m_gameBoardEndRowColumn.first; k++) {
-        for (uint32_t l = m_gameBoardStartRowColumn.second; l < m_gameBoardEndRowColumn.second; l++) {
+    for (uint32_t k = m_gameBoardStartRowColumn.first; k <= m_gameBoardEndRowColumn.first; k++) {
+        for (uint32_t l = m_gameBoardStartRowColumn.second; l <= m_gameBoardEndRowColumn.second; l++) {
             m_gameBoard.block(k, l).setBlockType(GameBoardBlock::BlockType::onBoard);
         }
     }
 
-    uint32_t col = (nbrTilesX + nbrExtraTileRowsX) / 2;
     // the fixed tunnel through the places for extra tunnel pieces at the bottom.
     for (uint32_t k = GameBoard::m_nbrTileRowsForStart; k < nbrExtraTileRowsY / 2; k++) {
         auto comp = m_components[Component::ComponentType::straight];
-        auto pos = comp->add(k, col, 0.0f, true);
-        auto &block = m_gameBoard.block(k, col);
+        auto pos = comp->add(k, m_gameBoardStartRowColumn.second + startColumn, 0.0f, true);
+        auto &block = m_gameBoard.block(k, m_gameBoardStartRowColumn.second + startColumn);
         block.setComponent(comp, pos);
         block.setBlockType(GameBoardBlock::BlockType::onBoard);
     }
 
     // the fixed tunnel through the places for extra tunnel pieces at the top.
     auto &comp = m_components[Component::ComponentType::straight];
-    for (uint32_t k = nbrTilesY - nbrExtraTileRowsY / 2 + GameBoard::m_nbrTileRowsForStart;
-         k < nbrTilesY + nbrExtraTileRowsY + GameBoard::m_nbrTileRowsForStart;
+    for (uint32_t k = m_gameBoardEndRowColumn.first + 1;
+         k < m_gameBoard.heightInTiles() - GameBoard::m_nbrTileRowsForEnd;
          k++)
     {
-        auto pos = comp->add(k, col, 0.0f, true);
-        auto &block = m_gameBoard.block(k, col);
+        auto pos = comp->add(k, m_gameBoardStartRowColumn.second + endColumn, 0.0f, true);
+        auto &block = m_gameBoard.block(k, m_gameBoardStartRowColumn.second + endColumn);
         block.setComponent(comp, pos);
         block.setBlockType(GameBoardBlock::BlockType::onBoard);
     }
@@ -264,8 +264,6 @@ void MovablePassage::initSetGameBoard(
     for (auto &component : m_components) {
         component->setSize(tileSize);
     }
-
-    m_gameBoard.setBlockSize(tileSize);
 }
 
 void MovablePassage::initDone() {
@@ -280,15 +278,34 @@ void MovablePassage::initDone() {
     auto end2 = (*it1)->placementsEnd();
     uint32_t m = 0;
     bool finished = false;
-    for (uint32_t k = 0; k < m_gameBoard.widthInTiles() && !finished; k++){
-        for (uint32_t l = 0; l < m_gameBoard.heightInTiles(); l++) {
+    for (uint32_t k = 0; k < m_gameBoard.heightInTiles() && !finished; k++){
+        for (uint32_t l = 0; l < m_gameBoard.widthInTiles(); ) {
+            if (it1 != end1 && ((*it1)->type() != Component::ComponentType::straight &&
+                    (*it1)->type() != Component::ComponentType::tjunction &&
+                    (*it1)->type() != Component::ComponentType::turn &&
+                    (*it1)->type() != Component::ComponentType::crossjunction)) {
+                it1++;
+
+                if (it1 == end1) {
+                    finished = true;
+                    break;
+                }
+
+                m = 0;
+                it2 = (*it1)->placementsBegin();
+                end2 = (*it1)->placementsEnd();
+                continue;
+            }
             auto &block = m_gameBoard.block(k,l);
             if (it2 != end2 && block.blockType() == GameBoardBlock::BlockType::offBoard && block.component() == nullptr) {
-                block.setComponent(*it1, m);
-                it2->setRC(k,l);
+                if (!it2->lockedIntoPlace()) {
+                    block.setComponent(*it1, m);
+                    it2->setRC(k, l);
 
+                    m++;
+                    l++;
+                }
                 it2++;
-                m++;
             }
             if (it2 == end2) {
                 it1++;
@@ -306,7 +323,7 @@ void MovablePassage::initDone() {
     }
 
     // add the rock segments that were requested of us.
-    std::shared_ptr<Component> rock = m_components[Component::ComponentType::noMovementRock];
+    std::shared_ptr<Component> &rock = m_components[Component::ComponentType::noMovementRock];
     for (auto const &rc: m_addedRocks) {
         uint32_t row = rc.first + m_gameBoardStartRowColumn.first;
         uint32_t col = rc.second + m_gameBoardStartRowColumn.second;
@@ -319,11 +336,11 @@ void MovablePassage::initDone() {
     // add the dirt and rock placements for parts of the board that are not covered yet.
     // rock for the off board placements, dirt for the on board
     std::shared_ptr<Component> dirt = m_components[Component::ComponentType::noMovementDirt];
-    for (uint32_t k = 0; k < m_gameBoard.widthInTiles(); k++) {
-        for (uint32_t l = 0; l < m_gameBoard.heightInTiles() - GameBoard::m_nbrTileRowsForEnd; l++) {
+    for (uint32_t k = GameBoard::m_nbrTileRowsForStart; k < m_gameBoard.heightInTiles() - GameBoard::m_nbrTileRowsForEnd; k++) {
+        for (uint32_t l = 0; l < m_gameBoard.widthInTiles(); l++) {
             auto &b = m_gameBoard.block(k,l);
             if (b.component() == nullptr) {
-                if (b.blockType() == GameBoardBlock::BlockType::offBoard) {
+                if (b.blockType() == GameBoardBlock::BlockType::onBoard) {
                     dirt->add(k, l, 0.0f);
                     b.setComponent(dirt, dirt->nbrPlacements() - 1);
                 } else {
@@ -495,11 +512,12 @@ bool MovablePassage::updateStaticDrawObjects(DrawObjectTable &objs, TextureMap &
                                             glm::scale(glm::mat4(1.0f), endScale));
         }
     }
-    uint32_t refEnd = objs.size();
+    // no components for these so we don't set the reference back to this obj.
     objs.push_back(std::make_pair(objEnd, std::shared_ptr<DrawObjectData>()));
+    objs.push_back(std::make_pair(objEndOffBoard, std::shared_ptr<DrawObjectData>()));
 
     std::pair<std::vector<Vertex>, std::vector<uint32_t>> v;
-    loadModel(m_gameRequester->getAssetStream(m_componentTextures[Component::ComponentType::closedCorner]), v);
+    loadModel(m_gameRequester->getAssetStream(m_componentModels[Component::ComponentType::closedCorner]), v);
     auto objStartCorner = std::make_shared<DrawObject>();
     std::swap(objStartCorner->vertices, v.first);
     std::swap(objStartCorner->indices, v.second);
@@ -585,7 +603,7 @@ bool MovablePassage::updateDynamicDrawObjects(DrawObjectTable &objs, TextureMap 
             }
             auto obj = std::make_shared<DrawObject>();
             if (m_componentModels[component->type()].empty()) {
-                getQuad(obj->vertices, obj->indices);
+                getQuad(obj->vertices, obj->indices, glm::vec3{0.0f, 0.0f, 1.0f});
             } else {
                 loadModel(m_gameRequester->getAssetStream(m_componentModels[component->type()]), v);
                 std::swap(v.first, obj->vertices);

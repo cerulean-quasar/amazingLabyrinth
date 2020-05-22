@@ -298,24 +298,24 @@ bool loadModel(
 }
 
 // creates a quad with each side length 2.0f.
-void getQuad(std::vector<Vertex> &vertices, std::vector<uint32_t> &indices) {
+void getQuad(std::vector<Vertex> &vertices, std::vector<uint32_t> &indices, glm::vec3 const &centerPos) {
     Vertex vertex = {};
     vertex.color = {0.2f, 0.2f, 0.2f };
     vertex.normal = {0.0f, 0.0f, 1.0f };
 
-    vertex.pos = { -1.0f, 1.0f, 0.0f };
+    vertex.pos = glm::vec3{ -1.0f, 1.0f, 0.0f } + centerPos;
     vertex.texCoord = {0.0f, 0.0f };
     vertices.push_back(vertex);
 
-    vertex.pos = { -1.0f, -1.0f, 0.0f };
+    vertex.pos = glm::vec3{ -1.0f, -1.0f, 0.0f } + centerPos;
     vertex.texCoord = {0.0f, 1.0f };
     vertices.push_back(vertex);
 
-    vertex.pos = { 1.0f, -1.0f, 0.0f };
+    vertex.pos = glm::vec3{ 1.0f, -1.0f, 0.0f } + centerPos;
     vertex.texCoord = {1.0f, 1.0f };
     vertices.push_back(vertex);
 
-    vertex.pos = { 1.0f, 1.0f, 0.0f };
+    vertex.pos = glm::vec3{ 1.0f, 1.0f, 0.0f } + centerPos;
     vertex.texCoord = {1.0f, 0.0f };
     vertices.push_back(vertex);
 

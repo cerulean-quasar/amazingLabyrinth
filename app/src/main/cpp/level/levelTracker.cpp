@@ -292,7 +292,7 @@ LevelGroup LevelTracker::getLevelGroupGopher(
 {
     return {
             getStarterFcn(needsStarter, std::vector<std::string>{
-                    "Underground, a gopher\nsearches for\na juicy beet.",
+                    "Underground,\na gopher\nsearches for\na juicy beet.",
                     "Help the gopher\nbuild a tunnel\nto the beet."}),
             GetLevelFcn([levelBundle](LevelTracker &tracker) {
                 auto level = tracker.getLevel<MovablePassage>(levelBundle);
@@ -303,6 +303,8 @@ LevelGroup LevelTracker::getLevelGroupGopher(
                         "models/gopher/startSide.modelcbor", "textures/gopher/dirt.png",
                         "models/gopher/startOpen.modelcbor", "textures/gopher/dirt.png");
                 level->initAddRock(4,4);
+                level->initAddRock(4,5);
+                level->initAddRock(5,4);
                 level->initAddRock(5,5);
                 level->initAddType(Component::ComponentType::straight, 2,
                     "models/gopher/straight.modelcbor", "textures/gopher/dirt.png");

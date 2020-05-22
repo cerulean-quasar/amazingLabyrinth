@@ -41,6 +41,7 @@
 #include "../../random.hpp"
 #include "../../graphics.hpp"
 #include "../level.hpp"
+#include "../../modelLoader.hpp"
 
 bool Maze::ballInProximity(float x, float y) {
     float errDistance = ballRadius();
