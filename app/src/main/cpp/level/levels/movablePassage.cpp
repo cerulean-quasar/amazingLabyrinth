@@ -378,20 +378,22 @@ bool MovablePassage::updateData() {
             m_ball.position = m_gameBoard.position(m_ballRow, m_ballCol) + posFromCenter;
             return drawingNecessary();
         case Component::CellWall::wallRight:
-            if (ballColNext != m_gameBoard.heightInTiles() - 1) {
+            if (ballColNext != m_gameBoard.widthInTiles() - 1) {
                 ballColNext++;
                 wallNextCell = Component::CellWall::wallLeft;
             } else {
                 m_ball.velocity = {0.0f, 0.0f, 0.0f};
+                m_ball.position = m_gameBoard.position(m_ballRow, m_ballCol) + posFromCenter;
                 return drawingNecessary();
             }
             break;
         case Component::CellWall::wallUp:
-            if (ballRowNext != m_gameBoard.widthInTiles() - 1) {
+            if (ballRowNext != m_gameBoard.heightInTiles() - 1) {
                 ballRowNext++;
                 wallNextCell = Component::CellWall::wallDown;
             } else {
                 m_ball.velocity = {0.0f, 0.0f, 0.0f};
+                m_ball.position = m_gameBoard.position(m_ballRow, m_ballCol) + posFromCenter;
                 return drawingNecessary();
             }
             break;
@@ -401,6 +403,7 @@ bool MovablePassage::updateData() {
                 wallNextCell = Component::CellWall::wallRight;
             } else {
                 m_ball.velocity = {0.0f, 0.0f, 0.0f};
+                m_ball.position = m_gameBoard.position(m_ballRow, m_ballCol) + posFromCenter;
                 return drawingNecessary();
             }
             break;
@@ -410,6 +413,7 @@ bool MovablePassage::updateData() {
                 wallNextCell = Component::CellWall::wallUp;
             } else {
                 m_ball.velocity = {0.0f, 0.0f, 0.0f};
+                m_ball.position = m_gameBoard.position(m_ballRow, m_ballCol) + posFromCenter;
                 return drawingNecessary();
             }
         }

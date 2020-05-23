@@ -128,35 +128,36 @@ public:
             }
         }
 
+        CellWall ret = CellWall::noWall;
+        float timeDiffTillEdge = 0.0f;
         if (differences[largestDifferenceIndex] < 0.0f) {
             // movement within cell
             position = nextPos;
-            timediff = 0.0f;
-            return CellWall::noWall;
+            timeDiffTillEdge = timediff;
         } else if (largestDifferenceIndex == 0) {
-            float timeDiffTillEdge = (m_componentSize/2 - position.x)/velocity.x;
-            position += velocity * timeDiffTillEdge;
-            timediff -= timeDiffTillEdge;
-            return CellWall::wallRight;
+            timeDiffTillEdge = (m_componentSize/2 - position.x)/velocity.x;
+            ret = CellWall::wallRight;
         } else if (largestDifferenceIndex == 1) {
-            float timeDiffTillEdge = (-m_componentSize/2 - position.x)/velocity.x;
-            position += velocity * timeDiffTillEdge;
-            timediff -= timeDiffTillEdge;
-            return CellWall::wallLeft;
+            timeDiffTillEdge = (-m_componentSize/2 - position.x)/velocity.x;
+            ret = CellWall::wallLeft;
         } else if (largestDifferenceIndex == 2) {
-            float timeDiffTillEdge = (m_componentSize/2 - position.y)/velocity.y;
-            position += velocity * timeDiffTillEdge;
-            timediff -= timeDiffTillEdge;
-            return CellWall::wallUp;
+            timeDiffTillEdge = (m_componentSize/2 - position.y)/velocity.y;
+            ret = CellWall::wallUp;
         } else if (largestDifferenceIndex == 3) {
-            float timeDiffTillEdge = (-m_componentSize/2 - position.y)/velocity.y;
-            position += velocity * timeDiffTillEdge;
-            timediff -= timeDiffTillEdge;
-            return CellWall::wallDown;
+            timeDiffTillEdge = (-m_componentSize/2 - position.y)/velocity.y;
+            ret = CellWall::wallDown;
         } else {
             // shouldn't happen
             return CellWall::noWall;
         }
+        if (timeDiffTillEdge < 0) {
+            // shouldn't happen!
+            timediff = 0.0f;
+            return CellWall::noWall;
+        }
+        position += velocity * timeDiffTillEdge;
+        timediff -= timeDiffTillEdge;
+        return CellWall::noWall;
     }
 
     using MoveBallInCellFunc = std::function<Component::CellWall(glm::vec3 &, float &, glm::vec3 &)>;
