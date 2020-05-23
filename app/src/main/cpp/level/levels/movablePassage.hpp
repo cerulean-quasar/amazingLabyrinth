@@ -82,9 +82,11 @@ public:
         rot = glm::rotate(glm::mat4{1.0f}, -m_placements[placementIndex].rotationAngle(),
                 glm::vec3{0.0f, 0.0f, 1.0f});
         rpos4 = rot * glm::vec4{rpos.x, rpos.y, rpos.z, 0.0f};
+        rvel4 = rot * glm::vec4{rvel.x, rvel.y, 0.0f, 0.0f};
         position = glm::vec3{rpos4.x, rpos4.y, rpos4.z};
+        velocity = glm::vec3{rvel4.x, rvel4.y, 0.0f};
         if (ret != CellWall::noWall) {
-            uint32_t nbr90degreeRotations = 4-static_cast<uint32_t>(
+            uint32_t nbr90degreeRotations = static_cast<uint32_t>(
                     std::floor(m_placements[placementIndex].rotationAngle()/glm::radians(90.0f)));
             ret = static_cast<CellWall>((ret + nbr90degreeRotations) % (CellWall::wallMax+1));
         }

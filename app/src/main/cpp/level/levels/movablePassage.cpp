@@ -274,16 +274,20 @@ void MovablePassage::initDone() {
     // place the passage components in the off board sections
     auto it1 = m_components.begin();
     auto end1 = m_components.end();
+    if (it1 == end1) {
+        throw std::runtime_error("MovablePassage components not initialized properly");
+    }
+
     auto it2 = (*it1)->placementsBegin();
     auto end2 = (*it1)->placementsEnd();
     uint32_t m = 0;
     bool finished = false;
     for (uint32_t k = 0; k < m_gameBoard.heightInTiles() && !finished; k++){
-        for (uint32_t l = 0; l < m_gameBoard.widthInTiles(); ) {
-            if (it1 != end1 && ((*it1)->type() != Component::ComponentType::straight &&
+        for (uint32_t l = 0; l < m_gameBoard.widthInTiles(); /* increment in loop */) {
+            if (((*it1)->type() != Component::ComponentType::straight &&
                     (*it1)->type() != Component::ComponentType::tjunction &&
                     (*it1)->type() != Component::ComponentType::turn &&
-                    (*it1)->type() != Component::ComponentType::crossjunction)) {
+                    (*it1)->type() != Component::ComponentType::crossjunction) || it2 == end2 ) {
                 it1++;
 
                 if (it1 == end1) {
@@ -297,7 +301,11 @@ void MovablePassage::initDone() {
                 continue;
             }
             auto &block = m_gameBoard.block(k,l);
-            if (it2 != end2 && block.blockType() == GameBoardBlock::BlockType::offBoard && block.component() == nullptr) {
+            if (block.blockType() != GameBoardBlock::BlockType::offBoard || block.component() != nullptr) {
+                l++;
+                continue;
+            }
+            if (it2 != end2) {
                 if (!it2->lockedIntoPlace()) {
                     block.setComponent(*it1, m);
                     it2->setRC(k, l);
@@ -306,18 +314,6 @@ void MovablePassage::initDone() {
                     l++;
                 }
                 it2++;
-            }
-            if (it2 == end2) {
-                it1++;
-
-                if (it1 == end1) {
-                    finished = true;
-                    break;
-                }
-
-                m = 0;
-                it2 = (*it1)->placementsBegin();
-                end2 = (*it1)->placementsEnd();
             }
         }
     }
@@ -368,72 +364,73 @@ bool MovablePassage::updateData() {
 
     glm::vec3 position = m_ball.position;
     glm::vec3 prevPosition = position;
-    glm::vec3 velocity = getUpdatedVelocity(m_ball.acceleration, timeDiff);
-    while (timeDiff > 0.0f) {
-        glm::vec3 posFromCenter = m_gameBoard.position(m_ballRow, m_ballCol) - position;
+    m_ball.velocity = getUpdatedVelocity(m_ball.acceleration, timeDiff);
+    while (timeDiff >= 0.0f) {
+        glm::vec3 posFromCenter = position - m_gameBoard.position(m_ballRow, m_ballCol);
         auto &block = m_gameBoard.block(m_ballRow, m_ballCol);
         Component::CellWall wall = block.component()->moveBallInCell(
-                block.placementIndex(), posFromCenter, timeDiff, velocity);
+                block.placementIndex(), posFromCenter, timeDiff, m_ball.velocity);
         size_t ballRowNext = m_ballRow;
         size_t ballColNext = m_ballCol;
-        Component::CellWall wallNextCell;
+        Component::CellWall wallNextCell = Component::CellWall::noWall;
         switch (wall) {
         case Component::CellWall::noWall:
-            m_ball.position = m_gameBoard.position(m_ballRow, m_ballCol) - posFromCenter;
-            m_ball.prevPosition = prevPosition;
+            m_ball.position = m_gameBoard.position(m_ballRow, m_ballCol) + posFromCenter;
             return drawingNecessary();
         case Component::CellWall::wallRight:
-            if (ballRowNext != m_gameBoard.widthInTiles() - 1) {
-                ballRowNext++;
+            if (ballColNext != m_gameBoard.heightInTiles() - 1) {
+                ballColNext++;
                 wallNextCell = Component::CellWall::wallLeft;
+            } else {
+                m_ball.velocity = {0.0f, 0.0f, 0.0f};
+                return drawingNecessary();
             }
             break;
         case Component::CellWall::wallUp:
-            if (ballColNext != m_gameBoard.heightInTiles() - 1) {
-                ballColNext++;
+            if (ballRowNext != m_gameBoard.widthInTiles() - 1) {
+                ballRowNext++;
                 wallNextCell = Component::CellWall::wallDown;
+            } else {
+                m_ball.velocity = {0.0f, 0.0f, 0.0f};
+                return drawingNecessary();
             }
             break;
         case Component::CellWall::wallLeft:
-            if (ballRowNext != 0) {
-                ballRowNext--;
+            if (ballColNext != 0) {
+                ballColNext--;
                 wallNextCell = Component::CellWall::wallRight;
+            } else {
+                m_ball.velocity = {0.0f, 0.0f, 0.0f};
+                return drawingNecessary();
             }
             break;
         case Component::CellWall::wallDown:
-            if (ballColNext != 0) {
-                ballColNext--;
+            if (ballRowNext != 0) {
+                ballRowNext--;
                 wallNextCell = Component::CellWall::wallUp;
+            } else {
+                m_ball.velocity = {0.0f, 0.0f, 0.0f};
+                return drawingNecessary();
             }
-        }
-
-        // the ball is rolling off the game board area - move to the edge and return
-        if (m_ballRow == ballRowNext && m_ballCol == ballColNext) {
-            m_ball.position = m_gameBoard.position(m_ballRow, m_ballCol) - posFromCenter;
-            m_ball.prevPosition = prevPosition;
-            m_ball.velocity = {0.0f, 0.0f, 0.0f};
-            return drawingNecessary();
         }
 
         auto &nextBlock = m_gameBoard.block(ballRowNext, ballColNext);
         if (nextBlock.blockType() == GameBoardBlock::BlockType::end) {
             // winning condition.  Set m_finished and return that drawing is necessary.
             m_finished = true;
-            m_ball.position = m_gameBoard.position(m_ballRow, m_ballCol) - posFromCenter;
+            m_ball.position = m_gameBoard.position(m_ballRow, m_ballCol) + posFromCenter;
             return true;
         } else if (nextBlock.blockType() == GameBoardBlock::BlockType::offBoard ||
                    nextBlock.component() == nullptr) {
             // hit the edge of the game board or there is no component for the ball to
             // move into, stop the ball at the edge of the cell and return
-            m_ball.position = m_gameBoard.position(m_ballRow, m_ballCol) - posFromCenter;
-            m_ball.prevPosition = prevPosition;
+            m_ball.position = m_gameBoard.position(m_ballRow, m_ballCol) + posFromCenter;
             m_ball.velocity = {0.0f, 0.0f, 0.0f};
             return drawingNecessary();
         } else if (block.blockType() == GameBoardBlock::BlockType::begin &&
                    nextBlock.blockType() == GameBoardBlock::BlockType::begin) {
             // advance the ball into the next cell, but don't track its path
-            m_ball.position = m_gameBoard.position(m_ballRow, m_ballCol) - posFromCenter;
-            m_ball.prevPosition = prevPosition;
+            m_ball.position = m_gameBoard.position(m_ballRow, m_ballCol) + posFromCenter;
             m_ballCol = ballColNext;
             m_ballRow = ballRowNext;
             continue;
@@ -482,7 +479,6 @@ bool MovablePassage::updateData() {
     updateRotation(timeDiff);
 
     return drawingNecessary();
-
 }
 
 bool MovablePassage::updateStaticDrawObjects(DrawObjectTable &objs, TextureMap &textures) {
@@ -591,6 +587,7 @@ bool MovablePassage::updateStaticDrawObjects(DrawObjectTable &objs, TextureMap &
 
 bool MovablePassage::updateDynamicDrawObjects(DrawObjectTable &objs, TextureMap &textures, bool &texturesChanged) {
     glm::vec3 zaxis{0.0f, 0.0f, 1.0f};
+    float scaleBall = m_gameBoard.blockSize()/m_modelSize/2.0f;
     if (objs.empty()) {
         std::pair<std::vector<Vertex>, std::vector<uint32_t>> v;
         for (auto const &component: m_components) {
@@ -624,6 +621,7 @@ bool MovablePassage::updateDynamicDrawObjects(DrawObjectTable &objs, TextureMap 
             objs.push_back(std::make_pair(obj, std::shared_ptr<DrawObjectData>()));
         }
 
+        // the ball
         auto obj = std::make_shared<DrawObject>();
         loadModel(m_gameRequester->getAssetStream(m_ballModel), v);
         std::swap(v.first, obj->vertices);
@@ -633,7 +631,7 @@ bool MovablePassage::updateDynamicDrawObjects(DrawObjectTable &objs, TextureMap 
         obj->modelMatrices.push_back(
                 glm::translate(glm::mat4(1.0f), m_ball.position) *
                 glm::mat4_cast(m_ball.totalRotated) *
-                glm::scale(glm::mat4(1.0f), glm::vec3{m_scaleBall, m_scaleBall, m_scaleBall}));
+                glm::scale(glm::mat4(1.0f), glm::vec3{scaleBall, scaleBall, scaleBall}));
         m_objsReferenceBall = objs.size();
         objs.emplace_back(obj, std::shared_ptr<DrawObjectData>());
         texturesChanged = true;
@@ -678,10 +676,11 @@ bool MovablePassage::updateDynamicDrawObjects(DrawObjectTable &objs, TextureMap 
                     glm::scale(glm::mat4(1.0f), glm::vec3{size, size, size});
         }
 
+        // the ball
         objs[m_objsReferenceBall].first->modelMatrices[0] =
                 glm::translate(glm::mat4(1.0f), m_ball.position) *
                 glm::mat4_cast(m_ball.totalRotated) *
-                glm::scale(glm::mat4(1.0f), glm::vec3{m_scaleBall, m_scaleBall, m_scaleBall});
+                glm::scale(glm::mat4(1.0f), glm::vec3{scaleBall, scaleBall, scaleBall});
 
         texturesChanged = false;
     }
