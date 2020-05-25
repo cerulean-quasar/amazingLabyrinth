@@ -71,24 +71,34 @@ public:
         maxComponentType = 8
     };
 
-    CellWall moveBallInCell(size_t placementIndex, glm::vec3 &position, float &timediff, glm::vec3 &velocity) {
-        glm::mat4 rot = glm::rotate(glm::mat4{1.0f}, m_placements[placementIndex].rotationAngle(),
+    std::pair<CellWall, CellWall> moveBallInCell(
+            size_t placementIndex,
+            glm::vec3 &position,
+            float &timediff,
+            glm::vec3 &velocity)
+    {
+        glm::mat4 rot = glm::rotate(glm::mat4{1.0f}, -m_placements[placementIndex].rotationAngle(),
                 glm::vec3{0.0f, 0.0f, 1.0f});
-        glm::vec4 rpos4 = rot * glm::vec4{position.x, position.y, position.z, 0.0f};
+        glm::vec4 rpos4 = rot * glm::vec4{position.x, position.y, 0.0f, 0.0f};
         glm::vec4 rvel4 = rot * glm::vec4{velocity.x, velocity.y, 0.0f, 0.0f};
-        glm::vec3 rpos = glm::vec3{rpos4.x, rpos4.y, rpos4.z};
-        glm::vec3 rvel = glm::vec3{rvel4.x, rvel4.y, rvel4.z};
-        CellWall ret = moveBallInCellFuncs[m_componentType](rpos, timediff, rvel);
-        rot = glm::rotate(glm::mat4{1.0f}, -m_placements[placementIndex].rotationAngle(),
+        glm::vec3 rpos = glm::vec3{rpos4.x, rpos4.y, 0.0f};
+        glm::vec3 rvel = glm::vec3{rvel4.x, rvel4.y, 0.0f};
+        auto ret = moveBallInCellFuncs[m_componentType](rpos, timediff, rvel);
+        rot = glm::rotate(glm::mat4{1.0f}, m_placements[placementIndex].rotationAngle(),
                 glm::vec3{0.0f, 0.0f, 1.0f});
-        rpos4 = rot * glm::vec4{rpos.x, rpos.y, rpos.z, 0.0f};
+        rpos4 = rot * glm::vec4{rpos.x, rpos.y, 0.0f, 0.0f};
         rvel4 = rot * glm::vec4{rvel.x, rvel.y, 0.0f, 0.0f};
-        position = glm::vec3{rpos4.x, rpos4.y, rpos4.z};
+        position = glm::vec3{rpos4.x, rpos4.y, 0.0f};
         velocity = glm::vec3{rvel4.x, rvel4.y, 0.0f};
-        if (ret != CellWall::noWall) {
+        if (ret.first != CellWall::noWall) {
             uint32_t nbr90degreeRotations = static_cast<uint32_t>(
                     std::floor(m_placements[placementIndex].rotationAngle()/glm::radians(90.0f)));
-            ret = static_cast<CellWall>((ret + nbr90degreeRotations) % (CellWall::wallMax+1));
+            ret.first = static_cast<CellWall>((ret.first + nbr90degreeRotations) % (CellWall::wallMax+1));
+        }
+        if (ret.second != CellWall::noWall) {
+            uint32_t nbr90degreeRotations = static_cast<uint32_t>(
+                    std::floor(m_placements[placementIndex].rotationAngle()/glm::radians(90.0f)));
+            ret.second = static_cast<CellWall>((ret.second + nbr90degreeRotations) % (CellWall::wallMax+1));
         }
         return ret;
     }
@@ -112,73 +122,187 @@ public:
         }
     }
 
-    CellWall moveBallInOpenArea(glm::vec3 &position, float &timediff, glm::vec3 const &velocity) {
-        glm::vec3 nextPos = position + velocity * timediff;
+    std::pair<CellWall, CellWall> moveBallInOpenArea(
+            float leftWall,
+            float rightWall,
+            float bottomWall,
+            float topWall,
+            glm::vec3 &position,
+            float &timediff,
+            glm::vec3 const &velocity)
+    {
         std::array<float, 4> differences = {
-                nextPos.x - m_componentSize/2,
-                -m_componentSize/2 - nextPos.x,
-                nextPos.y - m_componentSize/2,
-                -m_componentSize/2 - nextPos.y
+                fabs(velocity.x) < Level::m_floatErrorAmount ? -1 : (rightWall - position.x)/velocity.x,
+                fabs(velocity.x) < Level::m_floatErrorAmount ? -1 : (leftWall - position.x)/velocity.x,
+                fabs(velocity.y) < Level::m_floatErrorAmount ? -1 : (topWall - position.y)/velocity.y,
+                fabs(velocity.y) < Level::m_floatErrorAmount ? -1 : (bottomWall - position.y)/velocity.y
         };
 
-        size_t largestDifferenceIndex = 0;
-        for (size_t i = 1; i < differences.size(); i++) {
-            if (differences[i] > differences[largestDifferenceIndex]) {
+        size_t largestDifferenceIndex = differences.size();
+        for (size_t i = 0; i < differences.size(); i++) {
+            if (differences[i] < Level::m_floatErrorAmount) {
+                continue;
+            }
+            if (largestDifferenceIndex >= differences.size()) {
+                largestDifferenceIndex = i;
+                continue;
+            }
+            if (differences[i] < differences[largestDifferenceIndex])
+            {
                 largestDifferenceIndex = i;
             }
         }
 
         CellWall ret = CellWall::noWall;
-        float timeDiffTillEdge = 0.0f;
-        if (differences[largestDifferenceIndex] < 0.0f) {
+        float timeDiffTillEdge = 0;
+        if (largestDifferenceIndex >= differences.size() ||
+            differences[largestDifferenceIndex] > timediff)
+        {
             // movement within cell
-            position = nextPos;
             timeDiffTillEdge = timediff;
-        } else if (largestDifferenceIndex == 0) {
-            timeDiffTillEdge = (m_componentSize/2 - position.x)/velocity.x;
-            ret = CellWall::wallRight;
-        } else if (largestDifferenceIndex == 1) {
-            timeDiffTillEdge = (-m_componentSize/2 - position.x)/velocity.x;
-            ret = CellWall::wallLeft;
-        } else if (largestDifferenceIndex == 2) {
-            timeDiffTillEdge = (m_componentSize/2 - position.y)/velocity.y;
-            ret = CellWall::wallUp;
-        } else if (largestDifferenceIndex == 3) {
-            timeDiffTillEdge = (-m_componentSize/2 - position.y)/velocity.y;
-            ret = CellWall::wallDown;
         } else {
-            // shouldn't happen
-            return CellWall::noWall;
+            timeDiffTillEdge = differences[largestDifferenceIndex];
+            if (largestDifferenceIndex == 0) {
+                ret = CellWall::wallRight;
+            } else if (largestDifferenceIndex == 1) {
+                ret = CellWall::wallLeft;
+            } else if (largestDifferenceIndex == 2) {
+                ret = CellWall::wallUp;
+            } else if (largestDifferenceIndex == 3) {
+                ret = CellWall::wallDown;
+            }
         }
-        if (timeDiffTillEdge < 0) {
-            // shouldn't happen!
-            timediff = 0.0f;
-            return CellWall::noWall;
-        }
+
         position += velocity * timeDiffTillEdge;
         timediff -= timeDiffTillEdge;
-        return CellWall::noWall;
+
+        CellWall ret2 = CellWall::noWall;
+        if (ret == CellWall::noWall) {
+            if (position.y > topWall) {
+                ret2 = CellWall::wallUp;
+                position.y = topWall + Level::m_floatErrorAmount;
+            } else if (position.y < bottomWall) {
+                ret2 = CellWall::wallDown;
+                position.y = bottomWall - Level::m_floatErrorAmount;
+            }
+            if (position.x > rightWall) {
+                ret2 = CellWall::wallRight;
+                position.x = rightWall + Level::m_floatErrorAmount;
+            } else if (position.x < leftWall) {
+                ret2 = CellWall::wallLeft;
+                position.x = leftWall - Level::m_floatErrorAmount;
+            }
+        } else if (ret == CellWall::wallLeft || ret == CellWall::wallRight) {
+            if (ret == CellWall::wallRight) {
+                position.x += Level::m_floatErrorAmount;
+            } else {
+                position.x -= Level::m_floatErrorAmount;
+            }
+            if (position.y > topWall) {
+                ret2 = CellWall::wallUp;
+                position.y = topWall + Level::m_floatErrorAmount;
+            } else if (position.y < -m_componentSize/2) {
+                ret2 = CellWall::wallDown;
+                position.y = bottomWall - Level::m_floatErrorAmount;
+            }
+        } else {
+            if (ret == CellWall::wallUp) {
+                position.y += Level::m_floatErrorAmount;
+            } else {
+                position.y -= Level::m_floatErrorAmount;
+            }
+            if (position.x > rightWall) {
+                ret2 = CellWall::wallRight;
+                position.x = rightWall + Level::m_floatErrorAmount;
+            } else if (position.x < leftWall) {
+                ret2 = CellWall::wallLeft;
+                position.x = leftWall - Level::m_floatErrorAmount;
+            }
+        }
+        //keepBallInCell(ret, position);
+        return std::make_pair(ret, ret2);
     }
 
-    using MoveBallInCellFunc = std::function<Component::CellWall(glm::vec3 &, float &, glm::vec3 &)>;
+    void keepBallInCell(CellWall wall, glm::vec3 &position) {
+        switch (wall) {
+            case CellWall::noWall:
+                if (position.x > m_componentSize/2) {
+                    position.x = m_componentSize/2;
+                } else if (position.x < -m_componentSize/2) {
+                    position.x = -m_componentSize/2;
+                }
+                if (position.y > m_componentSize/2) {
+                    position.y = m_componentSize/2;
+                } else if (position.y < -m_componentSize/2) {
+                    position.y = -m_componentSize/2;
+                }
+                break;
+            case CellWall::wallUp:
+                if (position.x > m_componentSize/2) {
+                    position.x = m_componentSize/2;
+                } else if (position.x < -m_componentSize/2) {
+                    position.x = -m_componentSize/2;
+                }
+                if (position.y < -m_componentSize/2) {
+                    position.y = -m_componentSize/2;
+                }
+                position.y += Level::m_floatErrorAmount;
+                break;
+            case CellWall::wallDown:
+                if (position.x > m_componentSize/2) {
+                    position.x = m_componentSize/2;
+                } else if (position.x < -m_componentSize/2) {
+                    position.x = -m_componentSize/2;
+                }
+                if (position.y > m_componentSize/2) {
+                    position.y = m_componentSize/2;
+                }
+                position.y -= Level::m_floatErrorAmount;
+                break;
+            case CellWall::wallRight:
+                if (position.x < -m_componentSize/2) {
+                    position.x = -m_componentSize/2;
+                }
+                if (position.y > m_componentSize/2) {
+                    position.y = m_componentSize/2;
+                } else if (position.y < -m_componentSize/2) {
+                    position.y = -m_componentSize/2;
+                }
+                position.x += Level::m_floatErrorAmount;
+                break;
+            case CellWall::wallLeft:
+                if (position.x > m_componentSize/2) {
+                    position.x = m_componentSize/2;
+                }
+                if (position.y > m_componentSize/2) {
+                    position.y = m_componentSize/2;
+                } else if (position.y > -m_componentSize/2) {
+                    position.y = -m_componentSize/2;
+                }
+                position.x -= Level::m_floatErrorAmount;
+                break;
+        }
+    }
+
+    using MoveBallInCellFunc = std::function<std::pair<CellWall, CellWall>(glm::vec3 &, float &, glm::vec3 &)>;
     std::array<MoveBallInCellFunc, ComponentType::maxComponentAllowingBall + 1> const moveBallInCellFuncs = {
         // straight
         MoveBallInCellFunc(
-            [&](glm::vec3 &position, float &timediff, glm::vec3 &velocity) -> Component::CellWall {
+            [&](glm::vec3 &position, float &timediff, glm::vec3 &velocity) -> std::pair<CellWall, CellWall> {
                 position.x = 0.0f;
                 bool ret = moveBall(position.y, timediff, -m_componentSize/2, m_componentSize/2, velocity.y);
                 if (ret && position.y >= m_componentSize/2.0f) {
-                    return CellWall::wallUp;
+                    return std::make_pair(CellWall::wallUp, CellWall::noWall);
                 } else if (ret && position.y <= -m_componentSize/2.0f) {
-                    return CellWall::wallDown;
+                    return std::make_pair(CellWall::wallDown, CellWall::noWall);
                 } else {
-                    return CellWall::noWall;
+                    return std::make_pair(CellWall::noWall, CellWall::noWall);
                 }
             }),
 
         // T-Junction
         MoveBallInCellFunc(
-            [&](glm::vec3 &position, float &timediff, glm::vec3 &velocity) -> Component::CellWall {
+            [&](glm::vec3 &position, float &timediff, glm::vec3 &velocity) -> std::pair<CellWall, CellWall> {
                 if (position.y > 0.0f) {
                     position.y = 0.0f;
                 }
@@ -188,18 +312,18 @@ public:
                         bool ret = moveBall(position.x, timediff, -m_componentSize/2,
                                 m_componentSize/2, velocity.x);
                         if (ret && position.x <= -m_componentSize/2) {
-                            return CellWall::wallLeft;
+                            return std::make_pair(CellWall::wallLeft, CellWall::wallRight);
                         } else if (ret && position.x >= m_componentSize/2) {
-                            return CellWall::wallRight;
+                            return std::make_pair(CellWall::wallRight, CellWall::noWall);
                         } else {
-                            return CellWall::noWall;
+                            return std::make_pair(CellWall::noWall, CellWall::noWall);
                         }
                     } else {
                         bool ret = moveBall(position.y, timediff, -m_componentSize/2, 0.0f, velocity.y);
                         if (ret && position.y <= -m_componentSize/2) {
-                            return CellWall::wallDown;
+                            return std::make_pair(CellWall::wallDown, CellWall::noWall);
                         } else {
-                            return CellWall::noWall;
+                            return std::make_pair(CellWall::noWall, CellWall::noWall);
                         }
                     }
                 }
@@ -211,9 +335,9 @@ public:
                     if (ret && position.y == 0.0f) {
                         return moveBallInCellFuncs[ComponentType::tjunction](position, timediff, velocity);
                     } else if (ret) {
-                        return CellWall::wallDown;
+                        return std::make_pair(CellWall::wallDown, CellWall::noWall);
                     } else {
-                        return CellWall::noWall;
+                        return std::make_pair(CellWall::noWall, CellWall::noWall);
                     }
                 }
 
@@ -224,9 +348,9 @@ public:
                     if (ret && position.x == 0.0f) {
                         return moveBallInCellFuncs[ComponentType::tjunction](position, timediff, velocity);
                     } else if (ret) {
-                        return CellWall::wallLeft;
+                        return std::make_pair(CellWall::wallLeft, CellWall::noWall);
                     } else {
-                        return CellWall::noWall;
+                        return std::make_pair(CellWall::noWall, CellWall::noWall);
                     }
                 }
 
@@ -237,36 +361,36 @@ public:
                     if (ret && position.x == 0.0f) {
                         return moveBallInCellFuncs[ComponentType::tjunction](position, timediff, velocity);
                     } else if (ret) {
-                        return CellWall::wallRight;
+                        return std::make_pair(CellWall::wallRight, CellWall::noWall);
                     } else {
-                        return CellWall::noWall;
+                        return std::make_pair(CellWall::noWall, CellWall::noWall);
                     }
                 }
-                return CellWall::noWall;
+                return std::make_pair(CellWall::noWall, CellWall::noWall);
             }),
 
         // cross junction
         MoveBallInCellFunc(
-            [&](glm::vec3 &position, float &timediff, glm::vec3 &velocity) -> Component::CellWall {
+            [&](glm::vec3 &position, float &timediff, glm::vec3 &velocity) -> std::pair<CellWall, CellWall> {
                 if (position.y == 0.0f && position.x == 0.0f) {
                     if (std::fabs(velocity.x) > std::fabs(velocity.y)) {
                         bool ret = moveBall(position.x, timediff, -m_componentSize/2,
                                             m_componentSize/2, velocity.x);
                         if (ret && position.x <= -m_componentSize/2) {
-                            return CellWall::wallLeft;
+                            return std::make_pair(CellWall::wallLeft, CellWall::noWall);
                         } else if (ret && position.x >= m_componentSize/2) {
-                            return CellWall::wallRight;
+                            return std::make_pair(CellWall::wallRight, CellWall::noWall);
                         } else {
-                            return CellWall::noWall;
+                            return std::make_pair(CellWall::noWall, CellWall::noWall);
                         }
                     } else {
                         bool ret = moveBall(position.y, timediff, -m_componentSize/2, m_componentSize/2, velocity.y);
                         if (ret && position.y <= -m_componentSize/2) {
-                            return CellWall::wallDown;
+                            return std::make_pair(CellWall::wallDown, CellWall::noWall);
                         } else if (ret) {
-                            return CellWall::wallUp;
+                            return std::make_pair(CellWall::wallUp, CellWall::noWall);
                         } else {
-                            return CellWall::noWall;
+                            return std::make_pair(CellWall::noWall, CellWall::noWall);
                         }
                     }
                 }
@@ -276,9 +400,9 @@ public:
                     if (ret && position.y == 0.0f) {
                         return moveBallInCellFuncs[ComponentType::tjunction](position, timediff, velocity);
                     } else if (ret) {
-                        return CellWall::wallDown;
+                        return std::make_pair(CellWall::wallDown, CellWall::noWall);
                     } else {
-                        return CellWall::noWall;
+                        return std::make_pair(CellWall::noWall, CellWall::noWall);
                     }
                 }
                 if (position.y > 0.0f) {
@@ -287,9 +411,9 @@ public:
                     if (ret && position.y == 0.0f) {
                         return moveBallInCellFuncs[ComponentType::tjunction](position, timediff, velocity);
                     } else if (ret) {
-                        return CellWall::wallUp;
+                        return std::make_pair(CellWall::wallUp, CellWall::noWall);
                     } else {
-                        return CellWall::noWall;
+                        return std::make_pair(CellWall::noWall, CellWall::noWall);
                     }
                 }
                 if (position.x < 0.0f) {
@@ -298,9 +422,9 @@ public:
                     if (ret && position.x == 0.0f) {
                         return moveBallInCellFuncs[ComponentType::tjunction](position, timediff, velocity);
                     } else if (ret) {
-                        return CellWall::wallLeft;
+                        return std::make_pair(CellWall::wallLeft, CellWall::noWall);
                     } else {
-                        return CellWall::noWall;
+                        return std::make_pair(CellWall::noWall, CellWall::noWall);
                     }
                 }
                 if (position.x > 0.0f) {
@@ -309,18 +433,18 @@ public:
                     if (ret && position.x == 0.0f) {
                         return moveBallInCellFuncs[ComponentType::tjunction](position, timediff, velocity);
                     } else if (ret) {
-                        return CellWall::wallRight;
+                        return std::make_pair(CellWall::wallRight, CellWall::noWall);
                     } else {
-                        return CellWall::noWall;
+                        return std::make_pair(CellWall::noWall, CellWall::noWall);
                     }
                 }
 
-                return CellWall::noWall;
+                return std::make_pair(CellWall::noWall, CellWall::noWall);
             }),
 
         // turn
         MoveBallInCellFunc(
-            [&](glm::vec3 &position, float &timediff, glm::vec3 &velocity) -> Component::CellWall {
+            [&](glm::vec3 &position, float &timediff, glm::vec3 &velocity) -> std::pair<CellWall, CellWall> {
                 if (position.y > 0.0f) {
                     position.y = 0.0f;
                 }
@@ -333,18 +457,18 @@ public:
                         bool ret = moveBall(position.x, timediff, -m_componentSize/2,
                                             m_componentSize/2, velocity.x);
                         if (ret && position.x <= -m_componentSize/2) {
-                            return CellWall::wallLeft;
+                            return std::make_pair(CellWall::wallLeft, CellWall::noWall);
                         } else if (ret && position.x >= m_componentSize/2) {
-                            return CellWall::wallRight;
+                            return std::make_pair(CellWall::wallRight, CellWall::noWall);
                         } else {
-                            return CellWall::noWall;
+                            return std::make_pair(CellWall::noWall, CellWall::noWall);
                         }
                     } else {
                         bool ret = moveBall(position.y, timediff, -m_componentSize/2, 0.0f, velocity.y);
                         if (ret && position.y <= -m_componentSize/2) {
-                            return CellWall::wallDown;
+                            return std::make_pair(CellWall::wallDown, CellWall::noWall);
                         } else {
-                            return CellWall::noWall;
+                            return std::make_pair(CellWall::noWall, CellWall::noWall);
                         }
                     }
                 }
@@ -356,9 +480,9 @@ public:
                     if (ret && position.y == 0.0f) {
                         return moveBallInCellFuncs[ComponentType::tjunction](position, timediff, velocity);
                     } else if (ret) {
-                        return CellWall::wallDown;
+                        return std::make_pair(CellWall::wallDown, CellWall::noWall);
                     } else {
-                        return CellWall::noWall;
+                        return std::make_pair(CellWall::noWall, CellWall::noWall);
                     }
                 }
 
@@ -369,43 +493,72 @@ public:
                     if (ret && position.x == 0.0f) {
                         return moveBallInCellFuncs[ComponentType::tjunction](position, timediff, velocity);
                     } else if (ret) {
-                        return CellWall::wallRight;
+                        return std::make_pair(CellWall::wallRight, CellWall::noWall);
                     } else {
-                        return CellWall::noWall;
+                        return std::make_pair(CellWall::noWall, CellWall::noWall);
                     }
                 }
 
-                return CellWall::noWall;
+                return std::make_pair(CellWall::noWall, CellWall::noWall);
             }),
 
         // open area
         MoveBallInCellFunc(
-            [&](glm::vec3 &position, float &timediff, glm::vec3 &velocity) -> Component::CellWall {
-                return moveBallInOpenArea(position, timediff, velocity);
+            [&](glm::vec3 &position, float &timediff, glm::vec3 &velocity) -> std::pair<CellWall, CellWall> {
+                return moveBallInOpenArea(-m_componentSize/2, m_componentSize/2,
+                                          -m_componentSize/2, m_componentSize/2,
+                                          position, timediff, velocity);
             }),
 
         // closed bottom
         MoveBallInCellFunc(
-            [&](glm::vec3 &position, float &timediff, glm::vec3 &velocity) -> Component::CellWall {
-                CellWall wall = moveBallInOpenArea(position, timediff, velocity);
-                if (wall == CellWall::wallDown) {
+            [&](glm::vec3 &position, float &timediff, glm::vec3 &velocity) -> std::pair<CellWall, CellWall> {
+                auto walls = moveBallInOpenArea(-m_componentSize/2, m_componentSize/2,
+                        0.0f, m_componentSize/2,
+                        position, timediff, velocity);
+                if (walls.first == CellWall::wallDown) {
                     timediff = 0.0f;
-                    velocity = {0.0f, 0.0f, 0.0f};
-                    return CellWall::noWall;
+                    velocity.y = 0.0f;
+                    position.y = 0.0f;
+                    walls.first = CellWall::noWall;
+                } else if (walls.second == CellWall::wallDown) {
+                    timediff = 0.0f;
+                    velocity.y = 0.0f;
+                    position.y = 0.0f;
+                    walls.second = CellWall::noWall;
                 }
-                return wall;
+                return walls;
             }),
 
         // closed corner
         MoveBallInCellFunc(
-            [&](glm::vec3 &position, float &timediff, glm::vec3 &velocity) -> Component::CellWall {
-                CellWall wall = moveBallInOpenArea(position, timediff, velocity);
-                if (wall == CellWall::wallDown || wall == CellWall::wallLeft) {
+            [&](glm::vec3 &position, float &timediff, glm::vec3 &velocity) -> std::pair<CellWall, CellWall>{
+                auto walls = moveBallInOpenArea(0.0f, m_componentSize/2,
+                                                0.0f, m_componentSize/2,
+                                                position, timediff, velocity);
+                if (walls.first == CellWall::wallDown || walls.first == CellWall::wallLeft) {
                     timediff = 0.0f;
-                    velocity = {0.0f, 0.0f, 0.0f};
-                    return CellWall::noWall;
+                    if (walls.first == CellWall::wallDown) {
+                        velocity.y = 0.0f;
+                        position.y = 0.0f;
+                    } else {
+                        velocity.x = 0.0f;
+                        position.x = 0.0f;
+                    }
+                    walls.first = CellWall::noWall;
                 }
-                return wall;
+                if (walls.second == CellWall::wallDown || walls.second == CellWall::wallLeft) {
+                    timediff = 0.0f;
+                    if (walls.second == CellWall::wallDown) {
+                        velocity.y = 0.0f;
+                        position.y = 0.0f;
+                    } else {
+                        velocity.x = 0.0f;
+                        position.x = 0.0f;
+                    }
+                    walls.second = CellWall::noWall;
+                }
+                return walls;
             })
     };
 

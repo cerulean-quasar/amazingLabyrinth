@@ -162,6 +162,7 @@ void MovablePassage::initSetGameBoard(
     m_gameBoardEndRowColumn.first = GameBoard::m_nbrTileRowsForStart + nbrTilesY + nbrExtraTileRowsY/2 - 1;
     m_gameBoardEndRowColumn.second = nbrTilesX + nbrExtraTileRowsX/2 - 1;
 
+    m_scaleBall = tileSize/2.0f/m_originalBallDiameter;
     m_gameBoard.initialize(
             tileSize,
             glm::vec3{0.0f, 0.0f, m_mazeFloorZ},
@@ -353,6 +354,55 @@ void MovablePassage::initDone() {
     m_initDone = true;
 }
 
+Component::CellWall nextCellWall(
+        Component::CellWall wall,
+        size_t nbrRows,
+        size_t nbrCols,
+        size_t &ballRowNext,
+        size_t &ballColNext)
+{
+    switch (wall) {
+        case Component::CellWall::noWall:
+            return Component::CellWall ::noWall;
+        case Component::CellWall::wallRight:
+            if (ballColNext != nbrCols - 1) {
+                ballColNext++;
+                return Component::CellWall::wallLeft;
+            } else {
+                return Component::CellWall::noWall;
+            }
+        case Component::CellWall::wallUp:
+            if (ballRowNext != nbrRows - 1) {
+                ballRowNext++;
+                return Component::CellWall::wallDown;
+            } else {
+                return Component::CellWall::noWall;
+            }
+        case Component::CellWall::wallLeft:
+            if (ballColNext != 0) {
+                ballColNext--;
+                return Component::CellWall::wallRight;
+            } else {
+                return Component::CellWall::noWall;
+            }
+        case Component::CellWall::wallDown:
+            if (ballRowNext != 0) {
+                ballRowNext--;
+                return Component::CellWall::wallUp;
+            } else {
+                return Component::CellWall::noWall;
+            }
+    }
+}
+
+void confineBall(float cellSize, float &posFromCenter) {
+    if (posFromCenter > cellSize/2) {
+        posFromCenter = cellSize/2 - Level::m_floatErrorAmount;
+    } else if (posFromCenter < -cellSize/2) {
+        posFromCenter = cellSize/2 - Level::m_floatErrorAmount;
+    }
+}
+
 bool MovablePassage::updateData() {
     if (!m_initDone) {
         return false;
@@ -365,57 +415,56 @@ bool MovablePassage::updateData() {
     glm::vec3 position = m_ball.position;
     glm::vec3 prevPosition = position;
     m_ball.velocity = getUpdatedVelocity(m_ball.acceleration, timeDiff);
+    if (glm::length(m_ball.velocity) < m_floatErrorAmount) {
+        return false;
+    }
+
+    uint32_t nbrComputations = 0;
     while (timeDiff >= 0.0f) {
+        nbrComputations ++;
+        if (nbrComputations > 200) {
+            break;
+        }
         glm::vec3 posFromCenter = position - m_gameBoard.position(m_ballRow, m_ballCol);
+        if (fabs(posFromCenter.x) >= m_gameBoard.blockSize()/2 + 0.001f ||
+            fabs(posFromCenter.y) >= m_gameBoard.blockSize()/2 + 0.001f) {
+            // shouldn't happen
+            return drawingNecessary();
+        }
+
         auto &block = m_gameBoard.block(m_ballRow, m_ballCol);
-        Component::CellWall wall = block.component()->moveBallInCell(
+        auto walls = block.component()->moveBallInCell(
                 block.placementIndex(), posFromCenter, timeDiff, m_ball.velocity);
+        if (fabs(posFromCenter.x) >= m_gameBoard.blockSize()/2 + 0.001f &&
+            fabs(posFromCenter.y) >= m_gameBoard.blockSize()/2 + 0.001f) {
+            // shouldn't happen
+            return drawingNecessary();
+        }
         size_t ballRowNext = m_ballRow;
         size_t ballColNext = m_ballCol;
-        Component::CellWall wallNextCell = Component::CellWall::noWall;
-        switch (wall) {
-        case Component::CellWall::noWall:
+        std::pair<Component::CellWall, Component::CellWall> wallsNextCell;
+        if (walls.first == Component::CellWall::noWall &&
+            walls.second == Component::CellWall::noWall) {
+            m_ball.position = m_gameBoard.position(m_ballRow, m_ballCol) + posFromCenter;
+            if (checkBallBorders(m_ball.position, m_ball.velocity)) {
+                // shouldn't happen
+                return drawingNecessary();
+            }
+            return drawingNecessary();
+        }
+
+        wallsNextCell.first = nextCellWall(walls.first, m_gameBoard.heightInTiles(),
+            m_gameBoard.widthInTiles(), ballRowNext, ballColNext);
+        wallsNextCell.second = nextCellWall(walls.second, m_gameBoard.heightInTiles(),
+            m_gameBoard.widthInTiles(), ballRowNext, ballColNext);
+        if ((wallsNextCell.first == Component::CellWall::noWall && walls.first != Component::CellWall::noWall) ||
+                (wallsNextCell.second == Component::CellWall::noWall && walls.second != Component::CellWall::noWall)) {
+            // shouldn't happen
+            m_ball.velocity = {0.0f, 0.0f, 0.0f};
+            confineBall(m_gameBoard.blockSize(), posFromCenter.x);
+            confineBall(m_gameBoard.blockSize(), posFromCenter.y);
             m_ball.position = m_gameBoard.position(m_ballRow, m_ballCol) + posFromCenter;
             return drawingNecessary();
-        case Component::CellWall::wallRight:
-            if (ballColNext != m_gameBoard.widthInTiles() - 1) {
-                ballColNext++;
-                wallNextCell = Component::CellWall::wallLeft;
-            } else {
-                m_ball.velocity = {0.0f, 0.0f, 0.0f};
-                m_ball.position = m_gameBoard.position(m_ballRow, m_ballCol) + posFromCenter;
-                return drawingNecessary();
-            }
-            break;
-        case Component::CellWall::wallUp:
-            if (ballRowNext != m_gameBoard.heightInTiles() - 1) {
-                ballRowNext++;
-                wallNextCell = Component::CellWall::wallDown;
-            } else {
-                m_ball.velocity = {0.0f, 0.0f, 0.0f};
-                m_ball.position = m_gameBoard.position(m_ballRow, m_ballCol) + posFromCenter;
-                return drawingNecessary();
-            }
-            break;
-        case Component::CellWall::wallLeft:
-            if (ballColNext != 0) {
-                ballColNext--;
-                wallNextCell = Component::CellWall::wallRight;
-            } else {
-                m_ball.velocity = {0.0f, 0.0f, 0.0f};
-                m_ball.position = m_gameBoard.position(m_ballRow, m_ballCol) + posFromCenter;
-                return drawingNecessary();
-            }
-            break;
-        case Component::CellWall::wallDown:
-            if (ballRowNext != 0) {
-                ballRowNext--;
-                wallNextCell = Component::CellWall::wallUp;
-            } else {
-                m_ball.velocity = {0.0f, 0.0f, 0.0f};
-                m_ball.position = m_gameBoard.position(m_ballRow, m_ballCol) + posFromCenter;
-                return drawingNecessary();
-            }
         }
 
         auto &nextBlock = m_gameBoard.block(ballRowNext, ballColNext);
@@ -424,7 +473,7 @@ bool MovablePassage::updateData() {
             m_finished = true;
             m_ball.position = m_gameBoard.position(m_ballRow, m_ballCol) + posFromCenter;
             return true;
-        } else if (nextBlock.blockType() == GameBoardBlock::BlockType::offBoard ||
+        } else if (nextBlock.blockType() == GameBoardBlock::BlockType::offBoard &&
                    nextBlock.component() == nullptr) {
             // hit the edge of the game board or there is no component for the ball to
             // move into, stop the ball at the edge of the cell and return
@@ -434,12 +483,28 @@ bool MovablePassage::updateData() {
         } else if (block.blockType() == GameBoardBlock::BlockType::begin &&
                    nextBlock.blockType() == GameBoardBlock::BlockType::begin) {
             // advance the ball into the next cell, but don't track its path
-            m_ball.position = m_gameBoard.position(m_ballRow, m_ballCol) + posFromCenter;
+            glm::vec3 position2 = m_gameBoard.position(m_ballRow, m_ballCol) + posFromCenter;
+            glm::vec3 posFromCenter2 = position2 - m_gameBoard.position(ballRowNext, ballColNext);
+            confineBall(m_gameBoard.blockSize(), posFromCenter2.x);
+            confineBall(m_gameBoard.blockSize(), posFromCenter2.y);
+
+            position = m_gameBoard.position(m_ballRow, m_ballCol) + posFromCenter;
+
             m_ballCol = ballColNext;
             m_ballRow = ballRowNext;
-            continue;
+            m_ball.position = position2;
+            if (checkBallBorders(m_ball.position, m_ball.velocity)) {
+                // shouldn't happen
+                return drawingNecessary();
+            }
+            return  drawingNecessary();
         }
 
+        // only begin components allow two cell transitions at a time
+        Component::CellWall wallNextCell = wallsNextCell.second;
+        if (wallsNextCell.first != Component::CellWall::noWall) {
+            wallNextCell = wallsNextCell.first;
+        }
         if (!nextBlock.component()->hasWallAt(wallNextCell, nextBlock.placementIndex())) {
             // ball allowed to advance into next door cell.  set flag to notify caller that
             // the textures have changed.  Also track the ball moving into the next component.
@@ -480,6 +545,7 @@ bool MovablePassage::updateData() {
         }
     }
 
+    m_ball.position = position;
     updateRotation(timeDiff);
 
     return drawingNecessary();
