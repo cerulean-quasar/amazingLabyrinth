@@ -166,7 +166,7 @@ public:
             bool isWallTop,
             glm::vec3 &position,
             float &timediff,
-            glm::vec3 const &velocity,
+            glm::vec3 &velocity,
             float ballRadius,
             checkForNextWallFunc checkForNextWall)
     {
@@ -218,9 +218,9 @@ public:
         CellWall wall2 = CellWall::noWall;
         if (wall1 == CellWall::noWall) {
             if (nextPos.y > topWall) {
-                wall2 = CellWall::wallUp;
+                wall1 = CellWall::wallUp;
             } else if (nextPos.y < bottomWall) {
-                wall2 = CellWall::wallDown;
+                wall1 = CellWall::wallDown;
             }
             if (nextPos.x > rightWall) {
                 wall2 = CellWall::wallRight;
@@ -241,21 +241,28 @@ public:
             }
         }
 
-        // check for hitting the end point passed in but that end point is not a wall.  Allow
+        // check for hitting the end point but that end point is not a wall.  Allow
         // advancement all the way to that wall.
-        auto checkCellWall = [&] (bool isWall, CellWall conditionalWall, float &pos, float wallPos) -> void {
+        auto checkCellWall = [&] (bool isWall, CellWall conditionalWall, float &pos, float &vel, float wallPos) -> void {
             if (!isWall && wall1 == conditionalWall) {
                 wall1 = CellWall::noWall;
                 pos = wallPos;
+                vel = 0.0f;
             } else if (!isWall && wall2 == conditionalWall) {
                 wall2 = CellWall::noWall;
                 pos = wallPos;
+                vel = 0.0f;
             }
         };
-        checkCellWall(isWallLeft, CellWall::wallLeft, nextPos.x, leftWall);
-        checkCellWall(isWallRight, CellWall::wallRight, nextPos.x, rightWall);
-        checkCellWall(isWallTop, CellWall::wallUp, nextPos.y, topWall);
-        checkCellWall(isWallBottom, CellWall::wallDown, nextPos.y, bottomWall);
+        checkCellWall(isWallLeft, CellWall::wallLeft, nextPos.x, velocity.x, leftWall);
+        checkCellWall(isWallRight, CellWall::wallRight, nextPos.x, velocity.x, rightWall);
+        checkCellWall(isWallTop, CellWall::wallUp, nextPos.y, velocity.y, topWall);
+        checkCellWall(isWallBottom, CellWall::wallDown, nextPos.y, velocity.y, bottomWall);
+
+        if (wall1 == CellWall::noWall && wall2 == CellWall::noWall) {
+            position = nextPos;
+            return std::make_pair(wall1, wall2);
+        }
 
         // check for hitting an actual wall.  Allow advancement into the next cell if there is no
         // wall there.
@@ -264,7 +271,7 @@ public:
             if (((ret.first && wall1 == wall) || (ret.second && wall2 == wall))) {
                 pos = wallPos + sign * Level::m_floatErrorAmount;
             } else if ((!ret.first && wall1 == wall) || (!ret.second && wall2 == wall)) {
-                pos = wallPos + sign * ballRadius;
+                pos = wallPos - sign * ballRadius;
             }
         };
         checkCellWall2(CellWall::wallLeft, leftWall, nextPos.x, -1);
@@ -660,6 +667,15 @@ public:
                 std::floor(m_placements[placementNumber].rotationAngle()/glm::radians(90.0f)));
         wall = static_cast<CellWall>((wall + nbr90degreeRotations) % (CellWall::wallMax+1));
         return m_cellWalls.count(wall) > 0;
+    }
+
+    CellWall actualWall(CellWall wall, size_t placementNumber) {
+        if (wall == CellWall::noWall) {
+            return wall;
+        }
+        auto nbr90degreeRotations = static_cast<uint32_t>(
+                std::floor(m_placements[placementNumber].rotationAngle()/glm::radians(90.0f)));
+        return static_cast<CellWall>((wall + nbr90degreeRotations) % (CellWall::wallMax+1));
     }
 
     bool operator==(Component const &other) { return other.m_componentType == m_componentType; }

@@ -486,18 +486,21 @@ bool MovablePassage::updateData() {
                     return rc.first != rc1.first || rc.second != rc1.second;
                 };
 
-                auto rc1 = nextRC(wall1, m_ballRow, m_ballCol);
-                auto rc2 = nextRC(wall2, m_ballRow, m_ballCol);
+                auto &bOld = m_gameBoard.block(m_ballRow, m_ballCol);
+                Component::CellWall wall1Actual = bOld.component()->actualWall(wall1, bOld.placementIndex());
+                Component::CellWall wall2Actual = bOld.component()->actualWall(wall2, bOld.placementIndex());
+                auto rc1 = nextRC(wall1Actual, m_ballRow, m_ballCol);
+                auto rc2 = nextRC(wall2Actual, m_ballRow, m_ballCol);
                 auto rcOld = std::make_pair(m_ballRow, m_ballCol);
-                if (wall1 != Component::CellWall::noWall && wall2 != Component::CellWall::noWall) {
+                if (wall1Actual != Component::CellWall::noWall && wall2Actual != Component::CellWall::noWall) {
                     // diagonal move.  try both paths to get to the diagonal cell, if either path
                     // works, return <true, true>
                     if (checkRC(rc1, rcOld)) {
-                        // path 1: wall1 then wall2.
-                        if (!hasWallAt(rc1, nextComponentWall(wall1))) {
-                            auto rcDiagonal = nextRC(wall2, rc1.first, rc1.second);
+                        // path 1: wall 1 then wall 2.
+                        if (!hasWallAt(rc1, nextComponentWall(wall1Actual))) {
+                            auto rcDiagonal = nextRC(wall2Actual, rc1.first, rc1.second);
                             if (checkRC(rcDiagonal, rc1) &&
-                                hasWallAt(rcDiagonal, nextComponentWall(wall2)))
+                                !hasWallAt(rcDiagonal, nextComponentWall(wall2Actual)))
                             {
                                 return std::make_pair(true, true);
                             }
@@ -505,19 +508,23 @@ bool MovablePassage::updateData() {
                     }
                     if (checkRC(rc2, rcOld)) {
                         // path 2: wall 2, then wall 1.
-                        if (!hasWallAt(rc2, nextComponentWall(wall2))) {
-                            auto rcDiagonal = nextRC(wall1, rc2.first, rc2.second);
-                            if (checkRC(rcDiagonal,rc2) &&
-                                hasWallAt(rcDiagonal, nextComponentWall(wall1)))
+                        if (!hasWallAt(rc2, nextComponentWall(wall2Actual))) {
+                            auto rcDiagonal = nextRC(wall1Actual, rc2.first, rc2.second);
+                            if (checkRC(rcDiagonal, rc2) &&
+                                !hasWallAt(rcDiagonal, nextComponentWall(wall1Actual)))
                             {
                                 return std::make_pair(true, true);
                             }
                         }
                     }
                 }
-                if (wall1 != Component::CellWall::noWall && checkRC(rc1, rcOld) && hasWallAt(rc1, nextComponentWall(wall1))) {
+                if (wall1Actual != Component::CellWall::noWall && checkRC(rc1, rcOld) &&
+                    !hasWallAt(rc1, nextComponentWall(wall1Actual)))
+                {
                     return std::make_pair(true, false);
-                } else  if (wall2 != Component::CellWall::noWall && checkRC(rc2, rcOld) && hasWallAt(rc2, nextComponentWall(wall2))) {
+                } else  if (wall2Actual != Component::CellWall::noWall && checkRC(rc2, rcOld) &&
+                    !hasWallAt(rc2, nextComponentWall(wall2Actual)))
+                {
                     return std::make_pair(false, true);
                 } else {
                     return std::make_pair(false, false);
@@ -534,6 +541,10 @@ bool MovablePassage::updateData() {
         }
 
         position = m_gameBoard.position(m_ballRow, m_ballCol) + posFromCenter;
+        if (walls.first == Component::noWall && walls.second == Component::noWall) {
+            m_ball.position = position;
+            return drawingNecessary();
+        }
         if (walls.first == Component::CellWall::wallLeft || walls.second == Component::CellWall::wallLeft) {
             m_ballCol--;
         } else if (walls.first == Component::CellWall::wallRight || walls.second == Component::CellWall::wallRight) {
@@ -541,7 +552,7 @@ bool MovablePassage::updateData() {
         }
         if (walls.first == Component::CellWall::wallDown || walls.second == Component::CellWall::wallDown) {
             m_ballRow--;
-        } else if (walls.first == Component::CellWall::wallDown || walls.second == Component::CellWall::wallDown) {
+        } else if (walls.first == Component::CellWall::wallUp || walls.second == Component::CellWall::wallUp) {
             m_ballRow++;
         }
 
