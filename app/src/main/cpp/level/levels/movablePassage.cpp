@@ -432,67 +432,129 @@ bool MovablePassage::updateData() {
             return drawingNecessary();
         }
 
+        Component::checkForNextWallFunc checkforNextWall{
+            [&](Component::CellWall wall1, Component::CellWall wall2)
+                -> std::pair<bool, bool>
+            {
+                auto hasWallAt = [&](std::pair<size_t, size_t> rc, Component::CellWall cellWall) -> bool {
+                    auto &b = m_gameBoard.block(rc.first, rc.second);
+                    if (b.blockType() == GameBoardBlock::BlockType::offBoard) {
+                        return true;
+                    }
+                    return b.component()->hasWallAt(cellWall, b.placementIndex());
+                };
+
+                size_t width = m_gameBoard.widthInTiles();
+                size_t height = m_gameBoard.heightInTiles();
+                auto nextRC = [width, height](Component::CellWall cellWall, size_t row, size_t col) -> std::pair<size_t, size_t> {
+                    if (cellWall == Component::CellWall::wallLeft) {
+                        if (col != 0) {
+                            col--;
+                        }
+                    } else if (cellWall == Component::CellWall::wallRight) {
+                        if (col != width - 1) {
+                            col++;
+                        }
+                    } else if (cellWall == Component::CellWall::wallDown) {
+                        if (row != 0) {
+                            row--;
+                        }
+                    } else if (cellWall == Component::CellWall::wallUp) {
+                        if (row != height - 1) {
+                            row++;
+                        }
+                    }
+                    return std::make_pair(row, col);
+                };
+
+                auto nextComponentWall = [](Component::CellWall cellWall) -> Component::CellWall {
+                    switch (cellWall) {
+                        case Component::CellWall::wallLeft:
+                            return Component::CellWall::wallRight;
+                        case Component::CellWall::wallRight:
+                            return Component::CellWall::wallLeft;
+                        case Component::CellWall::wallDown:
+                            return Component::CellWall::wallUp;
+                        case Component::CellWall::wallUp:
+                            return Component::CellWall::wallDown;
+                        case Component::CellWall::noWall:
+                            return Component::CellWall::noWall;
+                    }
+                };
+
+                auto checkRC = [] (std::pair<size_t, size_t> rc, std::pair<size_t, size_t> rc1) {
+                    return rc.first != rc1.first || rc.second != rc1.second;
+                };
+
+                auto rc1 = nextRC(wall1, m_ballRow, m_ballCol);
+                auto rc2 = nextRC(wall2, m_ballRow, m_ballCol);
+                auto rcOld = std::make_pair(m_ballRow, m_ballCol);
+                if (wall1 != Component::CellWall::noWall && wall2 != Component::CellWall::noWall) {
+                    // diagonal move.  try both paths to get to the diagonal cell, if either path
+                    // works, return <true, true>
+                    if (checkRC(rc1, rcOld)) {
+                        // path 1: wall1 then wall2.
+                        if (!hasWallAt(rc1, nextComponentWall(wall1))) {
+                            auto rcDiagonal = nextRC(wall2, rc1.first, rc1.second);
+                            if (checkRC(rcDiagonal, rc1) &&
+                                hasWallAt(rcDiagonal, nextComponentWall(wall2)))
+                            {
+                                return std::make_pair(true, true);
+                            }
+                        }
+                    }
+                    if (checkRC(rc2, rcOld)) {
+                        // path 2: wall 2, then wall 1.
+                        if (!hasWallAt(rc2, nextComponentWall(wall2))) {
+                            auto rcDiagonal = nextRC(wall1, rc2.first, rc2.second);
+                            if (checkRC(rcDiagonal,rc2) &&
+                                hasWallAt(rcDiagonal, nextComponentWall(wall1)))
+                            {
+                                return std::make_pair(true, true);
+                            }
+                        }
+                    }
+                }
+                if (wall1 != Component::CellWall::noWall && checkRC(rc1, rcOld) && hasWallAt(rc1, nextComponentWall(wall1))) {
+                    return std::make_pair(true, false);
+                } else  if (wall2 != Component::CellWall::noWall && checkRC(rc2, rcOld) && hasWallAt(rc2, nextComponentWall(wall2))) {
+                    return std::make_pair(false, true);
+                } else {
+                    return std::make_pair(false, false);
+                }
+            }
+        };
         auto &block = m_gameBoard.block(m_ballRow, m_ballCol);
         auto walls = block.component()->moveBallInCell(
-                block.placementIndex(), posFromCenter, timeDiff, m_ball.velocity);
+                block.placementIndex(), posFromCenter, timeDiff, m_ball.velocity, ballRadius(), checkforNextWall);
         if (fabs(posFromCenter.x) >= m_gameBoard.blockSize()/2 + 0.001f &&
             fabs(posFromCenter.y) >= m_gameBoard.blockSize()/2 + 0.001f) {
             // shouldn't happen
             return drawingNecessary();
         }
-        size_t ballRowNext = m_ballRow;
-        size_t ballColNext = m_ballCol;
-        std::pair<Component::CellWall, Component::CellWall> wallsNextCell;
-        if (walls.first == Component::CellWall::noWall &&
-            walls.second == Component::CellWall::noWall) {
-            m_ball.position = m_gameBoard.position(m_ballRow, m_ballCol) + posFromCenter;
-            if (checkBallBorders(m_ball.position, m_ball.velocity)) {
-                // shouldn't happen
-                return drawingNecessary();
-            }
-            return drawingNecessary();
+
+        position = m_gameBoard.position(m_ballRow, m_ballCol) + posFromCenter;
+        if (walls.first == Component::CellWall::wallLeft || walls.second == Component::CellWall::wallLeft) {
+            m_ballCol--;
+        } else if (walls.first == Component::CellWall::wallRight || walls.second == Component::CellWall::wallRight) {
+            m_ballCol++;
+        }
+        if (walls.first == Component::CellWall::wallDown || walls.second == Component::CellWall::wallDown) {
+            m_ballRow--;
+        } else if (walls.first == Component::CellWall::wallDown || walls.second == Component::CellWall::wallDown) {
+            m_ballRow++;
         }
 
-        wallsNextCell.first = nextCellWall(walls.first, m_gameBoard.heightInTiles(),
-            m_gameBoard.widthInTiles(), ballRowNext, ballColNext);
-        wallsNextCell.second = nextCellWall(walls.second, m_gameBoard.heightInTiles(),
-            m_gameBoard.widthInTiles(), ballRowNext, ballColNext);
-        if ((wallsNextCell.first == Component::CellWall::noWall && walls.first != Component::CellWall::noWall) ||
-                (wallsNextCell.second == Component::CellWall::noWall && walls.second != Component::CellWall::noWall)) {
-            // shouldn't happen
-            m_ball.velocity = {0.0f, 0.0f, 0.0f};
-            confineBall(m_gameBoard.blockSize(), posFromCenter.x);
-            confineBall(m_gameBoard.blockSize(), posFromCenter.y);
-            m_ball.position = m_gameBoard.position(m_ballRow, m_ballCol) + posFromCenter;
-            return drawingNecessary();
-        }
-
-        auto &nextBlock = m_gameBoard.block(ballRowNext, ballColNext);
+        auto &nextBlock = m_gameBoard.block(m_ballRow, m_ballCol);
         if (nextBlock.blockType() == GameBoardBlock::BlockType::end) {
             // winning condition.  Set m_finished and return that drawing is necessary.
             m_finished = true;
-            m_ball.position = m_gameBoard.position(m_ballRow, m_ballCol) + posFromCenter;
+            m_ball.position = position;
             return true;
-        } else if (nextBlock.blockType() == GameBoardBlock::BlockType::offBoard &&
-                   nextBlock.component() == nullptr) {
-            // hit the edge of the game board or there is no component for the ball to
-            // move into, stop the ball at the edge of the cell and return
-            m_ball.position = m_gameBoard.position(m_ballRow, m_ballCol) + posFromCenter;
-            m_ball.velocity = {0.0f, 0.0f, 0.0f};
-            return drawingNecessary();
         } else if (block.blockType() == GameBoardBlock::BlockType::begin &&
                    nextBlock.blockType() == GameBoardBlock::BlockType::begin) {
             // advance the ball into the next cell, but don't track its path
-            glm::vec3 position2 = m_gameBoard.position(m_ballRow, m_ballCol) + posFromCenter;
-            glm::vec3 posFromCenter2 = position2 - m_gameBoard.position(ballRowNext, ballColNext);
-            confineBall(m_gameBoard.blockSize(), posFromCenter2.x);
-            confineBall(m_gameBoard.blockSize(), posFromCenter2.y);
-
-            position = m_gameBoard.position(m_ballRow, m_ballCol) + posFromCenter;
-
-            m_ballCol = ballColNext;
-            m_ballRow = ballRowNext;
-            m_ball.position = position2;
+            m_ball.position = position;
             if (checkBallBorders(m_ball.position, m_ball.velocity)) {
                 // shouldn't happen
                 return drawingNecessary();
@@ -500,48 +562,37 @@ bool MovablePassage::updateData() {
             return  drawingNecessary();
         }
 
-        // only begin components allow two cell transitions at a time
-        Component::CellWall wallNextCell = wallsNextCell.second;
-        if (wallsNextCell.first != Component::CellWall::noWall) {
-            wallNextCell = wallsNextCell.first;
-        }
-        if (!nextBlock.component()->hasWallAt(wallNextCell, nextBlock.placementIndex())) {
-            // ball allowed to advance into next door cell.  set flag to notify caller that
-            // the textures have changed.  Also track the ball moving into the next component.
-            m_texturesChanged = true;
-            Component::Placement &placement = nextBlock.component()->placement(
-                    nextBlock.placementIndex());
-            Component::Placement &oldPlacement = block.component()->placement(
-                    block.placementIndex());
-            if (placement.next().first != nullptr) {
-                if (placement.next().first == block.component() &&
-                    placement.next().second == block.placementIndex()) {
-                    // We are going backwards.  Unblock block that we were at and move on.
-                    oldPlacement.next() = std::make_pair(nullptr, 0);
-                    oldPlacement.prev() = std::make_pair(nullptr, 0);
-                } else {
-                    // We encountered a loop.  Unblock the entire loop
-                    std::shared_ptr<Component> nextComponent = nextBlock.component();
-                    size_t index = nextBlock.placementIndex();
-                    std::shared_ptr<Component> loopComponent = block.component();
-                    size_t loopIndex = block.placementIndex();
-                    while (loopComponent != nextComponent && loopIndex != index) {
-                        auto tmp = loopComponent->placement(loopIndex).prev();
-                        auto &loopPlacement = loopComponent->placement(loopIndex);
-                        loopPlacement.prev() = std::make_pair(nullptr, 0);
-                        loopPlacement.next() = std::make_pair(nullptr, 0);
-                        loopComponent = tmp.first;
-                        loopIndex = tmp.second;
-                    }
-                }
+        // the ball advanced to the next cell.  Track the ball moving into the next component.
+        Component::Placement &placement = nextBlock.component()->placement(
+                nextBlock.placementIndex());
+        Component::Placement &oldPlacement = block.component()->placement(
+                block.placementIndex());
+        if (placement.next().first != nullptr) {
+            if (placement.next().first == block.component() &&
+                placement.next().second == block.placementIndex()) {
+                // We are going backwards.  Unblock block that we were at and move on.
+                oldPlacement.next() = std::make_pair(nullptr, 0);
+                oldPlacement.prev() = std::make_pair(nullptr, 0);
             } else {
-                // the ball is entering a new cell that is not in its path yet.
-                placement.prev() = std::make_pair(block.component(), block.placementIndex());
-                oldPlacement.next() = std::make_pair(nextBlock.component(),
-                                                     nextBlock.placementIndex());
+                // We encountered a loop.  Unblock the entire loop
+                std::shared_ptr<Component> nextComponent = nextBlock.component();
+                size_t index = nextBlock.placementIndex();
+                std::shared_ptr<Component> loopComponent = block.component();
+                size_t loopIndex = block.placementIndex();
+                while (loopComponent != nextComponent && loopIndex != index) {
+                    auto tmp = loopComponent->placement(loopIndex).prev();
+                    auto &loopPlacement = loopComponent->placement(loopIndex);
+                    loopPlacement.prev() = std::make_pair(nullptr, 0);
+                    loopPlacement.next() = std::make_pair(nullptr, 0);
+                    loopComponent = tmp.first;
+                    loopIndex = tmp.second;
+                }
             }
-            m_ballCol = ballColNext;
-            m_ballRow = ballRowNext;
+        } else {
+            // the ball is entering a new cell that is not in its path yet.
+            placement.prev() = std::make_pair(block.component(), block.placementIndex());
+            oldPlacement.next() = std::make_pair(nextBlock.component(),
+                                                 nextBlock.placementIndex());
         }
     }
 
