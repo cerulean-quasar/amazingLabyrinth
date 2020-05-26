@@ -113,7 +113,7 @@ public:
     // the next cell is allowed (indicated by calling checkForNextWall.
     std::pair<bool, bool> moveBall(float &pos, float &timediff,
             float start, CellWall startWall, float end,
-            CellWall endWall, float speed, float ballRadius,
+            CellWall endWall, float &speed, float ballRadius,
             checkForNextWallFunc checkForNextWall)
     {
         auto moveToWall = [&](CellWall wall, float wallPos) -> bool {
@@ -135,7 +135,8 @@ public:
                     } else {
                         pos = wallPos + ballRadius;
                     }
-                    timediff -= (wallPos - pos)/speed;
+                    speed = 0.0f;
+                    timediff = 0;
                     return ret.first;
                 }
             } else {
@@ -145,13 +146,30 @@ public:
                 return true;
             }
         };
+
         float posnext = pos + speed * timediff;
+        auto moveToWall2 = [&](CellWall wall, float maxAllowedIfClosed) {
+            auto ret = checkForNextWall(wall, CellWall::noWall);
+            if (ret.first) {
+                pos = posnext;
+            } else {
+                pos = maxAllowedIfClosed;
+                speed = 0.0f;
+            }
+        };
+
         if (posnext <= start) {
             return std::make_pair(moveToWall(startWall, start), false);
         } else if (posnext >= end) {
             return std::make_pair(false, moveToWall(endWall, end));
         } else {
-            pos = posnext;
+            if (posnext < start + ballRadius) {
+                moveToWall2(startWall, start + ballRadius);
+            } else if (posnext > end - ballRadius) {
+                moveToWall2(endWall, end - ballRadius);
+            } else {
+                pos = posnext;
+            }
             timediff = 0.0f;
             return std::make_pair(false, false);
         }
