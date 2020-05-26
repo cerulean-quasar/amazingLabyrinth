@@ -180,7 +180,10 @@ void MovablePassage::initSetGameBoard(
     }
 
     // the fixed tunnel through the places for extra tunnel pieces at the bottom.
-    for (uint32_t k = GameBoard::m_nbrTileRowsForStart; k < nbrExtraTileRowsY / 2; k++) {
+    for (uint32_t k = GameBoard::m_nbrTileRowsForStart;
+         k < GameBoard::m_nbrTileRowsForStart + nbrExtraTileRowsY / 2;
+         k++)
+    {
         auto comp = m_components[Component::ComponentType::straight];
         auto pos = comp->add(k, m_gameBoardStartRowColumn.second + startColumn, 0.0f, true);
         auto &block = m_gameBoard.block(k, m_gameBoardStartRowColumn.second + startColumn);
@@ -221,7 +224,7 @@ void MovablePassage::initSetGameBoard(
                 } else if (l == m_gameBoard.widthInTiles() - 1) {
                     type = Component::ComponentType::closedCorner;
                     rotation = glm::radians(180.0f);
-                } else if (l == startColumn) {
+                } else if (l == m_gameBoardStartRowColumn.second + startColumn) {
                     type = Component::ComponentType::open;
                     rotation = 0.0f;
                 } else {

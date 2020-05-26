@@ -120,7 +120,8 @@ public:
             if (wall != CellWall::noWall) {
                 auto ret = checkForNextWall(wall, CellWall::noWall);
                 if (ret.first) {
-                    if (pos > 0.0f) {
+                    // advance to the next cell.
+                    if (wallPos > 0.0f) {
                         pos = wallPos + Level::m_floatErrorAmount;
                     } else {
                         pos = wallPos - Level::m_floatErrorAmount;
@@ -128,7 +129,8 @@ public:
                     timediff -= (wallPos - pos)/speed;
                     return ret.first;
                 } else {
-                    if (pos > 0.0f) {
+                    // hold back on advancing to the next cell, advance within the cell
+                    if (wallPos > 0.0f) {
                         pos = wallPos - ballRadius;
                     } else {
                         pos = wallPos + ballRadius;
@@ -139,7 +141,7 @@ public:
             } else {
                 // allow to advance the full amount because we are just going to the center of the
                 // cell
-                pos = start;
+                pos = wallPos;
                 return true;
             }
         };
