@@ -80,7 +80,7 @@ public:
         }
     }
 
-    bool updateData();
+    bool updateData(bool alwaysUpdateDynObjs);
     void updateAcceleration(float x, float y, float z);
     void changeLevel(size_t level);
 
@@ -89,8 +89,8 @@ public:
             return false;
         }
 
-        auto start = getCoordsAtDepth(startX, startY);
-        auto distance = getCoordsAtDepth(distanceX, distanceY);
+        auto start = getCoordsAtDepth(startX, startY, true);
+        auto distance = getCoordsAtDepth(distanceX, distanceY, false);
         return m_level->drag(start.first, start.second, distance.first, distance.second);
     }
 
@@ -99,7 +99,7 @@ public:
             return false;
         }
 
-        auto endPosition = getCoordsAtDepth(x, y);
+        auto endPosition = getCoordsAtDepth(x, y, true);
         return m_level->dragEnded(endPosition.first, endPosition.second);
     }
 
@@ -108,7 +108,7 @@ public:
             return false;
         }
 
-        auto position = getCoordsAtDepth(x, y);
+        auto position = getCoordsAtDepth(x, y, true);
         return m_level->tap(position.first, position.second);
     }
 
@@ -210,16 +210,23 @@ protected:
     virtual void updateLevelData(DrawObjectTable &objsData, TextureMap &textures) = 0;
 private:
     // x and y are in pixels off set from the bottom left corner
-    inline std::pair<float, float> getCoordsAtDepth(float x, float y) {
+    inline std::pair<float, float> getCoordsAtDepth(float x, float y, bool isAbsoluteMove) {
         float z = LevelTracker::m_maxZLevel;
         if (m_level) {
             z = m_level->getZForTapCoords();
         }
 
-        return getXYAtZ(x/m_surfaceWidth*2.0f - 1.0f,
-            y/m_surfaceHeight*2.0f - 1.0f, LevelTracker::m_maxZLevel,
-            getPerspectiveMatrixForLevel(m_surfaceWidth, m_surfaceHeight),
-            getViewMatrix());
+        if (isAbsoluteMove) {
+            return getXYAtZ(x / m_surfaceWidth * 2.0f - 1.0f,
+                            1.0f - y / m_surfaceHeight * 2.0f, LevelTracker::m_maxZLevel,
+                            getPerspectiveMatrixForLevel(m_surfaceWidth, m_surfaceHeight),
+                            getViewMatrix());
+        } else {
+            return getXYAtZ(x / m_surfaceWidth * 2.0f,
+                            -y / m_surfaceHeight * 2.0f, LevelTracker::m_maxZLevel,
+                            getPerspectiveMatrixForLevel(m_surfaceWidth, m_surfaceHeight),
+                            getViewMatrix());
+        }
 
     }
     glm::mat4 getViewMatrix() {
@@ -252,7 +259,7 @@ public:
 
     virtual void drawFrame()=0;
 
-    virtual bool updateData()=0;
+    virtual bool updateData(bool alwaysUpdateDynObjs)=0;
 
     virtual void recreateSwapChain(uint32_t width, uint32_t height)=0;
 

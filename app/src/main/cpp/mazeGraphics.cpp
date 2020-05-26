@@ -107,7 +107,7 @@ bool LevelSequence::initializeLevelTracker() {
     return true;
 }
 
-bool LevelSequence::updateData() {
+bool LevelSequence::updateData(bool alwaysUpdateDynObjs) {
     initializeLevelTracker();
 
     bool drawingNecessary = false;
@@ -146,7 +146,7 @@ bool LevelSequence::updateData() {
         drawingNecessary = m_levelFinisher->updateDrawObjects(m_levelFinisherObjsData,
                                                               m_texturesLevelFinisher,
                                                               m_texturesChanged);
-        if (!drawingNecessary) {
+        if (!drawingNecessary && !alwaysUpdateDynObjs) {
             return false;
         }
 
@@ -163,7 +163,7 @@ bool LevelSequence::updateData() {
             return false;
         }
 
-        if (drawingNecessary) {
+        if (drawingNecessary || alwaysUpdateDynObjs) {
             m_levelStarter->updateDynamicDrawObjects(m_levelStarterDynObjsData,
                                                      m_texturesLevelStarter, m_texturesChanged);
             updateLevelData(m_levelStarterDynObjsData, m_texturesLevelStarter);
@@ -171,13 +171,13 @@ bool LevelSequence::updateData() {
     } else {
         drawingNecessary = m_level->updateData();
 
-        if (drawingNecessary) {
+        if (drawingNecessary || alwaysUpdateDynObjs) {
             m_level->updateDynamicDrawObjects(m_dynObjsData, m_texturesLevel, m_texturesChanged);
             updateLevelData(m_dynObjsData, m_texturesLevel);
         }
     }
 
-    return drawingNecessary;
+    return drawingNecessary || alwaysUpdateDynObjs;
 }
 
 void LevelSequence::changeLevel(size_t level) {

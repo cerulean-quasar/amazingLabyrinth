@@ -163,6 +163,8 @@ public:
         } else if (posnext >= end) {
             return std::make_pair(false, moveToWall(endWall, end));
         } else {
+            // don't advance closer than ballRadius to the wall if there is no open
+            // component next door.
             if (posnext < start + ballRadius) {
                 moveToWall2(startWall, start + ballRadius);
             } else if (posnext > end - ballRadius) {

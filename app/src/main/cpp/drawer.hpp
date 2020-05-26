@@ -67,7 +67,7 @@ public:
         // giggle the device so that when the swapchain is recreated, it gets the correct width and
         // height.  Also updateData must be called before the first draw event because some
         // initialization is delayed till then.
-        bool needsRedraw = graphics->updateData();
+        bool needsRedraw = graphics->updateData(true);
         graphics->drawFrame();
 
         graphics->changeRotationAngle(m_rotationAngle);

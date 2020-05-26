@@ -24,8 +24,8 @@ std::pair<uint32_t, uint32_t> GameBoard::findRC(glm::vec2 position) {
     uint32_t row;
     uint32_t col;
 
-    row = static_cast<uint32_t>(std::floor((position.x/m_width + 0.5f) * m_blocks[0].size()));
-    col = static_cast<uint32_t>(std::floor((position.y/m_height + 0.5f) * m_blocks.size()));
+    row = static_cast<uint32_t>(std::floor((position.y/m_height + 0.5f) * m_blocks.size()));
+    col = static_cast<uint32_t>(std::floor((position.x/m_width + 0.5f) * m_blocks[0].size()));
 
     return std::make_pair(row, col);
 }
@@ -105,7 +105,7 @@ bool GameBoard::dragEnded(glm::vec2 const &endPosition) {
 bool GameBoard::tap(glm::vec2 const &position) {
     std::pair<uint32_t, uint32_t> rc = findRC(position);
     auto &b = m_blocks[rc.first][rc.second];
-    if (hasMovableComponent(b)) {
+    if (!hasMovableComponent(b)) {
         return false;
     }
     auto &placement = b.component()->placement(b.placementIndex());
@@ -413,6 +413,9 @@ bool MovablePassage::updateData() {
 
     auto currentTime = std::chrono::high_resolution_clock::now();
     float timeDiff = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - m_prevTime).count();
+    if (timeDiff < m_floatErrorAmount) {
+        return false;
+    }
     m_prevTime = currentTime;
 
     glm::vec3 position = m_ball.position;

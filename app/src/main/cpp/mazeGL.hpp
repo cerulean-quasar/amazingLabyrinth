@@ -184,7 +184,7 @@ public:
 
     virtual void cleanupThread() { m_surface->cleanupThread(); }
 
-    virtual bool updateData() { return m_levelSequence->updateData(); }
+    virtual bool updateData(bool alwaysUpdateDynObjs) { return m_levelSequence->updateData(alwaysUpdateDynObjs); }
 
     virtual void drawFrame();
 

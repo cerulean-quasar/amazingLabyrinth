@@ -165,7 +165,7 @@ void GameWorker::drawingLoop() {
             }
         }
 
-        bool needsRedraw = m_graphics->updateData();
+        bool needsRedraw = m_graphics->updateData(nbrRequireRedraw > 0);
         if (needsRedraw || nbrRequireRedraw > 0) {
             m_graphics->drawFrame();
             timeval tv = {0, 100};
