@@ -79,8 +79,7 @@ bool GameBoard::dragEnded(glm::vec2 const &endPosition) {
          bEnd.component()->type() == Component::ComponentType::noMovementDirt &&
          bEnd.blockType() == GameBoardBlock::BlockType::onBoard) ||
         (bEnd.component() != nullptr &&
-         bEnd.component()->type() == Component::ComponentType::noMovementRock &&
-         bEnd.blockType() != GameBoardBlock::BlockType::offBoard))
+         bEnd.blockType() == GameBoardBlock::BlockType::offBoard))
     {
         // a move was started and it succeeded.  It needs to be completed now.
         auto tmp = b.component();

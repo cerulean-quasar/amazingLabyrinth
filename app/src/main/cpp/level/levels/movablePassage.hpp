@@ -149,12 +149,19 @@ public:
 
         float posnext = pos + speed * timediff;
         auto moveToWall2 = [&](CellWall wall, float maxAllowedIfClosed) {
-            auto ret = checkForNextWall(wall, CellWall::noWall);
-            if (ret.first) {
-                pos = posnext;
+            if (wall != CellWall::noWall) {
+                // don't advance closer than ballRadius to the wall if there is no open
+                // component next door.
+                auto ret = checkForNextWall(wall, CellWall::noWall);
+                if (ret.first) {
+                    pos = posnext;
+                } else {
+                    pos = maxAllowedIfClosed;
+                    speed = 0.0f;
+                }
             } else {
-                pos = maxAllowedIfClosed;
-                speed = 0.0f;
+                // allow full advancement to the wall since it is just the center.
+                pos = posnext;
             }
         };
 
@@ -163,13 +170,12 @@ public:
         } else if (posnext >= end) {
             return std::make_pair(false, moveToWall(endWall, end));
         } else {
-            // don't advance closer than ballRadius to the wall if there is no open
-            // component next door.
             if (posnext < start + ballRadius) {
                 moveToWall2(startWall, start + ballRadius);
             } else if (posnext > end - ballRadius) {
                 moveToWall2(endWall, end - ballRadius);
             } else {
+                // allow full advancement to the wall since it is just the center.
                 pos = posnext;
             }
             timediff = 0.0f;
@@ -321,6 +327,7 @@ public:
                     checkForNextWallFunc checkForNextWall) -> std::pair<CellWall, CellWall>
             {
                 position.x = 0.0f;
+                velocity.x = 0.0f;
                 auto ret = moveBall(position.y, timediff, -m_componentSize/2, CellWall::wallDown,
                         m_componentSize/2, CellWall::wallUp, velocity.y, ballRadius, checkForNextWall);
                 if (ret.second) {
@@ -342,11 +349,13 @@ public:
             {
                 if (position.y > 0.0f) {
                     position.y = 0.0f;
+                    velocity.y = 0.0f;
                 }
 
                 // center position
                 if (position.y == 0.0f && position.x == 0.0f) {
                     if (std::fabs(velocity.x) > std::fabs(velocity.y) || velocity.y > 0.0f) {
+                        velocity.y = 0.0f;
                         auto ret = moveBall(position.x, timediff, -m_componentSize/2, CellWall::wallLeft,
                                 m_componentSize/2, CellWall::wallRight, velocity.x, ballRadius, checkForNextWall);
                         if (ret.first) {
@@ -357,6 +366,7 @@ public:
                             return std::make_pair(CellWall::noWall, CellWall::noWall);
                         }
                     } else {
+                        velocity.x = 0.0f;
                         auto ret = moveBall(position.y, timediff, -m_componentSize/2, CellWall::wallDown,
                                 0.0f, CellWall::noWall, velocity.y, ballRadius, checkForNextWall);
                         if (ret.first) {
@@ -424,6 +434,7 @@ public:
             {
                 if (position.y == 0.0f && position.x == 0.0f) {
                     if (std::fabs(velocity.x) > std::fabs(velocity.y)) {
+                        velocity.y = 0.0f;
                         auto ret = moveBall(position.x, timediff, -m_componentSize/2, CellWall::wallLeft,
                                             m_componentSize/2, CellWall::wallRight, velocity.x, ballRadius,
                                             checkForNextWall);
@@ -435,6 +446,7 @@ public:
                             return std::make_pair(CellWall::noWall, CellWall::noWall);
                         }
                     } else {
+                        velocity.x = 0.0f;
                         auto ret = moveBall(position.y, timediff, -m_componentSize/2, CellWall::wallDown,
                                 m_componentSize/2, CellWall::wallUp, velocity.y, ballRadius, checkForNextWall);
                         if (ret.first) {
@@ -519,6 +531,7 @@ public:
 
                 if (position.y == 0.0f && position.x == 0.0f) {
                     if (std::fabs(velocity.x) > std::fabs(velocity.y) || velocity.y > 0.0f) {
+                        velocity.y = 0.0f;
                         auto ret = moveBall(position.x, timediff, -m_componentSize/2, CellWall::wallLeft,
                                             0.0f, CellWall::noWall, velocity.x,
                                             ballRadius, checkForNextWall);
@@ -528,6 +541,7 @@ public:
                             return std::make_pair(CellWall::noWall, CellWall::noWall);
                         }
                     } else {
+                        velocity.x = 0.0f;
                         auto ret = moveBall(position.y, timediff, -m_componentSize/2, CellWall::wallDown,
                                 0.0f, CellWall::noWall, velocity.y, ballRadius, checkForNextWall);
                         if (ret.first) {
@@ -547,6 +561,7 @@ public:
                         return moveBallInCellFuncs[ComponentType::tjunction](position, timediff, velocity,
                                 ballRadius, checkForNextWall);
                     } else if (ret.first) {
+                        velocity.x = 0.0f;
                         return std::make_pair(CellWall::wallDown, CellWall::noWall);
                     } else {
                         return std::make_pair(CellWall::noWall, CellWall::noWall);
@@ -562,6 +577,7 @@ public:
                         return moveBallInCellFuncs[ComponentType::tjunction](position, timediff, velocity,
                                 ballRadius, checkForNextWall);
                     } else if (ret.first) {
+                        velocity.y = 0.0f;
                         return std::make_pair(CellWall::wallLeft, CellWall::noWall);
                     } else {
                         return std::make_pair(CellWall::noWall, CellWall::noWall);
