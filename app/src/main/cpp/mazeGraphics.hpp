@@ -222,8 +222,8 @@ private:
                             getPerspectiveMatrixForLevel(m_surfaceWidth, m_surfaceHeight),
                             getViewMatrix());
         } else {
-            return getXYAtZ(-x / m_surfaceWidth * 2.0f,
-                            y / m_surfaceHeight * 2.0f, LevelTracker::m_maxZLevel,
+            return getXYAtZ(x / m_surfaceWidth * 2.0f,
+                            -y / m_surfaceHeight * 2.0f, LevelTracker::m_maxZLevel,
                             getPerspectiveMatrixForLevel(m_surfaceWidth, m_surfaceHeight),
                             getViewMatrix());
         }

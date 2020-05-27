@@ -74,6 +74,7 @@ bool GameBoard::dragEnded(glm::vec2 const &endPosition) {
 
     std::pair<uint32_t, uint32_t> rc = findRC(endPosition);
     auto &bEnd = m_blocks[rc.first][rc.second];
+    auto &b = m_blocks[m_moveStartingPosition.first][m_moveStartingPosition.second];
     if ((bEnd.component() != nullptr &&
          bEnd.component()->type() == Component::ComponentType::noMovementDirt &&
          bEnd.blockType() == GameBoardBlock::BlockType::onBoard) ||
@@ -82,14 +83,14 @@ bool GameBoard::dragEnded(glm::vec2 const &endPosition) {
          bEnd.blockType() != GameBoardBlock::BlockType::offBoard))
     {
         // a move was started and it succeeded.  It needs to be completed now.
-        auto &b = m_blocks[m_moveStartingPosition.first][m_moveStartingPosition.second];
-        b.component()->placement(b.placementIndex()).moveDone();
-        b.component()->placement(b.placementIndex()).setRC(rc.first, rc.second);
-        bEnd.component()->placement(bEnd.placementIndex()).setRC(m_moveStartingPosition.first,
-                                                                 m_moveStartingPosition.second);
         auto tmp = b.component();
         auto tmpIndex = b.placementIndex();
-        b.setComponent(bEnd.component(), bEnd.placementIndex());
+        auto tmpEnd = bEnd.component();
+        auto tmpEndIndex = bEnd.placementIndex();
+        tmp->placement(tmpIndex).moveDone();
+        tmp->placement(tmpIndex).setRC(rc.first, rc.second);
+        tmpEnd->placement(tmpEndIndex).setRC(m_moveStartingPosition.first, m_moveStartingPosition.second);
+        b.setComponent(tmpEnd, tmpEndIndex);
         bEnd.setComponent(tmp, tmpIndex);
         m_moveInProgress = false;
         return true;
@@ -98,7 +99,7 @@ bool GameBoard::dragEnded(glm::vec2 const &endPosition) {
     // move failed - there is a non-dirt component at the spot to be moved to,
     // or the target spot is end or start space on the board.
     m_moveInProgress = false;
-    bEnd.component()->placement(bEnd.placementIndex()).moveDone();
+    b.component()->placement(b.placementIndex()).moveDone();
 
     // we still need to redraw even if the move failed.  to move the component back to the
     // original spot.
@@ -777,7 +778,7 @@ bool MovablePassage::updateDynamicDrawObjects(DrawObjectTable &objs, TextureMap 
         objs.emplace_back(obj, std::shared_ptr<DrawObjectData>());
         texturesChanged = true;
     } else {
-        for (size_t i = 0; i < objs.size(); i++) {
+        for (size_t i = 0; i < m_components.size(); i++) {
             auto &component = m_components[i];
             auto ref = component->objReference();
             if (component->type() == Component::ComponentType::closedBottom ||
