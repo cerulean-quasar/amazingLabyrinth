@@ -41,24 +41,26 @@ bool GameBoard::drag(glm::vec2 const &startPosition, glm::vec2 const &distance) 
             // in place and start the new move
             auto &b = m_blocks[m_moveStartingPosition.first][m_moveStartingPosition.second];
             b.component()->placement(b.placementIndex()).moveDone();
-            m_moveStartingPosition = rc;
             m_moveInProgress = false;
         }
     }
     auto &b = m_blocks[rc.first][rc.second];
+    glm::vec2 totalDistance = distance;
     if (!m_moveInProgress) {
         if (hasMovableComponent(b)) {
             auto component = b.component();
             auto &placement = component->placement(b.placementIndex());
             if (!placement.lockedIntoPlace() && placement.prev().first == nullptr) {
                 m_moveInProgress = true;
+                m_moveStartingPosition = rc;
+                totalDistance += startPosition;
             }
         } else {
             return false;
         }
     }
     if (m_moveInProgress) {
-        b.component()->placement(b.placementIndex()).movePlacement(distance);
+        b.component()->placement(b.placementIndex()).movePlacement(totalDistance);
     }
     return true;
 }
@@ -95,6 +97,7 @@ bool GameBoard::dragEnded(glm::vec2 const &endPosition) {
 
     // move failed - there is a non-dirt component at the spot to be moved to,
     // or the target spot is end or start space on the board.
+    m_moveInProgress = false;
     bEnd.component()->placement(bEnd.placementIndex()).moveDone();
 
     // we still need to redraw even if the move failed.  to move the component back to the
