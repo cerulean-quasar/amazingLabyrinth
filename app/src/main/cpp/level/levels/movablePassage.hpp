@@ -372,7 +372,7 @@ public:
                     position.x = 0.0f;
                     auto ret = moveBall(position.y, timediff, -m_componentSize/2, CellWall::wallDown,
                             0.0f, CellWall::noWall, velocity.y, ballRadius, checkForNextWall);
-                    if (ret.second) {
+                    if (ret.second && timediff > 0) {
                         return moveBallInCellFuncs[ComponentType::tjunction](position, timediff, velocity,
                                 ballRadius, checkForNextWall);
                     } else if (ret.first) {
@@ -387,7 +387,7 @@ public:
                     position.y = 0.0f;
                     auto ret = moveBall(position.x, timediff, -m_componentSize/2, CellWall::wallLeft,
                             0.0f, CellWall::noWall, velocity.x, ballRadius, checkForNextWall);
-                    if (ret.second) {
+                    if (ret.second && timediff > 0) {
                         return moveBallInCellFuncs[ComponentType::tjunction](position, timediff, velocity,
                                 ballRadius, checkForNextWall);
                     } else if (ret.first) {
@@ -402,7 +402,7 @@ public:
                     position.y = 0.0f;
                     auto ret = moveBall(position.x, timediff, 0.0f, CellWall::noWall,
                             m_componentSize/2, CellWall::wallRight, velocity.x, ballRadius, checkForNextWall);
-                    if (ret.first) {
+                    if (ret.first && timediff > 0) {
                         return moveBallInCellFuncs[ComponentType::tjunction](position, timediff, velocity,
                                 ballRadius, checkForNextWall);
                     } else if (ret.second) {
@@ -450,7 +450,7 @@ public:
                     position.x = 0.0f;
                     auto ret = moveBall(position.y, timediff, -m_componentSize/2, CellWall::wallDown,
                             0.0f, CellWall::noWall, velocity.y, ballRadius, checkForNextWall);
-                    if (ret.second) {
+                    if (ret.second && timediff > 0) {
                         return moveBallInCellFuncs[ComponentType::tjunction](position, timediff, velocity,
                                 ballRadius, checkForNextWall);
                     } else if (ret.first) {
@@ -463,7 +463,7 @@ public:
                     position.x = 0.0f;
                     auto ret = moveBall(position.y, timediff, 0.0f, CellWall::noWall,
                             m_componentSize/2, CellWall::wallUp, velocity.y, ballRadius, checkForNextWall);
-                    if (ret.first) {
+                    if (ret.first && timediff > 0) {
                         return moveBallInCellFuncs[ComponentType::tjunction](position, timediff, velocity,
                                 ballRadius, checkForNextWall);
                     } else if (ret.second) {
@@ -476,7 +476,7 @@ public:
                     position.y = 0.0f;
                     auto ret = moveBall(position.x, timediff, -m_componentSize/2, CellWall::wallLeft,
                             0.0f, CellWall::noWall, velocity.x, ballRadius, checkForNextWall);
-                    if (ret.second) {
+                    if (ret.second && timediff > 0) {
                         return moveBallInCellFuncs[ComponentType::tjunction](position, timediff, velocity,
                                 ballRadius, checkForNextWall);
                     } else if (ret.first) {
@@ -489,7 +489,7 @@ public:
                     position.y = 0.0f;
                     auto ret = moveBall(position.x, timediff, 0.0f, CellWall::noWall, m_componentSize/2,
                             CellWall::wallRight, velocity.x, ballRadius, checkForNextWall);
-                    if (ret.first) {
+                    if (ret.first && timediff > 0) {
                         return moveBallInCellFuncs[ComponentType::tjunction](position, timediff, velocity,
                                 ballRadius, checkForNextWall);
                     } else if (ret.second) {
@@ -543,7 +543,7 @@ public:
                     position.x = 0.0f;
                     auto ret = moveBall(position.y, timediff, -m_componentSize/2, CellWall::wallDown,
                             0.0f, CellWall::noWall, velocity.y, ballRadius, checkForNextWall);
-                    if (ret.second) {
+                    if (ret.second && timediff > 0) {
                         return moveBallInCellFuncs[ComponentType::tjunction](position, timediff, velocity,
                                 ballRadius, checkForNextWall);
                     } else if (ret.first) {
@@ -558,7 +558,7 @@ public:
                     position.y = 0.0f;
                     auto ret = moveBall(position.x, timediff, -m_componentSize/2, CellWall::wallLeft,
                             0.0f, CellWall::noWall, velocity.x, ballRadius, checkForNextWall);
-                    if (ret.second) {
+                    if (ret.second && timediff > 0) {
                         return moveBallInCellFuncs[ComponentType::tjunction](position, timediff, velocity,
                                 ballRadius, checkForNextWall);
                     } else if (ret.first) {
