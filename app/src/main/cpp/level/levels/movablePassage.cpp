@@ -73,12 +73,21 @@ bool GameBoard::dragEnded(glm::vec2 const &endPosition) {
     }
 
     std::pair<uint32_t, uint32_t> rc = findRC(endPosition);
-    auto &bEnd = m_blocks[rc.first][rc.second];
     auto &b = m_blocks[m_moveStartingPosition.first][m_moveStartingPosition.second];
-    if ((bEnd.component() != nullptr &&
-         bEnd.component()->type() == Component::ComponentType::noMovementDirt &&
+    if (rc.first == m_moveStartingPosition.first && rc.second == m_moveStartingPosition.second) {
+        // moving to the same position we started at. fail the move.
+        m_moveInProgress = false;
+        b.component()->placement(b.placementIndex()).moveDone();
+
+        // we still need to redraw even if the move failed.  to move the component back to the
+        // original spot.
+        return true;
+    }
+
+    auto &bEnd = m_blocks[rc.first][rc.second];
+    if ((bEnd.component()->type() == Component::ComponentType::noMovementDirt &&
          bEnd.blockType() == GameBoardBlock::BlockType::onBoard) ||
-        (bEnd.component() != nullptr &&
+        (bEnd.component()->type() == Component::ComponentType::noMovementRock &&
          bEnd.blockType() == GameBoardBlock::BlockType::offBoard))
     {
         // a move was started and it succeeded.  It needs to be completed now.
@@ -88,9 +97,10 @@ bool GameBoard::dragEnded(glm::vec2 const &endPosition) {
         auto tmpEndIndex = bEnd.placementIndex();
         tmp->placement(tmpIndex).moveDone();
         tmp->placement(tmpIndex).setRC(rc.first, rc.second);
-        tmpEnd->placement(tmpEndIndex).setRC(m_moveStartingPosition.first, m_moveStartingPosition.second);
-        b.setComponent(tmpEnd, tmpEndIndex);
         bEnd.setComponent(tmp, tmpIndex);
+        bEnd.setSecondaryComponent(tmpEnd, tmpEndIndex);
+        b.setComponent(b.secondaryComponent(), b.secondaryPlacementIndex());
+        b.setSecondaryComponent(nullptr, 0);
         m_moveInProgress = false;
         return true;
     }
@@ -112,7 +122,7 @@ bool GameBoard::tap(glm::vec2 const &position) {
         return false;
     }
     auto &placement = b.component()->placement(b.placementIndex());
-    if (placement.lockedIntoPlace() && placement.prev().first != nullptr) {
+    if (placement.lockedIntoPlace() || placement.prev().first != nullptr) {
         return false;
     }
     placement.rotate();
@@ -342,15 +352,21 @@ void MovablePassage::initDone() {
     for (uint32_t k = GameBoard::m_nbrTileRowsForStart; k < m_gameBoard.heightInTiles() - GameBoard::m_nbrTileRowsForEnd; k++) {
         for (uint32_t l = 0; l < m_gameBoard.widthInTiles(); l++) {
             auto &b = m_gameBoard.block(k,l);
-            if (b.component() == nullptr) {
                 if (b.blockType() == GameBoardBlock::BlockType::onBoard) {
-                    dirt->add(k, l, 0.0f);
-                    b.setComponent(dirt, dirt->nbrPlacements() - 1);
+                    auto index = dirt->add(k, l, 0.0f);
+                    if (b.component() == nullptr) {
+                        b.setComponent(dirt, index);
+                    } else {
+                        b.setSecondaryComponent(dirt, index);
+                    }
                 } else {
-                    rock->add(k, l, 0.0f);
-                    b.setComponent(rock, rock->nbrPlacements() - 1);
+                    auto index = rock->add(k, l, 0.0f);
+                    if (b.component() == nullptr) {
+                        b.setComponent(rock, index);
+                    } else {
+                        b.setSecondaryComponent(rock, index);
+                    }
                 }
-            }
         }
     }
 
@@ -358,55 +374,6 @@ void MovablePassage::initDone() {
     m_ballCol = m_gameBoard.widthInTiles() / 2;
     m_ball.position = m_gameBoard.position(m_ballRow, m_ballCol);
     m_initDone = true;
-}
-
-Component::CellWall nextCellWall(
-        Component::CellWall wall,
-        size_t nbrRows,
-        size_t nbrCols,
-        size_t &ballRowNext,
-        size_t &ballColNext)
-{
-    switch (wall) {
-        case Component::CellWall::noWall:
-            return Component::CellWall ::noWall;
-        case Component::CellWall::wallRight:
-            if (ballColNext != nbrCols - 1) {
-                ballColNext++;
-                return Component::CellWall::wallLeft;
-            } else {
-                return Component::CellWall::noWall;
-            }
-        case Component::CellWall::wallUp:
-            if (ballRowNext != nbrRows - 1) {
-                ballRowNext++;
-                return Component::CellWall::wallDown;
-            } else {
-                return Component::CellWall::noWall;
-            }
-        case Component::CellWall::wallLeft:
-            if (ballColNext != 0) {
-                ballColNext--;
-                return Component::CellWall::wallRight;
-            } else {
-                return Component::CellWall::noWall;
-            }
-        case Component::CellWall::wallDown:
-            if (ballRowNext != 0) {
-                ballRowNext--;
-                return Component::CellWall::wallUp;
-            } else {
-                return Component::CellWall::noWall;
-            }
-    }
-}
-
-void confineBall(float cellSize, float &posFromCenter) {
-    if (posFromCenter > cellSize/2) {
-        posFromCenter = cellSize/2 - Level::m_floatErrorAmount;
-    } else if (posFromCenter < -cellSize/2) {
-        posFromCenter = cellSize/2 - Level::m_floatErrorAmount;
-    }
 }
 
 bool MovablePassage::updateData() {
@@ -431,7 +398,7 @@ bool MovablePassage::updateData() {
     uint32_t nbrComputations = 0;
     while (timeDiff >= 0.0f) {
         nbrComputations ++;
-        if (nbrComputations > 200) {
+        if (nbrComputations > 1) {
             break;
         }
         glm::vec3 posFromCenter = position - m_gameBoard.position(m_ballRow, m_ballCol);
@@ -729,6 +696,63 @@ bool MovablePassage::updateStaticDrawObjects(DrawObjectTable &objs, TextureMap &
 bool MovablePassage::updateDynamicDrawObjects(DrawObjectTable &objs, TextureMap &textures, bool &texturesChanged) {
     glm::vec3 zaxis{0.0f, 0.0f, 1.0f};
     float scaleBall = m_gameBoard.blockSize()/m_modelSize/2.0f;
+
+    auto addComponentModelMatrices = [&]() -> void {
+        bool moveInProgress = m_gameBoard.isMoveInProgress();
+        auto rc = m_gameBoard.moveRC();
+        std::vector<size_t> nbrPlacements;
+        nbrPlacements.resize(m_components.size(), 0);
+        for (size_t i = GameBoard::m_nbrTileRowsForStart;
+             i < m_gameBoard.heightInTiles() - GameBoard::m_nbrTileRowsForEnd;
+             i++)
+        {
+            for (size_t j = 0; j < m_gameBoard.widthInTiles(); j++) {
+                auto &b = m_gameBoard.block(i, j);
+                std::shared_ptr<Component> component;
+                size_t placementIndex;
+                if (moveInProgress && rc.first == i && rc.second == j) {
+                    // draw the secondary component if the primary component is being moved.
+                    component = b.secondaryComponent();
+                    placementIndex = b.secondaryPlacementIndex();
+                } else {
+                    component = b.component();
+                    placementIndex = b.placementIndex();
+                }
+                auto ref = component->objReference();
+                auto obj = objs[ref.second].first;
+                float scale = component->componentSize() / m_modelSize;
+
+                if (nbrPlacements[component->type()] >= obj->modelMatrices.size()) {
+                    obj->modelMatrices.resize(nbrPlacements[component->type()] + 1, glm::mat4(1.0f));
+                }
+                obj->modelMatrices[nbrPlacements[component->type()]] =
+                        glm::translate(glm::mat4(1.0f), m_gameBoard.position(i, j)) *
+                        glm::rotate(glm::mat4(1.0f), component->placement(placementIndex).rotationAngle(), zaxis) *
+                        glm::scale(glm::mat4(1.0f), glm::vec3{scale, scale, scale});
+                nbrPlacements[component->type()] ++;
+            }
+        }
+
+        if (moveInProgress) {
+            auto &b = m_gameBoard.block(rc.first, rc.second);
+            auto &component = b.component();
+            float size = b.component()->componentSize()/m_modelSize;
+            auto &placement = b.component()->placement(b.placementIndex());
+            glm::vec2 xy = placement.movePositionSoFar();
+            auto ref = b.component()->objReference();
+
+            auto obj = objs[ref.second].first;
+            if (nbrPlacements[component->type()] >= obj->modelMatrices.size()) {
+                obj->modelMatrices.resize(nbrPlacements[component->type()], glm::mat4(1.0f));
+            }
+            obj->modelMatrices[nbrPlacements[component->type()]] =
+                    glm::translate(glm::mat4(1.0f), glm::vec3{xy.x, xy.y, m_zMovingPlacement}) *
+                    glm::rotate(glm::mat4(1.0f), placement.rotationAngle(), zaxis) *
+                    glm::scale(glm::mat4(1.0f), glm::vec3{size, size, size});
+            nbrPlacements[component->type()] ++;
+        }
+    };
+
     if (objs.empty()) {
         std::pair<std::vector<Vertex>, std::vector<uint32_t>> v;
         for (auto const &component: m_components) {
@@ -751,16 +775,12 @@ bool MovablePassage::updateDynamicDrawObjects(DrawObjectTable &objs, TextureMap 
             obj->texture = std::make_shared<TextureDescriptionPath>(
                     m_gameRequester, m_componentTextures[component->type()]);
             textures.emplace(obj->texture, std::shared_ptr<TextureData>());
-            float size = component->componentSize()/m_modelSize;
-            for (auto it = component->placementsBegin(); it != component->placementsEnd(); it++) {
-                obj->modelMatrices.push_back(
-                    glm::translate(glm::mat4(1.0f), m_gameBoard.position(it->row(), it->col())) *
-                    glm::rotate(glm::mat4(1.0f), it->rotationAngle(), zaxis) *
-                    glm::scale(glm::mat4(1.0f), glm::vec3{size, size, size}));
-            }
+
             component->setObjReference(Component::MovableType::dynamicObj, objs.size());
             objs.push_back(std::make_pair(obj, std::shared_ptr<DrawObjectData>()));
         }
+
+        addComponentModelMatrices();
 
         // the ball
         auto obj = std::make_shared<DrawObject>();
@@ -777,45 +797,7 @@ bool MovablePassage::updateDynamicDrawObjects(DrawObjectTable &objs, TextureMap 
         objs.emplace_back(obj, std::shared_ptr<DrawObjectData>());
         texturesChanged = true;
     } else {
-        for (size_t i = 0; i < m_components.size(); i++) {
-            auto &component = m_components[i];
-            auto ref = component->objReference();
-            if (component->type() == Component::ComponentType::closedBottom ||
-                component->type() == Component::ComponentType::closedCorner ||
-                component->type() == Component::ComponentType::open ||
-                ref.first != Component::MovableType::dynamicObj)
-            {
-                // These components are handled as static draw objects.
-                continue;
-            }
-
-            auto &obj = objs[ref.second].first;
-            float size = component->componentSize()/m_modelSize;
-            for (size_t j = 0; j <  component->nbrPlacements(); j++) {
-                auto &placement = component->placement(j);
-                obj->modelMatrices[j] =
-                    glm::translate(glm::mat4(1.0f), m_gameBoard.position(placement.row(), placement.col())) *
-                    glm::rotate(glm::mat4(1.0f), placement.rotationAngle(), zaxis) *
-                    glm::scale(glm::mat4(1.0f), glm::vec3{size, size, size});
-            }
-        }
-        if (m_gameBoard.isMoveInProgress()) {
-            auto rc = m_gameBoard.moveRC();
-            auto &b = m_gameBoard.block(rc.first, rc.second);
-            float size = b.component()->componentSize()/m_modelSize;
-            auto &placement = b.component()->placement(b.placementIndex());
-            glm::vec2 xy = placement.movePositionSoFar();
-            auto ref = b.component()->objReference();
-            if (ref.first != Component::MovableType::dynamicObj) {
-                // shouldn't happen
-                return true;
-            }
-
-            objs[ref.second].first->modelMatrices[b.placementIndex()] =
-                    glm::translate(glm::mat4(1.0f), glm::vec3{xy.x, xy.y, m_zMovingPlacement}) *
-                    glm::rotate(glm::mat4(1.0f), placement.rotationAngle(), zaxis) *
-                    glm::scale(glm::mat4(1.0f), glm::vec3{size, size, size});
-        }
+        addComponentModelMatrices();
 
         // the ball
         objs[m_objsReferenceBall].first->modelMatrices[0] =

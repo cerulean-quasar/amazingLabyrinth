@@ -107,26 +107,27 @@ public:
         return ret;
     }
 
-    // start < end
     // return.first = true if start wall hit, return.second true if second wall hit
-    // if checkWallStart is true, then return.first will only be true if the move into
-    // the next cell is allowed (indicated by calling checkForNextWall.
+    // set the speed to 0.0f only if hitting an actual wall and the neighboring component does
+    // not have an open wall.  Leave the speed alone if the wall is noWall.  Let the caller
+    // decide what to do for this case.
     std::pair<bool, bool> moveBall(float &pos, float &timediff,
             float start, CellWall startWall, float end,
             CellWall endWall, float &speed, float ballRadius,
             checkForNextWallFunc checkForNextWall)
     {
+        // return true if a wall was hit and the ball is allowed to pass through.
         auto moveToWall = [&](CellWall wall, float wallPos) -> bool {
             if (wall != CellWall::noWall) {
                 auto ret = checkForNextWall(wall, CellWall::noWall);
                 if (ret.first) {
                     // advance to the next cell.
+                    timediff -= (wallPos - pos)/speed;
                     if (wallPos > 0.0f) {
                         pos = wallPos + Level::m_floatErrorAmount;
                     } else {
                         pos = wallPos - Level::m_floatErrorAmount;
                     }
-                    timediff -= (wallPos - pos)/speed;
                     return ret.first;
                 } else {
                     // hold back on advancing to the next cell, advance within the cell
@@ -142,25 +143,30 @@ public:
             } else {
                 // allow to advance the full amount because we are just going to the center of the
                 // cell
+                timediff -= (wallPos - pos)/speed;
                 pos = wallPos;
                 return true;
             }
         };
 
         float posnext = pos + speed * timediff;
-        auto moveToWall2 = [&](CellWall wall, float maxAllowedIfClosed) {
+        auto moveToWall2 = [&](CellWall wall, float maxAllowedIfClosed) -> void {
             if (wall != CellWall::noWall) {
                 // don't advance closer than ballRadius to the wall if there is no open
                 // component next door.
                 auto ret = checkForNextWall(wall, CellWall::noWall);
                 if (ret.first) {
+                    // the next component has an open wall - move the full distance;
+                    timediff -= (posnext - pos)/speed;
                     pos = posnext;
                 } else {
                     pos = maxAllowedIfClosed;
                     speed = 0.0f;
+                    timediff = 0.0f;
                 }
             } else {
                 // allow full advancement to the wall since it is just the center.
+                timediff -= (posnext - pos)/speed;
                 pos = posnext;
             }
         };
@@ -178,7 +184,6 @@ public:
                 // allow full advancement to the wall since it is just the center.
                 pos = posnext;
             }
-            timediff = 0.0f;
             return std::make_pair(false, false);
         }
     }
@@ -317,6 +322,8 @@ public:
         return std::make_pair(wall1, wall2);
     }
 
+    // return a std::pair of CellWall indicating which walls were hit (and passed through).  If
+    // no walls were hit, then return <noWall, noWall>.
     using MoveBallInCellFunc = std::function<std::pair<CellWall, CellWall>(glm::vec3 &, float &, glm::vec3 &, float, checkForNextWallFunc)>;
     std::array<MoveBallInCellFunc, ComponentType::maxComponentAllowingBall + 1> const moveBallInCellFuncs = {
         // straight
@@ -328,6 +335,11 @@ public:
             {
                 position.x = 0.0f;
                 velocity.x = 0.0f;
+
+                if (velocity.y == 0.0f) {
+                    return std::make_pair(CellWall::noWall, CellWall::noWall);
+                }
+
                 auto ret = moveBall(position.y, timediff, -m_componentSize/2, CellWall::wallDown,
                         m_componentSize/2, CellWall::wallUp, velocity.y, ballRadius, checkForNextWall);
                 if (ret.second) {
@@ -352,6 +364,10 @@ public:
                     velocity.y = 0.0f;
                 }
 
+                if (velocity.x == 0.0f && velocity.y == 0.0f) {
+                    return std::make_pair(CellWall::noWall, CellWall::noWall);
+                }
+
                 // center position
                 if (position.y == 0.0f && position.x == 0.0f) {
                     if (std::fabs(velocity.x) > std::fabs(velocity.y) || velocity.y > 0.0f) {
@@ -359,7 +375,7 @@ public:
                         auto ret = moveBall(position.x, timediff, -m_componentSize/2, CellWall::wallLeft,
                                 m_componentSize/2, CellWall::wallRight, velocity.x, ballRadius, checkForNextWall);
                         if (ret.first) {
-                            return std::make_pair(CellWall::wallLeft, CellWall::wallRight);
+                            return std::make_pair(CellWall::wallLeft, CellWall::noWall);
                         } else if (ret.second) {
                             return std::make_pair(CellWall::wallRight, CellWall::noWall);
                         } else {
@@ -372,6 +388,9 @@ public:
                         if (ret.first) {
                             return std::make_pair(CellWall::wallDown, CellWall::noWall);
                         } else {
+                            if (ret.second) {
+                                velocity.y = 0.0f;
+                            }
                             return std::make_pair(CellWall::noWall, CellWall::noWall);
                         }
                     }
@@ -383,6 +402,9 @@ public:
                     auto ret = moveBall(position.y, timediff, -m_componentSize/2, CellWall::wallDown,
                             0.0f, CellWall::noWall, velocity.y, ballRadius, checkForNextWall);
                     if (ret.second && timediff > 0) {
+                        position.x = 0.0f;
+                        position.y = 0.0f;
+                        velocity.y = 0.0f;
                         return moveBallInCellFuncs[ComponentType::tjunction](position, timediff, velocity,
                                 ballRadius, checkForNextWall);
                     } else if (ret.first) {
@@ -398,6 +420,8 @@ public:
                     auto ret = moveBall(position.x, timediff, -m_componentSize/2, CellWall::wallLeft,
                             0.0f, CellWall::noWall, velocity.x, ballRadius, checkForNextWall);
                     if (ret.second && timediff > 0) {
+                        position.x = 0.0f;
+                        position.y = 0.0f;
                         return moveBallInCellFuncs[ComponentType::tjunction](position, timediff, velocity,
                                 ballRadius, checkForNextWall);
                     } else if (ret.first) {
@@ -413,6 +437,8 @@ public:
                     auto ret = moveBall(position.x, timediff, 0.0f, CellWall::noWall,
                             m_componentSize/2, CellWall::wallRight, velocity.x, ballRadius, checkForNextWall);
                     if (ret.first && timediff > 0) {
+                        position.x = 0.0f;
+                        position.y = 0.0f;
                         return moveBallInCellFuncs[ComponentType::tjunction](position, timediff, velocity,
                                 ballRadius, checkForNextWall);
                     } else if (ret.second) {
@@ -432,6 +458,10 @@ public:
                     float ballRadius,
                     checkForNextWallFunc checkForNextWall) -> std::pair<CellWall, CellWall>
             {
+                if (velocity.x == 0.0f && velocity.y == 0.0f) {
+                    return std::make_pair(CellWall::noWall, CellWall::noWall);
+                }
+
                 if (position.y == 0.0f && position.x == 0.0f) {
                     if (std::fabs(velocity.x) > std::fabs(velocity.y)) {
                         velocity.y = 0.0f;
@@ -463,7 +493,9 @@ public:
                     auto ret = moveBall(position.y, timediff, -m_componentSize/2, CellWall::wallDown,
                             0.0f, CellWall::noWall, velocity.y, ballRadius, checkForNextWall);
                     if (ret.second && timediff > 0) {
-                        return moveBallInCellFuncs[ComponentType::tjunction](position, timediff, velocity,
+                        position.x = 0.0f;
+                        position.y = 0.0f;
+                        return moveBallInCellFuncs[ComponentType::crossjunction](position, timediff, velocity,
                                 ballRadius, checkForNextWall);
                     } else if (ret.first) {
                         return std::make_pair(CellWall::wallDown, CellWall::noWall);
@@ -476,7 +508,9 @@ public:
                     auto ret = moveBall(position.y, timediff, 0.0f, CellWall::noWall,
                             m_componentSize/2, CellWall::wallUp, velocity.y, ballRadius, checkForNextWall);
                     if (ret.first && timediff > 0) {
-                        return moveBallInCellFuncs[ComponentType::tjunction](position, timediff, velocity,
+                        position.x = 0.0f;
+                        position.y = 0.0f;
+                        return moveBallInCellFuncs[ComponentType::crossjunction](position, timediff, velocity,
                                 ballRadius, checkForNextWall);
                     } else if (ret.second) {
                         return std::make_pair(CellWall::wallUp, CellWall::noWall);
@@ -489,7 +523,9 @@ public:
                     auto ret = moveBall(position.x, timediff, -m_componentSize/2, CellWall::wallLeft,
                             0.0f, CellWall::noWall, velocity.x, ballRadius, checkForNextWall);
                     if (ret.second && timediff > 0) {
-                        return moveBallInCellFuncs[ComponentType::tjunction](position, timediff, velocity,
+                        position.x = 0.0f;
+                        position.y = 0.0f;
+                        return moveBallInCellFuncs[ComponentType::crossjunction](position, timediff, velocity,
                                 ballRadius, checkForNextWall);
                     } else if (ret.first) {
                         return std::make_pair(CellWall::wallLeft, CellWall::noWall);
@@ -502,7 +538,9 @@ public:
                     auto ret = moveBall(position.x, timediff, 0.0f, CellWall::noWall, m_componentSize/2,
                             CellWall::wallRight, velocity.x, ballRadius, checkForNextWall);
                     if (ret.first && timediff > 0) {
-                        return moveBallInCellFuncs[ComponentType::tjunction](position, timediff, velocity,
+                        position.x = 0.0f;
+                        position.y = 0.0f;
+                        return moveBallInCellFuncs[ComponentType::crossjunction](position, timediff, velocity,
                                 ballRadius, checkForNextWall);
                     } else if (ret.second) {
                         return std::make_pair(CellWall::wallRight, CellWall::noWall);
@@ -524,9 +562,15 @@ public:
             {
                 if (position.y > 0.0f) {
                     position.y = 0.0f;
+                    velocity.y = 0.0f;
                 }
                 if (position.x > 0.0f) {
                     position.x = 0.0f;
+                    velocity.x = 0.0f;
+                }
+
+                if (velocity.x == 0.0f && velocity.y == 0.0f) {
+                    return std::make_pair(CellWall::noWall, CellWall::noWall);
                 }
 
                 if (position.y == 0.0f && position.x == 0.0f) {
@@ -538,6 +582,9 @@ public:
                         if (ret.first) {
                             return std::make_pair(CellWall::wallLeft, CellWall::noWall);
                         } else {
+                            if (ret.second) {
+                                velocity.x = 0.0f;
+                            }
                             return std::make_pair(CellWall::noWall, CellWall::noWall);
                         }
                     } else {
@@ -547,6 +594,9 @@ public:
                         if (ret.first) {
                             return std::make_pair(CellWall::wallDown, CellWall::noWall);
                         } else {
+                            if (ret.second) {
+                                velocity.y = 0.0f;
+                            }
                             return std::make_pair(CellWall::noWall, CellWall::noWall);
                         }
                     }
@@ -558,10 +608,12 @@ public:
                     auto ret = moveBall(position.y, timediff, -m_componentSize/2, CellWall::wallDown,
                             0.0f, CellWall::noWall, velocity.y, ballRadius, checkForNextWall);
                     if (ret.second && timediff > 0) {
-                        return moveBallInCellFuncs[ComponentType::tjunction](position, timediff, velocity,
+                        position.x = 0.0f;
+                        position.y = 0.0f;
+                        velocity.y = 0.0f;
+                        return moveBallInCellFuncs[ComponentType::turn](position, timediff, velocity,
                                 ballRadius, checkForNextWall);
                     } else if (ret.first) {
-                        velocity.x = 0.0f;
                         return std::make_pair(CellWall::wallDown, CellWall::noWall);
                     } else {
                         return std::make_pair(CellWall::noWall, CellWall::noWall);
@@ -574,10 +626,12 @@ public:
                     auto ret = moveBall(position.x, timediff, -m_componentSize/2, CellWall::wallLeft,
                             0.0f, CellWall::noWall, velocity.x, ballRadius, checkForNextWall);
                     if (ret.second && timediff > 0) {
-                        return moveBallInCellFuncs[ComponentType::tjunction](position, timediff, velocity,
+                        position.x = 0.0f;
+                        position.y = 0.0f;
+                        velocity.x = 0.0f;
+                        return moveBallInCellFuncs[ComponentType::turn](position, timediff, velocity,
                                 ballRadius, checkForNextWall);
                     } else if (ret.first) {
-                        velocity.y = 0.0f;
                         return std::make_pair(CellWall::wallLeft, CellWall::noWall);
                     } else {
                         return std::make_pair(CellWall::noWall, CellWall::noWall);
@@ -790,14 +844,21 @@ public:
     };
 
     BlockType blockType() { return m_blockType; }
-    std::shared_ptr<Component> &component() { return m_component; }
+    std::shared_ptr<Component> const &component() { return m_component; }
     size_t placementIndex() { return m_placementIndex; }
+    std::shared_ptr<Component> const &secondaryComponent() { return m_secondaryComponent; }
+    size_t secondaryPlacementIndex() { return m_secondaryPlacementIndex; }
 
     void setBlockType(BlockType blockType) { m_blockType = blockType; }
 
     void setComponent(std::shared_ptr<Component> component, size_t placementIndex) {
         m_component = std::move(component);
         m_placementIndex = placementIndex;
+    }
+
+    void setSecondaryComponent(std::shared_ptr<Component> component, size_t placementIndex) {
+        m_secondaryComponent = std::move(component);
+        m_secondaryPlacementIndex = placementIndex;
     }
 
     GameBoardBlock(
@@ -813,6 +874,8 @@ private:
     BlockType m_blockType;
     std::shared_ptr<Component> m_component;
     size_t m_placementIndex;
+    std::shared_ptr<Component> m_secondaryComponent;
+    size_t m_secondaryPlacementIndex;
 };
 
 class GameBoard {
