@@ -960,7 +960,7 @@ public:
     bool drag(float startX, float startY, float distanceX, float distanceY) override;
     bool dragEnded(float x, float y) override;
     bool tap(float x, float y) override;
-    glm::vec4 getBackgroundColor() override { return {1.0f, 1.0f, 1.0f, 1.0f}; };
+    glm::vec4 getBackgroundColor() override { return {0.6f, 0.8f, 1.0f, 1.0f}; };
     bool updateData() override;
     bool updateStaticDrawObjects(DrawObjectTable &objs, TextureMap &textures) override;
     bool updateDynamicDrawObjects(DrawObjectTable &objs, TextureMap &textures, bool &texturesChanged) override;

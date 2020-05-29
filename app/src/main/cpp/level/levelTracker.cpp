@@ -302,10 +302,10 @@ LevelGroup LevelTracker::getLevelGroupGopher(
                         "models/gopher/startCorner.modelcbor", "textures/gopher/dirt.png",
                         "models/gopher/startSide.modelcbor", "textures/gopher/dirt.png",
                         "models/gopher/startOpen.modelcbor", "textures/gopher/dirt.png");
-                level->initAddRock(4,4);
-                level->initAddRock(4,5);
-                level->initAddRock(5,4);
-                level->initAddRock(5,5);
+                level->initAddRock(2,2);
+                level->initAddRock(2,3);
+                level->initAddRock(3,2);
+                level->initAddRock(3,3);
                 level->initAddType(Component::ComponentType::straight, 2,
                     "models/gopher/straight.modelcbor", "textures/gopher/dirt.png");
                 level->initAddType(Component::ComponentType::turn, 10,
@@ -314,7 +314,7 @@ LevelGroup LevelTracker::getLevelGroupGopher(
                     "models/gopher/tjunction.modelcbor", "textures/gopher/dirt.png");
                 level->initAddType(Component::ComponentType::crossjunction, 2,
                     "models/gopher/crossjunction.modelcbor", "textures/gopher/dirt.png");
-                level->initSetGameBoard(10, 10, 1, 8);
+                level->initSetGameBoard(6, 6, 1, 4);
                 level->initDone();
                 return level;
             }),

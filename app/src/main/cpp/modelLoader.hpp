@@ -45,6 +45,12 @@ inline void getQuad(std::vector<Vertex> &vertices, std::vector<uint32_t> &indice
     getQuad(vertices, indices, glm::vec3{0.0f, 0.0f, 0.0f});
 }
 
+// creates a cube with each side length 2.0f.
+void getCube(std::vector<Vertex> &vertices, std::vector<uint32_t> &indices, glm::vec3 const &centerPos);
+inline void getCube(std::vector<Vertex> &vertices, std::vector<uint32_t> &indices) {
+    getCube(vertices, indices, glm::vec3{0.0f, 0.0f, 0.0f});
+}
+
 bool loadModel(
         std::unique_ptr<std::streambuf> const &modelStreamBuf,
         std::pair<std::vector<Vertex>, std::vector<uint32_t>> &verticesWithFaceNormals,
