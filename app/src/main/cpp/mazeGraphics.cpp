@@ -77,24 +77,21 @@ bool LevelSequence::initializeLevelTracker() {
     setView();
     updatePerspectiveMatrix(m_surfaceWidth, m_surfaceHeight);
 
-    m_levelTracker = std::make_shared<LevelTracker>(m_gameRequester,
-                                                    getPerspectiveMatrixForLevel(m_surfaceWidth,
-                                                                                 m_surfaceHeight),
-                                                    m_view);
+    m_levelTracker = std::make_shared<LevelTracker>(m_gameRequester);
 
     setLightingSource();
     setViewLightingSource();
 
+    auto proj = getPerspectiveMatrixForLevel(m_surfaceWidth, m_surfaceHeight);
     m_levelTracker->setLevel(m_levelName);
-    m_level = m_levelGroupFcns.getLevelFcn(*m_levelTracker);
-    m_levelStarter = m_levelGroupFcns.getStarterFcn(*m_levelTracker);
+    m_level = m_levelGroupFcns.getLevelFcn(*m_levelTracker, proj, m_view);
+    m_levelStarter = m_levelGroupFcns.getStarterFcn(*m_levelTracker, proj, m_view);
 
     m_levelFinisherObjsData.clear();
     m_texturesLevelFinisher.clear();
     float x, y;
     m_level->getLevelFinisherCenter(x, y);
-    m_levelFinisher = m_levelGroupFcns.getFinisherFcn(*m_levelTracker, x, y,
-            getPerspectiveMatrixForLevel(m_surfaceWidth, m_surfaceHeight), m_view);
+    m_levelFinisher = m_levelGroupFcns.getFinisherFcn(*m_levelTracker, x, y, proj, m_view);
 
     setupCommonBuffers();
 
@@ -129,11 +126,12 @@ bool LevelSequence::updateData(bool alwaysUpdateDynObjs) {
                 m_levelTracker->gotoNextLevel();
                 m_levelGroupFcns = m_levelTracker->getLevelGroupFcns();
 
-                m_levelStarter = m_levelGroupFcns.getStarterFcn(*m_levelTracker);
+                auto proj = getPerspectiveMatrixForLevel(m_surfaceWidth, m_surfaceHeight);
+                m_levelStarter = m_levelGroupFcns.getStarterFcn(*m_levelTracker, proj, m_view);
                 initializeLevelData(m_levelStarter, m_levelStarterStaticObjsData,
                                     m_levelStarterDynObjsData, m_texturesLevelStarter);
 
-                m_level = m_levelGroupFcns.getLevelFcn(*m_levelTracker);
+                m_level = m_levelGroupFcns.getLevelFcn(*m_levelTracker, proj, m_view);
                 initializeLevelData(m_level, m_staticObjsData, m_dynObjsData, m_texturesLevel);
 
                 saveLevelData();
@@ -185,14 +183,14 @@ void LevelSequence::changeLevel(size_t level) {
     m_levelName = LevelTracker::getLevelName(level);
     if (!initializeLevelTracker()) {
         cleanupLevelData();
+        auto proj = getPerspectiveMatrixForLevel(m_surfaceWidth, m_surfaceHeight);
         m_levelTracker->setLevel(m_levelName);
-        m_level = m_levelGroupFcns.getLevelFcn(*m_levelTracker);
-        m_levelStarter = m_levelGroupFcns.getStarterFcn(*m_levelTracker);
+        m_level = m_levelGroupFcns.getLevelFcn(*m_levelTracker, proj, m_view);
+        m_levelStarter = m_levelGroupFcns.getStarterFcn(*m_levelTracker, proj, m_view);
 
         float x, y;
         m_level->getLevelFinisherCenter(x, y);
-        m_levelFinisher = m_levelGroupFcns.getFinisherFcn(*m_levelTracker, x, y,
-                                                          getPerspectiveMatrixForLevel(m_surfaceWidth, m_surfaceHeight), m_view);
+        m_levelFinisher = m_levelGroupFcns.getFinisherFcn(*m_levelTracker, x, y, proj, m_view);
 
         if (m_levelStarter != nullptr && ! m_levelStarter->isFinished()) {
             initializeLevelData(m_levelStarter, m_levelStarterStaticObjsData,
@@ -224,17 +222,16 @@ void LevelSequence::notifySurfaceChanged(uint32_t surfaceWidth, uint32_t surface
     updatePerspectiveMatrix(surfaceWidth, surfaceHeight);
     setupCommonBuffers();
     glm::mat4 projForLevel = getPerspectiveMatrixForLevel(m_surfaceWidth, m_surfaceHeight);
-    m_levelTracker->updateProjView(projForLevel, m_view);
     m_levelGroupFcns = m_levelTracker->getLevelGroupFcns();
 
     // need to regenerate the maze if the width/height of the surface changed.
     if (m_levelStarter) {
-        m_levelStarter = m_levelGroupFcns.getStarterFcn(*m_levelTracker);
+        m_levelStarter = m_levelGroupFcns.getStarterFcn(*m_levelTracker, projForLevel, m_view);
         initializeLevelData(m_levelStarter, m_levelStarterStaticObjsData,
                             m_levelStarterDynObjsData, m_texturesLevelStarter);
     }
 
-    m_level = m_levelGroupFcns.getLevelFcn(*m_levelTracker);
+    m_level = m_levelGroupFcns.getLevelFcn(*m_levelTracker, projForLevel, m_view);
     initializeLevelData(m_level, m_staticObjsData, m_dynObjsData, m_texturesLevel);
 
     m_levelFinisherObjsData.clear();

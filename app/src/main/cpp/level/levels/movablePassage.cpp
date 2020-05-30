@@ -180,7 +180,7 @@ void MovablePassage::initSetGameBoard(
             GameBoard::m_nbrTileRowsForEnd;
     m_gameBoard.initialize(
             tileSize,
-            glm::vec3{0.0f, m_height - nbrTilesHeight * tileSize, m_mazeFloorZ},
+            glm::vec3{0.0f, 0.0f, m_mazeFloorZ},
             nbrTilesHeight,
             nbrTilesX + nbrExtraTileRowsX);
     if (m_gameBoard.heightInTiles() == 0 || m_gameBoard.widthInTiles() == 0) {
@@ -717,72 +717,69 @@ bool MovablePassage::updateStaticDrawObjects(DrawObjectTable &objs, TextureMap &
         }
     }
 
-    if (m_width > m_gameBoard.widthInTiles() * m_gameBoard.blockSize() ||
-        m_height > m_gameBoard.heightInTiles() * m_gameBoard.blockSize()) {
-        // fill in the bottom and sides with rocks so that no bg color shows.
-        auto obj = std::make_shared<DrawObject>();
-        if (m_componentModels[Component::ComponentType::noMovementRock].empty()) {
-            getCube(obj->vertices, obj->indices);
-        } else {
-            loadModel(m_gameRequester->getAssetStream(
-                    m_componentModels[Component::ComponentType::noMovementRock]), v);
-            std::swap(v.first, obj->vertices);
-            std::swap(v.second, obj->indices);
-        }
-
-        obj->texture = std::make_shared<TextureDescriptionPath>(
-                m_gameRequester, m_componentTextures[Component::ComponentType::noMovementRock]);
-        textures.emplace(obj->texture, std::shared_ptr<TextureData>());
-
-        // on the sides
-        if (m_width > m_gameBoard.widthInTiles() * m_gameBoard.blockSize()) {
-            for (size_t i = 0;
-                 i < m_gameBoard.heightInTiles() - GameBoard::m_nbrTileRowsForEnd;
-                 i++)
-            {
-                glm::vec3 pos = m_gameBoard.position(i, 0);
-                pos.x -= m_gameBoard.blockSize();
-                obj->modelMatrices.push_back(
-                        glm::translate(glm::mat4(1.0f), pos) *
-                        glm::scale(glm::mat4(1.0f), glm::vec3(scale, scale, scale)));
-
-                pos = m_gameBoard.position(i, m_gameBoard.widthInTiles() - 1);
-                pos.x += m_gameBoard.blockSize();
-                obj->modelMatrices.push_back(
-                        glm::translate(glm::mat4(1.0f), pos) *
-                        glm::scale(glm::mat4(1.0f), glm::vec3(scale, scale, scale)));
-            }
-        }
-
-        // on the bottom
-        if (m_height > m_gameBoard.heightInTiles() * m_gameBoard.blockSize()) {
-            for (size_t i = 0; i < m_gameBoard.widthInTiles(); i++) {
-                glm::vec3 pos = m_gameBoard.position(0, i);
-                pos.y -= m_gameBoard.blockSize();
-                obj->modelMatrices.push_back(
-                        glm::translate(glm::mat4(1.0f), pos) *
-                        glm::scale(glm::mat4(1.0f), glm::vec3(scale, scale, scale)));
-            }
-        }
-
-        // the left lower corner
-        glm::vec3 pos = m_gameBoard.position(0, 0);
-        pos.y -= m_gameBoard.blockSize();
-        pos.x -= m_gameBoard.blockSize();
-        obj->modelMatrices.push_back(
-                glm::translate(glm::mat4(1.0f), pos) *
-                glm::scale(glm::mat4(1.0f), glm::vec3(scale, scale, scale)));
-
-        // the right lower corner
-        pos = m_gameBoard.position(0, m_gameBoard.widthInTiles() - 1);
-        pos.y -= m_gameBoard.blockSize();
-        pos.x += m_gameBoard.blockSize();
-        obj->modelMatrices.push_back(
-                glm::translate(glm::mat4(1.0f), pos) *
-                glm::scale(glm::mat4(1.0f), glm::vec3(scale, scale, scale)));
-
-        objs.push_back(std::make_pair(obj, std::shared_ptr<DrawObjectData>()));
+    // fill in the bottom and sides with rocks so that no bg color shows.
+    auto obj = std::make_shared<DrawObject>();
+    if (m_componentModels[Component::ComponentType::noMovementRock].empty()) {
+        getCube(obj->vertices, obj->indices);
+    } else {
+        loadModel(m_gameRequester->getAssetStream(
+                m_componentModels[Component::ComponentType::noMovementRock]), v);
+        std::swap(v.first, obj->vertices);
+        std::swap(v.second, obj->indices);
     }
+
+    obj->texture = std::make_shared<TextureDescriptionPath>(
+            m_gameRequester, m_componentTextures[Component::ComponentType::noMovementRock]);
+    textures.emplace(obj->texture, std::shared_ptr<TextureData>());
+
+    // on the sides
+    if (m_width > m_gameBoard.widthInTiles() * m_gameBoard.blockSize()) {
+        for (size_t i = 0;
+             i < m_gameBoard.heightInTiles() - GameBoard::m_nbrTileRowsForEnd;
+             i++)
+        {
+            glm::vec3 pos = m_gameBoard.position(i, 0);
+            pos.x -= m_gameBoard.blockSize();
+            obj->modelMatrices.push_back(
+                    glm::translate(glm::mat4(1.0f), pos) *
+                    glm::scale(glm::mat4(1.0f), glm::vec3(scale, scale, scale)));
+
+            pos = m_gameBoard.position(i, m_gameBoard.widthInTiles() - 1);
+            pos.x += m_gameBoard.blockSize();
+            obj->modelMatrices.push_back(
+                    glm::translate(glm::mat4(1.0f), pos) *
+                    glm::scale(glm::mat4(1.0f), glm::vec3(scale, scale, scale)));
+        }
+    }
+
+    // on the bottom
+    // always add these because the gameboard has to be shifted up to cover up the end patch because
+    // the end is not at m_mazeFloorZ.
+    for (size_t i = 0; i < m_gameBoard.widthInTiles(); i++) {
+        glm::vec3 pos = m_gameBoard.position(0, i);
+        pos.y -= m_gameBoard.blockSize();
+        obj->modelMatrices.push_back(
+                glm::translate(glm::mat4(1.0f), pos) *
+                glm::scale(glm::mat4(1.0f), glm::vec3(scale, scale, scale)));
+    }
+
+    // the left lower corner
+    glm::vec3 pos = m_gameBoard.position(0, 0);
+    pos.y -= m_gameBoard.blockSize();
+    pos.x -= m_gameBoard.blockSize();
+    obj->modelMatrices.push_back(
+            glm::translate(glm::mat4(1.0f), pos) *
+            glm::scale(glm::mat4(1.0f), glm::vec3(scale, scale, scale)));
+
+    // the right lower corner
+    pos = m_gameBoard.position(0, m_gameBoard.widthInTiles() - 1);
+    pos.y -= m_gameBoard.blockSize();
+    pos.x += m_gameBoard.blockSize();
+    obj->modelMatrices.push_back(
+            glm::translate(glm::mat4(1.0f), pos) *
+            glm::scale(glm::mat4(1.0f), glm::vec3(scale, scale, scale)));
+
+    objs.push_back(std::make_pair(obj, std::shared_ptr<DrawObjectData>()));
 
     return true;
 }

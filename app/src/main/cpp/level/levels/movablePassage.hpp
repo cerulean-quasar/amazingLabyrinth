@@ -880,7 +880,7 @@ private:
 
 class GameBoard {
 public:
-    static uint32_t constexpr m_nbrTileRowsForStart = 4;
+    static uint32_t constexpr m_nbrTileRowsForStart = 3;
     static uint32_t constexpr m_nbrTileRowsForEnd = 2;
 
     uint32_t widthInTiles() { return m_blocks.empty() ? 0 : m_blocks[0].size(); }
@@ -892,6 +892,10 @@ public:
     float blockSize() { return m_blockSize; }
     bool isMoveInProgress() { return m_moveInProgress; }
     std::pair<uint32_t, uint32_t> moveRC() { return m_moveStartingPosition; }
+    float getZPosEndTile() { return m_centerPos.z - 3*m_blockSize/4.0f ; }
+    void setCenterPos(glm::vec3 const &pos) {
+        m_centerPos = pos;
+    }
 
     void initialize(float tileSize, glm::vec3 const &pos, uint32_t rows, uint32_t cols) {
         m_blockSize = tileSize;
@@ -911,8 +915,7 @@ public:
         if (m_blocks[row][col].blockType() == GameBoardBlock::BlockType::end ||
             m_blocks[row][col].blockType() == GameBoardBlock::BlockType::endOffBoard) {
             y = m_blockSize * (m_blocks.size() - m_nbrTileRowsForEnd/2.0f) - m_height/2 + m_centerPos.y;
-            //z = m_centerPos.z - m_blockSize / 2.0f;
-            z = m_centerPos.z - 3*m_blockSize/4.0f ;
+            z = getZPosEndTile();
         } else {
             y = m_blockSize * (row + 0.5f) - m_height / 2 + m_centerPos.y;
             z = m_centerPos.z - m_blockSize / 2.0f;
@@ -967,6 +970,17 @@ public:
     void start() override { m_prevTime = std::chrono::high_resolution_clock::now(); }
     void getLevelFinisherCenter(float &x, float &y) override { x = 0.0f; y = 0.0f; };
     SaveLevelDataFcn getSaveLevelDataFcn() override;
+
+    // call after all other init functions are completed but before updateStaticDrawObjects
+    std::vector<float> getAdditionalWHatZRequests() override {
+        return std::vector<float>{m_gameBoard.getZPosEndTile()};
+    }
+
+    void setAdditionalWH(float, float height, float z) override {
+        if (z == m_gameBoard.getZPosEndTile()) {
+            m_gameBoard.setCenterPos(glm::vec3{0.0f, (height - m_height)/2.0f, m_mazeFloorZ});
+        }
+    }
 
     // this function can be called at any time before the level is started.
     void initSetBallInfo(

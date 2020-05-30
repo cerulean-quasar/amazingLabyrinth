@@ -180,6 +180,9 @@ public:
     virtual bool dragEnded(float, float) { return false; }
     virtual float getZForTapCoords() { return m_mazeFloorZ; }
 
+    virtual std::vector<float> getAdditionalWHatZRequests() { return std::vector<float>{}; }
+    virtual void setAdditionalWH(float, float, float) {}
+
     using SaveLevelDataFcn = std::function<std::vector<uint8_t>(std::shared_ptr<GameSaveData> gsd)>;
     virtual SaveLevelDataFcn getSaveLevelDataFcn();
     static SaveLevelDataFcn  getBasicSaveLevelDataFcn();

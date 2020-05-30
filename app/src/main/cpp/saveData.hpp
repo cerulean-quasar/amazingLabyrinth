@@ -76,8 +76,10 @@ class LevelTracker;
 class LevelStarter;
 class Level;
 class LevelFinish;
-using GetStarterFcn = std::function<std::shared_ptr<LevelStarter>(LevelTracker &levelTracker)>;
-using GetLevelFcn = std::function<std::shared_ptr<Level>(LevelTracker &levelTracker)>;
+using GetStarterFcn = std::function<std::shared_ptr<LevelStarter>(LevelTracker &levelTracker,
+        glm::mat4 const &proj, glm::mat4 const &view)>;
+using GetLevelFcn = std::function<std::shared_ptr<Level>(LevelTracker &levelTracker,
+        glm::mat4 const &proj, glm::mat4 const &view)>;
 using GetFinisherFcn = std::function<std::shared_ptr<LevelFinish>(
         LevelTracker &levelTracker, float centerX, float centerY, glm::mat4 const &proj, glm::mat4 const &view)>;
 
