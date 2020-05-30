@@ -404,11 +404,6 @@ bool MovablePassage::updateData() {
             break;
         }
         glm::vec3 posFromCenter = position - m_gameBoard.position(m_ballRow, m_ballCol);
-        if (fabs(posFromCenter.x) >= m_gameBoard.blockSize()/2 + 0.001f ||
-            fabs(posFromCenter.y) >= m_gameBoard.blockSize()/2 + 0.001f) {
-            // shouldn't happen
-            return drawingNecessary();
-        }
 
         Component::checkForNextWallFunc checkforNextWall{
             [&](Component::CellWall wall1, Component::CellWall wall2)
@@ -547,10 +542,7 @@ bool MovablePassage::updateData() {
                    nextBlock.blockType() == GameBoardBlock::BlockType::begin) {
             // advance the ball into the next cell, but don't track its path
             m_ball.position = position;
-            if (checkBallBorders(m_ball.position, m_ball.velocity)) {
-                // shouldn't happen
-                return drawingNecessary();
-            }
+            updateRotation(timeDiff);
             return  drawingNecessary();
         }
 
@@ -563,15 +555,18 @@ bool MovablePassage::updateData() {
             if (placement.next().first == block.component() &&
                 placement.next().second == block.placementIndex()) {
                 // We are going backwards.  Unblock block that we were at and move on.
-                oldPlacement.next() = std::make_pair(nullptr, 0);
                 oldPlacement.prev() = std::make_pair(nullptr, 0);
+                placement.next() = std::make_pair(nullptr, 0);
+
             } else {
                 // We encountered a loop.  Unblock the entire loop
                 std::shared_ptr<Component> nextComponent = nextBlock.component();
                 size_t index = nextBlock.placementIndex();
                 std::shared_ptr<Component> loopComponent = block.component();
                 size_t loopIndex = block.placementIndex();
-                while (loopComponent != nextComponent && loopIndex != index) {
+                while (loopComponent != nullptr &&
+                      (loopComponent != nextComponent || loopIndex != index))
+                {
                     auto tmp = loopComponent->placement(loopIndex).prev();
                     auto &loopPlacement = loopComponent->placement(loopIndex);
                     loopPlacement.prev() = std::make_pair(nullptr, 0);
@@ -579,6 +574,7 @@ bool MovablePassage::updateData() {
                     loopComponent = tmp.first;
                     loopIndex = tmp.second;
                 }
+                loopComponent->placement(loopIndex).next() = std::make_pair(nullptr, 0);
             }
         } else {
             // the ball is entering a new cell that is not in its path yet.

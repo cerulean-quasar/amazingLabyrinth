@@ -107,84 +107,73 @@ public:
         return ret;
     }
 
-    // return.first = true if start wall hit, return.second true if second wall hit
-    // set the speed to 0.0f only if hitting an actual wall and the neighboring component does
-    // not have an open wall.  Leave the speed alone if the wall is noWall.  Let the caller
-    // decide what to do for this case.
-    std::pair<bool, bool> moveBall(float &pos, float &timediff,
-            float start, CellWall startWall, float end,
-            CellWall endWall, float &speed, float ballRadius,
-            checkForNextWallFunc checkForNextWall)
+    std::pair<CellWall, CellWall> moveBallInJunction(
+        glm::vec3 &position,
+        float &timediff,
+        glm::vec3 &velocity,
+        float ballRadius,
+        checkForNextWallFunc checkForNextWall)
     {
-        // return true if a wall was hit and the ball is allowed to pass through.
-        auto moveToWall = [&](CellWall wall, float wallPos) -> bool {
-            if (wall != CellWall::noWall) {
-                auto ret = checkForNextWall(wall, CellWall::noWall);
-                if (ret.first) {
-                    // advance to the next cell.
-                    timediff -= (wallPos - pos)/speed;
-                    if (wallPos > 0.0f) {
-                        pos = wallPos + Level::m_floatErrorAmount;
-                    } else {
-                        pos = wallPos - Level::m_floatErrorAmount;
-                    }
-                    return ret.first;
-                } else {
-                    // hold back on advancing to the next cell, advance within the cell
-                    if (wallPos > 0.0f) {
-                        pos = wallPos - ballRadius;
-                    } else {
-                        pos = wallPos + ballRadius;
-                    }
-                    speed = 0.0f;
-                    timediff = 0;
-                    return ret.first;
-                }
+        auto checkBallBorder = [&](float &p, float &speed, CellWall wall, float border, int32_t sign)
+                -> std::pair<CellWall, CellWall>
+        {
+            auto ret = checkForNextWall(wall, CellWall::noWall);
+            if (ret.first) {
+                p = border + sign * Level::m_floatErrorAmount;
+                return std::make_pair(wall, CellWall::noWall);
             } else {
-                // allow to advance the full amount because we are just going to the center of the
-                // cell
-                timediff -= (wallPos - pos)/speed;
-                pos = wallPos;
-                return true;
+                p = border - sign * ballRadius;
+                speed = 0.0f;
+                return std::make_pair(CellWall::noWall, CellWall::noWall);
             }
         };
 
-        float posnext = pos + speed * timediff;
-        auto moveToWall2 = [&](CellWall wall, float maxAllowedIfClosed) -> void {
-            if (wall != CellWall::noWall) {
-                // don't advance closer than ballRadius to the wall if there is no open
-                // component next door.
-                auto ret = checkForNextWall(wall, CellWall::noWall);
-                if (ret.first) {
-                    // the next component has an open wall - move the full distance;
-                    timediff -= (posnext - pos)/speed;
-                    pos = posnext;
-                } else {
-                    pos = maxAllowedIfClosed;
-                    speed = 0.0f;
-                    timediff = 0.0f;
-                }
-            } else {
-                // allow full advancement to the wall since it is just the center.
-                timediff -= (posnext - pos)/speed;
-                pos = posnext;
+        auto checkBallBorder2 = [&](float &p, float &speed, CellWall wall, float border, int32_t sign)
+                -> std::pair<CellWall, CellWall>
+        {
+            auto ret = checkForNextWall(wall, CellWall::noWall);
+            if (!ret.first) {
+                p = border - sign * ballRadius;
+                speed = 0.0f;
             }
+            return std::make_pair(CellWall::noWall, CellWall::noWall);
         };
 
-        if (posnext <= start) {
-            return std::make_pair(moveToWall(startWall, start), false);
-        } else if (posnext >= end) {
-            return std::make_pair(false, moveToWall(endWall, end));
+        auto moveBallCorridor = [&](float &p, float &speed, CellWall wall1, float border1, CellWall wall2, float border2)
+                -> std::pair<CellWall, CellWall>
+        {
+            if (p < border1) {
+                return checkBallBorder(p, speed, wall1, border1, -1);
+            } else if (p < border1 + ballRadius) {
+                return checkBallBorder2(p, speed, wall1, border1, -1);
+            } else if (p > border2) {
+                return checkBallBorder(p, speed, wall2, border2, 1);
+            } else if (p > border2 - ballRadius) {
+                return checkBallBorder2(p, speed, wall2, border2, 1);
+            }
+            return std::make_pair(CellWall::noWall, CellWall::noWall);
+        };
+
+        if (velocity.x == 0.0f && velocity.y == 0.0f) {
+            return std::make_pair(CellWall::noWall, CellWall::noWall);
+        }
+
+        glm::vec3 nextPos = position + velocity * timediff;
+
+        if (fabs(nextPos.x) > fabs(nextPos.y)) {
+            nextPos.y = 0.0f;
+            auto ret = moveBallCorridor(nextPos.x, velocity.x,
+                                        CellWall::wallLeft, -m_componentSize/2,
+                                        CellWall::wallRight, m_componentSize/2);
+            position = nextPos;
+            return ret;
         } else {
-            if (posnext < start + ballRadius) {
-                moveToWall2(startWall, start + ballRadius);
-            } else if (posnext > end - ballRadius) {
-                moveToWall2(endWall, end - ballRadius);
-            } else {
-                // allow full advancement to the wall since it is just the center.
-                pos = posnext;
-            }
-            return std::make_pair(false, false);
+            nextPos.x = 0.0f;
+            auto ret = moveBallCorridor(nextPos.y, velocity.y,
+                                        CellWall::wallDown, -m_componentSize/2,
+                                        CellWall::wallUp, m_componentSize/2);
+            position = nextPos;
+            return ret;
         }
     }
 
@@ -340,15 +329,7 @@ public:
                     return std::make_pair(CellWall::noWall, CellWall::noWall);
                 }
 
-                auto ret = moveBall(position.y, timediff, -m_componentSize/2, CellWall::wallDown,
-                        m_componentSize/2, CellWall::wallUp, velocity.y, ballRadius, checkForNextWall);
-                if (ret.second) {
-                    return std::make_pair(CellWall::wallUp, CellWall::noWall);
-                } else if (ret.first) {
-                    return std::make_pair(CellWall::wallDown, CellWall::noWall);
-                } else {
-                    return std::make_pair(CellWall::noWall, CellWall::noWall);
-                }
+                return moveBallInJunction(position, timediff, velocity, ballRadius, checkForNextWall);
             }),
 
         // T-Junction
@@ -359,95 +340,13 @@ public:
                     float ballRadius,
                     checkForNextWallFunc checkForNextWall) -> std::pair<CellWall, CellWall>
             {
-                if (position.y > 0.0f) {
+                glm::vec3 nextPos = position + velocity * timediff;
+                if (nextPos.y > 0.0f || position.y > 0.0f) {
                     position.y = 0.0f;
                     velocity.y = 0.0f;
                 }
 
-                if (velocity.x == 0.0f && velocity.y == 0.0f) {
-                    return std::make_pair(CellWall::noWall, CellWall::noWall);
-                }
-
-                // center position
-                if (position.y == 0.0f && position.x == 0.0f) {
-                    if (std::fabs(velocity.x) > std::fabs(velocity.y) || velocity.y > 0.0f) {
-                        velocity.y = 0.0f;
-                        auto ret = moveBall(position.x, timediff, -m_componentSize/2, CellWall::wallLeft,
-                                m_componentSize/2, CellWall::wallRight, velocity.x, ballRadius, checkForNextWall);
-                        if (ret.first) {
-                            return std::make_pair(CellWall::wallLeft, CellWall::noWall);
-                        } else if (ret.second) {
-                            return std::make_pair(CellWall::wallRight, CellWall::noWall);
-                        } else {
-                            return std::make_pair(CellWall::noWall, CellWall::noWall);
-                        }
-                    } else {
-                        velocity.x = 0.0f;
-                        auto ret = moveBall(position.y, timediff, -m_componentSize/2, CellWall::wallDown,
-                                0.0f, CellWall::noWall, velocity.y, ballRadius, checkForNextWall);
-                        if (ret.first) {
-                            return std::make_pair(CellWall::wallDown, CellWall::noWall);
-                        } else {
-                            if (ret.second) {
-                                velocity.y = 0.0f;
-                            }
-                            return std::make_pair(CellWall::noWall, CellWall::noWall);
-                        }
-                    }
-                }
-
-                // bottom corridor
-                if (position.y < 0.0f) {
-                    position.x = 0.0f;
-                    auto ret = moveBall(position.y, timediff, -m_componentSize/2, CellWall::wallDown,
-                            0.0f, CellWall::noWall, velocity.y, ballRadius, checkForNextWall);
-                    if (ret.second && timediff > 0) {
-                        position.x = 0.0f;
-                        position.y = 0.0f;
-                        velocity.y = 0.0f;
-                        return moveBallInCellFuncs[ComponentType::tjunction](position, timediff, velocity,
-                                ballRadius, checkForNextWall);
-                    } else if (ret.first) {
-                        return std::make_pair(CellWall::wallDown, CellWall::noWall);
-                    } else {
-                        return std::make_pair(CellWall::noWall, CellWall::noWall);
-                    }
-                }
-
-                // left corridor
-                if (position.x < 0.0f) {
-                    position.y = 0.0f;
-                    auto ret = moveBall(position.x, timediff, -m_componentSize/2, CellWall::wallLeft,
-                            0.0f, CellWall::noWall, velocity.x, ballRadius, checkForNextWall);
-                    if (ret.second && timediff > 0) {
-                        position.x = 0.0f;
-                        position.y = 0.0f;
-                        return moveBallInCellFuncs[ComponentType::tjunction](position, timediff, velocity,
-                                ballRadius, checkForNextWall);
-                    } else if (ret.first) {
-                        return std::make_pair(CellWall::wallLeft, CellWall::noWall);
-                    } else {
-                        return std::make_pair(CellWall::noWall, CellWall::noWall);
-                    }
-                }
-
-                // right corridor
-                if (position.x > 0.0f) {
-                    position.y = 0.0f;
-                    auto ret = moveBall(position.x, timediff, 0.0f, CellWall::noWall,
-                            m_componentSize/2, CellWall::wallRight, velocity.x, ballRadius, checkForNextWall);
-                    if (ret.first && timediff > 0) {
-                        position.x = 0.0f;
-                        position.y = 0.0f;
-                        return moveBallInCellFuncs[ComponentType::tjunction](position, timediff, velocity,
-                                ballRadius, checkForNextWall);
-                    } else if (ret.second) {
-                        return std::make_pair(CellWall::wallRight, CellWall::noWall);
-                    } else {
-                        return std::make_pair(CellWall::noWall, CellWall::noWall);
-                    }
-                }
-                return std::make_pair(CellWall::noWall, CellWall::noWall);
+                return moveBallInJunction(position, timediff, velocity, ballRadius, checkForNextWall);
             }),
 
         // cross junction
@@ -458,98 +357,7 @@ public:
                     float ballRadius,
                     checkForNextWallFunc checkForNextWall) -> std::pair<CellWall, CellWall>
             {
-                if (velocity.x == 0.0f && velocity.y == 0.0f) {
-                    return std::make_pair(CellWall::noWall, CellWall::noWall);
-                }
-
-                if (position.y == 0.0f && position.x == 0.0f) {
-                    if (std::fabs(velocity.x) > std::fabs(velocity.y)) {
-                        velocity.y = 0.0f;
-                        auto ret = moveBall(position.x, timediff, -m_componentSize/2, CellWall::wallLeft,
-                                            m_componentSize/2, CellWall::wallRight, velocity.x, ballRadius,
-                                            checkForNextWall);
-                        if (ret.first) {
-                            return std::make_pair(CellWall::wallLeft, CellWall::noWall);
-                        } else if (ret.second) {
-                            return std::make_pair(CellWall::wallRight, CellWall::noWall);
-                        } else {
-                            return std::make_pair(CellWall::noWall, CellWall::noWall);
-                        }
-                    } else {
-                        velocity.x = 0.0f;
-                        auto ret = moveBall(position.y, timediff, -m_componentSize/2, CellWall::wallDown,
-                                m_componentSize/2, CellWall::wallUp, velocity.y, ballRadius, checkForNextWall);
-                        if (ret.first) {
-                            return std::make_pair(CellWall::wallDown, CellWall::noWall);
-                        } else if (ret.second) {
-                            return std::make_pair(CellWall::wallUp, CellWall::noWall);
-                        } else {
-                            return std::make_pair(CellWall::noWall, CellWall::noWall);
-                        }
-                    }
-                }
-                if (position.y < 0.0f) {
-                    position.x = 0.0f;
-                    auto ret = moveBall(position.y, timediff, -m_componentSize/2, CellWall::wallDown,
-                            0.0f, CellWall::noWall, velocity.y, ballRadius, checkForNextWall);
-                    if (ret.second && timediff > 0) {
-                        position.x = 0.0f;
-                        position.y = 0.0f;
-                        return moveBallInCellFuncs[ComponentType::crossjunction](position, timediff, velocity,
-                                ballRadius, checkForNextWall);
-                    } else if (ret.first) {
-                        return std::make_pair(CellWall::wallDown, CellWall::noWall);
-                    } else {
-                        return std::make_pair(CellWall::noWall, CellWall::noWall);
-                    }
-                }
-                if (position.y > 0.0f) {
-                    position.x = 0.0f;
-                    auto ret = moveBall(position.y, timediff, 0.0f, CellWall::noWall,
-                            m_componentSize/2, CellWall::wallUp, velocity.y, ballRadius, checkForNextWall);
-                    if (ret.first && timediff > 0) {
-                        position.x = 0.0f;
-                        position.y = 0.0f;
-                        return moveBallInCellFuncs[ComponentType::crossjunction](position, timediff, velocity,
-                                ballRadius, checkForNextWall);
-                    } else if (ret.second) {
-                        return std::make_pair(CellWall::wallUp, CellWall::noWall);
-                    } else {
-                        return std::make_pair(CellWall::noWall, CellWall::noWall);
-                    }
-                }
-                if (position.x < 0.0f) {
-                    position.y = 0.0f;
-                    auto ret = moveBall(position.x, timediff, -m_componentSize/2, CellWall::wallLeft,
-                            0.0f, CellWall::noWall, velocity.x, ballRadius, checkForNextWall);
-                    if (ret.second && timediff > 0) {
-                        position.x = 0.0f;
-                        position.y = 0.0f;
-                        return moveBallInCellFuncs[ComponentType::crossjunction](position, timediff, velocity,
-                                ballRadius, checkForNextWall);
-                    } else if (ret.first) {
-                        return std::make_pair(CellWall::wallLeft, CellWall::noWall);
-                    } else {
-                        return std::make_pair(CellWall::noWall, CellWall::noWall);
-                    }
-                }
-                if (position.x > 0.0f) {
-                    position.y = 0.0f;
-                    auto ret = moveBall(position.x, timediff, 0.0f, CellWall::noWall, m_componentSize/2,
-                            CellWall::wallRight, velocity.x, ballRadius, checkForNextWall);
-                    if (ret.first && timediff > 0) {
-                        position.x = 0.0f;
-                        position.y = 0.0f;
-                        return moveBallInCellFuncs[ComponentType::crossjunction](position, timediff, velocity,
-                                ballRadius, checkForNextWall);
-                    } else if (ret.second) {
-                        return std::make_pair(CellWall::wallRight, CellWall::noWall);
-                    } else {
-                        return std::make_pair(CellWall::noWall, CellWall::noWall);
-                    }
-                }
-
-                return std::make_pair(CellWall::noWall, CellWall::noWall);
+                return moveBallInJunction(position, timediff, velocity, ballRadius, checkForNextWall);
             }),
 
         // turn
@@ -560,85 +368,17 @@ public:
                     float ballRadius,
                     checkForNextWallFunc checkForNextWall) -> std::pair<CellWall, CellWall>
             {
-                if (position.y > 0.0f) {
+                glm::vec3 nextPos = position + velocity * timediff;
+                if (nextPos.y > 0.0f || position.y > 0.0f) {
                     position.y = 0.0f;
                     velocity.y = 0.0f;
                 }
-                if (position.x > 0.0f) {
+                if (nextPos.x > 0.0f || position.x > 0.0f) {
                     position.x = 0.0f;
                     velocity.x = 0.0f;
                 }
 
-                if (velocity.x == 0.0f && velocity.y == 0.0f) {
-                    return std::make_pair(CellWall::noWall, CellWall::noWall);
-                }
-
-                if (position.y == 0.0f && position.x == 0.0f) {
-                    if (std::fabs(velocity.x) > std::fabs(velocity.y) || velocity.y > 0.0f) {
-                        velocity.y = 0.0f;
-                        auto ret = moveBall(position.x, timediff, -m_componentSize/2, CellWall::wallLeft,
-                                            0.0f, CellWall::noWall, velocity.x,
-                                            ballRadius, checkForNextWall);
-                        if (ret.first) {
-                            return std::make_pair(CellWall::wallLeft, CellWall::noWall);
-                        } else {
-                            if (ret.second) {
-                                velocity.x = 0.0f;
-                            }
-                            return std::make_pair(CellWall::noWall, CellWall::noWall);
-                        }
-                    } else {
-                        velocity.x = 0.0f;
-                        auto ret = moveBall(position.y, timediff, -m_componentSize/2, CellWall::wallDown,
-                                0.0f, CellWall::noWall, velocity.y, ballRadius, checkForNextWall);
-                        if (ret.first) {
-                            return std::make_pair(CellWall::wallDown, CellWall::noWall);
-                        } else {
-                            if (ret.second) {
-                                velocity.y = 0.0f;
-                            }
-                            return std::make_pair(CellWall::noWall, CellWall::noWall);
-                        }
-                    }
-                }
-
-                // bottom corridor
-                if (position.y < 0.0f) {
-                    position.x = 0.0f;
-                    auto ret = moveBall(position.y, timediff, -m_componentSize/2, CellWall::wallDown,
-                            0.0f, CellWall::noWall, velocity.y, ballRadius, checkForNextWall);
-                    if (ret.second && timediff > 0) {
-                        position.x = 0.0f;
-                        position.y = 0.0f;
-                        velocity.y = 0.0f;
-                        return moveBallInCellFuncs[ComponentType::turn](position, timediff, velocity,
-                                ballRadius, checkForNextWall);
-                    } else if (ret.first) {
-                        return std::make_pair(CellWall::wallDown, CellWall::noWall);
-                    } else {
-                        return std::make_pair(CellWall::noWall, CellWall::noWall);
-                    }
-                }
-
-                // left corridor
-                if (position.x < 0.0f) {
-                    position.y = 0.0f;
-                    auto ret = moveBall(position.x, timediff, -m_componentSize/2, CellWall::wallLeft,
-                            0.0f, CellWall::noWall, velocity.x, ballRadius, checkForNextWall);
-                    if (ret.second && timediff > 0) {
-                        position.x = 0.0f;
-                        position.y = 0.0f;
-                        velocity.x = 0.0f;
-                        return moveBallInCellFuncs[ComponentType::turn](position, timediff, velocity,
-                                ballRadius, checkForNextWall);
-                    } else if (ret.first) {
-                        return std::make_pair(CellWall::wallLeft, CellWall::noWall);
-                    } else {
-                        return std::make_pair(CellWall::noWall, CellWall::noWall);
-                    }
-                }
-
-                return std::make_pair(CellWall::noWall, CellWall::noWall);
+                return moveBallInJunction(position, timediff, velocity, ballRadius, checkForNextWall);
             }),
 
         // open area
