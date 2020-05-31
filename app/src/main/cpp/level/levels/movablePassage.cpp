@@ -789,34 +789,46 @@ bool MovablePassage::updateDynamicDrawObjects(DrawObjectTable &objs, TextureMap 
         auto rc = m_gameBoard.moveRC();
         std::vector<size_t> nbrPlacements;
         nbrPlacements.resize(m_components.size(), 0);
+
+        auto addModelMatrix = [&](std::shared_ptr<Component> const &component,
+                size_t placementIndex, float scale, float extraZ, size_t r, size_t c) -> void
+        {
+            auto ref = component->objReference();
+            auto &obj = objs[ref.second].first;
+            auto pos = m_gameBoard.position(r, c);
+            pos.z += extraZ;
+
+            if (nbrPlacements[component->type()] >= obj->modelMatrices.size()) {
+                obj->modelMatrices.resize(nbrPlacements[component->type()] + 1, glm::mat4(1.0f));
+            }
+            obj->modelMatrices[nbrPlacements[component->type()]] =
+                    glm::translate(glm::mat4(1.0f), pos) *
+                    glm::rotate(glm::mat4(1.0f), component->placement(placementIndex).rotationAngle(), zaxis) *
+                    glm::scale(glm::mat4(1.0f), glm::vec3{scale, scale, scale});
+            nbrPlacements[component->type()] ++;
+        };
+
+        float scale = m_gameBoard.blockSize() / m_modelSize;
+        float extraZ = 3 * m_gameBoard.blockSize()/4;
         for (size_t i = GameBoard::m_nbrTileRowsForStart;
              i < m_gameBoard.heightInTiles() - GameBoard::m_nbrTileRowsForEnd;
              i++)
         {
             for (size_t j = 0; j < m_gameBoard.widthInTiles(); j++) {
                 auto &b = m_gameBoard.block(i, j);
-                std::shared_ptr<Component> component;
-                size_t placementIndex;
                 if (moveInProgress && rc.first == i && rc.second == j) {
                     // draw the secondary component if the primary component is being moved.
-                    component = b.secondaryComponent();
-                    placementIndex = b.secondaryPlacementIndex();
+                    addModelMatrix(b.secondaryComponent(), b.secondaryPlacementIndex(),
+                            scale, 0.0f, i, j);
+                } else if (b.blockType() == GameBoardBlock::BlockType::offBoard &&
+                        b.secondaryComponent() != nullptr)
+                {
+                    addModelMatrix(b.component(), b.placementIndex(), scale/2, extraZ, i, j);
+                    addModelMatrix(b.secondaryComponent(), b.secondaryPlacementIndex(), scale,
+                            0.0f, i, j);
                 } else {
-                    component = b.component();
-                    placementIndex = b.placementIndex();
+                    addModelMatrix(b.component(), b.placementIndex(), scale, 0.0f, i, j);
                 }
-                auto ref = component->objReference();
-                auto obj = objs[ref.second].first;
-                float scale = component->componentSize() / m_modelSize;
-
-                if (nbrPlacements[component->type()] >= obj->modelMatrices.size()) {
-                    obj->modelMatrices.resize(nbrPlacements[component->type()] + 1, glm::mat4(1.0f));
-                }
-                obj->modelMatrices[nbrPlacements[component->type()]] =
-                        glm::translate(glm::mat4(1.0f), m_gameBoard.position(i, j)) *
-                        glm::rotate(glm::mat4(1.0f), component->placement(placementIndex).rotationAngle(), zaxis) *
-                        glm::scale(glm::mat4(1.0f), glm::vec3{scale, scale, scale});
-                nbrPlacements[component->type()] ++;
             }
         }
 
@@ -837,6 +849,13 @@ bool MovablePassage::updateDynamicDrawObjects(DrawObjectTable &objs, TextureMap 
                     glm::rotate(glm::mat4(1.0f), placement.rotationAngle(), zaxis) *
                     glm::scale(glm::mat4(1.0f), glm::vec3{size, size, size});
             nbrPlacements[component->type()] ++;
+        }
+
+        for (auto const &component : m_components) {
+            auto ref = component->objReference();
+            if (ref.first == Component::MovableType::dynamicObj) {
+                objs[ref.second].first->modelMatrices.resize(nbrPlacements[component->type()]);
+            }
         }
     };
 
