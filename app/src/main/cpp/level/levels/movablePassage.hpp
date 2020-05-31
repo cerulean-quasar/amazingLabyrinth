@@ -722,9 +722,10 @@ public:
         return std::vector<float>{m_gameBoard.getZPosEndTile()};
     }
 
+    // call after getAdditionalWHatZRequests to return the requested width/height at z.
     void setAdditionalWH(float, float height, float z) override {
         if (z == m_gameBoard.getZPosEndTile()) {
-            m_gameBoard.setCenterPos(glm::vec3{0.0f, (height - m_height)/2.0f, m_mazeFloorZ});
+            m_gameBoard.setCenterPos(glm::vec3{0.0f, (height - m_gameBoard.heightInTiles()* m_gameBoard.blockSize())/2.0f, m_mazeFloorZ});
         }
     }
 
@@ -739,6 +740,7 @@ public:
 
     // this function can be called at any time before the level is started.
     void initSetGameBoardInfo(
+            std::string const &blockedRockModel,
             std::string const &blockedRockTexture,
             std::string const &blockedDirtTexture,
             std::string const &componentTextureEnd,
@@ -750,6 +752,7 @@ public:
             std::string const &startOpenModel,
             std::string const &startOpenTexture)
     {
+        m_componentModels[Component::ComponentType::noMovementRock] = blockedRockModel;
         m_componentTextures[Component::ComponentType::noMovementRock] = blockedRockTexture;
         m_componentTextures[Component::ComponentType::noMovementDirt] = blockedDirtTexture;
 

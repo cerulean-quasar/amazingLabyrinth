@@ -24,8 +24,8 @@ std::pair<uint32_t, uint32_t> GameBoard::findRC(glm::vec2 position) {
     uint32_t row;
     uint32_t col;
 
-    row = static_cast<uint32_t>(std::floor((position.y/m_height + 0.5f) * m_blocks.size()));
-    col = static_cast<uint32_t>(std::floor((position.x/m_width + 0.5f) * m_blocks[0].size()));
+    row = static_cast<uint32_t>(std::floor(((position.y - m_centerPos.y)/m_height + 0.5f) * m_blocks.size()));
+    col = static_cast<uint32_t>(std::floor(((position.x - m_centerPos.x)/m_width + 0.5f) * m_blocks[0].size()));
 
     return std::make_pair(row, col);
 }
@@ -618,21 +618,23 @@ bool MovablePassage::updateStaticDrawObjects(DrawObjectTable &objs, TextureMap &
                                             glm::scale(glm::mat4(1.0f), endScale));
         }
     }
-    if (m_width > m_gameBoard.widthInTiles() * m_gameBoard.blockSize()) {
-        // add extra end tiles to the left and right to make the entire surface be filled in (no bg
-        // color around the edges)
-        glm::vec3 endPosition = m_gameBoard.position(
-                m_gameBoard.heightInTiles() - m_gameBoard.m_nbrTileRowsForEnd, 0);
-        endPosition.x -= m_gameBoard.blockSize();
-        objEndOffBoard->modelMatrices.push_back(glm::translate(glm::mat4(1.0f), endPosition) *
-                glm::scale(glm::mat4(1.0f), endScale));
 
-        endPosition = m_gameBoard.position(
-                m_gameBoard.heightInTiles() - m_gameBoard.m_nbrTileRowsForEnd, m_gameBoard.widthInTiles() - 1);
-        endPosition.x += m_gameBoard.blockSize();
-        objEndOffBoard->modelMatrices.push_back(glm::translate(glm::mat4(1.0f), endPosition) *
-                                                glm::scale(glm::mat4(1.0f), endScale));
-    }
+    // add extra end tiles to the left and right to make the entire surface be filled in (no bg
+    // color around the edges).  Always do this even if the width of the game board is the same
+    // size as the surface at depth: m_mazeFloorZ because we will need it because of perspective.
+    // The end tiles are lower than m_mazeFloorZ.
+    glm::vec3 endPosition = m_gameBoard.position(
+            m_gameBoard.heightInTiles() - m_gameBoard.m_nbrTileRowsForEnd, 0);
+    endPosition.x -= m_gameBoard.blockSize();
+    objEndOffBoard->modelMatrices.push_back(glm::translate(glm::mat4(1.0f), endPosition) *
+            glm::scale(glm::mat4(1.0f), endScale));
+
+    endPosition = m_gameBoard.position(
+            m_gameBoard.heightInTiles() - m_gameBoard.m_nbrTileRowsForEnd, m_gameBoard.widthInTiles() - 1);
+    endPosition.x += m_gameBoard.blockSize();
+    objEndOffBoard->modelMatrices.push_back(glm::translate(glm::mat4(1.0f), endPosition) *
+                                            glm::scale(glm::mat4(1.0f), endScale));
+
     // no components for these so we don't set the reference back to this obj.
     objs.push_back(std::make_pair(objEnd, std::shared_ptr<DrawObjectData>()));
     objs.push_back(std::make_pair(objEndOffBoard, std::shared_ptr<DrawObjectData>()));
@@ -729,23 +731,21 @@ bool MovablePassage::updateStaticDrawObjects(DrawObjectTable &objs, TextureMap &
     textures.emplace(obj->texture, std::shared_ptr<TextureData>());
 
     // on the sides
-    if (m_width > m_gameBoard.widthInTiles() * m_gameBoard.blockSize()) {
-        for (size_t i = 0;
-             i < m_gameBoard.heightInTiles() - GameBoard::m_nbrTileRowsForEnd;
-             i++)
-        {
-            glm::vec3 pos = m_gameBoard.position(i, 0);
-            pos.x -= m_gameBoard.blockSize();
-            obj->modelMatrices.push_back(
-                    glm::translate(glm::mat4(1.0f), pos) *
-                    glm::scale(glm::mat4(1.0f), glm::vec3(scale, scale, scale)));
+    for (size_t i = 0;
+         i < m_gameBoard.heightInTiles() - GameBoard::m_nbrTileRowsForEnd;
+         i++)
+    {
+        glm::vec3 pos = m_gameBoard.position(i, 0);
+        pos.x -= m_gameBoard.blockSize();
+        obj->modelMatrices.push_back(
+                glm::translate(glm::mat4(1.0f), pos) *
+                glm::scale(glm::mat4(1.0f), glm::vec3(scale, scale, scale)));
 
-            pos = m_gameBoard.position(i, m_gameBoard.widthInTiles() - 1);
-            pos.x += m_gameBoard.blockSize();
-            obj->modelMatrices.push_back(
-                    glm::translate(glm::mat4(1.0f), pos) *
-                    glm::scale(glm::mat4(1.0f), glm::vec3(scale, scale, scale)));
-        }
+        pos = m_gameBoard.position(i, m_gameBoard.widthInTiles() - 1);
+        pos.x += m_gameBoard.blockSize();
+        obj->modelMatrices.push_back(
+                glm::translate(glm::mat4(1.0f), pos) *
+                glm::scale(glm::mat4(1.0f), glm::vec3(scale, scale, scale)));
     }
 
     // on the bottom

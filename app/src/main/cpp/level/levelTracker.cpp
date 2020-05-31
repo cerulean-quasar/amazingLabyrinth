@@ -298,24 +298,42 @@ LevelGroup LevelTracker::getLevelGroupGopher(
             GetLevelFcn([levelBundle](LevelTracker &tracker, glm::mat4 const &proj, glm::mat4 const &view) {
                 auto level = tracker.getLevel<MovablePassage>(levelBundle, proj, view);
                 level->initSetBallInfo("models/ball.modelcbor", "textures/gopher/gopher.png");
-                level->initSetGameBoardInfo("textures/gopher/rock.png", "textures/gopher/dirt.png",
+                level->initSetGameBoardInfo("models/gopher/rock.modelcbor",
+                        "textures/gopher/rock.png", "textures/gopher/dirt.png",
                         "textures/gopher/end.png", "textures/gopher/endOffBoard.png",
                         "models/gopher/startCorner.modelcbor", "textures/gopher/dirt.png",
                         "models/gopher/startSide.modelcbor", "textures/gopher/dirt.png",
                         "models/gopher/startOpen.modelcbor", "textures/gopher/dirt.png");
-                level->initAddRock(2,2);
-                level->initAddRock(2,3);
+                level->initAddRock(1,1);
+                level->initAddRock(1,2);
+                level->initAddRock(1,3);
+                level->initAddRock(1,4);
+                level->initAddRock(1,5);
+                level->initAddRock(1,6);
+                level->initAddRock(3,0);
                 level->initAddRock(3,2);
                 level->initAddRock(3,3);
-                level->initAddType(Component::ComponentType::straight, 2,
+                level->initAddRock(3,5);
+                level->initAddRock(5,1);
+                level->initAddRock(5,2);
+                level->initAddRock(5,3);
+                level->initAddRock(5,5);
+                level->initAddRock(5,6);
+                level->initAddRock(6,5);
+                level->initAddRock(6,6);
+                level->initAddRock(7,0);
+                level->initAddRock(7,1);
+                level->initAddRock(7,2);
+                level->initAddRock(7,3);
+                level->initAddType(Component::ComponentType::straight, 3,
                     "models/gopher/straight.modelcbor", "textures/gopher/dirt.png");
                 level->initAddType(Component::ComponentType::turn, 10,
                     "models/gopher/turn.modelcbor", "textures/gopher/dirt.png");
-                level->initAddType(Component::ComponentType::tjunction, 1,
+                level->initAddType(Component::ComponentType::tjunction, 2,
                     "models/gopher/tjunction.modelcbor", "textures/gopher/dirt.png");
                 level->initAddType(Component::ComponentType::crossjunction, 2,
                     "models/gopher/crossjunction.modelcbor", "textures/gopher/dirt.png");
-                level->initSetGameBoard(6, 6, 1, 4);
+                level->initSetGameBoard(8, 8, 1, 6);
                 level->initDone();
 
                 // call after all other init functions are completed but before updateStaticDrawObjects
