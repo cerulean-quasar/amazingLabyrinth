@@ -17,6 +17,7 @@
  *  along with AmazingLabyrinth.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
+#include <vector>
 #include "movablePassage.hpp"
 #include "../level.hpp"
 
@@ -590,6 +591,50 @@ bool MovablePassage::updateData() {
     return drawingNecessary();
 }
 
+std::vector<size_t> MovablePassage::addObjs(DrawObjectTable &objs,
+        TextureMap &textures, std::string const &model,
+        std::vector<std::string> const &textureNames)
+{
+    std::vector<size_t> ret;
+    std::pair<std::vector<Vertex>, std::vector<uint32_t>> v;
+    if (model.empty()) {
+        getCube(v.first, v.second);
+    } else {
+        loadModel(m_gameRequester->getAssetStream(model), v);
+    }
+    for (auto textureName : textureNames) {
+        auto obj = std::make_shared<DrawObject>();
+        obj->vertices = v.first;
+        obj->indices = v.second;
+        obj->texture = std::make_shared<TextureDescriptionPath>(m_gameRequester, textureName);
+        textures.insert(std::make_pair(obj->texture, std::shared_ptr<TextureData>()));
+        ret.push_back(objs.size());
+        objs.emplace_back(obj, std::shared_ptr<DrawObjectData>());
+    }
+
+    return std::move(ret);
+}
+
+void MovablePassage::addModelMatrixToObj(DrawObjectTable &objs, std::vector<size_t> const &refs,
+        std::shared_ptr<Component> component, size_t placementIndex,
+        glm::mat4 modelMatrix)
+{
+    size_t i;
+    switch (refs.size()) {
+    case 0:
+        return;
+    case 1:
+        i = 0;
+    default:
+        i = m_random.getUInt(0, refs.size() - 1);
+    }
+
+    objs[refs[i]].first->modelMatrices.push_back(modelMatrix);
+    if (component) {
+        component->placement(placementIndex).setDynObjReference(refs[i]);
+    }
+}
+
 bool MovablePassage::updateStaticDrawObjects(DrawObjectTable &objs, TextureMap &textures) {
     if (!m_initDone || !objs.empty()) {
         return false;
@@ -640,44 +685,16 @@ bool MovablePassage::updateStaticDrawObjects(DrawObjectTable &objs, TextureMap &
     objs.push_back(std::make_pair(objEndOffBoard, std::shared_ptr<DrawObjectData>()));
 
     // the start: closed corner type
-    std::pair<std::vector<Vertex>, std::vector<uint32_t>> v;
-    loadModel(m_gameRequester->getAssetStream(m_componentModels[Component::ComponentType::closedCorner]), v);
-    auto objStartCorner = std::make_shared<DrawObject>();
-    std::swap(objStartCorner->vertices, v.first);
-    std::swap(objStartCorner->indices, v.second);
-    objStartCorner->texture = std::make_shared<TextureDescriptionPath>(m_gameRequester,
-            m_componentTextures[Component::ComponentType::closedCorner]);
-    textures.insert(std::make_pair(objStartCorner->texture, std::shared_ptr<TextureData>()));
-    uint32_t refStartCorner = objs.size();
-    m_components[Component::ComponentType::closedCorner]->setObjReference(
-            Component::MovableType::staticObj, refStartCorner);
-    objs.push_back(std::make_pair(objStartCorner, std::shared_ptr<DrawObjectData>()));
+    auto objRefsStartCorner = addObjs(objs, textures, m_componentModels[Component::ComponentType::closedCorner],
+                           m_componentTextures[Component::ComponentType::closedCorner]);
 
     // the start: closed bottom type
-    loadModel(m_gameRequester->getAssetStream(m_componentModels[Component::ComponentType::closedBottom]), v);
-    auto objStartSide = std::make_shared<DrawObject>();
-    std::swap(objStartSide->vertices, v.first);
-    std::swap(objStartSide->indices, v.second);
-    objStartSide->texture = std::make_shared<TextureDescriptionPath>(m_gameRequester,
-            m_componentTextures[Component::ComponentType::closedBottom]);
-    textures.insert(std::make_pair(objStartSide->texture, std::shared_ptr<TextureData>()));
-    uint32_t refStartSide = objs.size();
-    m_components[Component::ComponentType::closedBottom]->setObjReference(
-            Component::MovableType::staticObj, refStartSide);
-    objs.push_back(std::make_pair(objStartSide, std::shared_ptr<DrawObjectData>()));
+    auto objRefsStartSide = addObjs(objs, textures, m_componentModels[Component::ComponentType::closedBottom],
+                                    m_componentTextures[Component::ComponentType::closedBottom]);
 
     // the start: open type
-    loadModel(m_gameRequester->getAssetStream(m_componentModels[Component::ComponentType::open]), v);
-    auto objStartCenter = std::make_shared<DrawObject>();
-    std::swap(objStartCenter->vertices, v.first);
-    std::swap(objStartCenter->indices, v.second);
-    objStartCenter->texture = std::make_shared<TextureDescriptionPath>(m_gameRequester,
-            m_componentTextures[Component::ComponentType::open]);
-    textures.insert(std::make_pair(objStartCenter->texture, std::shared_ptr<TextureData>()));
-    uint32_t refStartCenter = objs.size();
-    m_components[Component::ComponentType::open]->setObjReference(
-            Component::MovableType::staticObj, refStartCenter);
-    objs.push_back(std::make_pair(objStartCenter, std::shared_ptr<DrawObjectData>()));
+    auto objRefsStartCenter = addObjs(objs, textures, m_componentModels[Component::ComponentType::open],
+                                    m_componentTextures[Component::ComponentType::open]);
 
     // the scale for the following are all the same.
     float scale = m_gameBoard.blockSize()/m_modelSize;
@@ -693,21 +710,18 @@ bool MovablePassage::updateStaticDrawObjects(DrawObjectTable &objs, TextureMap &
             auto &component = m_gameBoard.block(i,j).component();
             size_t placementIndex = m_gameBoard.block(i,j).placementIndex();
             auto &placement = component->placement(placementIndex);
+            glm::mat4 modelMatrix = glm::translate(glm::mat4(1.0f), m_gameBoard.position(i,j)) *
+                                    glm::rotate(glm::mat4(1.0f), placement.rotationAngle(), glm::vec3{0.0f, 0.0f, 1.0f}) *
+                                    glm::scale(glm::mat4(1.0f), glm::vec3(scale, scale, scale));
             switch (component->type()) {
             case Component::ComponentType::closedCorner:
-                objStartCorner->modelMatrices.push_back(glm::translate(glm::mat4(1.0f), m_gameBoard.position(i,j)) *
-                    glm::rotate(glm::mat4(1.0f), placement.rotationAngle(), glm::vec3{0.0f, 0.0f, 1.0f}) *
-                    glm::scale(glm::mat4(1.0f), glm::vec3(scale, scale, scale)));
+                addModelMatrixToObj(objs, objRefsStartCorner, nullptr, 0, modelMatrix);
                 break;
             case Component::ComponentType::closedBottom:
-                objStartSide->modelMatrices.push_back(glm::translate(glm::mat4(1.0f), m_gameBoard.position(i,j)) *
-                    glm::rotate(glm::mat4(1.0f), placement.rotationAngle(), glm::vec3{0.0f, 0.0f, 1.0f}) *
-                    glm::scale(glm::mat4(1.0f), glm::vec3(scale, scale, scale)));
+                addModelMatrixToObj(objs, objRefsStartSide, nullptr, 0, modelMatrix);
                 break;
             case Component::ComponentType::open:
-                objStartCenter->modelMatrices.push_back(glm::translate(glm::mat4(1.0f), m_gameBoard.position(i,j)) *
-                    glm::rotate(glm::mat4(1.0f), placement.rotationAngle(), glm::vec3{0.0f, 0.0f, 1.0f}) *
-                    glm::scale(glm::mat4(1.0f), glm::vec3(scale, scale, scale)));
+                addModelMatrixToObj(objs, objRefsStartCenter, nullptr, 0, modelMatrix);
                 break;
             default:
                 break;
@@ -716,19 +730,8 @@ bool MovablePassage::updateStaticDrawObjects(DrawObjectTable &objs, TextureMap &
     }
 
     // fill in the bottom and sides with rocks so that no bg color shows.
-    auto obj = std::make_shared<DrawObject>();
-    if (m_componentModels[Component::ComponentType::noMovementRock].empty()) {
-        getCube(obj->vertices, obj->indices);
-    } else {
-        loadModel(m_gameRequester->getAssetStream(
-                m_componentModels[Component::ComponentType::noMovementRock]), v);
-        std::swap(v.first, obj->vertices);
-        std::swap(v.second, obj->indices);
-    }
-
-    obj->texture = std::make_shared<TextureDescriptionPath>(
-            m_gameRequester, m_componentTextures[Component::ComponentType::noMovementRock]);
-    textures.emplace(obj->texture, std::shared_ptr<TextureData>());
+    auto objRefsRock = addObjs(objs, textures, m_componentModels[Component::ComponentType::noMovementRock],
+            m_componentTextures[Component::ComponentType::noMovementRock]);
 
     // on the sides
     for (size_t i = 0;
@@ -737,13 +740,13 @@ bool MovablePassage::updateStaticDrawObjects(DrawObjectTable &objs, TextureMap &
     {
         glm::vec3 pos = m_gameBoard.position(i, 0);
         pos.x -= m_gameBoard.blockSize();
-        obj->modelMatrices.push_back(
+        addModelMatrixToObj(objs, objRefsRock, nullptr, 0,
                 glm::translate(glm::mat4(1.0f), pos) *
                 glm::scale(glm::mat4(1.0f), glm::vec3(scale, scale, scale)));
 
         pos = m_gameBoard.position(i, m_gameBoard.widthInTiles() - 1);
         pos.x += m_gameBoard.blockSize();
-        obj->modelMatrices.push_back(
+        addModelMatrixToObj(objs, objRefsRock, nullptr, 0,
                 glm::translate(glm::mat4(1.0f), pos) *
                 glm::scale(glm::mat4(1.0f), glm::vec3(scale, scale, scale)));
     }
@@ -754,7 +757,7 @@ bool MovablePassage::updateStaticDrawObjects(DrawObjectTable &objs, TextureMap &
     for (size_t i = 0; i < m_gameBoard.widthInTiles(); i++) {
         glm::vec3 pos = m_gameBoard.position(0, i);
         pos.y -= m_gameBoard.blockSize();
-        obj->modelMatrices.push_back(
+        addModelMatrixToObj(objs, objRefsRock, nullptr, 0,
                 glm::translate(glm::mat4(1.0f), pos) *
                 glm::scale(glm::mat4(1.0f), glm::vec3(scale, scale, scale)));
     }
@@ -763,7 +766,7 @@ bool MovablePassage::updateStaticDrawObjects(DrawObjectTable &objs, TextureMap &
     glm::vec3 pos = m_gameBoard.position(0, 0);
     pos.y -= m_gameBoard.blockSize();
     pos.x -= m_gameBoard.blockSize();
-    obj->modelMatrices.push_back(
+    addModelMatrixToObj(objs, objRefsRock, nullptr, 0,
             glm::translate(glm::mat4(1.0f), pos) *
             glm::scale(glm::mat4(1.0f), glm::vec3(scale, scale, scale)));
 
@@ -771,11 +774,9 @@ bool MovablePassage::updateStaticDrawObjects(DrawObjectTable &objs, TextureMap &
     pos = m_gameBoard.position(0, m_gameBoard.widthInTiles() - 1);
     pos.y -= m_gameBoard.blockSize();
     pos.x += m_gameBoard.blockSize();
-    obj->modelMatrices.push_back(
+    addModelMatrixToObj(objs, objRefsRock, nullptr, 0,
             glm::translate(glm::mat4(1.0f), pos) *
             glm::scale(glm::mat4(1.0f), glm::vec3(scale, scale, scale)));
-
-    objs.push_back(std::make_pair(obj, std::shared_ptr<DrawObjectData>()));
 
     return true;
 }
@@ -784,28 +785,35 @@ bool MovablePassage::updateDynamicDrawObjects(DrawObjectTable &objs, TextureMap 
     glm::vec3 zaxis{0.0f, 0.0f, 1.0f};
     float scaleBall = m_gameBoard.blockSize()/m_modelSize/2.0f;
 
-    auto addComponentModelMatrices = [&]() -> void {
+    auto addComponentModelMatrices = [&](size_t ballReference) -> void {
         bool moveInProgress = m_gameBoard.isMoveInProgress();
         auto rc = m_gameBoard.moveRC();
         std::vector<size_t> nbrPlacements;
-        nbrPlacements.resize(m_components.size(), 0);
+        nbrPlacements.resize(objs.size(), 0);
 
-        auto addModelMatrix = [&](std::shared_ptr<Component> const &component,
-                size_t placementIndex, float scale, float extraZ, size_t r, size_t c) -> void
+        auto addModelMatrix = [&](std::shared_ptr<Component> const &component, size_t placementIndex,
+                float scale, float extraZ, size_t r, size_t c) -> void
         {
-            auto ref = component->objReference();
-            auto &obj = objs[ref.second].first;
             auto pos = m_gameBoard.position(r, c);
             pos.z += extraZ;
+            glm::mat4 modelMatrix = glm::translate(glm::mat4(1.0f), pos) *
+                                    glm::rotate(glm::mat4(1.0f), component->placement(placementIndex).rotationAngle(), zaxis) *
+                                    glm::scale(glm::mat4(1.0f), glm::vec3{scale, scale, scale});
+            auto ref = component->placement(placementIndex).dynObjReference();
+            if (ref == Component::Placement::m_invalidObjReference) {
+                addModelMatrixToObj(objs, component->dynObjReferences(), component, placementIndex,
+                        modelMatrix);
+                ref = component->placement(placementIndex).dynObjReference();
+            } else {
+                auto &obj = objs[ref].first;
 
-            if (nbrPlacements[component->type()] >= obj->modelMatrices.size()) {
-                obj->modelMatrices.resize(nbrPlacements[component->type()] + 1, glm::mat4(1.0f));
+                if (nbrPlacements[ref] >= obj->modelMatrices.size()) {
+                    obj->modelMatrices.push_back(modelMatrix);
+                } else {
+                    obj->modelMatrices[nbrPlacements[ref]] = modelMatrix;
+                }
             }
-            obj->modelMatrices[nbrPlacements[component->type()]] =
-                    glm::translate(glm::mat4(1.0f), pos) *
-                    glm::rotate(glm::mat4(1.0f), component->placement(placementIndex).rotationAngle(), zaxis) *
-                    glm::scale(glm::mat4(1.0f), glm::vec3{scale, scale, scale});
-            nbrPlacements[component->type()] ++;
+            nbrPlacements[ref] ++;
         };
 
         float scale = m_gameBoard.blockSize() / m_modelSize;
@@ -823,7 +831,7 @@ bool MovablePassage::updateDynamicDrawObjects(DrawObjectTable &objs, TextureMap 
                 } else if (b.blockType() == GameBoardBlock::BlockType::offBoard &&
                         b.secondaryComponent() != nullptr)
                 {
-                    addModelMatrix(b.component(), b.placementIndex(), scale/2, extraZ, i, j);
+                    addModelMatrix(b.component(), b.placementIndex(), 2*scale/3, extraZ, i, j);
                     addModelMatrix(b.secondaryComponent(), b.secondaryPlacementIndex(), scale,
                             0.0f, i, j);
                 } else {
@@ -838,29 +846,33 @@ bool MovablePassage::updateDynamicDrawObjects(DrawObjectTable &objs, TextureMap 
             float size = b.component()->componentSize()/m_modelSize;
             auto &placement = b.component()->placement(b.placementIndex());
             glm::vec2 xy = placement.movePositionSoFar();
-            auto ref = b.component()->objReference();
 
-            auto obj = objs[ref.second].first;
-            if (nbrPlacements[component->type()] >= obj->modelMatrices.size()) {
-                obj->modelMatrices.resize(nbrPlacements[component->type()], glm::mat4(1.0f));
+            glm::mat4 modelMatrix = glm::translate(glm::mat4(1.0f), glm::vec3{xy.x, xy.y, m_zMovingPlacement}) *
+                                    glm::rotate(glm::mat4(1.0f), placement.rotationAngle(), zaxis) *
+                                    glm::scale(glm::mat4(1.0f), glm::vec3{size, size, size});
+            auto ref = placement.dynObjReference();
+            if (ref == Component::Placement::m_invalidObjReference) {
+                addModelMatrixToObj(objs, component->dynObjReferences(), component,
+                        b.placementIndex(), modelMatrix);
+                ref = placement.dynObjReference();
+            } else {
+                auto obj = objs[ref].first;
+                if (nbrPlacements[ref] >= obj->modelMatrices.size()) {
+                    obj->modelMatrices.push_back(modelMatrix);
+                }
+                obj->modelMatrices[nbrPlacements[ref]] = modelMatrix;
             }
-            obj->modelMatrices[nbrPlacements[component->type()]] =
-                    glm::translate(glm::mat4(1.0f), glm::vec3{xy.x, xy.y, m_zMovingPlacement}) *
-                    glm::rotate(glm::mat4(1.0f), placement.rotationAngle(), zaxis) *
-                    glm::scale(glm::mat4(1.0f), glm::vec3{size, size, size});
-            nbrPlacements[component->type()] ++;
+            nbrPlacements[ref] ++;
         }
 
-        for (auto const &component : m_components) {
-            auto ref = component->objReference();
-            if (ref.first == Component::MovableType::dynamicObj) {
-                objs[ref.second].first->modelMatrices.resize(nbrPlacements[component->type()]);
+        for (size_t i = 0; i < objs.size(); i++) {
+            if (i != ballReference) {
+                objs[i].first->modelMatrices.resize(nbrPlacements[i]);
             }
         }
     };
 
     if (objs.empty()) {
-        std::pair<std::vector<Vertex>, std::vector<uint32_t>> v;
         for (auto const &component: m_components) {
             if (component->type() == Component::ComponentType::closedBottom ||
                 component->type() == Component::ComponentType::closedCorner ||
@@ -869,26 +881,15 @@ bool MovablePassage::updateDynamicDrawObjects(DrawObjectTable &objs, TextureMap 
                 // These components are handled as static draw objects.
                 continue;
             }
-            auto obj = std::make_shared<DrawObject>();
-            if (m_componentModels[component->type()].empty()) {
-                getCube(obj->vertices, obj->indices);
-            } else {
-                loadModel(m_gameRequester->getAssetStream(m_componentModels[component->type()]), v);
-                std::swap(v.first, obj->vertices);
-                std::swap(v.second, obj->indices);
-            }
-
-            obj->texture = std::make_shared<TextureDescriptionPath>(
-                    m_gameRequester, m_componentTextures[component->type()]);
-            textures.emplace(obj->texture, std::shared_ptr<TextureData>());
-
-            component->setObjReference(Component::MovableType::dynamicObj, objs.size());
-            objs.push_back(std::make_pair(obj, std::shared_ptr<DrawObjectData>()));
+            auto refs = addObjs(objs, textures, m_componentModels[component->type()],
+                    m_componentTextures[component->type()]);
+            component->setDynObjReferences(refs);
         }
 
-        addComponentModelMatrices();
+        addComponentModelMatrices(Component::Placement::m_invalidObjReference);
 
         // the ball
+        std::pair<std::vector<Vertex>, std::vector<uint32_t>> v;
         auto obj = std::make_shared<DrawObject>();
         loadModel(m_gameRequester->getAssetStream(m_ballModel), v);
         std::swap(v.first, obj->vertices);
@@ -903,7 +904,7 @@ bool MovablePassage::updateDynamicDrawObjects(DrawObjectTable &objs, TextureMap 
         objs.emplace_back(obj, std::shared_ptr<DrawObjectData>());
         texturesChanged = true;
     } else {
-        addComponentModelMatrices();
+        addComponentModelMatrices(m_objsReferenceBall);
 
         // the ball
         objs[m_objsReferenceBall].first->modelMatrices[0] =

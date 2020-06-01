@@ -298,12 +298,16 @@ LevelGroup LevelTracker::getLevelGroupGopher(
             GetLevelFcn([levelBundle](LevelTracker &tracker, glm::mat4 const &proj, glm::mat4 const &view) {
                 auto level = tracker.getLevel<MovablePassage>(levelBundle, proj, view);
                 level->initSetBallInfo("models/ball.modelcbor", "textures/gopher/gopher.png");
+                std::vector<std::string> textures{"textures/gopher/dirt1.png",
+                                                  "textures/gopher/dirt2.png",
+                                                  "textures/gopher/dirt3.png",
+                                                  "textures/gopher/dirt4.png"};
                 level->initSetGameBoardInfo("models/gopher/rock.modelcbor",
-                        "textures/gopher/rock.png", "textures/gopher/dirt.png",
+                        "textures/gopher/rock.png", textures,
                         "textures/gopher/end.png", "textures/gopher/endOffBoard.png",
-                        "models/gopher/startCorner.modelcbor", "textures/gopher/dirt.png",
-                        "models/gopher/startSide.modelcbor", "textures/gopher/dirt.png",
-                        "models/gopher/startOpen.modelcbor", "textures/gopher/dirt.png");
+                        "models/gopher/startCorner.modelcbor", "textures/gopher/dirt1.png",
+                        "models/gopher/startSide.modelcbor", textures,
+                        "models/gopher/startOpen.modelcbor", textures);
                 level->initAddRock(1,1);
                 level->initAddRock(1,2);
                 level->initAddRock(1,3);

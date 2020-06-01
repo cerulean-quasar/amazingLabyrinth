@@ -422,24 +422,7 @@ public:
 
     class Placement {
     public:
-        Placement(uint32_t row = 0,
-                uint32_t col = 0,
-                float rotationAngle = 0.0f, /* radians */
-                bool lockedIntoPlace = false,
-                std::shared_ptr<Component> prevComponent = nullptr,
-                size_t prevIndex = 0,
-                std::shared_ptr<Component> nextComponent = nullptr,
-                size_t nextIndex = 0)
-            : m_row{row},
-            m_col{col},
-            m_rotationAngle{rotationAngle},
-            m_lockedIntoPlace{lockedIntoPlace},
-            m_prev{std::make_pair(prevComponent, prevIndex)},
-            m_next{std::make_pair(nextComponent, nextIndex)},
-            m_moveInProgress{false},
-            m_movePositionSoFar{0.0f, 0.0f}
-        {
-        }
+        static uint32_t constexpr m_invalidObjReference = std::numeric_limits<uint32_t>::max();
 
         /* accessors */
         uint32_t row() { return m_row; }
@@ -449,9 +432,11 @@ public:
         auto &prev() { return m_prev; }
         auto &next() { return m_next; }
         glm::vec2 movePositionSoFar() { return m_movePositionSoFar; }
+        uint32_t dynObjReference() { return m_dynObjReference; }
 
         /* setters */
         void setRC(uint32_t row, uint32_t col) { m_row = row; m_col = col; }
+        void setDynObjReference(uint32_t ref) { m_dynObjReference = ref; }
         void rotate() {
             m_rotationAngle += glm::radians(90.0f);
             float twopi = 2 * glm::radians(180.0f);
@@ -471,6 +456,26 @@ public:
         void moveDone() {
             m_moveInProgress = false;
         }
+
+        Placement(uint32_t row = 0,
+                  uint32_t col = 0,
+                  float rotationAngle = 0.0f, /* radians */
+                  bool lockedIntoPlace = false,
+                  std::shared_ptr<Component> prevComponent = nullptr,
+                  size_t prevIndex = 0,
+                  std::shared_ptr<Component> nextComponent = nullptr,
+                  size_t nextIndex = 0)
+                : m_row{row},
+                  m_col{col},
+                  m_rotationAngle{rotationAngle},
+                  m_lockedIntoPlace{lockedIntoPlace},
+                  m_prev{std::make_pair(prevComponent, prevIndex)},
+                  m_next{std::make_pair(nextComponent, nextIndex)},
+                  m_moveInProgress{false},
+                  m_movePositionSoFar{0.0f, 0.0f},
+                  m_dynObjReference{m_invalidObjReference}
+        {
+        }
     private:
         uint32_t m_row;
         uint32_t m_col;
@@ -480,6 +485,7 @@ public:
         std::pair<std::shared_ptr<Component>, size_t> m_next;
         bool m_moveInProgress;
         glm::vec2 m_movePositionSoFar;
+        uint32_t m_dynObjReference;
     };
 
     uint32_t add(
@@ -524,19 +530,14 @@ public:
     Placement &placement(size_t index) { return m_placements[index]; }
     size_t nbrPlacements() { return m_placements.size(); }
     float componentSize() { return m_componentSize; }
+    std::vector<size_t> dynObjReferences() { return m_dynObjReferences; }
 
     void setSize(float tileSize) { m_componentSize = tileSize; }
-    void setObjReference(MovableType objType, uint32_t ref) {
-        m_objReference.first = objType;
-        m_objReference.second = ref;
-    }
-
-    std::pair<MovableType, uint32_t> objReference() { return m_objReference; }
+    void setDynObjReferences(std::vector<size_t> refs) { m_dynObjReferences = refs; }
 
     Component(ComponentType inType, float componentSize = 0.0f)
         : m_componentType{inType},
-        m_componentSize{componentSize},
-        m_objReference{MovableType::noneAssigned, 0}
+        m_componentSize{componentSize}
     {
         switch (m_componentType) {
         case ComponentType::tjunction:
@@ -576,7 +577,7 @@ private:
     float m_componentSize;
     std::vector<Placement> m_placements;
     std::set<CellWall> m_cellWalls;
-    std::pair<MovableType, uint32_t> m_objReference;
+    std::vector<size_t> m_dynObjReferences;
 };
 
 class GameBoardBlock {
@@ -742,25 +743,25 @@ public:
     void initSetGameBoardInfo(
             std::string const &blockedRockModel,
             std::string const &blockedRockTexture,
-            std::string const &blockedDirtTexture,
+            std::vector<std::string> const &blockedDirtTexture,
             std::string const &componentTextureEnd,
             std::string const &textureEndOffBoard,
             std::string const &startCornerModel,
             std::string const &startCornerTexture,
             std::string const &startSideModel,
-            std::string const &startSideTexture,
+            std::vector<std::string> const &startSideTexture,
             std::string const &startOpenModel,
-            std::string const &startOpenTexture)
+            std::vector<std::string> const &startOpenTexture)
     {
         m_componentModels[Component::ComponentType::noMovementRock] = blockedRockModel;
-        m_componentTextures[Component::ComponentType::noMovementRock] = blockedRockTexture;
+        m_componentTextures[Component::ComponentType::noMovementRock].push_back(blockedRockTexture);
         m_componentTextures[Component::ComponentType::noMovementDirt] = blockedDirtTexture;
 
         m_componentTextureEnd = componentTextureEnd;
         m_textureEndOffBoard = textureEndOffBoard;
 
         m_componentModels[Component::ComponentType::closedCorner] = startCornerModel;
-        m_componentTextures[Component::ComponentType::closedCorner] = startCornerTexture;
+        m_componentTextures[Component::ComponentType::closedCorner].push_back(startCornerTexture);
 
         m_componentModels[Component::ComponentType::closedBottom] = startSideModel;
         m_componentTextures[Component::ComponentType::closedBottom] = startSideTexture;
@@ -786,7 +787,7 @@ public:
         std::string const &texture)
     {
         if (!texture.empty()) {
-            m_componentTextures[inComponentType] = texture;
+            m_componentTextures[inComponentType].push_back(texture);
         }
         if (!model.empty()) {
             m_componentModels[inComponentType] = model;
@@ -815,6 +816,7 @@ public:
             std::shared_ptr<MovablePassageSaveData> /*sd*/,
             float width, float height, float maxZ)
             : Level(inGameRequester, width, height, maxZ, true, 1/50.0f, false),
+              m_random{},
               m_zdrawTopsOfObjects{m_mazeFloorZ},
               m_zMovingPlacement{m_mazeFloorZ + m_scaleBall},
               m_components{
@@ -836,6 +838,7 @@ public:
     }
 
 private:
+    Random m_random;
     float const m_zMovingPlacement;
     float const m_zdrawTopsOfObjects;
     uint32_t m_ballRow;
@@ -854,7 +857,7 @@ private:
     uint32_t m_objsReferenceBall;
 
     std::array<std::string, Component::ComponentType::maxComponentType + 1> m_componentModels;
-    std::array<std::string, Component::ComponentType::maxComponentType + 1> m_componentTextures;
+    std::array<std::vector<std::string>, Component::ComponentType::maxComponentType + 1> m_componentTextures;
     std::string m_componentTextureEnd;
     std::string m_textureEndOffBoard;
 
@@ -870,5 +873,12 @@ private:
 
     // the column in which the end tile is located.
     uint32_t m_columnEndPosition;
+
+    std::vector<size_t> addObjs(DrawObjectTable &objs, TextureMap &textures,
+            std::string const &model, std::vector<std::string> const &textureNames);
+
+    void addModelMatrixToObj(DrawObjectTable &objs, std::vector<size_t> const &refs,
+                             std::shared_ptr<Component> component, size_t placementIndex,
+                             glm::mat4 modelMatrix);
 };
 #endif /* AMAZING_LABYRINTH_MOVABLE_PASSAGE_HPP */
