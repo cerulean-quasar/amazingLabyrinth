@@ -302,9 +302,15 @@ LevelGroup LevelTracker::getLevelGroupGopher(
                                                   "textures/gopher/dirt2.png",
                                                   "textures/gopher/dirt3.png",
                                                   "textures/gopher/dirt4.png"};
+                std::vector<std::string> rockModels{
+                        "models/gopher/rock1.modelcbor",
+                        "models/gopher/rock2.modelcbor",
+                        "models/gopher/rock3.modelcbor",
+                        "models/gopher/rock4.modelcbor"
+                };
                 level->initSetGameBoardInfo(
                         "textures/gopher/dirt1.png",
-                        "models/gopher/rock.modelcbor",
+                        rockModels,
                         "textures/gopher/rock.png",
                         textures,
                         "textures/gopher/end.png",

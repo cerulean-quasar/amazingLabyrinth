@@ -600,22 +600,30 @@ bool MovablePassage::updateData() {
 }
 
 std::vector<size_t> MovablePassage::addObjs(DrawObjectTable &objs,
-        TextureMap &textures, std::string const &model,
+        TextureMap &textures, std::vector<std::string> const &models,
         std::vector<std::string> const &textureNames)
 {
     std::vector<size_t> ret;
-    std::pair<std::vector<Vertex>, std::vector<uint32_t>> v;
-    if (model.empty()) {
-        getCube(v.first, v.second);
+    std::vector<std::pair<std::vector<Vertex>, std::vector<uint32_t>>> v;
+    if (models.empty()) {
+        v.resize(1);
+        getCube(v[0].first, v[0].second);
     } else {
-        loadModel(m_gameRequester->getAssetStream(model), v);
+        v.resize(models.size());
+        for (size_t i = 0; i < models.size(); i++) {
+            loadModel(m_gameRequester->getAssetStream(models[i]), v[i]);
+        }
     }
-    for (auto textureName : textureNames) {
+
+    for (size_t i = 0; i < std::max(v.size(), textures.size()); i++) {
         auto obj = std::make_shared<DrawObject>();
-        obj->vertices = v.first;
-        obj->indices = v.second;
-        obj->texture = std::make_shared<TextureDescriptionPath>(m_gameRequester, textureName);
-        textures.insert(std::make_pair(obj->texture, std::shared_ptr<TextureData>()));
+        obj->vertices = v[i%v.size()].first;
+        obj->indices = v[i%v.size()].second;
+        obj->texture = std::make_shared<TextureDescriptionPath>(m_gameRequester,
+                textureNames[i%textureNames.size()]);
+        if (i < textures.size()) {
+            textures.insert(std::make_pair(obj->texture, std::shared_ptr<TextureData>()));
+        }
         ret.push_back(objs.size());
         objs.emplace_back(obj, std::shared_ptr<DrawObjectData>());
     }

@@ -745,7 +745,7 @@ public:
     // this function can be called at any time before the level is started.
     void initSetGameBoardInfo(
             std::string const &lockedComponentTexture,
-            std::string const &blockedRockModel,
+            std::vector<std::string> const &blockedRockModel,
             std::string const &blockedRockTexture,
             std::vector<std::string> const &blockedDirtTexture,
             std::string const &componentTextureEnd,
@@ -766,13 +766,13 @@ public:
         m_componentTextureEnd = componentTextureEnd;
         m_textureEndOffBoard = textureEndOffBoard;
 
-        m_componentModels[Component::ComponentType::closedCorner] = startCornerModel;
+        m_componentModels[Component::ComponentType::closedCorner].push_back(startCornerModel);
         m_componentTextures[Component::ComponentType::closedCorner].push_back(startCornerTexture);
 
-        m_componentModels[Component::ComponentType::closedBottom] = startSideModel;
+        m_componentModels[Component::ComponentType::closedBottom].push_back(startSideModel);
         m_componentTextures[Component::ComponentType::closedBottom] = startSideTexture;
 
-        m_componentModels[Component::ComponentType::open] = startOpenModel;
+        m_componentModels[Component::ComponentType::open].push_back(startOpenModel);
         m_componentTextures[Component::ComponentType::open] = startOpenTexture;
     }
 
@@ -796,7 +796,7 @@ public:
             m_componentTextures[inComponentType].push_back(texture);
         }
         if (!model.empty()) {
-            m_componentModels[inComponentType] = model;
+            m_componentModels[inComponentType].push_back(model);
         }
         for (uint32_t i = 0; i < nbrComponents; i++) {
             m_components[inComponentType]->add();
@@ -862,7 +862,7 @@ private:
     std::string m_ballTextureName;
     uint32_t m_objsReferenceBall;
 
-    std::array<std::string, Component::ComponentType::maxComponentType + 1> m_componentModels;
+    std::array<std::vector<std::string>, Component::ComponentType::maxComponentType + 1> m_componentModels;
     std::array<std::vector<std::string>, Component::ComponentType::maxComponentType + 1> m_componentTextures;
     std::string m_componentTextureEnd;
     std::string m_textureEndOffBoard;
@@ -882,7 +882,7 @@ private:
     uint32_t m_columnEndPosition;
 
     std::vector<size_t> addObjs(DrawObjectTable &objs, TextureMap &textures,
-            std::string const &model, std::vector<std::string> const &textureNames);
+            std::vector<std::string> const &model, std::vector<std::string> const &textureNames);
 
     size_t chooseObj(std::shared_ptr<Component> const &component, size_t placementIndex);
     size_t addModelMatrixToObj(DrawObjectTable &objs, std::vector<size_t> const &refs,
