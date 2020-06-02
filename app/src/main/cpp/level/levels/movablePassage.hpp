@@ -531,9 +531,11 @@ public:
     size_t nbrPlacements() { return m_placements.size(); }
     float componentSize() { return m_componentSize; }
     std::vector<size_t> dynObjReferences() { return m_dynObjReferences; }
+    std::vector<size_t> dynObjReferencesLockedComponent() { return m_dynObjReferencesLockedComponent; }
 
     void setSize(float tileSize) { m_componentSize = tileSize; }
     void setDynObjReferences(std::vector<size_t> refs) { m_dynObjReferences = refs; }
+    void setDynObjReferencesLockedComponent(std::vector<size_t> refs) { m_dynObjReferencesLockedComponent = refs; }
 
     Component(ComponentType inType, float componentSize = 0.0f)
         : m_componentType{inType},
@@ -578,6 +580,7 @@ private:
     std::vector<Placement> m_placements;
     std::set<CellWall> m_cellWalls;
     std::vector<size_t> m_dynObjReferences;
+    std::vector<size_t> m_dynObjReferencesLockedComponent;
 };
 
 class GameBoardBlock {
@@ -741,6 +744,7 @@ public:
 
     // this function can be called at any time before the level is started.
     void initSetGameBoardInfo(
+            std::string const &lockedComponentTexture,
             std::string const &blockedRockModel,
             std::string const &blockedRockTexture,
             std::vector<std::string> const &blockedDirtTexture,
@@ -753,6 +757,8 @@ public:
             std::string const &startOpenModel,
             std::vector<std::string> const &startOpenTexture)
     {
+        m_textureLockedComponent = lockedComponentTexture;
+
         m_componentModels[Component::ComponentType::noMovementRock] = blockedRockModel;
         m_componentTextures[Component::ComponentType::noMovementRock].push_back(blockedRockTexture);
         m_componentTextures[Component::ComponentType::noMovementDirt] = blockedDirtTexture;
@@ -860,6 +866,7 @@ private:
     std::array<std::vector<std::string>, Component::ComponentType::maxComponentType + 1> m_componentTextures;
     std::string m_componentTextureEnd;
     std::string m_textureEndOffBoard;
+    std::string m_textureLockedComponent;
 
     // rocks row and col do not consider the off game squares or the start or end.  Just
     // the middle of the game board.  (0,0) is at the bottom left part of the board.
@@ -877,8 +884,9 @@ private:
     std::vector<size_t> addObjs(DrawObjectTable &objs, TextureMap &textures,
             std::string const &model, std::vector<std::string> const &textureNames);
 
-    void addModelMatrixToObj(DrawObjectTable &objs, std::vector<size_t> const &refs,
-                             std::shared_ptr<Component> component, size_t placementIndex,
+    size_t chooseObj(std::shared_ptr<Component> const &component, size_t placementIndex);
+    size_t addModelMatrixToObj(DrawObjectTable &objs, std::vector<size_t> const &refs,
+                             std::shared_ptr<Component> const &component, size_t placementIndex,
                              glm::mat4 modelMatrix);
 };
 #endif /* AMAZING_LABYRINTH_MOVABLE_PASSAGE_HPP */

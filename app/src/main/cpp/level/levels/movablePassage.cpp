@@ -399,6 +399,7 @@ bool MovablePassage::updateData() {
     }
 
     uint32_t nbrComputations = 0;
+    bool drawingNecessary_ = false;
     while (timeDiff >= 0.0f) {
         nbrComputations ++;
         if (nbrComputations > 1) {
@@ -559,6 +560,9 @@ bool MovablePassage::updateData() {
                 oldPlacement.prev() = std::make_pair(nullptr, 0);
                 placement.next() = std::make_pair(nullptr, 0);
 
+                // remove the obj reference so that the obj reference for the locked placement
+                // can be added.
+                oldPlacement.setDynObjReference(Component::Placement::m_invalidObjReference);
             } else {
                 // We encountered a loop.  Unblock the entire loop
                 std::shared_ptr<Component> nextComponent = nextBlock.component();
@@ -572,6 +576,7 @@ bool MovablePassage::updateData() {
                     auto &loopPlacement = loopComponent->placement(loopIndex);
                     loopPlacement.prev() = std::make_pair(nullptr, 0);
                     loopPlacement.next() = std::make_pair(nullptr, 0);
+                    loopPlacement.setDynObjReference(Component::Placement::m_invalidObjReference);
                     loopComponent = tmp.first;
                     loopIndex = tmp.second;
                 }
@@ -580,15 +585,18 @@ bool MovablePassage::updateData() {
         } else {
             // the ball is entering a new cell that is not in its path yet.
             placement.prev() = std::make_pair(block.component(), block.placementIndex());
+            placement.setDynObjReference(Component::Placement::m_invalidObjReference);
+
             oldPlacement.next() = std::make_pair(nextBlock.component(),
                                                  nextBlock.placementIndex());
         }
+        drawingNecessary_ = true;
     }
 
     m_ball.position = position;
     updateRotation(timeDiff);
 
-    return drawingNecessary();
+    return drawingNecessary_ || drawingNecessary();
 }
 
 std::vector<size_t> MovablePassage::addObjs(DrawObjectTable &objs,
@@ -615,24 +623,53 @@ std::vector<size_t> MovablePassage::addObjs(DrawObjectTable &objs,
     return std::move(ret);
 }
 
-void MovablePassage::addModelMatrixToObj(DrawObjectTable &objs, std::vector<size_t> const &refs,
-        std::shared_ptr<Component> component, size_t placementIndex,
-        glm::mat4 modelMatrix)
+size_t MovablePassage::chooseObj(
+        std::shared_ptr<Component> const &component, size_t placementIndex)
+{
+    std::vector<size_t> refs;
+    if (component->placement(placementIndex).lockedIntoPlace() ||
+        component->placement(placementIndex).prev().first != nullptr) {
+        refs = component->dynObjReferencesLockedComponent();
+    }
+    if (refs.size() == 0) {
+        refs = component->dynObjReferences();
+    }
+
+    size_t i;
+    switch (refs.size()) {
+        case 0:
+            return Component::Placement::m_invalidObjReference;
+        case 1:
+            i = 0;
+        default:
+            i = m_random.getUInt(0, refs.size() - 1);
+    }
+
+    if (component) {
+        component->placement(placementIndex).setDynObjReference(refs[i]);
+    }
+    return refs[i];
+}
+
+size_t MovablePassage::addModelMatrixToObj(DrawObjectTable &objs, std::vector<size_t> const &refs,
+                                         std::shared_ptr<Component> const &component, size_t placementIndex,
+                                         glm::mat4 modelMatrix)
 {
     size_t i;
     switch (refs.size()) {
     case 0:
-        return;
+        return Component::Placement::m_invalidObjReference;
     case 1:
         i = 0;
     default:
         i = m_random.getUInt(0, refs.size() - 1);
     }
 
-    objs[refs[i]].first->modelMatrices.push_back(modelMatrix);
+    objs[refs[i]].first->modelMatrices.insert(objs[refs[i]].first->modelMatrices.begin(), modelMatrix);
     if (component) {
         component->placement(placementIndex).setDynObjReference(refs[i]);
     }
+    return refs[i];
 }
 
 bool MovablePassage::updateStaticDrawObjects(DrawObjectTable &objs, TextureMap &textures) {
@@ -801,10 +838,10 @@ bool MovablePassage::updateDynamicDrawObjects(DrawObjectTable &objs, TextureMap 
                                     glm::scale(glm::mat4(1.0f), glm::vec3{scale, scale, scale});
             auto ref = component->placement(placementIndex).dynObjReference();
             if (ref == Component::Placement::m_invalidObjReference) {
-                addModelMatrixToObj(objs, component->dynObjReferences(), component, placementIndex,
-                        modelMatrix);
-                ref = component->placement(placementIndex).dynObjReference();
-            } else {
+                ref = chooseObj(component, placementIndex);
+            }
+            if (ref != Component::Placement::m_invalidObjReference) {
+                // ref should always be valid at this point, but just in case...
                 auto &obj = objs[ref].first;
 
                 if (nbrPlacements[ref] >= obj->modelMatrices.size()) {
@@ -812,8 +849,8 @@ bool MovablePassage::updateDynamicDrawObjects(DrawObjectTable &objs, TextureMap 
                 } else {
                     obj->modelMatrices[nbrPlacements[ref]] = modelMatrix;
                 }
+                nbrPlacements[ref]++;
             }
-            nbrPlacements[ref] ++;
         };
 
         float scale = m_gameBoard.blockSize() / m_modelSize;
@@ -852,9 +889,8 @@ bool MovablePassage::updateDynamicDrawObjects(DrawObjectTable &objs, TextureMap 
                                     glm::scale(glm::mat4(1.0f), glm::vec3{size, size, size});
             auto ref = placement.dynObjReference();
             if (ref == Component::Placement::m_invalidObjReference) {
-                addModelMatrixToObj(objs, component->dynObjReferences(), component,
+                ref = addModelMatrixToObj(objs, component->dynObjReferences(), component,
                         b.placementIndex(), modelMatrix);
-                ref = placement.dynObjReference();
             } else {
                 auto obj = objs[ref].first;
                 if (nbrPlacements[ref] >= obj->modelMatrices.size()) {
@@ -873,6 +909,7 @@ bool MovablePassage::updateDynamicDrawObjects(DrawObjectTable &objs, TextureMap 
     };
 
     if (objs.empty()) {
+        std::vector<std::string> texturesLockedIntoPlace{m_textureLockedComponent};
         for (auto const &component: m_components) {
             if (component->type() == Component::ComponentType::closedBottom ||
                 component->type() == Component::ComponentType::closedCorner ||
@@ -884,6 +921,14 @@ bool MovablePassage::updateDynamicDrawObjects(DrawObjectTable &objs, TextureMap 
             auto refs = addObjs(objs, textures, m_componentModels[component->type()],
                     m_componentTextures[component->type()]);
             component->setDynObjReferences(refs);
+
+            // when components are locked into place and cannot be moved, use these objs.
+            // don't do this for the rocks, they are always colored the same way.
+            if (component->type() != Component::ComponentType::noMovementRock) {
+                refs = addObjs(objs, textures, m_componentModels[component->type()],
+                               texturesLockedIntoPlace);
+                component->setDynObjReferencesLockedComponent(refs);
+            }
         }
 
         addComponentModelMatrices(Component::Placement::m_invalidObjReference);

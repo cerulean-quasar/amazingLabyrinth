@@ -302,9 +302,13 @@ LevelGroup LevelTracker::getLevelGroupGopher(
                                                   "textures/gopher/dirt2.png",
                                                   "textures/gopher/dirt3.png",
                                                   "textures/gopher/dirt4.png"};
-                level->initSetGameBoardInfo("models/gopher/rock.modelcbor",
-                        "textures/gopher/rock.png", textures,
-                        "textures/gopher/end.png", "textures/gopher/endOffBoard.png",
+                level->initSetGameBoardInfo(
+                        "textures/gopher/dirt1.png",
+                        "models/gopher/rock.modelcbor",
+                        "textures/gopher/rock.png",
+                        textures,
+                        "textures/gopher/end.png",
+                        "textures/gopher/endOffBoard.png",
                         "models/gopher/startCorner.modelcbor", "textures/gopher/dirt1.png",
                         "models/gopher/startSide.modelcbor", textures,
                         "models/gopher/startOpen.modelcbor", textures);
