@@ -297,7 +297,7 @@ LevelGroup LevelTracker::getLevelGroupGopher(
                     "Help the gopher\nbuild a tunnel\nto the beet."}),
             GetLevelFcn([levelBundle](LevelTracker &tracker, glm::mat4 const &proj, glm::mat4 const &view) {
                 auto level = tracker.getLevel<MovablePassage>(levelBundle, proj, view);
-                level->initSetBallInfo("models/ball.modelcbor", "textures/gopher/gopher.png");
+                level->initSetBallInfo("models/gopher/gopher.modelcbor", "textures/gopher/gopher.png");
                 std::vector<std::string> textures{"textures/gopher/dirt1.png",
                                                   "textures/gopher/dirt2.png",
                                                   "textures/gopher/dirt3.png",

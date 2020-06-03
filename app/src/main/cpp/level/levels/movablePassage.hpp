@@ -646,6 +646,8 @@ public:
     void setCenterPos(glm::vec3 const &pos) {
         m_centerPos = pos;
     }
+    std::pair<bool, bool> checkforNextWall(Component::CellWall wall1, Component::CellWall wall2,
+                                           uint32_t ballRow, uint32_t ballCol);
 
     void initialize(float tileSize, glm::vec3 const &pos, uint32_t rows, uint32_t cols) {
         m_blockSize = tileSize;
