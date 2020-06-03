@@ -65,9 +65,24 @@ public class Draw implements Runnable {
         tellDrawerSurfaceChanged(width, height, rotationAngle);
     }
 
+    public static void dragEvent(float startX, float startY, float distanceX, float distanceY) {
+        tellDrawerDragOccurred(startX, startY, distanceX, distanceY);
+    }
+
+    public static void dragEnded(float doneX, float doneY) {
+        tellDrawerDragEnded(doneX, doneY);
+    }
+
+    public static void tapEvent(float x, float y) {
+        tellDrawerTapOccurred(x, y);
+    }
+
     /**
      * Native methods.
      */
+    private static native void tellDrawerDragEnded(float doneX, float doneY);
+    private static native void tellDrawerTapOccurred(float x, float y);
+    private static native void tellDrawerDragOccurred(float startX, float startY, float distanceX, float distanceY);
     private static native void tellDrawerSwitchLevel(int level);
     private static native void tellDrawerSurfaceChanged(int width, int height, float rotationAngle);
     private static native void tellDrawerStop();

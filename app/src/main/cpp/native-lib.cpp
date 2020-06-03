@@ -129,6 +129,41 @@ Java_com_quasar_cerulean_amazinglabyrinth_Draw_tellDrawerSwitchLevel(
     gameFromGuiChannel().sendEvent(ev);
 }
 
+extern "C" JNIEXPORT void JNICALL
+Java_com_quasar_cerulean_amazinglabyrinth_Draw_tellDrawerDragOccurred(
+        JNIEnv *,
+        jclass,
+        jfloat jStartX,
+        jfloat jStartY,
+        jfloat jDistanceX,
+        jfloat jDistanceY)
+{
+    auto ev = std::make_shared<DragEvent>(jStartX, jStartY, jDistanceX, jDistanceY);
+    gameFromGuiChannel().sendEvent(ev);
+}
+
+extern "C" JNIEXPORT void JNICALL
+Java_com_quasar_cerulean_amazinglabyrinth_Draw_tellDrawerDragEnded(
+        JNIEnv *,
+        jclass,
+        jfloat jPositionX,
+        jfloat jPositionY)
+{
+    auto ev = std::make_shared<DragEndedEvent>(jPositionX, jPositionY);
+    gameFromGuiChannel().sendEvent(ev);
+}
+
+extern "C" JNIEXPORT void JNICALL
+Java_com_quasar_cerulean_amazinglabyrinth_Draw_tellDrawerTapOccurred(
+        JNIEnv *,
+        jclass,
+        jfloat jPositionX,
+        jfloat jPositionY)
+{
+    auto ev = std::make_shared<TapEvent>(jPositionX, jPositionY);
+    gameFromGuiChannel().sendEvent(ev);
+}
+
 extern "C" JNIEXPORT jobjectArray JNICALL
 Java_com_quasar_cerulean_amazinglabyrinth_Draw_getLevelList(
         JNIEnv *env,

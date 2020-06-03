@@ -20,6 +20,7 @@
 #include <array>
 #include <functional>
 #include <boost/optional.hpp>
+#include <vector>
 
 #include "levelTracker.hpp"
 #include "levels/maze.hpp"
@@ -39,8 +40,8 @@ LevelGroup LevelTracker::getLevelGroupBeginning(std::shared_ptr<OpenAreaLevelSav
         getStarterFcn(needsStarter, std::vector<std::string>{
             "In the\nbeginning of\nthe universe\nof mazes...",
             "...there was\nnothing except\nfor a ball and\na strange\nspacial anomaly."}),
-        GetLevelFcn([levelBundle](LevelTracker &tracker) {
-            auto level = tracker.getLevel<OpenAreaLevel>(levelBundle);
+        GetLevelFcn([levelBundle](LevelTracker &tracker, glm::mat4 const &proj, glm::mat4 const &view) {
+            auto level = tracker.getLevel<OpenAreaLevel>(levelBundle, proj, view);
             level->initSetBallTexture("textures/beginning/ballWhite.png");
             level->initSetHoleTexture("textures/beginning/holeAnomaly.png");
             return level;
@@ -58,8 +59,8 @@ LevelGroup LevelTracker::getLevelGroupLonelyPlanet(std::shared_ptr<AvoidVortexLe
         getStarterFcn(needsStarter, std::vector<std::string>{
             "Now the maze\nuniverse is\nfilled with stars\nand black holes...",
             "...and a lonely\nice planet seeks\nout the warmth\nof a star."}),
-        GetLevelFcn([levelBundle](LevelTracker &tracker) {
-            auto level = tracker.getLevel<AvoidVortexLevel>(levelBundle);
+        GetLevelFcn([levelBundle](LevelTracker &tracker, glm::mat4 const &proj, glm::mat4 const &view) {
+            auto level = tracker.getLevel<AvoidVortexLevel>(levelBundle, proj, view);
             level->initSetBallTexture("textures/icePlanet/ballIcePlanet.png");
             level->initSetHoleTexture("textures/icePlanet/holeSun.png");
             level->initSetVortexTexture("textures/icePlanet/vortexBlackHole.png");
@@ -79,13 +80,13 @@ LevelGroup LevelTracker::getLevelGroupPufferFish(std::shared_ptr<MazeSaveData> c
         getStarterFcn(needsStarter, std::vector<std::string>{
             "On the planet,\nthe ice begins\nto melt\nand life ignites...",
             "...here, a puffer\nfish is looking\nfor a kelp meal."}),
-        GetLevelFcn([levelBundle](LevelTracker &tracker) {
+        GetLevelFcn([levelBundle](LevelTracker &tracker, glm::mat4 const &proj, glm::mat4 const &view) {
             std::shared_ptr<Maze> level;
             if (levelBundle == nullptr) {
                 Maze::CreateParameters parameters = { 10, Maze::BFS };
-                level = tracker.getLevel<Maze>(parameters);
+                level = tracker.getLevel<Maze>(parameters, proj, view);
             } else {
-                level = tracker.getLevel<Maze>(levelBundle);
+                level = tracker.getLevel<Maze>(levelBundle, proj, view);
             }
             level->initSetBallTexture("textures/pufferFish/ballFish.png");
             level->initAddWallTexture("textures/pufferFish/wallIce1.png");
@@ -110,8 +111,8 @@ LevelGroup LevelTracker::getLevelGroupRolarBear(std::shared_ptr<MovingQuadsLevel
         getStarterFcn(needsStarter, std::vector<std::string>{
             "As the ice\nplanet warms\nand the ice\nmelts...",
             "...an over hot\nrolar bear\nyearns for\nthe cold of the\nnorth pole."}),
-        GetLevelFcn([levelBundle](LevelTracker &tracker) {
-            auto level = tracker.getLevel<MovingQuadsLevel>(levelBundle);
+        GetLevelFcn([levelBundle](LevelTracker &tracker, glm::mat4 const &proj, glm::mat4 const &view) {
+            auto level = tracker.getLevel<MovingQuadsLevel>(levelBundle, proj, view);
             level->initAddMiddleQuadTexture("textures/rolarBear/movingQuadRolarBear1.png");
             level->initAddMiddleQuadTexture("textures/rolarBear/movingQuadRolarBear2.png");
             level->initAddMiddleQuadTexture("textures/rolarBear/movingQuadRolarBear3.png");
@@ -134,13 +135,13 @@ LevelGroup LevelTracker::getLevelGroupBee1(std::shared_ptr<MazeSaveData> const &
         getStarterFcn(needsStarter, std::vector<std::string>{
             "Next comes an\nage when\nflowers covered\nthe planet...",
             "...and one roller\nbee seeks out\nthe nectar\nof a large flower."}),
-        GetLevelFcn([levelBundle](LevelTracker &tracker) {
+        GetLevelFcn([levelBundle](LevelTracker &tracker, glm::mat4 const &proj, glm::mat4 const &view) {
             std::shared_ptr<Maze> level;
             if (levelBundle == nullptr) {
                 Maze::CreateParameters parameters = { 10, Maze::DFS };
-                level = tracker.getLevel<Maze>(parameters);
+                level = tracker.getLevel<Maze>(parameters, proj, view);
             } else {
-                level = tracker.getLevel<Maze>(levelBundle);
+                level = tracker.getLevel<Maze>(levelBundle, proj, view);
             }
             level->initSetBallTexture("textures/rollerBee/ballBee.png");
             level->initSetFloorTexture("textures/rollerBee/floor.png");
@@ -171,13 +172,13 @@ LevelGroup LevelTracker::getLevelGroupBee2(std::shared_ptr<MazeSaveData> const &
         getStarterFcn(needsStarter, std::vector<std::string>{
             "The plants have\nbecome more\nnumerous\nand the\nroller bee...",
             "...has to search\nlong and hard\nfor the\nlarge flower."}),
-        GetLevelFcn([levelBundle](LevelTracker &tracker) {
+        GetLevelFcn([levelBundle](LevelTracker &tracker, glm::mat4 const &proj, glm::mat4 const &view) {
             std::shared_ptr<Maze> level;
             if (levelBundle == nullptr) {
                 Maze::CreateParameters parameters = { 15, Maze::DFS };
-                level = tracker.getLevel<Maze>(parameters);
+                level = tracker.getLevel<Maze>(parameters, proj, view);
             } else {
-                level = tracker.getLevel<Maze>(levelBundle);
+                level = tracker.getLevel<Maze>(levelBundle, proj, view);
             }
             level->initSetBallTexture("textures/rollerBee/ballBee.png");
             level->initSetFloorTexture("textures/rollerBee/floor.png");
@@ -208,13 +209,13 @@ LevelGroup LevelTracker::getLevelGroupCat(std::shared_ptr<MazeCollectSaveData> c
         getStarterFcn(needsStarter, std::vector<std::string>{
             "In the jungle,\na mother cat...",
             "...searches\nfor her\nlost kittens."}),
-        GetLevelFcn([levelBundle](LevelTracker &tracker) {
+        GetLevelFcn([levelBundle](LevelTracker &tracker, glm::mat4 const &proj, glm::mat4 const &view) {
             std::shared_ptr<MazeCollect> level;
             if (levelBundle == nullptr) {
                 Maze::CreateParameters parameters = { 10, Maze::BFS };
-                level = tracker.getLevel<MazeCollect>(parameters);
+                level = tracker.getLevel<MazeCollect>(parameters, proj, view);
             } else {
-                level = tracker.getLevel<MazeCollect>(levelBundle);
+                level = tracker.getLevel<MazeCollect>(levelBundle, proj, view);
             }
             level->initAddWallTexture("textures/rollerBee/wallFlower1.png");
             level->initAddWallTexture("textures/rollerBee/wallFlower2.png");
@@ -239,13 +240,13 @@ LevelGroup LevelTracker::getLevelGroupBunny(std::shared_ptr<MazeAvoidSaveData> c
             getStarterFcn(needsStarter, std::vector<std::string>{
                     "In the marsh,\na bunny seeks\na carrot...",
                     "...be carefull\nof quicksand!"}),
-            GetLevelFcn([levelBundle](LevelTracker &tracker) {
+            GetLevelFcn([levelBundle](LevelTracker &tracker, glm::mat4 const &proj, glm::mat4 const &view) {
                 std::shared_ptr<MazeAvoid> level;
                 if (levelBundle == nullptr) {
                     Maze::CreateParameters parameters = { 10, Maze::DFS };
-                    level = tracker.getLevel<MazeAvoid>(parameters);
+                    level = tracker.getLevel<MazeAvoid>(parameters, proj, view);
                 } else {
-                    level = tracker.getLevel<MazeAvoid>(levelBundle);
+                    level = tracker.getLevel<MazeAvoid>(levelBundle, proj, view);
                 }
                 level->initAddWallTexture("textures/bunny/wall1.png");
                 level->initAddWallTexture("textures/bunny/wall2.png");
@@ -270,12 +271,92 @@ LevelGroup LevelTracker::getLevelGroupFrog(std::shared_ptr<FixedMazeSaveData> co
             getStarterFcn(needsStarter, std::vector<std::string>{
                     "In a forest,\na frog\nseeks a fly.",
                     "Watch out for\nmushrooms, they\nare bouncy!"}),
-            GetLevelFcn([levelBundle](LevelTracker &tracker) {
-                auto level = tracker.getLevel<FixedMaze>(levelBundle);
+            GetLevelFcn([levelBundle](LevelTracker &tracker, glm::mat4 const &proj, glm::mat4 const &view) {
+                auto level = tracker.getLevel<FixedMaze>(levelBundle, proj, view);
                 level->initSetBallInfo("models/frog/frog.modelcbor", "textures/frog/frog.png");
                 level->initSetFloorInfo("models/frog/frogFloor.modelcbor", "textures/frog/frogFloor.png");
                 level->initSetBounceParameters(1/20.0f, 1/50.0f);
                 level->init();
+                return level;
+            }),
+            GetFinisherFcn([](LevelTracker &tracker, float centerX, float centerY, glm::mat4 const &proj, glm::mat4 const &view) {
+                auto levelFinish = tracker.getFinisher<ManyQuadCoverUpLevelFinish>(centerX, centerY, proj, view);
+                levelFinish->initAddTexture("textures/bunny/hole.png");
+                return levelFinish;
+            })
+    };
+}
+
+LevelGroup LevelTracker::getLevelGroupGopher(
+        std::shared_ptr<MovablePassageSaveData> const &levelBundle,
+        bool needsStarter)
+{
+    return {
+            getStarterFcn(needsStarter, std::vector<std::string>{
+                    "Underground,\na gopher\nsearches for\na juicy beet.",
+                    "Help the gopher\nbuild a tunnel\nto the beet."}),
+            GetLevelFcn([levelBundle](LevelTracker &tracker, glm::mat4 const &proj, glm::mat4 const &view) {
+                auto level = tracker.getLevel<MovablePassage>(levelBundle, proj, view);
+                level->initSetBallInfo("models/gopher/gopher.modelcbor", "textures/gopher/gopher.png");
+                std::vector<std::string> textures{"textures/gopher/dirt1.png",
+                                                  "textures/gopher/dirt2.png",
+                                                  "textures/gopher/dirt3.png",
+                                                  "textures/gopher/dirt4.png"};
+                std::vector<std::string> rockModels{
+                        "models/gopher/rock1.modelcbor",
+                        "models/gopher/rock2.modelcbor",
+                        "models/gopher/rock3.modelcbor",
+                        "models/gopher/rock4.modelcbor"
+                };
+                level->initSetGameBoardInfo(
+                        "textures/gopher/dirt1.png",
+                        rockModels,
+                        "textures/gopher/rock.png",
+                        textures,
+                        "textures/gopher/end.png",
+                        "textures/gopher/endOffBoard.png",
+                        "models/gopher/startCorner.modelcbor", "textures/gopher/dirt1.png",
+                        "models/gopher/startSide.modelcbor", textures,
+                        "models/gopher/startOpen.modelcbor", textures);
+                level->initAddRock(1,1);
+                level->initAddRock(1,2);
+                level->initAddRock(1,3);
+                level->initAddRock(1,4);
+                level->initAddRock(1,5);
+                level->initAddRock(1,6);
+                level->initAddRock(3,0);
+                level->initAddRock(3,2);
+                level->initAddRock(3,3);
+                level->initAddRock(3,5);
+                level->initAddRock(5,1);
+                level->initAddRock(5,2);
+                level->initAddRock(5,3);
+                level->initAddRock(5,5);
+                level->initAddRock(5,6);
+                level->initAddRock(6,5);
+                level->initAddRock(6,6);
+                level->initAddRock(7,0);
+                level->initAddRock(7,1);
+                level->initAddRock(7,2);
+                level->initAddRock(7,3);
+                level->initAddType(Component::ComponentType::straight, 3,
+                    "models/gopher/straight.modelcbor", "textures/gopher/dirt.png");
+                level->initAddType(Component::ComponentType::turn, 10,
+                    "models/gopher/turn.modelcbor", "textures/gopher/dirt.png");
+                level->initAddType(Component::ComponentType::tjunction, 2,
+                    "models/gopher/tjunction.modelcbor", "textures/gopher/dirt.png");
+                level->initAddType(Component::ComponentType::crossjunction, 2,
+                    "models/gopher/crossjunction.modelcbor", "textures/gopher/dirt.png");
+                level->initSetGameBoard(8, 8, 1, 6);
+                level->initDone();
+
+                // call after all other init functions are completed but before updateStaticDrawObjects
+                auto extraWHatZRequested = level->getAdditionalWHatZRequests();
+                for (auto const &extraZ : extraWHatZRequested) {
+                    auto extraWH = getWidthHeight(extraZ, proj, view);
+                    level->setAdditionalWH(extraWH.first, extraWH.second, extraZ);
+                }
+
                 return level;
             }),
             GetFinisherFcn([](LevelTracker &tracker, float centerX, float centerY, glm::mat4 const &proj, glm::mat4 const &view) {

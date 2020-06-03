@@ -44,7 +44,6 @@ protected:
     static float constexpr m_dragConstant = 0.2f;
     static float constexpr m_accelerationAdjustment = 0.25f;
     static float constexpr m_lengthTooSmallToNormalize = 0.001f;
-    static float constexpr m_floatErrorAmount = 0.0001f;
     static float constexpr m_modelSize = 2.0f;
 
     std::shared_ptr<GameRequester> m_gameRequester;
@@ -53,8 +52,8 @@ protected:
     float const m_height;
     float const m_diagonal;
     float const m_mazeFloorZ;
-    float const m_scaleBall;
     bool const m_ignoreZMovement;
+    float m_scaleBall;
     bool m_bounce;
 
     // data on where the ball is, how fast it is moving, etc.
@@ -160,6 +159,8 @@ protected:
     }
 
 public:
+    static float constexpr m_floatErrorAmount = 0.0001f;
+
     virtual glm::vec4 getBackgroundColor() = 0;
     void updateAcceleration(float x, float y, float z) {
         m_ball.acceleration = m_accelerationAdjustment * glm::vec3{-x, -y, m_ignoreZMovement ? 0 :-z};
@@ -173,6 +174,14 @@ public:
         x = 0.0f;
         y = 0.0f;
     }
+
+    virtual bool tap(float, float) { return false; }
+    virtual bool drag(float, float, float, float) { return false; }
+    virtual bool dragEnded(float, float) { return false; }
+    virtual float getZForTapCoords() { return m_mazeFloorZ; }
+
+    virtual std::vector<float> getAdditionalWHatZRequests() { return std::vector<float>{}; }
+    virtual void setAdditionalWH(float, float, float) {}
 
     using SaveLevelDataFcn = std::function<std::vector<uint8_t>(std::shared_ptr<GameSaveData> gsd)>;
     virtual SaveLevelDataFcn getSaveLevelDataFcn();
@@ -192,8 +201,8 @@ public:
           m_height(height),
           m_diagonal{glm::length(glm::vec2{m_width, m_height})},
           m_mazeFloorZ{mazeFloorZ},
-          m_scaleBall{ballScaleFactorDiagonal * m_diagonal},
           m_ignoreZMovement{ignoreZMovement},
+          m_scaleBall{ballScaleFactorDiagonal * m_diagonal},
           m_bounce{bounce}
     {
         m_ball.totalRotated = glm::quat();

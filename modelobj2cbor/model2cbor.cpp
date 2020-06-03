@@ -126,7 +126,7 @@ int main(int argc, char *argv[]) {
                     .key = cbor_move(cbor_build_string(KeyTexCoords)),
                     .value = cbor_move(array3)});
 
-                cbor_item_t *array4 = cbor_new_definite_array(tx.size());
+                cbor_item_t *array4 = cbor_new_definite_array(in.size());
                 for (auto indices : in) {
                     cbor_item_t *array4a = cbor_new_definite_array(indices.size());
                     for (auto i : indices) {

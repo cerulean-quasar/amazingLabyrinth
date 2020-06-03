@@ -298,24 +298,24 @@ bool loadModel(
 }
 
 // creates a quad with each side length 2.0f.
-void getQuad(std::vector<Vertex> &vertices, std::vector<uint32_t> &indices) {
+void getQuad(std::vector<Vertex> &vertices, std::vector<uint32_t> &indices, glm::vec3 const &centerPos) {
     Vertex vertex = {};
     vertex.color = {0.2f, 0.2f, 0.2f };
     vertex.normal = {0.0f, 0.0f, 1.0f };
 
-    vertex.pos = { -1.0f, 1.0f, 0.0f };
+    vertex.pos = glm::vec3{ -1.0f, 1.0f, 0.0f } + centerPos;
     vertex.texCoord = {0.0f, 0.0f };
     vertices.push_back(vertex);
 
-    vertex.pos = { -1.0f, -1.0f, 0.0f };
+    vertex.pos = glm::vec3{ -1.0f, -1.0f, 0.0f } + centerPos;
     vertex.texCoord = {0.0f, 1.0f };
     vertices.push_back(vertex);
 
-    vertex.pos = { 1.0f, -1.0f, 0.0f };
+    vertex.pos = glm::vec3{ 1.0f, -1.0f, 0.0f } + centerPos;
     vertex.texCoord = {1.0f, 1.0f };
     vertices.push_back(vertex);
 
-    vertex.pos = { 1.0f, 1.0f, 0.0f };
+    vertex.pos = glm::vec3{ 1.0f, 1.0f, 0.0f } + centerPos;
     vertex.texCoord = {1.0f, 0.0f };
     vertices.push_back(vertex);
 
@@ -327,4 +327,190 @@ void getQuad(std::vector<Vertex> &vertices, std::vector<uint32_t> &indices) {
     indices.push_back(2);
     indices.push_back(3);
 
+}
+
+// creates a cube with each side length 2.0f.
+void getCube(std::vector<Vertex> &vertices, std::vector<uint32_t> &indices, glm::vec3 const &centerPos) {
+    Vertex vertex = {};
+    vertex.color = {0.2f, 0.2f, 0.2f };
+
+    std::array<glm::vec3, 8> positions = {
+        glm::vec3{ -1.0f, 1.0f, 1.0f } + centerPos,
+        glm::vec3{ -1.0f, -1.0f, 1.0f } + centerPos,
+        glm::vec3{ 1.0f, -1.0f, 1.0f } + centerPos,
+        glm::vec3{ 1.0f, 1.0f, 1.0f } + centerPos,
+
+        glm::vec3{ -1.0f, 1.0f, -1.0f } + centerPos,
+        glm::vec3{ -1.0f, -1.0f, -1.0f } + centerPos,
+        glm::vec3{ 1.0f, -1.0f, -1.0f } + centerPos,
+        glm::vec3{ 1.0f, 1.0f, -1.0f } + centerPos
+    };
+
+    // the top, z = 1.0
+    size_t i = vertices.size();
+    vertex.normal = {0.0f, 0.0f, 1.0f };
+
+    vertex.pos = positions[0];
+    vertex.texCoord = {0.0f, 0.0f };
+    vertices.push_back(vertex);
+
+    vertex.pos = positions[1];
+    vertex.texCoord = {0.0f, 1.0f/3.0f };
+    vertices.push_back(vertex);
+
+    vertex.pos = positions[2] + centerPos;
+    vertex.texCoord = {1.0f/2.0f, 1.0f/3.0f };
+    vertices.push_back(vertex);
+
+    vertex.pos = positions[3] + centerPos;
+    vertex.texCoord = {1.0f/2.0f, 0.0f };
+    vertices.push_back(vertex);
+
+    indices.push_back(i+0);
+    indices.push_back(i+1);
+    indices.push_back(i+2);
+
+    indices.push_back(i+0);
+    indices.push_back(i+2);
+    indices.push_back(i+3);
+
+    // the bottom, z = -1
+    i = vertices.size();
+    vertex.normal = {0.0f, 0.0f, -1.0f };
+
+    vertex.pos = positions[7];
+    vertex.texCoord = {0.0f, 1.0f/3.0f };
+    vertices.push_back(vertex);
+
+    vertex.pos = positions[6];
+    vertex.texCoord = {0.0f, 2.0f/3.0f };
+    vertices.push_back(vertex);
+
+    vertex.pos = positions[5];
+    vertex.texCoord = {1.0f/2.0f, 2.0f/3.0f };
+    vertices.push_back(vertex);
+
+    vertex.pos = positions[4];
+    vertex.texCoord = {1.0f/2.0f, 1.0f/3.0f };
+    vertices.push_back(vertex);
+
+    indices.push_back(i+0);
+    indices.push_back(i+1);
+    indices.push_back(i+2);
+
+    indices.push_back(i+0);
+    indices.push_back(i+2);
+    indices.push_back(i+3);
+
+    // the side, y = -1
+    i = vertices.size();
+    vertex.normal = {0.0f, -1.0f, 0.0f };
+
+    vertex.pos = positions[1];
+    vertex.texCoord = {0.0f, 2.0f/3.0f };
+    vertices.push_back(vertex);
+
+    vertex.pos = positions[5];
+    vertex.texCoord = {0.0f, 1.0f };
+    vertices.push_back(vertex);
+
+    vertex.pos = positions[6];
+    vertex.texCoord = {1.0f/2.0f, 1.0f };
+    vertices.push_back(vertex);
+
+    vertex.pos = positions[2];
+    vertex.texCoord = {1.0f/2.0f, 2.0f/3.0f };
+    vertices.push_back(vertex);
+
+    indices.push_back(i+0);
+    indices.push_back(i+1);
+    indices.push_back(i+2);
+
+    indices.push_back(i+0);
+    indices.push_back(i+2);
+    indices.push_back(i+3);
+
+    // the side, y = 1
+    i = vertices.size();
+    vertex.normal = {0.0f, 1.0f, 0.0f };
+
+    vertex.pos = positions[3];
+    vertex.texCoord = {1.0f/2.0f, 0.0f };
+    vertices.push_back(vertex);
+
+    vertex.pos = positions[7];
+    vertex.texCoord = {1.0f/2.0f, 1.0f/3.0f };
+    vertices.push_back(vertex);
+
+    vertex.pos = positions[4];
+    vertex.texCoord = {1.0f, 1.0f/3.0f };
+    vertices.push_back(vertex);
+
+    vertex.pos = positions[0];
+    vertex.texCoord = {1.0f, 0.0f };
+    vertices.push_back(vertex);
+
+    indices.push_back(i+0);
+    indices.push_back(i+1);
+    indices.push_back(i+2);
+
+    indices.push_back(i+0);
+    indices.push_back(i+2);
+    indices.push_back(i+3);
+
+    // the side, x = -1
+    i = vertices.size();
+    vertex.normal = {-1.0f, 0.0f, 0.0f };
+
+    vertex.pos = positions[0];
+    vertex.texCoord = {1.0f/2.0f, 1.0f/3.0f };
+    vertices.push_back(vertex);
+
+    vertex.pos = positions[4];
+    vertex.texCoord = {1.0f/2.0f, 2.0f/3.0f };
+    vertices.push_back(vertex);
+
+    vertex.pos = positions[5];
+    vertex.texCoord = {1.0f, 2.0f/3.0f };
+    vertices.push_back(vertex);
+
+    vertex.pos = positions[1];
+    vertex.texCoord = {1.0f, 1.0f/3.0f };
+    vertices.push_back(vertex);
+
+    indices.push_back(i+0);
+    indices.push_back(i+1);
+    indices.push_back(i+2);
+
+    indices.push_back(i+0);
+    indices.push_back(i+2);
+    indices.push_back(i+3);
+
+    // the side, x = 1
+    i = vertices.size();
+    vertex.normal = {1.0f, 0.0f, 0.0f };
+
+    vertex.pos = positions[2];
+    vertex.texCoord = {1.0f/2.0f, 2.0f/3.0f };
+    vertices.push_back(vertex);
+
+    vertex.pos = positions[6];
+    vertex.texCoord = {1.0f/2.0f, 1.0f };
+    vertices.push_back(vertex);
+
+    vertex.pos = positions[7];
+    vertex.texCoord = {1.0f, 1.0f };
+    vertices.push_back(vertex);
+
+    vertex.pos = positions[3];
+    vertex.texCoord = {1.0f, 2.0f/3.0f };
+    vertices.push_back(vertex);
+
+    indices.push_back(i+0);
+    indices.push_back(i+1);
+    indices.push_back(i+2);
+
+    indices.push_back(i+0);
+    indices.push_back(i+2);
+    indices.push_back(i+3);
 }

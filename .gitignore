@@ -7,4 +7,7 @@
 /captures
 /app/release
 /app/.cxx
+/modelobj2cbor/*.o
+/modelobj2cbor/model2cbor
+/modelobj2cbor/cbor2json
 .externalNativeBuild

@@ -37,7 +37,9 @@ public:
         surfaceChanged,
         levelChanged,
         saveLevelData,
-        tiltMaze
+        drag,
+        dragEnded,
+        tap
     };
 
     // returns true if the surface needs redrawing after this event.
@@ -65,7 +67,7 @@ public:
         // giggle the device so that when the swapchain is recreated, it gets the correct width and
         // height.  Also updateData must be called before the first draw event because some
         // initialization is delayed till then.
-        bool needsRedraw = graphics->updateData();
+        bool needsRedraw = graphics->updateData(true);
         graphics->drawFrame();
 
         graphics->changeRotationAngle(m_rotationAngle);
@@ -109,6 +111,70 @@ public:
     ~LevelChangedEvent() override = default;
 private:
     uint32_t m_level;
+};
+
+class DragEvent : public DrawEvent {
+public:
+    bool operator() (std::unique_ptr<Graphics> &graphics) override {
+        return graphics->drag(m_startX, m_startY, m_distanceX, m_distanceY);
+    }
+
+    evtype type() override { return levelChanged; }
+
+    DragEvent(float startX, float startY, float distanceX, float distanceY)
+            : m_startX{startX},
+            m_startY{startY},
+            m_distanceX{distanceX},
+            m_distanceY{distanceY}
+    {
+    }
+
+    ~DragEvent() override = default;
+private:
+    float m_startX;
+    float m_startY;
+    float m_distanceX;
+    float m_distanceY;
+};
+
+class DragEndedEvent : public DrawEvent {
+public:
+    bool operator() (std::unique_ptr<Graphics> &graphics) override {
+        return graphics->dragEnded(m_x, m_y);
+    }
+
+    evtype type() override { return levelChanged; }
+
+    DragEndedEvent(float x, float y)
+            : m_x{x},
+              m_y{y}
+    {
+    }
+
+    ~DragEndedEvent() override = default;
+private:
+    float m_x;
+    float m_y;
+};
+
+class TapEvent : public DrawEvent {
+public:
+    bool operator() (std::unique_ptr<Graphics> &graphics) override {
+        return graphics->tap(m_x, m_y);
+    }
+
+    evtype type() override { return levelChanged; }
+
+    TapEvent(float x, float y)
+            : m_x{x},
+              m_y{y}
+    {
+    }
+
+    ~TapEvent() override = default;
+private:
+    float m_x;
+    float m_y;
 };
 
 class SaveLevelDataEvent : public DrawEvent {

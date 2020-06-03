@@ -151,8 +151,10 @@ void GameWorker::drawingLoop() {
                         return;
                     case DrawEvent::surfaceChanged:
                     case DrawEvent::saveLevelData:
-                    case DrawEvent::tiltMaze:
                     case DrawEvent::levelChanged:
+                    case DrawEvent::tap:
+                    case DrawEvent::drag:
+                    case DrawEvent::dragEnded:
                         if ((*event)(m_graphics)) {
                             nbrRequireRedraw++;
                         }
@@ -163,7 +165,7 @@ void GameWorker::drawingLoop() {
             }
         }
 
-        bool needsRedraw = m_graphics->updateData();
+        bool needsRedraw = m_graphics->updateData(nbrRequireRedraw > 0);
         if (needsRedraw || nbrRequireRedraw > 0) {
             m_graphics->drawFrame();
             timeval tv = {0, 100};
