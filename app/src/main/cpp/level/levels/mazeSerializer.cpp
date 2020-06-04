@@ -146,8 +146,8 @@ Level::SaveLevelDataFcn Maze::getSaveLevelDataFcn() {
             m_ballCell.row,
             m_ballCell.col,
             Point<float>{m_ball.position.x, m_ball.position.y},
-            m_rowEnd,
-            m_colEnd,
+            m_mazeBoard.rowEnd(),
+            m_mazeBoard.colEnd(),
             std::vector<uint32_t>(m_wallTextureIndices),
             getSerializedMazeWallVector());
     return {[sd](std::shared_ptr<GameSaveData> gsd) -> std::vector<uint8_t> {

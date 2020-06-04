@@ -67,16 +67,13 @@ protected:
     std::string m_avoidObjTexture;
     bool checkFinishCondition(float timeDiff) override;
     std::vector<glm::vec3> m_avoidObjectLocations;
-    uint32_t m_ballStartR;
-    uint32_t m_ballStartC;
 public:
     MazeAvoid(std::shared_ptr<GameRequester> inGameRequester,
                 std::shared_ptr<MazeAvoidSaveData> sd,
                 float inWidth, float inHeight, float maxZ)
-            :MazeOpenArea(std::move(inGameRequester), sd, inWidth, inHeight, maxZ),
-            m_ballStartR{sd->startRowCol.x},
-            m_ballStartC{sd->startRowCol.y}
+            :MazeOpenArea(std::move(inGameRequester), sd, inWidth, inHeight, maxZ)
     {
+        m_mazeBoard.setStart(sd->startRowCol.x, sd->startRowCol.y);
         for (auto avoidObjLocation : sd->avoidObjLocations) {
             m_avoidObjectLocations.emplace_back(avoidObjLocation.x, avoidObjLocation.y, getBallZPosition());
         }
@@ -86,8 +83,6 @@ public:
                 float inWidth, float inHeight, float maxZ)
             :MazeOpenArea(std::move(inGameRequester), parameters, inWidth, inHeight, maxZ)
     {
-        m_ballStartR = m_ballCell.row;
-        m_ballStartC = m_ballCell.col;
         generateAvoidModelMatrices();
     }
 

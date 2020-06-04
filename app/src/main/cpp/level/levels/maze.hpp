@@ -140,9 +140,6 @@ protected:
     std::vector<Vertex> ballVertices;
     std::vector<uint32_t> ballIndices;
 
-    uint32_t m_rowEnd;
-    uint32_t m_colEnd;
-
     std::vector<uint32_t> m_wallTextureIndices;
 
     void loadModelFloor();
@@ -154,7 +151,7 @@ protected:
 
     void loadModels();
     void generateModelMatrices(MazeWallModelMatrixGeneratorFcn &wallModelMatrixGeneratorFcn);
-    void generateMazeVector(uint32_t &rowEnd, uint32_t &colEnd, std::vector<bool> &wallsExist);
+    void generateMazeVector(std::vector<bool> &wallsExist);
     std::vector<uint8_t> getSerializedMazeWallVector();
     void generateCellsFromMazeVector(std::vector<uint8_t> const &mazeVector);
 
@@ -188,16 +185,14 @@ public:
 
         loadModels();
 
-        m_wallTextureIndices = sd->wallTextures;
-        generateCellsFromMazeVector(sd->mazeWallsVector);
-        m_rowEnd = sd->rowEnd;
-        m_colEnd = sd->colEnd;
-        m_mazeBoard.setEnd(m_rowEnd, m_colEnd);
+        m_mazeBoard.setEnd(sd->rowEnd, sd->colEnd);
 
         // Set up the "start" to be where the ball was last since we don't know what the start
         // was anymore, but we do need a "valid" start for generateModelMatrices.
         m_mazeBoard.setStart(sd->ballRow, sd->ballCol);
 
+        m_wallTextureIndices = sd->wallTextures;
+        generateCellsFromMazeVector(sd->mazeWallsVector);
         generateModelMatrices(wallModelMatrixGeneratorFcn);
 
         m_ballCell.row = sd->ballRow;

@@ -28,14 +28,15 @@ bool MazeAvoid::checkFinishCondition(float) {
         if (ballInProximity(avoidObj.x, avoidObj.y)) {
             // send the ball back to the start because it hit one of the objects it was supposed
             // to avoid.
-            m_ballCell.row = m_ballStartR;
-            m_ballCell.col = m_ballStartC;
-            m_ball.position = getCellCenterPosition(m_ballStartR, m_ballStartC);
+            m_ballCell.row = m_mazeBoard.rowStart();
+            m_ballCell.col = m_mazeBoard.colStart();
+            m_ball.position = getCellCenterPosition(m_ballCell.row, m_ballCell.col);
         }
     }
 
     // we finished the level if all the items are collected and the ball is in proximity to the hole.
-    return ballInProximity(getColumnCenterPosition(m_colEnd), getRowCenterPosition(m_rowEnd));
+    return ballInProximity(getColumnCenterPosition(m_mazeBoard.colEnd()),
+            getRowCenterPosition(m_mazeBoard.rowEnd()));
 }
 
 void MazeAvoid::generateAvoidModelMatrices() {
@@ -49,8 +50,8 @@ void MazeAvoid::generateAvoidModelMatrices() {
         bool selected = false;
 
         std::vector<std::pair<uint32_t, uint32_t>> itemsRC;
-        itemsRC.emplace_back(m_rowEnd, m_colEnd);
-        itemsRC.emplace_back(m_ballStartR, m_ballStartC);
+        itemsRC.emplace_back(m_mazeBoard.rowEnd(), m_mazeBoard.colEnd());
+        itemsRC.emplace_back(m_mazeBoard.rowStart(), m_mazeBoard.colStart());
         while (!selected) {
             switch (wall) {
                 case 0:

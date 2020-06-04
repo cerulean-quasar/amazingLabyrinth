@@ -64,20 +64,24 @@ public:
         DFS = 2
     };
 
-    size_t numberRows() {
-        return m_cells.size();
-    }
-
-    size_t numberColumns() {
-        return m_cells.size() > 0 ? m_cells[0].size() : 0;
-    }
+    size_t rowEnd() { return m_rowEnd; }
+    size_t colEnd() { return m_colEnd; }
+    size_t rowStart() { return m_rowStart; }
+    size_t colStart() { return m_colStart; }
+    size_t numberRows() { return m_cells.size(); }
+    size_t numberColumns() { return m_cells.size() > 0 ? m_cells[0].size() : 0; }
+    Cell const &getCell(unsigned int row, unsigned int column);
 
     void setEnd(size_t row, size_t col) {
         m_cells[row][col].mIsEnd = true;
+        m_rowEnd = row;
+        m_colEnd = col;
     }
 
     void setStart(size_t row, size_t col) {
         m_cells[row][col].mIsStart = true;
+        m_rowStart = row;
+        m_colStart = col;
     }
 
     bool wallExists(size_t row, size_t col, WallType wall) {
@@ -111,9 +115,13 @@ public:
                 break;
         }
     }
-    Cell const &getCell(unsigned int row, unsigned int column);
 
-    GeneratedMazeBoard(size_t numberRows, size_t numberColumns, Mode mode) {
+    GeneratedMazeBoard(size_t numberRows, size_t numberColumns, Mode mode)
+        : m_rowEnd{0},
+          m_colEnd{0},
+          m_rowStart{0},
+          m_colStart{0}
+    {
         m_cells.resize(numberRows);
 
         for (unsigned int i = 0; i < numberRows; i++) {
@@ -122,7 +130,7 @@ public:
 
         if (mode == BFS) {
             generateBFS();
-        } else {
+        } else if (mode == DFS){
             generateDFS();
         }
 
@@ -130,6 +138,11 @@ public:
 private:
     Random m_random;
     std::vector<std::vector<Cell>> m_cells;
+
+    size_t m_rowEnd;
+    size_t m_colEnd;
+    size_t m_rowStart;
+    size_t m_colStart;
 
     void generateBFS();
     void generateDFS();

@@ -170,7 +170,7 @@ glm::vec3 Maze::getCellCenterPosition(unsigned int row, unsigned int col) {
                     getBallZPosition());
 }
 
-void Maze::generateMazeVector(uint32_t &rowEnd, uint32_t &colEnd, std::vector<bool> &wallsExist) {
+void Maze::generateMazeVector(std::vector<bool> &wallsExist) {
     size_t numberRows = m_mazeBoard.numberRows();
     size_t numberColumns = m_mazeBoard.numberColumns();
 
@@ -189,18 +189,6 @@ void Maze::generateMazeVector(uint32_t &rowEnd, uint32_t &colEnd, std::vector<bo
                     wallsExist[(i+k)*(numberColumns*numberBlocksPerCell+1) + j] = true;
                 }
             }
-
-            // the ball
-            if (cell.isStart()) {
-                m_ballCell.row = i / numberBlocksPerCell;
-                m_ballCell.col = j / numberBlocksPerCell;
-            }
-
-            // the hole
-            if (cell.isEnd()) {
-                rowEnd = i/numberBlocksPerCell;
-                colEnd = j/numberBlocksPerCell;
-            }
         }
         // right border
         for (unsigned int k = 0; k < numberBlocksPerCell; k++) {
@@ -213,6 +201,9 @@ void Maze::generateMazeVector(uint32_t &rowEnd, uint32_t &colEnd, std::vector<bo
         wallsExist[numberRows*numberBlocksPerCell*(numberColumns*numberBlocksPerCell+1) + i] = true;
     }
 
+    // the ball
+    m_ballCell.row = m_mazeBoard.rowStart();
+    m_ballCell.col = m_mazeBoard.colStart();
 }
 
 Maze::MazeWallModelMatrixGeneratorFcn Maze::getMazeWallModelMatricesGenerator() {
@@ -253,7 +244,7 @@ void Maze::generateModelMatrices(MazeWallModelMatrixGeneratorFcn &wallModelMatri
 
     std::vector<bool> wallsExist;
 
-    generateMazeVector(m_rowEnd, m_colEnd, wallsExist);
+    generateMazeVector(wallsExist);
 
     // Create the model matrices.
 
@@ -270,7 +261,7 @@ void Maze::generateModelMatrices(MazeWallModelMatrixGeneratorFcn &wallModelMatri
     modelMatrixBall = trans*glm::mat4_cast(m_ball.totalRotated)*scaleBall;
 
     // the hole
-    glm::vec3 holePos = getCellCenterPosition(m_rowEnd, m_colEnd);
+    glm::vec3 holePos = getCellCenterPosition(m_mazeBoard.rowEnd(), m_mazeBoard.colEnd());
     trans = glm::translate(glm::mat4(1.0f), holePos);
     modelMatrixHole = trans*scaleBall;
 

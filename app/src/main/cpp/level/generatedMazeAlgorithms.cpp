@@ -42,6 +42,10 @@ void GeneratedMazeBoard::generateDFS() {
 
     m_cells[rowStart][columnStart].mIsStart = true;
     m_cells[rowEnd][columnEnd].mIsEnd = true;
+    m_rowEnd = rowEnd;
+    m_colEnd = columnEnd;
+    m_rowStart = rowStart;
+    m_colStart = columnStart;
 
     m_cells[rowStart][columnStart].mVisited = true;
     path.push_back(std::make_pair(rowStart, columnStart));
@@ -112,6 +116,10 @@ void GeneratedMazeBoard::generateBFS() {
 
     m_cells[rowStart][columnStart].mIsStart = true;
     m_cells[rowEnd][columnEnd].mIsEnd = true;
+    m_rowEnd = rowEnd;
+    m_colEnd = columnEnd;
+    m_rowStart = rowStart;
+    m_colStart = columnStart;
 
     m_cells[rowStart][columnStart].mVisited = true;
     path.push_back(std::make_pair(rowStart, columnStart));
