@@ -41,8 +41,8 @@ bool MazeAvoid::checkFinishCondition(float) {
 void MazeAvoid::generateAvoidModelMatrices() {
     // generate the items to avoid
     while (m_avoidObjectLocations.size() < nbrItemsToAvoid) {
-        uint32_t row = random.getUInt(0, numberRows-1);
-        uint32_t col = random.getUInt(0, numberColumns-1);
+        uint32_t row = random.getUInt(0, m_mazeBoard.numberRows()-1);
+        uint32_t col = random.getUInt(0, m_mazeBoard.numberColumns()-1);
 
         glm::vec3 pos = getCellCenterPosition(row, col);
         int wall = random.getUInt(0, 3);
@@ -54,7 +54,7 @@ void MazeAvoid::generateAvoidModelMatrices() {
         while (!selected) {
             switch (wall) {
                 case 0:
-                    if (cells[row][col].leftWallExists()) {
+                    if (m_mazeBoard.wallExists(row, col, GeneratedMazeBoard::WallType::leftWall)) {
                         pos.x = leftWall(col) + ballRadius();
                         selected = true;
                         break;
@@ -62,20 +62,20 @@ void MazeAvoid::generateAvoidModelMatrices() {
                     // fall through and just try to see if the next wall exists and put the object
                     // there if it does.
                 case 1:
-                    if (cells[row][col].rightWallExists()) {
+                    if (m_mazeBoard.wallExists(row, col, GeneratedMazeBoard::WallType::rightWall)) {
                         pos.x = rightWall(col) - ballRadius();
                         selected = true;
                         break;
                     }
                 case 2:
-                    if (cells[row][col].topWallExists()) {
+                    if (m_mazeBoard.wallExists(row, col, GeneratedMazeBoard::WallType::topWall)) {
                         pos.y = topWall(row) + ballRadius();
                         selected = true;
                         break;
                     }
                 case 3:
                 default:
-                    if (cells[row][col].bottomWallExists()) {
+                    if (m_mazeBoard.wallExists(row, col, GeneratedMazeBoard::WallType::bottomWall)) {
                         pos.y = bottomWall(row) - ballRadius();
                         selected = true;
                         break;

@@ -83,7 +83,7 @@ LevelGroup LevelTracker::getLevelGroupPufferFish(std::shared_ptr<MazeSaveData> c
         GetLevelFcn([levelBundle](LevelTracker &tracker, glm::mat4 const &proj, glm::mat4 const &view) {
             std::shared_ptr<Maze> level;
             if (levelBundle == nullptr) {
-                Maze::CreateParameters parameters = { 10, Maze::BFS };
+                Maze::CreateParameters parameters = { 10, GeneratedMazeBoard::Mode::BFS };
                 level = tracker.getLevel<Maze>(parameters, proj, view);
             } else {
                 level = tracker.getLevel<Maze>(levelBundle, proj, view);
@@ -138,7 +138,7 @@ LevelGroup LevelTracker::getLevelGroupBee1(std::shared_ptr<MazeSaveData> const &
         GetLevelFcn([levelBundle](LevelTracker &tracker, glm::mat4 const &proj, glm::mat4 const &view) {
             std::shared_ptr<Maze> level;
             if (levelBundle == nullptr) {
-                Maze::CreateParameters parameters = { 10, Maze::DFS };
+                Maze::CreateParameters parameters = { 10, GeneratedMazeBoard::Mode::DFS };
                 level = tracker.getLevel<Maze>(parameters, proj, view);
             } else {
                 level = tracker.getLevel<Maze>(levelBundle, proj, view);
@@ -175,7 +175,7 @@ LevelGroup LevelTracker::getLevelGroupBee2(std::shared_ptr<MazeSaveData> const &
         GetLevelFcn([levelBundle](LevelTracker &tracker, glm::mat4 const &proj, glm::mat4 const &view) {
             std::shared_ptr<Maze> level;
             if (levelBundle == nullptr) {
-                Maze::CreateParameters parameters = { 15, Maze::DFS };
+                Maze::CreateParameters parameters = { 15, GeneratedMazeBoard::Mode::DFS };
                 level = tracker.getLevel<Maze>(parameters, proj, view);
             } else {
                 level = tracker.getLevel<Maze>(levelBundle, proj, view);
@@ -212,7 +212,7 @@ LevelGroup LevelTracker::getLevelGroupCat(std::shared_ptr<MazeCollectSaveData> c
         GetLevelFcn([levelBundle](LevelTracker &tracker, glm::mat4 const &proj, glm::mat4 const &view) {
             std::shared_ptr<MazeCollect> level;
             if (levelBundle == nullptr) {
-                Maze::CreateParameters parameters = { 10, Maze::BFS };
+                Maze::CreateParameters parameters = { 10, GeneratedMazeBoard::Mode::BFS };
                 level = tracker.getLevel<MazeCollect>(parameters, proj, view);
             } else {
                 level = tracker.getLevel<MazeCollect>(levelBundle, proj, view);
@@ -243,7 +243,7 @@ LevelGroup LevelTracker::getLevelGroupBunny(std::shared_ptr<MazeAvoidSaveData> c
             GetLevelFcn([levelBundle](LevelTracker &tracker, glm::mat4 const &proj, glm::mat4 const &view) {
                 std::shared_ptr<MazeAvoid> level;
                 if (levelBundle == nullptr) {
-                    Maze::CreateParameters parameters = { 10, Maze::DFS };
+                    Maze::CreateParameters parameters = { 10, GeneratedMazeBoard::Mode::DFS };
                     level = tracker.getLevel<MazeAvoid>(parameters, proj, view);
                 } else {
                     level = tracker.getLevel<MazeAvoid>(levelBundle, proj, view);

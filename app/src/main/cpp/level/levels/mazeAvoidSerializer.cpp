@@ -45,7 +45,7 @@ Level::SaveLevelDataFcn MazeAvoid::getSaveLevelDataFcn() {
     }
 
     auto sd = std::make_shared<MazeAvoidSaveData>(
-            numberRows,
+            m_mazeBoard.numberRows(),
             m_ballCell.row,
             m_ballCell.col,
             Point<float>{m_ball.position.x, m_ball.position.y},

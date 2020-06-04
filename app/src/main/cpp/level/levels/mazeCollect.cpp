@@ -70,8 +70,8 @@ void MazeCollect::generateCollectBallModelMatrices() {
     itemsRC.emplace_back(m_rowEnd, m_colEnd);
     itemsRC.emplace_back(m_ballCell.row, m_ballCell.col);
     while (m_collectionObjectLocations.size() < nbrItemsToCollect) {
-        uint32_t row = random.getUInt(0, numberRows-1);
-        uint32_t col = random.getUInt(0, numberColumns-1);
+        uint32_t row = random.getUInt(0, m_mazeBoard.numberRows()-1);
+        uint32_t col = random.getUInt(0, m_mazeBoard.numberColumns()-1);
 
         // move it away from the wall by at least the ball diameter so that it can be easily
         // collected.
