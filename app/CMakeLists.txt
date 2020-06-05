@@ -42,6 +42,7 @@ add_library( # Sets the name of the library.
         src/main/cpp/level/levelSerializer.cpp
         src/main/cpp/level/levelFinish.cpp
         src/main/cpp/level/generatedMazeAlgorithms.cpp
+        src/main/cpp/level/movablePassageAlgorithms.cpp
         src/main/cpp/level/levels/maze.cpp
         src/main/cpp/level/levels/mazeSerializer.cpp
         src/main/cpp/level/levels/openAreaLevel.cpp
