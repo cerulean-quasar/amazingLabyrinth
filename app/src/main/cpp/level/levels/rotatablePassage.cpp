@@ -35,7 +35,7 @@ void RotatablePassage::initSetGameBoard(uint32_t nbrTilesX, GeneratedMazeBoard::
     m_ballRow = mazeBoard.rowStart();
     m_ballCol = mazeBoard.colStart();
     m_ball.position = m_gameBoard.position(m_ballRow, m_ballCol);
-    
+
     m_endRow = mazeBoard.rowEnd();
     m_endCol = mazeBoard.colEnd();
 
@@ -83,8 +83,14 @@ void RotatablePassage::initSetGameBoard(uint32_t nbrTilesX, GeneratedMazeBoard::
                 componentType = Component::ComponentType::crossjunction;
             }
             uint32_t placementIndex = m_components[componentType]->add(i, j, angle);
-            m_gameBoard.block(i, j).setComponent(m_components[componentType], placementIndex);
+            auto &b = m_gameBoard.block(i, j);
+            b.setComponent(m_components[componentType], placementIndex);
+            b.setBlockType(GameBoardBlock::BlockType::onBoard);
         }
+    }
+
+    for (auto &component : m_components) {
+        component->setSize(m_gameBoard.blockSize());
     }
 
     m_initDone = true;
