@@ -47,7 +47,7 @@ public:
     bool drag(float startX, float startY, float distanceX, float distanceY) override;
     bool dragEnded(float x, float y) override;
     bool tap(float x, float y) override;
-    glm::vec4 getBackgroundColor() override { return {0.6f, 0.8f, 1.0f, 1.0f}; };
+    glm::vec4 getBackgroundColor() override { return {0.6f, 0.8f, 1.0f, 1.0f}; }
     bool updateData() override;
     bool updateStaticDrawObjects(DrawObjectTable &objs, TextureMap &textures) override;
     bool updateDynamicDrawObjects(DrawObjectTable &objs, TextureMap &textures, bool &texturesChanged) override;
@@ -184,6 +184,8 @@ private:
     uint32_t m_ballRow;
     uint32_t m_ballCol;
     std::chrono::high_resolution_clock::time_point m_prevTime;
+    static uint32_t constexpr m_nbrTileRowsForStart = 3;
+    static uint32_t constexpr m_nbrTileRowsForEnd = 2;
 
     std::array<std::shared_ptr<Component>, Component::ComponentType::maxComponentType + 1> m_components;
 
@@ -214,13 +216,5 @@ private:
 
     // the column in which the end tile is located.
     uint32_t m_columnEndPosition;
-
-    std::vector<size_t> addObjs(DrawObjectTable &objs, TextureMap &textures,
-            std::vector<std::string> const &model, std::vector<std::string> const &textureNames);
-
-    size_t chooseObj(std::shared_ptr<Component> const &component, size_t placementIndex);
-    size_t addModelMatrixToObj(DrawObjectTable &objs, std::vector<size_t> const &refs,
-                             std::shared_ptr<Component> const &component, size_t placementIndex,
-                             glm::mat4 modelMatrix);
 };
 #endif /* AMAZING_LABYRINTH_MOVABLE_PASSAGE_HPP */

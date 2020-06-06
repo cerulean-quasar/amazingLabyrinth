@@ -54,13 +54,15 @@ public:
         tjunction,
         crossjunction,
         turn,
+        deadEnd,
+        maxComponentJunctionType = 4,
         open,
         closedBottom,
         closedCorner,
-        maxComponentAllowingBall = 6,
+        maxComponentAllowingBall = 7,
         noMovementDirt,
         noMovementRock,
-        maxComponentType = 8
+        maxComponentType = 9
     };
 
     using checkForNextWallFunc = std::function<std::pair<bool, bool>(Component::CellWall, Component::CellWall)>;
@@ -429,6 +431,7 @@ public:
         /* setters */
         void setRC(uint32_t row, uint32_t col) { m_row = row; m_col = col; }
         void setDynObjReference(uint32_t ref) { m_dynObjReference = ref; }
+        void setLockedIntoPlace(bool lockedIntoPlace) { m_lockedIntoPlace = lockedIntoPlace; }
         void rotate() {
             m_rotationAngle += glm::radians(90.0f);
             float twopi = 2 * glm::radians(180.0f);
@@ -622,9 +625,6 @@ private:
 
 class GameBoard {
 public:
-    static uint32_t constexpr m_nbrTileRowsForStart = 3;
-    static uint32_t constexpr m_nbrTileRowsForEnd = 2;
-
     uint32_t widthInTiles() { return m_blocks.empty() ? 0 : m_blocks[0].size(); }
     uint32_t heightInTiles() { return m_blocks.size(); }
     bool drag(glm::vec2 const &startPosition, glm::vec2 const &distance);
@@ -641,7 +641,16 @@ public:
     std::pair<bool, bool> checkforNextWall(Component::CellWall wall1, Component::CellWall wall2,
                                            uint32_t ballRow, uint32_t ballCol);
 
-    void initialize(float tileSize, glm::vec3 const &pos, uint32_t rows, uint32_t cols) {
+    void initialize(
+            float tileSize,
+            glm::vec3 const &pos,
+            uint32_t rows,
+            uint32_t cols,
+            uint32_t nbrTileRowsForStart,
+            uint32_t nbrTileRowsForEnd)
+    {
+        m_nbrTileRowsForStart = nbrTileRowsForStart;
+        m_nbrTileRowsForEnd = nbrTileRowsForEnd;
         m_blockSize = tileSize;
         m_width = cols * tileSize;
         m_height = rows * tileSize;
@@ -680,6 +689,9 @@ public:
               m_centerPos{0.0f, 0.0f, 0.0f}
     {}
 private:
+    uint32_t m_nbrTileRowsForStart;
+    uint32_t m_nbrTileRowsForEnd;
+
     float m_width;
     float m_height;
 
@@ -701,5 +713,24 @@ private:
     }
 };
 
-#endif // AMAZING_LABYRINTH_MOVABLE_PASSAGE_ALGORITHMS_HPP
+std::vector<size_t> addObjs(
+        std::shared_ptr<GameRequester> const &requester,
+        DrawObjectTable &objs,
+        TextureMap &textures,
+        std::vector<std::string> const &model,
+        std::vector<std::string> const &textureNames);
 
+size_t chooseObj(
+        Random &randomNumbers,
+        std::shared_ptr<Component> const &component,
+        size_t placementIndex);
+
+size_t addModelMatrixToObj(
+        Random &randomNumbers,
+        DrawObjectTable &objs,
+        std::vector<size_t> const &refs,
+        std::shared_ptr<Component> const &component,
+        size_t placementIndex,
+        glm::mat4 modelMatrix);
+
+#endif // AMAZING_LABYRINTH_MOVABLE_PASSAGE_ALGORITHMS_HPP

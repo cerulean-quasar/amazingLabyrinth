@@ -367,6 +367,52 @@ LevelGroup LevelTracker::getLevelGroupGopher(
     };
 }
 
+
+LevelGroup LevelTracker::getLevelGroupMouse(
+        std::shared_ptr<RotatablePassageSaveData> const &levelBundle,
+        bool needsStarter)
+{
+    return {
+            getStarterFcn(needsStarter, std::vector<std::string>{
+                    "A mouse searches\nfor a piece\nof cheese in\na hedge maze.",
+                    "Help the mouse\nby rotating the\nhedge maze so\nthat there is a\npath to the cheese."}),
+            GetLevelFcn([levelBundle](LevelTracker &tracker, glm::mat4 const &proj, glm::mat4 const &view) {
+                auto level = tracker.getLevel<RotatablePassage>(levelBundle, proj, view);
+                level->initSetBallInfo("models/mouse/mouse.modelcbor", "textures/mouse/mouse.png");
+                std::vector<std::string> textures{"textures/mouse/hedge1.png",
+                                                  "textures/mouse/hedge2.png",
+                                                  "textures/mouse/hedge3.png",
+                                                  "textures/mouse/hedge4.png"};
+                level->initSetGameBoardInfo(
+                        "models/gopher/straight.modelcbor",
+                        "textures/mouse/hedge1.png",
+                        "models/gopher/tjunction.modelcbor",
+                        "textures/mouse/hedge2.png",
+                        "models/gopher/crossjunction.modelcbor",
+                        "textures/mouse/hedge3.png",
+                        "models/gopher/turn.modelcbor",
+                        "textures/mouse/hedge4.png",
+                        "models/gopher/deadEnd.modelcbor",
+                        "textures/mouse/hedge1.png");
+                level->initSetGameBoard(5, GeneratedMazeBoard::Mode::BFS);
+
+                // call after all other init functions are completed but before updateStaticDrawObjects
+                auto extraWHatZRequested = level->getAdditionalWHatZRequests();
+                for (auto const &extraZ : extraWHatZRequested) {
+                    auto extraWH = getWidthHeight(extraZ, proj, view);
+                    level->setAdditionalWH(extraWH.first, extraWH.second, extraZ);
+                }
+
+                return level;
+            }),
+            GetFinisherFcn([](LevelTracker &tracker, float centerX, float centerY, glm::mat4 const &proj, glm::mat4 const &view) {
+                auto levelFinish = tracker.getFinisher<ManyQuadCoverUpLevelFinish>(centerX, centerY, proj, view);
+                levelFinish->initAddTexture("textures/bunny/hole.png");
+                return levelFinish;
+            })
+    };
+}
+
 void LevelTracker::gotoNextLevel() {
     m_currentLevel = (m_currentLevel + 1) % getLevelTable().size();
 }

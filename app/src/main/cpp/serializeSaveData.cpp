@@ -102,7 +102,7 @@ struct LevelRestoreTableEntry {
     std::string levelDescription;
 };
 
-using LevelRestoreTable = std::array<LevelRestoreTableEntry, 10>;
+using LevelRestoreTable = std::array<LevelRestoreTableEntry, 11>;
 
 LevelRestoreTable const &getRestoreLevelTable() {
     static LevelRestoreTable const levelRestoreTable{
@@ -116,7 +116,8 @@ LevelRestoreTable const &getRestoreLevelTable() {
             LevelRestoreTableEntry{LevelTracker::getLevelGroupCat, LevelTracker::cat, "The cat"},
             LevelRestoreTableEntry{LevelTracker::getLevelGroupBunny, LevelTracker::bunny, "The bunny"},
             LevelRestoreTableEntry{LevelTracker::getLevelGroupFrog, LevelTracker::frog, "The frog"},
-            LevelRestoreTableEntry{LevelTracker::getLevelGroupGopher, LevelTracker::gopher, "The gopher"}};
+            LevelRestoreTableEntry{LevelTracker::getLevelGroupGopher, LevelTracker::gopher, "The gopher"},
+            LevelRestoreTableEntry{LevelTracker::getLevelGroupMouse, LevelTracker::mouse, "The mouse"}};
     return levelRestoreTable;
 }
 
