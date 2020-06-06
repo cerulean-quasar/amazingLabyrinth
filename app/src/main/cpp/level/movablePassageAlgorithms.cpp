@@ -249,13 +249,13 @@ std::vector<size_t> addObjs(
         }
     }
 
-    for (size_t i = 0; i < std::max(v.size(), textures.size()); i++) {
+    for (size_t i = 0; i < std::max(v.size(), textureNames.size()); i++) {
         auto obj = std::make_shared<DrawObject>();
         obj->vertices = v[i%v.size()].first;
         obj->indices = v[i%v.size()].second;
         obj->texture = std::make_shared<TextureDescriptionPath>(gameRequester,
                                                                 textureNames[i%textureNames.size()]);
-        if (i < textures.size()) {
+        if (i < textureNames.size()) {
             textures.insert(std::make_pair(obj->texture, std::shared_ptr<TextureData>()));
         }
         ret.push_back(objs.size());

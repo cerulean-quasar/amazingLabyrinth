@@ -378,22 +378,23 @@ LevelGroup LevelTracker::getLevelGroupMouse(
                     "Help the mouse\nby rotating the\nhedge maze so\nthat there is a\npath to the cheese."}),
             GetLevelFcn([levelBundle](LevelTracker &tracker, glm::mat4 const &proj, glm::mat4 const &view) {
                 auto level = tracker.getLevel<RotatablePassage>(levelBundle, proj, view);
-                level->initSetBallInfo("models/mouse/mouse.modelcbor", "textures/mouse/mouse.png");
-                std::vector<std::string> textures{"textures/mouse/hedge1.png",
-                                                  "textures/mouse/hedge2.png",
-                                                  "textures/mouse/hedge3.png",
-                                                  "textures/mouse/hedge4.png"};
+                level->initSetBallInfo("models/mouse/mouse.modelcbor", "textures/levelStarter/corridor.png");
+                std::vector<std::string> textures{"textures/rollerBee/wallFlower1.png",
+                                                  "textures/rollerBee/wallFlower2.png",
+                                                  "textures/rollerBee/wallFlower3.png",
+                                                  "textures/rollerBee/wallFlower4.png"};
                 level->initSetGameBoardInfo(
                         "models/gopher/straight.modelcbor",
-                        "textures/mouse/hedge1.png",
+                        "textures/rollerBee/wallFlower1.png",
                         "models/gopher/tjunction.modelcbor",
-                        "textures/mouse/hedge2.png",
+                        "textures/rollerBee/wallFlower2.png",
                         "models/gopher/crossjunction.modelcbor",
-                        "textures/mouse/hedge3.png",
+                        "textures/rollerBee/wallFlower3.png",
                         "models/gopher/turn.modelcbor",
-                        "textures/mouse/hedge4.png",
-                        "models/gopher/deadEnd.modelcbor",
-                        "textures/mouse/hedge1.png");
+                        "textures/rollerBee/wallFlower4.png",
+                        "models/movablePassage/deadEnd.modelcbor",
+                        "textures/rollerBee/wallFlower1.png",
+                        textures);
                 level->initSetGameBoard(5, GeneratedMazeBoard::Mode::BFS);
 
                 // call after all other init functions are completed but before updateStaticDrawObjects

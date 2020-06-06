@@ -84,7 +84,8 @@ public:
             std::string const &turnModel,
             std::string const &turnTexture,
             std::string const &deadEndModel,
-            std::string const &deadEndTexture)
+            std::string const &deadEndTexture,
+            std::vector<std::string> const &borderTextures)
     {
         m_componentModels[Component::ComponentType::straight].push_back(straightModel);
         m_componentTextures[Component::ComponentType::straight].push_back(straightTexture);
@@ -98,8 +99,10 @@ public:
         m_componentModels[Component::ComponentType::turn].push_back(turnModel);
         m_componentTextures[Component::ComponentType::turn].push_back(turnTexture);
 
-        m_componentModels[Component::ComponentType::turn].push_back(deadEndModel);
-        m_componentTextures[Component::ComponentType::turn].push_back(deadEndTexture);
+        m_componentModels[Component::ComponentType::deadEnd].push_back(deadEndModel);
+        m_componentTextures[Component::ComponentType::deadEnd].push_back(deadEndTexture);
+
+        m_borderTextures = borderTextures;
     }
 
     // this function can be called at any time before the level is started.
@@ -116,7 +119,8 @@ public:
                   std::make_shared<Component>(Component::ComponentType::straight),
                   std::make_shared<Component>(Component::ComponentType::tjunction),
                   std::make_shared<Component>(Component::ComponentType::crossjunction),
-                  std::make_shared<Component>(Component::ComponentType::turn)},
+                  std::make_shared<Component>(Component::ComponentType::turn),
+                  std::make_shared<Component>(Component::ComponentType::deadEnd)},
           m_ballRow{0},
           m_ballCol{0},
           m_endRow{0},

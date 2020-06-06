@@ -20,6 +20,7 @@
 
 #include "rotatablePassage.hpp"
 #include "../generatedMazeAlgorithms.hpp"
+#include "../level.hpp"
 
 void RotatablePassage::initSetGameBoard(uint32_t nbrTilesX, GeneratedMazeBoard::Mode mode) {
     uint32_t nbrTilesY = static_cast<uint32_t>(std::floor(nbrTilesX/m_width * m_height));
@@ -33,6 +34,8 @@ void RotatablePassage::initSetGameBoard(uint32_t nbrTilesX, GeneratedMazeBoard::
 
     m_ballRow = mazeBoard.rowStart();
     m_ballCol = mazeBoard.colStart();
+    m_ball.position = m_gameBoard.position(m_ballRow, m_ballCol);
+    
     m_endRow = mazeBoard.rowEnd();
     m_endCol = mazeBoard.colEnd();
 
@@ -102,14 +105,11 @@ bool RotatablePassage::updateData() {
     m_prevTime = currentTime;
 
     glm::vec3 position = m_ball.position;
-    glm::vec3 prevPosition = position;
     m_ball.velocity = getUpdatedVelocity(m_ball.acceleration, timeDiff);
     if (glm::length(m_ball.velocity) < m_floatErrorAmount) {
         return false;
     }
 
-    uint32_t nbrComputations = 0;
-    bool drawingNecessary_ = false;
     glm::vec3 posFromCenter = position - m_gameBoard.position(m_ballRow, m_ballCol);
 
     Component::checkForNextWallFunc checkforNextWall{
@@ -154,8 +154,8 @@ bool RotatablePassage::updateData() {
         return true;
     }
 
-    block.component()->placement(block.placementIndex()).setLockedIntoPlace(false);
-    nextBlock.component()->placement(nextBlock.placementIndex()).setLockedIntoPlace(true);
+    //block.component()->placement(block.placementIndex()).setLockedIntoPlace(false);
+    //nextBlock.component()->placement(nextBlock.placementIndex()).setLockedIntoPlace(true);
 
     m_ball.position = position;
     updateRotation(timeDiffTotal);
@@ -355,6 +355,7 @@ bool RotatablePassage::updateDynamicDrawObjects(DrawObjectTable &objs, TextureMa
                 glm::scale(glm::mat4(1.0f), glm::vec3{scaleBall, scaleBall, scaleBall}));
         m_objsReferenceBall = objs.size();
         objs.emplace_back(obj, std::shared_ptr<DrawObjectData>());
+
         texturesChanged = true;
     } else {
         std::vector<size_t> nbrModelMatrices;

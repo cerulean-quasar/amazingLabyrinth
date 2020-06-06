@@ -634,9 +634,10 @@ bool MovablePassage::updateDynamicDrawObjects(DrawObjectTable &objs, TextureMap 
         for (auto const &component: m_components) {
             if (component->type() == Component::ComponentType::closedBottom ||
                 component->type() == Component::ComponentType::closedCorner ||
-                component->type() == Component::ComponentType::open)
+                component->type() == Component::ComponentType::open ||
+                component->nbrPlacements() == 0)
             {
-                // These components are handled as static draw objects.
+                // These components are handled as static draw objects or we have none of them
                 continue;
             }
             auto refs = addObjs(m_gameRequester, objs, textures, m_componentModels[component->type()],

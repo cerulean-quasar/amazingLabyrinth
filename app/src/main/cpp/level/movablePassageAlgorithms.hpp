@@ -375,6 +375,26 @@ public:
                         return moveBallInJunction(position, timediff, velocity, ballRadius, checkForNextWall);
                     }),
 
+            // dead end
+            MoveBallInCellFunc(
+                    [&](glm::vec3 &position,
+                        float &timediff,
+                        glm::vec3 &velocity,
+                        float ballRadius,
+                        checkForNextWallFunc checkForNextWall) -> std::pair<CellWall, CellWall>
+                    {
+                        glm::vec3 nextPos = position + velocity * timediff;
+                        if (nextPos.y > 0.0f || position.y > 0.0f) {
+                            position.y = 0.0f;
+                            velocity.y = 0.0f;
+                        }
+
+                        position.x = 0.0f;
+                        velocity.x = 0.0f;
+
+                        return moveBallInJunction(position, timediff, velocity, ballRadius, checkForNextWall);
+                    }),
+
             // open area
             MoveBallInCellFunc(
                     [&](glm::vec3 &position,
@@ -545,6 +565,11 @@ public:
                 m_cellWalls.insert(CellWall::wallRight);
                 break;
             case ComponentType::turn:
+                m_cellWalls.insert(CellWall::wallRight);
+                m_cellWalls.insert(CellWall::wallUp);
+                break;
+            case ComponentType::deadEnd:
+                m_cellWalls.insert(CellWall::wallLeft);
                 m_cellWalls.insert(CellWall::wallRight);
                 m_cellWalls.insert(CellWall::wallUp);
                 break;

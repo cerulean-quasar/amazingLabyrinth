@@ -164,6 +164,7 @@ public:
                       std::make_shared<Component>(Component::ComponentType::tjunction),
                       std::make_shared<Component>(Component::ComponentType::crossjunction),
                       std::make_shared<Component>(Component::ComponentType::turn),
+                      std::make_shared<Component>(Component::ComponentType::deadEnd),
                       std::make_shared<Component>(Component::ComponentType::open),
                       std::make_shared<Component>(Component::ComponentType::closedBottom),
                       std::make_shared<Component>(Component::ComponentType::closedCorner),
