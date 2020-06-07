@@ -25,9 +25,7 @@
 void RotatablePassage::initSetGameBoard(uint32_t nbrTilesX, GeneratedMazeBoard::Mode mode) {
     uint32_t nbrTilesY = static_cast<uint32_t>(std::floor(nbrTilesX/m_width * m_height));
 
-    // nbrTilesX+2 to get the tile size because we want a border of at least one tile around the
-    // edge.
-    m_gameBoard.initialize(m_width/(nbrTilesX+2), glm::vec3{0.0f, 0.0f, m_mazeFloorZ}, nbrTilesY, nbrTilesX, 0, 0);
+    m_gameBoard.initialize(m_width/nbrTilesX, glm::vec3{0.0f, 0.0f, m_mazeFloorZ}, nbrTilesY, nbrTilesX, 0, 0);
 
     // generate the maze
     GeneratedMazeBoard mazeBoard{nbrTilesY, nbrTilesX, mode};
@@ -160,9 +158,6 @@ bool RotatablePassage::updateData() {
         return true;
     }
 
-    //block.component()->placement(block.placementIndex()).setLockedIntoPlace(false);
-    //nextBlock.component()->placement(nextBlock.placementIndex()).setLockedIntoPlace(true);
-
     m_ball.position = position;
     updateRotation(timeDiffTotal);
     return drawingNecessary();
@@ -170,7 +165,7 @@ bool RotatablePassage::updateData() {
 
 bool RotatablePassage::updateStaticDrawObjects(DrawObjectTable &objs, TextureMap &textures) {
     if (objs.empty()) {
-        auto refs = addObjs(m_gameRequester, objs, textures, std::vector<std::string>{}, m_borderTextures);
+        auto refs = addObjs<getCube>(m_gameRequester, objs, textures, std::vector<std::string>{}, m_borderTextures);
 
         float scale = m_gameBoard.blockSize() / m_modelSize;
 
@@ -182,17 +177,7 @@ bool RotatablePassage::updateStaticDrawObjects(DrawObjectTable &objs, TextureMap
                     glm::translate(glm::mat4{1.0f}, pos) *
                     glm::scale(glm::mat4{1.0f}, glm::vec3{scale, scale, scale}));
 
-            pos.x -= m_gameBoard.blockSize();
-            addModelMatrixToObj(m_randomNumbers, objs, refs, nullptr, 0,
-                                glm::translate(glm::mat4{1.0f}, pos) *
-                                glm::scale(glm::mat4{1.0f}, glm::vec3{scale, scale, scale}));
-
             pos = m_gameBoard.position(i, m_gameBoard.widthInTiles() - 1);
-            pos.x += m_gameBoard.blockSize();
-            addModelMatrixToObj(m_randomNumbers, objs, refs, nullptr, 0,
-                                glm::translate(glm::mat4{1.0f}, pos) *
-                                glm::scale(glm::mat4{1.0f}, glm::vec3{scale, scale, scale}));
-
             pos.x += m_gameBoard.blockSize();
             addModelMatrixToObj(m_randomNumbers, objs, refs, nullptr, 0,
                                 glm::translate(glm::mat4{1.0f}, pos) *
@@ -207,17 +192,7 @@ bool RotatablePassage::updateStaticDrawObjects(DrawObjectTable &objs, TextureMap
                                 glm::translate(glm::mat4{1.0f}, pos) *
                                 glm::scale(glm::mat4{1.0f}, glm::vec3{scale, scale, scale}));
 
-            pos.y -= m_gameBoard.blockSize();
-            addModelMatrixToObj(m_randomNumbers, objs, refs, nullptr, 0,
-                                glm::translate(glm::mat4{1.0f}, pos) *
-                                glm::scale(glm::mat4{1.0f}, glm::vec3{scale, scale, scale}));
-
             pos = m_gameBoard.position(m_gameBoard.heightInTiles() - 1, i);
-            pos.y += m_gameBoard.blockSize();
-            addModelMatrixToObj(m_randomNumbers, objs, refs, nullptr, 0,
-                                glm::translate(glm::mat4{1.0f}, pos) *
-                                glm::scale(glm::mat4{1.0f}, glm::vec3{scale, scale, scale}));
-
             pos.y += m_gameBoard.blockSize();
             addModelMatrixToObj(m_randomNumbers, objs, refs, nullptr, 0,
                                 glm::translate(glm::mat4{1.0f}, pos) *
@@ -232,40 +207,10 @@ bool RotatablePassage::updateStaticDrawObjects(DrawObjectTable &objs, TextureMap
                             glm::translate(glm::mat4{1.0f}, pos) *
                             glm::scale(glm::mat4{1.0f}, glm::vec3{scale, scale, scale}));
 
-        pos.y -= m_gameBoard.blockSize();
-        addModelMatrixToObj(m_randomNumbers, objs, refs, nullptr, 0,
-                            glm::translate(glm::mat4{1.0f}, pos) *
-                            glm::scale(glm::mat4{1.0f}, glm::vec3{scale, scale, scale}));
-
-        pos.x -= m_gameBoard.blockSize();
-        addModelMatrixToObj(m_randomNumbers, objs, refs, nullptr, 0,
-                            glm::translate(glm::mat4{1.0f}, pos) *
-                            glm::scale(glm::mat4{1.0f}, glm::vec3{scale, scale, scale}));
-
-        pos.y += m_gameBoard.blockSize();
-        addModelMatrixToObj(m_randomNumbers, objs, refs, nullptr, 0,
-                            glm::translate(glm::mat4{1.0f}, pos) *
-                            glm::scale(glm::mat4{1.0f}, glm::vec3{scale, scale, scale}));
-
         // the bottom right corner
         pos = m_gameBoard.position(0, m_gameBoard.widthInTiles()-1);
         pos.y -= m_gameBoard.blockSize();
         pos.x += m_gameBoard.blockSize();
-        addModelMatrixToObj(m_randomNumbers, objs, refs, nullptr, 0,
-                            glm::translate(glm::mat4{1.0f}, pos) *
-                            glm::scale(glm::mat4{1.0f}, glm::vec3{scale, scale, scale}));
-
-        pos.y -= m_gameBoard.blockSize();
-        addModelMatrixToObj(m_randomNumbers, objs, refs, nullptr, 0,
-                            glm::translate(glm::mat4{1.0f}, pos) *
-                            glm::scale(glm::mat4{1.0f}, glm::vec3{scale, scale, scale}));
-
-        pos.x += m_gameBoard.blockSize();
-        addModelMatrixToObj(m_randomNumbers, objs, refs, nullptr, 0,
-                            glm::translate(glm::mat4{1.0f}, pos) *
-                            glm::scale(glm::mat4{1.0f}, glm::vec3{scale, scale, scale}));
-
-        pos.y += m_gameBoard.blockSize();
         addModelMatrixToObj(m_randomNumbers, objs, refs, nullptr, 0,
                             glm::translate(glm::mat4{1.0f}, pos) *
                             glm::scale(glm::mat4{1.0f}, glm::vec3{scale, scale, scale}));
@@ -278,21 +223,6 @@ bool RotatablePassage::updateStaticDrawObjects(DrawObjectTable &objs, TextureMap
                             glm::translate(glm::mat4{1.0f}, pos) *
                             glm::scale(glm::mat4{1.0f}, glm::vec3{scale, scale, scale}));
 
-        pos.y += m_gameBoard.blockSize();
-        addModelMatrixToObj(m_randomNumbers, objs, refs, nullptr, 0,
-                            glm::translate(glm::mat4{1.0f}, pos) *
-                            glm::scale(glm::mat4{1.0f}, glm::vec3{scale, scale, scale}));
-
-        pos.x += m_gameBoard.blockSize();
-        addModelMatrixToObj(m_randomNumbers, objs, refs, nullptr, 0,
-                            glm::translate(glm::mat4{1.0f}, pos) *
-                            glm::scale(glm::mat4{1.0f}, glm::vec3{scale, scale, scale}));
-
-        pos.y -= m_gameBoard.blockSize();
-        addModelMatrixToObj(m_randomNumbers, objs, refs, nullptr, 0,
-                            glm::translate(glm::mat4{1.0f}, pos) *
-                            glm::scale(glm::mat4{1.0f}, glm::vec3{scale, scale, scale}));
-
         // the top left corner
         pos = m_gameBoard.position(m_gameBoard.heightInTiles() - 1, 0);
         pos.y += m_gameBoard.blockSize();
@@ -301,21 +231,18 @@ bool RotatablePassage::updateStaticDrawObjects(DrawObjectTable &objs, TextureMap
                             glm::translate(glm::mat4{1.0f}, pos) *
                             glm::scale(glm::mat4{1.0f}, glm::vec3{scale, scale, scale}));
 
-        pos.y += m_gameBoard.blockSize();
-        addModelMatrixToObj(m_randomNumbers, objs, refs, nullptr, 0,
-                            glm::translate(glm::mat4{1.0f}, pos) *
-                            glm::scale(glm::mat4{1.0f}, glm::vec3{scale, scale, scale}));
 
-        pos.x -= m_gameBoard.blockSize();
+        // the hole
+        std::vector<std::string> holeModels;
+        if (!m_holeModel.empty()) {
+            holeModels.push_back(m_holeModel);
+        }
+        refs = addObjs<getQuad>(m_gameRequester, objs, textures, holeModels,
+                std::vector<std::string>{m_holeTexture});
+        pos = m_gameBoard.position(m_endRow, m_endCol);
         addModelMatrixToObj(m_randomNumbers, objs, refs, nullptr, 0,
-                            glm::translate(glm::mat4{1.0f}, pos) *
-                            glm::scale(glm::mat4{1.0f}, glm::vec3{scale, scale, scale}));
-
-        pos.y -= m_gameBoard.blockSize();
-        addModelMatrixToObj(m_randomNumbers, objs, refs, nullptr, 0,
-                            glm::translate(glm::mat4{1.0f}, pos) *
-                            glm::scale(glm::mat4{1.0f}, glm::vec3{scale, scale, scale}));
-
+                glm::translate(glm::mat4{1.0f}, pos) *
+                glm::scale(glm::mat4{1.0f}, glm::vec3{scale/2, scale/2, scale/2}));
         return true;
     }
 
@@ -330,7 +257,7 @@ bool RotatablePassage::updateDynamicDrawObjects(DrawObjectTable &objs, TextureMa
     if (objs.empty()) {
         for (auto &component : m_components) {
             Component::ComponentType type = component->type();
-            auto refs = addObjs(m_gameRequester, objs, textures, m_componentModels[type],
+            auto refs = addObjs<getCube>(m_gameRequester, objs, textures, m_componentModels[type],
                                 m_componentTextures[type]);
             component->setDynObjReferences(refs);
 

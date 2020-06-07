@@ -230,41 +230,6 @@ std::pair<bool, bool> GameBoard::checkforNextWall(Component::CellWall wall1, Com
     }
 }
 
-std::vector<size_t> addObjs(
-        std::shared_ptr<GameRequester> const &gameRequester,
-        DrawObjectTable &objs,
-        TextureMap &textures,
-        std::vector<std::string> const &models,
-        std::vector<std::string> const &textureNames)
-{
-    std::vector<size_t> ret;
-    std::vector<std::pair<std::vector<Vertex>, std::vector<uint32_t>>> v;
-    if (models.empty()) {
-        v.resize(1);
-        getCube(v[0].first, v[0].second);
-    } else {
-        v.resize(models.size());
-        for (size_t i = 0; i < models.size(); i++) {
-            loadModel(gameRequester->getAssetStream(models[i]), v[i]);
-        }
-    }
-
-    for (size_t i = 0; i < std::max(v.size(), textureNames.size()); i++) {
-        auto obj = std::make_shared<DrawObject>();
-        obj->vertices = v[i%v.size()].first;
-        obj->indices = v[i%v.size()].second;
-        obj->texture = std::make_shared<TextureDescriptionPath>(gameRequester,
-                                                                textureNames[i%textureNames.size()]);
-        if (i < textureNames.size()) {
-            textures.insert(std::make_pair(obj->texture, std::shared_ptr<TextureData>()));
-        }
-        ret.push_back(objs.size());
-        objs.emplace_back(obj, std::shared_ptr<DrawObjectData>());
-    }
-
-    return std::move(ret);
-}
-
 size_t chooseObj(
         Random &randomNumbers,
         std::shared_ptr<Component> const &component,

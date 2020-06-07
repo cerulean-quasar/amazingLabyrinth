@@ -439,17 +439,17 @@ bool MovablePassage::updateStaticDrawObjects(DrawObjectTable &objs, TextureMap &
     objs.push_back(std::make_pair(objEndOffBoard, std::shared_ptr<DrawObjectData>()));
 
     // the start: closed corner type
-    auto objRefsStartCorner = addObjs(m_gameRequester, objs, textures,
+    auto objRefsStartCorner = addObjs<getCube>(m_gameRequester, objs, textures,
             m_componentModels[Component::ComponentType::closedCorner],
             m_componentTextures[Component::ComponentType::closedCorner]);
 
     // the start: closed bottom type
-    auto objRefsStartSide = addObjs(m_gameRequester, objs, textures,
+    auto objRefsStartSide = addObjs<getCube>(m_gameRequester, objs, textures,
             m_componentModels[Component::ComponentType::closedBottom],
             m_componentTextures[Component::ComponentType::closedBottom]);
 
     // the start: open type
-    auto objRefsStartCenter = addObjs(m_gameRequester, objs, textures,
+    auto objRefsStartCenter = addObjs<getCube>(m_gameRequester, objs, textures,
             m_componentModels[Component::ComponentType::open],
             m_componentTextures[Component::ComponentType::open]);
 
@@ -487,7 +487,7 @@ bool MovablePassage::updateStaticDrawObjects(DrawObjectTable &objs, TextureMap &
     }
 
     // fill in the bottom and sides with rocks so that no bg color shows.
-    auto objRefsRock = addObjs(m_gameRequester, objs, textures,
+    auto objRefsRock = addObjs<getCube>(m_gameRequester, objs, textures,
             m_componentModels[Component::ComponentType::noMovementRock],
             m_componentTextures[Component::ComponentType::noMovementRock]);
 
@@ -640,14 +640,14 @@ bool MovablePassage::updateDynamicDrawObjects(DrawObjectTable &objs, TextureMap 
                 // These components are handled as static draw objects or we have none of them
                 continue;
             }
-            auto refs = addObjs(m_gameRequester, objs, textures, m_componentModels[component->type()],
+            auto refs = addObjs<getCube>(m_gameRequester, objs, textures, m_componentModels[component->type()],
                     m_componentTextures[component->type()]);
             component->setDynObjReferences(refs);
 
             // when components are locked into place and cannot be moved, use these objs.
             // don't do this for the rocks, they are always colored the same way.
             if (component->type() != Component::ComponentType::noMovementRock) {
-                refs = addObjs(m_gameRequester, objs, textures, m_componentModels[component->type()],
+                refs = addObjs<getCube>(m_gameRequester, objs, textures, m_componentModels[component->type()],
                                texturesLockedIntoPlace);
                 component->setDynObjReferencesLockedComponent(refs);
             }

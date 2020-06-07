@@ -74,6 +74,15 @@ public:
     }
 
     // this function can be called at any time before the level is started.
+    void initSetHoleInfo(
+            std::string const &holeModel,
+            std::string const &holeTexture)
+    {
+        m_holeModel = holeModel;
+        m_holeTexture = holeTexture;
+    }
+
+    // this function can be called at any time before the level is started.
     void initSetGameBoardInfo(
             std::string const &straightModel,
             std::string const &straightTexture,
@@ -146,6 +155,9 @@ private:
     std::string m_ballModel;
     std::string m_ballTextureName;
     size_t m_objsReferenceBall;
+
+    std::string m_holeModel;
+    std::string m_holeTexture;
 
     std::array<std::vector<std::string>, Component::ComponentType::maxComponentType + 1> m_componentModels;
     std::array<std::vector<std::string>, Component::ComponentType::maxComponentType + 1> m_componentTextures;

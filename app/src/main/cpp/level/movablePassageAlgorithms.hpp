@@ -154,18 +154,24 @@ public:
 
         glm::vec3 nextPos = position + velocity * timediff;
 
-        if (fabs(nextPos.x) > fabs(nextPos.y)) {
-            nextPos.y = 0.0f;
+        if (fabs(nextPos.x - position.x) > fabs(nextPos.y - position.y)) {
             auto ret = moveBallCorridor(nextPos.x, velocity.x,
                                         CellWall::wallLeft, -m_componentSize/2,
                                         CellWall::wallRight, m_componentSize/2);
+            if (fabs(nextPos.x) > ballRadius/4) {
+                nextPos.y = 0.0f;
+                velocity.y = 0.0f;
+            }
             position = nextPos;
             return ret;
         } else {
-            nextPos.x = 0.0f;
             auto ret = moveBallCorridor(nextPos.y, velocity.y,
                                         CellWall::wallDown, -m_componentSize/2,
                                         CellWall::wallUp, m_componentSize/2);
+            if (fabs(nextPos.y) > ballRadius/4) {
+                nextPos.x = 0.0f;
+                velocity.x = 0.0f;
+            }
             position = nextPos;
             return ret;
         }
@@ -337,7 +343,9 @@ public:
                         glm::vec3 nextPos = position + velocity * timediff;
                         if (nextPos.y > 0.0f || position.y > 0.0f) {
                             position.y = 0.0f;
-                            velocity.y = 0.0f;
+                            if (velocity.y > 0.0f) {
+                                velocity.y = 0.0f;
+                            }
                         }
 
                         return moveBallInJunction(position, timediff, velocity, ballRadius, checkForNextWall);
@@ -365,11 +373,15 @@ public:
                         glm::vec3 nextPos = position + velocity * timediff;
                         if (nextPos.y > 0.0f || position.y > 0.0f) {
                             position.y = 0.0f;
-                            velocity.y = 0.0f;
+                            if (velocity.y > 0.0f) {
+                                velocity.y = 0.0f;
+                            }
                         }
                         if (nextPos.x > 0.0f || position.x > 0.0f) {
                             position.x = 0.0f;
-                            velocity.x = 0.0f;
+                            if (velocity.x > 0.0f) {
+                                velocity.x = 0.0f;
+                            }
                         }
 
                         return moveBallInJunction(position, timediff, velocity, ballRadius, checkForNextWall);
@@ -386,7 +398,9 @@ public:
                         glm::vec3 nextPos = position + velocity * timediff;
                         if (nextPos.y > 0.0f || position.y > 0.0f) {
                             position.y = 0.0f;
-                            velocity.y = 0.0f;
+                            if (velocity.y > 0.0f) {
+                                velocity.y = 0.0f;
+                            }
                         }
 
                         position.x = 0.0f;
@@ -738,12 +752,41 @@ private:
     }
 };
 
+template <void (*getModel)(std::vector<Vertex> &vertices, std::vector<uint32_t> &indices)>
 std::vector<size_t> addObjs(
-        std::shared_ptr<GameRequester> const &requester,
+        std::shared_ptr<GameRequester> const &gameRequester,
         DrawObjectTable &objs,
         TextureMap &textures,
-        std::vector<std::string> const &model,
-        std::vector<std::string> const &textureNames);
+        std::vector<std::string> const &models,
+        std::vector<std::string> const &textureNames)
+{
+    std::vector<size_t> ret;
+    std::vector<std::pair<std::vector<Vertex>, std::vector<uint32_t>>> v;
+    if (models.empty()) {
+        v.resize(1);
+        getModel(v[0].first, v[0].second);
+    } else {
+        v.resize(models.size());
+        for (size_t i = 0; i < models.size(); i++) {
+            loadModel(gameRequester->getAssetStream(models[i]), v[i]);
+        }
+    }
+
+    for (size_t i = 0; i < std::max(v.size(), textureNames.size()); i++) {
+        auto obj = std::make_shared<DrawObject>();
+        obj->vertices = v[i%v.size()].first;
+        obj->indices = v[i%v.size()].second;
+        obj->texture = std::make_shared<TextureDescriptionPath>(gameRequester,
+                                                                textureNames[i%textureNames.size()]);
+        if (i < textureNames.size()) {
+            textures.insert(std::make_pair(obj->texture, std::shared_ptr<TextureData>()));
+        }
+        ret.push_back(objs.size());
+        objs.emplace_back(obj, std::shared_ptr<DrawObjectData>());
+    }
+
+    return std::move(ret);
+}
 
 size_t chooseObj(
         Random &randomNumbers,
