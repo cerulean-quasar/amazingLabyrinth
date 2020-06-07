@@ -110,13 +110,14 @@ bool LevelSequence::updateData(bool alwaysUpdateDynObjs) {
     bool drawingNecessary = false;
 
     if (m_level->isFinished() || m_levelFinisher->isUnveiling()) {
+        auto proj = getPerspectiveMatrixForLevel(m_surfaceWidth, m_surfaceHeight);
         if (m_levelFinisher->isUnveiling()) {
             if (m_levelFinisher->isDone()) {
                 m_levelFinisherObjsData.clear();
                 m_texturesLevelFinisher.clear();
                 float x, y;
                 m_level->getLevelFinisherCenter(x, y);
-                m_levelFinisher = m_levelGroupFcns.getFinisherFcn(*m_levelTracker, x, y, m_proj, m_view);
+                m_levelFinisher = m_levelGroupFcns.getFinisherFcn(*m_levelTracker, x, y, proj, m_view);
                 m_levelStarter->start();
                 return false;
             }
@@ -126,7 +127,6 @@ bool LevelSequence::updateData(bool alwaysUpdateDynObjs) {
                 m_levelTracker->gotoNextLevel();
                 m_levelGroupFcns = m_levelTracker->getLevelGroupFcns();
 
-                auto proj = getPerspectiveMatrixForLevel(m_surfaceWidth, m_surfaceHeight);
                 m_levelStarter = m_levelGroupFcns.getStarterFcn(*m_levelTracker, proj, m_view);
                 initializeLevelData(m_levelStarter, m_levelStarterStaticObjsData,
                                     m_levelStarterDynObjsData, m_texturesLevelStarter);
