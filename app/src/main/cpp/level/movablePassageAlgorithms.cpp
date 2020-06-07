@@ -236,8 +236,7 @@ size_t chooseObj(
         size_t placementIndex)
 {
     std::vector<size_t> refs;
-    if (component->placement(placementIndex).lockedIntoPlace() ||
-        component->placement(placementIndex).prev().first != nullptr) {
+    if (!component->placement(placementIndex).movementAllowed()) {
         refs = component->dynObjReferencesLockedComponent();
     }
     if (refs.size() == 0) {
@@ -250,6 +249,7 @@ size_t chooseObj(
             return Component::Placement::m_invalidObjReference;
         case 1:
             i = 0;
+            break;
         default:
             i = randomNumbers.getUInt(0, refs.size() - 1);
     }
@@ -283,4 +283,51 @@ size_t addModelMatrixToObj(
         component->placement(placementIndex).setDynObjReference(refs[i]);
     }
     return refs[i];
+}
+
+void blockUnblockPlacements(
+        std::shared_ptr<Component> const &oldComponent,
+        size_t oldPlacementIndex,
+        std::shared_ptr<Component> const &newComponent,
+        size_t newPlacementIndex)
+{
+    Component::Placement &oldPlacement = oldComponent->placement(oldPlacementIndex);
+    Component::Placement &newPlacement = newComponent->placement(newPlacementIndex);
+    if (newPlacement.next().first != nullptr) {
+        if (newPlacement.next().first == oldComponent &&
+                newPlacement.next().second == oldPlacementIndex) {
+            // We are going backwards.  Unblock block that we were at and move on.
+            oldPlacement.prev() = std::make_pair(nullptr, 0);
+            newPlacement.next() = std::make_pair(nullptr, 0);
+
+            // remove the obj reference so that the obj reference for the locked placement
+            // can be added.
+            oldPlacement.setDynObjReference(Component::Placement::m_invalidObjReference);
+        } else {
+            // We encountered a loop.  Unblock the entire loop
+            std::shared_ptr<Component> nextComponent = newComponent;
+            size_t index = newPlacementIndex;
+            std::shared_ptr<Component> loopComponent = oldComponent;
+            size_t loopIndex = oldPlacementIndex;
+            while (loopComponent != nullptr &&
+                   (loopComponent != nextComponent || loopIndex != index))
+            {
+                auto tmp = loopComponent->placement(loopIndex).prev();
+                auto &loopPlacement = loopComponent->placement(loopIndex);
+                loopPlacement.prev() = std::make_pair(nullptr, 0);
+                loopPlacement.next() = std::make_pair(nullptr, 0);
+                loopPlacement.setDynObjReference(Component::Placement::m_invalidObjReference);
+                loopComponent = tmp.first;
+                loopIndex = tmp.second;
+            }
+            loopComponent->placement(loopIndex).next() = std::make_pair(nullptr, 0);
+        }
+    } else {
+        // the ball is entering a new cell that is not in its path yet.
+        newPlacement.prev() = std::make_pair(oldComponent, oldPlacementIndex);
+        newPlacement.setDynObjReference(Component::Placement::m_invalidObjReference);
+
+        oldPlacement.next() = std::make_pair(newComponent, newPlacementIndex);
+    }
+
 }

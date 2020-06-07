@@ -387,14 +387,19 @@ LevelGroup LevelTracker::getLevelGroupMouse(
                 level->initSetGameBoardInfo(
                         "models/gopher/straight.modelcbor",
                         "textures/rollerBee/wallFlower1.png",
+                        "textures/rollerBee/wallFlower4.png",
                         "models/gopher/tjunction.modelcbor",
                         "textures/rollerBee/wallFlower2.png",
+                        "textures/rollerBee/wallFlower4.png",
                         "models/gopher/crossjunction.modelcbor",
                         "textures/rollerBee/wallFlower3.png",
+                        "textures/rollerBee/wallFlower4.png",
                         "models/gopher/turn.modelcbor",
+                        "textures/rollerBee/wallFlower1.png",
                         "textures/rollerBee/wallFlower4.png",
                         "models/movablePassage/deadEnd.modelcbor",
-                        "textures/rollerBee/wallFlower1.png",
+                        "textures/rollerBee/wallFlower2.png",
+                        "textures/rollerBee/wallFlower4.png",
                         textures);
                 level->initSetGameBoard(8, GeneratedMazeBoard::Mode::DFS);
 

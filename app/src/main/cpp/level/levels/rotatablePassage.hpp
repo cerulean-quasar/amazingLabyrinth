@@ -86,30 +86,40 @@ public:
     void initSetGameBoardInfo(
             std::string const &straightModel,
             std::string const &straightTexture,
+            std::string const &straightTextureLockedInPlace,
             std::string const &tjunctionModel,
             std::string const &tjunctionTexture,
+            std::string const &tjunctionTextureLockedInPlace,
             std::string const &crossjunctionModel,
             std::string const &crossjunctionTexture,
+            std::string const &crossjunctionTextureLockedInPlace,
             std::string const &turnModel,
             std::string const &turnTexture,
+            std::string const &turnTextureLockedInPlace,
             std::string const &deadEndModel,
             std::string const &deadEndTexture,
+            std::string const &deadEndTextureLockedInPlace,
             std::vector<std::string> const &borderTextures)
     {
         m_componentModels[Component::ComponentType::straight].push_back(straightModel);
         m_componentTextures[Component::ComponentType::straight].push_back(straightTexture);
+        m_componentTexturesLockedInPlace[Component::ComponentType::straight].push_back(straightTextureLockedInPlace);
 
         m_componentModels[Component::ComponentType::tjunction].push_back(tjunctionModel);
         m_componentTextures[Component::ComponentType::tjunction].push_back(tjunctionTexture);
+        m_componentTexturesLockedInPlace[Component::ComponentType::tjunction].push_back(tjunctionTextureLockedInPlace);
 
         m_componentModels[Component::ComponentType::crossjunction].push_back(crossjunctionModel);
         m_componentTextures[Component::ComponentType::crossjunction].push_back(crossjunctionTexture);
+        m_componentTexturesLockedInPlace[Component::ComponentType::crossjunction].push_back(crossjunctionTextureLockedInPlace);
 
         m_componentModels[Component::ComponentType::turn].push_back(turnModel);
         m_componentTextures[Component::ComponentType::turn].push_back(turnTexture);
+        m_componentTexturesLockedInPlace[Component::ComponentType::turn].push_back(turnTextureLockedInPlace);
 
         m_componentModels[Component::ComponentType::deadEnd].push_back(deadEndModel);
         m_componentTextures[Component::ComponentType::deadEnd].push_back(deadEndTexture);
+        m_componentTexturesLockedInPlace[Component::ComponentType::deadEnd].push_back(deadEndTextureLockedInPlace);
 
         m_borderTextures = borderTextures;
     }
@@ -161,6 +171,7 @@ private:
 
     std::array<std::vector<std::string>, Component::ComponentType::maxComponentType + 1> m_componentModels;
     std::array<std::vector<std::string>, Component::ComponentType::maxComponentType + 1> m_componentTextures;
+    std::array<std::vector<std::string>, Component::ComponentType::maxComponentType + 1> m_componentTexturesLockedInPlace;
 
     std::vector<std::string> m_borderTextures;
 };

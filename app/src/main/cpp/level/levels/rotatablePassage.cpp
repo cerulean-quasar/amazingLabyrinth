@@ -158,9 +158,15 @@ bool RotatablePassage::updateData() {
         return true;
     }
 
+    blockUnblockPlacements(block.component(), block.placementIndex(),
+            nextBlock.component(), nextBlock.placementIndex());
+
     m_ball.position = position;
     updateRotation(timeDiffTotal);
-    return drawingNecessary();
+
+    // always redraw if we got to this point because we changed the path that the ball was on
+    // and thus changed the textures.  We need to redraw to have the effects take place.
+    return true;
 }
 
 bool RotatablePassage::updateStaticDrawObjects(DrawObjectTable &objs, TextureMap &textures) {
@@ -261,16 +267,25 @@ bool RotatablePassage::updateDynamicDrawObjects(DrawObjectTable &objs, TextureMa
                                 m_componentTextures[type]);
             component->setDynObjReferences(refs);
 
+            auto refsLockedInPlace = addObjs<getCube>(m_gameRequester, objs, textures,
+                    m_componentModels[type], m_componentTexturesLockedInPlace[type]);
+            component->setDynObjReferencesLockedComponent(refsLockedInPlace);
+
             size_t i = 0;
             for (auto placementIt = component->placementsBegin();
                  placementIt != component->placementsEnd();
-                 placementIt++, i++) {
+                 placementIt++, i++)
+            {
                 auto pos = m_gameBoard.position(placementIt->row(), placementIt->col());
-                addModelMatrixToObj(m_randomNumbers, objs, refs, component, i,
-                                    glm::translate(glm::mat4{1.0f}, pos) *
-                                    glm::rotate(glm::mat4{1.0f}, placementIt->rotationAngle(),
-                                            glm::vec3{0.0f, 0.0f, 1.0f}) *
-                                    glm::scale(glm::mat4{1.0f}, glm::vec3{scale, scale, scale}));
+                auto modelMatrix = glm::translate(glm::mat4{1.0f}, pos) *
+                                   glm::rotate(glm::mat4{1.0f}, placementIt->rotationAngle(),
+                                               glm::vec3{0.0f, 0.0f, 1.0f}) *
+                                   glm::scale(glm::mat4{1.0f}, glm::vec3{scale, scale, scale});
+                if (placementIt->movementAllowed()) {
+                    addModelMatrixToObj(m_randomNumbers, objs, refs, component, i, modelMatrix);
+                } else {
+                    addModelMatrixToObj(m_randomNumbers, objs, refsLockedInPlace, component, i, modelMatrix);
+                }
             }
         }
 
@@ -291,6 +306,7 @@ bool RotatablePassage::updateDynamicDrawObjects(DrawObjectTable &objs, TextureMa
 
         texturesChanged = true;
     } else {
+        // the maze components.
         std::vector<size_t> nbrModelMatrices;
         nbrModelMatrices.resize(objs.size(), 0);
         for (auto &component : m_components) {
@@ -301,13 +317,29 @@ bool RotatablePassage::updateDynamicDrawObjects(DrawObjectTable &objs, TextureMa
                  placementIt++, i++)
             {
                 auto pos = m_gameBoard.position(placementIt->row(), placementIt->col());
-                auto ref = placementIt->dynObjReference();
-                objs[ref].first->modelMatrices[nbrModelMatrices[ref]] =
-                                    glm::translate(glm::mat4{1.0f}, pos) *
-                                    glm::rotate(glm::mat4{1.0f}, placementIt->rotationAngle(),
-                                            glm::vec3{0.0f, 0.0f, 1.0f}) *
-                                    glm::scale(glm::mat4{1.0f}, glm::vec3{scale, scale, scale});
+                size_t ref = placementIt->dynObjReference();
+                if (ref == Component::Placement::m_invalidObjReference) {
+                    ref = chooseObj(m_randomNumbers, component, i);
+                    placementIt->setDynObjReference(ref);
+                }
+                auto modelMatrix = glm::translate(glm::mat4{1.0f}, pos) *
+                                   glm::rotate(glm::mat4{1.0f}, placementIt->rotationAngle(),
+                                               glm::vec3{0.0f, 0.0f, 1.0f}) *
+                                   glm::scale(glm::mat4{1.0f}, glm::vec3{scale, scale, scale});
+                if (objs[ref].first->modelMatrices.size() <= nbrModelMatrices[ref]) {
+                    objs[ref].first->modelMatrices.push_back(modelMatrix);
+                } else {
+                    objs[ref].first->modelMatrices[nbrModelMatrices[ref]] = modelMatrix;
+                }
                 nbrModelMatrices[ref]++;
+            }
+        }
+
+        // resize model matrices to the actual number added in case some were transferred to/from
+        // the locked in place obj.
+        for (size_t i = 0; i < objs.size(); i++) {
+            if (i != m_objsReferenceBall) {
+                objs[i].first->modelMatrices.resize(nbrModelMatrices[i]);
             }
         }
 

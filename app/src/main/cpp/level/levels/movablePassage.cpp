@@ -340,53 +340,15 @@ bool MovablePassage::updateData() {
     }
 
     // the ball advanced to the next cell.  Track the ball moving into the next component.
-    Component::Placement &placement = nextBlock.component()->placement(
-            nextBlock.placementIndex());
-    Component::Placement &oldPlacement = block.component()->placement(
-            block.placementIndex());
-    if (placement.next().first != nullptr) {
-        if (placement.next().first == block.component() &&
-            placement.next().second == block.placementIndex()) {
-            // We are going backwards.  Unblock block that we were at and move on.
-            oldPlacement.prev() = std::make_pair(nullptr, 0);
-            placement.next() = std::make_pair(nullptr, 0);
-
-            // remove the obj reference so that the obj reference for the locked placement
-            // can be added.
-            oldPlacement.setDynObjReference(Component::Placement::m_invalidObjReference);
-        } else {
-            // We encountered a loop.  Unblock the entire loop
-            std::shared_ptr<Component> nextComponent = nextBlock.component();
-            size_t index = nextBlock.placementIndex();
-            std::shared_ptr<Component> loopComponent = block.component();
-            size_t loopIndex = block.placementIndex();
-            while (loopComponent != nullptr &&
-                  (loopComponent != nextComponent || loopIndex != index))
-            {
-                auto tmp = loopComponent->placement(loopIndex).prev();
-                auto &loopPlacement = loopComponent->placement(loopIndex);
-                loopPlacement.prev() = std::make_pair(nullptr, 0);
-                loopPlacement.next() = std::make_pair(nullptr, 0);
-                loopPlacement.setDynObjReference(Component::Placement::m_invalidObjReference);
-                loopComponent = tmp.first;
-                loopIndex = tmp.second;
-            }
-            loopComponent->placement(loopIndex).next() = std::make_pair(nullptr, 0);
-        }
-    } else {
-        // the ball is entering a new cell that is not in its path yet.
-        placement.prev() = std::make_pair(block.component(), block.placementIndex());
-        placement.setDynObjReference(Component::Placement::m_invalidObjReference);
-
-        oldPlacement.next() = std::make_pair(nextBlock.component(),
-                                             nextBlock.placementIndex());
-    }
-        drawingNecessary_ = true;
+    blockUnblockPlacements(block.component(), block.placementIndex(),
+            nextBlock.component(), nextBlock.placementIndex());
 
     m_ball.position = position;
     updateRotation(timeDiffTotal);
 
-    return drawingNecessary_ || drawingNecessary();
+    // always redraw if we got to this point because we changed the path that the ball was on
+    // and thus changed the textures.  We need to redraw to have the effects take place.
+    return true;
 }
 
 bool MovablePassage::updateStaticDrawObjects(DrawObjectTable &objs, TextureMap &textures) {
@@ -616,8 +578,9 @@ bool MovablePassage::updateDynamicDrawObjects(DrawObjectTable &objs, TextureMap 
                 auto obj = objs[ref].first;
                 if (nbrPlacements[ref] >= obj->modelMatrices.size()) {
                     obj->modelMatrices.push_back(modelMatrix);
+                } else {
+                    obj->modelMatrices[nbrPlacements[ref]] = modelMatrix;
                 }
-                obj->modelMatrices[nbrPlacements[ref]] = modelMatrix;
             }
             nbrPlacements[ref] ++;
         }

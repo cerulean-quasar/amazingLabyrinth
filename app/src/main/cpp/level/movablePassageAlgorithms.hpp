@@ -461,6 +461,7 @@ public:
         auto &next() { return m_next; }
         glm::vec2 movePositionSoFar() { return m_movePositionSoFar; }
         uint32_t dynObjReference() { return m_dynObjReference; }
+        bool movementAllowed() { return (!m_lockedIntoPlace) && (m_prev.first == nullptr); }
 
         /* setters */
         void setRC(uint32_t row, uint32_t col) { m_row = row; m_col = col; }
@@ -800,5 +801,11 @@ size_t addModelMatrixToObj(
         std::shared_ptr<Component> const &component,
         size_t placementIndex,
         glm::mat4 modelMatrix);
+
+void blockUnblockPlacements(
+        std::shared_ptr<Component> const &oldComponent,
+        size_t oldPlacementIndex,
+        std::shared_ptr<Component> const &newComponent,
+        size_t newPlacementIndex);
 
 #endif // AMAZING_LABYRINTH_MOVABLE_PASSAGE_ALGORITHMS_HPP
