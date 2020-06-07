@@ -375,7 +375,7 @@ LevelGroup LevelTracker::getLevelGroupMouse(
     return {
             getStarterFcn(needsStarter, std::vector<std::string>{
                     "A mouse searches\nfor a piece\nof cheese in\na hedge maze.",
-                    "Help the mouse\nby rotating the\nhedge maze so\nthat there is a\npath to the cheese."}),
+                    "Help the mouse\nby rotating the\nhedge maze so\nthat there is a\npath to\nthe cheese."}),
             GetLevelFcn([levelBundle](LevelTracker &tracker, glm::mat4 const &proj, glm::mat4 const &view) {
                 auto level = tracker.getLevel<RotatablePassage>(levelBundle, proj, view);
                 level->initSetBallInfo("models/mouse/mouse.modelcbor", "textures/levelStarter/corridor.png");
@@ -396,7 +396,7 @@ LevelGroup LevelTracker::getLevelGroupMouse(
                         "models/movablePassage/deadEnd.modelcbor",
                         "textures/rollerBee/wallFlower1.png",
                         textures);
-                level->initSetGameBoard(5, GeneratedMazeBoard::Mode::DFS);
+                level->initSetGameBoard(8, GeneratedMazeBoard::Mode::DFS);
 
                 // call after all other init functions are completed but before updateStaticDrawObjects
                 auto extraWHatZRequested = level->getAdditionalWHatZRequests();
