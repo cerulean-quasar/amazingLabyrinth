@@ -378,8 +378,8 @@ LevelGroup LevelTracker::getLevelGroupMouse(
                     "Help the mouse\nby rotating the\nhedge maze so\nthat there is a\npath to\nthe cheese."}),
             GetLevelFcn([levelBundle](LevelTracker &tracker, glm::mat4 const &proj, glm::mat4 const &view) {
                 auto level = tracker.getLevel<RotatablePassage>(levelBundle, proj, view);
-                level->initSetBallInfo("models/mouse/mouse.modelcbor", "textures/levelStarter/corridor.png");
-                level->initSetHoleInfo("", "textures/rollerBee/hole.png");
+                level->initSetBallInfo("models/mouse/mouse.modelcbor", "textures/mouse/mouse.png");
+                level->initSetHoleInfo("models/mouse/cheese.modelcbor", "textures/mouse/cheese.png");
                 std::vector<std::string> textures{"textures/rollerBee/wallFlower1.png",
                                                   "textures/rollerBee/wallFlower2.png",
                                                   "textures/rollerBee/wallFlower3.png",
