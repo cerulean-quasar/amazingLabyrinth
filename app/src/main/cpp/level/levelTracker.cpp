@@ -294,7 +294,7 @@ LevelGroup LevelTracker::getLevelGroupGopher(
     return {
             getStarterFcn(needsStarter, std::vector<std::string>{
                     "Underground,\na gopher\nsearches for\na juicy beet.",
-                    "Help the gopher\nbuild a tunnel\nto the beet."}),
+                    "Move the tunnel\npieces and turn\nthem so that the\ngopher can\nreach the beet."}),
             GetLevelFcn([levelBundle](LevelTracker &tracker, glm::mat4 const &proj, glm::mat4 const &view) {
                 auto level = tracker.getLevel<MovablePassage>(levelBundle, proj, view);
                 level->initSetBallInfo("models/gopher/gopher.modelcbor", "textures/gopher/gopher.png");
@@ -374,8 +374,8 @@ LevelGroup LevelTracker::getLevelGroupMouse(
 {
     return {
             getStarterFcn(needsStarter, std::vector<std::string>{
-                    "A mouse searches\nfor a piece\nof cheese in\na hedge maze.",
-                    "Help the mouse\nby rotating the\nhedge maze so\nthat there is a\npath to\nthe cheese."}),
+                    "A mouse\nsearches for a\npiece of cheese\nin a hedge maze.",
+                    "Help the mouse\nby turning the\nhedge maze\npieces so that\nthere is a path\nto the cheese."}),
             GetLevelFcn([levelBundle](LevelTracker &tracker, glm::mat4 const &proj, glm::mat4 const &view) {
                 auto level = tracker.getLevel<RotatablePassage>(levelBundle, proj, view);
                 level->initSetBallInfo("models/mouse/mouse.modelcbor", "textures/mouse/mouse.png");
