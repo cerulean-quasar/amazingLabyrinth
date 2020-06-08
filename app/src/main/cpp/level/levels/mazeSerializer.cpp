@@ -74,23 +74,29 @@ uint8_t encodeCell(bool top, bool right, bool bottom, bool left) {
 
 std::vector<uint8_t> Maze::getSerializedMazeWallVector() {
     std::vector<uint8_t> mazeWallVector;
-    size_t vectorSize = (numberRows * numberColumns)/2;
-    bool odd = (numberRows * numberColumns) % 2 == 1;
+    size_t vectorSize = (m_mazeBoard.numberRows() * m_mazeBoard.numberColumns())/2;
+    bool odd = (m_mazeBoard.numberRows() * m_mazeBoard.numberColumns()) % 2 == 1;
     vectorSize += odd ? 1 : 0;
 
     mazeWallVector.reserve(vectorSize);
     uint8_t high = 0;
     uint8_t low = 0;
     bool upper = true;
-    for (auto const &row : cells) {
-        for (auto const &cell : row) {
+    for (size_t i = 0; i < m_mazeBoard.numberRows(); i++) {
+        for (size_t j = 0; j < m_mazeBoard.numberColumns(); j++) {
             if (upper) {
-                high = encodeCell(cell.mTopWallExists, cell.mRightWallExists,
-                                  cell.mBottomWallExists, cell.mLeftWallExists);
+                high = encodeCell(
+                        m_mazeBoard.wallExists(i, j, GeneratedMazeBoard::WallType::topWall),
+                        m_mazeBoard.wallExists(i, j, GeneratedMazeBoard::WallType::rightWall),
+                        m_mazeBoard.wallExists(i, j, GeneratedMazeBoard::WallType::bottomWall),
+                        m_mazeBoard.wallExists(i, j, GeneratedMazeBoard::WallType::leftWall));
                 upper = false;
             } else {
-                low = encodeCell(cell.mTopWallExists, cell.mRightWallExists,
-                                 cell.mBottomWallExists, cell.mLeftWallExists);
+                low = encodeCell(
+                        m_mazeBoard.wallExists(i, j, GeneratedMazeBoard::WallType::topWall),
+                        m_mazeBoard.wallExists(i, j, GeneratedMazeBoard::WallType::rightWall),
+                        m_mazeBoard.wallExists(i, j, GeneratedMazeBoard::WallType::bottomWall),
+                        m_mazeBoard.wallExists(i, j, GeneratedMazeBoard::WallType::leftWall));
                 mazeWallVector.push_back((high << 0x4U) | low);
                 upper = true;
             }
@@ -102,11 +108,11 @@ std::vector<uint8_t> Maze::getSerializedMazeWallVector() {
     return mazeWallVector;
 }
 
-void initializeCell(uint8_t nibble, bool &top, bool &right, bool &bottom, bool &left) {
-    top = (nibble & 0x8U) != 0;
-    right = (nibble & 0x4U) != 0;
-    bottom = (nibble & 0x2U) != 0;
-    left = (nibble & 0x1U) != 0;
+void Maze::initializeCell(uint8_t nibble, size_t row, size_t col) {
+    m_mazeBoard.setWall(row, col, GeneratedMazeBoard::WallType::topWall, (nibble & 0x8U) != 0);
+    m_mazeBoard.setWall(row, col, GeneratedMazeBoard::WallType::rightWall, (nibble & 0x4U) != 0);
+    m_mazeBoard.setWall(row, col, GeneratedMazeBoard::WallType::bottomWall, (nibble & 0x2U) != 0);
+    m_mazeBoard.setWall(row, col, GeneratedMazeBoard::WallType::leftWall, (nibble & 0x1U) != 0);
 }
 
 void incrementRowCol(size_t nbrCols, size_t &i, size_t &j) {
@@ -120,19 +126,13 @@ void incrementRowCol(size_t nbrCols, size_t &i, size_t &j) {
 void Maze::generateCellsFromMazeVector(std::vector<uint8_t> const &mazeVector) {
     size_t  i = 0;
     size_t  j = 0;
+    size_t numberRows = m_mazeBoard.numberRows();
+    size_t numberColumns = m_mazeBoard.numberColumns();
     for (auto word : mazeVector) {
-        initializeCell(word >> 0x4U,
-                cells[i][j].mTopWallExists,
-                cells[i][j].mRightWallExists,
-                cells[i][j].mBottomWallExists,
-                cells[i][j].mLeftWallExists);
+        initializeCell(word >> 0x4U, i, j);
         incrementRowCol(numberColumns, i, j);
         if (i < numberRows && j < numberColumns) {
-            initializeCell(word & 0xFU,
-                           cells[i][j].mTopWallExists,
-                           cells[i][j].mRightWallExists,
-                           cells[i][j].mBottomWallExists,
-                           cells[i][j].mLeftWallExists);
+            initializeCell(word & 0xFU, i, j);
             incrementRowCol(numberColumns, i, j);
         } else {
             break;
@@ -142,12 +142,12 @@ void Maze::generateCellsFromMazeVector(std::vector<uint8_t> const &mazeVector) {
 
 Level::SaveLevelDataFcn Maze::getSaveLevelDataFcn() {
     auto sd = std::make_shared<MazeSaveData>(
-            numberRows,
+            m_mazeBoard.numberRows(),
             m_ballCell.row,
             m_ballCell.col,
             Point<float>{m_ball.position.x, m_ball.position.y},
-            m_rowEnd,
-            m_colEnd,
+            m_mazeBoard.rowEnd(),
+            m_mazeBoard.colEnd(),
             std::vector<uint32_t>(m_wallTextureIndices),
             getSerializedMazeWallVector());
     return {[sd](std::shared_ptr<GameSaveData> gsd) -> std::vector<uint8_t> {

@@ -45,16 +45,17 @@ Level::SaveLevelDataFcn MazeAvoid::getSaveLevelDataFcn() {
     }
 
     auto sd = std::make_shared<MazeAvoidSaveData>(
-            numberRows,
+            m_mazeBoard.numberRows(),
             m_ballCell.row,
             m_ballCell.col,
             Point<float>{m_ball.position.x, m_ball.position.y},
-            m_rowEnd,
-            m_colEnd,
+            m_mazeBoard.rowEnd(),
+            m_mazeBoard.colEnd(),
             std::vector<uint32_t>{m_wallTextureIndices},
             getSerializedMazeWallVector(),
             std::move(avoidObjLocations),
-            Point<uint32_t>{m_ballStartR, m_ballStartC});
+            Point<uint32_t>{static_cast<uint32_t>(m_mazeBoard.rowStart()),
+                            static_cast<uint32_t>(m_mazeBoard.colStart())});
 
     return {[sd{move(sd)}](std::shared_ptr<GameSaveData> gsd) -> std::vector<uint8_t> {
         return saveGameData(gsd, sd);

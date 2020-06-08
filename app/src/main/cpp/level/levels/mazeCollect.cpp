@@ -61,17 +61,17 @@ bool MazeCollect::checkFinishCondition(float timeDiff) {
 
     // we finished the level if all the items are collected and the ball is in proximity to the hole.
     return nbrItemsCollected == m_collectionObjectLocations.size() &&
-           ballInProximity(getColumnCenterPosition(m_colEnd), getRowCenterPosition(m_rowEnd));
+           ballInProximity(getColumnCenterPosition(m_mazeBoard.colEnd()), getRowCenterPosition(m_mazeBoard.rowEnd()));
 }
 
 void MazeCollect::generateCollectBallModelMatrices() {
     // generate the items to collect
     std::vector<std::pair<uint32_t, uint32_t>> itemsRC;
-    itemsRC.emplace_back(m_rowEnd, m_colEnd);
+    itemsRC.emplace_back(m_mazeBoard.rowEnd(), m_mazeBoard.colEnd());
     itemsRC.emplace_back(m_ballCell.row, m_ballCell.col);
     while (m_collectionObjectLocations.size() < nbrItemsToCollect) {
-        uint32_t row = random.getUInt(0, numberRows-1);
-        uint32_t col = random.getUInt(0, numberColumns-1);
+        uint32_t row = random.getUInt(0, m_mazeBoard.numberRows()-1);
+        uint32_t col = random.getUInt(0, m_mazeBoard.numberColumns()-1);
 
         // move it away from the wall by at least the ball diameter so that it can be easily
         // collected.

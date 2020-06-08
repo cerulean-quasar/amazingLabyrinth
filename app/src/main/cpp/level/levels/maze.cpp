@@ -61,9 +61,13 @@ bool Maze::updateData() {
     m_ball.velocity = getUpdatedVelocity(m_ball.acceleration, difftime);
     m_ball.position += m_ball.velocity * difftime;
 
-    auto cell = getCell(m_ballCell.row, m_ballCell.col);
+    auto cell = m_mazeBoard.getCell(m_ballCell.row, m_ballCell.col);
     float cellCenterX = getColumnCenterPosition(m_ballCell.col);
-    float cellCenterY = getRowCenterPosition(m_ballCell.row);// + scale;  // I don't know why I have to add scale here.
+    float cellCenterY = getRowCenterPosition(m_ballCell.row);
+
+    size_t numberRows = m_mazeBoard.numberRows();
+    size_t numberColumns = m_mazeBoard.numberColumns();
+
     if (cell.isEnd() && ballInProximity(cellCenterX, cellCenterY)) {
         m_finished = true;
         m_ball.position.x = cellCenterX;
@@ -132,159 +136,6 @@ bool Maze::updateData() {
     return drawingNecessary();
 }
 
-void Maze::generateDFS() {
-    std::vector<std::pair<unsigned int, unsigned int> > path;
-    unsigned int rowStart, columnStart;
-    unsigned int rowEnd, columnEnd;
-
-    // the desired distance that they are apart is the average of the number of rows and the number
-    // of columns divided by 2.
-    unsigned int desiredDistanceSquared = (numberRows+numberColumns)*(numberRows+numberColumns)/16;
-    unsigned int distanceSquared;
-    do {
-        rowStart = random.getUInt(0, numberRows-1);
-        columnStart = random.getUInt(0, numberColumns-1);
-        rowEnd = random.getUInt(0, numberRows-1);
-        columnEnd = random.getUInt(0, numberColumns-1);
-        distanceSquared = (rowEnd - rowStart)*(rowEnd - rowStart) +
-            (columnEnd - columnStart)*(columnEnd - columnStart);
-    } while (distanceSquared < desiredDistanceSquared);
-
-    cells[rowStart][columnStart].mIsStart = true;
-    cells[rowEnd][columnEnd].mIsEnd = true;
-
-    cells[rowStart][columnStart].mVisited = true;
-    path.push_back(std::make_pair(rowStart, columnStart));
-
-    while (!path.empty()) {
-        std::pair<unsigned int, unsigned int> current = path.back();
-        if (cells[current.first][current.second].isEnd()) {
-            path.pop_back();
-            continue;
-        }
-
-        std::vector<std::pair<unsigned int, unsigned int> > nextCellOptions;
-        addCellOption(current.first-1, current.second, nextCellOptions);
-        addCellOption(current.first, current.second-1, nextCellOptions);
-        addCellOption(current.first+1, current.second, nextCellOptions);
-        addCellOption(current.first, current.second+1, nextCellOptions);
-
-        if (nextCellOptions.empty()) {
-            path.pop_back();
-            continue;
-        }
-        unsigned int i = random.getUInt(0, nextCellOptions.size() - 1);
-
-        std::pair<unsigned int, unsigned int> next = nextCellOptions[i];
-
-        if (current.first == next.first) {
-            if (next.second < current.second) {
-                // the new cell is on the left of the current one.
-                cells[current.first][current.second].mLeftWallExists = false;
-                cells[next.first][next.second].mRightWallExists = false;
-            } else {
-                cells[current.first][current.second].mRightWallExists = false;
-                cells[next.first][next.second].mLeftWallExists = false;
-            }
-        } else {
-            if (next.first < current.first) {
-                // the new cell is on the top of the current one.
-                cells[current.first][current.second].mTopWallExists = false;
-                cells[next.first][next.second].mBottomWallExists = false;
-            } else {
-                cells[current.first][current.second].mBottomWallExists = false;
-                cells[next.first][next.second].mTopWallExists = false;
-            }
-        }
-
-        cells[next.first][next.second].mVisited = true;
-        path.push_back(next);
-    }
-}
-
-void Maze::generateBFS() {
-    std::list<std::pair<unsigned int, unsigned int> > path;
-    unsigned int rowStart, columnStart;
-    unsigned int rowEnd, columnEnd;
-
-    // the desired distance that they are apart is the average of the number of rows and the number
-    // of columns divided by 2.
-    unsigned int desiredDistanceSquared = (numberRows+numberColumns)*(numberRows+numberColumns)/16;
-    unsigned int distanceSquared;
-    do {
-        rowStart = random.getUInt(0, numberRows-1);
-        columnStart = random.getUInt(0, numberColumns-1);
-        rowEnd = random.getUInt(0, numberRows-1);
-        columnEnd = random.getUInt(0, numberColumns-1);
-        distanceSquared = (rowEnd - rowStart)*(rowEnd - rowStart) +
-                          (columnEnd - columnStart)*(columnEnd - columnStart);
-    } while (distanceSquared < desiredDistanceSquared);
-
-    cells[rowStart][columnStart].mIsStart = true;
-    cells[rowEnd][columnEnd].mIsEnd = true;
-
-    cells[rowStart][columnStart].mVisited = true;
-    path.push_back(std::make_pair(rowStart, columnStart));
-
-    while (!path.empty()) {
-        std::pair<unsigned int, unsigned int> current = path.front();
-        path.pop_front();
-        if (cells[current.first][current.second].isEnd()) {
-            continue;
-        }
-
-        std::vector<std::pair<unsigned int, unsigned int> > nextCellOptions;
-        addCellOption(current.first - 1, current.second, nextCellOptions);
-        addCellOption(current.first, current.second - 1, nextCellOptions);
-        addCellOption(current.first + 1, current.second, nextCellOptions);
-        addCellOption(current.first, current.second + 1, nextCellOptions);
-
-        if (nextCellOptions.empty()) {
-            continue;
-        }
-
-        for (auto const &next : nextCellOptions) {
-            if (current.first == next.first) {
-                if (next.second < current.second) {
-                    // the new cell is on the left of the current one.
-                    cells[current.first][current.second].mLeftWallExists = false;
-                    cells[next.first][next.second].mRightWallExists = false;
-                } else {
-                    cells[current.first][current.second].mRightWallExists = false;
-                    cells[next.first][next.second].mLeftWallExists = false;
-                }
-            } else {
-                if (next.first < current.first) {
-                    // the new cell is on the top of the current one.
-                    cells[current.first][current.second].mTopWallExists = false;
-                    cells[next.first][next.second].mBottomWallExists = false;
-                } else {
-                    cells[current.first][current.second].mBottomWallExists = false;
-                    cells[next.first][next.second].mTopWallExists = false;
-                }
-            }
-
-            cells[next.first][next.second].mVisited = true;
-            size_t size = path.size();
-            unsigned int i = size == 0 ? 0 : random.getUInt(0, path.size());
-            auto it = path.begin();
-            for (unsigned int j = 0; j < i; j++, it++)
-                /* do nothing */;
-            path.insert(it, next);
-        }
-    }
-}
-
-void Maze::addCellOption(unsigned int r, unsigned int c, std::vector<std::pair<unsigned int, unsigned int> > &options) {
-    if (r < numberRows && c < numberColumns && !cells[r][c].visited()) {
-        options.push_back(std::make_pair(r, c));
-    }
-}
-
-Cell const &Maze::getCell(unsigned int row, unsigned int column) {
-    return cells[row][column];
-}
-
 void Maze::loadModels() {
     std::pair<std::vector<Vertex>, std::vector<uint32_t>> v;
     loadModel(m_gameRequester->getAssetStream(MODEL_WALL), v);
@@ -302,11 +153,11 @@ void Maze::loadModelFloor() {
 }
 
 float Maze::getRowCenterPosition(unsigned int row) {
-    return m_height / (numberRows * numberBlocksPerCell+1) * (row*numberBlocksPerCell +1.5f) - m_height/2;
+    return m_height / (m_mazeBoard.numberRows() * numberBlocksPerCell+1) * (row*numberBlocksPerCell +1.5f) - m_height/2;
 }
 
 float Maze::getColumnCenterPosition(unsigned int col) {
-    return m_width / (numberColumns * numberBlocksPerCell+1) * (col*numberBlocksPerCell+1.5f) - m_width/2;
+    return m_width / (m_mazeBoard.numberColumns() * numberBlocksPerCell+1) * (col*numberBlocksPerCell+1.5f) - m_width/2;
 }
 
 float Maze::getBallZPosition() {
@@ -319,11 +170,14 @@ glm::vec3 Maze::getCellCenterPosition(unsigned int row, unsigned int col) {
                     getBallZPosition());
 }
 
-void Maze::generateMazeVector(uint32_t &rowEnd, uint32_t &colEnd, std::vector<bool> &wallsExist) {
+void Maze::generateMazeVector(std::vector<bool> &wallsExist) {
+    size_t numberRows = m_mazeBoard.numberRows();
+    size_t numberColumns = m_mazeBoard.numberColumns();
+
     wallsExist.resize((numberRows*numberBlocksPerCell+1)*(numberColumns*numberBlocksPerCell+1), false);
     for (unsigned int i = 0; i < numberRows*numberBlocksPerCell; i+=numberBlocksPerCell) {
         for (unsigned int j = 0; j < numberColumns * numberBlocksPerCell; j += numberBlocksPerCell) {
-            Cell const &cell = getCell(i / numberBlocksPerCell, j / numberBlocksPerCell);
+            Cell const &cell = m_mazeBoard.getCell(i / numberBlocksPerCell, j / numberBlocksPerCell);
             if (cell.topWallExists()) {
                 for (unsigned int k = 0; k < numberBlocksPerCell+1; k++) {
                     wallsExist[i*(numberColumns*numberBlocksPerCell+1) + j + k] = true;
@@ -334,18 +188,6 @@ void Maze::generateMazeVector(uint32_t &rowEnd, uint32_t &colEnd, std::vector<bo
                 for (unsigned int k = 0; k < numberBlocksPerCell+1; k++) {
                     wallsExist[(i+k)*(numberColumns*numberBlocksPerCell+1) + j] = true;
                 }
-            }
-
-            // the ball
-            if (cell.isStart()) {
-                m_ballCell.row = i / numberBlocksPerCell;
-                m_ballCell.col = j / numberBlocksPerCell;
-            }
-
-            // the hole
-            if (cell.isEnd()) {
-                rowEnd = i/numberBlocksPerCell;
-                colEnd = j/numberBlocksPerCell;
             }
         }
         // right border
@@ -359,6 +201,9 @@ void Maze::generateMazeVector(uint32_t &rowEnd, uint32_t &colEnd, std::vector<bo
         wallsExist[numberRows*numberBlocksPerCell*(numberColumns*numberBlocksPerCell+1) + i] = true;
     }
 
+    // the ball
+    m_ballCell.row = m_mazeBoard.rowStart();
+    m_ballCell.col = m_mazeBoard.colStart();
 }
 
 Maze::MazeWallModelMatrixGeneratorFcn Maze::getMazeWallModelMatricesGenerator() {
@@ -394,9 +239,12 @@ Maze::MazeWallModelMatrixGeneratorFcn Maze::getMazeWallModelMatricesGenerator() 
 }
 
 void Maze::generateModelMatrices(MazeWallModelMatrixGeneratorFcn &wallModelMatrixGeneratorFcn) {
+    size_t numberRows = m_mazeBoard.numberRows();
+    size_t numberColumns = m_mazeBoard.numberColumns();
+
     std::vector<bool> wallsExist;
 
-    generateMazeVector(m_rowEnd, m_colEnd, wallsExist);
+    generateMazeVector(wallsExist);
 
     // Create the model matrices.
 
@@ -413,7 +261,7 @@ void Maze::generateModelMatrices(MazeWallModelMatrixGeneratorFcn &wallModelMatri
     modelMatrixBall = trans*glm::mat4_cast(m_ball.totalRotated)*scaleBall;
 
     // the hole
-    glm::vec3 holePos = getCellCenterPosition(m_rowEnd, m_colEnd);
+    glm::vec3 holePos = getCellCenterPosition(m_mazeBoard.rowEnd(), m_mazeBoard.colEnd());
     trans = glm::translate(glm::mat4(1.0f), holePos);
     modelMatrixHole = trans*scaleBall;
 

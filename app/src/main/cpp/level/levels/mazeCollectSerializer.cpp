@@ -56,12 +56,12 @@ Level::SaveLevelDataFcn MazeCollect::getSaveLevelDataFcn() {
         previousCells.emplace_back(prevCell.first, prevCell.second);
     }
     auto sd = std::make_shared<MazeCollectSaveData>(
-        numberRows,
+        m_mazeBoard.numberRows(),
         m_ballCell.row,
         m_ballCell.col,
         Point<float>{m_ball.position.x, m_ball.position.y},
-        m_rowEnd,
-        m_colEnd,
+        m_mazeBoard.rowEnd(),
+        m_mazeBoard.colEnd(),
         std::vector<uint32_t>{m_wallTextureIndices},
         getSerializedMazeWallVector(),
         std::move(collectionObjLocations),

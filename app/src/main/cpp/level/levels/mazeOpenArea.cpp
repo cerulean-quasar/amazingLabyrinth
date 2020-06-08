@@ -35,8 +35,11 @@ bool MazeOpenArea::updateData() {
     m_ball.velocity = getUpdatedVelocity(m_ball.acceleration, timeDiff);
     m_ball.position += m_ball.velocity * timeDiff;
 
+    size_t numberRows = m_mazeBoard.numberRows();
+    size_t numberColumns = m_mazeBoard.numberColumns();
+
     float halfWallWidth = m_width/2/3/(numberColumns*numberBlocksPerCell+1);
-    auto cell = getCell(m_ballCell.row, m_ballCell.col);
+    auto cell = m_mazeBoard.getCell(m_ballCell.row, m_ballCell.col);
     if (cell.leftWallExists() && m_ball.position.x < leftWall(m_ballCell.col) + ballRadius() + halfWallWidth) {
         if (m_ball.velocity.x < 0.0f) {
             m_ball.velocity.x = 0.0f;

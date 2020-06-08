@@ -36,6 +36,7 @@
 #include "levels/mazeAvoid.hpp"
 #include "levels/fixedMaze.hpp"
 #include "levels/movablePassage.hpp"
+#include "levels/rotatablePassage.hpp"
 #include "../mathGraphics.hpp"
 
 class LevelTracker {
@@ -55,6 +56,7 @@ public:
     static char constexpr const *bunny = "bunny";
     static char constexpr const *frog = "frog";
     static char constexpr const *gopher = "gopher";
+    static char constexpr const *mouse = "mouse";
 
     void gotoNextLevel();
     static std::vector<std::string> getLevelDescriptions();
@@ -70,6 +72,7 @@ public:
     static LevelGroup getLevelGroupBunny(std::shared_ptr<MazeAvoidSaveData> const &levelBundle, bool needsStarter);
     static LevelGroup getLevelGroupFrog(std::shared_ptr<FixedMazeSaveData> const &levelBundle, bool needsStarter);
     static LevelGroup getLevelGroupGopher(std::shared_ptr<MovablePassageSaveData> const &levelBundle, bool needsStarter);
+    static LevelGroup getLevelGroupMouse(std::shared_ptr<RotatablePassageSaveData> const &levelBundle, bool needsStarter);
 
     void setLevel(std::string const &levelName) {
         size_t i = 0;

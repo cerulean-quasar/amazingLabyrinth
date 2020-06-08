@@ -83,7 +83,7 @@ LevelGroup LevelTracker::getLevelGroupPufferFish(std::shared_ptr<MazeSaveData> c
         GetLevelFcn([levelBundle](LevelTracker &tracker, glm::mat4 const &proj, glm::mat4 const &view) {
             std::shared_ptr<Maze> level;
             if (levelBundle == nullptr) {
-                Maze::CreateParameters parameters = { 10, Maze::BFS };
+                Maze::CreateParameters parameters = { 10, GeneratedMazeBoard::Mode::BFS };
                 level = tracker.getLevel<Maze>(parameters, proj, view);
             } else {
                 level = tracker.getLevel<Maze>(levelBundle, proj, view);
@@ -138,7 +138,7 @@ LevelGroup LevelTracker::getLevelGroupBee1(std::shared_ptr<MazeSaveData> const &
         GetLevelFcn([levelBundle](LevelTracker &tracker, glm::mat4 const &proj, glm::mat4 const &view) {
             std::shared_ptr<Maze> level;
             if (levelBundle == nullptr) {
-                Maze::CreateParameters parameters = { 10, Maze::DFS };
+                Maze::CreateParameters parameters = { 10, GeneratedMazeBoard::Mode::DFS };
                 level = tracker.getLevel<Maze>(parameters, proj, view);
             } else {
                 level = tracker.getLevel<Maze>(levelBundle, proj, view);
@@ -175,7 +175,7 @@ LevelGroup LevelTracker::getLevelGroupBee2(std::shared_ptr<MazeSaveData> const &
         GetLevelFcn([levelBundle](LevelTracker &tracker, glm::mat4 const &proj, glm::mat4 const &view) {
             std::shared_ptr<Maze> level;
             if (levelBundle == nullptr) {
-                Maze::CreateParameters parameters = { 15, Maze::DFS };
+                Maze::CreateParameters parameters = { 15, GeneratedMazeBoard::Mode::DFS };
                 level = tracker.getLevel<Maze>(parameters, proj, view);
             } else {
                 level = tracker.getLevel<Maze>(levelBundle, proj, view);
@@ -212,7 +212,7 @@ LevelGroup LevelTracker::getLevelGroupCat(std::shared_ptr<MazeCollectSaveData> c
         GetLevelFcn([levelBundle](LevelTracker &tracker, glm::mat4 const &proj, glm::mat4 const &view) {
             std::shared_ptr<MazeCollect> level;
             if (levelBundle == nullptr) {
-                Maze::CreateParameters parameters = { 10, Maze::BFS };
+                Maze::CreateParameters parameters = { 10, GeneratedMazeBoard::Mode::BFS };
                 level = tracker.getLevel<MazeCollect>(parameters, proj, view);
             } else {
                 level = tracker.getLevel<MazeCollect>(levelBundle, proj, view);
@@ -243,7 +243,7 @@ LevelGroup LevelTracker::getLevelGroupBunny(std::shared_ptr<MazeAvoidSaveData> c
             GetLevelFcn([levelBundle](LevelTracker &tracker, glm::mat4 const &proj, glm::mat4 const &view) {
                 std::shared_ptr<MazeAvoid> level;
                 if (levelBundle == nullptr) {
-                    Maze::CreateParameters parameters = { 10, Maze::DFS };
+                    Maze::CreateParameters parameters = { 10, GeneratedMazeBoard::Mode::DFS };
                     level = tracker.getLevel<MazeAvoid>(parameters, proj, view);
                 } else {
                     level = tracker.getLevel<MazeAvoid>(levelBundle, proj, view);
@@ -294,7 +294,7 @@ LevelGroup LevelTracker::getLevelGroupGopher(
     return {
             getStarterFcn(needsStarter, std::vector<std::string>{
                     "Underground,\na gopher\nsearches for\na juicy beet.",
-                    "Help the gopher\nbuild a tunnel\nto the beet."}),
+                    "Move the tunnel\npieces and turn\nthem so that the\ngopher can\nreach the beet."}),
             GetLevelFcn([levelBundle](LevelTracker &tracker, glm::mat4 const &proj, glm::mat4 const &view) {
                 auto level = tracker.getLevel<MovablePassage>(levelBundle, proj, view);
                 level->initSetBallInfo("models/gopher/gopher.modelcbor", "textures/gopher/gopher.png");
@@ -349,6 +349,59 @@ LevelGroup LevelTracker::getLevelGroupGopher(
                     "models/gopher/crossjunction.modelcbor", "textures/gopher/dirt.png");
                 level->initSetGameBoard(8, 8, 1, 6);
                 level->initDone();
+
+                // call after all other init functions are completed but before updateStaticDrawObjects
+                auto extraWHatZRequested = level->getAdditionalWHatZRequests();
+                for (auto const &extraZ : extraWHatZRequested) {
+                    auto extraWH = getWidthHeight(extraZ, proj, view);
+                    level->setAdditionalWH(extraWH.first, extraWH.second, extraZ);
+                }
+
+                return level;
+            }),
+            GetFinisherFcn([](LevelTracker &tracker, float centerX, float centerY, glm::mat4 const &proj, glm::mat4 const &view) {
+                auto levelFinish = tracker.getFinisher<ManyQuadCoverUpLevelFinish>(centerX, centerY, proj, view);
+                levelFinish->initAddTexture("textures/bunny/hole.png");
+                return levelFinish;
+            })
+    };
+}
+
+
+LevelGroup LevelTracker::getLevelGroupMouse(
+        std::shared_ptr<RotatablePassageSaveData> const &levelBundle,
+        bool needsStarter)
+{
+    return {
+            getStarterFcn(needsStarter, std::vector<std::string>{
+                    "A mouse\nsearches for a\npiece of cheese\nin a hedge maze.",
+                    "Help the mouse\nby turning the\nhedge maze\npieces so that\nthere is a path\nto the cheese."}),
+            GetLevelFcn([levelBundle](LevelTracker &tracker, glm::mat4 const &proj, glm::mat4 const &view) {
+                auto level = tracker.getLevel<RotatablePassage>(levelBundle, proj, view);
+                level->initSetBallInfo("models/mouse/mouse.modelcbor", "textures/mouse/mouse.png");
+                level->initSetHoleInfo("models/mouse/cheese.modelcbor", "textures/mouse/cheese.png");
+                std::vector<std::string> textures{"textures/rollerBee/wallFlower1.png",
+                                                  "textures/rollerBee/wallFlower2.png",
+                                                  "textures/rollerBee/wallFlower3.png",
+                                                  "textures/rollerBee/wallFlower4.png"};
+                level->initSetGameBoardInfo(
+                        "models/gopher/straight.modelcbor",
+                        "textures/mouse/wall.png",
+                        "textures/mouse/wallWithFlower.png",
+                        "models/gopher/tjunction.modelcbor",
+                        "textures/mouse/wall.png",
+                        "textures/mouse/wallWithFlower.png",
+                        "models/gopher/crossjunction.modelcbor",
+                        "textures/mouse/wall.png",
+                        "textures/mouse/wallWithFlower.png",
+                        "models/gopher/turn.modelcbor",
+                        "textures/mouse/wall.png",
+                        "textures/mouse/wallWithFlower.png",
+                        "models/movablePassage/deadEnd.modelcbor",
+                        "textures/mouse/wall.png",
+                        "textures/mouse/wallWithFlower.png",
+                        textures);
+                level->initSetGameBoard(8, GeneratedMazeBoard::Mode::DFS);
 
                 // call after all other init functions are completed but before updateStaticDrawObjects
                 auto extraWHatZRequested = level->getAdditionalWHatZRequests();

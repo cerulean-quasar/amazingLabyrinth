@@ -27,19 +27,19 @@ protected:
     virtual bool checkFinishCondition(float timeDiff) = 0;
 
     float leftWall(int col) {
-        return m_width / (numberColumns * numberBlocksPerCell+1) * (col*numberBlocksPerCell+0.5f) - m_width/2;
+        return m_width / (m_mazeBoard.numberColumns() * numberBlocksPerCell+1) * (col*numberBlocksPerCell+0.5f) - m_width/2;
     }
 
     float rightWall(int col) {
-        return m_width / (numberColumns * numberBlocksPerCell+1) * ((col+1)*numberBlocksPerCell+0.5f) - m_width/2;
+        return m_width / (m_mazeBoard.numberColumns() * numberBlocksPerCell+1) * ((col+1)*numberBlocksPerCell+0.5f) - m_width/2;
     }
 
     float topWall(int row) {
-        return m_height / (numberRows * numberBlocksPerCell+1) * (row*numberBlocksPerCell+0.5f) - m_height/2;
+        return m_height / (m_mazeBoard.numberRows() * numberBlocksPerCell+1) * (row*numberBlocksPerCell+0.5f) - m_height/2;
     }
 
     float bottomWall(int row) {
-        return m_height / (numberRows * numberBlocksPerCell+1) * ((row+1)*numberBlocksPerCell+0.5f) - m_height/2;
+        return m_height / (m_mazeBoard.numberRows() * numberBlocksPerCell+1) * ((row+1)*numberBlocksPerCell+0.5f) - m_height/2;
     }
 
 public:
