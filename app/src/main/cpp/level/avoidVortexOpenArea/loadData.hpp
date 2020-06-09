@@ -63,6 +63,42 @@ namespace avoidVortexOpenArea {
                   vortexes{std::move(vortexes_)} {
         }
     };
+
+    struct LevelConfigData : public basic::LevelConfigData{
+        std::string m_holeTexture;
+        std::string m_vortexTexture;
+        std::string m_startVortexTexture;
+
+        LevelConfigData()
+            : basic::LevelConfigData{},
+            m_holeTexture{},
+            m_vortexTexture{},
+            m_startVortexTexture{}
+        {
+        }
+
+        LevelConfigData(LevelConfigData &&other) noexcept
+                : basic::LevelConfigData{std::forward(other)},
+                  m_holeTexture{std::move(other.m_holeTexture)},
+                  m_vortexTexture{std::move(other.m_vortexTexture)},
+                  m_startVortexTexture{std::move(other.m_startVortexTexture)}
+        {
+        }
+
+        LevelConfigData(
+                std::string const &holeTexture,
+                std::string const &vortexTexture,
+                std::string const &startVortexTexture,
+                std::string const &ballTexture,
+                std::string const &ballModel,
+                float ballSizeDiagonalRatio)
+                : basic::LevelConfigData{ballTexture, ballModel, ballSizeDiagonalRatio},
+                  m_holeTexture{holeTexture},
+                  m_vortexTexture{vortexTexture},
+                  m_startVortexTexture{startVortexTexture},
+        {
+        }
+    };
 } // namespace avoidVortexOpenArea
 
 #endif // AMAZING_LABYRINTH_AVOID_VORTEX_OPEN_AREA_LOAD_DATA_HPP

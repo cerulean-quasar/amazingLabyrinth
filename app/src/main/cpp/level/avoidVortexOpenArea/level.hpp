@@ -40,7 +40,6 @@ namespace avoidVortexOpenArea {
         static uint32_t constexpr numberOfVortexes = 8;
 
         std::string holeTexture;
-        std::string ballTexture;
         std::string vortexTexture;
         std::string startVortexTexture;
 
@@ -107,6 +106,9 @@ namespace avoidVortexOpenArea {
             y = holePosition.y;
         }
 
+        SaveLevelDataFcn getSaveLevelDataFcn() override;
+
+        /*
         void initSetHoleTexture(std::string const &texture) { holeTexture = texture; }
 
         void initSetVortexTexture(std::string const &texture) { vortexTexture = texture; }
@@ -114,8 +116,6 @@ namespace avoidVortexOpenArea {
         void initSetStartVortexTexture(std::string const &texture) { startVortexTexture = texture; }
 
         void initSetBallTexture(std::string const &texture) { ballTexture = texture; }
-
-        SaveLevelDataFcn getSaveLevelDataFcn() override;
 
         Level(std::shared_ptr<GameRequester> inGameRequester, float width, float height,
                          float floorZ)
@@ -129,13 +129,18 @@ namespace avoidVortexOpenArea {
             postGenerate();
             generateModelMatrices();
         }
+        */
 
         Level(std::shared_ptr<GameRequester> inGameRequester,
-                         std::shared_ptr<LevelSaveData> sd,
+                         std::shared_ptr<LevelConfigData> const &lcd,
+                         std::shared_ptr<LevelSaveData> const &sd,
                          float width,
                          float height,
                          float floorZ)
-                : basic::Level(std::move(inGameRequester), width, height, floorZ, true, 1.0f / 40.0f),
+                : basic::Level(std::move(inGameRequester), lcd, width, height, floorZ, true),
+                  holeTexture{lcd->m_holeTexture},
+                  vortexTexture{lcd->m_vortexTexture},
+                  startVortexTexture{lcd->m_startVortexTexture},
                   maxX(m_width / 2),
                   maxY(m_height / 2),
                   prevTime(std::chrono::high_resolution_clock::now()) {

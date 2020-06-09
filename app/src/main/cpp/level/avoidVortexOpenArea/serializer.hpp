@@ -26,5 +26,7 @@
 namespace avoidVortexOpenArea {
     void to_json(nlohmann::json &j, LevelSaveData const &val);
     void from_json(nlohmann::json const &j, LevelSaveData &val);
+    void to_json(nlohmann::json &j, LevelConfigData const &val);
+    void from_json(nlohmann::json const &j, LevelConfigData &val);
 } // namespace avoidVortexOpenArea
 #endif // AMAZING_LABYRINTH_AVOID_VORTEX_OPEN_AREA_SERIALIZER_HPP

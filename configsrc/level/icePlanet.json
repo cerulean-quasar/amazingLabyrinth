@@ -1,0 +1,9 @@
+{
+    "BallDiagonal" : 0.025,
+    "BallModel": "models/ball.modelcbor",
+    "BallTexture": "textures/icePlanet/ballIcePlanet.png",
+
+    "HoleTexture": "textures/icePlanet/holeSun.png",
+    "VortexTexture": "textures/icePlanet/vortexBlackHole.png",
+    "StartVortexTexture" : "textures/beginning/holeAnomaly.png"
+}

@@ -34,6 +34,21 @@ namespace basic {
         val.m_version = j[LevelVersion].get<int>();
     }
 
+    char constexpr const *BallDiagonal = "BallDiagonal";
+    char constexpr const *BallModel = "BallModel";
+    char constexpr const *BallTexture = "BallTexture";
+    void to_json(nlohmann::json &j, LevelConfigData const &val) {
+        j[BallDiagonal] = val.m_ballSizeDiagonalRatio;
+        j[BallModel] = val.m_ballModel;
+        j[BallTexture] = val.m_ballTexture;
+    }
+
+    void from_json(nlohmann::json const &j, LevelConfigData &val) {
+        val.m_ballSizeDiagonalRatio = j[BallDiagonal].get<float>();
+        val.m_ballModel = j[BallModel].get<std::string>();
+        val.m_ballTexture = j[BallTexture].get<std::string>();
+    }
+
     template<>
     std::vector<uint8_t> saveGameData<void>(
             std::shared_ptr<GameSaveData> const &gameData,

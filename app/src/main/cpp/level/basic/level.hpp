@@ -29,6 +29,7 @@
 
 #include "../../common.hpp"
 #include "../../saveData.hpp"
+#include "loadData.hpp"
 
 namespace basic {
     class Level {
@@ -57,6 +58,8 @@ namespace basic {
         bool const m_ignoreZMovement;
         float m_scaleBall;
         bool m_bounce;
+        std::string m_ballTexture;
+        std::string m_ballModel;
 
         // data on where the ball is, how fast it is moving, etc.
         struct {
@@ -158,11 +161,11 @@ namespace basic {
 
         Level(
                 std::shared_ptr<GameRequester> inGameRequester,
+                std::shared_ptr<LevelConfigData> const &lcd,
                 float width,
                 float height,
                 float mazeFloorZ,
                 bool ignoreZMovement,
-                float ballScaleFactorDiagonal,
                 bool bounce = true)
                 : m_gameRequester{std::move(inGameRequester)},
                   m_finished(false),
@@ -171,13 +174,20 @@ namespace basic {
                   m_diagonal{glm::length(glm::vec2{m_width, m_height})},
                   m_mazeFloorZ{mazeFloorZ},
                   m_ignoreZMovement{ignoreZMovement},
-                  m_scaleBall{ballScaleFactorDiagonal * m_diagonal},
-                  m_bounce{bounce} {
+                  m_scaleBall{lcd->m_ballSizeDiagonalRatio * m_diagonal},
+                  m_bounce{bounce},
+                  m_ballTexture{lcd->m_ballTexture},
+                  m_ballModel{lcd->m_ballModel}
+        {
             m_ball.totalRotated = glm::quat();
             m_ball.acceleration = {0.0f, 0.0f, 0.0f};
             m_ball.velocity = {0.0f, 0.0f, 0.0f};
-            m_ball.prevPosition = {-10.0f, 0.0f,
-                                   m_mazeFloorZ + m_scaleBall * m_originalBallDiameter / 2.0f};
+
+            // put am out of bounds previous position so that we are sure to draw on the first
+            // draw cycle.
+            m_ball.prevPosition = {-10.0f, 0.0f, 0.0f};
+
+            // the derived level will change this
             m_ball.position = {0.0f, 0.0f, 0.0f};
         }
 

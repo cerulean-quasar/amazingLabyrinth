@@ -23,6 +23,7 @@
 #include "loadData.hpp"
 #include "../../serializeSaveDataInternals.hpp"
 #include "../basic/level.hpp"
+#include "../basic/serializer.hpp"
 #include "level.hpp"
 #include "serializer.hpp"
 
@@ -46,6 +47,23 @@ namespace avoidVortexOpenArea {
         val.hole = j[HoleLocation].get<Point<float>>();
         val.startPos = j[StartPosition].get<Point<float>>();
         val.vortexes = j[Vortexes].get<std::vector<Point<float>>>();
+    }
+
+    char constexpr const *HoleTexture = "HoleTexture";
+    char constexpr const *VortexTexture = "VortexTexture";
+    char constexpr const *StartVortexTexture = "StartVortexTexture";
+    void to_json(nlohmann::json &j, LevelConfigData const &val) {
+        to_json(j, boost::implicit_cast<basic::LevelConfigData const &>(val));
+        j[HoleTexture] = val.m_holeTexture;
+        j[VortexTexture] = val.m_vortexTexture;
+        j[StartVortexTexture] = val.m_startVortexTexture;
+    }
+
+    void from_json(nlohmann::json const &j, LevelConfigData &val) {
+        from_json(j, boost::implicit_cast<basic::LevelConfigData &>(val));
+        val.m_holeTexture = j[HoleTexture].get<std::string>();
+        val.m_vortexTexture = j[VortexTexture].get<std::string>();
+        val.m_startVortexTexture = j[StartVortexTexture].get<std::string>();
     }
 
     basic::Level::SaveLevelDataFcn Level::getSaveLevelDataFcn() {

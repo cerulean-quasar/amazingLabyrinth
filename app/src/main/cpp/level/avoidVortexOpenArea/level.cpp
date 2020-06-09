@@ -24,7 +24,7 @@
 namespace avoidVortexOpenArea {
     void Level::loadModels() {
         std::pair<std::vector<Vertex>, std::vector<uint32_t>> v;
-        loadModel(m_gameRequester->getAssetStream(MODEL_BALL), v);
+        loadModel(m_gameRequester->getAssetStream(m_ballModel), v);
         std::swap(v.first, ballVertices);
         std::swap(v.second, ballIndices);
         getQuad(quadVertices, quadIndices);
@@ -209,7 +209,7 @@ namespace avoidVortexOpenArea {
             ballObj->vertices = ballVertices;
             ballObj->indices = ballIndices;
             ballObj->texture = std::make_shared<TextureDescriptionPath>(m_gameRequester,
-                                                                        ballTexture);
+                                                                        m_ballTexture);
             textures.insert(std::make_pair(ballObj->texture, std::shared_ptr<TextureData>()));
             ballObj->modelMatrices.push_back(modelMatrixBall);
             texturesUpdated = true;

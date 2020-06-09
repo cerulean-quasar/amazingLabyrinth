@@ -25,6 +25,36 @@ namespace basic {
         int m_version;
     };
 
+    struct LevelConfigData {
+        std::string m_ballTexture;
+        std::string m_ballModel;
+        float m_ballSizeDiagonalRatio;
+
+        LevelConfigData()
+                : m_ballTexture{},
+                  m_ballModel{},
+                  m_ballSizeDiagonalRatio{0.0f}
+        {
+        }
+
+        LevelConfigData(LevelConfigData &&other) noexcept
+                : m_ballTexture{std::move(other.m_ballTexture)},
+                  m_ballModel{std::move(other.m_ballTexture)},
+                  m_ballSizeDiagonalRatio{other.m_ballSizeDiagonalRatio}
+        {
+        }
+
+        LevelConfigData(
+                std::string const &ballTexture,
+                std::string const &ballModel,
+                float ballSizeDiagonalRatio) noexcept
+                : m_ballTexture{ballTexture},
+                  m_ballModel{ballTexture},
+                  m_ballSizeDiagonalRatio{ballSizeDiagonalRatio}
+        {
+        }
+
+    };
 } // namespace basic
 
 #endif // AMAZING_LABYRINTH_BASIC_LOAD_DATA_HPP
