@@ -20,20 +20,27 @@
 #include <memory>
 #include <json.hpp>
 #include <boost/implicit_cast.hpp>
-#include "fixedMaze.hpp"
+
 #include "../../serializeSaveDataInternals.hpp"
+#include "../basic/level.hpp"
 
-void to_json(nlohmann::json &j, FixedMazeSaveData const &val) {
-    to_json(j, boost::implicit_cast<LevelSaveData const &>(val));
-}
+#include "loadData.hpp"
+#include "level.hpp"
+#include "serializer.hpp"
 
-void from_json(nlohmann::json const &j, FixedMazeSaveData &val) {
-    from_json(j, boost::implicit_cast<LevelSaveData&>(val));
-}
+namespace fixedMaze {
+    void to_json(nlohmann::json &j, LevelSaveData const &val) {
+        to_json(j, boost::implicit_cast<basic::LevelSaveData const &>(val));
+    }
 
-Level::SaveLevelDataFcn FixedMaze::getSaveLevelDataFcn() {
-    auto sd = std::make_shared<FixedMazeSaveData>();
-    return {[sd](std::shared_ptr<GameSaveData> gsd) -> std::vector<uint8_t> {
-        return saveGameData(gsd, sd);
-    }};
+    void from_json(nlohmann::json const &j, LevelSaveData &val) {
+        from_json(j, boost::implicit_cast<basic::LevelSaveData &>(val));
+    }
+
+    basic::Level::SaveLevelDataFcn Level::getSaveLevelDataFcn() {
+        auto sd = std::make_shared<LevelSaveData>();
+        return {[sd](std::shared_ptr<GameSaveData> gsd) -> std::vector<uint8_t> {
+            return saveGameData(gsd, sd);
+        }};
+    }
 }

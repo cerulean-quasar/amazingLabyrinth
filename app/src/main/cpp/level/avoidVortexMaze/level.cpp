@@ -20,8 +20,8 @@
 
 #include <vector>
 
-#include "mazeAvoid.hpp"
-#include "maze.hpp"
+#include "level.hpp"
+#include "levels/avoidVortexMaze/level.hpp"
 
 bool MazeAvoid::checkFinishCondition(float) {
     for (auto avoidObj : m_avoidObjectLocations) {

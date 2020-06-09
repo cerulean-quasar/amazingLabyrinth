@@ -17,49 +17,21 @@
  *  along with AmazingLabyrinth.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
-#ifndef AMAZING_LABYRINTH_MAZE_AVOID_HPP
-#define AMAZING_LABYRINTH_MAZE_AVOID_HPP
+#ifndef AMAZING_LABYRINTH_MAZE_AVOID_LEVEL
+#define AMAZING_LABYRINTH_MAZE_AVOID_LEVEL
 
 #include <vector>
-#include "../../saveData.hpp"
-#include "mazeOpenArea.hpp"
+#include <string>
 
-struct MazeAvoidSaveData : public MazeSaveData {
-    std::vector<Point<float>> avoidObjLocations;
-    Point<uint32_t> startRowCol;
+#include <glm/glm.hpp>
+#include <glm/gtc/quaternion.hpp>
+#include <glm/gtc/matrix_transform.hpp>
 
-    // Intentionally slices other to pass part into the MazeSaveData constructor.
-    MazeAvoidSaveData(MazeAvoidSaveData &&other) noexcept
-            : MazeSaveData(std::move(other)),
-              avoidObjLocations{other.avoidObjLocations}
-    {
-    }
+#include "saveData.hpp"
+#include "../../level.hpp"
+#include "../openAreaMaze/level.hpp"
 
-    MazeAvoidSaveData()
-            : MazeSaveData{},
-              avoidObjLocations{},
-              startRowCol{}
-    {
-    }
-
-    MazeAvoidSaveData(
-            uint32_t nbrRows_,
-            uint32_t ballRow_,
-            uint32_t ballCol_,
-            Point<float> &&ballPos_,
-            uint32_t rowEnd_,
-            uint32_t colEnd_,
-            std::vector<uint32_t> &&wallTextures_,
-            std::vector<uint8_t> &&mazeWallsVector_,
-            std::vector<Point<float>> &&avoidObjLocations_,
-            Point<uint32_t> &&startRowCol_)
-            : MazeSaveData{nbrRows_, ballRow_, ballCol_, std::move(ballPos_), rowEnd_, colEnd_,
-                           std::move(wallTextures_), std::move(mazeWallsVector_)},
-              avoidObjLocations{std::move(avoidObjLocations_)},
-              startRowCol{std::move(startRowCol_)}
-    {
-    }
-};
+#include "loadData.hpp"
 
 class MazeAvoid : public MazeOpenArea {
 protected:
@@ -95,4 +67,4 @@ private:
     void generateAvoidModelMatrices();
 };
 
-#endif /* AMAZING_LABYRINTH_MAZE_AVOID_HPP */
+#endif /* AMAZING_LABYRINTH_MAZE_AVOID_LEVEL */

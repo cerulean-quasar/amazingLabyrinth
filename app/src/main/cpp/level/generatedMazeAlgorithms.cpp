@@ -19,6 +19,8 @@
  */
 
 #include <list>
+#include <deque>
+#include <vector>
 
 #include "generatedMazeAlgorithms.hpp"
 

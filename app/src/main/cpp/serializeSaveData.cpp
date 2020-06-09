@@ -51,15 +51,6 @@ void from_json(nlohmann::json const &j, Point<float> &val) {
     val.y = j[PointYKey].get<float>();
 }
 
-char constexpr const *LevelVersion = "LevelVersion";
-void to_json(nlohmann::json &j, LevelSaveData const &val) {
-    j[LevelVersion] = val.m_version;
-}
-
-void from_json(nlohmann::json const &j, LevelSaveData &val) {
-    val.m_version = j[LevelVersion].get<int>();
-}
-
 using RestoreLevelFromDataFcn = std::function<RestoreData(nlohmann::json const *, std::string, bool)>;
 
 struct LevelRestoreTableEntry {

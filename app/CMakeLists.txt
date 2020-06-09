@@ -39,31 +39,33 @@ add_library( # Sets the name of the library.
         src/main/cpp/drawer.cpp
         src/main/cpp/serializeSaveData.cpp
         src/main/cpp/mathGraphics.cpp
-        src/main/cpp/level/levelSerializer.cpp
         src/main/cpp/level/levelFinish.cpp
         src/main/cpp/level/generatedMazeAlgorithms.cpp
         src/main/cpp/level/movablePassageAlgorithms.cpp
-        src/main/cpp/level/levels/maze.cpp
-        src/main/cpp/level/levels/mazeSerializer.cpp
-        src/main/cpp/level/levels/openAreaLevel.cpp
-        src/main/cpp/level/levels/openAreaLevelSerializer.cpp
-        src/main/cpp/level/levels/avoidVortexLevel.cpp
-        src/main/cpp/level/levels/avoidVortexLevelSerializer.cpp
-        src/main/cpp/level/levels/movingQuadsLevel.cpp
-        src/main/cpp/level/levels/movingQuadsLevelSerializer.cpp
-        src/main/cpp/level/levels/mazeOpenArea.cpp
-        src/main/cpp/level/levels/mazeAvoid.cpp
-        src/main/cpp/level/levels/mazeAvoidSerializer.cpp
-        src/main/cpp/level/levels/mazeCollect.cpp
-        src/main/cpp/level/levels/mazeCollectSerializer.cpp
-        src/main/cpp/level/levels/fixedMaze.cpp
-        src/main/cpp/level/levels/fixedMazeSerializer.cpp
-        src/main/cpp/level/levels/movablePassage.cpp
-        src/main/cpp/level/levels/movablePassageSerializer.cpp
-        src/main/cpp/level/levels/rotatablePassage.cpp
-        src/main/cpp/level/levels/rotatablePassageSerializer.cpp
+        src/main/cpp/level/avoidVortexMaze/level.cpp
+        src/main/cpp/level/avoidVortexMaze/serializer.cpp
+        src/main/cpp/level/avoidVortexOpenArea/level.cpp
+        src/main/cpp/level/avoidVortexOpenArea/serializer.cpp
+        src/main/cpp/level/basic/level.cpp
+        src/main/cpp/level/basic/serializer.cpp
+        src/main/cpp/level/collectMaze/level.cpp
+        src/main/cpp/level/collectMaze/serializer.cpp
+        src/main/cpp/level/fixedMaze/level.cpp
+        src/main/cpp/level/fixedMaze/serializer.cpp
+        src/main/cpp/level/generatedMaze/level.cpp
+        src/main/cpp/level/generatedMaze/serializer.cpp
+        src/main/cpp/level/movablePassage/level.cpp
+        src/main/cpp/level/movablePassage/serializer.cpp
+        src/main/cpp/level/movingSafeAreas/level.cpp
+        src/main/cpp/level/movingSafeAreas/serializer.cpp
+        src/main/cpp/level/openArea/level.cpp
+        src/main/cpp/level/openArea/serializer.cpp
+        src/main/cpp/level/rotatablePassage/level.cpp
+        src/main/cpp/level/rotatablePassage/serializer.cpp
+        src/main/cpp/level/starter/level.cpp
+        src/main/cpp/level/starter/serializer.cpp
         src/main/cpp/level/levelTracker.cpp
-        src/main/cpp/level/levelStarter.cpp)
+)
 
 # Searches for a specified prebuilt library and stores the path as a
 # variable. Because CMake includes system libraries in the search path by

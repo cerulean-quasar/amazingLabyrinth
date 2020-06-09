@@ -40,10 +40,6 @@ struct Point {
     }
 };
 
-struct LevelSaveData {
-    int m_version;
-};
-
 int constexpr GameSaveDataVersionValue = 1;
 struct GameSaveData {
     int version;
