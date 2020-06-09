@@ -18,28 +18,28 @@
  *
  */
 
-#ifndef AMAZING_LABYRINTH_AVOID_VORTEX_MAZE_LOAD_DATA
-#define AMAZING_LABYRINTH_AVOID_VORTEX_MAZE_LOAD_DATA
+#ifndef AMAZING_LABYRINTH_AVOID_VORTEX_MAZE_LOAD_DATA_HPP
+#define AMAZING_LABYRINTH_AVOID_VORTEX_MAZE_LOAD_DATA_HPP
 
-struct MazeAvoidSaveData : public MazeSaveData {
+struct LevelSaveData : public generatedMaze::LevelSaveData {
     std::vector<Point<float>> avoidObjLocations;
     Point<uint32_t> startRowCol;
 
     // Intentionally slices other to pass part into the MazeSaveData constructor.
-    MazeAvoidSaveData(MazeAvoidSaveData &&other) noexcept
-            : MazeSaveData(std::move(other)),
+    LevelSaveData(LevelSaveData &&other) noexcept
+            : generatedMaze::LevelSaveData(std::move(other)),
               avoidObjLocations{other.avoidObjLocations}
     {
     }
 
-    MazeAvoidSaveData()
-            : MazeSaveData{},
+    LevelSaveData()
+            : generatedMaze::LevelSaveData{},
               avoidObjLocations{},
               startRowCol{}
     {
     }
 
-    MazeAvoidSaveData(
+    LevelSaveData(
             uint32_t nbrRows_,
             uint32_t ballRow_,
             uint32_t ballCol_,
@@ -50,7 +50,7 @@ struct MazeAvoidSaveData : public MazeSaveData {
             std::vector<uint8_t> &&mazeWallsVector_,
             std::vector<Point<float>> &&avoidObjLocations_,
             Point<uint32_t> &&startRowCol_)
-            : MazeSaveData{nbrRows_, ballRow_, ballCol_, std::move(ballPos_), rowEnd_, colEnd_,
+            : generatedMaze::LevelSaveData{nbrRows_, ballRow_, ballCol_, std::move(ballPos_), rowEnd_, colEnd_,
                            std::move(wallTextures_), std::move(mazeWallsVector_)},
               avoidObjLocations{std::move(avoidObjLocations_)},
               startRowCol{std::move(startRowCol_)}
@@ -58,4 +58,4 @@ struct MazeAvoidSaveData : public MazeSaveData {
     }
 };
 
-#endif // AMAZING_LABYRINTH_AVOID_VORTEX_MAZE_LOAD_DATA
+#endif // AMAZING_LABYRINTH_AVOID_VORTEX_MAZE_LOAD_DATA_HPP

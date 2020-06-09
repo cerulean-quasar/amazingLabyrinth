@@ -17,29 +17,11 @@
  *  along with AmazingLabyrinth.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
-#include <memory>
 #include <json.hpp>
-#include <boost/implicit_cast.hpp>
-#include "level.hpp"
-#include "../../serializeSaveDataInternals.hpp"
+#include loadData.hpp"
 
-#include "serializer.hpp"
-#include "loadData.hpp"
+namespace rotatablePassage {
+    void to_json(nlohmann::json &j, LevelSaveData const &val);
 
-namespace movablePassage {
-    void to_json(nlohmann::json &j, LevelSaveData const &val) {
-        to_json(j, boost::implicit_cast<basic::LevelSaveData const &>(val));
-    }
-
-    void from_json(nlohmann::json const &j, LevelSaveData &val) {
-        from_json(j, boost::implicit_cast<basic::LevelSaveData &>(val));
-    }
-
-    basic::Level::SaveLevelDataFcn Level::getSaveLevelDataFcn() {
-        auto sd = std::make_shared<LevelSaveData>();
-        return {[sd](std::shared_ptr<GameSaveData> gsd) -> std::vector<uint8_t> {
-            return saveGameData(gsd, sd);
-        }};
-    }
-
-} // namespace movablePassage
+    void from_json(nlohmann::json const &j, LevelSaveData &val);
+} // namespace rotatablePassage

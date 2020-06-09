@@ -1,5 +1,5 @@
 /**
- * Copyright 2019 Cerulean Quasar. All Rights Reserved.
+ * Copyright 2020 Cerulean Quasar. All Rights Reserved.
  *
  *  This file is part of AmazingLabyrinth.
  *
@@ -21,26 +21,35 @@
 #include <boost/implicit_cast.hpp>
 #include <json.hpp>
 
-#include "openAreaLevel.hpp"
 #include "../../serializeSaveDataInternals.hpp"
+#include "../basic/loadData.hpp"
+#include "../basic/level.hpp"
+#include "loadData.hpp"
+#include "level.hpp"
+#include "serializer.hpp"
 
-char constexpr const *BallLocation = "BallLocation";
-char constexpr const *HoleLocation = "HoleLocation";
-void to_json(nlohmann::json &j, OpenAreaLevelSaveData const &val) {
-    to_json(j, boost::implicit_cast<LevelSaveData const &>(val));
-    j[BallLocation] = val.ball;
-    j[HoleLocation] = val.hole;
-}
+namespace openArea {
+    char constexpr const *BallLocation = "BallLocation";
+    char constexpr const *HoleLocation = "HoleLocation";
 
-void from_json(nlohmann::json const &j, OpenAreaLevelSaveData &val) {
-    from_json(j, boost::implicit_cast<LevelSaveData&>(val));
-    val.ball = j[BallLocation].get<Point<float>>();
-    val.hole = j[HoleLocation].get<Point<float>>();
-}
+    void to_json(nlohmann::json &j, LevelSaveData const &val) {
+        to_json(j, boost::implicit_cast<basic::LevelSaveData const &>(val));
+        j[BallLocation] = val.ball;
+        j[HoleLocation] = val.hole;
+    }
 
-Level::SaveLevelDataFcn OpenAreaLevel::getSaveLevelDataFcn() {
-    auto sd = std::make_shared<OpenAreaLevelSaveData>(Point<float>{m_ball.position.x, m_ball.position.y}, Point<float>{holePosition.x, holePosition.y});
-    return {[sd](std::shared_ptr<GameSaveData> gsd) -> std::vector<uint8_t> {
-        return saveGameData(gsd, sd);
-    }};
-}
+    void from_json(nlohmann::json const &j, LevelSaveData &val) {
+        from_json(j, boost::implicit_cast<basic::LevelSaveData &>(val));
+        val.ball = j[BallLocation].get<Point<float>>();
+        val.hole = j[HoleLocation].get<Point<float>>();
+    }
+
+    basic::Level::SaveLevelDataFcn Level::getSaveLevelDataFcn() {
+        auto sd = std::make_shared<LevelSaveData>(
+                Point<float>{m_ball.position.x, m_ball.position.y},
+                Point<float>{holePosition.x, holePosition.y});
+        return {[sd](std::shared_ptr<GameSaveData> gsd) -> std::vector<uint8_t> {
+            return saveGameData(gsd, sd);
+        }};
+    }
+} // namespace openArea

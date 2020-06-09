@@ -21,43 +21,47 @@
 #include <json.hpp>
 #include <boost/implicit_cast.hpp>
 #include "../../serializeSaveDataInternals.hpp"
-#include "mazeAvoid.hpp"
+#include "level.hpp"
+#include "serializer.hpp"
 
-char constexpr const *AvoidObjLocation = "AvoidObjLocation";
-char constexpr const *BallStart = "BallStart";
-void to_json(nlohmann::json &j, MazeAvoidSaveData const &val) {
-    to_json(j, boost::implicit_cast<MazeSaveData const &>(val));
-    j[AvoidObjLocation] = val.avoidObjLocations;
-    j[BallStart] = val.startRowCol;
-}
+namespace avoidVortexMaze {
+    char constexpr const *AvoidObjLocation = "AvoidObjLocation";
+    char constexpr const *BallStart = "BallStart";
 
-void from_json(nlohmann::json const &j, MazeAvoidSaveData &val) {
-    from_json(j, boost::implicit_cast<MazeSaveData&>(val));
-    val.avoidObjLocations = j[AvoidObjLocation].get<std::vector<Point<float>>>();
-    val.startRowCol = j[BallStart].get<Point<uint32_t>>();
-}
-
-Level::SaveLevelDataFcn MazeAvoid::getSaveLevelDataFcn() {
-    std::vector<Point<float>> avoidObjLocations;
-    avoidObjLocations.reserve(m_avoidObjectLocations.size());
-    for (auto const &avoidObj : m_avoidObjectLocations) {
-        avoidObjLocations.emplace_back(avoidObj.x, avoidObj.y);
+    void to_json(nlohmann::json &j, LevelSaveData const &val) {
+        to_json(j, boost::implicit_cast<generatedMaze::LevelSaveData const &>(val));
+        j[AvoidObjLocation] = val.avoidObjLocations;
+        j[BallStart] = val.startRowCol;
     }
 
-    auto sd = std::make_shared<MazeAvoidSaveData>(
-            m_mazeBoard.numberRows(),
-            m_ballCell.row,
-            m_ballCell.col,
-            Point<float>{m_ball.position.x, m_ball.position.y},
-            m_mazeBoard.rowEnd(),
-            m_mazeBoard.colEnd(),
-            std::vector<uint32_t>{m_wallTextureIndices},
-            getSerializedMazeWallVector(),
-            std::move(avoidObjLocations),
-            Point<uint32_t>{static_cast<uint32_t>(m_mazeBoard.rowStart()),
-                            static_cast<uint32_t>(m_mazeBoard.colStart())});
+    void from_json(nlohmann::json const &j, LevelSaveData &val) {
+        from_json(j, boost::implicit_cast<generatedMaze::LevelSaveData &>(val));
+        val.avoidObjLocations = j[AvoidObjLocation].get<std::vector<Point<float>>>();
+        val.startRowCol = j[BallStart].get<Point<uint32_t>>();
+    }
 
-    return {[sd{move(sd)}](std::shared_ptr<GameSaveData> gsd) -> std::vector<uint8_t> {
-        return saveGameData(gsd, sd);
-    }};
-}
+    Level::SaveLevelDataFcn Level::getSaveLevelDataFcn() {
+        std::vector<Point<float>> avoidObjLocations;
+        avoidObjLocations.reserve(m_avoidObjectLocations.size());
+        for (auto const &avoidObj : m_avoidObjectLocations) {
+            avoidObjLocations.emplace_back(avoidObj.x, avoidObj.y);
+        }
+
+        auto sd = std::make_shared<LevelSaveData>(
+                m_mazeBoard.numberRows(),
+                m_ballCell.row,
+                m_ballCell.col,
+                Point<float>{m_ball.position.x, m_ball.position.y},
+                m_mazeBoard.rowEnd(),
+                m_mazeBoard.colEnd(),
+                std::vector<uint32_t>{m_wallTextureIndices},
+                getSerializedMazeWallVector(),
+                std::move(avoidObjLocations),
+                Point<uint32_t>{static_cast<uint32_t>(m_mazeBoard.rowStart()),
+                                static_cast<uint32_t>(m_mazeBoard.colStart())});
+
+        return {[sd{move(sd)}](std::shared_ptr<GameSaveData> gsd) -> std::vector<uint8_t> {
+            return saveGameData(gsd, sd);
+        }};
+    }
+} // namespace avoidVortexMaze

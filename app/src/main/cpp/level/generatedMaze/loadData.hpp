@@ -27,8 +27,8 @@
 
 #include "../basic/loadData.hpp"
 namespace generatedMaze {
+    int constexpr levelSaveDataVersion = 1;
     struct LevelSaveData : public basic::LevelSaveData {
-        static int constexpr mazeVersion = 1;
         uint32_t nbrRows;
         uint32_t ballRow;
         uint32_t ballCol;
@@ -39,7 +39,7 @@ namespace generatedMaze {
         std::vector<uint8_t> mazeWallsVector;
 
         LevelSaveData(LevelSaveData &&other) noexcept
-                : basic::LevelSaveData{mazeVersion},
+                : basic::LevelSaveData{levelSaveDataVersion},
                   nbrRows{other.nbrRows},
                   ballRow{other.ballRow},
                   ballCol{other.ballCol},
@@ -51,7 +51,7 @@ namespace generatedMaze {
         }
 
         LevelSaveData()
-                : basic::LevelSaveData{mazeVersion},
+                : basic::LevelSaveData{levelSaveDataVersion},
                   nbrRows{0},
                   ballRow{0},
                   ballCol{0},
@@ -70,7 +70,7 @@ namespace generatedMaze {
                 uint32_t colEnd_,
                 std::vector<uint32_t> &&wallTextures_,
                 std::vector<uint8_t> &&mazeWallsVector_)
-                : basic::LevelSaveData{mazeVersion},
+                : basic::LevelSaveData{levelSaveDataVersion},
                   nbrRows{nbrRows_},
                   ballRow{ballRow_},
                   ballCol{ballCol_},

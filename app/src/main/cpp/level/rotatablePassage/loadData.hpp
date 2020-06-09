@@ -17,15 +17,16 @@
  *  along with AmazingLabyrinth.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
-#ifndef AMAZING_LABYRINTH_AVOID_VORTEX_MAZE_SERIALIZER_HPP
-#define AMAZING_LABYRINTH_AVOID_VORTEX_MAZE_SERIALIZER_HPP
-#include <json.hpp>
 
-#include "loadData.hpp"
+#ifndef AMAZING_LABYRINTH_ROTATABLE_PASSAGE_LOAD_DATA_HPP
+#define AMAZING_LABYRINTH_ROTATABLE_PASSAGE_LOAD_DATA_HPP
 
-namespace avoidVortexMaze {
-    void to_json(nlohmann::json &j, LevelSaveData const &val);
+#include "../basic/loadData.hpp"
 
-    void from_json(nlohmann::json const &j, LevelSaveData &val);
-}
-#endif // AMAZING_LABYRINTH_AVOID_VORTEX_MAZE_SERIALIZER_HPP
+namespace rotatablePassage {
+    static int constexpr levelSaveDataVersion = 1;
+    struct LevelSaveData : public basic::LevelSaveData {
+        LevelSaveData() : basic::LevelSaveData{levelSaveDataVersion} {}
+    };
+} // name rotatablePassage
+#endif // AMAZING_LABYRINTH_ROTATABLE_PASSAGE_LOAD_DATA_HPP

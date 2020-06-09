@@ -60,6 +60,7 @@ add_library( # Sets the name of the library.
         src/main/cpp/level/movingSafeAreas/serializer.cpp
         src/main/cpp/level/openArea/level.cpp
         src/main/cpp/level/openArea/serializer.cpp
+        src/main/cpp/level/openAreaMaze/level.cpp
         src/main/cpp/level/rotatablePassage/level.cpp
         src/main/cpp/level/rotatablePassage/serializer.cpp
         src/main/cpp/level/starter/level.cpp

@@ -19,27 +19,21 @@
  */
 #include <memory>
 #include <json.hpp>
-#include <boost/implicit_cast.hpp>
-#include "level.hpp"
-#include "../../serializeSaveDataInternals.hpp"
 
-#include "serializer.hpp"
 #include "loadData.hpp"
 
-namespace movablePassage {
-    void to_json(nlohmann::json &j, LevelSaveData const &val) {
-        to_json(j, boost::implicit_cast<basic::LevelSaveData const &>(val));
-    }
+#ifndef AMAZING_LABYRINTH_MOVING_SAFE_AREAS_SERIALIZER_HPP
+#define AMAZING_LABYRINTH_MOVING_SAFE_AREAS_SERIALIZER_HPP
 
-    void from_json(nlohmann::json const &j, LevelSaveData &val) {
-        from_json(j, boost::implicit_cast<basic::LevelSaveData &>(val));
-    }
+namespace movingSafeAreas {
 
-    basic::Level::SaveLevelDataFcn Level::getSaveLevelDataFcn() {
-        auto sd = std::make_shared<LevelSaveData>();
-        return {[sd](std::shared_ptr<GameSaveData> gsd) -> std::vector<uint8_t> {
-            return saveGameData(gsd, sd);
-        }};
-    }
+    void to_json(nlohmann::json &j, QuadRowSaveData const &val);
 
-} // namespace movablePassage
+    void from_json(nlohmann::json const &j, QuadRowSaveData &val);
+
+    void to_json(nlohmann::json &j, LevelSaveData const &val);
+
+    void from_json(nlohmann::json const &j, LevelSaveData &val);
+} // namespace movingSafeAreas
+
+#endif // AMAZING_LABYRINTH_MOVING_SAFE_AREAS_SERIALIZER_HPP

@@ -17,47 +17,57 @@
  *  along with AmazingLabyrinth.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
-#ifndef AMAZING_LABYRINTH_MAZE_OPEN_AREA_HPP
-#define AMAZING_LABYRINTH_MAZE_OPEN_AREA_HPP
+#ifndef AMAZING_LABYRINTH_OPEN_AREA_MAZE_LEVEL_HPP
+#define AMAZING_LABYRINTH_OPEN_AREA_MAZE_LEVEL_HPP
 
-#include "maze.hpp"
+#include "../generatedMaze/level.hpp"
 
-class MazeOpenArea : public Maze {
-protected:
-    virtual bool checkFinishCondition(float timeDiff) = 0;
+namespace openAreaMaze {
+    class Level : public generatedMaze::Level {
+    protected:
+        virtual bool checkFinishCondition(float timeDiff) = 0;
 
-    float leftWall(int col) {
-        return m_width / (m_mazeBoard.numberColumns() * numberBlocksPerCell+1) * (col*numberBlocksPerCell+0.5f) - m_width/2;
-    }
+        float leftWall(int col) {
+            return m_width / (m_mazeBoard.numberColumns() * numberBlocksPerCell + 1) *
+                   (col * numberBlocksPerCell + 0.5f) - m_width / 2;
+        }
 
-    float rightWall(int col) {
-        return m_width / (m_mazeBoard.numberColumns() * numberBlocksPerCell+1) * ((col+1)*numberBlocksPerCell+0.5f) - m_width/2;
-    }
+        float rightWall(int col) {
+            return m_width / (m_mazeBoard.numberColumns() * numberBlocksPerCell + 1) *
+                   ((col + 1) * numberBlocksPerCell + 0.5f) - m_width / 2;
+        }
 
-    float topWall(int row) {
-        return m_height / (m_mazeBoard.numberRows() * numberBlocksPerCell+1) * (row*numberBlocksPerCell+0.5f) - m_height/2;
-    }
+        float topWall(int row) {
+            return m_height / (m_mazeBoard.numberRows() * numberBlocksPerCell + 1) *
+                   (row * numberBlocksPerCell + 0.5f) - m_height / 2;
+        }
 
-    float bottomWall(int row) {
-        return m_height / (m_mazeBoard.numberRows() * numberBlocksPerCell+1) * ((row+1)*numberBlocksPerCell+0.5f) - m_height/2;
-    }
+        float bottomWall(int row) {
+            return m_height / (m_mazeBoard.numberRows() * numberBlocksPerCell + 1) *
+                   ((row + 1) * numberBlocksPerCell + 0.5f) - m_height / 2;
+        }
 
-public:
-    MazeOpenArea(std::shared_ptr<GameRequester> inGameRequester, std::shared_ptr<MazeSaveData> sd,
-                 float width, float height, float maxZ)
-            : Maze(std::move(inGameRequester), std::move(sd), width, height, maxZ, getMazeWallModelMatricesGenerator())
-    {}
+    public:
+        Level(std::shared_ptr<GameRequester> inGameRequester,
+                     std::shared_ptr<generatedMaze::LevelSaveData> sd,
+                     float width, float height, float maxZ)
+                : generatedMaze::Level(
+                        std::move(inGameRequester), std::move(sd), width, height, maxZ,
+                        getMazeWallModelMatricesGenerator())
+                {}
 
-    MazeOpenArea(std::shared_ptr<GameRequester> inGameRequester, Maze::CreateParameters const &parameters,
-                 float width, float height, float maxZ)
-            : Maze(std::move(inGameRequester), parameters, width, height, maxZ, getMazeWallModelMatricesGenerator())
-    {}
+        Level(std::shared_ptr<GameRequester> inGameRequester,
+                     generatedMaze::Level::CreateParameters const &parameters,
+                     float width, float height, float maxZ)
+                : generatedMaze::Level(std::move(inGameRequester), parameters, width, height, maxZ,
+                       getMazeWallModelMatricesGenerator()) {}
 
-    bool updateData() override;
-    SaveLevelDataFcn getSaveLevelDataFcn() override = 0;
+        bool updateData() override;
 
-private:
-    static Maze::MazeWallModelMatrixGeneratorFcn getMazeWallModelMatricesGenerator();
-};
+        SaveLevelDataFcn getSaveLevelDataFcn() override = 0;
 
-#endif /* AMAZING_LABYRINTH_MAZE_OPEN_AREA_HPP */
+    private:
+        static generatedMaze::Level::MazeWallModelMatrixGeneratorFcn getMazeWallModelMatricesGenerator();
+    };
+} // namespace openAreaMaze
+#endif // AMAZING_LABYRINTH_OPEN_AREA_MAZE_LEVEL_HPP

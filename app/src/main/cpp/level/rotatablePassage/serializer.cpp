@@ -20,20 +20,27 @@
 #include <memory>
 #include <json.hpp>
 #include <boost/implicit_cast.hpp>
-#include "rotatablePassage.hpp"
+#include "level.hpp"
+#include "../basic/loadData.hpp"
+#include "../basic/level.hpp"
 #include "../../serializeSaveDataInternals.hpp"
 
-void to_json(nlohmann::json &j, RotatablePassageSaveData const &val) {
-    to_json(j, boost::implicit_cast<LevelSaveData const &>(val));
-}
+#include "loadData.hpp"
+#include "serializer.hpp"
 
-void from_json(nlohmann::json const &j, RotatablePassageSaveData &val) {
-    from_json(j, boost::implicit_cast<LevelSaveData&>(val));
-}
+namespace rotatablePassage {
+    void to_json(nlohmann::json &j, LevelSaveData const &val) {
+        to_json(j, boost::implicit_cast<basic::LevelSaveData const &>(val));
+    }
 
-Level::SaveLevelDataFcn RotatablePassage::getSaveLevelDataFcn() {
-    auto sd = std::make_shared<MovablePassageSaveData>();
-    return {[sd](std::shared_ptr<GameSaveData> gsd) -> std::vector<uint8_t> {
-        return saveGameData(gsd, sd);
-    }};
-}
+    void from_json(nlohmann::json const &j, LevelSaveData &val) {
+        from_json(j, boost::implicit_cast<basic::LevelSaveData &>(val));
+    }
+
+    basic::Level::SaveLevelDataFcn Level::getSaveLevelDataFcn() {
+        auto sd = std::make_shared<LevelSaveData>();
+        return {[sd](std::shared_ptr<GameSaveData> gsd) -> std::vector<uint8_t> {
+            return saveGameData(gsd, sd);
+        }};
+    }
+} // namespace rotatablePassage

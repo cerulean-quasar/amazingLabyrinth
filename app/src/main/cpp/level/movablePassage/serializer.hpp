@@ -17,29 +17,16 @@
  *  along with AmazingLabyrinth.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
-#include <memory>
-#include <json.hpp>
-#include <boost/implicit_cast.hpp>
-#include "level.hpp"
-#include "../../serializeSaveDataInternals.hpp"
+#ifndef AMAZING_LABYRINTH_MOVABLE_PASSAGE_SERIALIZER_HPP
+#define AMAZING_LABYRINTH_MOVABLE_PASSAGE_SERIALIZER_HPP
 
-#include "serializer.hpp"
+#include <json.hpp>
 #include "loadData.hpp"
 
 namespace movablePassage {
-    void to_json(nlohmann::json &j, LevelSaveData const &val) {
-        to_json(j, boost::implicit_cast<basic::LevelSaveData const &>(val));
-    }
+    void to_json(nlohmann::json &j, LevelSaveData const &val);
 
-    void from_json(nlohmann::json const &j, LevelSaveData &val) {
-        from_json(j, boost::implicit_cast<basic::LevelSaveData &>(val));
-    }
+    void from_json(nlohmann::json const &j, LevelSaveData &val);
+}
 
-    basic::Level::SaveLevelDataFcn Level::getSaveLevelDataFcn() {
-        auto sd = std::make_shared<LevelSaveData>();
-        return {[sd](std::shared_ptr<GameSaveData> gsd) -> std::vector<uint8_t> {
-            return saveGameData(gsd, sd);
-        }};
-    }
-
-} // namespace movablePassage
+#endif //AMAZING_LABYRINTH_MOVABLE_PASSAGE_SERIALIZER_HPP

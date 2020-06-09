@@ -17,8 +17,8 @@
  *  along with AmazingLabyrinth.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
-#ifndef AMAZING_LABYRINTH_MAZE_AVOID_LEVEL
-#define AMAZING_LABYRINTH_MAZE_AVOID_LEVEL
+#ifndef AMAZING_LABYRINTH_AVOID_VORTEX_MAZE_LEVEL_HPP
+#define AMAZING_LABYRINTH_AVOID_VORTEX_MAZE_LEVEL_HPP
 
 #include <vector>
 #include <string>
@@ -28,43 +28,51 @@
 #include <glm/gtc/matrix_transform.hpp>
 
 #include "saveData.hpp"
-#include "../../level.hpp"
+#include "basic/level.hpp"
 #include "../openAreaMaze/level.hpp"
 
 #include "loadData.hpp"
 
-class MazeAvoid : public MazeOpenArea {
-protected:
-    static constexpr uint32_t nbrItemsToAvoid = 5;
-    std::string m_avoidObjTexture;
-    bool checkFinishCondition(float timeDiff) override;
-    std::vector<glm::vec3> m_avoidObjectLocations;
-public:
-    MazeAvoid(std::shared_ptr<GameRequester> inGameRequester,
-                std::shared_ptr<MazeAvoidSaveData> sd,
-                float inWidth, float inHeight, float maxZ)
-            :MazeOpenArea(std::move(inGameRequester), sd, inWidth, inHeight, maxZ)
-    {
-        m_mazeBoard.setStart(sd->startRowCol.x, sd->startRowCol.y);
-        for (auto avoidObjLocation : sd->avoidObjLocations) {
-            m_avoidObjectLocations.emplace_back(avoidObjLocation.x, avoidObjLocation.y, getBallZPosition());
+namespace avoidVortexMaze {
+    class Level : public openAreaMaze::Level {
+    protected:
+        static constexpr uint32_t nbrItemsToAvoid = 5;
+        std::string m_avoidObjTexture;
+
+        bool checkFinishCondition(float timeDiff) override;
+
+        std::vector<glm::vec3> m_avoidObjectLocations;
+    public:
+        Level(std::shared_ptr<GameRequester> inGameRequester,
+                  std::shared_ptr<LevelSaveData> sd,
+                  float inWidth, float inHeight, float maxZ)
+                : openAreaMaze::Level(std::move(inGameRequester), sd, inWidth, inHeight, maxZ) {
+            m_mazeBoard.setStart(sd->startRowCol.x, sd->startRowCol.y);
+            for (auto avoidObjLocation : sd->avoidObjLocations) {
+                m_avoidObjectLocations.emplace_back(avoidObjLocation.x, avoidObjLocation.y,
+                                                    getBallZPosition());
+            }
         }
-    }
 
-    MazeAvoid(std::shared_ptr<GameRequester> inGameRequester, Maze::CreateParameters const &parameters,
-                float inWidth, float inHeight, float maxZ)
-            :MazeOpenArea(std::move(inGameRequester), parameters, inWidth, inHeight, maxZ)
-    {
-        generateAvoidModelMatrices();
-    }
+        Level(std::shared_ptr<GameRequester> inGameRequester,
+                  generatedMaze::Level::CreateParameters const &parameters,
+                  float inWidth, float inHeight, float maxZ)
+                : openAreaMaze::Level(std::move(inGameRequester), parameters, inWidth, inHeight, maxZ) {
+            generateAvoidModelMatrices();
+        }
 
-    bool updateStaticDrawObjects(DrawObjectTable &objs, TextureMap &textures) override;
-    SaveLevelDataFcn getSaveLevelDataFcn() override;
-    void initSetAvoidObjTexture(std::string avoidObjTexture) {
-        m_avoidObjTexture = std::move(avoidObjTexture);
-    }
-private:
-    void generateAvoidModelMatrices();
-};
+        bool updateStaticDrawObjects(DrawObjectTable &objs, TextureMap &textures) override;
 
-#endif /* AMAZING_LABYRINTH_MAZE_AVOID_LEVEL */
+        SaveLevelDataFcn getSaveLevelDataFcn() override;
+
+        void initSetAvoidObjTexture(std::string avoidObjTexture) {
+            m_avoidObjTexture = std::move(avoidObjTexture);
+        }
+
+    private:
+        void generateAvoidModelMatrices();
+    };
+
+} // namespace avoidVortexMaze
+
+#endif // AMAZING_LABYRINTH_AVOID_VORTEX_MAZE_LEVEL_HPP
