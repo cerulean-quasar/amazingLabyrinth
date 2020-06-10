@@ -58,8 +58,8 @@ namespace basic {
         bool const m_ignoreZMovement;
         float m_scaleBall;
         bool m_bounce;
-        std::string m_ballTexture;
         std::string m_ballModel;
+        std::string m_ballTexture;
 
         // data on where the ball is, how fast it is moving, etc.
         struct {
@@ -165,8 +165,7 @@ namespace basic {
                 float width,
                 float height,
                 float mazeFloorZ,
-                bool ignoreZMovement,
-                bool bounce = true)
+                bool ignoreZMovement)
                 : m_gameRequester{std::move(inGameRequester)},
                   m_finished(false),
                   m_width(width),
@@ -175,9 +174,9 @@ namespace basic {
                   m_mazeFloorZ{mazeFloorZ},
                   m_ignoreZMovement{ignoreZMovement},
                   m_scaleBall{lcd->m_ballSizeDiagonalRatio * m_diagonal},
-                  m_bounce{bounce},
-                  m_ballTexture{lcd->m_ballTexture},
-                  m_ballModel{lcd->m_ballModel}
+                  m_bounce{lcd->m_bounceEnabled},
+                  m_ballModel{lcd->m_ballModel},
+                  m_ballTexture{lcd->m_ballTexture}
         {
             m_ball.totalRotated = glm::quat();
             m_ball.acceleration = {0.0f, 0.0f, 0.0f};

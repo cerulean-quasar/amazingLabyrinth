@@ -57,14 +57,15 @@ namespace fixedMaze {
         SaveLevelDataFcn getSaveLevelDataFcn() override;
 
         Level(std::shared_ptr<GameRequester> inGameRequester,
+                  std::shared_ptr<LevelConfigData> lcd,
                   std::shared_ptr<LevelSaveData> sd,
                   float width, float height, float maxZ);
-
+/*
         void initSetBallInfo(
                 std::string const &ballModel,
                 std::string const &ballTexture) {
             m_ballModel = ballModel;
-            m_ballTextureName = ballTexture;
+            m_ballTexture = ballTexture;
         }
 
         void initSetBounce(bool bounce) { m_bounce = bounce; }
@@ -84,7 +85,7 @@ namespace fixedMaze {
             m_minSpeedOnObjBounce = minSpeedOnObjBounce * m_diagonal;
             m_bounce = true;
         }
-
+*/
         void init();
 
         ~Level() override = default;
@@ -95,8 +96,6 @@ namespace fixedMaze {
         std::chrono::high_resolution_clock::time_point m_prevTime;
         std::vector<Vertex> m_ballVertices;
         std::vector<uint32_t> m_ballIndices;
-        std::string m_ballModel;
-        std::string m_ballTextureName;
         std::string m_floorModel;
         std::string m_floorTexture;
 

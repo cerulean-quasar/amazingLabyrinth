@@ -1,7 +1,8 @@
 {
-    "BallDiagonal" : 0.025,
     "BallModel": "models/ball.modelcbor",
     "BallTexture": "textures/icePlanet/ballIcePlanet.png",
+    "BounceEnabled": true,
+    "BallDiagonalRatio" : 0.025,
 
     "HoleTexture": "textures/icePlanet/holeSun.png",
     "VortexTexture": "textures/icePlanet/vortexBlackHole.png",

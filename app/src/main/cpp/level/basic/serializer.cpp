@@ -34,19 +34,22 @@ namespace basic {
         val.m_version = j[LevelVersion].get<int>();
     }
 
-    char constexpr const *BallDiagonal = "BallDiagonal";
+    char constexpr const *BallDiagonalRatio = "BallDiagonalRatio";
     char constexpr const *BallModel = "BallModel";
     char constexpr const *BallTexture = "BallTexture";
+    char constexpr const *BounceEnabled = "BounceEnabled";
     void to_json(nlohmann::json &j, LevelConfigData const &val) {
-        j[BallDiagonal] = val.m_ballSizeDiagonalRatio;
         j[BallModel] = val.m_ballModel;
         j[BallTexture] = val.m_ballTexture;
+        j[BounceEnabled] = val.m_bounceEnabled;
+        j[BallDiagonalRatio] = val.m_ballSizeDiagonalRatio;
     }
 
     void from_json(nlohmann::json const &j, LevelConfigData &val) {
-        val.m_ballSizeDiagonalRatio = j[BallDiagonal].get<float>();
         val.m_ballModel = j[BallModel].get<std::string>();
         val.m_ballTexture = j[BallTexture].get<std::string>();
+        val.m_bounceEnabled = j[BounceEnabled].get<bool>();
+        val.m_ballSizeDiagonalRatio = j[BallDiagonalRatio].get<float>();
     }
 
     template<>

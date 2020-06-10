@@ -1,0 +1,11 @@
+{
+    "BallModel": "models/frog/frog.modelcbor",
+    "BallTexture": "textures/frog/frog.png",
+    "BounceEnabled": true,
+    "BallDiagonalRatio" : 0.02,
+
+    "MazeFloorModel": "models/frog/frogFloor.modelcbor",
+    "MazeFloorTexture": "textures/frog/frogFloor.png",
+    "ExtraBounce": 0.05,
+    "MinSpeedOnBounce": 0.02
+}

@@ -37,6 +37,26 @@ namespace fixedMaze {
         from_json(j, boost::implicit_cast<basic::LevelSaveData &>(val));
     }
 
+    char constexpr const *MazeFloorModel = "MazeFloorModel";
+    char constexpr const *MazeFloorTexture = "MazeFloorTexture";
+    char constexpr const *ExtraBounce = "ExtraBounce";
+    char constexpr const *MinSpeedOnBounce = "MinSpeedOnBounce";
+    void to_json(nlohmann::json &j, LevelConfigData const &val) {
+        to_json(j, boost::implicit_cast<basic::LevelConfigData const &>(val));
+        j[MazeFloorModel] = val.m_mazeFloorModel;
+        j[MazeFloorTexture] = val.m_mazeFloorTexture;
+        j[ExtraBounce] = val.m_extraBounce;
+        j[MinSpeedOnBounce] = val.m_minSpeedOnBounce;
+    }
+
+    void from_json(nlohmann::json const &j, LevelConfigData &val) {
+        from_json(j, boost::implicit_cast<basic::LevelConfigData &>(val));
+        val.m_mazeFloorModel = j[MazeFloorModel].get<std::string>();
+        val.m_mazeFloorTexture = j[MazeFloorTexture].get<std::string>();
+        val.m_extraBounce = j[ExtraBounce].get<float>();
+        val.m_minSpeedOnBounce = j[MinSpeedOnBounce].get<float>();
+    }
+
     basic::Level::SaveLevelDataFcn Level::getSaveLevelDataFcn() {
         auto sd = std::make_shared<LevelSaveData>();
         return {[sd](std::shared_ptr<GameSaveData> gsd) -> std::vector<uint8_t> {

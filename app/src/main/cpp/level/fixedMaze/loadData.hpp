@@ -24,12 +24,53 @@
 #include "../basic/loadData.hpp"
 
 namespace fixedMaze {
+    static int constexpr LevelSaveDataVersion = 1;
     struct LevelSaveData : public basic::LevelSaveData {
-        static int constexpr m_fixedMazeVersion = 1;
-
-        LevelSaveData() : basic::LevelSaveData{m_fixedMazeVersion} {}
+        LevelSaveData() : basic::LevelSaveData{LevelSaveDataVersion} {}
     };
 
+    struct LevelConfigData : public basic::LevelConfigData {
+        std::string m_mazeFloorModel;
+        std::string m_mazeFloorTexture;
+        float m_extraBounce;
+        float m_minSpeedOnBounce;
+
+        LevelConfigData()
+                : basic::LevelConfigData(),
+                m_mazeFloorModel{},
+                m_mazeFloorTexture{},
+                m_extraBounce{0.0f},
+                m_minSpeedOnBounce{0.0f}
+        {
+        }
+
+        LevelConfigData(LevelConfigData &&other) noexcept
+                : basic::LevelConfigData(),
+                  m_mazeFloorModel{std::move(other.m_mazeFloorModel)},
+                  m_mazeFloorTexture{std::move(other.m_mazeFloorTexture)},
+                  m_extraBounce{other.m_extraBounce},
+                  m_minSpeedOnBounce{other.m_minSpeedOnBounce}
+        {
+        }
+
+        LevelConfigData(
+                std::string ballModel,
+                std::string ballTexture,
+                float ballSizeDiagonalRatio,
+                std::string mazeFloorModel,
+                std::string mazeFloorTexture,
+                bool bounceEnabled,
+                float extraBounce,
+                float minSpeedOnBounce) noexcept
+                : basic::LevelConfigData(ballModel, ballTexture, bounceEnabled, ballSizeDiagonalRatio),
+                  m_mazeFloorModel{std::move(mazeFloorModel)},
+                  m_mazeFloorTexture{std::move(mazeFloorTexture)},
+                  m_extraBounce{extraBounce},
+                  m_minSpeedOnBounce{minSpeedOnBounce}
+        {
+        }
+
+    };
 } // namespace fixedMaze
 
 #endif // AMAZING_LABYRINTH_FIXED_MAZE_LOAD_DATA_HPP

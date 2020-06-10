@@ -86,16 +86,17 @@ namespace avoidVortexOpenArea {
         }
 
         LevelConfigData(
-                std::string const &holeTexture,
-                std::string const &vortexTexture,
-                std::string const &startVortexTexture,
-                std::string const &ballTexture,
-                std::string const &ballModel,
-                float ballSizeDiagonalRatio)
-                : basic::LevelConfigData{ballTexture, ballModel, ballSizeDiagonalRatio},
-                  m_holeTexture{holeTexture},
-                  m_vortexTexture{vortexTexture},
-                  m_startVortexTexture{startVortexTexture},
+            std::string ballModel,
+            std::string ballTexture,
+            bool bounceEnabled,
+            float ballSizeDiagonalRatio,
+            std::string holeTexture,
+            std::string vortexTexture,
+            std::string startVortexTexture)
+            : basic::LevelConfigData{ballModel, ballTexture, bounceEnabled, ballSizeDiagonalRatio},
+              m_holeTexture{std::move(holeTexture)},
+              m_vortexTexture{std::move(vortexTexture)},
+              m_startVortexTexture{std::move(startVortexTexture)}
         {
         }
     };

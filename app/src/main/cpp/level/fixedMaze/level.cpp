@@ -447,7 +447,7 @@ namespace fixedMaze {
             ballObj->vertices = m_ballVertices;
             ballObj->indices = m_ballIndices;
             ballObj->texture = std::make_shared<TextureDescriptionPath>(m_gameRequester,
-                                                                        m_ballTextureName);
+                                                                        m_ballTexture);
             textures.insert(std::make_pair(ballObj->texture, std::shared_ptr<TextureData>()));
             glm::mat4 modelMatrixBall = glm::translate(glm::mat4(1.0f), m_ball.position) *
                                         glm::mat4_cast(m_ball.totalRotated) *
@@ -481,12 +481,17 @@ namespace fixedMaze {
     }
 
     Level::Level(std::shared_ptr<GameRequester> inGameRequester,
-                         std::shared_ptr<LevelSaveData>,
+                         std::shared_ptr<LevelConfigData> const &lcd,
+                         std::shared_ptr<LevelSaveData> const &,
                          float width, float height, float mazeFloorZ)
-            : Level{inGameRequester, width, height, mazeFloorZ, false, 1.0f / 50.0f},
-              m_extraBounce{1.0f},
-              m_minSpeedOnObjBounce{0.0f},
-              m_speedLimit{m_diagonal / 4.0f} {
+            : basic::Level{inGameRequester, lcd, width, height, mazeFloorZ, false},
+              m_floorModel{lcd->m_mazeFloorModel},
+              m_floorTexture{lcd->m_mazeFloorTexture},
+              m_extraBounce{lcd->m_extraBounce},
+              m_minSpeedOnObjBounce{lcd->m_minSpeedOnBounce},
+              m_speedLimit{m_diagonal / 4.0f}
+    {
+        init();
     }
 
     void Level::findModelViewPort(
@@ -496,7 +501,8 @@ namespace fixedMaze {
             glm::mat4 &trans,
             std::vector<float> &outDepthMap,
             std::vector<glm::vec3> &outNormalMap,
-            size_t &outRowWidth) {
+            size_t &outRowWidth)
+    {
         size_t i = 0;
         for (; i < depthMap.size(); i++) {
             if (depthMap[i] < m_mazeFloorZ - MODEL_MAXZ + m_floatErrorAmount) {
