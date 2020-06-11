@@ -20,93 +20,54 @@
 #ifndef AMAZING_LABYRINTH_MAZE_COLLECT_HPP
 #define AMAZING_LABYRINTH_MAZE_COLLECT_HPP
 
-#include "mazeOpenArea.hpp"
+#include <deque>
+#include "../openAreaMaze/level.hpp"
+#include "loadData.hpp"
 
-struct MazeCollectSaveData : public MazeSaveData {
-    std::vector<Point<float>> collectionObjLocations;
-    std::vector<bool> itemsCollected;
-    std::vector<Point<uint32_t>> previousCells;
+namespace collectMaze {
+    class Level : public openAreaMaze::Level {
+    protected:
+        float const collectBallScaleFactor;
+        bool checkFinishCondition(float timeDiff) override;
 
-    // Intentionally slices other to pass part into the MazeSaveData constructor.
-    MazeCollectSaveData(MazeCollectSaveData &&other) noexcept
-        : MazeSaveData(std::move(other)),
-        collectionObjLocations{other.collectionObjLocations},
-        itemsCollected{other.itemsCollected},
-        previousCells{other.previousCells}
-    {
-    }
+        uint32_t m_numberCollectObjects;
+        std::vector<std::pair<bool, glm::vec3>> m_collectionObjectLocations;
+        std::deque<std::pair<uint32_t, uint32_t>> m_prevCells;
+        std::string m_collectModel;
+        std::string m_collectTexture;
+    public:
+        Level(std::shared_ptr<GameRequester> inGameRequester,
+                    std::shared_ptr<LevelConfigData> const &lcd,
+                    std::shared_ptr<LevelSaveData> const &sd,
+                    float inWidth, float inHeight, float floorZ)
+                : openAreaMaze::Level(std::move(inGameRequester), lcd, sd, inWidth, inHeight, floorZ),
+                  m_numberCollectObjects{lcd->m_numberCollectObjects},
+                  collectBallScaleFactor{2.0f * m_scaleBall / 3.0f}
+        {
+            if (sd) {
+                for (size_t i = 0; i < sd->collectionObjLocations.size(); i++) {
+                    m_collectionObjectLocations.emplace_back(sd->itemsCollected[i],
+                                                             glm::vec3{
+                                                                     sd->collectionObjLocations[i].x,
+                                                                     sd->collectionObjLocations[i].y,
+                                                                     getBallZPosition()});
+                }
 
-    MazeCollectSaveData()
-            : MazeSaveData{},
-              collectionObjLocations{},
-              itemsCollected{},
-              previousCells{}
-    {
-    }
-
-    MazeCollectSaveData(
-        uint32_t nbrRows_,
-        uint32_t ballRow_,
-        uint32_t ballCol_,
-        Point<float> &&ballPos_,
-        uint32_t rowEnd_,
-        uint32_t colEnd_,
-        std::vector<uint32_t> &&wallTextures_,
-        std::vector<uint8_t> &&mazeWallsVector_,
-        std::vector<Point<float>> &&collectionObjLocations_,
-        std::vector<bool> &&itemsCollected_,
-        std::vector<Point<uint32_t>> &&previousCells_)
-        : MazeSaveData{nbrRows_, ballRow_, ballCol_, std::move(ballPos_), rowEnd_, colEnd_,
-                       std::move(wallTextures_), std::move(mazeWallsVector_)},
-          collectionObjLocations{std::move(collectionObjLocations_)},
-          itemsCollected{std::move(itemsCollected_)},
-          previousCells{std::move(previousCells_)}
-    {
-    }
-};
-
-class MazeCollect : public MazeOpenArea {
-protected:
-    static constexpr uint32_t nbrItemsToCollect = 5;
-    float const collectBallScaleFactor;
-    bool checkFinishCondition(float timeDiff) override;
-    std::vector<std::pair<bool, glm::vec3>> m_collectionObjectLocations;
-    std::deque<std::pair<uint32_t, uint32_t>> m_prevCells;
-public:
-    MazeCollect(std::shared_ptr<GameRequester> inGameRequester,
-                std::shared_ptr<MazeCollectSaveData> sd,
-                float inWidth, float inHeight, float floorZ)
-            :MazeOpenArea(std::move(inGameRequester), sd, inWidth, inHeight, floorZ),
-            collectBallScaleFactor{2.0f * m_scaleBall/3.0f}
-    {
-        if (sd) {
-            for (size_t i = 0; i < sd->collectionObjLocations.size(); i++) {
-                m_collectionObjectLocations.emplace_back(sd->itemsCollected[i],
-                                                         glm::vec3{sd->collectionObjLocations[i].x,
-                                                                   sd->collectionObjLocations[i].y,
-                                                                   getBallZPosition()});
+                for (auto const &prevCell : sd->previousCells) {
+                    m_prevCells.emplace_back(prevCell.x, prevCell.y);
+                }
+            } else {
+                generateCollectBallModelMatrices();
             }
-
-            for (auto const &prevCell : sd->previousCells) {
-                m_prevCells.emplace_back(prevCell.x, prevCell.y);
-            }
-        } else {
-            throw std::runtime_error("MazeCollect requires create parameters");
         }
-    }
 
-    MazeCollect(std::shared_ptr<GameRequester> inGameRequester, Maze::CreateParameters const &parameters,
-            float inWidth, float inHeight, float floorZ)
-            :MazeOpenArea(std::move(inGameRequester), parameters, inWidth, inHeight, floorZ),
-            collectBallScaleFactor(2.0f*m_scaleBall/3.0f)
-    {
-        generateCollectBallModelMatrices();
-    }
+        bool updateDynamicDrawObjects(DrawObjectTable &objs, TextureMap &textures,
+                                      bool &texturesChanged) override;
 
-    bool updateDynamicDrawObjects(DrawObjectTable &objs, TextureMap &textures, bool &texturesChanged) override;
-    SaveLevelDataFcn getSaveLevelDataFcn() override;
-private:
-    void generateCollectBallModelMatrices();
-};
+        SaveLevelDataFcn getSaveLevelDataFcn() override;
 
+    private:
+        void generateCollectBallModelMatrices();
+    };
+} // namespace collectMaze
 #endif /* AMAZING_LABYRINTH_MAZE_COLLECT_HPP */

@@ -36,41 +36,37 @@
 namespace avoidVortexMaze {
     class Level : public openAreaMaze::Level {
     protected:
-        static constexpr uint32_t nbrItemsToAvoid = 5;
         std::string m_avoidObjTexture;
 
         bool checkFinishCondition(float timeDiff) override;
 
         std::vector<glm::vec3> m_avoidObjectLocations;
     public:
+        // lcd should never be null, sd may be null.
         Level(std::shared_ptr<GameRequester> inGameRequester,
-                  std::shared_ptr<LevelSaveData> sd,
+                  std::shared_ptr<LevelConfigData> const &lcd,
+                  std::shared_ptr<LevelSaveData> const &sd,
                   float inWidth, float inHeight, float maxZ)
-                : openAreaMaze::Level(std::move(inGameRequester), sd, inWidth, inHeight, maxZ) {
-            m_mazeBoard.setStart(sd->startRowCol.x, sd->startRowCol.y);
-            for (auto avoidObjLocation : sd->avoidObjLocations) {
-                m_avoidObjectLocations.emplace_back(avoidObjLocation.x, avoidObjLocation.y,
-                                                    getBallZPosition());
+                : openAreaMaze::Level(std::move(inGameRequester), lcd, sd, inWidth, inHeight, maxZ),
+                m_avoidObjTexture(lcd->m_avoidTexture)
+        {
+            if (sd) {
+                m_mazeBoard.setStart(sd->startRowCol.x, sd->startRowCol.y);
+                for (auto avoidObjLocation : sd->avoidObjLocations) {
+                    m_avoidObjectLocations.emplace_back(avoidObjLocation.x, avoidObjLocation.y,
+                                                        getBallZPosition());
+                }
+            } else {
+                generateAvoidModelMatrices(lcd->m_numberAvoidObjects);
             }
-        }
-
-        Level(std::shared_ptr<GameRequester> inGameRequester,
-                  generatedMaze::Level::CreateParameters const &parameters,
-                  float inWidth, float inHeight, float maxZ)
-                : openAreaMaze::Level(std::move(inGameRequester), parameters, inWidth, inHeight, maxZ) {
-            generateAvoidModelMatrices();
         }
 
         bool updateStaticDrawObjects(DrawObjectTable &objs, TextureMap &textures) override;
 
         SaveLevelDataFcn getSaveLevelDataFcn() override;
 
-        void initSetAvoidObjTexture(std::string avoidObjTexture) {
-            m_avoidObjTexture = std::move(avoidObjTexture);
-        }
-
     private:
-        void generateAvoidModelMatrices();
+        void generateAvoidModelMatrices(uint32_t numberAvoidObjects);
     };
 
 } // namespace avoidVortexMaze

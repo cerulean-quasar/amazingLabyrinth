@@ -142,7 +142,7 @@ namespace generatedMaze {
         loadModel(m_gameRequester->getAssetStream(MODEL_WALL), v);
         std::swap(v.first, vertices);
         std::swap(v.second, indices);
-        loadModel(m_gameRequester->getAssetStream(MODEL_BALL), v);
+        loadModel(m_gameRequester->getAssetStream(m_ballModel), v);
         std::swap(v.first, ballVertices);
         std::swap(v.second, ballIndices);
         getQuad(holeVertices, holeIndices);
@@ -291,15 +291,6 @@ namespace generatedMaze {
                                            m_height / 2 + m_height / 2 / (numberRows * numberBlocksPerCell), 1.0f));
     }
 
-    void Level::doneAddingWallTextures() {
-        if (m_wallTextureIndices.empty()) {
-            m_wallTextureIndices.reserve(modelMatricesMaze.size());
-            for (size_t i = 0; i < modelMatricesMaze.size(); i++) {
-                m_wallTextureIndices.push_back(random.getUInt(0, wallTextures.size() - 1));
-            }
-        }
-    }
-
     bool Level::updateStaticDrawObjects(DrawObjectTable &objs, TextureMap &textures) {
         if (!objs.empty()) {
             // The objects were already updated, add nothing, update nothing.
@@ -367,8 +358,7 @@ namespace generatedMaze {
             DrawObject *ballObj = objs[0].first.get();
             ballObj->indices = ballIndices;
             ballObj->vertices = ballVertices;
-            ballObj->texture = std::make_shared<TextureDescriptionPath>(m_gameRequester,
-                                                                        ballTexture);
+            ballObj->texture = std::make_shared<TextureDescriptionPath>(m_gameRequester, m_ballTexture);
             textures.insert(std::make_pair(ballObj->texture, std::shared_ptr<TextureData>()));
         } else {
             texturesChanged = false;

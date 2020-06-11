@@ -40,6 +40,20 @@ namespace avoidVortexMaze {
         val.startRowCol = j[BallStart].get<Point<uint32_t>>();
     }
 
+    char constexpr const *AvoidTexture = "AvoidTexture";
+    char constexpr const *NumberAvoidObjects = "NumberAvoidObjects";
+    void to_json(nlohmann::json &j, LevelConfigData const &val) {
+        to_json(j, boost::implicit_cast<generatedMaze::LevelConfigData  const &>(val));
+        j[AvoidTexture] = val.m_avoidTexture;
+        j[NumberAvoidObjects] = val.m_numberAvoidObjects;
+    }
+
+    void from_json(nlohmann::json const &j, LevelConfigData  &val) {
+        from_json(j, boost::implicit_cast<generatedMaze::LevelConfigData  &>(val));
+        val.m_avoidTexture = j[AvoidObjLocation].get<std::string>();
+        val.m_numberAvoidObjects = j[NumberAvoidObjects].get<uint32_t>();
+    }
+
     Level::SaveLevelDataFcn Level::getSaveLevelDataFcn() {
         std::vector<Point<float>> avoidObjLocations;
         avoidObjLocations.reserve(m_avoidObjectLocations.size());

@@ -44,7 +44,7 @@ namespace generatedMaze {
                   ballPos{other.ballPos},
                   rowEnd{other.rowEnd},
                   colEnd{other.colEnd},
-                  wallTextures{other.wallTextures},
+                  wallTextures{std::move(other.wallTextures)},
                   mazeWallsVector{std::move(other.mazeWallsVector)} {
         }
 
@@ -60,7 +60,6 @@ namespace generatedMaze {
         }
 
         LevelSaveData(
-                uint32_t nbrRows_,
                 uint32_t ballRow_,
                 uint32_t ballCol_,
                 Point<float> &&ballPos_,
@@ -105,12 +104,16 @@ namespace generatedMaze {
         {}
 
         LevelConfigData(
+                std::string ballModel,
+                std::string ballTexture,
+                bool bounceEnabled,
+                float ballSizeDiagonalRatio,
                 std::vector<std::string> wallTextureNames_,
                 std::string mazeFloorTexture_,
                 std::string holeTexture_,
                 uint32_t numberRows_,
                 bool dfsSearch_)
-                : basic::LevelConfigData{},
+                : basic::LevelConfigData{ballModel, ballTexture, bounceEnabled, ballSizeDiagonalRatio},
                   m_wallTextureNames{std::move(wallTextureNames_)},
                   m_mazeFloorTexture{std::move(mazeFloorTexture_)},
                   m_holeTexture{std::move(holeTexture_)},

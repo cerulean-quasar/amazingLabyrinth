@@ -39,9 +39,9 @@ namespace avoidVortexMaze {
                                getRowCenterPosition(m_mazeBoard.rowEnd()));
     }
 
-    void Level::generateAvoidModelMatrices() {
+    void Level::generateAvoidModelMatrices(uint32_t numberAvoidObjects) {
         // generate the items to avoid
-        while (m_avoidObjectLocations.size() < nbrItemsToAvoid) {
+        while (m_avoidObjectLocations.size() < numberAvoidObjects) {
             uint32_t row = random.getUInt(0, m_mazeBoard.numberRows() - 1);
             uint32_t col = random.getUInt(0, m_mazeBoard.numberColumns() - 1);
 

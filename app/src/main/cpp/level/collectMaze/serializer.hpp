@@ -17,19 +17,21 @@
  *  along with AmazingLabyrinth.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
-#ifndef AMAZING_LABYRINTH_AVOID_VORTEX_MAZE_SERIALIZER_HPP
-#define AMAZING_LABYRINTH_AVOID_VORTEX_MAZE_SERIALIZER_HPP
+
+#ifndef AMAZING_LABYRINTH_COLLECT_MAZE_SERIALIZER_HPP
+#define AMAZING_LABYRINTH_COLLECT_MAZE_SERIALIZER_HPP
+
+#include <memory>
 #include <json.hpp>
 
 #include "loadData.hpp"
 
-namespace avoidVortexMaze {
+namespace collectMaze {
     void to_json(nlohmann::json &j, LevelSaveData const &val);
-
     void from_json(nlohmann::json const &j, LevelSaveData &val);
 
     void to_json(nlohmann::json &j, LevelConfigData const &val);
+    void from_json(nlohmann::json const &j, LevelConfigData &val);
+} // namespace collectMaze
 
-    void from_json(nlohmann::json const &j, LevelConfigData  &val);
-}
-#endif // AMAZING_LABYRINTH_AVOID_VORTEX_MAZE_SERIALIZER_HPP
+#endif // AMAZING_LABYRINTH_COLLECT_MAZE_SERIALIZER_HPP
