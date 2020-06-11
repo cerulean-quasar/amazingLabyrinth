@@ -35,6 +35,7 @@ namespace collectMaze {
         std::deque<std::pair<uint32_t, uint32_t>> m_prevCells;
         std::string m_collectModel;
         std::string m_collectTexture;
+        bool m_collectObjsSameAsBall;
     public:
         Level(std::shared_ptr<GameRequester> inGameRequester,
                     std::shared_ptr<LevelConfigData> const &lcd,
@@ -42,7 +43,10 @@ namespace collectMaze {
                     float inWidth, float inHeight, float floorZ)
                 : openAreaMaze::Level(std::move(inGameRequester), lcd, sd, inWidth, inHeight, floorZ),
                   m_numberCollectObjects{lcd->m_numberCollectObjects},
-                  collectBallScaleFactor{2.0f * m_scaleBall / 3.0f}
+                  collectBallScaleFactor{2.0f * m_scaleBall / 3.0f},
+                  m_collectModel{lcd->m_collectModel},
+                  m_collectTexture{lcd->m_collectTexture},
+                  m_collectObjsSameAsBall{m_collectModel == m_ballModel && m_collectTexture == m_ballTexture}
         {
             if (sd) {
                 for (size_t i = 0; i < sd->collectionObjLocations.size(); i++) {

@@ -112,12 +112,25 @@ namespace collectMaze {
                                            glm::vec3{collectBallScaleFactor, collectBallScaleFactor,
                                                      collectBallScaleFactor});
         if (isEmpty) {
-            // the objects to collect - they are just smaller versions of the ball.  Just add them to
-            // the ball model matrices.  The ball is always first in the table of draw objects.
-            auto const &ballObj = objs[0].first;
+            std::shared_ptr<DrawObject> collectObj;
+            if (m_collectObjsSameAsBall) {
+                // the objects to collect - they are just smaller versions of the ball.  Just add them to
+                // the ball model matrices.  The ball is always first in the table of draw objects.
+                collectObj = objs[0].first;
+            } else {
+                collectObj = std::make_shared<DrawObject>();
+                std::pair<std::vector<Vertex>, std::vector<uint32_t>> v;
+                loadModel(m_gameRequester->getAssetStream(m_collectModel), v);
+                collectObj->vertices = std::move(v.first);
+                collectObj->indices = std::move(v.second);
+                collectObj->texture = std::make_shared<TextureDescriptionPath>(m_gameRequester, m_collectTexture);
+                textures.emplace(collectObj->texture, std::make_shared<TextureData>());
+                objs.emplace_back(collectObj, std::shared_ptr<DrawObjectData>());
+            }
             for (auto const &item : m_collectionObjectLocations) {
-                ballObj->modelMatrices.push_back(glm::translate(glm::mat4(1.0f), item.second) *
-                                                 glm::mat4_cast(m_ball.totalRotated) * scaleMatrix);
+                collectObj->modelMatrices.push_back(glm::translate(glm::mat4(1.0f), item.second) *
+                                                 glm::mat4_cast(m_ball.totalRotated) *
+                                                 scaleMatrix);
             }
             isUpdated = true;
         } else {
