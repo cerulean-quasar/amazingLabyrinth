@@ -29,6 +29,85 @@ namespace movablePassage {
 
         LevelSaveData() : basic::LevelSaveData{m_movablePassageVersion} {}
     };
+
+    struct ComponentConfig {
+        std::string model;
+        std::string texture;
+        uint32_t numberPlacements;
+
+        ComponentConfig()
+            : model{},
+              texture{},
+              numberPlacements{0}
+        {}
+
+        ComponentConfig(ComponentConfig &&other)
+            : model{std::move(other.model)},
+              texture{std::move(other.texture)},
+              numberPlacements{other.numberPlacements}
+        {}
+    };
+
+    struct RockPlacement {
+        uint32_t row;
+        uint32_t col;
+
+        RockPlacement()
+            : row{}, col{}
+        {}
+
+        RockPlacement(RockPlacement &&other) noexcept
+            : row{other.row}, col{other.col}
+        {}
+    };
+
+    struct LevelConfigData : public basic::LevelConfigData {
+        uint32_t numberTilesX;
+        uint32_t numberTilesY;
+        uint32_t startColumn;
+        uint32_t endColumn;
+        std::string endTexture;
+        std::string endOffBoardTexture;
+        std::string placementLockedInPlaceTexture;
+        std::vector<std::string> rockModels;
+        std::vector<std::string> rockTextures;
+        std::vector<std::string> dirtModels;
+        std::vector<std::string> dirtTextures;
+        std::vector<std::string> beginningSideModels;
+        std::vector<std::string> beginningSideTextures;
+        std::vector<std::string> beginningOpenModels;
+        std::vector<std::string> beginningOpenTextures;
+        std::vector<std::string> beginningCornerModels;
+        std::vector<std::string> beginningCornerTextures;
+        ComponentConfig straight;
+        ComponentConfig turn;
+        ComponentConfig crossjunction;
+        ComponentConfig tjunction;
+        std::vector<RockPlacement> rockPlacements;
+
+        LevelConfigData() {}
+
+        LevelConfigData(LevelConfigData &&other)
+            : endTexture{std::move(other.endTexture)},
+              endOffBoardTexture{std::move(other.endOffBoardTexture)},
+              placementLockedInPlaceTexture{std::move(other.placementLockedInPlaceTexture)},
+              rockModels{std::move(other.rockModels)},
+              rockTextures{std::move(other.rockTextures)},
+              dirtModels{std::move(other.dirtModels)},
+              dirtTextures{std::move(other.dirtTextures)},
+              beginningSideModels{std::move(other.beginningSideModels)},
+              beginningSideTextures{std::move(other.beginningSideTextures)},
+              beginningOpenModels{std::move(other.beginningOpenModels)},
+              beginningOpenTextures{std::move(other.beginningOpenTextures)},
+              beginningCornerModels{std::move(other.beginningCornerModels)},
+              beginningCornerTextures{std::move(other.beginningCornerTextures)},
+              straight{std::move(other.straight)},
+              turn{std::move(other.turn)},
+              crossjunction{std::move(other.crossjunction)},
+              tjunction{std::move(other.tjunction)},
+              rockPlacements{std::move(other.rockPlacements)}
+        {}
+    };
 } // namespace movablePassage
 
 #endif // AMAZING_LABYRINTH_MOVABLE_PASSAGE_LOAD_DATA_HPP

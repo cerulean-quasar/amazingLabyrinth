@@ -42,10 +42,10 @@ namespace collectMaze {
                     std::shared_ptr<LevelSaveData> const &sd,
                     float inWidth, float inHeight, float floorZ)
                 : openAreaMaze::Level(std::move(inGameRequester), lcd, sd, inWidth, inHeight, floorZ),
-                  m_numberCollectObjects{lcd->m_numberCollectObjects},
+                  m_numberCollectObjects{lcd->numberCollectObjects},
                   collectBallScaleFactor{2.0f * m_scaleBall / 3.0f},
-                  m_collectModel{lcd->m_collectModel},
-                  m_collectTexture{lcd->m_collectTexture},
+                  m_collectModel{lcd->collectModel},
+                  m_collectTexture{lcd->collectTexture},
                   m_collectObjsSameAsBall{m_collectModel == m_ballModel && m_collectTexture == m_ballTexture}
         {
             if (sd) {

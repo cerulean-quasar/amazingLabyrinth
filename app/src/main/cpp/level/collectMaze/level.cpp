@@ -134,19 +134,39 @@ namespace collectMaze {
             }
             isUpdated = true;
         } else {
-            DrawObjectEntry &obj = objs[0];
+            if (m_collectObjsSameAsBall) {
+                DrawObjectEntry &obj = objs[0];
 
-            // ignore the first model matrix.  It is for the main ball that the user is rolling
-            // not the following balls.
-            uint32_t i = 1;
-            for (auto const &item : m_collectionObjectLocations) {
-                if (item.first) {
-                    obj.first->modelMatrices[i++] = glm::translate(glm::mat4(1.0f), item.second) *
-                                                    glm::mat4_cast(m_ball.totalRotated) *
-                                                    scaleMatrix;
-                    isUpdated = true;
-                } else {
-                    i++;
+                // ignore the first model matrix.  It is for the main ball that the user is rolling
+                // not the following balls.
+                uint32_t i = 1;
+                for (auto const &item : m_collectionObjectLocations) {
+                    if (item.first) {
+                        obj.first->modelMatrices[i++] =
+                                glm::translate(glm::mat4(1.0f), item.second) *
+                                glm::mat4_cast(m_ball.totalRotated) *
+                                scaleMatrix;
+                        isUpdated = true;
+                    } else {
+                        i++;
+                    }
+                }
+            } else {
+                DrawObjectEntry &obj = objs[1];
+
+                // ignore the first model matrix.  It is for the main ball that the user is rolling
+                // not the following balls.
+                uint32_t i = 0;
+                for (auto const &item : m_collectionObjectLocations) {
+                    if (item.first) {
+                        obj.first->modelMatrices[i++] =
+                                glm::translate(glm::mat4(1.0f), item.second) *
+                                glm::mat4_cast(m_ball.totalRotated) *
+                                scaleMatrix;
+                        isUpdated = true;
+                    } else {
+                        i++;
+                    }
                 }
             }
         }

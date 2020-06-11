@@ -63,43 +63,43 @@ namespace collectMaze {
     };
 
     struct LevelConfigData : public generatedMaze::LevelConfigData {
-        std::string m_collectModel;
-        std::string m_collectTexture;
-        uint32_t m_numberCollectObjects;
+        std::string collectModel;
+        std::string collectTexture;
+        uint32_t numberCollectObjects;
 
         LevelConfigData()
             : generatedMaze::LevelConfigData(),
-              m_collectModel{},
-              m_collectTexture{},
-              m_numberCollectObjects{0}
+              collectModel{},
+              collectTexture{},
+              numberCollectObjects{0}
         {}
 
         LevelConfigData(LevelConfigData &&other) noexcept
             : generatedMaze::LevelConfigData{std::move(other)},
-              m_collectModel{std::move(other.m_collectModel)},
-              m_collectTexture{std::move(other.m_collectTexture)},
-              m_numberCollectObjects{other.m_numberCollectObjects}
+              collectModel{std::move(other.collectModel)},
+              collectTexture{std::move(other.collectTexture)},
+              numberCollectObjects{other.numberCollectObjects}
         {}
 
         LevelConfigData(
-            std::string ballModel,
-            std::string ballTexture,
-            bool bounceEnabled,
-            float ballSizeDiagonalRatio,
-            std::vector<std::string> wallTextureNames,
-            std::string mazeFloorTexture,
-            std::string holeTexture,
-            uint32_t numberRows,
-            bool dfsSearch,
-            std::string collectModel,
-            std::string collectTexture,
-            uint32_t numberCollectObjects)
-            : generatedMaze::LevelConfigData(ballModel, ballTexture, bounceEnabled,
-                    ballSizeDiagonalRatio, wallTextureNames, mazeFloorTexture, holeTexture,
-                    numberRows, dfsSearch),
-              m_collectModel{std::move(collectModel)},
-              m_collectTexture{std::move(collectTexture)},
-              m_numberCollectObjects{numberCollectObjects}
+            std::string ballModel_,
+            std::string ballTexture_,
+            bool bounceEnabled_,
+            float ballSizeDiagonalRatio_,
+            std::vector<std::string> wallTextureNames_,
+            std::string mazeFloorTexture_,
+            std::string holeTexture_,
+            uint32_t numberRows_,
+            bool dfsSearch_,
+            std::string collectModel_,
+            std::string collectTexture_,
+            uint32_t numberCollectObjects_)
+            : generatedMaze::LevelConfigData(ballModel_, ballTexture_, bounceEnabled_,
+                    ballSizeDiagonalRatio_, wallTextureNames_, mazeFloorTexture_, holeTexture_,
+                    numberRows_, dfsSearch_),
+              collectModel{std::move(collectModel_)},
+              collectTexture{std::move(collectTexture_)},
+              numberCollectObjects{numberCollectObjects_}
         {}
     };
 } // namespace collectMaze

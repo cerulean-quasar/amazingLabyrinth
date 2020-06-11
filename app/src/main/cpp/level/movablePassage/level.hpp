@@ -36,6 +36,7 @@
 #include "../../random.hpp"
 #include "../basic/level.hpp"
 #include "../movablePassageAlgorithms.hpp"
+#include "loadData.hpp"
 
 // All models expected to be exported with Z-up, Y-forward.
 namespace movablePassage {
@@ -90,36 +91,35 @@ namespace movablePassage {
         // this function can be called at any time before the level is started.
         void initSetGameBoardInfo(
                 std::string const &lockedComponentTexture,
-                std::vector<std::string> const &blockedRockModel,
-                std::string const &blockedRockTexture,
-                std::vector<std::string> const &blockedDirtTexture,
+                std::vector<std::string> const &blockedRockModels,
+                std::vector<std::string> const &blockedRockTextures,
+                std::vector<std::string> const &blockedDirtModels,
+                std::vector<std::string> const &blockedDirtTextures,
                 std::string const &componentTextureEnd,
                 std::string const &textureEndOffBoard,
-                std::string const &startCornerModel,
-                std::string const &startCornerTexture,
-                std::string const &startSideModel,
-                std::vector<std::string> const &startSideTexture,
-                std::string const &startOpenModel,
-                std::vector<std::string> const &startOpenTexture) {
+                std::vector<std::string> const &startCornerModels,
+                std::vector<std::string> const &startCornerTextures,
+                std::vector<std::string> const &startSideModels,
+                std::vector<std::string> const &startSideTextures,
+                std::vector<std::string> const &startOpenModels,
+                std::vector<std::string> const &startOpenTextures) {
             m_textureLockedComponent = lockedComponentTexture;
 
-            m_componentModels[Component::ComponentType::noMovementRock] = blockedRockModel;
-            m_componentTextures[Component::ComponentType::noMovementRock].push_back(
-                    blockedRockTexture);
-            m_componentTextures[Component::ComponentType::noMovementDirt] = blockedDirtTexture;
+            m_componentModels[Component::ComponentType::noMovementRock] = blockedRockModels;
+            m_componentTextures[Component::ComponentType::noMovementRock] = blockedRockTextures;
+            m_componentTextures[Component::ComponentType::noMovementDirt] = blockedDirtTextures;
 
             m_componentTextureEnd = componentTextureEnd;
             m_textureEndOffBoard = textureEndOffBoard;
 
-            m_componentModels[Component::ComponentType::closedCorner].push_back(startCornerModel);
-            m_componentTextures[Component::ComponentType::closedCorner].push_back(
-                    startCornerTexture);
+            m_componentModels[Component::ComponentType::closedCorner] = startCornerModels;
+            m_componentTextures[Component::ComponentType::closedCorner] = startCornerTextures;
 
-            m_componentModels[Component::ComponentType::closedBottom].push_back(startSideModel);
-            m_componentTextures[Component::ComponentType::closedBottom] = startSideTexture;
+            m_componentModels[Component::ComponentType::closedBottom] =startSideModels;
+            m_componentTextures[Component::ComponentType::closedBottom] = startSideTextures;
 
-            m_componentModels[Component::ComponentType::open].push_back(startOpenModel);
-            m_componentTextures[Component::ComponentType::open] = startOpenTexture;
+            m_componentModels[Component::ComponentType::open] = startOpenModels;
+            m_componentTextures[Component::ComponentType::open] = startOpenTextures;
         }
 
         // all the compoents should be added before calling this function.
@@ -163,11 +163,12 @@ namespace movablePassage {
 
         Level(
             std::shared_ptr<GameRequester> inGameRequester,
-            std::shared_ptr<MovablePassageSaveData> /*sd*/,
+            std::shared_ptr<LevelConfigData> const &lcd,
+            std::shared_ptr<LevelSaveData> const &/*sd*/,
             float width,
             float height,
             float maxZ)
-         : basic::Level(inGameRequester, width, height, maxZ, true, 1/50.0f, false),
+         : basic::Level(inGameRequester, lcd, width, height, maxZ, true),
            m_random{},
            m_zdrawTopsOfObjects{ m_mazeFloorZ },
            m_zMovingPlacement{ m_mazeFloorZ + m_scaleBall },
@@ -189,6 +190,49 @@ namespace movablePassage {
            m_initDone{ false },
            m_objsReferenceBall{ 0 }
         {
+            initSetGameBoardInfo(
+                    lcd->placementLockedInPlaceTexture,
+                    lcd->rockModels,
+                    lcd->rockTextures,
+                    lcd->dirtModels,
+                    lcd->dirtTextures,
+                    lcd->endTexture,
+                    lcd->endOffBoardTexture,
+                    lcd->beginningCornerModels, lcd->beginningCornerTextures,
+                    lcd->beginningSideModels, lcd->beginningSideTextures,
+                    lcd->beginningOpenModels, lcd->beginningOpenTextures);
+            level->initAddRock(1,1);
+            level->initAddRock(1,2);
+            level->initAddRock(1,3);
+            level->initAddRock(1,4);
+            level->initAddRock(1,5);
+            level->initAddRock(1,6);
+            level->initAddRock(3,0);
+            level->initAddRock(3,2);
+            level->initAddRock(3,3);
+            level->initAddRock(3,5);
+            level->initAddRock(5,1);
+            level->initAddRock(5,2);
+            level->initAddRock(5,3);
+            level->initAddRock(5,5);
+            level->initAddRock(5,6);
+            level->initAddRock(6,5);
+            level->initAddRock(6,6);
+            level->initAddRock(7,0);
+            level->initAddRock(7,1);
+            level->initAddRock(7,2);
+            level->initAddRock(7,3);
+
+            initAddType(Component::ComponentType::straight, lcd->straight.numberPlacements,
+                               lcd->straight.model, lcd->straight.texture);
+            initAddType(Component::ComponentType::turn, lcd->turn.numberPlacements,
+                               lcd->turn.model, lcd->turn.texture);
+            initAddType(Component::ComponentType::tjunction, lcd->tjunction.numberPlacements,
+                               lcd->tjunction.model, lcd->tjunction.texture);
+            initAddType(Component::ComponentType::crossjunction, lcd->crossjunction.numberPlacements,
+                               lcd->crossjunction.model, lcd->crossjunction.texture);
+            initSetGameBoard(lcd->numberTilesX, lcd->numberTilesY, lcd->startColumn, lcd->endColumn);
+            initDone();
         }
 
     private:
@@ -209,8 +253,6 @@ namespace movablePassage {
         bool m_texturesChanged;
         bool m_initDone;
 
-        std::string m_ballModel;
-        std::string m_ballTextureName;
         uint32_t m_objsReferenceBall;
 
         std::array<std::vector<std::string>,

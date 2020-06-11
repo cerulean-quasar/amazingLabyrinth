@@ -48,16 +48,16 @@ namespace collectMaze {
     char constexpr const *NumberCollectObjects = "NumberCollectObjects";
     void to_json(nlohmann::json &j, LevelConfigData const &val) {
         to_json(j, boost::implicit_cast<generatedMaze::LevelConfigData const &>(val));
-        j[CollectModel] = val.m_collectModel;
-        j[CollectTexture] = val.m_collectTexture;
-        j[NumberCollectObjects] = val.m_numberCollectObjects;
+        j[CollectModel] = val.collectModel;
+        j[CollectTexture] = val.collectTexture;
+        j[NumberCollectObjects] = val.numberCollectObjects;
     }
 
     void from_json(nlohmann::json const &j, LevelConfigData &val) {
         from_json(j, boost::implicit_cast<generatedMaze::LevelConfigData &>(val));
-        val.m_collectModel = j[CollectModel].get<std::string>();
-        val.m_collectTexture = j[CollectTexture].get<std::string>();
-        val.m_numberCollectObjects = j[NumberCollectObjects].get<uint32_t>();
+        val.collectModel = j[CollectModel].get<std::string>();
+        val.collectTexture = j[CollectTexture].get<std::string>();
+        val.numberCollectObjects = j[NumberCollectObjects].get<uint32_t>();
     }
 
     basic::Level::SaveLevelDataFcn Level::getSaveLevelDataFcn() {
