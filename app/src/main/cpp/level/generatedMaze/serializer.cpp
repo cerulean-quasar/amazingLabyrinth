@@ -25,7 +25,6 @@
 #include "serializer.hpp"
 
 namespace generatedMaze {
-    char constexpr const *NbrRows = "NbrRows";
     char constexpr const *BallRow = "BallRow";
     char constexpr const *BallCol = "BallCol";
     char constexpr const *EndRow = "EndRow";
@@ -36,7 +35,6 @@ namespace generatedMaze {
 
     void to_json(nlohmann::json &j, LevelSaveData const &val) {
         to_json(j, boost::implicit_cast<basic::LevelSaveData const &>(val));
-        j[NbrRows] = val.nbrRows;
         j[BallRow] = val.ballRow;
         j[BallCol] = val.ballCol;
         j[BallPos] = val.ballPos;
@@ -48,7 +46,6 @@ namespace generatedMaze {
 
     void from_json(nlohmann::json const &j, LevelSaveData &val) {
         from_json(j, boost::implicit_cast<basic::LevelSaveData &>(val));
-        val.nbrRows = j[NbrRows].get<uint32_t>();
         val.ballRow = j[BallRow].get<uint32_t>();
         val.ballCol = j[BallCol].get<uint32_t>();
         val.ballPos = j[BallPos].get<Point<float>>();
@@ -56,6 +53,30 @@ namespace generatedMaze {
         val.colEnd = j[EndCol].get<uint32_t>();
         val.wallTextures = j[WallTextures].get<std::vector<uint32_t>>();
         val.mazeWallsVector = j[MazeWalls].get<std::vector<uint8_t>>();
+    }
+
+    char constexpr const *WallTextureNames = "WallTextureNames";
+    char constexpr const *MazeFloorTexture = "MazeFloorTexture";
+    char constexpr const *HoleTexture = "HoleTexture";
+    char constexpr const *NumberRows = "NumberRows";
+    char constexpr const *DfsSearch = "DfsSearch";
+
+    void to_json(nlohmann::json &j, LevelConfigData const &val) {
+        to_json(j, boost::implicit_cast<basic::LevelConfigData const &>(val));
+        j[WallTextureNames] = val.m_wallTextureNames;
+        j[MazeFloorTexture] = val.m_mazeFloorTexture;
+        j[HoleTexture] = val.m_holeTexture;
+        j[NumberRows] = val.m_numberRows;
+        j[DfsSearch] = val.m_dfsSearch;
+    }
+
+    void from_json(nlohmann::json const &j, LevelConfigData &val) {
+        from_json(j, boost::implicit_cast<basic::LevelConfigData &>(val));
+        val.m_wallTextureNames = j[WallTextureNames].get<std::vector<std::string>>();
+        val.m_mazeFloorTexture = j[MazeFloorTexture].get<std::string>();
+        val.m_holeTexture = j[HoleTexture].get<std::string>();
+        val.m_numberRows = j[NumberRows].get<uint32_t>();
+        val.m_dfsSearch = j[DfsSearch].get<bool>();
     }
 
     uint8_t encodeCell(bool top, bool right, bool bottom, bool left) {

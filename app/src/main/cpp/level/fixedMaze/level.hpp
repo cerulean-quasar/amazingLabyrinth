@@ -57,8 +57,8 @@ namespace fixedMaze {
         SaveLevelDataFcn getSaveLevelDataFcn() override;
 
         Level(std::shared_ptr<GameRequester> inGameRequester,
-                  std::shared_ptr<LevelConfigData> lcd,
-                  std::shared_ptr<LevelSaveData> sd,
+                  std::shared_ptr<LevelConfigData> const &lcd,
+                  std::shared_ptr<LevelSaveData> const &sd,
                   float width, float height, float maxZ);
 /*
         void initSetBallInfo(

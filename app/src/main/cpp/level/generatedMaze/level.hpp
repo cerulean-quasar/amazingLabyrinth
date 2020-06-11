@@ -49,7 +49,6 @@ namespace generatedMaze {
         static constexpr unsigned int numberBlocksPerCell = 2;
         Random random;
         std::vector<std::string> wallTextures;
-        std::string ballTexture;
         std::string floorTexture;
         std::string holeTexture;
         std::chrono::high_resolution_clock::time_point prevTime;
@@ -109,75 +108,69 @@ namespace generatedMaze {
 
         void generateCellsFromMazeVector(std::vector<uint8_t> const &mazeVector);
 
-    public:
-
-        struct CreateParameters {
-            unsigned int numberRows;
-            GeneratedMazeBoard::Mode mode;
-        };
-
     private:
         static Level::MazeWallModelMatrixGeneratorFcn getMazeWallModelMatricesGenerator();
+        static GeneratedMazeBoard::Mode getGeneratorType(
+                std::shared_ptr<LevelConfigData> const &lcd,
+                std::shared_ptr<LevelSaveData> const &sd)
+        {
+            if (sd) {
+                return GeneratedMazeBoard::Mode::none;
+            } else if (lcd->m_dfsSearch) {
+                return GeneratedMazeBoard::Mode::DFS;
+            } else {
+                return GeneratedMazeBoard::Mode::BFS;
+            }
+        }
 
         void initializeCell(uint8_t nibble, size_t row, size_t col);
 
     public:
+        // lcd must never be null
+        // sd can be null if there is no save data.  If it is not null, the maze will be restored
+        // from the save data, otherwise the maze will be generated.
         Level(std::shared_ptr<GameRequester> inGameRequester,
-             std::shared_ptr<LevelSaveData> sd,
+             std::shared_ptr<LevelConfigData> const &lcd,
+             std::shared_ptr<LevelSaveData> const &sd,
              float width,
              float height,
              float floorZ,
              MazeWallModelMatrixGeneratorFcn wallModelMatrixGeneratorFcn = getMazeWallModelMatricesGenerator())
-                : basic::Level(std::move(inGameRequester), width, height, floorZ, true,
-                        height / ((sd ? sd->nbrRows : 1.0f) * numberBlocksPerCell + 1) /
-                        glm::length(glm::vec2{width, height}) / m_originalBallDiameter,
-                        false),
+                : basic::Level(std::move(inGameRequester), lcd, width, height, floorZ, true),
+                  wallTextures{lcd->m_wallTextureNames},
+                  floorTexture{lcd->m_mazeFloorTexture},
+                  holeTexture{lcd->m_holeTexture},
                   drawHole{true},
-                  m_mazeBoard{sd->nbrRows,
-                              static_cast<uint32_t>(std::floor((sd->nbrRows) * m_width / m_height)),
-                              GeneratedMazeBoard::Mode::none} {
+                  m_mazeBoard{lcd->m_numberRows,
+                              static_cast<uint32_t>(std::floor((lcd->m_numberRows) * m_width / m_height)),
+                              getGeneratorType(lcd, sd)}
+        {
+            m_scaleBall = height / (lcd->m_numberRows * numberBlocksPerCell + 1) / m_originalBallDiameter;
             preGenerate();
 
             loadModels();
 
-            m_mazeBoard.setEnd(sd->rowEnd, sd->colEnd);
+            if (sd) {
+                m_mazeBoard.setEnd(sd->rowEnd, sd->colEnd);
 
-            // Set up the "start" to be where the ball was last since we don't know what the start
-            // was anymore, but we do need a "valid" start for generateModelMatrices.
-            m_mazeBoard.setStart(sd->ballRow, sd->ballCol);
+                // Set up the "start" to be where the ball was last since we don't know what the start
+                // was anymore, but we do need a "valid" start for generateModelMatrices.
+                m_mazeBoard.setStart(sd->ballRow, sd->ballCol);
 
-            m_wallTextureIndices = sd->wallTextures;
-            generateCellsFromMazeVector(sd->mazeWallsVector);
-            generateModelMatrices(wallModelMatrixGeneratorFcn);
+                m_wallTextureIndices = sd->wallTextures;
+                generateCellsFromMazeVector(sd->mazeWallsVector);
+                generateModelMatrices(wallModelMatrixGeneratorFcn);
 
-            m_ballCell.row = sd->ballRow;
-            m_ballCell.col = sd->ballCol;
+                m_ballCell.row = sd->ballRow;
+                m_ballCell.col = sd->ballCol;
 
-            // these are set incorrectly by generateModelMatrices.... set them up again.
-            m_ball.position = glm::vec3{sd->ballPos.x, sd->ballPos.y, getBallZPosition()};
-            modelMatrixBall = glm::translate(glm::mat4(1.0f), m_ball.position) *
-                              glm::mat4_cast(m_ball.totalRotated) * scaleBall;
-        }
-
-        Level(std::shared_ptr<GameRequester> inGameRequester,
-             CreateParameters const &createParameters,
-             float width,
-             float height,
-             float maxZ,
-             MazeWallModelMatrixGeneratorFcn wallModelMatrixGeneratorFcn = getMazeWallModelMatricesGenerator())
-                : Level(std::move(inGameRequester), width, height, maxZ, true,
-                        height / (createParameters.numberRows * numberBlocksPerCell + 1) /
-                        glm::length(glm::vec2{width, height}) / m_originalBallDiameter,
-                        false),
-                  drawHole{true},
-                  m_mazeBoard{createParameters.numberRows,
-                              static_cast<uint32_t>(std::floor(
-                                      (createParameters.numberRows) * m_width / m_height)),
-                              createParameters.mode} {
-            preGenerate();
-
-            loadModels();
-            generateModelMatrices(wallModelMatrixGeneratorFcn);
+                // these are set incorrectly by generateModelMatrices.... set them up again.
+                m_ball.position = glm::vec3{sd->ballPos.x, sd->ballPos.y, getBallZPosition()};
+                modelMatrixBall = glm::translate(glm::mat4(1.0f), m_ball.position) *
+                                  glm::mat4_cast(m_ball.totalRotated) * scaleBall;
+            } else {
+                generateModelMatrices(wallModelMatrixGeneratorFcn);
+            }
         }
 
         void preGenerate() {
@@ -203,18 +196,6 @@ namespace generatedMaze {
         void start() override {
             prevTime = std::chrono::high_resolution_clock::now();
         }
-
-        void initAddWallTexture(std::string const &texturePath) {
-            wallTextures.push_back(texturePath);
-        }
-
-        void doneAddingWallTextures();
-
-        void initSetFloorTexture(std::string const &texturePath) { floorTexture = texturePath; }
-
-        void initSetHoleTexture(std::string const &texturePath) { holeTexture = texturePath; }
-
-        void initSetBallTexture(std::string const &texturePath) { ballTexture = texturePath; }
 
         SaveLevelDataFcn getSaveLevelDataFcn() override;
 
