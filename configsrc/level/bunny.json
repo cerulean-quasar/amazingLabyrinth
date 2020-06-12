@@ -2,7 +2,7 @@
     "Components" : {
         "Starter": "starter",
         "Level": "avoidVortexMaze",
-        "Finished": "manyQuadCoverUp"
+        "Finisher": "manyQuadCoverUp"
     },
     "Starter" : {
         "StartupMessages": [
@@ -16,9 +16,9 @@
         "BounceEnabled": false,
         "BallDiagonalRatio" : 0.0,
 
-        "WallTextureNames": [ "textures/bunny/wallFlower1.png",
-                          "textures/bunny/wallFlower2.png",
-                          "textures/bunny/wallFlower3.png" ],
+        "WallTextureNames": [ "textures/bunny/wall1.png",
+                          "textures/bunny/wall2.png",
+                          "textures/bunny/wall3.png" ],
         "MazeFloorTexture": "textures/bunny/floor.png",
         "HoleTexture": "textures/bunny/hole.png",
         "NumberRows": 10,

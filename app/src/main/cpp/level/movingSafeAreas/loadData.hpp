@@ -82,6 +82,25 @@ namespace movingSafeAreas {
         }
     };
 
+    struct LevelConfigData : public basic::LevelConfigData {
+        std::string startQuadTexture;
+        std::string endQuadTexture;
+        std::vector<std::string> middleQuadTextures;
+
+        LevelConfigData(LevelConfigData &&other) noexcept
+            : basic::LevelConfigData{std::move(other)},
+              startQuadTexture{std::move(other.startQuadTexture)},
+              endQuadTexture{std::move(other.endQuadTexture)},
+              middleQuadTextures{std::move(other.middleQuadTextures)}
+        {}
+
+        LevelConfigData()
+                : basic::LevelConfigData{},
+                  startQuadTexture{},
+                  endQuadTexture{},
+                  middleQuadTextures{}
+        {}
+    };
 } // namespace movingSafeAreas
 
 #endif // AMAZING_LABYRINTH_MOVING_SAFE_AREAS_LOAD_DATA_HPP

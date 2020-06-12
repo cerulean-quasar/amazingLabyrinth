@@ -27,6 +27,10 @@ namespace movablePassage {
     void to_json(nlohmann::json &j, LevelSaveData const &val);
 
     void from_json(nlohmann::json const &j, LevelSaveData &val);
+
+    void to_json(nlohmann::json &j, LevelConfigData const &val);
+
+    void from_json(nlohmann::json const &j, LevelConfigData &val);
 }
 
-#endif //AMAZING_LABYRINTH_MOVABLE_PASSAGE_SERIALIZER_HPP
+#endif // AMAZING_LABYRINTH_MOVABLE_PASSAGE_SERIALIZER_HPP

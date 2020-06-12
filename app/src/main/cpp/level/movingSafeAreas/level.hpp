@@ -48,7 +48,6 @@ namespace movingSafeAreas {
         float timeDiffSinceLastMove;
 
         std::string m_startQuadTexture;
-        std::string m_ballTexture;
         std::string m_endQuadTexture;
         std::vector<std::string> m_middleQuadTextures;
 
@@ -127,30 +126,24 @@ namespace movingSafeAreas {
             y = 0.0f;
         }
 
-        void initSetEndQuadTexture(std::string const &texture) { m_endQuadTexture = texture; }
-
-        void initAddMiddleQuadTexture(std::string const &texture) {
-            m_middleQuadTextures.push_back(texture);
-        }
-
-        void initSetStartQuadTexture(std::string const &texture) { m_startQuadTexture = texture; }
-
-        void initSetBallTexture(std::string const &texture) { m_ballTexture = texture; }
-
         SaveLevelDataFcn getSaveLevelDataFcn() override;
 
         Level(
             std::shared_ptr<GameRequester> inGameRequester,
-            std::shared_ptr<LevelSaveData> saveData,
+            std::shared_ptr<LevelConfigData> const &lcd,
+            std::shared_ptr<LevelSaveData> const &saveData,
             float width,
             float height,
             float maxZ)
-            : basic::Level(std::move(inGameRequester), width, height, maxZ, true, 1.0f / 30.0f, false),
+            : basic::Level(std::move(inGameRequester), lcd, width, height, maxZ, true),
               spaceBetweenQuadsX{m_width / 10.0f},
               maxX(m_width / 2),
               maxY(m_height / 2),
               m_prevTime(std::chrono::high_resolution_clock::now()),
-              timeDiffSinceLastMove{0.0f}
+              timeDiffSinceLastMove{0.0f},
+              m_startQuadTexture{lcd->startQuadTexture},
+              m_endQuadTexture{lcd->endQuadTexture},
+              m_middleQuadTextures{lcd->middleQuadTextures}
         {
             loadModels();
             preGenerate();

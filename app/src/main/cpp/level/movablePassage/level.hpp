@@ -80,48 +80,6 @@ namespace movablePassage {
             }
         }
 
-        // this function can be called at any time before the level is started.
-        void initSetBallInfo(
-                std::string const &ballModel,
-                std::string const &ballTexture) {
-            m_ballModel = ballModel;
-            m_ballTextureName = ballTexture;
-        }
-
-        // this function can be called at any time before the level is started.
-        void initSetGameBoardInfo(
-                std::string const &lockedComponentTexture,
-                std::vector<std::string> const &blockedRockModels,
-                std::vector<std::string> const &blockedRockTextures,
-                std::vector<std::string> const &blockedDirtModels,
-                std::vector<std::string> const &blockedDirtTextures,
-                std::string const &componentTextureEnd,
-                std::string const &textureEndOffBoard,
-                std::vector<std::string> const &startCornerModels,
-                std::vector<std::string> const &startCornerTextures,
-                std::vector<std::string> const &startSideModels,
-                std::vector<std::string> const &startSideTextures,
-                std::vector<std::string> const &startOpenModels,
-                std::vector<std::string> const &startOpenTextures) {
-            m_textureLockedComponent = lockedComponentTexture;
-
-            m_componentModels[Component::ComponentType::noMovementRock] = blockedRockModels;
-            m_componentTextures[Component::ComponentType::noMovementRock] = blockedRockTextures;
-            m_componentTextures[Component::ComponentType::noMovementDirt] = blockedDirtTextures;
-
-            m_componentTextureEnd = componentTextureEnd;
-            m_textureEndOffBoard = textureEndOffBoard;
-
-            m_componentModels[Component::ComponentType::closedCorner] = startCornerModels;
-            m_componentTextures[Component::ComponentType::closedCorner] = startCornerTextures;
-
-            m_componentModels[Component::ComponentType::closedBottom] =startSideModels;
-            m_componentTextures[Component::ComponentType::closedBottom] = startSideTextures;
-
-            m_componentModels[Component::ComponentType::open] = startOpenModels;
-            m_componentTextures[Component::ComponentType::open] = startOpenTextures;
-        }
-
         // all the compoents should be added before calling this function.
         void initSetGameBoard(
                 uint32_t nbrTilesX,
@@ -149,13 +107,6 @@ namespace movablePassage {
             }
         }
 
-        // this function can be called at any time before initDone.
-        void initAddRock(
-                uint32_t row,
-                uint32_t col) {
-            m_addedRocks.emplace_back(row, col);
-        }
-
         // all other init functions before calling this function or starting the level
         void initDone();
 
@@ -168,60 +119,51 @@ namespace movablePassage {
             float width,
             float height,
             float maxZ)
-         : basic::Level(inGameRequester, lcd, width, height, maxZ, true),
-           m_random{},
-           m_zdrawTopsOfObjects{ m_mazeFloorZ },
-           m_zMovingPlacement{ m_mazeFloorZ + m_scaleBall },
-           m_components{
-           std::make_shared<Component>(Component::ComponentType::straight),
-                    std::make_shared<Component>(Component::ComponentType::tjunction),
-                    std::make_shared<Component>(Component::ComponentType::crossjunction),
-                    std::make_shared<Component>(Component::ComponentType::turn),
-                    std::make_shared<Component>(Component::ComponentType::deadEnd),
-                    std::make_shared<Component>(Component::ComponentType::open),
-                    std::make_shared<Component>(Component::ComponentType::closedBottom),
-                    std::make_shared<Component>(Component::ComponentType::closedCorner),
-                    std::make_shared<Component>(Component::ComponentType::noMovementDirt),
-                    std::make_shared<Component>(Component::ComponentType::noMovementRock)
-           },
-           m_gameBoard{},
-           m_nbrComponents{ 0 },
-           m_texturesChanged{ true },
-           m_initDone{ false },
-           m_objsReferenceBall{ 0 }
+            : basic::Level(inGameRequester, lcd, width, height, maxZ, true),
+              m_random{},
+              m_zdrawTopsOfObjects{ m_mazeFloorZ },
+              m_zMovingPlacement{ m_mazeFloorZ + m_scaleBall },
+              m_components{
+              std::make_shared<Component>(Component::ComponentType::straight),
+                        std::make_shared<Component>(Component::ComponentType::tjunction),
+                        std::make_shared<Component>(Component::ComponentType::crossjunction),
+                        std::make_shared<Component>(Component::ComponentType::turn),
+                        std::make_shared<Component>(Component::ComponentType::deadEnd),
+                        std::make_shared<Component>(Component::ComponentType::open),
+                        std::make_shared<Component>(Component::ComponentType::closedBottom),
+                        std::make_shared<Component>(Component::ComponentType::closedCorner),
+                        std::make_shared<Component>(Component::ComponentType::noMovementDirt),
+                        std::make_shared<Component>(Component::ComponentType::noMovementRock)
+              },
+              m_gameBoard{},
+              m_nbrComponents{ 0 },
+              m_texturesChanged{ true },
+              m_initDone{ false },
+              m_objsReferenceBall{ 0 }
         {
-            initSetGameBoardInfo(
-                    lcd->placementLockedInPlaceTexture,
-                    lcd->rockModels,
-                    lcd->rockTextures,
-                    lcd->dirtModels,
-                    lcd->dirtTextures,
-                    lcd->endTexture,
-                    lcd->endOffBoardTexture,
-                    lcd->beginningCornerModels, lcd->beginningCornerTextures,
-                    lcd->beginningSideModels, lcd->beginningSideTextures,
-                    lcd->beginningOpenModels, lcd->beginningOpenTextures);
-            level->initAddRock(1,1);
-            level->initAddRock(1,2);
-            level->initAddRock(1,3);
-            level->initAddRock(1,4);
-            level->initAddRock(1,5);
-            level->initAddRock(1,6);
-            level->initAddRock(3,0);
-            level->initAddRock(3,2);
-            level->initAddRock(3,3);
-            level->initAddRock(3,5);
-            level->initAddRock(5,1);
-            level->initAddRock(5,2);
-            level->initAddRock(5,3);
-            level->initAddRock(5,5);
-            level->initAddRock(5,6);
-            level->initAddRock(6,5);
-            level->initAddRock(6,6);
-            level->initAddRock(7,0);
-            level->initAddRock(7,1);
-            level->initAddRock(7,2);
-            level->initAddRock(7,3);
+            m_textureLockedComponent = lcd->placementLockedInPlaceTexture;
+
+            m_componentModels[Component::ComponentType::noMovementRock] = lcd->rockModels;
+            m_componentTextures[Component::ComponentType::noMovementRock] = lcd->rockTextures;
+
+            m_componentModels[Component::ComponentType::noMovementDirt] = lcd->dirtModels;
+            m_componentTextures[Component::ComponentType::noMovementDirt] = lcd->dirtTextures;
+
+            m_componentTextureEnd = lcd->endTexture;
+            m_textureEndOffBoard = lcd->endOffBoardTexture;
+
+            m_componentModels[Component::ComponentType::closedCorner] = lcd->beginningCornerModels;
+            m_componentTextures[Component::ComponentType::closedCorner] = lcd->beginningCornerTextures;
+
+            m_componentModels[Component::ComponentType::closedBottom] = lcd->beginningSideModels;
+            m_componentTextures[Component::ComponentType::closedBottom] = lcd->beginningSideTextures;
+
+            m_componentModels[Component::ComponentType::open] = lcd->beginningOpenModels;
+            m_componentTextures[Component::ComponentType::open] = lcd->beginningOpenTextures;
+
+            for (auto const &rock : lcd->rockPlacements) {
+                m_addedRocks.emplace_back(rock.row, rock.col);
+            }
 
             initAddType(Component::ComponentType::straight, lcd->straight.numberPlacements,
                                lcd->straight.model, lcd->straight.texture);
@@ -231,7 +173,9 @@ namespace movablePassage {
                                lcd->tjunction.model, lcd->tjunction.texture);
             initAddType(Component::ComponentType::crossjunction, lcd->crossjunction.numberPlacements,
                                lcd->crossjunction.model, lcd->crossjunction.texture);
+
             initSetGameBoard(lcd->numberTilesX, lcd->numberTilesY, lcd->startColumn, lcd->endColumn);
+
             initDone();
         }
 

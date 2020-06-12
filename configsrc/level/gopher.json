@@ -2,7 +2,7 @@
     "Components" : {
         "Starter" : "starter",
         "Level" : "movablePassage",
-        "Finished" : "growingQuad"
+        "Finisher" : "manyQuadCoverUp"
     },
     "Starter" : {
         "StartupMessages": [
@@ -27,7 +27,7 @@
                         "models/gopher/rock2.modelcbor",
                         "models/gopher/rock3.modelcbor",
                         "models/gopher/rock4.modelcbor" ],
-        "RockTexture": [ "models/gopher/rock.png" ],
+        "RockTextures": [ "models/gopher/rock.png" ],
         "DirtModels": [],
         "DirtTextures": [ "models/gopher/dirt1.png",
                           "models/gopher/dirt2.png",
@@ -92,6 +92,6 @@
             { "Row": 7, "Col": 3 }
     },
     "Finisher": {
-        "Texture": "textures/bunny/hole.png"
+        "Textures": [ "textures/bunny/hole.png" ]
     }
 }
