@@ -27,16 +27,16 @@
 #include <glm/gtc/quaternion.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 
-#include "../graphics.hpp"
-#include "../common.hpp"
+#include "../../graphics.hpp"
+#include "../../common.hpp"
 #include <boost/optional.hpp>
 #include "level.hpp"
 #include "../basic/level.hpp"
+#include "loadData.hpp"
 
 namespace starter {
     class Level : public basic::Level {
     private:
-        static char constexpr const *ballImage = "textures/levelStarter/ballLevelStarter.png";
         static char constexpr const *corridorImage = "textures/levelStarter/corridor.png";
         static char constexpr const *corridorBeginImage = "textures/levelStarter/corridor.png";
         static char constexpr const *corridorEndImage = "textures/levelStarter/end.png";
@@ -67,17 +67,21 @@ namespace starter {
 
     public:
         Level(std::shared_ptr<GameRequester> inGameRequester,
+                     std::shared_ptr<LevelConfigData> const &lcd,
+                     std::shared_ptr<LevelSaveData> const &sd,
                      float width, float height, float maxZ)
-                : basic::Level(std::move(inGameRequester), width, height, maxZ, true, 1.0f / 50.0f, false),
+                : basic::Level(std::move(inGameRequester), lcd, width, height, maxZ, true),
                   maxPosX(m_width / 2 - ballRadius() -
                           m_wallThickness * ballDiameter() / m_modelSize),
                   maxPosY(m_height / 2 - ballRadius() -
                           m_wallThickness * ballDiameter() / m_modelSize),
-                  errVal(ballDiameter() / 5.0f) {
+                  errVal(ballDiameter() / 5.0f),
+                  text{lcd->startupMessages}
+        {
             prevTime = std::chrono::high_resolution_clock::now();
 
             std::pair<std::vector<Vertex>, std::vector<uint32_t>> v;
-            loadModel(m_gameRequester->getAssetStream(MODEL_BALL), v);
+            loadModel(m_gameRequester->getAssetStream(m_ballModel), v);
             std::swap(v.first, ballVertices);
             std::swap(v.second, ballIndices);
 
@@ -94,8 +98,6 @@ namespace starter {
         }
 
         void clearText();
-
-        void addTextString(std::string const &inText);
 
         bool isInBottomCorridor();
 

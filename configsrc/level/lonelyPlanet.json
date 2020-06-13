@@ -5,6 +5,11 @@
         "Finished" : "growingQuad"
     },
     "Starter" : {
+        "BallModel": "models/ball.modelcbor",
+        "BallTexture": "textures/levelStarter/ballLevelStarter.png",
+        "BounceEnabled": false,
+        "BallDiagonalRatio": 0.02,
+
         "StartupMessages": [
             "Now the maze\nuniverse is\nfilled with stars\nand black holes...",
             "...and a lonely\nice planet seeks\nout the warmth\nof a star."

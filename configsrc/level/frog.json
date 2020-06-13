@@ -5,6 +5,11 @@
         "Finisher": "manyQuadCoverUp"
     },
     "Starter" : {
+        "BallModel": "models/ball.modelcbor",
+        "BallTexture": "textures/levelStarter/ballLevelStarter.png",
+        "BounceEnabled": false,
+        "BallDiagonalRatio": 0.02,
+
         "StartupMessages": [
             "In a forest,\na frog\nseeks a fly.",
             "Watch out for\nmushrooms, they\nare bouncy!"

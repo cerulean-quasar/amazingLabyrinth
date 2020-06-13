@@ -28,5 +28,52 @@ namespace rotatablePassage {
     struct LevelSaveData : public basic::LevelSaveData {
         LevelSaveData() : basic::LevelSaveData{levelSaveDataVersion} {}
     };
+
+    struct ComponentConfig {
+        std::string model;
+        std::string texture;
+        std::string lockedInPlaceTexture;
+
+        ComponentConfig() = default;
+
+        ComponentConfig(ComponentConfig &&other)
+            : model{std::move(other.model)},
+              texture{std::move(other.texture)},
+              lockedInPlaceTexture{std::move(other.lockedInPlaceTexture)}
+        {}
+    };
+
+    struct LevelConfigData : public basic::LevelConfigData {
+        std::string holeModel;
+        std::string holeTexture;
+        uint32_t numberRows;
+        bool dfsSearch;
+        std::vector<std::string> borderTextures;
+        ComponentConfig straight;
+        ComponentConfig turn;
+        ComponentConfig crossJunction;
+        ComponentConfig tJunction;
+        ComponentConfig deadEnd;
+
+        LevelConfigData()
+            : basic::LevelConfigData{},
+            numberRows{0},
+            dfsSearch{false}
+        {}
+
+        LevelConfigData(LevelConfigData &&other) noexcept
+            : basic::LevelConfigData{std::move(other)},
+              holeModel{std::move(other.holeModel)},
+              holeTexture{std::move(other.holeTexture)},
+              numberRows{other.numberRows},
+              dfsSearch{other.dfsSearch},
+              borderTextures{std::move(other.borderTextures)},
+              straight{std::move(other.straight)},
+              turn{std::move(other.turn)},
+              crossJunction{std::move(other.crossJunction)},
+              tJunction{std::move(other.tJunction)},
+              deadEnd{std::move(other.deadEnd)}
+        {}
+    };
 } // name rotatablePassage
 #endif // AMAZING_LABYRINTH_ROTATABLE_PASSAGE_LOAD_DATA_HPP

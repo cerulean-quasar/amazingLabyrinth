@@ -5,6 +5,11 @@
         "Finisher": "manyQuadCoverUp"
     },
     "Starter" : {
+        "BallModel": "models/ball.modelcbor",
+        "BallTexture": "textures/levelStarter/ballLevelStarter.png",
+        "BounceEnabled": false,
+        "BallDiagonalRatio": 0.02,
+
         "StartupMessages": [
             "Next comes an\nage when\nflowers covered\nthe planet...",
             "...and one roller\nbee seeks out\nthe nectar\nof a large flower."

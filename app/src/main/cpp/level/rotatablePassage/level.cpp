@@ -22,10 +22,10 @@
 #include "../generatedMazeAlgorithms.hpp"
 
 namespace rotatablePassage {
-    void Level::initSetGameBoard(uint32_t nbrTilesX, GeneratedMazeBoard::Mode mode) {
-        uint32_t nbrTilesY = static_cast<uint32_t>(std::floor(nbrTilesX / m_width * m_height));
+    void Level::initSetGameBoard(uint32_t nbrTilesY, GeneratedMazeBoard::Mode mode) {
+        uint32_t nbrTilesX = static_cast<uint32_t>(std::floor(nbrTilesY / m_height * m_width));
 
-        m_gameBoard.initialize(m_width / nbrTilesX, glm::vec3{0.0f, 0.0f, m_mazeFloorZ}, nbrTilesY,
+        m_gameBoard.initialize(m_height/nbrTilesY, glm::vec3{0.0f, 0.0f, m_mazeFloorZ}, nbrTilesY,
                                nbrTilesX, 0, 0);
 
         // generate the maze
@@ -300,8 +300,7 @@ namespace rotatablePassage {
             loadModel(m_gameRequester->getAssetStream(m_ballModel), v);
             std::swap(v.first, obj->vertices);
             std::swap(v.second, obj->indices);
-            obj->texture = std::make_shared<TextureDescriptionPath>(m_gameRequester,
-                                                                    m_ballTextureName);
+            obj->texture = std::make_shared<TextureDescriptionPath>(m_gameRequester, m_ballTexture);
             textures.emplace(obj->texture, std::shared_ptr<TextureData>());
             obj->modelMatrices.push_back(
                     glm::translate(glm::mat4(1.0f), m_ball.position) *

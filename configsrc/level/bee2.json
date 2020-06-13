@@ -5,6 +5,11 @@
         "Finisher": "manyQuadCoverUp"
     },
     "Starter" : {
+        "BallModel": "models/ball.modelcbor",
+        "BallTexture": "textures/levelStarter/ballLevelStarter.png",
+        "BounceEnabled": false,
+        "BallDiagonalRatio": 0.02,
+
         "StartupMessages": [
             "The leafy plants\nhave become more\nnumerous\nand the\nroller bee...",
             "...has to search\nlong and hard\nfor the\nlarge flower."

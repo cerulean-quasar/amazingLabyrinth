@@ -5,6 +5,11 @@
         "Finished": "manyQuadCoverUp"
     },
     "Starter" : {
+        "BallModel": "models/ball.modelcbor",
+        "BallTexture": "textures/levelStarter/ballLevelStarter.png",
+        "BounceEnabled": false,
+        "BallDiagonalRatio": 0.02,
+
         "StartupMessages": [
             "On the planet,\nthe ice begins\nto melt\nand life ignites...",
             "...here, a puffer\nfish is looking\nfor a kelp meal."

@@ -17,51 +17,41 @@
  *  along with AmazingLabyrinth.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
-#ifndef AMAZING_LABYRINTH_OPEN_AREA_LOAD_DATA_HPP
-#define AMAZING_LABYRINTH_OPEN_AREA_LOAD_DATA_HPP
+#ifndef AMAZING_LABYRINTH_STARTER_LOAD_DATA_HPP
+#define AMAZING_LABYRINTH_STARTER_LOAD_DATA_HPP
+
+#include <string>
+#include <vector>
 
 #include "../basic/loadData.hpp"
 #include "../../saveData.hpp"
 
-namespace openArea {
+namespace starter {
     int constexpr levelSaveDataVersion = 1;
 
     struct LevelSaveData : public basic::LevelSaveData {
-        Point<float> ball;
-        Point<float> hole;
-
         LevelSaveData(LevelSaveData &&other) noexcept
-                : basic::LevelSaveData{levelSaveDataVersion},
-                  ball{other.ball},
-                  hole{other.hole} {
-        }
+                : basic::LevelSaveData{levelSaveDataVersion}
+        {}
 
         LevelSaveData()
-                : basic::LevelSaveData{levelSaveDataVersion},
-                  ball{0.0f, 0.0f},
-                  hole{0.0f, 0.0f} {
-        }
-
-        LevelSaveData(Point<float> ball_, Point<float> hole_)
-                : basic::LevelSaveData{levelSaveDataVersion},
-                  ball{std::move(ball_)},
-                  hole{std::move(hole_)} {
-        }
+                : basic::LevelSaveData{levelSaveDataVersion}
+        {}
     };
 
     struct LevelConfigData : public basic::LevelConfigData {
-        std::string holeTexture;
+        std::vector<std::string> startupMessages;
 
         LevelConfigData()
-            : basic::LevelConfigData{},
-              holeTexture{}
+                : basic::LevelConfigData{},
+                  startupMessages{}
         {}
 
         LevelConfigData(LevelConfigData &&other)
-            : basic::LevelConfigData{std::move(other)},
-              holeTexture{std::move(other.holeTexture)}
+                : basic::LevelConfigData{std::move(other)},
+                  startupMessages{std::move(other.startupMessages)}
         {}
     };
-} // namespace openArea
+} // namespace starter
 
-#endif // AMAZING_LABYRINTH_OPEN_AREA_LOAD_DATA_HPP
+#endif // AMAZING_LABYRINTH_STARTER_LOAD_DATA_HPP

@@ -65,91 +65,60 @@ namespace rotatablePassage {
 
         SaveLevelDataFcn getSaveLevelDataFcn() override;
 
-        // this function can be called at any time before the level is started.
-        void initSetBallInfo(
-                std::string const &ballModel,
-                std::string const &ballTexture) {
-            m_ballModel = ballModel;
-            m_ballTextureName = ballTexture;
-        }
-
-        // this function can be called at any time before the level is started.
-        void initSetHoleInfo(
-                std::string const &holeModel,
-                std::string const &holeTexture) {
-            m_holeModel = holeModel;
-            m_holeTexture = holeTexture;
-        }
-
-        // this function can be called at any time before the level is started.
-        void initSetGameBoardInfo(
-                std::string const &straightModel,
-                std::string const &straightTexture,
-                std::string const &straightTextureLockedInPlace,
-                std::string const &tjunctionModel,
-                std::string const &tjunctionTexture,
-                std::string const &tjunctionTextureLockedInPlace,
-                std::string const &crossjunctionModel,
-                std::string const &crossjunctionTexture,
-                std::string const &crossjunctionTextureLockedInPlace,
-                std::string const &turnModel,
-                std::string const &turnTexture,
-                std::string const &turnTextureLockedInPlace,
-                std::string const &deadEndModel,
-                std::string const &deadEndTexture,
-                std::string const &deadEndTextureLockedInPlace,
-                std::vector<std::string> const &borderTextures) {
-            m_componentModels[Component::ComponentType::straight].push_back(straightModel);
-            m_componentTextures[Component::ComponentType::straight].push_back(straightTexture);
+        Level(
+            std::shared_ptr<GameRequester> inGameRequester,
+            std::shared_ptr<LevelConfigData> lcd,
+            std::shared_ptr<LevelSaveData> /*sd*/,
+            float width, float height, float maxZ)
+            : basic::Level(inGameRequester, lcd, width, height, maxZ, true),
+              m_initDone{false},
+              m_gameBoard(),
+              m_components{
+                      std::make_shared<Component>(Component::ComponentType::straight),
+                      std::make_shared<Component>(Component::ComponentType::tjunction),
+                      std::make_shared<Component>(Component::ComponentType::crossjunction),
+                      std::make_shared<Component>(Component::ComponentType::turn),
+                      std::make_shared<Component>(Component::ComponentType::deadEnd)},
+              m_ballRow{0},
+              m_ballCol{0},
+              m_endRow{0},
+              m_endCol{0},
+              m_objsReferenceBall{0},
+              m_holeModel{lcd->holeModel},
+              m_holeTexture{lcd->holeTexture}
+        {
+            m_componentModels[Component::ComponentType::straight].push_back(lcd->straight.model);
+            m_componentTextures[Component::ComponentType::straight].push_back(lcd->straight.texture);
             m_componentTexturesLockedInPlace[Component::ComponentType::straight].push_back(
-                    straightTextureLockedInPlace);
+                    lcd->straight.lockedInPlaceTexture);
 
-            m_componentModels[Component::ComponentType::tjunction].push_back(tjunctionModel);
-            m_componentTextures[Component::ComponentType::tjunction].push_back(tjunctionTexture);
+            m_componentModels[Component::ComponentType::tjunction].push_back(lcd->tJunction.model);
+            m_componentTextures[Component::ComponentType::tjunction].push_back(lcd->tJunction.texture);
             m_componentTexturesLockedInPlace[Component::ComponentType::tjunction].push_back(
-                    tjunctionTextureLockedInPlace);
+                    lcd->tJunction.lockedInPlaceTexture);
 
             m_componentModels[Component::ComponentType::crossjunction].push_back(
-                    crossjunctionModel);
+                    lcd->crossJunction.model);
             m_componentTextures[Component::ComponentType::crossjunction].push_back(
-                    crossjunctionTexture);
+                    lcd->crossJunction.texture);
             m_componentTexturesLockedInPlace[Component::ComponentType::crossjunction].push_back(
-                    crossjunctionTextureLockedInPlace);
+                    lcd->crossJunction.lockedInPlaceTexture);
 
-            m_componentModels[Component::ComponentType::turn].push_back(turnModel);
-            m_componentTextures[Component::ComponentType::turn].push_back(turnTexture);
+            m_componentModels[Component::ComponentType::turn].push_back(lcd->turn.model);
+            m_componentTextures[Component::ComponentType::turn].push_back(lcd->turn.texture);
             m_componentTexturesLockedInPlace[Component::ComponentType::turn].push_back(
-                    turnTextureLockedInPlace);
+                    lcd->turn.lockedInPlaceTexture);
 
-            m_componentModels[Component::ComponentType::deadEnd].push_back(deadEndModel);
-            m_componentTextures[Component::ComponentType::deadEnd].push_back(deadEndTexture);
+            m_componentModels[Component::ComponentType::deadEnd].push_back(lcd->deadEnd.model);
+            m_componentTextures[Component::ComponentType::deadEnd].push_back(lcd->deadEnd.texture);
             m_componentTexturesLockedInPlace[Component::ComponentType::deadEnd].push_back(
-                    deadEndTextureLockedInPlace);
+                    lcd->deadEnd.lockedInPlaceTexture);
 
-            m_borderTextures = borderTextures;
+            m_borderTextures = lcd->borderTextures;
+
+            initSetGameBoard(lcd->numberRows,
+                    lcd->dfsSearch ? GeneratedMazeBoard::Mode::DFS : GeneratedMazeBoard::Mode::BFS);
         }
-
-        // this function can be called at any time before the level is started.
-        void initSetGameBoard(uint32_t nbrTilesX, GeneratedMazeBoard::Mode mode);
-
-        Level(
-                std::shared_ptr<GameRequester> inGameRequester,
-                std::shared_ptr<LevelSaveData> /*sd*/,
-                float width, float height, float maxZ)
-                : basic::Level(inGameRequester, width, height, maxZ, true, 1 / 50.0f, false),
-                  m_initDone{false},
-                  m_gameBoard(),
-                  m_components{
-                          std::make_shared<Component>(Component::ComponentType::straight),
-                          std::make_shared<Component>(Component::ComponentType::tjunction),
-                          std::make_shared<Component>(Component::ComponentType::crossjunction),
-                          std::make_shared<Component>(Component::ComponentType::turn),
-                          std::make_shared<Component>(Component::ComponentType::deadEnd)},
-                  m_ballRow{0},
-                  m_ballCol{0},
-                  m_endRow{0},
-                  m_endCol{0},
-                  m_objsReferenceBall{0} {}
 
     private:
         std::chrono::high_resolution_clock::time_point m_prevTime;
@@ -168,8 +137,6 @@ namespace rotatablePassage {
         uint32_t m_endRow;
         uint32_t m_endCol;
 
-        std::string m_ballModel;
-        std::string m_ballTextureName;
         size_t m_objsReferenceBall;
 
         std::string m_holeModel;
@@ -183,6 +150,8 @@ namespace rotatablePassage {
                 Component::ComponentType::maxComponentType + 1> m_componentTexturesLockedInPlace;
 
         std::vector<std::string> m_borderTextures;
+
+        void initSetGameBoard(uint32_t numberRows, GeneratedMazeBoard::Mode mode);
     };
 } // namespace rotatablePassage
 #endif // AMAZING_LABYRINTH_ROTATABLE_PASSAGE_LEVEL_HPP

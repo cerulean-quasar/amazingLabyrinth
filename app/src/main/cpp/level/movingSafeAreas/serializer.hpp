@@ -26,11 +26,6 @@
 #define AMAZING_LABYRINTH_MOVING_SAFE_AREAS_SERIALIZER_HPP
 
 namespace movingSafeAreas {
-
-    void to_json(nlohmann::json &j, QuadRowSaveData const &val);
-
-    void from_json(nlohmann::json const &j, QuadRowSaveData &val);
-
     void to_json(nlohmann::json &j, LevelSaveData const &val);
 
     void from_json(nlohmann::json const &j, LevelSaveData &val);

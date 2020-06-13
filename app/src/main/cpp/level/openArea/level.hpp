@@ -28,12 +28,12 @@
 
 #include "../levelFinish.hpp"
 #include "../basic/level.hpp"
+#include "loadData.hpp"
 
 namespace openArea {
     class Level : public basic::Level {
     private:
         std::string holeTexture;
-        std::string ballTexture;
 
         Random random;
         std::chrono::high_resolution_clock::time_point prevTime;
@@ -84,11 +84,13 @@ namespace openArea {
     public:
         Level(
                 std::shared_ptr <GameRequester> inGameRequester,
+                std::shared_ptr <LevelConfigData> const &lcd,
                 std::shared_ptr <LevelSaveData> const &levelRestoreData,
                 float width,
                 float height,
                 float maxZ)
-                : basic::Level(std::move(inGameRequester), width, height, maxZ, true, 1.0f / 40.0f),
+                : basic::Level(std::move(inGameRequester), lcd, width, height, maxZ, true),
+                  holeTexture{lcd->holeTexture},
                   prevTime(std::chrono::high_resolution_clock::now()) {
             loadModels();
             if (levelRestoreData == nullptr) {
@@ -112,10 +114,6 @@ namespace openArea {
         void start() override {
             prevTime = std::chrono::high_resolution_clock::now();
         }
-
-        void initSetHoleTexture(std::string const &texture) { holeTexture = texture; }
-
-        void initSetBallTexture(std::string const &texture) { ballTexture = texture; }
 
         void getLevelFinisherCenter(float &x, float &y) override {
             x = holePosition.x;

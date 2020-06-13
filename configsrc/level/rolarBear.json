@@ -5,6 +5,11 @@
         "Finisher": "manyQuadCoverUp"
     },
     "Starter" : {
+        "BallModel": "models/ball.modelcbor",
+        "BallTexture": "textures/levelStarter/ballLevelStarter.png",
+        "BounceEnabled": false,
+        "BallDiagonalRatio": 0.02,
+
         "StartupMessages": [
             "As the ice\nplanet warms\nand the ice\nmelts...",
             "...an over hot\nrolar bear\nyearns for\nthe cold of the\nnorth pole."

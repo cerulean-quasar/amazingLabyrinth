@@ -5,6 +5,11 @@
         "Finisher" : "manyQuadCoverUp"
     },
     "Starter" : {
+        "BallModel": "models/ball.modelcbor",
+        "BallTexture": "textures/levelStarter/ballLevelStarter.png",
+        "BounceEnabled": false,
+        "BallDiagonalRatio": 0.02,
+
         "StartupMessages": [
             "Underground,\na gopher\nsearches for\na juicy beet.",
             "Move the tunnel\npieces and turn\nthem so that the\ngopher can\nreach the beet."

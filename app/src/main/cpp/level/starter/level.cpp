@@ -24,7 +24,6 @@
 #include "level.hpp"
 
 namespace starter {
-    char constexpr const *Level::ballImage;
     char constexpr const *Level::corridorImage;
     char constexpr const *Level::corridorBeginImage;
     char constexpr const *Level::corridorEndImage;
@@ -37,10 +36,6 @@ namespace starter {
 
     void Level::clearText() {
         text.clear();
-    }
-
-    void Level::addTextString(std::string const &inText) {
-        text.push_back(inText);
     }
 
     bool Level::updateData() {

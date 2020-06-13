@@ -44,6 +44,17 @@ namespace openArea {
         val.hole = j[HoleLocation].get<Point<float>>();
     }
 
+    char constexpr const *HoleTexture = "HoleTexture";
+    void to_json(nlohmann::json &j, LevelConfigData const &val) {
+        to_json(j, boost::implicit_cast<basic::LevelConfigData const &>(val));
+        j[HoleTexture] = val.holeTexture;
+    }
+
+    void from_json(nlohmann::json const &j, LevelConfigData &val) {
+        from_json(j, boost::implicit_cast<basic::LevelConfigData &>(val));
+        val.holeTexture = j[HoleTexture].get<std::string>();
+    }
+
     basic::Level::SaveLevelDataFcn Level::getSaveLevelDataFcn() {
         auto sd = std::make_shared<LevelSaveData>(
                 Point<float>{m_ball.position.x, m_ball.position.y},
