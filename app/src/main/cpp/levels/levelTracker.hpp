@@ -23,8 +23,8 @@
 #include <functional>
 #include <boost/optional.hpp>
 #include "levelFinish.hpp"
-#include "level.hpp"
-#include "levelStarter.hpp"
+#include "basic/level.hpp"
+#include "starter/level.hpp"
 #include "../common.hpp"
 #include "../saveData.hpp"
 #include "../serializeSaveData.hpp"

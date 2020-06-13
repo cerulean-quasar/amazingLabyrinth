@@ -23,17 +23,11 @@
 #include <vector>
 
 #include "levelTracker.hpp"
-#include "levels/maze.hpp"
-#include "levels/openAreaLevel.hpp"
-#include "levels/avoidVortexLevel.hpp"
-#include "levels/movingQuadsLevel.hpp"
-#include "levels/mazeCollect.hpp"
-#include "levels/mazeAvoid.hpp"
-#include "levels/fixedMaze.hpp"
 
 float constexpr LevelTracker::m_maxZLevelStarter;
 float constexpr LevelTracker::m_maxZLevel;
 float constexpr LevelTracker::m_maxZLevelFinisher;
+
 
 LevelGroup LevelTracker::getLevelGroupBeginning(std::shared_ptr<OpenAreaLevelSaveData> const &levelBundle, bool needsStarter) {
     return {

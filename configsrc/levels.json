@@ -1,0 +1,15 @@
+{
+    "Levels": [
+        { "Name": "beginning", "File": "beginning.json", "Description": "The beginning" },
+        { "Name": "lonelyPlanet", "File": "lonelyPlanet.json", "Description": "The lonely planet" },
+        { "Name": "pufferFish", "File": "pufferFish.json", "Description": "The puffer fish" },
+        { "Name": "rolarBear", "File": "rolarBear.json", "Description": "The rolar bear" },
+        { "Name": "bee1", "File": "bee1.json", "Description": "The bee" },
+        { "Name": "bee2", "File": "bee2.json", "Description": "The search" },
+        { "Name": "cat", "File": "cat.json", "Description": "The cat" },
+        { "Name": "bunny", "File": "bunny.json", "Description": "The bunny" },
+        { "Name": "frog", "File": "frog.json", "Description": "The frog" },
+        { "Name": "gopher", "File": "gopher.json", "Description": "The gopher" },
+        { "Name": "mouse", "File": "mouse.json", "Description": "The mouse" }
+    ]
+}
