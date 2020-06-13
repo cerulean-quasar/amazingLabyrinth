@@ -17,21 +17,22 @@
  *  along with AmazingLabyrinth.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
+#ifndef AMAZING_LABYRINTH_LEVEL_TRACKER_TYPES_HPP
+#define AMAZING_LABYRINTH_LEVEL_TRACKER_TYPES_HPP
 
-#ifndef AMAZING_LABYRINTH_GENERATED_MAZE_SERIALIZER_HPP
-#define AMAZING_LABYRINTH_GENERATED_MAZE_SERIALIZER_HPP
-#include <json.hpp>
+template <typename CoordType>
+struct Point {
+    CoordType x;
+    CoordType y;
+    Point<CoordType>() : x{0}, y{0} {}
+    Point<CoordType>(CoordType x_, CoordType y_) : x{x_}, y{y_} {}
+    Point<CoordType>(Point<CoordType> const &other) : x{other.x}, y{other.y} {}
+    bool operator==(Point<CoordType> const &other) const {
+        return x == other.x && y == other.y;
+    }
+    bool operator!=(Point<CoordType> const &other) const {
+        return x != other.x || y != other.y;
+    }
+};
 
-#include "loadData.hpp"
-
-namespace generatedMaze {
-    void to_json(nlohmann::json &j, LevelSaveData const &val);
-
-    void from_json(nlohmann::json const &j, LevelSaveData &val);
-
-    void to_json(nlohmann::json &j, LevelConfigData const &val);
-
-    void from_json(nlohmann::json const &j, LevelConfigData &val);
-} // namespace generatedMaze
-
-#endif // AMAZING_LABYRINTH_GENERATED_MAZE_SERIALIZER_HPP
+#endif // AMAZING_LABYRINTH_LEVEL_TRACKER_TYPES_HPP

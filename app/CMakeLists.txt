@@ -65,7 +65,7 @@ add_library( # Sets the name of the library.
         src/main/cpp/levels/rotatablePassage/serializer.cpp
         src/main/cpp/levels/starter/level.cpp
         src/main/cpp/levels/starter/serializer.cpp
-        src/main/cpp/levels/levelTracker.cpp
+        src/main/cpp/levelTracker/levelTracker.cpp
 )
 
 # Searches for a specified prebuilt library and stores the path as a

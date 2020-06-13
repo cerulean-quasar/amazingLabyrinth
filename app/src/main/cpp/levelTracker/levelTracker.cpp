@@ -23,13 +23,30 @@
 #include <vector>
 
 #include "levelTracker.hpp"
+#include "internals.hpp"
 
-float constexpr LevelTracker::m_maxZLevelStarter;
-float constexpr LevelTracker::m_maxZLevel;
-float constexpr LevelTracker::m_maxZLevelFinisher;
+namespace levelTracker {
+    float constexpr LevelTracker::m_maxZLevelStarter;
+    float constexpr LevelTracker::m_maxZLevel;
+    float constexpr LevelTracker::m_maxZLevelFinisher;
 
+    LevelMapTable &starterTable() {
+        static std::unordered_map<std::string, GenerateLevelFcn> map;
+        return map;
+    }
 
-LevelGroup LevelTracker::getLevelGroupBeginning(std::shared_ptr<OpenAreaLevelSaveData> const &levelBundle, bool needsStarter) {
+    LevelMapTable &levelTable() {
+        static std::unordered_map<std::string, GenerateLevelFcn> map;
+        return map;
+    }
+
+    FinisherMapTable &finisherTable() {
+        static std::unordered_map<std::string, GenerateLevelFcn> map;
+        return map;
+    }
+}
+
+    LevelGroup LevelTracker::getLevelGroupBeginning(std::shared_ptr<OpenAreaLevelSaveData> const &levelBundle, bool needsStarter) {
     return {
         getStarterFcn(needsStarter, std::vector<std::string>{
             "In the\nbeginning of\nthe universe\nof mazes...",

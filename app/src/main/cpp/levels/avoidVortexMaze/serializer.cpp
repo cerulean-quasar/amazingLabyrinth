@@ -22,6 +22,8 @@
 #include <boost/implicit_cast.hpp>
 #include "../../serializeSaveDataInternals.hpp"
 #include "level.hpp"
+#include "loadData.hpp"
+#include "../generatedMaze/serializer.hpp"
 #include "serializer.hpp"
 
 namespace avoidVortexMaze {

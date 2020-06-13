@@ -21,6 +21,8 @@
 #ifndef AMAZING_LABYRINTH_AVOID_VORTEX_MAZE_LOAD_DATA_HPP
 #define AMAZING_LABYRINTH_AVOID_VORTEX_MAZE_LOAD_DATA_HPP
 
+#include "../generatedMaze/loadData.hpp"
+
 namespace avoidVortexMaze {
 
     struct LevelSaveData : public generatedMaze::LevelSaveData {
