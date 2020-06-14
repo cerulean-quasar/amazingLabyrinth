@@ -22,11 +22,41 @@
 #include <boost/optional.hpp>
 #include <vector>
 
+#include "types.hpp"
 #include "levelTracker.hpp"
 #include "internals.hpp"
 
+char constexpr const *PointXKey = "X";
+char constexpr const *PointYKey = "Y";
+
+void to_json(nlohmann::json &j, Point<uint32_t> const &val) {
+    j[PointXKey] = val.x;
+    j[PointYKey] = val.y;
+}
+
+void from_json(nlohmann::json const &j, Point<uint32_t> &val) {
+    val.x = j[PointXKey].get<int>();
+    val.y = j[PointYKey].get<int>();
+}
+
+void to_json(nlohmann::json &j, Point<float> const &val) {
+    j[PointXKey] = val.x;
+    j[PointYKey] = val.y;
+}
+
+void from_json(nlohmann::json const &j, Point<float> &val) {
+    val.x = j[PointXKey].get<float>();
+    val.y = j[PointYKey].get<float>();
+}
+
 namespace levelTracker {
     namespace DataVariables {
+        char constexpr const *GameSaveDataVersion = "GameSaveDataVersion";
+        char constexpr const *GameSaveDataLevelName = "LevelName";
+        char constexpr const *GameSaveDataScreenSize = "ScreenSize";
+        char constexpr const *GameSaveDataLevel = "LevelSaveData";
+        char constexpr const *GameSaveDataNeedsStarter = "LevelNeedsStarter";
+
         char constexpr const *Levels = "Levels";
         char constexpr const *Name = "Name";
         char constexpr const *File = "File";
@@ -51,69 +81,13 @@ namespace levelTracker {
     }
 
     FinisherMapTable &finisherTable() {
-        static std::unordered_map<std::string, GenerateLevelFcn> map;
+        static std::unordered_map<std::string, GenerateFinisherFcn> map;
         return map;
     }
-
-LevelGroup LevelTracker::getLevelGroupMouse(
-        std::shared_ptr<RotatablePassageSaveData> const &levelBundle,
-        bool needsStarter)
-{
-    return {
-            getStarterFcn(needsStarter, std::vector<std::string>{
-                    "A mouse\nsearches for a\npiece of cheese\nin a hedge maze.",
-                    "Help the mouse\nby turning the\nhedge maze\npieces so that\nthere is a path\nto the cheese."}),
-            GetLevelFcn([levelBundle](LevelTracker &tracker, glm::mat4 const &proj, glm::mat4 const &view) {
-                auto level = tracker.getLevel<RotatablePassage>(levelBundle, proj, view);
-                level->initSetBallInfo("models/mouse/mouse.modelcbor", "textures/mouse/mouse.png");
-                level->initSetHoleInfo("models/mouse/cheese.modelcbor", "textures/mouse/cheese.png");
-                std::vector<std::string> textures{"textures/rollerBee/wallFlower1.png",
-                                                  "textures/rollerBee/wallFlower2.png",
-                                                  "textures/rollerBee/wallFlower3.png",
-                                                  "textures/rollerBee/wallFlower4.png"};
-                level->initSetGameBoardInfo(
-                        "models/gopher/straight.modelcbor",
-                        "textures/mouse/wall.png",
-                        "textures/mouse/wallWithFlower.png",
-                        "models/gopher/tjunction.modelcbor",
-                        "textures/mouse/wall.png",
-                        "textures/mouse/wallWithFlower.png",
-                        "models/gopher/crossjunction.modelcbor",
-                        "textures/mouse/wall.png",
-                        "textures/mouse/wallWithFlower.png",
-                        "models/gopher/turn.modelcbor",
-                        "textures/mouse/wall.png",
-                        "textures/mouse/wallWithFlower.png",
-                        "models/movablePassage/deadEnd.modelcbor",
-                        "textures/mouse/wall.png",
-                        "textures/mouse/wallWithFlower.png",
-                        textures);
-                level->initSetGameBoard(8, GeneratedMazeBoard::Mode::DFS);
-
-                // call after all other init functions are completed but before updateStaticDrawObjects
-                auto extraWHatZRequested = level->getAdditionalWHatZRequests();
-                for (auto const &extraZ : extraWHatZRequested) {
-                    auto extraWH = getWidthHeight(extraZ, proj, view);
-                    level->setAdditionalWH(extraWH.first, extraWH.second, extraZ);
-                }
-
-                return level;
-            }),
-            GetFinisherFcn([](LevelTracker &tracker, float centerX, float centerY, glm::mat4 const &proj, glm::mat4 const &view) {
-                auto levelFinish = tracker.getFinisher<ManyQuadCoverUpLevelFinish>(centerX, centerY, proj, view);
-                levelFinish->initAddTexture("textures/bunny/hole.png");
-                return levelFinish;
-            })
-    };
-}
 
     void from_json(nlohmann::json const &j, LevelTableEntry &val) {
         val.levelName = j[DataVariables::Name].get<std::string>();
         val.fileName = j[DataVariables::File].get<std::string>();
-    }
-
-    void Loader::gotoNextLevel() {
-        m_currentLevel = (m_currentLevel + 1) % m_levelTable.size();
     }
 
     struct Components {
@@ -130,15 +104,82 @@ LevelGroup LevelTracker::getLevelGroupMouse(
         {}
     };
 
+    int constexpr GameSaveDataVersionValue = 1;
+    struct GameSaveData {
+        int version;
+        Point<uint32_t> screenSize;
+        std::string levelName;
+        bool needsStarter;
+        GameSaveData(
+                Point<uint32_t> const &screenSize_,
+                std::string const &levelName_,
+                bool needsStarter_) :
+                version(GameSaveDataVersionValue),
+                screenSize(screenSize_),
+                levelName(levelName_),
+                needsStarter(needsStarter_)
+        {}
+
+        GameSaveData(
+                int version_,
+                Point<uint32_t> const &screenSize_,
+                std::string const &levelName_,
+                bool needsStarter_) :
+                version(version_),
+                screenSize(screenSize_),
+                levelName(levelName_),
+                needsStarter(needsStarter_)
+        {}
+    };
+
     void from_json(nlohmann::json const &j, Components &val) {
         val.starter = j[DataVariables::Starter].get<std::string>();
         val.level = j[DataVariables::Level].get<std::string>();
         val.finisher = j[DataVariables::Finisher].get<std::string>();
     }
 
-    LevelGroup Loader::getLevelGroupFcns() {
-        nlohmann::json *jsdLevel = nullptr;
-        nlohmann::json j = nlohmann::json::from_cbor(getDataFromFile(m_levelTable[m_currentLevel].fileName));
+    void Loader::gotoNextLevel() {
+        if (m_currentLevel == boost::none) {
+            m_currentLevel.reset(0);
+        } else {
+            m_currentLevel.reset((m_currentLevel.get() + 1) % m_levelTable.size());
+        }
+    }
+
+    LevelGroup Loader::getLevelGroupFcns(uint32_t screenWidth, uint32_t screenHeight) {
+        nlohmann::json *pjsdLevel = nullptr;
+        nlohmann::json jsdLevel;
+        nlohmann::json jgb;
+        bool needsLevelStarter = true;
+        if (m_currentLevel == boost::none) {
+            auto cborSaveData = getDataFromFile(m_gameRequester->getSaveDataFileName());
+            if (cborSaveData.empty()) {
+                m_currentLevel.reset(0);
+            } else {
+                jgb = nlohmann::json::from_cbor(cborSaveData);
+
+                GameSaveData gb(jgb[DataVariables::GameSaveDataVersion].get<int>(),
+                                jgb[DataVariables::GameSaveDataScreenSize].get<Point<uint32_t>>(),
+                                jgb[DataVariables::GameSaveDataLevelName].get<std::string>(),
+                                jgb[DataVariables::GameSaveDataNeedsStarter].get<bool>());
+
+                m_currentLevel = getLevelNumber(gb.levelName);
+
+                if (m_currentLevel == boost::none) {
+                    m_currentLevel.reset(0);
+                } else {
+                    Point<uint32_t> screenSize{screenWidth, screenHeight};
+                    if (screenSize == gb.screenSize) {
+                        jsdLevel = jgb.find(DataVariables::GameSaveDataLevel);
+                        if (jsdLevel != jgb.end()) {
+                            pjsdLevel = &jsdLevel;
+                            needsLevelStarter = gb.needsStarter;
+                        }
+                    }
+                }
+            }
+        }
+        nlohmann::json j = nlohmann::json::from_cbor(getDataFromFile(m_levelTable[m_currentLevel.get()].fileName));
         Components components = j[DataVariables::Components].get<Components>();
 
         LevelGroup group;
@@ -147,31 +188,31 @@ LevelGroup LevelTracker::getLevelGroupMouse(
             throw std::runtime_error("Invalid level starter.");
         }
 
-        group.getStarterFcn = starterIt->second(nullptr, j[DataVariables::Starter]);
+        group.getStarterFcn = starterIt->second(j[DataVariables::Starter], nullptr, m_maxZLevelStarter);
 
         auto levelIt = levelTable().find(components.level);
         if (levelIt == levelTable().end()) {
             throw std::runtime_error("Invalid level");
         }
 
-        group.getLevelFcn = levelIt->second(jsdLevel, j[DataVariables::Level]);
+        group.getLevelFcn = levelIt->second(j[DataVariables::Level], jsdLevel, m_maxZLevel);
 
         auto finisherIt = finisherTable().find(components.finisher);
         if (finisherIt == finisherTable().end()) {
             throw std::runtime_error("Invalid finisher");
         }
 
-        group.getFinisherFcn = finisherIt->second(nullptr, j[DataVariables::Finisher]);
-        
+        group.getFinisherFcn = finisherIt->second(j[DataVariables::Finisher], m_maxZLevelFinisher);
+
         return group;
     }
 
     Loader::Loader(
         std::shared_ptr<GameRequester> inGameRequester)
         : m_gameRequester{std::move(inGameRequester)},
-          m_currentLevel{}
+          m_currentLevel{boost::none}
     {
-        nlohmann::json j = nlohmann::json::from_cbor(getDataFromFile(m_gameRequester->getLevelTableName()));
+        nlohmann::json j = nlohmann::json::from_cbor(getDataFromFile(m_gameRequester->getAssetStream(m_gameRequester->getLevelTableName())));
         m_levelTable = j[DataVariables::Levels].get<std::vector<LevelTableEntry>>();
     }
 }

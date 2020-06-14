@@ -55,11 +55,6 @@ void from_json(nlohmann::json const &j, FixedMazeSaveData &val);
 void to_json(nlohmann::json &j, MovablePassageSaveData const &val);
 void from_json(nlohmann::json const &j, MovablePassageSaveData &val);
 
-char constexpr const *GameSaveDataVersion = "GameSaveDataVersion";
-char constexpr const *GameSaveDataLevelName = "LevelName";
-char constexpr const *GameSaveDataScreenSize = "ScreenSize";
-char constexpr const *GameSaveDataLevel = "LevelSaveData";
-char constexpr const *GameSaveDataNeedsStarter = "LevelNeedsStarter";
 
 template <typename LevelSaveDataType>
 std::vector<uint8_t> saveGameData(

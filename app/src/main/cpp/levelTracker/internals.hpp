@@ -25,16 +25,19 @@
 
 #include <json.hpp>
 
+void to_json(nlohmann::json &j, Point<uint32_t> const &val);
+void from_json(nlohmann::json const &j, Point<uint32_t> &val);
+void to_json(nlohmann::json &j, Point<float> const &val);
+void from_json(nlohmann::json const &j, Point<float> &val);
+
 namespace levelTracker {
     using GenerateLevelFcn = std::function<std::shared_ptr<Level>(std::shared_ptr<GameRequester>,
-            float, float, float)>;
-    using GenerateLevelGeneratorFcn = std::function<std::shared_ptr<Level>(
-            boost::optional<nlohmann::json> const &, nlohmann::json const &)>;
-    using LevelMapEntry = std::pair<std::string, GenerateLevelGeneratorFcn>;
-    using LevelMapTable = std::unordered_map<std::string, GenerateLevelGeneratorFcn>;
+            glm::mat4 const &, glm::mat4 const &, float)>;
+    using LevelMapEntry = std::pair<std::string, GenerateLevelFcn>;
+    using LevelMapTable = std::unordered_map<std::string, GenerateLevelFcn>;
 
-    using GenerateFinisherFcn = std::function<std::shared_ptr<Level>(
-            boost::optional<nlohmann::json> const &, nlohmann::json const &)>;
+    using GenerateFinisherFcn = std::function<std::shared_ptr<LevelFinish>(std::shared_ptr<GameRequester>,
+            glm::mat4 const &, glm::mat4 const &, float)>;
     using FinisherMapEntry = std::pair<std::string, GenerateFinisherFcn>;
     using FinisherMapTable = std::unordered_map<std::string, GenerateFinisherFcn>;
 
