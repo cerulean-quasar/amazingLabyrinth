@@ -79,12 +79,6 @@ using GetLevelFcn = std::function<std::shared_ptr<Level>(LevelTracker &levelTrac
 using GetFinisherFcn = std::function<std::shared_ptr<LevelFinish>(
         LevelTracker &levelTracker, float centerX, float centerY, glm::mat4 const &proj, glm::mat4 const &view)>;
 
-struct LevelGroup {
-    GetStarterFcn getStarterFcn;
-    GetLevelFcn getLevelFcn;
-    GetFinisherFcn getFinisherFcn;
-};
-
 struct RestoreData {
     std::string levelName;
     LevelGroup levelGroupFcns;

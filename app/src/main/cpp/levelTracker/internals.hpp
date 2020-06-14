@@ -26,10 +26,12 @@
 #include <json.hpp>
 
 namespace levelTracker {
-    using GenerateLevelFcn = std::function<std::shared_ptr<Level>(
+    using GenerateLevelFcn = std::function<std::shared_ptr<Level>(std::shared_ptr<GameRequester>,
+            float, float, float)>;
+    using GenerateLevelGeneratorFcn = std::function<std::shared_ptr<Level>(
             boost::optional<nlohmann::json> const &, nlohmann::json const &)>;
-    using LevelMapEntry = std::pair<std::string, GenerateLevelFcn>;
-    using LevelMapTable = std::unordered_map<std::string, GenerateLevelFcn>;
+    using LevelMapEntry = std::pair<std::string, GenerateLevelGeneratorFcn>;
+    using LevelMapTable = std::unordered_map<std::string, GenerateLevelGeneratorFcn>;
 
     using GenerateFinisherFcn = std::function<std::shared_ptr<Level>(
             boost::optional<nlohmann::json> const &, nlohmann::json const &)>;

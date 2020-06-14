@@ -22,6 +22,7 @@
 #include <boost/implicit_cast.hpp>
 #include "level.hpp"
 #include "../../serializeSaveDataInternals.hpp"
+#include "../basic/serializer.hpp"
 #include "serializer.hpp"
 
 namespace generatedMaze {

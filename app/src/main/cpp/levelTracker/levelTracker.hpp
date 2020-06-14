@@ -20,6 +20,7 @@
 #ifndef AMAZING_LABYRINTH_LEVEL_TRACKER_HPP
 #define AMAZING_LABYRINTH_LEVEL_TRACKER_HPP
 #include <array>
+#include <fstream>
 #include <functional>
 #include <boost/optional.hpp>
 #include "levelFinish.hpp"
@@ -28,148 +29,148 @@
 #include "../common.hpp"
 #include "../saveData.hpp"
 #include "../serializeSaveData.hpp"
-#include "generatedMaze/level.hpp"
-#include "openArea/level.hpp"
-#include "collectMaze/level.hpp"
-#include "avoidVortexOpenArea/level.hpp"
-#include "movingSafeAreas/level.hpp"
-#include "avoidVortexMaze/level.hpp"
-#include "fixedMaze/level.hpp"
-#include "movablePassage/level.hpp"
-#include "rotatablePassage/level.hpp"
 #include "../mathGraphics.hpp"
 
-class LevelTracker {
-public:
-    static float constexpr m_maxZLevel = -1.0f;
-    static float constexpr m_maxZLevelStarter = 0.0f;
-    static float constexpr m_maxZLevelFinisher = 0.5f;
+namespace levelTracker {
+    struct LevelGroup {
+        GetStarterFcn getStarterFcn;
+        GetLevelFcn getLevelFcn;
+        GetFinisherFcn getFinisherFcn;
+    };
 
-    // the following strings must be unique with respect to each other
-    static char constexpr const *beginning = "beginning";
-    static char constexpr const *lonelyPlanet = "lonelyPlanet";
-    static char constexpr const *pufferFish = "pufferFish";
-    static char constexpr const *rolarBear = "rolarBear";
-    static char constexpr const *bee1 = "bee1";
-    static char constexpr const *bee2 = "bee2";
-    static char constexpr const *cat = "cat";
-    static char constexpr const *bunny = "bunny";
-    static char constexpr const *frog = "frog";
-    static char constexpr const *gopher = "gopher";
-    static char constexpr const *mouse = "mouse";
+    struct LevelTableEntry{
+        std::string levelName;
+        std::string fileName;
 
-    void gotoNextLevel();
-    static std::vector<std::string> getLevelDescriptions();
-    static bool validLevel(uint32_t level) { return level < getLevelTable().size(); }
+        LevelTableEntry() = default;
+        LevelTableEntry(LevelTableEntry &&other)
+                : levelName{std::move(other.levelName)},
+                  fileName{std::move(other.fileName)}
+        {}
+    };
 
-    static LevelGroup getLevelGroupBeginning(std::shared_ptr<OpenAreaLevelSaveData> const &levelSaveData, bool needsStarter);
-    static LevelGroup getLevelGroupLonelyPlanet(std::shared_ptr<AvoidVortexLevelSaveData> const &levelSaveData, bool needsStarter);
-    static LevelGroup getLevelGroupPufferFish(std::shared_ptr<MazeSaveData> const &levelSaveData, bool needsStarter);
-    static LevelGroup getLevelGroupRolarBear(std::shared_ptr<MovingQuadsLevelSaveData> const &levelSaveData, bool needsStarter);
-    static LevelGroup getLevelGroupBee1(std::shared_ptr<MazeSaveData> const &levelSaveData, bool needsStarter);
-    static LevelGroup getLevelGroupBee2(std::shared_ptr<MazeSaveData> const &levelSaveData, bool needsStarter);
-    static LevelGroup getLevelGroupCat(std::shared_ptr<MazeCollectSaveData> const &levelSaveData, bool needsStarter);
-    static LevelGroup getLevelGroupBunny(std::shared_ptr<MazeAvoidSaveData> const &levelBundle, bool needsStarter);
-    static LevelGroup getLevelGroupFrog(std::shared_ptr<FixedMazeSaveData> const &levelBundle, bool needsStarter);
-    static LevelGroup getLevelGroupGopher(std::shared_ptr<MovablePassageSaveData> const &levelBundle, bool needsStarter);
-    static LevelGroup getLevelGroupMouse(std::shared_ptr<RotatablePassageSaveData> const &levelBundle, bool needsStarter);
+    class Loader {
+    public:
+        static float constexpr m_maxZLevel = -1.0f;
+        static float constexpr m_maxZLevelStarter = 0.0f;
+        static float constexpr m_maxZLevelFinisher = 0.5f;
 
-    void setLevel(std::string const &levelName) {
-        size_t i = 0;
-        for (auto entry : getLevelTable()) {
-            if (levelName == entry.levelName) {
-                setLevel(i);
-                return;
+        void gotoNextLevel();
+
+        static bool validLevel(uint32_t level) { return level < getLevelTable().size(); }
+
+        void setLevel(std::string const &levelName) {
+            size_t i = 0;
+            for (auto entry : getLevelTable()) {
+                if (levelName == entry.levelName) {
+                    setLevel(i);
+                    return;
+                }
+                i++;
             }
-            i++;
         }
-    }
 
-    void setLevel(size_t level) {
-        if (level < getLevelTable().size()) {
-            m_currentLevel = level;
+        void setLevel(size_t level) {
+            if (level < getLevelTable().size()) {
+                m_currentLevel = level;
+            }
         }
-    }
 
-    std::string getLevelName() {
-        return getLevelTable()[m_currentLevel].levelName;
-    }
-
-    static std::string getLevelName(uint32_t level) {
-        return getLevelTable()[level].levelName;
-    }
-
-    static LevelGroup getLevelGroupFcns(uint32_t level) {
-        if (!validLevel(level)) {
-            level = 0;
+        std::string getLevelName() {
+            return getLevelTable()[m_currentLevel].levelName;
         }
-        return getLevelTable()[level].levelGroup;
-    }
 
-    LevelGroup getLevelGroupFcns() {
-        return getLevelTable()[m_currentLevel].levelGroup;
-    }
+        static std::string getLevelName(uint32_t level) {
+            return getLevelTable()[level].levelName;
+        }
 
-    LevelTracker(
-            std::shared_ptr<GameRequester> inGameRequester)
-            : m_gameRequester{std::move(inGameRequester)},
-              m_currentLevel{}
-    {
-    }
+        static LevelGroup getLevelGroupFcns(uint32_t level) {
+            if (!validLevel(level)) {
+                level = 0;
+            }
+            return getLevelTable()[level].levelGroup;
+        }
 
-private:
-    // if there is no levelSaveData, then we are at the beginning of the level and need a level starter
-    // otherwise we are in the level and the level starter function should return nullptr.
-    static GetStarterFcn getStarterFcn(bool required, std::vector<std::string> &&levelBeginStrings)
-    {
-        if (!required) {
-            return GetStarterFcn([] (LevelTracker &,
-                                     glm::mat4 const &,
-                                     glm::mat4 const &) -> std::shared_ptr<LevelStarter> {
-                return nullptr;
+        LevelGroup getLevelGroupFcns();
+
+        Loader(std::shared_ptr<GameRequester> inGameRequester);
+
+    private:
+        std::vector<LevelTableEntry> m_levelTable;
+
+        std::vector<uint8_t> getDataFromFile(std::string const &filename) {
+            std::ifstream stream(filename);
+            if (stream.good()) {
+                stream.seekg(0, stream.end);
+                size_t i = static_cast<size_t >(stream.tellg());
+                stream.seekg(0, stream.beg);
+                std::vector<uint8_t> vec;
+                vec.resize(i);
+                stream.read(reinterpret_cast<char *>(vec.data()), vec.size());
+
+                if (!stream.fail()) {
+                    return vec;
+                }
+            }
+        }
+
+        // if there is no levelSaveData, then we are at the beginning of the level and need a level starter
+        // otherwise we are in the level and the level starter function should return nullptr.
+        static GetStarterFcn
+        getStarterFcn(bool required, std::vector<std::string> &&levelBeginStrings) {
+            if (!required) {
+                return GetStarterFcn([](LevelTracker &,
+                                        glm::mat4 const &,
+                                        glm::mat4 const &) -> std::shared_ptr<LevelStarter> {
+                    return nullptr;
+                });
+            }
+
+            return GetStarterFcn([levelBeginStrings{move(levelBeginStrings)}](LevelTracker &tracker,
+                                                                              glm::mat4 const &proj,
+                                                                              glm::mat4 const &view)
+                                         -> std::shared_ptr<LevelStarter> {
+                auto levelStarter = tracker.getStarter(proj, view);
+                for (auto levelBeginString : levelBeginStrings) {
+                    levelStarter->addTextString(levelBeginString);
+                }
+                return levelStarter;
             });
         }
 
-        return GetStarterFcn( [levelBeginStrings{move(levelBeginStrings)}] (LevelTracker &tracker,
-                                                                            glm::mat4 const &proj,
-                                                                            glm::mat4 const &view)
-                                      -> std::shared_ptr<LevelStarter>
-        {
-            auto levelStarter = tracker.getStarter(proj, view);
-            for (auto levelBeginString : levelBeginStrings) {
-                levelStarter->addTextString(levelBeginString);
-            }
-            return levelStarter;
-        });
-    }
+        std::shared_ptr<LevelStarter> getStarter(glm::mat4 const &proj, glm::mat4 const &view) {
+            auto wh = getWidthHeight(m_maxZLevelStarter, proj, view);
+            return std::make_shared<LevelStarter>(m_gameRequester, wh.first, wh.second,
+                                                  m_maxZLevelStarter);
+        }
 
-    std::shared_ptr<LevelStarter> getStarter(glm::mat4 const &proj, glm::mat4 const &view) {
-        auto wh = getWidthHeight(m_maxZLevelStarter, proj, view);
-        return std::make_shared<LevelStarter>(m_gameRequester, wh.first, wh.second, m_maxZLevelStarter);
-    }
+        template<typename LevelType, typename LevelDataType>
+        std::shared_ptr<LevelType>
+        getLevel(LevelDataType const &levelSaveData, glm::mat4 const &proj, glm::mat4 const &view) {
+            auto wh = getWidthHeight(m_maxZLevel, proj, view);
+            auto level = std::make_shared<LevelType>(
+                    m_gameRequester, levelSaveData, wh.first, wh.second, m_maxZLevel);
+            return level;
+        }
 
-    template <typename LevelType, typename LevelDataType>
-    std::shared_ptr<LevelType> getLevel(LevelDataType const &levelSaveData, glm::mat4 const &proj, glm::mat4 const &view) {
-        auto wh = getWidthHeight(m_maxZLevel, proj, view);
-        auto level = std::make_shared<LevelType>(
-                m_gameRequester, levelSaveData, wh.first, wh.second, m_maxZLevel);
-        return level;
-    }
+        template<typename FinisherType>
+        std::shared_ptr<FinisherType>
+        getFinisher(float centerX, float centerY, glm::mat4 const &proj, glm::mat4 const &view) {
+            glm::vec4 locationScreen = proj * view * glm::vec4{centerX, centerY, m_maxZLevel, 1.0f};
+            glm::vec4 z = proj * view * glm::vec4{0.0f, 0.0f, m_maxZLevelFinisher, 1.0f};
+            locationScreen = glm::vec4{locationScreen.x * z.w, locationScreen.y * z.w,
+                                       z.z * locationScreen.w, locationScreen.w * z.w};
+            glm::vec4 locationWorld = glm::inverse(view) * glm::inverse(proj) * locationScreen;
 
-    template <typename FinisherType>
-    std::shared_ptr<FinisherType> getFinisher(float centerX, float centerY, glm::mat4 const &proj, glm::mat4 const &view) {
-        glm::vec4 locationScreen = proj * view * glm::vec4{centerX, centerY, m_maxZLevel, 1.0f};
-        glm::vec4 z = proj * view * glm::vec4{0.0f, 0.0f, m_maxZLevelFinisher, 1.0f};
-        locationScreen = glm::vec4{locationScreen.x * z.w, locationScreen.y * z.w,
-                                   z.z * locationScreen.w, locationScreen.w * z.w};
-        glm::vec4 locationWorld = glm::inverse(view) * glm::inverse(proj) * locationScreen;
+            auto wh = getWidthHeight(m_maxZLevelFinisher, proj, view);
+            return std::make_shared<FinisherType>(m_gameRequester, wh.first, wh.second,
+                                                  locationWorld.x / locationWorld.w,
+                                                  locationWorld.y / locationWorld.w,
+                                                  m_maxZLevelFinisher);
+        }
 
-        auto wh = getWidthHeight(m_maxZLevelFinisher, proj, view);
-        return std::make_shared<FinisherType>(m_gameRequester, wh.first, wh.second,
-                locationWorld.x/locationWorld.w, locationWorld.y/locationWorld.w, m_maxZLevelFinisher);
-    }
-
-    std::shared_ptr<GameRequester> m_gameRequester;
-    uint32_t m_currentLevel;
-};
+        std::shared_ptr<GameRequester> m_gameRequester;
+        uint32_t m_currentLevel;
+    };
+}
 #endif

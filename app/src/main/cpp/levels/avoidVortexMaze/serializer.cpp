@@ -20,11 +20,13 @@
 #include <memory>
 #include <json.hpp>
 #include <boost/implicit_cast.hpp>
+#include <boost/optional.hpp>
 #include "../../serializeSaveDataInternals.hpp"
 #include "level.hpp"
 #include "loadData.hpp"
 #include "../generatedMaze/serializer.hpp"
 #include "serializer.hpp"
+#include "../../levelTracker/internals.hpp"
 
 namespace avoidVortexMaze {
     char constexpr const *AvoidObjLocation = "AvoidObjLocation";
@@ -80,4 +82,16 @@ namespace avoidVortexMaze {
             return saveGameData(gsd, sd);
         }};
     }
+
+    levelTracker::RegisterLevel registerLevel(std::make_pair("avoidVortexMaze",
+        levelTracker::GenerateLevelFcn(
+            [](nlohmann::json const &lcdjson, nlohmann::json const *sdjson) -> std::shared_ptr<Level>
+            {
+                LevelConfigData lcd = lcdjson.get<LevelConfigData>();
+                std::shared_ptr<LevelSaveData> sd;
+                if (sdjson) {
+                    sd = std::make_shared(sdjson->get<LevelSaveData>());
+                }
+            }))
+        );
 } // namespace avoidVortexMaze
