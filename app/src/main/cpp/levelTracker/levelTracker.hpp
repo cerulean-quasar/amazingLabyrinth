@@ -23,22 +23,24 @@
 #include <fstream>
 #include <functional>
 #include <boost/optional.hpp>
-#include "levelFinish.hpp"
-#include "basic/level.hpp"
-#include "starter/level.hpp"
+#include "../levels/levelFinish.hpp"
+#include "../levels/basic/level.hpp"
 #include "../common.hpp"
-#include "../saveData.hpp"
-#include "../serializeSaveData.hpp"
 #include "../mathGraphics.hpp"
 
 namespace levelTracker {
+    using GenerateLevelFcn = std::function<std::shared_ptr<Level>(std::shared_ptr<GameRequester>,
+                                                                  glm::mat4 const &, glm::mat4 const &)>;
+    using GenerateFinisherFcn = std::function<std::shared_ptr<LevelFinish>(std::shared_ptr<GameRequester>,
+                                                                           glm::mat4 const &, glm::mat4 const &, float, float)>;
+
     struct LevelGroup {
-        GetStarterFcn getStarterFcn;
-        GetLevelFcn getLevelFcn;
-        GetFinisherFcn getFinisherFcn;
+        GenerateLevelFcn getStarterFcn;
+        GenerateLevelFcn getLevelFcn;
+        GenerateFinisherFcn getFinisherFcn;
     };
 
-    struct LevelTableEntry{
+    struct LevelTableEntry {
         std::string levelName;
         std::string fileName;
 
@@ -57,7 +59,17 @@ namespace levelTracker {
 
         void gotoNextLevel();
 
-        static bool validLevel(uint32_t level) { return level < getLevelTable().size(); }
+        bool setLevel(std::string levelName) {
+            auto levelNumber = getLevelNumber(levelName);
+            if (levelNumber != boost::none) {
+                m_currentLevel = levelNumber;
+            }
+        }
+
+        bool validLevel(std::string const &level) {
+            auto levelNumber = getLevelNumber(level);
+            return levelNumber != boost::none;
+        }
 
         boost::optional<size_t> getLevelNumber(std::string const &levelName) {
             size_t i = 0;
@@ -81,12 +93,12 @@ namespace levelTracker {
 
         std::vector<uint8_t> getDataFromFile(std::string const &filename) {
             std::ifstream stream(filename);
-            getDataFromFile(stream);
+            return getDataFromFile(stream);
         }
 
         std::vector<uint8_t> getDataFromFile(std::unique_ptr<std::streambuf> const &sb) {
             std::istream stream(sb.get());
-            getDataFromFile(stream);
+            return getDataFromFile(stream);
         }
 
         std::vector<uint8_t> getDataFromFile(std::istream &stream) {

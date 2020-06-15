@@ -25,6 +25,10 @@
 
 #include <json.hpp>
 
+#include "../levels/basic/level.hpp"
+#include "../levels/levelFinish.hpp"
+#include "levelTracker.hpp"
+
 void to_json(nlohmann::json &j, Point<uint32_t> const &val);
 void from_json(nlohmann::json const &j, Point<uint32_t> &val);
 void to_json(nlohmann::json &j, Point<float> const &val);
@@ -38,15 +42,11 @@ namespace levelTracker {
         char constexpr const *GameSaveDataLevel = "LevelSaveData";
         char constexpr const *GameSaveDataNeedsStarter = "LevelNeedsStarter";
     }
-    using GenerateLevelFcn = std::function<std::shared_ptr<Level>(std::shared_ptr<GameRequester>,
-            glm::mat4 const &, glm::mat4 const &)>;
     using GenerateLevelGeneratorFcn = std::function<GenerateLevelFcn(nlohmann::json const &,
             nlohmann::json const *, float)>;
     using LevelMapEntry = std::pair<std::string, GenerateLevelGeneratorFcn>;
     using LevelMapTable = std::unordered_map<std::string, GenerateLevelGeneratorFcn>;
 
-    using GenerateFinisherFcn = std::function<std::shared_ptr<LevelFinish>(std::shared_ptr<GameRequester>,
-            glm::mat4 const &, glm::mat4 const &, float)>;
     using GenerateFinisherGeneratorFcn = std::function<GenerateFinisherFcn(nlohmann::json const &, float)>;
     using FinisherMapEntry = std::pair<std::string, GenerateFinisherGeneratorFcn>;
     using FinisherMapTable = std::unordered_map<std::string, GenerateFinisherGeneratorFcn>;
