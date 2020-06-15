@@ -31,15 +31,25 @@ void to_json(nlohmann::json &j, Point<float> const &val);
 void from_json(nlohmann::json const &j, Point<float> &val);
 
 namespace levelTracker {
+    namespace DataVariables {
+        char constexpr const *GameSaveDataVersion = "GameSaveDataVersion";
+        char constexpr const *GameSaveDataLevelName = "LevelName";
+        char constexpr const *GameSaveDataScreenSize = "ScreenSize";
+        char constexpr const *GameSaveDataLevel = "LevelSaveData";
+        char constexpr const *GameSaveDataNeedsStarter = "LevelNeedsStarter";
+    }
     using GenerateLevelFcn = std::function<std::shared_ptr<Level>(std::shared_ptr<GameRequester>,
-            glm::mat4 const &, glm::mat4 const &, float)>;
-    using LevelMapEntry = std::pair<std::string, GenerateLevelFcn>;
-    using LevelMapTable = std::unordered_map<std::string, GenerateLevelFcn>;
+            glm::mat4 const &, glm::mat4 const &)>;
+    using GenerateLevelGeneratorFcn = std::function<GenerateLevelFcn(nlohmann::json const &,
+            nlohmann::json const *, float)>;
+    using LevelMapEntry = std::pair<std::string, GenerateLevelGeneratorFcn>;
+    using LevelMapTable = std::unordered_map<std::string, GenerateLevelGeneratorFcn>;
 
     using GenerateFinisherFcn = std::function<std::shared_ptr<LevelFinish>(std::shared_ptr<GameRequester>,
             glm::mat4 const &, glm::mat4 const &, float)>;
-    using FinisherMapEntry = std::pair<std::string, GenerateFinisherFcn>;
-    using FinisherMapTable = std::unordered_map<std::string, GenerateFinisherFcn>;
+    using GenerateFinisherGeneratorFcn = std::function<GenerateFinisherFcn(nlohmann::json const &, float)>;
+    using FinisherMapEntry = std::pair<std::string, GenerateFinisherGeneratorFcn>;
+    using FinisherMapTable = std::unordered_map<std::string, GenerateFinisherGeneratorFcn>;
 
     LevelMapTable &starterTable();
 
@@ -58,6 +68,54 @@ namespace levelTracker {
     using RegisterStarter = Register<LevelMapEntry, LevelMapTable, starterTable>;
     using RegisterLevel = Register<LevelMapEntry, LevelMapTable, levelTable>;
     using RegisterFinisher = Register<FinisherMapEntry, FinisherMapTable, finisherTable>;
+
+    int constexpr GameSaveDataVersionValue = 1;
+    struct GameSaveData {
+        int version;
+        Point<uint32_t> screenSize;
+        std::string levelName;
+        bool needsStarter;
+        GameSaveData(
+                Point<uint32_t> const &screenSize_,
+                std::string const &levelName_,
+                bool needsStarter_) :
+                version(GameSaveDataVersionValue),
+                screenSize(screenSize_),
+                levelName(levelName_),
+                needsStarter(needsStarter_)
+        {}
+
+        GameSaveData(
+                int version_,
+                Point<uint32_t> const &screenSize_,
+                std::string const &levelName_,
+                bool needsStarter_) :
+                version(version_),
+                screenSize(screenSize_),
+                levelName(levelName_),
+                needsStarter(needsStarter_)
+        {}
+    };
+
+    template <typename LevelSaveDataType>
+    std::vector<uint8_t> saveGameData(
+            std::shared_ptr<GameSaveData> const &gameData,
+            std::shared_ptr<LevelSaveDataType> const &levelData)
+    {
+        nlohmann::json j;
+        j[DataVariables::GameSaveDataVersion] = gameData->version;
+        j[DataVariables::GameSaveDataScreenSize] = gameData->screenSize;
+        j[DataVariables::GameSaveDataLevelName] = gameData->levelName;
+        j[DataVariables::GameSaveDataNeedsStarter] = gameData->needsStarter;
+
+        if (levelData != nullptr) {
+            j[DataVariables::GameSaveDataLevel] = *levelData;
+        }
+
+        std::vector<uint8_t> vec = nlohmann::json::to_cbor(j);
+
+        return vec;
+    }
 }
 
 #endif //AMAZING_LABYRINTH_LEVEL_TRACKER_INTERNALS_HPP

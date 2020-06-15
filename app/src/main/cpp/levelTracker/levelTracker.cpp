@@ -51,12 +51,6 @@ void from_json(nlohmann::json const &j, Point<float> &val) {
 
 namespace levelTracker {
     namespace DataVariables {
-        char constexpr const *GameSaveDataVersion = "GameSaveDataVersion";
-        char constexpr const *GameSaveDataLevelName = "LevelName";
-        char constexpr const *GameSaveDataScreenSize = "ScreenSize";
-        char constexpr const *GameSaveDataLevel = "LevelSaveData";
-        char constexpr const *GameSaveDataNeedsStarter = "LevelNeedsStarter";
-
         char constexpr const *Levels = "Levels";
         char constexpr const *Name = "Name";
         char constexpr const *File = "File";
@@ -71,17 +65,17 @@ namespace levelTracker {
     float constexpr Loader::m_maxZLevelFinisher;
 
     LevelMapTable &starterTable() {
-        static std::unordered_map<std::string, GenerateLevelFcn> map;
+        static LevelMapTable map;
         return map;
     }
 
     LevelMapTable &levelTable() {
-        static std::unordered_map<std::string, GenerateLevelFcn> map;
+        static LevelMapTable map;
         return map;
     }
 
     FinisherMapTable &finisherTable() {
-        static std::unordered_map<std::string, GenerateFinisherFcn> map;
+        static FinisherMapTable map;
         return map;
     }
 
@@ -101,34 +95,6 @@ namespace levelTracker {
             : starter{std::move(other.starter)},
               level{std::move(other.level)},
               finisher{std::move(other.finisher)}
-        {}
-    };
-
-    int constexpr GameSaveDataVersionValue = 1;
-    struct GameSaveData {
-        int version;
-        Point<uint32_t> screenSize;
-        std::string levelName;
-        bool needsStarter;
-        GameSaveData(
-                Point<uint32_t> const &screenSize_,
-                std::string const &levelName_,
-                bool needsStarter_) :
-                version(GameSaveDataVersionValue),
-                screenSize(screenSize_),
-                levelName(levelName_),
-                needsStarter(needsStarter_)
-        {}
-
-        GameSaveData(
-                int version_,
-                Point<uint32_t> const &screenSize_,
-                std::string const &levelName_,
-                bool needsStarter_) :
-                version(version_),
-                screenSize(screenSize_),
-                levelName(levelName_),
-                needsStarter(needsStarter_)
         {}
     };
 
