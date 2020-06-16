@@ -51,11 +51,11 @@ namespace avoidVortexMaze {
 
         // lcd should never be null, sd may be null.
         Level(std::shared_ptr<GameRequester> inGameRequester,
-                  std::shared_ptr<LevelConfigData> const &lcd,
+                  LevelConfigData const &lcd,
                   std::shared_ptr<LevelSaveData> const &sd,
-                  float inWidth, float inHeight, float maxZ)
-                : openAreaMaze::Level(std::move(inGameRequester), lcd, sd, inWidth, inHeight, maxZ),
-                m_avoidObjTexture(lcd->m_avoidTexture)
+                  glm::mat4 const &proj, glm::mat4 const &view, float maxZ)
+                : openAreaMaze::Level(std::move(inGameRequester), lcd, sd, proj, view, maxZ),
+                m_avoidObjTexture(lcd.m_avoidTexture)
         {
             if (sd) {
                 m_mazeBoard.setStart(sd->startRowCol.x, sd->startRowCol.y);
@@ -64,7 +64,7 @@ namespace avoidVortexMaze {
                                                         getBallZPosition());
                 }
             } else {
-                generateAvoidModelMatrices(lcd->m_numberAvoidObjects);
+                generateAvoidModelMatrices(lcd.m_numberAvoidObjects);
             }
         }
     private:

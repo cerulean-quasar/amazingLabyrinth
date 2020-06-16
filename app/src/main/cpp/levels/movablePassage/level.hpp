@@ -70,20 +70,6 @@ namespace movablePassage {
         std::vector<uint8_t> saveData(levelTracker::GameSaveData const &gsd,
                                       char const *saveLevelDataKey) override;
 
-        // call after all other init functions are completed but before updateStaticDrawObjects
-        std::vector<float> getAdditionalWHatZRequests() override {
-            return std::vector<float>{m_gameBoard.getZPosEndTile()};
-        }
-
-        // call after getAdditionalWHatZRequests to return the requested width/height at z.
-        void setAdditionalWH(float, float height, float z) override {
-            if (z == m_gameBoard.getZPosEndTile()) {
-                m_gameBoard.setCenterPos(glm::vec3{0.0f, (height - m_gameBoard.heightInTiles() *
-                                                                   m_gameBoard.blockSize()) / 2.0f,
-                                                   m_mazeFloorZ});
-            }
-        }
-
         // all the compoents should be added before calling this function.
         void initSetGameBoard(
                 uint32_t nbrTilesX,
@@ -118,12 +104,12 @@ namespace movablePassage {
 
         Level(
             std::shared_ptr<GameRequester> inGameRequester,
-            std::shared_ptr<LevelConfigData> const &lcd,
+            LevelConfigData const &lcd,
             std::shared_ptr<LevelSaveData> const &/*sd*/,
-            float width,
-            float height,
+            glm::mat4 const &proj,
+            glm::mat4 const &view,
             float maxZ)
-            : basic::Level(inGameRequester, lcd, width, height, maxZ, true),
+            : basic::Level(inGameRequester, lcd, proj, view, maxZ, true),
               m_random{},
               m_zdrawTopsOfObjects{ m_mazeFloorZ },
               m_zMovingPlacement{ m_mazeFloorZ + m_scaleBall },
@@ -145,42 +131,48 @@ namespace movablePassage {
               m_initDone{ false },
               m_objsReferenceBall{ 0 }
         {
-            m_textureLockedComponent = lcd->placementLockedInPlaceTexture;
+            m_textureLockedComponent = lcd.placementLockedInPlaceTexture;
 
-            m_componentModels[Component::ComponentType::noMovementRock] = lcd->rockModels;
-            m_componentTextures[Component::ComponentType::noMovementRock] = lcd->rockTextures;
+            m_componentModels[Component::ComponentType::noMovementRock] = lcd.rockModels;
+            m_componentTextures[Component::ComponentType::noMovementRock] = lcd.rockTextures;
 
-            m_componentModels[Component::ComponentType::noMovementDirt] = lcd->dirtModels;
-            m_componentTextures[Component::ComponentType::noMovementDirt] = lcd->dirtTextures;
+            m_componentModels[Component::ComponentType::noMovementDirt] = lcd.dirtModels;
+            m_componentTextures[Component::ComponentType::noMovementDirt] = lcd.dirtTextures;
 
-            m_componentTextureEnd = lcd->endTexture;
-            m_textureEndOffBoard = lcd->endOffBoardTexture;
+            m_componentTextureEnd = lcd.endTexture;
+            m_textureEndOffBoard = lcd.endOffBoardTexture;
 
-            m_componentModels[Component::ComponentType::closedCorner] = lcd->beginningCornerModels;
-            m_componentTextures[Component::ComponentType::closedCorner] = lcd->beginningCornerTextures;
+            m_componentModels[Component::ComponentType::closedCorner] = lcd.beginningCornerModels;
+            m_componentTextures[Component::ComponentType::closedCorner] = lcd.beginningCornerTextures;
 
-            m_componentModels[Component::ComponentType::closedBottom] = lcd->beginningSideModels;
-            m_componentTextures[Component::ComponentType::closedBottom] = lcd->beginningSideTextures;
+            m_componentModels[Component::ComponentType::closedBottom] = lcd.beginningSideModels;
+            m_componentTextures[Component::ComponentType::closedBottom] = lcd.beginningSideTextures;
 
-            m_componentModels[Component::ComponentType::open] = lcd->beginningOpenModels;
-            m_componentTextures[Component::ComponentType::open] = lcd->beginningOpenTextures;
+            m_componentModels[Component::ComponentType::open] = lcd.beginningOpenModels;
+            m_componentTextures[Component::ComponentType::open] = lcd.beginningOpenTextures;
 
-            for (auto const &rock : lcd->rockPlacements) {
+            for (auto const &rock : lcd.rockPlacements) {
                 m_addedRocks.emplace_back(rock.row, rock.col);
             }
 
-            initAddType(Component::ComponentType::straight, lcd->straight.numberPlacements,
-                               lcd->straight.model, lcd->straight.texture);
-            initAddType(Component::ComponentType::turn, lcd->turn.numberPlacements,
-                               lcd->turn.model, lcd->turn.texture);
-            initAddType(Component::ComponentType::tjunction, lcd->tjunction.numberPlacements,
-                               lcd->tjunction.model, lcd->tjunction.texture);
-            initAddType(Component::ComponentType::crossjunction, lcd->crossjunction.numberPlacements,
-                               lcd->crossjunction.model, lcd->crossjunction.texture);
+            initAddType(Component::ComponentType::straight, lcd.straight.numberPlacements,
+                               lcd.straight.model, lcd.straight.texture);
+            initAddType(Component::ComponentType::turn, lcd.turn.numberPlacements,
+                               lcd.turn.model, lcd.turn.texture);
+            initAddType(Component::ComponentType::tjunction, lcd.tjunction.numberPlacements,
+                               lcd.tjunction.model, lcd.tjunction.texture);
+            initAddType(Component::ComponentType::crossjunction, lcd.crossjunction.numberPlacements,
+                               lcd.crossjunction.model, lcd.crossjunction.texture);
 
-            initSetGameBoard(lcd->numberTilesX, lcd->numberTilesY, lcd->startColumn, lcd->endColumn);
+            initSetGameBoard(lcd.numberTilesX, lcd.numberTilesY, lcd.startColumn, lcd.endColumn);
 
             initDone();
+
+            // do after the game board is initialized.
+            auto wh = getWidthHeight(m_gameBoard.getZPosEndTile(), proj, view);
+            m_gameBoard.setCenterPos(glm::vec3{0.0f, (wh.second - m_gameBoard.heightInTiles() *
+                                                               m_gameBoard.blockSize()) / 2.0f,
+                                               m_mazeFloorZ});
         }
 
     private:

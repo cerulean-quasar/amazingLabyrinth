@@ -29,7 +29,6 @@
 #include <array>
 
 #include "../../graphics.hpp"
-#include "../levelFinish.hpp"
 #include "../basic/level.hpp"
 #include "../generatedMazeAlgorithms.hpp"
 #include "loadData.hpp"
@@ -111,12 +110,12 @@ namespace generatedMaze {
     private:
         static Level::MazeWallModelMatrixGeneratorFcn getMazeWallModelMatricesGenerator();
         static GeneratedMazeBoard::Mode getGeneratorType(
-                std::shared_ptr<LevelConfigData> const &lcd,
+                LevelConfigData const &lcd,
                 std::shared_ptr<LevelSaveData> const &sd)
         {
             if (sd) {
                 return GeneratedMazeBoard::Mode::none;
-            } else if (lcd->m_dfsSearch) {
+            } else if (lcd.m_dfsSearch) {
                 return GeneratedMazeBoard::Mode::DFS;
             } else {
                 return GeneratedMazeBoard::Mode::BFS;
@@ -132,22 +131,22 @@ namespace generatedMaze {
         // sd can be null if there is no save data.  If it is not null, the maze will be restored
         // from the save data, otherwise the maze will be generated.
         Level(std::shared_ptr<GameRequester> inGameRequester,
-             std::shared_ptr<LevelConfigData> const &lcd,
+             LevelConfigData const &lcd,
              std::shared_ptr<LevelSaveData> const &sd,
-             float width,
-             float height,
+             glm::mat4 const &proj,
+             glm::mat4 const &view,
              float floorZ,
              MazeWallModelMatrixGeneratorFcn wallModelMatrixGeneratorFcn = getMazeWallModelMatricesGenerator())
-                : basic::Level(std::move(inGameRequester), lcd, width, height, floorZ, true),
-                  wallTextures{lcd->m_wallTextureNames},
-                  floorTexture{lcd->m_mazeFloorTexture},
-                  holeTexture{lcd->m_holeTexture},
+                : basic::Level(std::move(inGameRequester), lcd, proj, view, floorZ, true),
+                  wallTextures{lcd.m_wallTextureNames},
+                  floorTexture{lcd.m_mazeFloorTexture},
+                  holeTexture{lcd.m_holeTexture},
                   drawHole{true},
-                  m_mazeBoard{lcd->m_numberRows,
+                  m_mazeBoard{lcd.m_numberRows,
                               static_cast<uint32_t>(std::floor((lcd->m_numberRows) * m_width / m_height)),
                               getGeneratorType(lcd, sd)}
         {
-            m_scaleBall = height / (lcd->m_numberRows * numberBlocksPerCell + 1) / m_originalBallDiameter;
+            m_scaleBall = m_height / (lcd.m_numberRows * numberBlocksPerCell + 1) / m_originalBallDiameter;
             preGenerate();
 
             loadModels();

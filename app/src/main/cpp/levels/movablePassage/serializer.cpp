@@ -147,7 +147,7 @@ namespace movablePassage {
         val.rockPlacements = j[RockPlacements].get<ComponentConfig>();
     }
 
-    std::vector<uint8_t> saveData(levelTracker::GameSaveData const &gsd,
+    std::vector<uint8_t> Level::saveData(levelTracker::GameSaveData const &gsd,
                                   char const *saveLevelDataKey) {
         auto sd = std::make_shared<LevelSaveData>();
         nlohmann::json j;

@@ -481,14 +481,14 @@ namespace fixedMaze {
     }
 
     Level::Level(std::shared_ptr<GameRequester> inGameRequester,
-                         std::shared_ptr<LevelConfigData> const &lcd,
+                         LevelConfigData const &lcd,
                          std::shared_ptr<LevelSaveData> const &,
-                         float width, float height, float mazeFloorZ)
-            : basic::Level{inGameRequester, lcd, width, height, mazeFloorZ, false},
-              m_floorModel{lcd->m_mazeFloorModel},
-              m_floorTexture{lcd->m_mazeFloorTexture},
-              m_extraBounce{lcd->m_extraBounce},
-              m_minSpeedOnObjBounce{lcd->m_minSpeedOnBounce},
+                         glm::mat4 const &proj, glm::mat4 const &view, float mazeFloorZ)
+            : basic::Level{inGameRequester, lcd, proj, view, mazeFloorZ, false},
+              m_floorModel{lcd.m_mazeFloorModel},
+              m_floorTexture{lcd.m_mazeFloorTexture},
+              m_extraBounce{lcd.m_extraBounce},
+              m_minSpeedOnObjBounce{lcd.m_minSpeedOnBounce},
               m_speedLimit{m_diagonal / 4.0f}
     {
         init();

@@ -40,14 +40,14 @@ namespace collectMaze {
         static char constexpr const *m_name = "collectMaze";
 
         Level(std::shared_ptr<GameRequester> inGameRequester,
-                    std::shared_ptr<LevelConfigData> const &lcd,
+                    LevelConfigData const &lcd,
                     std::shared_ptr<LevelSaveData> const &sd,
-                    float inWidth, float inHeight, float floorZ)
-                : openAreaMaze::Level(std::move(inGameRequester), lcd, sd, inWidth, inHeight, floorZ),
-                  m_numberCollectObjects{lcd->numberCollectObjects},
+                    glm::mat4 proj, glm::mat4 view, float floorZ)
+                : openAreaMaze::Level(std::move(inGameRequester), lcd, sd, proj, view, floorZ),
+                  m_numberCollectObjects{lcd.numberCollectObjects},
                   collectBallScaleFactor{2.0f * m_scaleBall / 3.0f},
-                  m_collectModel{lcd->collectModel},
-                  m_collectTexture{lcd->collectTexture},
+                  m_collectModel{lcd.collectModel},
+                  m_collectTexture{lcd.collectTexture},
                   m_collectObjsSameAsBall{m_collectModel == m_ballModel && m_collectTexture == m_ballTexture}
         {
             if (sd) {

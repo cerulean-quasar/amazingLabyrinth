@@ -23,7 +23,7 @@
 #include <fstream>
 #include <functional>
 #include <boost/optional.hpp>
-#include "../levels/levelFinish.hpp"
+#include "../finisher/types.hpp"
 #include "../levels/basic/level.hpp"
 #include "../common.hpp"
 #include "../mathGraphics.hpp"

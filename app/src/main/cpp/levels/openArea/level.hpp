@@ -85,13 +85,13 @@ namespace openArea {
         static char constexpr const *m_name = "openArea";
         Level(
                 std::shared_ptr <GameRequester> inGameRequester,
-                std::shared_ptr <LevelConfigData> const &lcd,
+                LevelConfigData const &lcd,
                 std::shared_ptr <LevelSaveData> const &levelRestoreData,
-                float width,
-                float height,
+                glm::mat4 const &proj,
+                glm::mat4 const &view,
                 float maxZ)
-                : basic::Level(std::move(inGameRequester), lcd, width, height, maxZ, true),
-                  holeTexture{lcd->holeTexture},
+                : basic::Level(std::move(inGameRequester), lcd, proj, view, maxZ, true),
+                  holeTexture{lcd.holeTexture},
                   prevTime(std::chrono::high_resolution_clock::now()) {
             loadModels();
             if (levelRestoreData == nullptr) {

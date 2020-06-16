@@ -26,7 +26,7 @@
 #include <json.hpp>
 
 #include "../levels/basic/level.hpp"
-#include "../levels/levelFinish.hpp"
+#include "../finisher/types.hpp"
 #include "levelTracker.hpp"
 
 void to_json(nlohmann::json &j, Point<uint32_t> const &val);

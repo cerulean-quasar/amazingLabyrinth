@@ -61,9 +61,9 @@ namespace fixedMaze {
                                       char const *saveLevelDataKey) override;
 
         Level(std::shared_ptr<GameRequester> inGameRequester,
-                  std::shared_ptr<LevelConfigData> const &lcd,
+                  LevelConfigData const &lcd,
                   std::shared_ptr<LevelSaveData> const &sd,
-                  float width, float height, float maxZ);
+                  glm::mat4 const &proj, glm::mat4 const &view, float maxZ);
 
         void init();
 

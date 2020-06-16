@@ -69,16 +69,16 @@ namespace starter {
         static char constexpr const *m_name = "starter";
 
         Level(std::shared_ptr<GameRequester> inGameRequester,
-                     std::shared_ptr<LevelConfigData> const &lcd,
-                     std::shared_ptr<LevelSaveData> const &sd,
-                     float width, float height, float maxZ)
-                : basic::Level(std::move(inGameRequester), lcd, width, height, maxZ, true),
+                     LevelConfigData const &lcd,
+                     std::shared_ptr<LevelSaveData> const & /*sd*/,
+                     glm::mat4 const &proj, glm::mat4 const &view, float maxZ)
+                : basic::Level(std::move(inGameRequester), lcd, proj, view, maxZ, true),
                   maxPosX(m_width / 2 - ballRadius() -
                           m_wallThickness * ballDiameter() / m_modelSize),
                   maxPosY(m_height / 2 - ballRadius() -
                           m_wallThickness * ballDiameter() / m_modelSize),
                   errVal(ballDiameter() / 5.0f),
-                  text{lcd->startupMessages}
+                  text{lcd.startupMessages}
         {
             prevTime = std::chrono::high_resolution_clock::now();
 

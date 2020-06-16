@@ -31,6 +31,7 @@
 #include "../../saveData.hpp"
 #include "loadData.hpp"
 #include "../../levelTracker/types.hpp"
+#include "../../mathGraphics.hpp"
 
 namespace basic {
     class Level {
@@ -52,9 +53,9 @@ namespace basic {
 
         std::shared_ptr<GameRequester> m_gameRequester;
         bool m_finished;
-        float const m_width;
-        float const m_height;
-        float const m_diagonal;
+        float m_width;
+        float m_height;
+        float m_diagonal;
         float const m_mazeFloorZ;
         bool const m_ignoreZMovement;
         float m_scaleBall;
@@ -158,23 +159,24 @@ namespace basic {
 
         Level(
                 std::shared_ptr<GameRequester> inGameRequester,
-                std::shared_ptr<LevelConfigData> const &lcd,
-                float width,
-                float height,
+                LevelConfigData const &lcd,
+                glm::mat4 const &proj,
+                glm::mat4 const &view,
                 float mazeFloorZ,
                 bool ignoreZMovement)
                 : m_gameRequester{std::move(inGameRequester)},
                   m_finished(false),
-                  m_width(width),
-                  m_height(height),
-                  m_diagonal{glm::length(glm::vec2{m_width, m_height})},
                   m_mazeFloorZ{mazeFloorZ},
                   m_ignoreZMovement{ignoreZMovement},
-                  m_scaleBall{lcd->m_ballSizeDiagonalRatio * m_diagonal},
-                  m_bounce{lcd->m_bounceEnabled},
-                  m_ballModel{lcd->m_ballModel},
-                  m_ballTexture{lcd->m_ballTexture}
+                  m_scaleBall{lcd.m_ballSizeDiagonalRatio * m_diagonal},
+                  m_bounce{lcd.m_bounceEnabled},
+                  m_ballModel{lcd.m_ballModel},
+                  m_ballTexture{lcd.m_ballTexture}
         {
+            auto wh = getWidthHeight(mazeFloorZ, proj, view);
+            m_width = wh.first;
+            m_height = wh.second;
+            m_diagonal = glm::length(glm::vec2{m_width, m_height});
             m_ball.totalRotated = glm::quat();
             m_ball.acceleration = {0.0f, 0.0f, 0.0f};
             m_ball.velocity = {0.0f, 0.0f, 0.0f};
