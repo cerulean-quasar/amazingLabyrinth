@@ -46,12 +46,12 @@ namespace starter{
                      sd = std::make_shared(sdjson->get<LevelSaveData>());
                  }
                  return levelTracker::GenerateLevelFcn(
-                         [lcd, sd, z](std::shared_ptr<GameRequester> gameRequester,
-                                      glm::mat4 const &proj, glm::mat4 const &view) -> std::shared_ptr<basic::Level>
-                         {
-                             return std::make_shared<Level>(
-                                     std::move(gameRequester), lcd, sd, proj, view, z);
-                         });
+                     [lcd, sd, z](std::shared_ptr<GameRequester> gameRequester,
+                                  glm::mat4 const &proj, glm::mat4 const &view) -> std::shared_ptr<basic::Level>
+                     {
+                         return std::make_shared<Level>(
+                                 std::move(gameRequester), lcd, sd, proj, view, z);
+                     });
              }))
     );
 }

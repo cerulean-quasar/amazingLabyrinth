@@ -2,7 +2,7 @@
     "Components" : {
         "Starter": "starter",
         "Level": "generatedMaze",
-        "Finished": "manyQuadCoverUp"
+        "Finisher": "manyQuadsCoverUp"
     },
     "Starter" : {
         "BallModel": "models/ball.modelcbor",

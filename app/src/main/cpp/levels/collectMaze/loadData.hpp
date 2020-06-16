@@ -20,7 +20,10 @@
 #ifndef AMAZING_LABYRINTH_MAZE_COLLECT_LOAD_DATA_HPP
 #define AMAZING_LABYRINTH_MAZE_COLLECT_LOAD_DATA_HPP
 
-#include "../../saveData.hpp"
+#include <vector>
+#include <string>
+#include "../../levelTracker/internals.hpp"
+#include "../generatedMaze/loadData.hpp"
 
 namespace collectMaze {
     struct LevelSaveData : public generatedMaze::LevelSaveData {
