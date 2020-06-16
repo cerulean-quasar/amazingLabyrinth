@@ -88,6 +88,8 @@ namespace avoidVortexOpenArea {
         void generateModelMatrices();
 
     public:
+        static char constexpr const *m_name = "avoidVortexOpenArea";
+
         glm::vec4 getBackgroundColor() override { return glm::vec4(0.0, 0.0, 0.0, 1.0); }
 
         bool updateData() override;
@@ -106,30 +108,10 @@ namespace avoidVortexOpenArea {
             y = holePosition.y;
         }
 
-        SaveLevelDataFcn getSaveLevelDataFcn() override;
+        char const *name() override { return m_name; }
 
-        /*
-        void initSetHoleTexture(std::string const &texture) { holeTexture = texture; }
-
-        void initSetVortexTexture(std::string const &texture) { vortexTexture = texture; }
-
-        void initSetStartVortexTexture(std::string const &texture) { startVortexTexture = texture; }
-
-        void initSetBallTexture(std::string const &texture) { ballTexture = texture; }
-
-        Level(std::shared_ptr<GameRequester> inGameRequester, float width, float height,
-                         float floorZ)
-                : basic::Level(std::move(inGameRequester), width, height, floorZ, true, 1.0f / 40.0f),
-                  maxX(m_width / 2),
-                  maxY(m_height / 2),
-                  prevTime(std::chrono::high_resolution_clock::now()) {
-            loadModels();
-            preGenerate();
-            generate();
-            postGenerate();
-            generateModelMatrices();
-        }
-        */
+        std::vector<uint8_t> saveData(levelTracker::GameSaveData const &gsd,
+                                      char const *saveLevelDataKey) override;
 
         Level(std::shared_ptr<GameRequester> inGameRequester,
                          std::shared_ptr<LevelConfigData> const &lcd,

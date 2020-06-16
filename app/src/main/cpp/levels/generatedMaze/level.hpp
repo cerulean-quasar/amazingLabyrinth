@@ -126,6 +126,8 @@ namespace generatedMaze {
         void initializeCell(uint8_t nibble, size_t row, size_t col);
 
     public:
+        static char constexpr const *m_name = "generatedMaze";
+
         // lcd must never be null
         // sd can be null if there is no save data.  If it is not null, the maze will be restored
         // from the save data, otherwise the maze will be generated.
@@ -197,7 +199,10 @@ namespace generatedMaze {
             prevTime = std::chrono::high_resolution_clock::now();
         }
 
-        SaveLevelDataFcn getSaveLevelDataFcn() override;
+        char const *name() override { return m_name; }
+
+        std::vector<uint8_t> saveData(levelTracker::GameSaveData const &gsd,
+                                      char const *saveLevelDataKey) override;
 
         ~Level() override = default;
     };

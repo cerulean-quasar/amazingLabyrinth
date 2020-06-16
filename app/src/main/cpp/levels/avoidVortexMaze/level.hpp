@@ -27,9 +27,9 @@
 #include <glm/gtc/quaternion.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 
-#include "saveData.hpp"
-#include "basic/level.hpp"
+#include "../basic/level.hpp"
 #include "../openAreaMaze/level.hpp"
+#include "../../levelTracker/types.hpp"
 
 #include "loadData.hpp"
 
@@ -42,6 +42,13 @@ namespace avoidVortexMaze {
 
         std::vector<glm::vec3> m_avoidObjectLocations;
     public:
+        static char constexpr const *m_name = "avoidVortexMaze";
+
+        std::vector<uint8_t> Level::saveData(levelTracker::GameSaveData const &gsd, char const *saveLevelDataKey) override;
+        bool updateStaticDrawObjects(DrawObjectTable &objs, TextureMap &textures) override;
+
+        char const *name() override { return m_name; }
+
         // lcd should never be null, sd may be null.
         Level(std::shared_ptr<GameRequester> inGameRequester,
                   std::shared_ptr<LevelConfigData> const &lcd,
@@ -60,11 +67,6 @@ namespace avoidVortexMaze {
                 generateAvoidModelMatrices(lcd->m_numberAvoidObjects);
             }
         }
-
-        bool updateStaticDrawObjects(DrawObjectTable &objs, TextureMap &textures) override;
-
-        SaveLevelDataFcn getSaveLevelDataFcn() override;
-
     private:
         void generateAvoidModelMatrices(uint32_t numberAvoidObjects);
     };

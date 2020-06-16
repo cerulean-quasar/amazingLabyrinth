@@ -21,8 +21,8 @@
 #include <json.hpp>
 #include <boost/implicit_cast.hpp>
 #include "level.hpp"
-#include "../../serializeSaveDataInternals.hpp"
 #include "../basic/serializer.hpp"
+#include "../../levelTracker/internals.hpp"
 #include "serializer.hpp"
 
 namespace generatedMaze {
@@ -167,9 +167,9 @@ namespace generatedMaze {
         }
     }
 
-    Level::SaveLevelDataFcn Level::getSaveLevelDataFcn() {
-        auto sd = std::make_shared<LevelSaveData>(
-                m_mazeBoard.numberRows(),
+    std::vector<uint8_t> Level::saveData(levelTracker::GameSaveData const &gsd,
+                                  char const *saveLevelDataKey) {
+        LevelSaveData sd(
                 m_ballCell.row,
                 m_ballCell.col,
                 Point<float>{m_ball.position.x, m_ball.position.y},
@@ -177,8 +177,28 @@ namespace generatedMaze {
                 m_mazeBoard.colEnd(),
                 std::vector<uint32_t>(m_wallTextureIndices),
                 getSerializedMazeWallVector());
-        return {[sd](std::shared_ptr<GameSaveData> gsd) -> std::vector<uint8_t> {
-            return saveGameData(gsd, sd);
-        }};
+        nlohmann::json j;
+        to_json(j, gsd);
+        j[saveLevelDataKey] = sd;
+        return nlohmann::json::to_cbor(j);
     }
+
+    levelTracker::RegisterLevel registerLevel(std::make_pair(Level::m_name,
+         levelTracker::GenerateLevelFcn(
+             [](nlohmann::json const &lcdjson, nlohmann::json const *sdjson, float z) -> levelTracker::GenerateLevelFcn
+             {
+                 LevelConfigData lcd = lcdjson.get<LevelConfigData>();
+                 std::shared_ptr<LevelSaveData> sd;
+                 if (sdjson) {
+                     sd = std::make_shared(sdjson->get<LevelSaveData>());
+                 }
+                 return levelTracker::GenerateLevelFcn(
+                     [lcd, sd, z](std::shared_ptr<GameRequester> gameRequester,
+                                  glm::mat4 const &proj, glm::mat4 const &view) -> std::shared_ptr<basic::Level>
+                     {
+                         return std::make_shared<Level>(
+                                 std::move(gameRequester), lcd, sd, proj, view, z);
+                     });
+             }))
+    );
 }

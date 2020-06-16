@@ -51,6 +51,14 @@ namespace levelTracker {
         {}
     };
 
+    void saveGameData(
+            std::shared_ptr<FileRequester> const &requester,
+            uint32_t screenWidth,
+            uint32_t screenHeight,
+            std::string const &levelName,
+            std::shared_ptr<basic::Level> const &level,
+            bool needsStarter);
+
     class Loader {
     public:
         static float constexpr m_maxZLevel = -1.0f;
@@ -92,7 +100,7 @@ namespace levelTracker {
         boost::optional<size_t> m_currentLevel;
 
         std::vector<uint8_t> getDataFromFile(std::string const &filename) {
-            std::ifstream stream(filename);
+            std::ifstream stream(filename, std::ifstream::binary);
             return getDataFromFile(stream);
         }
 

@@ -30,6 +30,7 @@
 #include "../../common.hpp"
 #include "../../saveData.hpp"
 #include "loadData.hpp"
+#include "../../levelTracker/types.hpp"
 
 namespace basic {
     class Level {
@@ -152,12 +153,8 @@ namespace basic {
 
         virtual void setAdditionalWH(float, float, float) {}
 
-        using SaveLevelDataFcn = std::function<std::vector<uint8_t>(
-                std::shared_ptr<GameSaveData> gsd)>;
-
-        virtual SaveLevelDataFcn getSaveLevelDataFcn();
-
-        static SaveLevelDataFcn getBasicSaveLevelDataFcn();
+        virtual char const *name() = 0;
+        virtual std::vector<uint8_t> saveData(levelTracker::GameSaveData const &gsd, char const *saveLevelDataKey) = 0;
 
         Level(
                 std::shared_ptr<GameRequester> inGameRequester,

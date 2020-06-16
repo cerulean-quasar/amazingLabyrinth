@@ -37,6 +37,8 @@ namespace collectMaze {
         std::string m_collectTexture;
         bool m_collectObjsSameAsBall;
     public:
+        static char constexpr const *m_name = "collectMaze";
+
         Level(std::shared_ptr<GameRequester> inGameRequester,
                     std::shared_ptr<LevelConfigData> const &lcd,
                     std::shared_ptr<LevelSaveData> const &sd,
@@ -68,7 +70,10 @@ namespace collectMaze {
         bool updateDynamicDrawObjects(DrawObjectTable &objs, TextureMap &textures,
                                       bool &texturesChanged) override;
 
-        SaveLevelDataFcn getSaveLevelDataFcn() override;
+        char const *name() override { return m_name; }
+
+        std::vector<uint8_t> saveData(levelTracker::GameSaveData const &gsd,
+                char const *saveLevelDataKey) override;
 
     private:
         void generateCollectBallModelMatrices();

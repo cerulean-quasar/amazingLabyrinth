@@ -42,6 +42,7 @@ namespace levelTracker {
         char constexpr const *GameSaveDataLevel = "LevelSaveData";
         char constexpr const *GameSaveDataNeedsStarter = "LevelNeedsStarter";
     }
+
     using GenerateLevelGeneratorFcn = std::function<GenerateLevelFcn(nlohmann::json const &,
             nlohmann::json const *, float)>;
     using LevelMapEntry = std::pair<std::string, GenerateLevelGeneratorFcn>;
@@ -69,53 +70,8 @@ namespace levelTracker {
     using RegisterLevel = Register<LevelMapEntry, LevelMapTable, levelTable>;
     using RegisterFinisher = Register<FinisherMapEntry, FinisherMapTable, finisherTable>;
 
-    int constexpr GameSaveDataVersionValue = 1;
-    struct GameSaveData {
-        int version;
-        Point<uint32_t> screenSize;
-        std::string levelName;
-        bool needsStarter;
-        GameSaveData(
-                Point<uint32_t> const &screenSize_,
-                std::string const &levelName_,
-                bool needsStarter_) :
-                version(GameSaveDataVersionValue),
-                screenSize(screenSize_),
-                levelName(levelName_),
-                needsStarter(needsStarter_)
-        {}
-
-        GameSaveData(
-                int version_,
-                Point<uint32_t> const &screenSize_,
-                std::string const &levelName_,
-                bool needsStarter_) :
-                version(version_),
-                screenSize(screenSize_),
-                levelName(levelName_),
-                needsStarter(needsStarter_)
-        {}
-    };
-
-    template <typename LevelSaveDataType>
-    std::vector<uint8_t> saveGameData(
-            std::shared_ptr<GameSaveData> const &gameData,
-            std::shared_ptr<LevelSaveDataType> const &levelData)
-    {
-        nlohmann::json j;
-        j[DataVariables::GameSaveDataVersion] = gameData->version;
-        j[DataVariables::GameSaveDataScreenSize] = gameData->screenSize;
-        j[DataVariables::GameSaveDataLevelName] = gameData->levelName;
-        j[DataVariables::GameSaveDataNeedsStarter] = gameData->needsStarter;
-
-        if (levelData != nullptr) {
-            j[DataVariables::GameSaveDataLevel] = *levelData;
-        }
-
-        std::vector<uint8_t> vec = nlohmann::json::to_cbor(j);
-
-        return vec;
-    }
+    void to_json(nlohmann::json &j, GameSaveData const &gsd);
+    void from_json(nlohmann::json const &j, GameSaveData &gsd);
 }
 
 #endif //AMAZING_LABYRINTH_LEVEL_TRACKER_INTERNALS_HPP

@@ -21,9 +21,9 @@
 #include <boost/implicit_cast.hpp>
 #include <json.hpp>
 #include "loadData.hpp"
-#include "../../serializeSaveDataInternals.hpp"
 #include "../basic/level.hpp"
 #include "../basic/serializer.hpp"
+#include "../../levelTracker/internals.hpp"
 #include "level.hpp"
 #include "serializer.hpp"
 
@@ -66,19 +66,40 @@ namespace avoidVortexOpenArea {
         val.m_startVortexTexture = j[StartVortexTexture].get<std::string>();
     }
 
-    basic::Level::SaveLevelDataFcn Level::getSaveLevelDataFcn() {
+    std::vector<uint8_t> Level::saveData(levelTracker::GameSaveData const &gsd,
+                                         char const *saveLevelDataKey) {
         std::vector<Point<float>> vortexes;
         vortexes.reserve(vortexPositions.size());
         for (auto const &vortexPosition : vortexPositions) {
             vortexes.emplace_back(vortexPosition.x, vortexPosition.y);
         }
-        auto sd = std::make_shared<LevelSaveData>(
+        LevelSaveData sd(
                 Point<float>{m_ball.position.x, m_ball.position.y},
                 Point<float>{holePosition.x, holePosition.y},
                 Point<float>{startPosition.x, startPosition.y},
                 std::move(vortexes));
-        return {[sd](std::shared_ptr<GameSaveData> gsd) -> std::vector<uint8_t> {
-            return saveGameData(gsd, sd);
-        }};
+        nlohmann::json j;
+        to_json(j, gsd);
+        j[saveLevelDataKey] = sd;
+        return nlohmann::json::to_cbor(j);
     }
+
+    levelTracker::RegisterLevel registerLevel(std::make_pair(Level::m_name,
+         levelTracker::GenerateLevelFcn(
+             [](nlohmann::json const &lcdjson, nlohmann::json const *sdjson, float z) -> levelTracker::GenerateLevelFcn
+             {
+                 LevelConfigData lcd = lcdjson.get<LevelConfigData>();
+                 std::shared_ptr<LevelSaveData> sd;
+                 if (sdjson) {
+                     sd = std::make_shared(sdjson->get<LevelSaveData>());
+                 }
+                 return levelTracker::GenerateLevelFcn(
+                     [lcd, sd, z](std::shared_ptr<GameRequester> gameRequester,
+                                  glm::mat4 const &proj, glm::mat4 const &view) -> std::shared_ptr<basic::Level>
+                     {
+                         return std::make_shared<Level>(
+                                 std::move(gameRequester), lcd, sd, proj, view, z);
+                     });
+             }))
+    );
 } // namespace avoidVortexOpenArea

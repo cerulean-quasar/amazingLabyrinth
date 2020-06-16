@@ -35,4 +35,35 @@ struct Point {
     }
 };
 
+namespace levelTracker {
+    int constexpr GameSaveDataVersionValue = 1;
+    struct GameSaveData {
+        int version;
+        Point<uint32_t> screenSize;
+        std::string levelName;
+        bool needsStarter;
+        GameSaveData(
+                Point<uint32_t> const &screenSize_,
+                std::string const &levelName_,
+                bool needsStarter_) :
+                version(GameSaveDataVersionValue),
+                screenSize(screenSize_),
+                levelName(levelName_),
+                needsStarter(needsStarter_)
+        {}
+
+        GameSaveData(
+                int version_,
+                Point<uint32_t> const &screenSize_,
+                std::string const &levelName_,
+                bool needsStarter_) :
+                version(version_),
+                screenSize(screenSize_),
+                levelName(levelName_),
+                needsStarter(needsStarter_)
+        {}
+    };
+
+}
+
 #endif // AMAZING_LABYRINTH_LEVEL_TRACKER_TYPES_HPP

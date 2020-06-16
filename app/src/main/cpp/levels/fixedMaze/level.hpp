@@ -39,6 +39,7 @@
 namespace fixedMaze {
     class Level : public basic::Level {
     public:
+        static char constexpr const *m_name = "fixedMaze";
         static float constexpr MODEL_MAXZ = 1.0f;
 
         glm::vec4 getBackgroundColor() override;
@@ -54,38 +55,16 @@ namespace fixedMaze {
 
         void getLevelFinisherCenter(float &x, float &y) override;
 
-        SaveLevelDataFcn getSaveLevelDataFcn() override;
+        char const *name() override { return m_name; }
+
+        std::vector<uint8_t> saveData(levelTracker::GameSaveData const &gsd,
+                                      char const *saveLevelDataKey) override;
 
         Level(std::shared_ptr<GameRequester> inGameRequester,
                   std::shared_ptr<LevelConfigData> const &lcd,
                   std::shared_ptr<LevelSaveData> const &sd,
                   float width, float height, float maxZ);
-/*
-        void initSetBallInfo(
-                std::string const &ballModel,
-                std::string const &ballTexture) {
-            m_ballModel = ballModel;
-            m_ballTexture = ballTexture;
-        }
 
-        void initSetBounce(bool bounce) { m_bounce = bounce; }
-
-        void initSetFloorInfo(
-                std::string const &floorModel,
-                std::string const &floorTexture) {
-            m_floorModel = floorModel;
-            m_floorTexture = floorTexture;
-        }
-
-        void initSetBounceParameters(
-                float extraBounce,          // units in number of diagonals/sec to be added to the bounce speed
-                float minSpeedOnObjBounce)  // units in number of diagonals/sec to be the min bounce speed.
-        {
-            m_extraBounce = 1.0f + extraBounce * m_diagonal;
-            m_minSpeedOnObjBounce = minSpeedOnObjBounce * m_diagonal;
-            m_bounce = true;
-        }
-*/
         void init();
 
         ~Level() override = default;

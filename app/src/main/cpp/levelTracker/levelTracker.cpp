@@ -22,6 +22,7 @@
 #include <boost/optional.hpp>
 #include <vector>
 
+#include "../levels/basic/level.hpp"
 #include "types.hpp"
 #include "levelTracker.hpp"
 #include "internals.hpp"
@@ -104,6 +105,47 @@ namespace levelTracker {
         val.finisher = j[DataVariables::Finisher].get<std::string>();
     }
 
+    void from_json(nlohmann::json const &j, GameSaveData &val) {
+        val.version = j[DataVariables::GameSaveDataVersion].get<int>();
+        val.screenSize = j[DataVariables::GameSaveDataScreenSize].get<Point<uint32_t>>();
+        val.levelName = j[DataVariables::GameSaveDataLevelName].get<std::string>();
+        val.needsStarter = j[DataVariables::GameSaveDataNeedsStarter].get<bool>();
+    }
+
+    void to_json(nlohmann::json &j, GameSaveData const &val) {
+        j[DataVariables::GameSaveDataVersion] = val.version;
+        j[DataVariables::GameSaveDataScreenSize] = val.screenSize;
+        j[DataVariables::GameSaveDataLevelName] = val.levelName;
+        j[DataVariables::GameSaveDataNeedsStarter] = val.needsStarter;
+    }
+
+    void saveGameData(
+            std::shared_ptr<FileRequester> const &requester,
+            uint32_t screenWidth,
+            uint32_t screenHeight,
+            std::string const &levelName,
+            std::shared_ptr<basic::Level> const &level,
+            bool needsStarter)
+    {
+        Point<uint32_t> screenSize{screenWidth, screenHeight};
+        GameSaveData gsd(GameSaveDataVersionValue, screenSize, levelName, needsStarter);
+
+        std::vector<uint8_t> vec;
+        if (level) {
+             vec = level->saveData(gsd, DataVariables::GameSaveDataLevel);
+        } else {
+            nlohmann::json j;
+            to_json(j, gsd);
+            vec = nlohmann::json::to_cbor(j);
+        }
+
+        std::ofstream saveDataStream(requester->getSaveDataFileName());
+
+        if (!saveDataStream.fail()) {
+            saveDataStream.write(reinterpret_cast<char const *>(vec.data()), vec.size());
+        }
+    }
+
     void Loader::gotoNextLevel() {
         if (m_currentLevel == boost::none) {
             m_currentLevel.reset(0);
@@ -124,10 +166,7 @@ namespace levelTracker {
             } else {
                 jgb = nlohmann::json::from_cbor(cborSaveData);
 
-                GameSaveData gb(jgb[DataVariables::GameSaveDataVersion].get<int>(),
-                                jgb[DataVariables::GameSaveDataScreenSize].get<Point<uint32_t>>(),
-                                jgb[DataVariables::GameSaveDataLevelName].get<std::string>(),
-                                jgb[DataVariables::GameSaveDataNeedsStarter].get<bool>());
+                auto gb = jgb.get<GameSaveData>();
 
                 m_currentLevel = getLevelNumber(gb.levelName);
 

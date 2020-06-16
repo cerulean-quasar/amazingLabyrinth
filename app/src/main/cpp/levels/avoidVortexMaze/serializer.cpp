@@ -57,15 +57,14 @@ namespace avoidVortexMaze {
         val.m_numberAvoidObjects = j[NumberAvoidObjects].get<uint32_t>();
     }
 
-    Level::SaveLevelDataFcn Level::getSaveLevelDataFcn() {
+    std::vector<uint8_t> Level::saveData(levelTracker::GameSaveData const &gsd, char const *saveLevelDataKey) {
         std::vector<Point<float>> avoidObjLocations;
         avoidObjLocations.reserve(m_avoidObjectLocations.size());
         for (auto const &avoidObj : m_avoidObjectLocations) {
             avoidObjLocations.emplace_back(avoidObj.x, avoidObj.y);
         }
 
-        auto sd = std::make_shared<LevelSaveData>(
-                m_mazeBoard.numberRows(),
+        LevelSaveData sd(
                 m_ballCell.row,
                 m_ballCell.col,
                 Point<float>{m_ball.position.x, m_ball.position.y},
@@ -77,12 +76,13 @@ namespace avoidVortexMaze {
                 Point<uint32_t>{static_cast<uint32_t>(m_mazeBoard.rowStart()),
                                 static_cast<uint32_t>(m_mazeBoard.colStart())});
 
-        return {[sd{move(sd)}](std::shared_ptr<levelTracker::GameSaveData> gsd) -> std::vector<uint8_t> {
-            return saveGameData(gsd, sd);
-        }};
+        nlohmann::json j;
+        to_json(j, gsd);
+        j[saveLevelDataKey] = sd;
+        return nlohmann::json::to_cbor(j);
     }
 
-    levelTracker::RegisterLevel registerLevel(std::make_pair("avoidVortexMaze",
+    levelTracker::RegisterLevel registerLevel(std::make_pair(Level::m_name,
         levelTracker::GenerateLevelFcn(
             [](nlohmann::json const &lcdjson, nlohmann::json const *sdjson, float z) -> levelTracker::GenerateLevelFcn
             {
@@ -92,12 +92,12 @@ namespace avoidVortexMaze {
                     sd = std::make_shared(sdjson->get<LevelSaveData>());
                 }
                 return levelTracker::GenerateLevelFcn(
-                        [lcd, sd, z](std::shared_ptr<GameRequester> gameRequester,
-                                  glm::mat4 const &proj, glm::mat4 const &view) -> std::shared_ptr<avoidVortexMaze::Level>
-                        {
-                            return std::make_shared<avoidVortexMaze::Level>(
-                                    std::move(gameRequester), lcd, sd, proj, view, z);
-                        });
+                    [lcd, sd, z](std::shared_ptr<GameRequester> gameRequester,
+                              glm::mat4 const &proj, glm::mat4 const &view) -> std::shared_ptr<basic::Level>
+                    {
+                        return std::make_shared<Level>(
+                                std::move(gameRequester), lcd, sd, proj, view, z);
+                    });
             }))
         );
 } // namespace avoidVortexMaze

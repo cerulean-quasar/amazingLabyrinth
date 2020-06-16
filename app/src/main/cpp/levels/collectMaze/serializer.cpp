@@ -20,7 +20,7 @@
 #include <memory>
 #include <json.hpp>
 #include <boost/implicit_cast.hpp>
-#include "../../serializeSaveDataInternals.hpp"
+#include "../../levelTracker/internals.hpp"
 #include "level.hpp"
 #include "serializer.hpp"
 
@@ -60,7 +60,9 @@ namespace collectMaze {
         val.numberCollectObjects = j[NumberCollectObjects].get<uint32_t>();
     }
 
-    basic::Level::SaveLevelDataFcn Level::getSaveLevelDataFcn() {
+    std::vector<uint8_t> Level::saveData(levelTracker::GameSaveData const &gsd,
+                                         char const *saveLevelDataKey)
+    {
         std::vector<Point<float>> collectionObjLocations;
         std::vector<bool> itemsCollected;
         collectionObjLocations.reserve(m_collectionObjectLocations.size());
@@ -75,7 +77,7 @@ namespace collectMaze {
         for (auto const &prevCell : m_prevCells) {
             previousCells.emplace_back(prevCell.first, prevCell.second);
         }
-        auto sd = std::make_shared<LevelSaveData>(
+        LevelSaveData sd(
                 m_ballCell.row,
                 m_ballCell.col,
                 Point<float>{m_ball.position.x, m_ball.position.y},
@@ -87,8 +89,28 @@ namespace collectMaze {
                 std::move(itemsCollected),
                 std::move(previousCells));
 
-        return {[sd{move(sd)}](std::shared_ptr<GameSaveData> gsd) -> std::vector<uint8_t> {
-            return saveGameData(gsd, sd);
-        }};
+        nlohmann::json j;
+        to_json(j, gsd);
+        j[saveLevelDataKey] = sd;
+        return nlohmann::json::to_cbor(j);
     }
-}
+
+    levelTracker::RegisterLevel registerLevel(std::make_pair(Level::m_name,
+        levelTracker::GenerateLevelFcn(
+            [](nlohmann::json const &lcdjson, nlohmann::json const *sdjson, float z) -> levelTracker::GenerateLevelFcn
+            {
+                LevelConfigData lcd = lcdjson.get<LevelConfigData>();
+                std::shared_ptr<LevelSaveData> sd;
+                if (sdjson) {
+                    sd = std::make_shared(sdjson->get<LevelSaveData>());
+                }
+                return levelTracker::GenerateLevelFcn(
+                    [lcd, sd, z](std::shared_ptr<GameRequester> gameRequester,
+                                 glm::mat4 const &proj, glm::mat4 const &view) -> std::shared_ptr<basic::Level>
+                    {
+                        return std::make_shared<Level>(
+                                  std::move(gameRequester), lcd, sd, proj, view, z);
+                    });
+            }))
+    );
+} // namespace collectMaze
