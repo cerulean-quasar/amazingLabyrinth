@@ -42,6 +42,8 @@
 namespace rotatablePassage {
     class Level : public basic::Level {
     public:
+        static char constexpr const *m_name = "rotatablePassage";
+
         bool tap(float x, float y) override {
             glm::vec2 position{x, y};
             return m_gameBoard.tap(position);
@@ -63,7 +65,10 @@ namespace rotatablePassage {
             y = 0.0f;
         };
 
-        SaveLevelDataFcn getSaveLevelDataFcn() override;
+        char const *name() override { return m_name; }
+
+        std::vector<uint8_t> saveData(levelTracker::GameSaveData const &gsd,
+                                      char const *saveLevelDataKey) override;
 
         Level(
             std::shared_ptr<GameRequester> inGameRequester,

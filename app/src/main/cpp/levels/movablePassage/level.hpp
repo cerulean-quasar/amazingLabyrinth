@@ -42,6 +42,7 @@
 namespace movablePassage {
     class Level : public basic::Level {
     public:
+        static char constexpr const *m_name = "movablePassage";
         bool drag(float startX, float startY, float distanceX, float distanceY) override;
 
         bool dragEnded(float x, float y) override;
@@ -64,7 +65,10 @@ namespace movablePassage {
             y = 0.0f;
         };
 
-        SaveLevelDataFcn getSaveLevelDataFcn() override;
+        char const *name() override { return m_name; }
+
+        std::vector<uint8_t> saveData(levelTracker::GameSaveData const &gsd,
+                                      char const *saveLevelDataKey) override;
 
         // call after all other init functions are completed but before updateStaticDrawObjects
         std::vector<float> getAdditionalWHatZRequests() override {

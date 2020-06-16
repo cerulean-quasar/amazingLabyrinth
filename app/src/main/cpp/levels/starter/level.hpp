@@ -66,6 +66,8 @@ namespace starter {
         std::vector<uint32_t> ballIndices;
 
     public:
+        static char constexpr const *m_name = "starter";
+
         Level(std::shared_ptr<GameRequester> inGameRequester,
                      std::shared_ptr<LevelConfigData> const &lcd,
                      std::shared_ptr<LevelSaveData> const &sd,
@@ -111,6 +113,12 @@ namespace starter {
 
         bool updateDynamicDrawObjects(DrawObjectTable &objs, TextureMap &textures,
                                       bool &texturesChanged) override;
+
+        char const *name() override { return m_name; }
+
+        std::vector<uint8_t> saveData(levelTracker::GameSaveData const &gsd,
+                                      char const *saveLevelDataKey) override
+        { return std::vector<uint8_t>{}; }
 
         void start() override {
             prevTime = std::chrono::high_resolution_clock::now();

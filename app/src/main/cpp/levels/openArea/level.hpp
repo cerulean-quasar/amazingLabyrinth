@@ -82,6 +82,7 @@ namespace openArea {
         void generateModelMatrices();
 
     public:
+        static char constexpr const *m_name = "openArea";
         Level(
                 std::shared_ptr <GameRequester> inGameRequester,
                 std::shared_ptr <LevelConfigData> const &lcd,
@@ -120,7 +121,10 @@ namespace openArea {
             y = holePosition.y;
         }
 
-        SaveLevelDataFcn getSaveLevelDataFcn() override;
+        char const *name() override { return m_name; }
+
+        std::vector<uint8_t> saveData(levelTracker::GameSaveData const &gsd,
+                                      char const *saveLevelDataKey) override;
 
         ~Level() override = default;
     };

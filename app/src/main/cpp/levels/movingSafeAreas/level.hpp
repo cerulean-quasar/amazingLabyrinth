@@ -108,6 +108,8 @@ namespace movingSafeAreas {
         void generate();
 
     public:
+        static char constexpr const *m_name = "movingSafeAreas";
+
         glm::vec4 getBackgroundColor() override { return glm::vec4(0.2, 0.2, 1.0, 1.0); }
 
         bool updateData() override;
@@ -126,7 +128,10 @@ namespace movingSafeAreas {
             y = 0.0f;
         }
 
-        SaveLevelDataFcn getSaveLevelDataFcn() override;
+        char const *name() override { return m_name; }
+
+        std::vector<uint8_t> saveData(levelTracker::GameSaveData const &gsd,
+                                      char const *saveLevelDataKey) override;
 
         Level(
             std::shared_ptr<GameRequester> inGameRequester,

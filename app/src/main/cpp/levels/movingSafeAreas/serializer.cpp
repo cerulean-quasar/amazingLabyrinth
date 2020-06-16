@@ -20,8 +20,10 @@
 #include <memory>
 #include <json.hpp>
 #include <boost/implicit_cast.hpp>
-#include "../../serializeSaveDataInternals.hpp"
+
+#include "../../levelTracker/internals.hpp"
 #include "../basic/serializer.hpp"
+
 #include "level.hpp"
 #include "serializer.hpp"
 
@@ -73,7 +75,8 @@ namespace movingSafeAreas {
         val.middleQuadTextures = j[QuadRows].get<std::vector<std::string>>();
     }
 
-    Level::SaveLevelDataFcn Level::getSaveLevelDataFcn() {
+    std::vector<uint8_t> Level::saveData(levelTracker::GameSaveData const &gsd,
+                                  char const *saveLevelDataKey) {
         std::vector<QuadRowSaveData> quadRows;
         quadRows.reserve(m_movingQuads.size());
         for (auto const &movingQuad : m_movingQuads) {
@@ -84,11 +87,32 @@ namespace movingSafeAreas {
             quadRows.emplace_back(std::move(positions), movingQuad.speed,
                                   Point<float>{movingQuad.scale.x, movingQuad.scale.y});
         }
-        auto sd = std::make_shared<LevelSaveData>(
+        LevelSaveData sd(
                 Point<float>{m_ball.position.x, m_ball.position.y},
                 std::move(quadRows));
-        return {[sd](std::shared_ptr<GameSaveData> gsd) -> std::vector<uint8_t> {
-            return saveGameData(gsd, sd);
-        }};
+        nlohmann::json j;
+        to_json(j, gsd);
+        j[saveLevelDataKey] = sd;
+        return nlohmann::json::to_cbor(j);
     }
+
+    levelTracker::RegisterLevel registerLevel(std::make_pair(Level::m_name,
+         levelTracker::GenerateLevelFcn(
+             [](nlohmann::json const &lcdjson, nlohmann::json const *sdjson, float z) -> levelTracker::GenerateLevelFcn
+             {
+                 LevelConfigData lcd = lcdjson.get<LevelConfigData>();
+                 std::shared_ptr<LevelSaveData> sd;
+                 if (sdjson) {
+                     sd = std::make_shared(sdjson->get<LevelSaveData>());
+                 }
+                 return levelTracker::GenerateLevelFcn(
+                     [lcd, sd, z](std::shared_ptr<GameRequester> gameRequester,
+                                  glm::mat4 const &proj, glm::mat4 const &view) -> std::shared_ptr<basic::Level>
+                     {
+                         return std::make_shared<Level>(
+                                 std::move(gameRequester), lcd, sd, proj, view, z);
+                     });
+             }))
+    );
+
 } // namespace movingSafeAreas
