@@ -69,7 +69,7 @@ namespace finisher {
         virtual bool updateDrawObjects(DrawObjectTable &drawObjects, TextureMap &textures,
                                        bool &texturesUpdated) = 0;
 
-        virtual ~LevelFinish() = default;
+        virtual ~LevelFinisher() = default;
     };
 } // finisher
 
@@ -91,15 +91,14 @@ namespace manyQuadsCoverUp {
         std::chrono::high_resolution_clock::time_point prevTime;
         std::vector<std::string> imagePaths;
     public:
-        virtual bool updateDrawObjects(DrawObjectTable &drawObjects, TextureMap &textures,
-                                       bool &texturesUpdated);
+        static char constexpr const *m_name = "manyQuadsCoverUp";
+        bool updateDrawObjects(DrawObjectTable &drawObjects, TextureMap &textures,
+                                       bool &texturesUpdated) override;
 
-        void initAddTexture(std::string const &inImagePath) {
-            imagePaths.push_back(inImagePath);
-        }
-
-        LevelFinisher(std::shared_ptr<GameRequester> inGameRequester, LevelConfigData const &lcd,
+        LevelFinisher(std::shared_ptr<GameRequester> inGameRequester, std::shared_ptr<LevelConfigData> const &lcd,
                 glm::mat4 const &proj, glm::mat4 const &view, float centerX, float centerY, float maxZ);
+
+        ~LevelFinisher() override = default;
     };
 } // namespace manyQuadCoverUp
 
@@ -118,21 +117,20 @@ namespace growingQuad {
 
         glm::vec3 transVector;
     public:
-        virtual bool updateDrawObjects(DrawObjectTable &drawObjects, TextureMap &textures,
-                                       bool &texturesUpdated);
-
-        void initTexture(std::string const &inImagePath) {
-            imagePath = inImagePath;
-        }
+        static char constexpr const *m_name = "growingQuad";
+        bool updateDrawObjects(DrawObjectTable &drawObjects, TextureMap &textures,
+                               bool &texturesUpdated) override;
 
         LevelFinisher(
             std::shared_ptr<GameRequester> inGameRequester,
-            LevelConfigData const &lcd,
+            std::shared_ptr<LevelConfigData> const &lcd,
             glm::mat4 const &proj,
             glm::mat4 const &view,
             float centerX,
             float centerY,
             float maxZ);
+
+        ~LevelFinisher() override = default;
     };
 } // namespace growingQuad
 #endif

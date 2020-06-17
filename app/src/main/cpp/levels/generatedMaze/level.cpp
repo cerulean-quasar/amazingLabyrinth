@@ -42,6 +42,8 @@
 #include "../../modelLoader.hpp"
 
 namespace generatedMaze {
+    char constexpr const *Level::m_name;
+
     bool Level::ballInProximity(float x, float y) {
         float errDistance = ballRadius();
         return glm::length(m_ball.position - glm::vec3{x, y, m_ball.position.z}) < errDistance;

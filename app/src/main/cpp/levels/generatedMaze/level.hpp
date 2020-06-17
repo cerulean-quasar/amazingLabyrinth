@@ -110,12 +110,12 @@ namespace generatedMaze {
     private:
         static Level::MazeWallModelMatrixGeneratorFcn getMazeWallModelMatricesGenerator();
         static GeneratedMazeBoard::Mode getGeneratorType(
-                LevelConfigData const &lcd,
+                std::shared_ptr<LevelConfigData> const &lcd,
                 std::shared_ptr<LevelSaveData> const &sd)
         {
             if (sd) {
                 return GeneratedMazeBoard::Mode::none;
-            } else if (lcd.m_dfsSearch) {
+            } else if (lcd->dfsSearch) {
                 return GeneratedMazeBoard::Mode::DFS;
             } else {
                 return GeneratedMazeBoard::Mode::BFS;
@@ -131,22 +131,22 @@ namespace generatedMaze {
         // sd can be null if there is no save data.  If it is not null, the maze will be restored
         // from the save data, otherwise the maze will be generated.
         Level(std::shared_ptr<GameRequester> inGameRequester,
-             LevelConfigData const &lcd,
+             std::shared_ptr<LevelConfigData> const &lcd,
              std::shared_ptr<LevelSaveData> const &sd,
              glm::mat4 const &proj,
              glm::mat4 const &view,
              float floorZ,
              MazeWallModelMatrixGeneratorFcn wallModelMatrixGeneratorFcn = getMazeWallModelMatricesGenerator())
                 : basic::Level(std::move(inGameRequester), lcd, proj, view, floorZ, true),
-                  wallTextures{lcd.m_wallTextureNames},
-                  floorTexture{lcd.m_mazeFloorTexture},
-                  holeTexture{lcd.m_holeTexture},
+                  wallTextures{lcd->wallTextureNames},
+                  floorTexture{lcd->mazeFloorTexture},
+                  holeTexture{lcd->holeTexture},
                   drawHole{true},
-                  m_mazeBoard{lcd.m_numberRows,
-                              static_cast<uint32_t>(std::floor((lcd->m_numberRows) * m_width / m_height)),
+                  m_mazeBoard{lcd->numberRows,
+                              static_cast<uint32_t>(std::floor((lcd->numberRows) * m_width / m_height)),
                               getGeneratorType(lcd, sd)}
         {
-            m_scaleBall = m_height / (lcd.m_numberRows * numberBlocksPerCell + 1) / m_originalBallDiameter;
+            m_scaleBall = m_height / (lcd->numberRows * numberBlocksPerCell + 1) / m_originalBallDiameter;
             preGenerate();
 
             loadModels();

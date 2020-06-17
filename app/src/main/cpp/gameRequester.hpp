@@ -27,7 +27,6 @@
 #include <boost/optional.hpp>
 #include "common.hpp"
 #include "android.hpp"
-#include "saveData.hpp"
 
 // These must be the same values as the values in java: MySurfaceCallback.java
 std::string const KeyGraphicsName = "graphicsName";
@@ -46,14 +45,17 @@ public:
     void sendError(std::string const &error) override;
     void sendError(char const *error) override;
     void sendGraphicsDescription(GraphicsDescription const &description, bool hasAccelerometer) override;
-    void sendSaveData(std::vector<uint8_t> const &saveData) override;
     void sendKeepAliveEnabled(bool keepAliveEnabled) override;
     std::vector<char> getTextImage(std::string text, uint32_t &width, uint32_t &height,
         uint32_t &channels) override;
     std::unique_ptr<std::streambuf> getAssetStream(std::string const &file) override {
         return std::make_unique<AssetStreambuf>(m_assetWrapper->getAsset(file));
     }
-    RestoreData getSaveData(Point<uint32_t> const &screenSize) override;
+    std::unique_ptr<std::streambuf> getLevelTableAssetStream() override {
+        return getAssetStream(m_levelTableFilePath);
+    }
+    std::string getSaveDataFileName() override { return m_pathSaveFile; }
+
     std::shared_ptr<TextureData> getDepthTexture(
             DrawObjectTable const &objsData,
             float width,
@@ -73,6 +75,7 @@ public:
             : m_env{inEnv},
               m_notify{inNotify},
               m_pathSaveFile{std::move(inSaveGameFile)},
+              m_levelTableFilePath{"configs/levels.json"},
               m_assetWrapper{new AssetManagerWrapper(mgr)},
               m_graphics(inGraphics) {}
 
@@ -84,6 +87,7 @@ private:
     JNIEnv *m_env;
     jobject m_notify;
     std::string m_pathSaveFile;
+    std::string m_levelTableFilePath;
     std::unique_ptr<AssetManagerWrapper> m_assetWrapper;
     Graphics *m_graphics;
 };

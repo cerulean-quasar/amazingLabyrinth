@@ -21,7 +21,6 @@
 #define AMAZING_LABYRINTH_OPEN_AREA_LOAD_DATA_HPP
 
 #include "../basic/loadData.hpp"
-#include "../../saveData.hpp"
 
 namespace openArea {
     int constexpr levelSaveDataVersion = 1;

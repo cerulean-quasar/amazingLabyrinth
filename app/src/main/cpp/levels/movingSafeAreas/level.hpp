@@ -135,7 +135,7 @@ namespace movingSafeAreas {
 
         Level(
             std::shared_ptr<GameRequester> inGameRequester,
-            LevelConfigData const &lcd,
+            std::shared_ptr<LevelConfigData> const &lcd,
             std::shared_ptr<LevelSaveData> const &saveData,
             glm::mat4 const &proj,
             glm::mat4 const &view,
@@ -146,9 +146,9 @@ namespace movingSafeAreas {
               maxY(m_height / 2),
               m_prevTime(std::chrono::high_resolution_clock::now()),
               timeDiffSinceLastMove{0.0f},
-              m_startQuadTexture{lcd.startQuadTexture},
-              m_endQuadTexture{lcd.endQuadTexture},
-              m_middleQuadTextures{lcd.middleQuadTextures}
+              m_startQuadTexture{lcd->startQuadTexture},
+              m_endQuadTexture{lcd->endQuadTexture},
+              m_middleQuadTextures{lcd->middleQuadTextures}
         {
             loadModels();
             preGenerate();

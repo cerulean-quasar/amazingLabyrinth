@@ -21,8 +21,8 @@
 #include <json.hpp>
 #include "level.hpp"
 #include "loadData.hpp"
-#include "../../serializeSaveDataInternals.hpp"
 #include "serializer.hpp"
+#include "../../levelTracker/types.hpp"
 
 namespace basic {
     char constexpr const *LevelVersion = "LevelVersion";
@@ -39,40 +39,16 @@ namespace basic {
     char constexpr const *BallTexture = "BallTexture";
     char constexpr const *BounceEnabled = "BounceEnabled";
     void to_json(nlohmann::json &j, LevelConfigData const &val) {
-        j[BallModel] = val.m_ballModel;
-        j[BallTexture] = val.m_ballTexture;
-        j[BounceEnabled] = val.m_bounceEnabled;
-        j[BallDiagonalRatio] = val.m_ballSizeDiagonalRatio;
+        j[BallModel] = val.ballModel;
+        j[BallTexture] = val.ballTexture;
+        j[BounceEnabled] = val.bounceEnabled;
+        j[BallDiagonalRatio] = val.ballSizeDiagonalRatio;
     }
 
     void from_json(nlohmann::json const &j, LevelConfigData &val) {
-        val.m_ballModel = j[BallModel].get<std::string>();
-        val.m_ballTexture = j[BallTexture].get<std::string>();
-        val.m_bounceEnabled = j[BounceEnabled].get<bool>();
-        val.m_ballSizeDiagonalRatio = j[BallDiagonalRatio].get<float>();
-    }
-
-    template<>
-    std::vector<uint8_t> saveGameData<void>(
-            std::shared_ptr<GameSaveData> const &gameData,
-            std::shared_ptr<void> const &) {
-        nlohmann::json j;
-        j[GameSaveDataVersion] = gameData->version;
-        j[GameSaveDataScreenSize] = gameData->screenSize;
-        j[GameSaveDataLevelName] = gameData->levelName;
-
-        std::vector<uint8_t> vec = nlohmann::json::to_cbor(j);
-
-        return vec;
-    }
-
-    Level::SaveLevelDataFcn Level::getSaveLevelDataFcn() {
-        return getBasicSaveLevelDataFcn();
-    }
-
-    Level::SaveLevelDataFcn Level::getBasicSaveLevelDataFcn() {
-        return {[](std::shared_ptr<GameSaveData> gsd) -> std::vector<uint8_t> {
-            return saveGameData(gsd, std::shared_ptr<void>());
-        }};
+        val.ballModel = j[BallModel].get<std::string>();
+        val.ballTexture = j[BallTexture].get<std::string>();
+        val.bounceEnabled = j[BounceEnabled].get<bool>();
+        val.ballSizeDiagonalRatio = j[BallDiagonalRatio].get<float>();
     }
 } // namespace basic

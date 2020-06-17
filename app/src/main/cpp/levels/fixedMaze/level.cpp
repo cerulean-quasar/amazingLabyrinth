@@ -24,6 +24,8 @@
 #include "../basic/level.hpp"
 
 namespace fixedMaze {
+    char constexpr const *Level::m_name;
+
     bool notValid(glm::vec3 const &v) {
         if (v.x != v.x || v.y != v.y || v.z != v.z) {
             return true;
@@ -481,14 +483,14 @@ namespace fixedMaze {
     }
 
     Level::Level(std::shared_ptr<GameRequester> inGameRequester,
-                         LevelConfigData const &lcd,
+                         std::shared_ptr<LevelConfigData> const &lcd,
                          std::shared_ptr<LevelSaveData> const &,
                          glm::mat4 const &proj, glm::mat4 const &view, float mazeFloorZ)
             : basic::Level{inGameRequester, lcd, proj, view, mazeFloorZ, false},
-              m_floorModel{lcd.m_mazeFloorModel},
-              m_floorTexture{lcd.m_mazeFloorTexture},
-              m_extraBounce{lcd.m_extraBounce},
-              m_minSpeedOnObjBounce{lcd.m_minSpeedOnBounce},
+              m_floorModel{lcd->mazeFloorModel},
+              m_floorTexture{lcd->mazeFloorTexture},
+              m_extraBounce{lcd->extraBounce},
+              m_minSpeedOnObjBounce{lcd->minSpeedOnBounce},
               m_speedLimit{m_diagonal / 4.0f}
     {
         init();

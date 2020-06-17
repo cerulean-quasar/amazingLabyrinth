@@ -20,6 +20,7 @@
 #include "level.hpp"
 
 namespace openArea {
+    char constexpr const *Level::m_name;
     void Level::loadModels() {
         std::pair<std::vector<Vertex>, std::vector<uint32_t>> v;
         loadModel(m_gameRequester->getAssetStream(m_ballModel), v);

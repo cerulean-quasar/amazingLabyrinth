@@ -41,11 +41,19 @@ namespace movablePassage {
               numberPlacements{0}
         {}
 
-        ComponentConfig(ComponentConfig &&other)
+        ComponentConfig(ComponentConfig &&other) noexcept
             : model{std::move(other.model)},
               texture{std::move(other.texture)},
               numberPlacements{other.numberPlacements}
         {}
+
+        ComponentConfig &operator=(ComponentConfig &&other) noexcept
+        {
+            model = std::move(other.model);
+            texture = std::move(other.texture);
+            numberPlacements = other.numberPlacements;
+            return *this;
+        }
     };
 
     struct RockPlacement {
@@ -59,6 +67,13 @@ namespace movablePassage {
         RockPlacement(RockPlacement &&other) noexcept
             : row{other.row}, col{other.col}
         {}
+
+        RockPlacement &operator=(RockPlacement &&other) noexcept {
+            row = other.row;
+            col = other.col;
+
+            return *this;
+        }
     };
 
     struct LevelConfigData : public basic::LevelConfigData {
@@ -87,7 +102,7 @@ namespace movablePassage {
 
         LevelConfigData() {}
 
-        LevelConfigData(LevelConfigData &&other)
+        LevelConfigData(LevelConfigData &&other) noexcept
             : endTexture{std::move(other.endTexture)},
               endOffBoardTexture{std::move(other.endOffBoardTexture)},
               placementLockedInPlaceTexture{std::move(other.placementLockedInPlaceTexture)},

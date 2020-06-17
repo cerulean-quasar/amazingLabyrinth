@@ -44,18 +44,18 @@ namespace avoidVortexMaze {
     public:
         static char constexpr const *m_name = "avoidVortexMaze";
 
-        std::vector<uint8_t> Level::saveData(levelTracker::GameSaveData const &gsd, char const *saveLevelDataKey) override;
+        std::vector<uint8_t> saveData(levelTracker::GameSaveData const &gsd, char const *saveLevelDataKey) override;
         bool updateStaticDrawObjects(DrawObjectTable &objs, TextureMap &textures) override;
 
         char const *name() override { return m_name; }
 
         // lcd should never be null, sd may be null.
         Level(std::shared_ptr<GameRequester> inGameRequester,
-                  LevelConfigData const &lcd,
+                  std::shared_ptr<LevelConfigData> const &lcd,
                   std::shared_ptr<LevelSaveData> const &sd,
                   glm::mat4 const &proj, glm::mat4 const &view, float maxZ)
                 : openAreaMaze::Level(std::move(inGameRequester), lcd, sd, proj, view, maxZ),
-                m_avoidObjTexture(lcd.m_avoidTexture)
+                m_avoidObjTexture(lcd->avoidTexture)
         {
             if (sd) {
                 m_mazeBoard.setStart(sd->startRowCol.x, sd->startRowCol.y);
@@ -64,7 +64,7 @@ namespace avoidVortexMaze {
                                                         getBallZPosition());
                 }
             } else {
-                generateAvoidModelMatrices(lcd.m_numberAvoidObjects);
+                generateAvoidModelMatrices(lcd->numberAvoidObjects);
             }
         }
     private:

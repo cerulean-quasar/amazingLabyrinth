@@ -24,12 +24,14 @@
 #include "../../common.hpp"
 
 namespace manyQuadsCoverUp {
+    char constexpr const *LevelFinisher::m_name;
+
     LevelFinisher::LevelFinisher(
-            std::shared_ptr<GameRequester> inGameRequester, LevelConfigData const &lcd,
+            std::shared_ptr<GameRequester> inGameRequester, std::shared_ptr<LevelConfigData> const &lcd,
             glm::mat4 const &proj, glm::mat4 const &view, float centerX, float centerY, float maxZ)
             : finisher::LevelFinisher(std::move(inGameRequester), proj, view, centerX, centerY, maxZ),
               totalNumberReturned(0),
-              imagePaths{lcd.textures}
+              imagePaths{lcd->textures}
     {
         prevTime = std::chrono::high_resolution_clock::now();
         float range = m_height;
@@ -120,14 +122,16 @@ namespace manyQuadsCoverUp {
 } // namespace manyQuadsCoverUp
 
 namespace growingQuad {
+    char constexpr const *LevelFinisher::m_name;
+
     LevelFinisher::LevelFinisher(
-            std::shared_ptr<GameRequester> inGameRequester, LevelConfigData const &lcd,
+            std::shared_ptr<GameRequester> inGameRequester, std::shared_ptr<LevelConfigData> const &lcd,
             glm::mat4 const &proj, glm::mat4 const &view,
             float centerX, float centerY, float maxZ)
             : finisher::LevelFinisher(std::move(inGameRequester), proj, view, centerX, centerY, maxZ),
               finalSize{1.5f * std::max(m_width, m_height)},
               minSize{0.005f * std::min(m_width, m_height)},
-              imagePath{lcd.texture}
+              imagePath{lcd->texture}
     {
         transVector = {m_centerX, m_centerY, maxZ};
         prevTime = std::chrono::high_resolution_clock::now();

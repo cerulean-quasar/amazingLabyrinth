@@ -29,40 +29,14 @@ namespace manyQuadsCoverUp {
         val.textures = j[Textures].get<std::vector<std::string>>();
     }
 
-    levelTracker::RegisterFinisher registerFinisher(std::make_pair("manyQuadsCoverUp",
-                                                             levelTracker::GenerateLevelFcn(
-         [](nlohmann::json const &lcdjson, float z) -> levelTracker::GenerateLevelFcn
-         {
-             LevelConfigData lcd = lcdjson.get<LevelConfigData>();
-             return levelTracker::GenerateLevelFcn(
-                 [lcd, z](std::shared_ptr<GameRequester> gameRequester,
-                              glm::mat4 const &proj, glm::mat4 const &view, float centerX, float centerY) -> std::shared_ptr<finisher::LevelFinisher>
-                 {
-                     return std::make_shared<LevelFinisher>(
-                             std::move(gameRequester), lcd, proj, view, centerX, centerY,  z);
-                 });
-         }))
-    );
+    levelTracker::Register<levelTracker::FinisherMapTable, levelTracker::finisherTable, LevelConfigData, void, LevelFinisher> registerFinisher;
 } // namespace manyQuadsCoverUp
 
 namespace growingQuad {
     char constexpr const *Texture = "Texture";
     void from_json(nlohmann::json const &j, LevelConfigData &val) {
-        val.texture = j[Texture].get<std::vector<std::string>>();
+        val.texture = j[Texture].get<std::string>();
     }
 
-    levelTracker::RegisterFinisher registerFinisher(std::make_pair("growingQuad",
-        levelTracker::GenerateLevelFcn(
-            [](nlohmann::json const &lcdjson, float z) -> levelTracker::GenerateLevelFcn
-            {
-                LevelConfigData lcd = lcdjson.get<LevelConfigData>();
-                return levelTracker::GenerateLevelFcn(
-                    [lcd, z](std::shared_ptr<GameRequester> gameRequester,
-                             glm::mat4 const &proj, glm::mat4 const &view, float centerX, float centerY) -> std::shared_ptr<finisher::LevelFinisher>
-                    {
-                        return std::make_shared<LevelFinisher>(
-                                std::move(gameRequester), lcd, proj, view, centerX, centerY, z);
-                    });
-            }))
-    );
+    levelTracker::Register<levelTracker::FinisherMapTable, levelTracker::finisherTable, LevelConfigData, void, LevelFinisher> registerFinisher;
 } // growingQuad

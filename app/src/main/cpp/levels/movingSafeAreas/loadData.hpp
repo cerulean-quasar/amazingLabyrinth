@@ -23,7 +23,6 @@
 
 #include <vector>
 #include "../basic/loadData.hpp"
-#include "../../saveData.hpp"
 
 namespace movingSafeAreas {
     int constexpr levelSaveDataVersion = 1;

@@ -25,6 +25,7 @@
 
 #include "levelTracker/levelTracker.hpp"
 #include "levels/basic/level.hpp"
+#include "levels/finisher/types.hpp"
 #include "common.hpp"
 
 class LevelSequence {
@@ -65,18 +66,8 @@ public:
     bool needFinisherObjs() { return m_level->isFinished() || m_levelFinisher->isUnveiling(); }
 
     void saveLevelData() {
-        Point<uint32_t> screenSize{m_surfaceWidth, m_surfaceHeight};
-        auto gd = std::make_shared<GameSaveData>(screenSize, m_levelTracker->getLevelName(),
-                m_levelStarter != nullptr);
-        if (m_level != nullptr) {
-            auto saveFcn = m_level->getSaveLevelDataFcn();
-            auto saveData = saveFcn(gd);
-            m_gameRequester->sendSaveData(saveData);
-        } else {
-            auto saveFcn = Level::getBasicSaveLevelDataFcn();
-            auto saveData = saveFcn(gd);
-            m_gameRequester->sendSaveData(saveData);
-        }
+        levelTracker::saveGameData(m_gameRequester, m_surfaceWidth, m_surfaceHeight,
+                m_levelTracker->levelName(), m_level, (m_levelStarter != nullptr));
     }
 
     bool updateData(bool alwaysUpdateDynObjs);
@@ -120,6 +111,8 @@ public:
                   uint32_t surfaceHeight,
                   bool isGL)
             : m_isGL{isGL},
+              m_projInitialized{false},
+              m_viewInitialized{false},
               m_surfaceWidth{surfaceWidth},
               m_surfaceHeight{surfaceHeight},
               m_gameRequester{std::move(inRequester)},
@@ -144,7 +137,7 @@ public:
     {
         // initialization that must not be done in the constructor.
         m_initialize = std::function<bool()>(
-            []() -> bool {
+            [&]() -> bool {
                 setView();
                 updatePerspectiveMatrix(m_surfaceWidth, m_surfaceHeight);
 
@@ -152,14 +145,14 @@ public:
                 setViewLightingSource();
 
                 auto proj = getPerspectiveMatrixForLevel(m_surfaceWidth, m_surfaceHeight);
-                m_level = m_levelGroupFcns.getLevelFcn(*m_levelTracker, proj, m_view);
-                m_levelStarter = m_levelGroupFcns.getStarterFcn(*m_levelTracker, proj, m_view);
+                m_level = m_levelGroupFcns.getLevelFcn(m_gameRequester, proj, m_view);
+                m_levelStarter = m_levelGroupFcns.getStarterFcn(m_gameRequester, proj, m_view);
 
                 m_levelFinisherObjsData.clear();
                 m_texturesLevelFinisher.clear();
                 float x, y;
                 m_level->getLevelFinisherCenter(x, y);
-                m_levelFinisher = m_levelGroupFcns.getFinisherFcn(*m_levelTracker, x, y, proj, m_view);
+                m_levelFinisher = m_levelGroupFcns.getFinisherFcn(m_gameRequester, proj, m_view, x, y);
 
                 setupCommonBuffers();
 
@@ -178,6 +171,8 @@ public:
 
 private:
     bool m_isGL;
+    bool m_projInitialized;
+    bool m_viewInitialized;
     uint32_t m_surfaceWidth;
     uint32_t m_surfaceHeight;
     std::shared_ptr<GameRequester> m_gameRequester;
@@ -206,7 +201,7 @@ protected:
     DrawObjectTable m_levelStarterDynObjsData;
 
     std::shared_ptr<basic::Level> m_level;
-    std::shared_ptr<LevelFinish> m_levelFinisher;
+    std::shared_ptr<finisher::LevelFinisher> m_levelFinisher;
     std::shared_ptr<basic::Level> m_levelStarter;
 
     /* initialize all the level data */
@@ -219,7 +214,7 @@ protected:
     void setViewLightingSource();
     void addObjects(DrawObjectTable &objs, TextureMap &textures);
     void addTextures(TextureMap &textures);
-    void initializeLevelData(std::shared_ptr<Level> const &level, DrawObjectTable &staticObjsData,
+    void initializeLevelData(std::shared_ptr<basic::Level> const &level, DrawObjectTable &staticObjsData,
                              DrawObjectTable &dynObjsData, TextureMap &textures);
 
     virtual std::shared_ptr<TextureData> createTexture(std::shared_ptr<TextureDescription> const &textureDescription) = 0;
@@ -270,7 +265,7 @@ public:
                 acceleration.z/acceleration.w);
     }
 
-    void changeLevel(size_t level) {
+    void changeLevel(std::string const &level) {
         m_levelSequence->changeLevel(level);
     }
 

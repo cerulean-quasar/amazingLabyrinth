@@ -83,27 +83,6 @@ namespace collectMaze {
               collectTexture{std::move(other.collectTexture)},
               numberCollectObjects{other.numberCollectObjects}
         {}
-
-        LevelConfigData(
-            std::string ballModel_,
-            std::string ballTexture_,
-            bool bounceEnabled_,
-            float ballSizeDiagonalRatio_,
-            std::vector<std::string> wallTextureNames_,
-            std::string mazeFloorTexture_,
-            std::string holeTexture_,
-            uint32_t numberRows_,
-            bool dfsSearch_,
-            std::string collectModel_,
-            std::string collectTexture_,
-            uint32_t numberCollectObjects_)
-            : generatedMaze::LevelConfigData(ballModel_, ballTexture_, bounceEnabled_,
-                    ballSizeDiagonalRatio_, wallTextureNames_, mazeFloorTexture_, holeTexture_,
-                    numberRows_, dfsSearch_),
-              collectModel{std::move(collectModel_)},
-              collectTexture{std::move(collectTexture_)},
-              numberCollectObjects{numberCollectObjects_}
-        {}
     };
 } // namespace collectMaze
 #endif // AMAZING_LABYRINTH_MAZE_COLLECT_LOAD_DATA_HPP

@@ -37,7 +37,6 @@ add_library( # Sets the name of the library.
         ${platform64_files}
         src/main/cpp/random.cpp
         src/main/cpp/drawer.cpp
-        src/main/cpp/serializeSaveData.cpp
         src/main/cpp/mathGraphics.cpp
         src/main/cpp/levels/finisher/types.cpp
         src/main/cpp/levels/finisher/serializer.cpp

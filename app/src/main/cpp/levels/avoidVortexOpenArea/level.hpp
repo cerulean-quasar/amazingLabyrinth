@@ -114,15 +114,15 @@ namespace avoidVortexOpenArea {
                                       char const *saveLevelDataKey) override;
 
         Level(std::shared_ptr<GameRequester> inGameRequester,
-                         LevelConfigData const &lcd,
+                         std::shared_ptr<LevelConfigData> const &lcd,
                          std::shared_ptr<LevelSaveData> const &sd,
                          glm::mat4 const &proj,
                          glm::mat4 const &view,
                          float floorZ)
                 : basic::Level(std::move(inGameRequester), lcd, proj, view, floorZ, true),
-                  holeTexture{lcd.m_holeTexture},
-                  vortexTexture{lcd.m_vortexTexture},
-                  startVortexTexture{lcd.m_startVortexTexture},
+                  holeTexture{lcd->holeTexture},
+                  vortexTexture{lcd->vortexTexture},
+                  startVortexTexture{lcd->startVortexTexture},
                   maxX(m_width / 2),
                   maxY(m_height / 2),
                   prevTime(std::chrono::high_resolution_clock::now())

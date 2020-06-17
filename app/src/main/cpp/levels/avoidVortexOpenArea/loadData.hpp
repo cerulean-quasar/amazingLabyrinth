@@ -22,9 +22,11 @@
 #define AMAZING_LABYRINTH_AVOID_VORTEX_OPEN_AREA_LOAD_DATA_HPP
 
 #include <vector>
+#include <memory>
+#include <utility>
+#include "../../levelTracker/types.hpp"
 
 #include "../basic/loadData.hpp"
-#include "../../saveData.hpp"
 
 namespace avoidVortexOpenArea {
     int constexpr saveDataVersion = 1;
@@ -65,38 +67,23 @@ namespace avoidVortexOpenArea {
     };
 
     struct LevelConfigData : public basic::LevelConfigData{
-        std::string m_holeTexture;
-        std::string m_vortexTexture;
-        std::string m_startVortexTexture;
+        std::string holeTexture;
+        std::string vortexTexture;
+        std::string startVortexTexture;
 
         LevelConfigData()
             : basic::LevelConfigData{},
-            m_holeTexture{},
-            m_vortexTexture{},
-            m_startVortexTexture{}
+            holeTexture{},
+            vortexTexture{},
+            startVortexTexture{}
         {
         }
 
         LevelConfigData(LevelConfigData &&other) noexcept
-                : basic::LevelConfigData{std::forward(other)},
-                  m_holeTexture{std::move(other.m_holeTexture)},
-                  m_vortexTexture{std::move(other.m_vortexTexture)},
-                  m_startVortexTexture{std::move(other.m_startVortexTexture)}
-        {
-        }
-
-        LevelConfigData(
-            std::string ballModel,
-            std::string ballTexture,
-            bool bounceEnabled,
-            float ballSizeDiagonalRatio,
-            std::string holeTexture,
-            std::string vortexTexture,
-            std::string startVortexTexture)
-            : basic::LevelConfigData{ballModel, ballTexture, bounceEnabled, ballSizeDiagonalRatio},
-              m_holeTexture{std::move(holeTexture)},
-              m_vortexTexture{std::move(vortexTexture)},
-              m_startVortexTexture{std::move(startVortexTexture)}
+                : basic::LevelConfigData{std::forward<LevelConfigData>(other)},
+                  holeTexture{std::move(other.holeTexture)},
+                  vortexTexture{std::move(other.vortexTexture)},
+                  startVortexTexture{std::move(other.startVortexTexture)}
         {
         }
     };

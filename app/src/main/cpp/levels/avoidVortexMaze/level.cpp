@@ -23,6 +23,8 @@
 #include "level.hpp"
 
 namespace avoidVortexMaze {
+    char constexpr const *Level::m_name;
+
     bool Level::checkFinishCondition(float) {
         for (auto avoidObj : m_avoidObjectLocations) {
             if (ballInProximity(avoidObj.x, avoidObj.y)) {

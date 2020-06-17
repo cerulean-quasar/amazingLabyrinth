@@ -23,9 +23,8 @@
 
 #include <vector>
 
-#include "../../saveData.hpp"
-
 #include "../basic/loadData.hpp"
+
 namespace generatedMaze {
     int constexpr levelSaveDataVersion = 1;
     struct LevelSaveData : public basic::LevelSaveData {
@@ -78,47 +77,29 @@ namespace generatedMaze {
         }
     };
 
-    struct LevelConfigData {
-        std::vector<std::string> m_wallTextureNames;
-        std::string m_mazeFloorTexture;
-        std::string m_holeTexture;
-        uint32_t m_numberRows;
-        bool m_dfsSearch;
+    struct LevelConfigData : public basic::LevelConfigData {
+        std::vector<std::string> wallTextureNames;
+        std::string mazeFloorTexture;
+        std::string holeTexture;
+        uint32_t numberRows;
+        bool dfsSearch;
 
         LevelConfigData(LevelConfigData &&other) noexcept
             : basic::LevelConfigData{std::move(other)},
-              m_wallTextureNames{std::move(other.m_wallTextureNames)},
-              m_mazeFloorTexture{std::move(other.m_mazeFloorTexture)},
-              m_holeTexture{std::move(other.m_holeTexture)},
-              m_numberRows{other.m_numberRows},
-              m_dfsSearch{other.m_dfsSearch}
+              wallTextureNames{std::move(other.wallTextureNames)},
+              mazeFloorTexture{std::move(other.mazeFloorTexture)},
+              holeTexture{std::move(other.holeTexture)},
+              numberRows{other.numberRows},
+              dfsSearch{other.dfsSearch}
         {}
 
         LevelConfigData()
                 : basic::LevelConfigData{},
-                  m_wallTextureNames{},
-                  m_mazeFloorTexture{},
-                  m_holeTexture{},
-                  m_numberRows{0},
-                  m_dfsSearch{false}
-        {}
-
-        LevelConfigData(
-                std::string ballModel,
-                std::string ballTexture,
-                bool bounceEnabled,
-                float ballSizeDiagonalRatio,
-                std::vector<std::string> wallTextureNames_,
-                std::string mazeFloorTexture_,
-                std::string holeTexture_,
-                uint32_t numberRows_,
-                bool dfsSearch_)
-                : basic::LevelConfigData{ballModel, ballTexture, bounceEnabled, ballSizeDiagonalRatio},
-                  m_wallTextureNames{std::move(wallTextureNames_)},
-                  m_mazeFloorTexture{std::move(mazeFloorTexture_)},
-                  m_holeTexture{std::move(holeTexture_)},
-                  m_numberRows{numberRows_},
-                  m_dfsSearch{dfsSearch_}
+                  wallTextureNames{},
+                  mazeFloorTexture{},
+                  holeTexture{},
+                  numberRows{0},
+                  dfsSearch{false}
         {}
     };
 }

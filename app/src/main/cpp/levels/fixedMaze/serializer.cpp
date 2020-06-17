@@ -21,6 +21,8 @@
 #include <json.hpp>
 #include <boost/implicit_cast.hpp>
 
+#include "../basic/loadData.hpp"
+#include "../basic/serializer.hpp"
 #include "../basic/level.hpp"
 #include "../../levelTracker/internals.hpp"
 
@@ -43,23 +45,23 @@ namespace fixedMaze {
     char constexpr const *MinSpeedOnBounce = "MinSpeedOnBounce";
     void to_json(nlohmann::json &j, LevelConfigData const &val) {
         to_json(j, boost::implicit_cast<basic::LevelConfigData const &>(val));
-        j[MazeFloorModel] = val.m_mazeFloorModel;
-        j[MazeFloorTexture] = val.m_mazeFloorTexture;
-        j[ExtraBounce] = val.m_extraBounce;
-        j[MinSpeedOnBounce] = val.m_minSpeedOnBounce;
+        j[MazeFloorModel] = val.mazeFloorModel;
+        j[MazeFloorTexture] = val.mazeFloorTexture;
+        j[ExtraBounce] = val.extraBounce;
+        j[MinSpeedOnBounce] = val.minSpeedOnBounce;
     }
 
     void from_json(nlohmann::json const &j, LevelConfigData &val) {
         from_json(j, boost::implicit_cast<basic::LevelConfigData &>(val));
-        val.m_mazeFloorModel = j[MazeFloorModel].get<std::string>();
-        val.m_mazeFloorTexture = j[MazeFloorTexture].get<std::string>();
-        val.m_extraBounce = j[ExtraBounce].get<float>();
-        val.m_minSpeedOnBounce = j[MinSpeedOnBounce].get<float>();
+        val.mazeFloorModel = j[MazeFloorModel].get<std::string>();
+        val.mazeFloorTexture = j[MazeFloorTexture].get<std::string>();
+        val.extraBounce = j[ExtraBounce].get<float>();
+        val.minSpeedOnBounce = j[MinSpeedOnBounce].get<float>();
     }
 
     std::vector<uint8_t> Level::saveData(levelTracker::GameSaveData const &gsd,
                                   char const *saveLevelDataKey) {
-        LevelSaveData sd();
+        LevelSaveData sd{};
 
         nlohmann::json j;
         to_json(j, gsd);
@@ -67,22 +69,5 @@ namespace fixedMaze {
         return nlohmann::json::to_cbor(j);
     }
 
-    levelTracker::RegisterLevel registerLevel(std::make_pair(Level::m_name,
-         levelTracker::GenerateLevelFcn(
-             [](nlohmann::json const &lcdjson, nlohmann::json const *sdjson, float z) -> levelTracker::GenerateLevelFcn
-             {
-                 LevelConfigData lcd = lcdjson.get<LevelConfigData>();
-                 std::shared_ptr<LevelSaveData> sd;
-                 if (sdjson) {
-                     sd = std::make_shared(sdjson->get<LevelSaveData>());
-                 }
-                 return levelTracker::GenerateLevelFcn(
-                     [lcd, sd, z](std::shared_ptr<GameRequester> gameRequester,
-                                  glm::mat4 const &proj, glm::mat4 const &view) -> std::shared_ptr<basic::Level>
-                     {
-                         return std::make_shared<Level>(
-                                 std::move(gameRequester), lcd, sd, proj, view, z);
-                     });
-             }))
-    );
+    levelTracker::Register<levelTracker::LevelMapTable, levelTracker::levelTable, LevelConfigData, LevelSaveData, Level> registerLevel;
 }

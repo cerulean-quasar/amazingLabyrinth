@@ -26,9 +26,9 @@
 #include <glm/gtc/quaternion.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 
-#include "../levelFinish.hpp"
 #include "../basic/level.hpp"
 #include "loadData.hpp"
+#include "../../random.hpp"
 
 namespace openArea {
     class Level : public basic::Level {
@@ -85,13 +85,13 @@ namespace openArea {
         static char constexpr const *m_name = "openArea";
         Level(
                 std::shared_ptr <GameRequester> inGameRequester,
-                LevelConfigData const &lcd,
+                std::shared_ptr<LevelConfigData> const &lcd,
                 std::shared_ptr <LevelSaveData> const &levelRestoreData,
                 glm::mat4 const &proj,
                 glm::mat4 const &view,
                 float maxZ)
                 : basic::Level(std::move(inGameRequester), lcd, proj, view, maxZ, true),
-                  holeTexture{lcd.holeTexture},
+                  holeTexture{lcd->holeTexture},
                   prevTime(std::chrono::high_resolution_clock::now()) {
             loadModels();
             if (levelRestoreData == nullptr) {

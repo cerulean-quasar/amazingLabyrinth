@@ -22,6 +22,8 @@
 #include "../generatedMazeAlgorithms.hpp"
 
 namespace rotatablePassage {
+    char constexpr const *Level::m_name;
+
     void Level::initSetGameBoard(uint32_t nbrTilesY, GeneratedMazeBoard::Mode mode) {
         uint32_t nbrTilesX = static_cast<uint32_t>(std::floor(nbrTilesY / m_height * m_width));
 

@@ -34,6 +34,8 @@ namespace starter {
     char constexpr const *Level::corridorEndModel;
     char constexpr const *Level::corridorCornerModel;
 
+    char constexpr const *Level::m_name;
+
     void Level::clearText() {
         text.clear();
     }
@@ -118,7 +120,7 @@ namespace starter {
             std::shared_ptr<DrawObject> obj = std::make_shared<DrawObject>();
             obj->vertices = ballVertices;
             obj->indices = ballIndices;
-            obj->texture = std::make_shared<TextureDescriptionPath>(m_gameRequester, ballImage);
+            obj->texture = std::make_shared<TextureDescriptionPath>(m_gameRequester, m_ballTexture);
             textures.insert(std::make_pair(obj->texture, std::shared_ptr<TextureData>()));
             obj->modelMatrices.push_back(
                     glm::translate(glm::mat4(1.0f), m_ball.position) *

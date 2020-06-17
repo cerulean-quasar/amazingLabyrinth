@@ -28,7 +28,6 @@
 #include <glm/gtc/quaternion.hpp>
 
 #include "../../common.hpp"
-#include "../../saveData.hpp"
 #include "loadData.hpp"
 #include "../../levelTracker/types.hpp"
 #include "../../mathGraphics.hpp"
@@ -150,16 +149,13 @@ namespace basic {
 
         virtual float getZForTapCoords() { return m_mazeFloorZ; }
 
-        virtual std::vector<float> getAdditionalWHatZRequests() { return std::vector<float>{}; }
-
-        virtual void setAdditionalWH(float, float, float) {}
-
         virtual char const *name() = 0;
+
         virtual std::vector<uint8_t> saveData(levelTracker::GameSaveData const &gsd, char const *saveLevelDataKey) = 0;
 
         Level(
                 std::shared_ptr<GameRequester> inGameRequester,
-                LevelConfigData const &lcd,
+                std::shared_ptr<LevelConfigData> const &lcd,
                 glm::mat4 const &proj,
                 glm::mat4 const &view,
                 float mazeFloorZ,
@@ -168,15 +164,19 @@ namespace basic {
                   m_finished(false),
                   m_mazeFloorZ{mazeFloorZ},
                   m_ignoreZMovement{ignoreZMovement},
-                  m_scaleBall{lcd.m_ballSizeDiagonalRatio * m_diagonal},
-                  m_bounce{lcd.m_bounceEnabled},
-                  m_ballModel{lcd.m_ballModel},
-                  m_ballTexture{lcd.m_ballTexture}
+                  m_bounce{lcd->bounceEnabled},
+                  m_ballModel{lcd->ballModel},
+                  m_ballTexture{lcd->ballTexture}
         {
+            if (!lcd) {
+                throw (std::runtime_error("Level Configuration missing"));
+            }
+
             auto wh = getWidthHeight(mazeFloorZ, proj, view);
             m_width = wh.first;
             m_height = wh.second;
             m_diagonal = glm::length(glm::vec2{m_width, m_height});
+            m_scaleBall = lcd->ballSizeDiagonalRatio * m_diagonal;
             m_ball.totalRotated = glm::quat();
             m_ball.acceleration = {0.0f, 0.0f, 0.0f};
             m_ball.velocity = {0.0f, 0.0f, 0.0f};

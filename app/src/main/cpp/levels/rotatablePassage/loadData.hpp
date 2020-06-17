@@ -41,6 +41,14 @@ namespace rotatablePassage {
               texture{std::move(other.texture)},
               lockedInPlaceTexture{std::move(other.lockedInPlaceTexture)}
         {}
+
+        ComponentConfig &operator=(ComponentConfig &&other) {
+            model = std::move(other.model);
+            texture = std::move(other.texture);
+            lockedInPlaceTexture = std::move(other.texture);
+
+            return *this;
+        }
     };
 
     struct LevelConfigData : public basic::LevelConfigData {

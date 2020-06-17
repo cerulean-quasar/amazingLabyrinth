@@ -29,8 +29,8 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/quaternion.hpp>
 #include <glm/gtc/matrix_transform.hpp>
-
-#include "level.hpp"
+#include "basic/level.hpp"
+#include "../random.hpp"
 
 class Component {
 public:
@@ -113,7 +113,7 @@ public:
         {
             auto ret = checkForNextWall(wall, CellWall::noWall);
             if (ret.first) {
-                p = border + sign * Level::m_floatErrorAmount;
+                p = border + sign * basic::Level::m_floatErrorAmount;
                 return std::make_pair(wall, CellWall::noWall);
             } else {
                 p = border - sign * ballRadius;
@@ -193,15 +193,15 @@ public:
             checkForNextWallFunc checkForNextWall)
     {
         std::array<float, 4> differences = {
-                fabs(velocity.x) < Level::m_floatErrorAmount ? -1 : (rightWall - position.x)/velocity.x,
-                fabs(velocity.x) < Level::m_floatErrorAmount ? -1 : (leftWall - position.x)/velocity.x,
-                fabs(velocity.y) < Level::m_floatErrorAmount ? -1 : (topWall - position.y)/velocity.y,
-                fabs(velocity.y) < Level::m_floatErrorAmount ? -1 : (bottomWall - position.y)/velocity.y
+                fabs(velocity.x) < basic::Level::m_floatErrorAmount ? -1 : (rightWall - position.x)/velocity.x,
+                fabs(velocity.x) < basic::Level::m_floatErrorAmount ? -1 : (leftWall - position.x)/velocity.x,
+                fabs(velocity.y) < basic::Level::m_floatErrorAmount ? -1 : (topWall - position.y)/velocity.y,
+                fabs(velocity.y) < basic::Level::m_floatErrorAmount ? -1 : (bottomWall - position.y)/velocity.y
         };
 
         size_t largestDifferenceIndex = differences.size();
         for (size_t i = 0; i < differences.size(); i++) {
-            if (differences[i] < Level::m_floatErrorAmount) {
+            if (differences[i] < basic::Level::m_floatErrorAmount) {
                 continue;
             }
             if (largestDifferenceIndex >= differences.size()) {
@@ -291,7 +291,7 @@ public:
         auto ret = checkForNextWall(wall1, wall2);
         auto checkCellWall2 = [&] (CellWall wall, float wallPos, float &pos, int32_t sign) {
             if (((ret.first && wall1 == wall) || (ret.second && wall2 == wall))) {
-                pos = wallPos + sign * Level::m_floatErrorAmount;
+                pos = wallPos + sign * basic::Level::m_floatErrorAmount;
             } else if ((!ret.first && wall1 == wall) || (!ret.second && wall2 == wall)) {
                 pos = wallPos - sign * ballRadius;
             }

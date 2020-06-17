@@ -23,6 +23,8 @@
 #include "level.hpp"
 
 namespace collectMaze {
+    char constexpr const *Level::m_name;
+
     bool Level::checkFinishCondition(float timeDiff) {
         uint32_t nbrItemsCollected = 0;
 

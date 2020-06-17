@@ -23,15 +23,15 @@
 #include <fstream>
 #include <functional>
 #include <boost/optional.hpp>
-#include "../finisher/types.hpp"
+#include "../levels/finisher/types.hpp"
 #include "../levels/basic/level.hpp"
 #include "../common.hpp"
 #include "../mathGraphics.hpp"
 
 namespace levelTracker {
-    using GenerateLevelFcn = std::function<std::shared_ptr<Level>(std::shared_ptr<GameRequester>,
+    using GenerateLevelFcn = std::function<std::shared_ptr<basic::Level>(std::shared_ptr<GameRequester>,
                                                                   glm::mat4 const &, glm::mat4 const &)>;
-    using GenerateFinisherFcn = std::function<std::shared_ptr<LevelFinish>(std::shared_ptr<GameRequester>,
+    using GenerateFinisherFcn = std::function<std::shared_ptr<finisher::LevelFinisher>(std::shared_ptr<GameRequester>,
                                                                            glm::mat4 const &, glm::mat4 const &, float, float)>;
 
     struct LevelGroup {
@@ -45,10 +45,17 @@ namespace levelTracker {
         std::string fileName;
 
         LevelTableEntry() = default;
-        LevelTableEntry(LevelTableEntry &&other)
+        LevelTableEntry(LevelTableEntry &&other) noexcept
                 : levelName{std::move(other.levelName)},
                   fileName{std::move(other.fileName)}
         {}
+
+        LevelTableEntry &operator=(LevelTableEntry &&other) noexcept {
+            levelName = std::move(other.levelName);
+            fileName = std::move(other.fileName);
+
+            return *this;
+        }
     };
 
     void saveGameData(
@@ -71,6 +78,18 @@ namespace levelTracker {
             auto levelNumber = getLevelNumber(levelName);
             if (levelNumber != boost::none) {
                 m_currentLevel = levelNumber;
+                return true;
+            }
+            return false;
+        }
+
+        std::string levelName() {
+            if (m_currentLevel != boost::none) {
+                return m_levelTable[m_currentLevel.get()].levelName;
+            } else if (!m_levelTable.empty()){
+                return m_levelTable[0].levelName;
+            } else {
+                return "";
             }
         }
 
@@ -81,7 +100,7 @@ namespace levelTracker {
 
         boost::optional<size_t> getLevelNumber(std::string const &levelName) {
             size_t i = 0;
-            for (auto entry : m_levelTable) {
+            for (auto const &entry : m_levelTable) {
                 if (levelName == entry.levelName) {
                     return i;
                 }

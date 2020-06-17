@@ -24,14 +24,13 @@
 #include <vector>
 
 #include "../basic/loadData.hpp"
-#include "../../saveData.hpp"
 
 namespace starter {
     int constexpr levelSaveDataVersion = 1;
 
     struct LevelSaveData : public basic::LevelSaveData {
         LevelSaveData(LevelSaveData &&other) noexcept
-                : basic::LevelSaveData{levelSaveDataVersion}
+                : basic::LevelSaveData{std::forward<LevelSaveData>(other)}
         {}
 
         LevelSaveData()
@@ -48,7 +47,7 @@ namespace starter {
         {}
 
         LevelConfigData(LevelConfigData &&other)
-                : basic::LevelConfigData{std::move(other)},
+                : basic::LevelConfigData{std::forward<LevelConfigData>(other)},
                   startupMessages{std::move(other.startupMessages)}
         {}
     };

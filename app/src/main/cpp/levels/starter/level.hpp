@@ -69,7 +69,7 @@ namespace starter {
         static char constexpr const *m_name = "starter";
 
         Level(std::shared_ptr<GameRequester> inGameRequester,
-                     LevelConfigData const &lcd,
+                     std::shared_ptr<LevelConfigData> const &lcd,
                      std::shared_ptr<LevelSaveData> const & /*sd*/,
                      glm::mat4 const &proj, glm::mat4 const &view, float maxZ)
                 : basic::Level(std::move(inGameRequester), lcd, proj, view, maxZ, true),
@@ -78,7 +78,7 @@ namespace starter {
                   maxPosY(m_height / 2 - ballRadius() -
                           m_wallThickness * ballDiameter() / m_modelSize),
                   errVal(ballDiameter() / 5.0f),
-                  text{lcd.startupMessages}
+                  text{lcd->startupMessages}
         {
             prevTime = std::chrono::high_resolution_clock::now();
 
@@ -116,8 +116,8 @@ namespace starter {
 
         char const *name() override { return m_name; }
 
-        std::vector<uint8_t> saveData(levelTracker::GameSaveData const &gsd,
-                                      char const *saveLevelDataKey) override
+        std::vector<uint8_t> saveData(levelTracker::GameSaveData const &,
+                                      char const *) override
         { return std::vector<uint8_t>{}; }
 
         void start() override {

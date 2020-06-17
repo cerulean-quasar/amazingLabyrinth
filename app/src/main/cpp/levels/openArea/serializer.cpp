@@ -26,6 +26,7 @@
 #include "../basic/level.hpp"
 #include "loadData.hpp"
 #include "level.hpp"
+#include "../basic/serializer.hpp"
 #include "serializer.hpp"
 
 namespace openArea {
@@ -66,22 +67,5 @@ namespace openArea {
         return nlohmann::json::to_cbor(j);
     }
 
-    levelTracker::RegisterLevel registerLevel(std::make_pair(Level::m_name,
-         levelTracker::GenerateLevelFcn(
-             [](nlohmann::json const &lcdjson, nlohmann::json const *sdjson, float z) -> levelTracker::GenerateLevelFcn
-             {
-                 LevelConfigData lcd = lcdjson.get<LevelConfigData>();
-                 std::shared_ptr<LevelSaveData> sd;
-                 if (sdjson) {
-                     sd = std::make_shared(sdjson->get<LevelSaveData>());
-                 }
-                 return levelTracker::GenerateLevelFcn(
-                     [lcd, sd, z](std::shared_ptr<GameRequester> gameRequester,
-                                  glm::mat4 const &proj, glm::mat4 const &view) -> std::shared_ptr<basic::Level>
-                     {
-                         return std::make_shared<Level>(
-                                 std::move(gameRequester), lcd, sd, proj, view, z);
-                     });
-             }))
-    );
+    levelTracker::Register<levelTracker::LevelMapTable, levelTracker::levelTable, LevelConfigData, LevelSaveData, Level> registerLevel;
 } // namespace openArea

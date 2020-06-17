@@ -22,6 +22,8 @@
 #include "../basic/level.hpp"
 
 namespace movablePassage {
+    char constexpr const *Level::m_name;
+
     void Level::initSetGameBoard(
             uint32_t nbrTilesX,
             uint32_t nbrTilesY,
@@ -644,7 +646,7 @@ namespace movablePassage {
             std::swap(v.first, obj->vertices);
             std::swap(v.second, obj->indices);
             obj->texture = std::make_shared<TextureDescriptionPath>(m_gameRequester,
-                                                                    m_ballTextureName);
+                                                                    m_ballTexture);
             textures.emplace(obj->texture, std::shared_ptr<TextureData>());
             obj->modelMatrices.push_back(
                     glm::translate(glm::mat4(1.0f), m_ball.position) *

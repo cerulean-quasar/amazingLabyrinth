@@ -62,34 +62,19 @@ namespace avoidVortexMaze {
     };
 
     struct LevelConfigData : public generatedMaze::LevelConfigData {
-        std::string m_avoidTexture;
-        uint32_t m_numberAvoidObjects;
+        std::string avoidTexture;
+        uint32_t numberAvoidObjects;
 
         LevelConfigData()
             : generatedMaze::LevelConfigData(),
-              m_avoidTexture(),
-              m_numberAvoidObjects()
+              avoidTexture(),
+              numberAvoidObjects()
         {}
 
         LevelConfigData(LevelConfigData &&other) noexcept
             : generatedMaze::LevelConfigData{std::move(other)},
-            m_avoidTexture{std::move(other.m_avoidTexture)},
-            m_numberAvoidObjects{other.m_numberAvoidObjects}
-        {}
-
-        LevelConfigData(
-                std::vector<std::string> wallTextureNames_,
-                std::string mazeFloorTexture_,
-                std::string holeTexture_,
-                uint32_t numberRows_,
-                bool dfsSearch_,
-                std::string avoidTexture_,
-                uint32_t numberAvoidObjects_)
-                : generatedMaze::LevelConfigData{std::move(wallTextureNames_),
-                                                 std::move(mazeFloorTexture_),
-                                                 std::move(holeTexture_), numberRows_, dfsSearch_},
-                  m_avoidTexture{std::move(avoidTexture_)},
-                  m_numberAvoidObjects{numberAvoidObjects_}
+            avoidTexture{std::move(other.avoidTexture)},
+            numberAvoidObjects{other.numberAvoidObjects}
         {}
     };
 } // namespace avoidVortexMaze

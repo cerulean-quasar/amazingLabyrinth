@@ -30,7 +30,6 @@
 #include <glm/gtc/matrix_transform.hpp>
 
 #include "../../common.hpp"
-#include "../../saveData.hpp"
 #include "../basic/level.hpp"
 #include "../../random.hpp"
 
@@ -61,7 +60,7 @@ namespace fixedMaze {
                                       char const *saveLevelDataKey) override;
 
         Level(std::shared_ptr<GameRequester> inGameRequester,
-                  LevelConfigData const &lcd,
+                  std::shared_ptr<LevelConfigData> const &lcd,
                   std::shared_ptr<LevelSaveData> const &sd,
                   glm::mat4 const &proj, glm::mat4 const &view, float maxZ);
 

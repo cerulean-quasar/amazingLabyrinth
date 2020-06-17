@@ -21,6 +21,7 @@
 #include <functional>
 #include <boost/optional.hpp>
 #include <vector>
+#include <boost/none.hpp>
 
 #include "../levels/basic/level.hpp"
 #include "types.hpp"
@@ -175,8 +176,9 @@ namespace levelTracker {
                 } else {
                     Point<uint32_t> screenSize{screenWidth, screenHeight};
                     if (screenSize == gb.screenSize) {
-                        jsdLevel = jgb.find(DataVariables::GameSaveDataLevel);
-                        if (jsdLevel != jgb.end()) {
+                        auto it = jgb.find(DataVariables::GameSaveDataLevel);
+                        if (it != jgb.end()) {
+                            jsdLevel = *it;
                             pjsdLevel = &jsdLevel;
                             needsLevelStarter = gb.needsStarter;
                         }
@@ -200,7 +202,7 @@ namespace levelTracker {
             throw std::runtime_error("Invalid level");
         }
 
-        group.getLevelFcn = levelIt->second(j[DataVariables::Level], jsdLevel, m_maxZLevel);
+        group.getLevelFcn = levelIt->second(j[DataVariables::Level], pjsdLevel, m_maxZLevel);
 
         auto finisherIt = finisherTable().find(components.finisher);
         if (finisherIt == finisherTable().end()) {
@@ -217,7 +219,7 @@ namespace levelTracker {
         : m_gameRequester{std::move(inGameRequester)},
           m_currentLevel{boost::none}
     {
-        nlohmann::json j = nlohmann::json::from_cbor(getDataFromFile(m_gameRequester->getAssetStream(m_gameRequester->getLevelTableName())));
-        m_levelTable = j[DataVariables::Levels].get<std::vector<LevelTableEntry>>();
+        nlohmann::json j = nlohmann::json::from_cbor(getDataFromFile(m_gameRequester->getLevelTableAssetStream()));
+        m_levelTable = std::move(j[DataVariables::Levels].get<std::vector<LevelTableEntry>>());
     }
 }

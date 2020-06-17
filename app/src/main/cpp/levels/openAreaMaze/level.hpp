@@ -49,7 +49,7 @@ namespace openAreaMaze {
 
     public:
         Level(std::shared_ptr<GameRequester> inGameRequester,
-                     generatedMaze::LevelConfigData const &lcd,
+                     std::shared_ptr<generatedMaze::LevelConfigData> const &lcd,
                      std::shared_ptr<generatedMaze::LevelSaveData> const &sd,
                      glm::mat4 const &proj, glm::mat4 const &view, float maxZ)
                 : generatedMaze::Level(

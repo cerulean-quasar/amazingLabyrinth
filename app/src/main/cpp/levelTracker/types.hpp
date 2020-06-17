@@ -62,6 +62,13 @@ namespace levelTracker {
                 levelName(levelName_),
                 needsStarter(needsStarter_)
         {}
+
+        GameSaveData()
+            : version{GameSaveDataVersionValue},
+              screenSize{0,0},
+              levelName{},
+              needsStarter{true}
+        {}
     };
 
 }

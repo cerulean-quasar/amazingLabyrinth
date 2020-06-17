@@ -21,7 +21,7 @@
 #include <jni.h>
 #include <native_window.h>
 #include <native_window_jni.h>
-#include "level/levelTracker.hpp"
+#include "levelTracker/levelTracker.hpp"
 #include "drawer.hpp"
 #include "android.hpp"
 #include "gameRequester.hpp"
@@ -121,11 +121,16 @@ Java_com_quasar_cerulean_amazinglabyrinth_Draw_tellDrawerSurfaceChanged(
 
 extern "C" JNIEXPORT void JNICALL
 Java_com_quasar_cerulean_amazinglabyrinth_Draw_tellDrawerSwitchLevel(
-        JNIEnv *,
+        JNIEnv *env,
         jclass,
-        jint jlevel)
+        jstring jlevel)
 {
-    auto ev = std::make_shared<LevelChangedEvent>(jlevel);
+    char const *clevel = env->GetStringUTFChars(jlevel, nullptr);
+    handleJNIException(env);
+    std::string level(clevel);
+    env->ReleaseStringUTFChars(jlevel, clevel);
+
+    auto ev = std::make_shared<LevelChangedEvent>(std::move(level));
     gameFromGuiChannel().sendEvent(ev);
 }
 
@@ -163,18 +168,3 @@ Java_com_quasar_cerulean_amazinglabyrinth_Draw_tellDrawerTapOccurred(
     auto ev = std::make_shared<TapEvent>(jPositionX, jPositionY);
     gameFromGuiChannel().sendEvent(ev);
 }
-
-extern "C" JNIEXPORT jobjectArray JNICALL
-Java_com_quasar_cerulean_amazinglabyrinth_Draw_getLevelList(
-        JNIEnv *env,
-        jclass)
-{
-    std::vector<std::string> levels = LevelTracker::getLevelDescriptions();
-    jobjectArray ret = (jobjectArray)env->NewObjectArray(levels.size(), env->FindClass("java/lang/String"), nullptr);
-    for (size_t i = 0; i < levels.size(); i++) {
-        env->SetObjectArrayElement(ret, i, env->NewStringUTF(levels[i].c_str()));
-    }
-
-    return ret;
-}
-

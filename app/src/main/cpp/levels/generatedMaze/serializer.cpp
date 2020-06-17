@@ -64,20 +64,20 @@ namespace generatedMaze {
 
     void to_json(nlohmann::json &j, LevelConfigData const &val) {
         to_json(j, boost::implicit_cast<basic::LevelConfigData const &>(val));
-        j[WallTextureNames] = val.m_wallTextureNames;
-        j[MazeFloorTexture] = val.m_mazeFloorTexture;
-        j[HoleTexture] = val.m_holeTexture;
-        j[NumberRows] = val.m_numberRows;
-        j[DfsSearch] = val.m_dfsSearch;
+        j[WallTextureNames] = val.wallTextureNames;
+        j[MazeFloorTexture] = val.mazeFloorTexture;
+        j[HoleTexture] = val.holeTexture;
+        j[NumberRows] = val.numberRows;
+        j[DfsSearch] = val.dfsSearch;
     }
 
     void from_json(nlohmann::json const &j, LevelConfigData &val) {
         from_json(j, boost::implicit_cast<basic::LevelConfigData &>(val));
-        val.m_wallTextureNames = j[WallTextureNames].get<std::vector<std::string>>();
-        val.m_mazeFloorTexture = j[MazeFloorTexture].get<std::string>();
-        val.m_holeTexture = j[HoleTexture].get<std::string>();
-        val.m_numberRows = j[NumberRows].get<uint32_t>();
-        val.m_dfsSearch = j[DfsSearch].get<bool>();
+        val.wallTextureNames = j[WallTextureNames].get<std::vector<std::string>>();
+        val.mazeFloorTexture = j[MazeFloorTexture].get<std::string>();
+        val.holeTexture = j[HoleTexture].get<std::string>();
+        val.numberRows = j[NumberRows].get<uint32_t>();
+        val.dfsSearch = j[DfsSearch].get<bool>();
     }
 
     uint8_t encodeCell(bool top, bool right, bool bottom, bool left) {
@@ -183,22 +183,5 @@ namespace generatedMaze {
         return nlohmann::json::to_cbor(j);
     }
 
-    levelTracker::RegisterLevel registerLevel(std::make_pair(Level::m_name,
-         levelTracker::GenerateLevelFcn(
-             [](nlohmann::json const &lcdjson, nlohmann::json const *sdjson, float z) -> levelTracker::GenerateLevelFcn
-             {
-                 LevelConfigData lcd = lcdjson.get<LevelConfigData>();
-                 std::shared_ptr<LevelSaveData> sd;
-                 if (sdjson) {
-                     sd = std::make_shared(sdjson->get<LevelSaveData>());
-                 }
-                 return levelTracker::GenerateLevelFcn(
-                     [lcd, sd, z](std::shared_ptr<GameRequester> gameRequester,
-                                  glm::mat4 const &proj, glm::mat4 const &view) -> std::shared_ptr<basic::Level>
-                     {
-                         return std::make_shared<Level>(
-                                 std::move(gameRequester), lcd, sd, proj, view, z);
-                     });
-             }))
-    );
+    levelTracker::Register<levelTracker::LevelMapTable, levelTracker::levelTable, LevelConfigData, LevelSaveData, Level> registerLevel;
 }

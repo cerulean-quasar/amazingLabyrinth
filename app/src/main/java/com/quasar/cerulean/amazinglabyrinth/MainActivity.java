@@ -119,14 +119,6 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
 
     public void onSelectLevel(MenuItem item) {
         Intent intent = new Intent(this, ChooseLevelActivity.class);
-        String[] arr = Draw.levelList();
-        ArrayList<String> arrlist = new ArrayList<>();
-        for (String str : arr) {
-            arrlist.add(str);
-        }
-
-        intent.putExtra(Constants.KeyLevels, arrlist);
-
         startActivityForResult(intent, Constants.AMAZING_LABYRINTH_CHOOSE_LEVEL_ACTIVITY);
     }
 
@@ -136,8 +128,10 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
         if (requestCode == Constants.AMAZING_LABYRINTH_CHOOSE_LEVEL_ACTIVITY &&
             resultCode == RESULT_OK)
         {
-            int level = data.getIntExtra(Constants.KeySelectedLevel, 0);
-            Draw.switchLevel(level);
+            String level = data.getStringExtra(Constants.KeySelectedLevel);
+            if (level != null) {
+                Draw.switchLevel(level);
+            }
         }
     }
 

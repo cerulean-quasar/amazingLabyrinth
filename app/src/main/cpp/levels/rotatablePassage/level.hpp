@@ -30,7 +30,6 @@
 #include <glm/gtc/matrix_transform.hpp>
 
 #include "../basic/level.hpp"
-#include "../../saveData.hpp"
 #include "../../graphics.hpp"
 #include "../movablePassageAlgorithms.hpp"
 #include "../generatedMazeAlgorithms.hpp"
@@ -72,7 +71,7 @@ namespace rotatablePassage {
 
         Level(
             std::shared_ptr<GameRequester> inGameRequester,
-            LevelConfigData const &lcd,
+            std::shared_ptr<LevelConfigData> const &lcd,
             std::shared_ptr<LevelSaveData> /*sd*/,
             glm::mat4 const &proj, glm::mat4 const &view, float maxZ)
             : basic::Level(inGameRequester, lcd, proj, view, maxZ, true),
@@ -89,40 +88,40 @@ namespace rotatablePassage {
               m_endRow{0},
               m_endCol{0},
               m_objsReferenceBall{0},
-              m_holeModel{lcd.holeModel},
-              m_holeTexture{lcd.holeTexture}
+              m_holeModel{lcd->holeModel},
+              m_holeTexture{lcd->holeTexture}
         {
-            m_componentModels[Component::ComponentType::straight].push_back(lcd.straight.model);
-            m_componentTextures[Component::ComponentType::straight].push_back(lcd.straight.texture);
+            m_componentModels[Component::ComponentType::straight].push_back(lcd->straight.model);
+            m_componentTextures[Component::ComponentType::straight].push_back(lcd->straight.texture);
             m_componentTexturesLockedInPlace[Component::ComponentType::straight].push_back(
-                    lcd.straight.lockedInPlaceTexture);
+                    lcd->straight.lockedInPlaceTexture);
 
-            m_componentModels[Component::ComponentType::tjunction].push_back(lcd.tJunction.model);
-            m_componentTextures[Component::ComponentType::tjunction].push_back(lcd.tJunction.texture);
+            m_componentModels[Component::ComponentType::tjunction].push_back(lcd->tJunction.model);
+            m_componentTextures[Component::ComponentType::tjunction].push_back(lcd->tJunction.texture);
             m_componentTexturesLockedInPlace[Component::ComponentType::tjunction].push_back(
-                    lcd.tJunction.lockedInPlaceTexture);
+                    lcd->tJunction.lockedInPlaceTexture);
 
             m_componentModels[Component::ComponentType::crossjunction].push_back(
-                    lcd.crossJunction.model);
+                    lcd->crossJunction.model);
             m_componentTextures[Component::ComponentType::crossjunction].push_back(
-                    lcd.crossJunction.texture);
+                    lcd->crossJunction.texture);
             m_componentTexturesLockedInPlace[Component::ComponentType::crossjunction].push_back(
-                    lcd.crossJunction.lockedInPlaceTexture);
+                    lcd->crossJunction.lockedInPlaceTexture);
 
-            m_componentModels[Component::ComponentType::turn].push_back(lcd.turn.model);
-            m_componentTextures[Component::ComponentType::turn].push_back(lcd.turn.texture);
+            m_componentModels[Component::ComponentType::turn].push_back(lcd->turn.model);
+            m_componentTextures[Component::ComponentType::turn].push_back(lcd->turn.texture);
             m_componentTexturesLockedInPlace[Component::ComponentType::turn].push_back(
-                    lcd.turn.lockedInPlaceTexture);
+                    lcd->turn.lockedInPlaceTexture);
 
-            m_componentModels[Component::ComponentType::deadEnd].push_back(lcd.deadEnd.model);
-            m_componentTextures[Component::ComponentType::deadEnd].push_back(lcd.deadEnd.texture);
+            m_componentModels[Component::ComponentType::deadEnd].push_back(lcd->deadEnd.model);
+            m_componentTextures[Component::ComponentType::deadEnd].push_back(lcd->deadEnd.texture);
             m_componentTexturesLockedInPlace[Component::ComponentType::deadEnd].push_back(
-                    lcd.deadEnd.lockedInPlaceTexture);
+                    lcd->deadEnd.lockedInPlaceTexture);
 
-            m_borderTextures = lcd.borderTextures;
+            m_borderTextures = lcd->borderTextures;
 
-            initSetGameBoard(lcd.numberRows,
-                    lcd.dfsSearch ? GeneratedMazeBoard::Mode::DFS : GeneratedMazeBoard::Mode::BFS);
+            initSetGameBoard(lcd->numberRows,
+                    lcd->dfsSearch ? GeneratedMazeBoard::Mode::DFS : GeneratedMazeBoard::Mode::BFS);
         }
 
     private:

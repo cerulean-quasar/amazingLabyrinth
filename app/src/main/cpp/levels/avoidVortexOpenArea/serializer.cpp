@@ -54,16 +54,16 @@ namespace avoidVortexOpenArea {
     char constexpr const *StartVortexTexture = "StartVortexTexture";
     void to_json(nlohmann::json &j, LevelConfigData const &val) {
         to_json(j, boost::implicit_cast<basic::LevelConfigData const &>(val));
-        j[HoleTexture] = val.m_holeTexture;
-        j[VortexTexture] = val.m_vortexTexture;
-        j[StartVortexTexture] = val.m_startVortexTexture;
+        j[HoleTexture] = val.holeTexture;
+        j[VortexTexture] = val.vortexTexture;
+        j[StartVortexTexture] = val.startVortexTexture;
     }
 
     void from_json(nlohmann::json const &j, LevelConfigData &val) {
         from_json(j, boost::implicit_cast<basic::LevelConfigData &>(val));
-        val.m_holeTexture = j[HoleTexture].get<std::string>();
-        val.m_vortexTexture = j[VortexTexture].get<std::string>();
-        val.m_startVortexTexture = j[StartVortexTexture].get<std::string>();
+        val.holeTexture = j[HoleTexture].get<std::string>();
+        val.vortexTexture = j[VortexTexture].get<std::string>();
+        val.startVortexTexture = j[StartVortexTexture].get<std::string>();
     }
 
     std::vector<uint8_t> Level::saveData(levelTracker::GameSaveData const &gsd,
@@ -84,22 +84,5 @@ namespace avoidVortexOpenArea {
         return nlohmann::json::to_cbor(j);
     }
 
-    levelTracker::RegisterLevel registerLevel(std::make_pair(Level::m_name,
-         levelTracker::GenerateLevelFcn(
-             [](nlohmann::json const &lcdjson, nlohmann::json const *sdjson, float z) -> levelTracker::GenerateLevelFcn
-             {
-                 LevelConfigData lcd = lcdjson.get<LevelConfigData>();
-                 std::shared_ptr<LevelSaveData> sd;
-                 if (sdjson) {
-                     sd = std::make_shared(sdjson->get<LevelSaveData>());
-                 }
-                 return levelTracker::GenerateLevelFcn(
-                     [lcd, sd, z](std::shared_ptr<GameRequester> gameRequester,
-                                  glm::mat4 const &proj, glm::mat4 const &view) -> std::shared_ptr<basic::Level>
-                     {
-                         return std::make_shared<Level>(
-                                 std::move(gameRequester), lcd, sd, proj, view, z);
-                     });
-             }))
-    );
+    levelTracker::Register<levelTracker::LevelMapTable, levelTracker::levelTable, LevelConfigData, LevelSaveData, Level> registerLevel;
 } // namespace avoidVortexOpenArea

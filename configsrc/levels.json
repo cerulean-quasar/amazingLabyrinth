@@ -1,15 +1,15 @@
 {
     "Levels": [
-        { "Name": "beginning", "File": "beginning.json", "Description": "The beginning" },
-        { "Name": "lonelyPlanet", "File": "lonelyPlanet.json", "Description": "The lonely planet" },
-        { "Name": "pufferFish", "File": "pufferFish.json", "Description": "The puffer fish" },
-        { "Name": "rolarBear", "File": "rolarBear.json", "Description": "The rolar bear" },
-        { "Name": "bee1", "File": "bee1.json", "Description": "The bee" },
-        { "Name": "bee2", "File": "bee2.json", "Description": "The search" },
-        { "Name": "cat", "File": "cat.json", "Description": "The cat" },
-        { "Name": "bunny", "File": "bunny.json", "Description": "The bunny" },
-        { "Name": "frog", "File": "frog.json", "Description": "The frog" },
-        { "Name": "gopher", "File": "gopher.json", "Description": "The gopher" },
-        { "Name": "mouse", "File": "mouse.json", "Description": "The mouse" }
+        { "Name": "beginning", "File": "configs/levels/beginning.json", "Description": "The beginning" },
+        { "Name": "lonelyPlanet", "File": "configs/levels/lonelyPlanet.json", "Description": "The lonely planet" },
+        { "Name": "pufferFish", "File": "configs/levels/pufferFish.json", "Description": "The puffer fish" },
+        { "Name": "rolarBear", "File": "configs/levels/rolarBear.json", "Description": "The rolar bear" },
+        { "Name": "bee1", "File": "configs/levels/bee1.json", "Description": "The bee" },
+        { "Name": "bee2", "File": "configs/levels/bee2.json", "Description": "The search" },
+        { "Name": "cat", "File": "configs/levels/cat.json", "Description": "The cat" },
+        { "Name": "bunny", "File": "configs/levels/bunny.json", "Description": "The bunny" },
+        { "Name": "frog", "File": "configs/levels/frog.json", "Description": "The frog" },
+        { "Name": "gopher", "File": "configs/levels/gopher.json", "Description": "The gopher" },
+        { "Name": "mouse", "File": "configs/levels/mouse.json", "Description": "The mouse" }
     ]
 }

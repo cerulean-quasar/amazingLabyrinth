@@ -26,7 +26,7 @@
 #include <json.hpp>
 
 #include "../levels/basic/level.hpp"
-#include "../finisher/types.hpp"
+#include "../levels/finisher/types.hpp"
 #include "levelTracker.hpp"
 
 void to_json(nlohmann::json &j, Point<uint32_t> const &val);
@@ -58,17 +58,80 @@ namespace levelTracker {
 
     FinisherMapTable &finisherTable();
 
-    template<typename TableEntry, typename Table, Table (*table)()>
+    template<typename Table, Table &(*table)(), typename LevelConfigDataType, typename LevelSaveDataType, typename LevelType>
     class Register {
     public:
-        Register(TableEntry entry) {
-            table().insert(entry);
+        Register() {
+            throw std::runtime_error("Unknown table type for registering level");
         }
     };
 
-    using RegisterStarter = Register<LevelMapEntry, LevelMapTable, starterTable>;
-    using RegisterLevel = Register<LevelMapEntry, LevelMapTable, levelTable>;
-    using RegisterFinisher = Register<FinisherMapEntry, FinisherMapTable, finisherTable>;
+    template<typename LevelConfigDataType, typename LevelSaveDataType, typename LevelType>
+    class Register<LevelMapTable, levelTable, LevelConfigDataType, LevelSaveDataType, LevelType> {
+    public:
+        Register() {
+            levelTable().insert(std::make_pair(LevelType::m_name,
+                 GenerateLevelGeneratorFcn(
+                     [](nlohmann::json const &lcdjson, nlohmann::json const *sdjson, float z) -> levelTracker::GenerateLevelFcn
+                     {
+                         auto lcd = std::make_shared<LevelConfigDataType>(std::move(lcdjson.get<LevelConfigDataType>()));
+                         std::shared_ptr<LevelSaveDataType> sd;
+                         if (sdjson) {
+                             sd = std::make_shared<LevelSaveDataType>(sdjson->get<LevelSaveDataType>());
+                         }
+                         return GenerateLevelFcn(
+                             [lcd{std::move(lcd)}, sd{std::move(sd)}, z](std::shared_ptr<GameRequester> gameRequester,
+                                                                         glm::mat4 const &proj, glm::mat4 const &view) -> std::shared_ptr<basic::Level>
+                             {
+                                 return std::make_shared<LevelType>(
+                                       std::move(gameRequester), lcd, sd, proj, view, z);
+                             });
+                     }))
+            );
+        }
+    };
+
+    template<typename LevelConfigDataType, typename LevelSaveDataType, typename LevelType>
+    class Register<LevelMapTable, starterTable, LevelConfigDataType, LevelSaveDataType, LevelType> {
+    public:
+        Register() {
+            starterTable().insert(std::make_pair(LevelType::m_name,
+            GenerateLevelGeneratorFcn(
+            [](nlohmann::json const &lcdjson, nlohmann::json const *, float z) -> levelTracker::GenerateLevelFcn
+            {
+                auto lcd = std::make_shared<LevelConfigDataType>(std::move(lcdjson.get<LevelConfigDataType>()));
+                return GenerateLevelFcn(
+                    [lcd{std::move(lcd)}, sd(std::shared_ptr<LevelSaveDataType>()), z](std::shared_ptr<GameRequester> gameRequester,
+                            glm::mat4 const &proj, glm::mat4 const &view) -> std::shared_ptr<basic::Level>
+                    {
+                        return std::make_shared<LevelType>(
+                                std::move(gameRequester), lcd, sd, proj, view, z);
+                    });
+            }))
+            );
+        }
+    };
+
+    template<typename LevelConfigDataType, typename LevelType>
+    class Register<FinisherMapTable, finisherTable, LevelConfigDataType, void, LevelType> {
+    public:
+        Register() {
+            finisherTable().insert(std::make_pair(LevelType::m_name,
+                 GenerateFinisherGeneratorFcn(
+                     [](nlohmann::json const &lcdjson, float z) -> levelTracker::GenerateFinisherFcn
+                     {
+                         auto lcd = std::make_shared<LevelConfigDataType>(std::move(lcdjson.get<LevelConfigDataType>()));
+                         return levelTracker::GenerateFinisherFcn(
+                             [lcd{std::move(lcd)}, z](std::shared_ptr<GameRequester> gameRequester,
+                                 glm::mat4 const &proj, glm::mat4 const &view, float centerX, float centerY) -> std::shared_ptr<finisher::LevelFinisher>
+                             {
+                                 return std::make_shared<LevelType>(
+                                         std::move(gameRequester), lcd, proj, view, centerX, centerY, z);
+                             });
+                     }))
+            );
+        }
+    };
 
     void to_json(nlohmann::json &j, GameSaveData const &gsd);
     void from_json(nlohmann::json const &j, GameSaveData &gsd);
