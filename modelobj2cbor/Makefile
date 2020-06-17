@@ -11,13 +11,20 @@ OBJS = model2cbor.o modelLoader.o
 IMAGE_DIR=../imagesrc
 IMAGERESULTS_DIR=../app/src/main/assets/textures
 IMAGEFILES=$(shell find $(IMAGE_DIR) -type f -name "*.xcf")
+
 MODEL_DIR=../modelsrc
 MODELRESULTS_DIR=../app/src/main/assets/models
 MODELFILES=$(shell find $(MODEL_DIR) -type f -name "*.obj")
+
+CONFIG_DIR=../configsrc/levels
+CONFIGRESULTS_DIR=../app/src/main/assets/configs/levels
+CONFIGFILES=$(shell find $(CONFIG_DIR) -type f -name "*.json")
+
 MODELRESULTFILES=$(foreach file,$(MODELFILES),$(subst $(MODEL_DIR),$(MODELRESULTS_DIR),$(addsuffix .modelcbor,$(basename $(file)))))
 IMAGERESULTFILES=$(foreach file,$(IMAGEFILES),$(subst $(IMAGE_DIR),$(IMAGERESULTS_DIR),$(addsuffix .png,$(basename $(file)))))
+CONFIGRESULTFILES=$(foreach file,$(CONFIGFILES),$(subst $(CONFIG_DIR),$(CONFIGRESULTS_DIR),$(addsuffix .cbor,$(basename $(file)))))
 
-all: model2cbor cbor2json $(MODELRESULTFILES) $(IMAGERESULTFILES)
+all: model2cbor cbor2json json2cbor $(MODELRESULTFILES) $(IMAGERESULTFILES) $(CONFIGRESULTFILES) $(CONFIGRESULTS_DIR)/../levels.json
 
 modelLoader.o : $(AMAZING_LABYRINTH)/modelLoader.cpp
 	g++ $(CPPFLAGS) $(DBGFLAGS) -c -o $@ $<
@@ -31,15 +38,27 @@ model2cbor: $(OBJS)
 cbor2json: cbor2json.cpp
 	g++ $(CPPFLAGS) -o cbor2json $^
 
-$(MODELRESULTS_DIR)/%.modelcbor: $(MODEL_DIR)/%.obj model2cbor
-	mkdir -p $(dir $@)
-	./model2cbor -d $(dir $@) $<
+json2cbor: json2cbor.cpp
+	g++ $(CPPFLAGS) -o json2cbor $^
 
 $(IMAGERESULTS_DIR)/%.png: $(IMAGE_DIR)/%.xcf
 	mkdir -p $(dir $@)
 	xcf2png $< -o - | pngquant --verbose --force -o $@ -
 
+$(MODELRESULTS_DIR)/%.modelcbor: $(MODEL_DIR)/%.obj model2cbor
+	mkdir -p $(dir $@)
+	./model2cbor -d $(dir $@) $<
+
+$(CONFIGRESULTS_DIR)/%.cbor: $(CONFIG_DIR)/%.json json2cbor
+	mkdir -p $(dir $@)
+	./json2cbor $< $@
+
+$(CONFIGRESULTS_DIR)/../levels.json: $(CONFIG_DIR)/../levels.json
+	mkdir -p $(dir $@)
+	cp $< $@
+
 clean:
 	rm -f model2cbor
 	rm -f cbor2json
+	rm -f json2cbor
 	rm -f *.o

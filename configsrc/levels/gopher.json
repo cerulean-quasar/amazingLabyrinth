@@ -95,6 +95,7 @@
             { "Row": 7, "Col": 1 },
             { "Row": 7, "Col": 2 },
             { "Row": 7, "Col": 3 }
+        ]
     },
     "Finisher": {
         "Textures": [ "textures/bunny/hole.png" ]

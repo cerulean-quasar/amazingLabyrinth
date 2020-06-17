@@ -10,4 +10,5 @@
 /modelobj2cbor/*.o
 /modelobj2cbor/model2cbor
 /modelobj2cbor/cbor2json
+/modelobj2cbor/json2cbor
 .externalNativeBuild

@@ -144,6 +144,7 @@ namespace levelTracker {
 
         if (!saveDataStream.fail()) {
             saveDataStream.write(reinterpret_cast<char const *>(vec.data()), vec.size());
+            saveDataStream.close();
         }
     }
 
