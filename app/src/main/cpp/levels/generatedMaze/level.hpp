@@ -171,6 +171,12 @@ namespace generatedMaze {
                                   glm::mat4_cast(m_ball.totalRotated) * scaleBall;
             } else {
                 generateModelMatrices(wallModelMatrixGeneratorFcn);
+                if (m_wallTextureIndices.empty()) {
+                    m_wallTextureIndices.reserve(modelMatricesMaze.size());
+                    for (size_t i = 0; i < modelMatricesMaze.size(); i++) {
+                        m_wallTextureIndices.push_back(random.getUInt(0, wallTextures.size() - 1));
+                    }
+                }
             }
         }
 

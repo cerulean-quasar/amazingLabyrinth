@@ -1,7 +1,7 @@
 {
     "Components": {
         "Starter": "starter",
-        "Level": "movablePassage",
+        "Level": "rotatablePassage",
         "Finisher": "manyQuadsCoverUp"
     },
     "Starter": {

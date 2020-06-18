@@ -72,7 +72,7 @@ namespace movingSafeAreas {
         from_json(j, boost::implicit_cast<basic::LevelConfigData &>(val));
         val.startQuadTexture = j[StartQuadTexture].get<std::string>();
         val.endQuadTexture = j[EndQuadTexture].get<std::string>();
-        val.middleQuadTextures = j[QuadRows].get<std::vector<std::string>>();
+        val.middleQuadTextures = j[MiddleQuadTextures].get<std::vector<std::string>>();
     }
 
     std::vector<uint8_t> Level::saveData(levelTracker::GameSaveData const &gsd,

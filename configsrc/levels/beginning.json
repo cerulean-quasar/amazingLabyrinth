@@ -24,6 +24,6 @@
         "HoleTexture": "textures/beginning/holeAnomaly.png"
     },
     "Finisher": {
-        "Textures": [ "textures/beginning/starField.png" ]
+        "Texture": "textures/beginning/starField.png"
     }
 }
