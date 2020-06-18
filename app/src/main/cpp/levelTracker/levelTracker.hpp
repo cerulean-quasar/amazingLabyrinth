@@ -120,7 +120,9 @@ namespace levelTracker {
 
         std::vector<uint8_t> getDataFromFile(std::string const &filename) {
             std::ifstream stream(filename, std::ifstream::binary);
-            return getDataFromFile(stream);
+            auto data = getDataFromFile(stream);
+            stream.close();
+            return data;
         }
 
         std::vector<uint8_t> getDataFromFile(std::unique_ptr<std::streambuf> const &sb) {

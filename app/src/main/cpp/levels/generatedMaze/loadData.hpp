@@ -22,6 +22,7 @@
 #define AMAZING_LABYRINTH_GENERATED_MAZE_LOAD_DATA_HPP
 
 #include <vector>
+#include <boost/implicit_cast.hpp>
 
 #include "../basic/loadData.hpp"
 
@@ -36,16 +37,11 @@ namespace generatedMaze {
         std::vector<uint32_t> wallTextures;
         std::vector<uint8_t> mazeWallsVector;
 
-        LevelSaveData(LevelSaveData &&other) noexcept
-                : basic::LevelSaveData{std::move(other)},
-                  ballRow{other.ballRow},
-                  ballCol{other.ballCol},
-                  ballPos{other.ballPos},
-                  rowEnd{other.rowEnd},
-                  colEnd{other.colEnd},
-                  wallTextures{std::move(other.wallTextures)},
-                  mazeWallsVector{std::move(other.mazeWallsVector)} {
-        }
+        LevelSaveData(LevelSaveData &&other) noexcept = default;
+
+        LevelSaveData(LevelSaveData const &other) noexcept = default;
+
+        LevelSaveData &operator=(LevelSaveData const &other) noexcept = default;
 
         LevelSaveData()
                 : basic::LevelSaveData{levelSaveDataVersion},
@@ -84,15 +80,6 @@ namespace generatedMaze {
         uint32_t numberRows;
         bool dfsSearch;
 
-        LevelConfigData(LevelConfigData &&other) noexcept
-            : basic::LevelConfigData{std::move(other)},
-              wallTextureNames{std::move(other.wallTextureNames)},
-              mazeFloorTexture{std::move(other.mazeFloorTexture)},
-              holeTexture{std::move(other.holeTexture)},
-              numberRows{other.numberRows},
-              dfsSearch{other.dfsSearch}
-        {}
-
         LevelConfigData()
                 : basic::LevelConfigData{},
                   wallTextureNames{},
@@ -101,6 +88,12 @@ namespace generatedMaze {
                   numberRows{0},
                   dfsSearch{false}
         {}
+
+        LevelConfigData(LevelConfigData const &other) noexcept = default;
+
+        LevelConfigData(LevelConfigData &&other) noexcept = default;
+
+        LevelConfigData &operator=(LevelConfigData const &other) noexcept = default;
     };
 }
 #endif // AMAZING_LABYRINTH_GENERATED_MAZE_LOAD_DATA_HPP

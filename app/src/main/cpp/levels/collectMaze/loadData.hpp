@@ -31,13 +31,11 @@ namespace collectMaze {
         std::vector<bool> itemsCollected;
         std::vector <Point<uint32_t>> previousCells;
 
-        // Intentionally slices other to pass part into the MazeSaveData constructor.
-        LevelSaveData(LevelSaveData &&other) noexcept
-                : generatedMaze::LevelSaveData(std::move(other)),
-                  collectionObjLocations{std::move(other.collectionObjLocations)},
-                  itemsCollected{std::move(other.itemsCollected)},
-                  previousCells{std::move(other.previousCells)} {
-        }
+        LevelSaveData(LevelSaveData &&other) noexcept = default;
+
+        LevelSaveData(LevelSaveData const &other) noexcept = default;
+
+        LevelSaveData &operator=(LevelSaveData const &other) noexcept = default;
 
         LevelSaveData()
                 : generatedMaze::LevelSaveData{},
@@ -77,12 +75,11 @@ namespace collectMaze {
               numberCollectObjects{0}
         {}
 
-        LevelConfigData(LevelConfigData &&other) noexcept
-            : generatedMaze::LevelConfigData{std::move(other)},
-              collectModel{std::move(other.collectModel)},
-              collectTexture{std::move(other.collectTexture)},
-              numberCollectObjects{other.numberCollectObjects}
-        {}
+        LevelConfigData(LevelConfigData const &other) noexcept = default;
+
+        LevelConfigData(LevelConfigData &&other) noexcept = default;
+
+        LevelConfigData &operator=(LevelConfigData const &other) noexcept = default;
     };
 } // namespace collectMaze
 #endif // AMAZING_LABYRINTH_MAZE_COLLECT_LOAD_DATA_HPP

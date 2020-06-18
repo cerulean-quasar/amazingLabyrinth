@@ -22,6 +22,7 @@
 #define AMAZING_LABYRINTH_AVOID_VORTEX_MAZE_LOAD_DATA_HPP
 
 #include <vector>
+#include <boost/implicit_cast.hpp>
 #include "../generatedMaze/loadData.hpp"
 
 namespace avoidVortexMaze {
@@ -31,10 +32,7 @@ namespace avoidVortexMaze {
         Point<uint32_t> startRowCol;
 
         // Intentionally slices other to pass part into the MazeSaveData constructor.
-        LevelSaveData(LevelSaveData &&other) noexcept
-                : generatedMaze::LevelSaveData(std::move(other)),
-                  avoidObjLocations{std::move(other.avoidObjLocations)} {
-        }
+        LevelSaveData(LevelSaveData &&other) noexcept = default;
 
         LevelSaveData()
                 : generatedMaze::LevelSaveData{},
@@ -59,6 +57,8 @@ namespace avoidVortexMaze {
                   avoidObjLocations{std::move(avoidObjLocations_)},
                   startRowCol{std::move(startRowCol_)}
         {}
+
+        LevelSaveData &operator=(LevelSaveData const &other) = default;
     };
 
     struct LevelConfigData : public generatedMaze::LevelConfigData {
@@ -71,11 +71,11 @@ namespace avoidVortexMaze {
               numberAvoidObjects()
         {}
 
-        LevelConfigData(LevelConfigData &&other) noexcept
-            : generatedMaze::LevelConfigData{std::move(other)},
-            avoidTexture{std::move(other.avoidTexture)},
-            numberAvoidObjects{other.numberAvoidObjects}
-        {}
+        LevelConfigData(LevelConfigData const &other) noexcept = default;
+
+        LevelConfigData(LevelConfigData &&other) noexcept = default;
+
+        LevelConfigData &operator=(LevelConfigData const &other) noexcept = default;
     };
 } // namespace avoidVortexMaze
 

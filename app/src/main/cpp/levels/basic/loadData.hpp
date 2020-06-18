@@ -41,13 +41,11 @@ namespace basic {
         {
         }
 
-        LevelConfigData(LevelConfigData &&other) noexcept
-                : ballTexture{std::move(other.ballTexture)},
-                  ballModel{std::move(other.ballTexture)},
-                  bounceEnabled{other.bounceEnabled},
-                  ballSizeDiagonalRatio{other.ballSizeDiagonalRatio}
-        {
-        }
+        LevelConfigData(LevelConfigData const &other) noexcept = default;
+
+        LevelConfigData(LevelConfigData &&other) noexcept = default;
+
+        LevelConfigData &operator=(LevelConfigData const &other) noexcept = default;
 
     };
 } // namespace basic

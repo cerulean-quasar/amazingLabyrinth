@@ -26,28 +26,12 @@
 namespace manyQuadsCoverUp {
     struct LevelConfigData {
         std::vector<std::string> textures;
-
-        LevelConfigData()
-            : textures{}
-        {}
-
-        LevelConfigData(LevelConfigData &&other) noexcept
-                : textures{std::move(other.textures)}
-        {}
     };
 } // namespace manyQuadsCoverUp
 
 namespace growingQuad {
     struct LevelConfigData {
         std::string texture;
-
-        LevelConfigData()
-                : texture{}
-        {}
-
-        LevelConfigData(LevelConfigData &&other) noexcept
-                : texture{std::move(other.texture)}
-        {}
     };
 } // namespace growingQuad
 #endif // AMAZING_LABYRINTH_MAZE_FINISHER_LOAD_DATA_HPP

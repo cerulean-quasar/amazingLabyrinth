@@ -74,13 +74,15 @@ namespace levelTracker {
                  GenerateLevelGeneratorFcn(
                      [](nlohmann::json const &lcdjson, nlohmann::json const *sdjson, float z) -> levelTracker::GenerateLevelFcn
                      {
-                         auto lcd = std::make_shared<LevelConfigDataType>(std::move(lcdjson.get<LevelConfigDataType>()));
+                         auto lcd = std::make_shared<LevelConfigDataType>();
+                         *lcd = lcdjson.get<LevelConfigDataType>();
                          std::shared_ptr<LevelSaveDataType> sd;
                          if (sdjson) {
-                             sd = std::make_shared<LevelSaveDataType>(sdjson->get<LevelSaveDataType>());
+                             sd = std::make_shared<LevelSaveDataType>();
+                             *sd = sdjson->get<LevelSaveDataType>();
                          }
                          return GenerateLevelFcn(
-                             [lcd{std::move(lcd)}, sd{std::move(sd)}, z](std::shared_ptr<GameRequester> gameRequester,
+                             [lcd, sd, z](std::shared_ptr<GameRequester> gameRequester,
                                                                          glm::mat4 const &proj, glm::mat4 const &view) -> std::shared_ptr<basic::Level>
                              {
                                  return std::make_shared<LevelType>(
@@ -99,9 +101,10 @@ namespace levelTracker {
             GenerateLevelGeneratorFcn(
             [](nlohmann::json const &lcdjson, nlohmann::json const *, float z) -> levelTracker::GenerateLevelFcn
             {
-                auto lcd = std::make_shared<LevelConfigDataType>(std::move(lcdjson.get<LevelConfigDataType>()));
+                auto lcd = std::make_shared<LevelConfigDataType>();
+                *lcd = lcdjson.get<LevelConfigDataType>();
                 return GenerateLevelFcn(
-                    [lcd{std::move(lcd)}, sd(std::shared_ptr<LevelSaveDataType>()), z](std::shared_ptr<GameRequester> gameRequester,
+                    [lcd, sd(std::shared_ptr<LevelSaveDataType>()), z](std::shared_ptr<GameRequester> gameRequester,
                             glm::mat4 const &proj, glm::mat4 const &view) -> std::shared_ptr<basic::Level>
                     {
                         return std::make_shared<LevelType>(
@@ -120,7 +123,7 @@ namespace levelTracker {
                  GenerateFinisherGeneratorFcn(
                      [](nlohmann::json const &lcdjson, float z) -> levelTracker::GenerateFinisherFcn
                      {
-                         auto lcd = std::make_shared<LevelConfigDataType>(std::move(lcdjson.get<LevelConfigDataType>()));
+                         auto lcd = std::make_shared<LevelConfigDataType>(lcdjson.get<LevelConfigDataType>());
                          return levelTracker::GenerateFinisherFcn(
                              [lcd{std::move(lcd)}, z](std::shared_ptr<GameRequester> gameRequester,
                                  glm::mat4 const &proj, glm::mat4 const &view, float centerX, float centerY) -> std::shared_ptr<finisher::LevelFinisher>

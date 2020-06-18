@@ -26,7 +26,7 @@
 #include "loadData.hpp"
 
 namespace starter{
-    char constexpr const *StartUpMessages = "StartUpMessages";
+    char constexpr const *StartUpMessages = "StartupMessages";
     void to_json(nlohmann::json &j, LevelConfigData const &val) {
         to_json(j, boost::implicit_cast<basic::LevelConfigData const &>(val));
         j[StartUpMessages] = val.startupMessages;

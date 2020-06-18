@@ -29,11 +29,11 @@ namespace openArea {
         Point<float> ball;
         Point<float> hole;
 
-        LevelSaveData(LevelSaveData &&other) noexcept
-                : basic::LevelSaveData{levelSaveDataVersion},
-                  ball{other.ball},
-                  hole{other.hole} {
-        }
+        LevelSaveData(LevelSaveData &&other) noexcept = default;
+
+        LevelSaveData(LevelSaveData const &other) noexcept = default;
+
+        LevelSaveData &operator=(LevelSaveData const &other) noexcept = default;
 
         LevelSaveData()
                 : basic::LevelSaveData{levelSaveDataVersion},
@@ -56,10 +56,11 @@ namespace openArea {
               holeTexture{}
         {}
 
-        LevelConfigData(LevelConfigData &&other)
-            : basic::LevelConfigData{std::move(other)},
-              holeTexture{std::move(other.holeTexture)}
-        {}
+        LevelConfigData(LevelConfigData const &other) noexcept = default;
+
+        LevelConfigData(LevelConfigData &&other) noexcept = default;
+
+        LevelConfigData &operator=(LevelConfigData const &other) noexcept = default;
     };
 } // namespace openArea
 

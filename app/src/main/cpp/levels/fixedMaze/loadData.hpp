@@ -26,7 +26,15 @@
 namespace fixedMaze {
     static int constexpr LevelSaveDataVersion = 1;
     struct LevelSaveData : public basic::LevelSaveData {
-        LevelSaveData() : basic::LevelSaveData{LevelSaveDataVersion} {}
+        LevelSaveData()
+            : basic::LevelSaveData{LevelSaveDataVersion}
+        {}
+
+        LevelSaveData(LevelSaveData &&other) noexcept = default;
+
+        LevelSaveData(LevelSaveData const &other) noexcept = default;
+
+        LevelSaveData &operator=(LevelSaveData const &other) noexcept = default;
     };
 
     struct LevelConfigData : public basic::LevelConfigData {
@@ -44,14 +52,11 @@ namespace fixedMaze {
         {
         }
 
-        LevelConfigData(LevelConfigData &&other) noexcept
-                : basic::LevelConfigData(std::forward<LevelConfigData>(other)),
-                  mazeFloorModel{std::move(other.mazeFloorModel)},
-                  mazeFloorTexture{std::move(other.mazeFloorTexture)},
-                  extraBounce{other.extraBounce},
-                  minSpeedOnBounce{other.minSpeedOnBounce}
-        {
-        }
+        LevelConfigData(LevelConfigData const &other) noexcept = default;
+
+        LevelConfigData(LevelConfigData &&other) noexcept = default;
+
+        LevelConfigData &operator=(LevelConfigData const &other) noexcept = default;
     };
 } // namespace fixedMaze
 

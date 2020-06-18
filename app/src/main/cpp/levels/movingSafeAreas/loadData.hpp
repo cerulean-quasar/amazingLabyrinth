@@ -54,17 +54,24 @@ namespace movingSafeAreas {
           speed{ speed_ },
           scale{ scale_ }
         {}
+
+        QuadRowSaveData(QuadRowSaveData &&other) noexcept = default;
+
+        QuadRowSaveData(QuadRowSaveData const &other) noexcept = default;
+
+        QuadRowSaveData &operator=(QuadRowSaveData const &other) noexcept = default;
+
     };
 
     struct LevelSaveData : public basic::LevelSaveData {
         Point<float> ball;
         std::vector<QuadRowSaveData> quadRows;
 
-        LevelSaveData(LevelSaveData &&other) noexcept
-                : basic::LevelSaveData{levelSaveDataVersion},
-                  ball{other.ball},
-                  quadRows{std::move(other.quadRows)} {
-        }
+        LevelSaveData(LevelSaveData &&other) noexcept = default;
+
+        LevelSaveData(LevelSaveData const &other) noexcept = default;
+
+        LevelSaveData &operator=(LevelSaveData const &other) noexcept = default;
 
         LevelSaveData()
                 : basic::LevelSaveData{levelSaveDataVersion},
@@ -86,19 +93,18 @@ namespace movingSafeAreas {
         std::string endQuadTexture;
         std::vector<std::string> middleQuadTextures;
 
-        LevelConfigData(LevelConfigData &&other) noexcept
-            : basic::LevelConfigData{std::move(other)},
-              startQuadTexture{std::move(other.startQuadTexture)},
-              endQuadTexture{std::move(other.endQuadTexture)},
-              middleQuadTextures{std::move(other.middleQuadTextures)}
-        {}
-
         LevelConfigData()
                 : basic::LevelConfigData{},
                   startQuadTexture{},
                   endQuadTexture{},
                   middleQuadTextures{}
         {}
+
+        LevelConfigData(LevelConfigData const &other) noexcept = default;
+
+        LevelConfigData(LevelConfigData &&other) noexcept = default;
+
+        LevelConfigData &operator=(LevelConfigData const &other) noexcept = default;
     };
 } // namespace movingSafeAreas
 

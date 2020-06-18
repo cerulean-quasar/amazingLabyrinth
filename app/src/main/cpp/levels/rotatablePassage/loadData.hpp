@@ -33,22 +33,6 @@ namespace rotatablePassage {
         std::string model;
         std::string texture;
         std::string lockedInPlaceTexture;
-
-        ComponentConfig() = default;
-
-        ComponentConfig(ComponentConfig &&other)
-            : model{std::move(other.model)},
-              texture{std::move(other.texture)},
-              lockedInPlaceTexture{std::move(other.lockedInPlaceTexture)}
-        {}
-
-        ComponentConfig &operator=(ComponentConfig &&other) {
-            model = std::move(other.model);
-            texture = std::move(other.texture);
-            lockedInPlaceTexture = std::move(other.texture);
-
-            return *this;
-        }
     };
 
     struct LevelConfigData : public basic::LevelConfigData {
@@ -69,19 +53,11 @@ namespace rotatablePassage {
             dfsSearch{false}
         {}
 
-        LevelConfigData(LevelConfigData &&other) noexcept
-            : basic::LevelConfigData{std::move(other)},
-              holeModel{std::move(other.holeModel)},
-              holeTexture{std::move(other.holeTexture)},
-              numberRows{other.numberRows},
-              dfsSearch{other.dfsSearch},
-              borderTextures{std::move(other.borderTextures)},
-              straight{std::move(other.straight)},
-              turn{std::move(other.turn)},
-              crossJunction{std::move(other.crossJunction)},
-              tJunction{std::move(other.tJunction)},
-              deadEnd{std::move(other.deadEnd)}
-        {}
+        LevelConfigData(LevelConfigData const &other) noexcept = default;
+
+        LevelConfigData(LevelConfigData &&other) noexcept = default;
+
+        LevelConfigData &operator=(LevelConfigData const &other) noexcept = default;
     };
 } // name rotatablePassage
 #endif // AMAZING_LABYRINTH_ROTATABLE_PASSAGE_LOAD_DATA_HPP

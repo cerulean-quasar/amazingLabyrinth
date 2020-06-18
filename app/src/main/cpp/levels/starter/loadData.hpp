@@ -22,6 +22,7 @@
 
 #include <string>
 #include <vector>
+#include <boost/implicit_cast.hpp>
 
 #include "../basic/loadData.hpp"
 
@@ -29,9 +30,12 @@ namespace starter {
     int constexpr levelSaveDataVersion = 1;
 
     struct LevelSaveData : public basic::LevelSaveData {
-        LevelSaveData(LevelSaveData &&other) noexcept
-                : basic::LevelSaveData{std::forward<LevelSaveData>(other)}
-        {}
+
+        LevelSaveData(LevelSaveData &&other) noexcept = default;
+
+        LevelSaveData(LevelSaveData const &other) noexcept = default;
+
+        LevelSaveData &operator=(LevelSaveData const &other) noexcept = default;
 
         LevelSaveData()
                 : basic::LevelSaveData{levelSaveDataVersion}
@@ -46,10 +50,11 @@ namespace starter {
                   startupMessages{}
         {}
 
-        LevelConfigData(LevelConfigData &&other)
-                : basic::LevelConfigData{std::forward<LevelConfigData>(other)},
-                  startupMessages{std::move(other.startupMessages)}
-        {}
+        LevelConfigData(LevelConfigData const &other) noexcept = default;
+
+        LevelConfigData(LevelConfigData &&other) noexcept = default;
+
+        LevelConfigData &operator=(LevelConfigData const &other) noexcept = default;
     };
 } // namespace starter
 

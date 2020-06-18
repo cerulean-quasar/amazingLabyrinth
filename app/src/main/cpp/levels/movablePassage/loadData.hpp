@@ -28,6 +28,12 @@ namespace movablePassage {
         static int constexpr m_movablePassageVersion = 1;
 
         LevelSaveData() : basic::LevelSaveData{m_movablePassageVersion} {}
+
+        LevelSaveData(LevelSaveData &&other) noexcept = default;
+
+        LevelSaveData(LevelSaveData const &other) noexcept = default;
+
+        LevelSaveData &operator=(LevelSaveData const &other) noexcept = default;
     };
 
     struct ComponentConfig {
@@ -41,19 +47,13 @@ namespace movablePassage {
               numberPlacements{0}
         {}
 
-        ComponentConfig(ComponentConfig &&other) noexcept
-            : model{std::move(other.model)},
-              texture{std::move(other.texture)},
-              numberPlacements{other.numberPlacements}
-        {}
+        ComponentConfig(ComponentConfig const &other) noexcept = default;
 
-        ComponentConfig &operator=(ComponentConfig &&other) noexcept
-        {
-            model = std::move(other.model);
-            texture = std::move(other.texture);
-            numberPlacements = other.numberPlacements;
-            return *this;
-        }
+        ComponentConfig(ComponentConfig &&other) noexcept = default;
+
+        ComponentConfig &operator=(ComponentConfig &&other) noexcept = default;
+
+        ComponentConfig &operator=(ComponentConfig const &other) noexcept = default;
     };
 
     struct RockPlacement {
@@ -61,19 +61,16 @@ namespace movablePassage {
         uint32_t col;
 
         RockPlacement()
-            : row{}, col{}
+            : row{0}, col{0}
         {}
 
-        RockPlacement(RockPlacement &&other) noexcept
-            : row{other.row}, col{other.col}
-        {}
+        RockPlacement(RockPlacement const &other) noexcept = default;
 
-        RockPlacement &operator=(RockPlacement &&other) noexcept {
-            row = other.row;
-            col = other.col;
+        RockPlacement(RockPlacement &&other) noexcept = default;
 
-            return *this;
-        }
+        RockPlacement &operator=(RockPlacement &&other) noexcept = default;
+
+        RockPlacement &operator=(RockPlacement const &other) noexcept = default;
     };
 
     struct LevelConfigData : public basic::LevelConfigData {
@@ -100,28 +97,19 @@ namespace movablePassage {
         ComponentConfig tjunction;
         std::vector<RockPlacement> rockPlacements;
 
-        LevelConfigData() {}
-
-        LevelConfigData(LevelConfigData &&other) noexcept
-            : endTexture{std::move(other.endTexture)},
-              endOffBoardTexture{std::move(other.endOffBoardTexture)},
-              placementLockedInPlaceTexture{std::move(other.placementLockedInPlaceTexture)},
-              rockModels{std::move(other.rockModels)},
-              rockTextures{std::move(other.rockTextures)},
-              dirtModels{std::move(other.dirtModels)},
-              dirtTextures{std::move(other.dirtTextures)},
-              beginningSideModels{std::move(other.beginningSideModels)},
-              beginningSideTextures{std::move(other.beginningSideTextures)},
-              beginningOpenModels{std::move(other.beginningOpenModels)},
-              beginningOpenTextures{std::move(other.beginningOpenTextures)},
-              beginningCornerModels{std::move(other.beginningCornerModels)},
-              beginningCornerTextures{std::move(other.beginningCornerTextures)},
-              straight{std::move(other.straight)},
-              turn{std::move(other.turn)},
-              crossjunction{std::move(other.crossjunction)},
-              tjunction{std::move(other.tjunction)},
-              rockPlacements{std::move(other.rockPlacements)}
+        LevelConfigData()
+            : basic::LevelConfigData{},
+              numberTilesX{0},
+              numberTilesY{0},
+              startColumn{0},
+              endColumn{0}
         {}
+
+        LevelConfigData(LevelConfigData const &other) noexcept = default;
+
+        LevelConfigData(LevelConfigData &&other) noexcept = default;
+
+        LevelConfigData &operator=(LevelConfigData const &other) noexcept = default;
     };
 } // namespace movablePassage
 

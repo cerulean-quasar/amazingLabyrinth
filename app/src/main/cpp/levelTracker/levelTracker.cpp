@@ -187,7 +187,7 @@ namespace levelTracker {
                 }
             }
         }
-        nlohmann::json j = nlohmann::json::from_cbor(getDataFromFile(m_levelTable[m_currentLevel.get()].fileName));
+        nlohmann::json j = nlohmann::json::from_cbor(getDataFromFile(m_gameRequester->getAssetStream(m_levelTable[m_currentLevel.get()].fileName)));
         Components components = j[DataVariables::Components].get<Components>();
 
         LevelGroup group;
@@ -220,7 +220,10 @@ namespace levelTracker {
         : m_gameRequester{std::move(inGameRequester)},
           m_currentLevel{boost::none}
     {
-        nlohmann::json j = nlohmann::json::from_cbor(getDataFromFile(m_gameRequester->getLevelTableAssetStream()));
+        auto streambuf = m_gameRequester->getLevelTableAssetStream();
+        std::istream stream(streambuf.get());
+        nlohmann::json j;
+        stream >> j;
         m_levelTable = std::move(j[DataVariables::Levels].get<std::vector<LevelTableEntry>>());
     }
 }

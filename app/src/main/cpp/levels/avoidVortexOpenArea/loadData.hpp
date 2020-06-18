@@ -37,13 +37,11 @@ namespace avoidVortexOpenArea {
         Point<float> startPos;
         std::vector<Point<float>> vortexes;
 
-        LevelSaveData(LevelSaveData &&other) noexcept
-                : basic::LevelSaveData{saveDataVersion},
-                  ball{other.ball},
-                  hole{other.hole},
-                  startPos{other.startPos},
-                  vortexes{std::move(other.vortexes)} {
-        }
+        LevelSaveData(LevelSaveData &&other) noexcept = default;
+
+        LevelSaveData(LevelSaveData &other) noexcept = default;
+
+        LevelSaveData &operator=(LevelSaveData const &other) noexcept = default;
 
         LevelSaveData()
                 : basic::LevelSaveData{saveDataVersion},
@@ -79,13 +77,11 @@ namespace avoidVortexOpenArea {
         {
         }
 
-        LevelConfigData(LevelConfigData &&other) noexcept
-                : basic::LevelConfigData{std::forward<LevelConfigData>(other)},
-                  holeTexture{std::move(other.holeTexture)},
-                  vortexTexture{std::move(other.vortexTexture)},
-                  startVortexTexture{std::move(other.startVortexTexture)}
-        {
-        }
+        LevelConfigData(LevelConfigData const &other) noexcept = default;
+
+        LevelConfigData(LevelConfigData &&other) noexcept = default;
+
+        LevelConfigData &operator=(LevelConfigData const &other) noexcept = default;
     };
 } // namespace avoidVortexOpenArea
 
