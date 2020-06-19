@@ -78,7 +78,7 @@ namespace movablePassage {
         Level(
             std::shared_ptr<GameRequester> inGameRequester,
             std::shared_ptr<LevelConfigData> const &lcd,
-            std::shared_ptr<LevelSaveData> const &/*sd*/,
+            std::shared_ptr<LevelSaveData> const &sd,
             glm::mat4 const &proj,
             glm::mat4 const &view,
             float maxZ)
@@ -138,6 +138,8 @@ namespace movablePassage {
                                lcd->crossjunction.model, lcd->crossjunction.texture);
 
             initSetGameBoard(lcd->numberTilesX, lcd->numberTilesY, lcd->startColumn, lcd->endColumn);
+
+            initAddPlayableComponents(sd);
 
             initDone();
 

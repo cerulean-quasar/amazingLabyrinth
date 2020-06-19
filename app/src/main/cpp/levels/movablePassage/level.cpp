@@ -195,40 +195,50 @@ namespace movablePassage {
         if (sd) {
             // place the passage components on the segments that they where on before.
             auto restorePlacements = [](
+                    GameBoard &gameBoard,
                     std::shared_ptr<Component> const &component,
                     std::vector<PlacementSaveData> const &vec) -> void
             {
-                size_t componentNbr = 0;
+                size_t placementNbr = 0;
                 for (auto placementIt = component->placementsBegin();
                      placementIt != component->placementsEnd();
-                     placementIt++, componentNbr++)
+                     placementIt++, placementNbr++)
                 {
-                    for (uint32_t i = 0; i < vec[componentNbr].nbr90DegreeRotations; i++) {
+                    for (uint32_t i = 0; i < vec[placementNbr].nbr90DegreeRotations; i++) {
                         placementIt->rotate();
                     }
 
-                    placementIt->setRC(vec[componentNbr].rowCol.x, vec[componentNbr].rowCol.y);
+                    placementIt->setRC(vec[placementNbr].rowCol.x, vec[placementNbr].rowCol.y);
+                    auto &b = gameBoard.block(vec[placementNbr].rowCol.x, vec[placementNbr].rowCol.y);
+                    b.setComponent(component, placementNbr);
                 }
             };
 
-            restorePlacements(m_components[Component::ComponentType::straight], sd->straightPositions);
-            restorePlacements(m_components[Component::ComponentType::tjunction], sd->tjunctionPositions);
-            restorePlacements(m_components[Component::ComponentType::crossjunction], sd->crossjunctionPositions);
-            restorePlacements(m_components[Component::ComponentType::turn], sd->turnPositions);
+            restorePlacements(m_gameBoard, m_components[Component::ComponentType::straight], sd->straightPositions);
+            restorePlacements(m_gameBoard, m_components[Component::ComponentType::tjunction], sd->tjunctionPositions);
+            restorePlacements(m_gameBoard, m_components[Component::ComponentType::crossjunction], sd->crossjunctionPositions);
+            restorePlacements(m_gameBoard, m_components[Component::ComponentType::turn], sd->turnPositions);
 
             // restore the locked in place path
             if (!sd->pathLockedInPlace.empty()) {
                 bool done = false;
                 Point<uint32_t> rowColPrev{sd->pathLockedInPlace[0]};
                 Point<uint32_t> rowCol{rowColPrev};
-                rowColPrev.y --;
+                rowColPrev.x --;
                 size_t i = 0;
                 while (!done) {
                     auto &bPrev = m_gameBoard.block(rowColPrev.x, rowColPrev.y);
                     auto &b = m_gameBoard.block(rowCol.x, rowCol.y);
-                    if (b.component() == nullptr) {
+                    if (b.component() == nullptr || bPrev.component() == nullptr) {
                         // shouldn't happen
                         break;
+                    }
+                    if (i == 0) {
+                        // hook up the first placement that is user placeable to the last
+                        // permanent locked in place component.
+                        auto &next = bPrev.component()->placement(bPrev.placementIndex()).next();
+                        next.first = b.component();
+                        next.second = b.placementIndex();
                     }
                     auto &prev = b.component()->placement(b.placementIndex()).prev();
                     prev.first = bPrev.component();
@@ -243,9 +253,10 @@ namespace movablePassage {
                             break;
                         }
                         next.first = bNext.component();
-                        next.second = bPrev.placementIndex();
+                        next.second = bNext.placementIndex();
                         rowColPrev = rowCol;
                         rowCol = rowColNext;
+                        i++;
                     } else {
                         done = true;
                     }
@@ -255,6 +266,8 @@ namespace movablePassage {
             // restore the ball row and column
             m_ballRow = sd->ballRC.x;
             m_ballCol = sd->ballRC.y;
+            m_ball.position.x = sd->ballPosition.x;
+            m_ball.position.y = sd->ballPosition.y;
         } else {
             // place the passage components in the off board sections
             auto it1 = m_components.begin();
@@ -304,6 +317,10 @@ namespace movablePassage {
                     }
                 }
             }
+
+            m_ballRow = 0;
+            m_ballCol = m_gameBoard.widthInTiles() / 2;
+            m_ball.position = m_gameBoard.position(m_ballRow, m_ballCol);
         }
     }
 
@@ -344,9 +361,6 @@ namespace movablePassage {
             }
         }
 
-        m_ballRow = 0;
-        m_ballCol = m_gameBoard.widthInTiles() / 2;
-        m_ball.position = m_gameBoard.position(m_ballRow, m_ballCol);
         m_initDone = true;
     }
 

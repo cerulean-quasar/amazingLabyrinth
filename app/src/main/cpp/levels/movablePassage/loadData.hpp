@@ -53,8 +53,9 @@ namespace movablePassage {
         std::vector<PlacementSaveData> tjunctionPositions;
         std::vector<PlacementSaveData> crossjunctionPositions;
         std::vector<PlacementSaveData> turnPositions;
-        Point<uint32_t> ballRC;
         std::vector<Point<uint32_t>> pathLockedInPlace;
+        Point<uint32_t> ballRC;
+        Point<float> ballPosition;
 
         LevelSaveData() : basic::LevelSaveData{m_movablePassageVersion} {}
 
