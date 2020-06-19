@@ -45,7 +45,7 @@
             "LockedInPlaceTexture": "textures/mouse/wallWithFlower.png"
         },
         "TJunction": {
-            "Model": "models/movablePassage/crossjunction.modelcbor",
+            "Model": "models/movablePassage/tjunction.modelcbor",
             "Texture": "textures/mouse/wall.png",
             "LockedInPlaceTexture": "textures/mouse/wallWithFlower.png"
         },

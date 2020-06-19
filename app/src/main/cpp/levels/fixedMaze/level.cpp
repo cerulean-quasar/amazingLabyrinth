@@ -491,8 +491,8 @@ namespace fixedMaze {
             : basic::Level{inGameRequester, lcd, proj, view, mazeFloorZ, false},
               m_floorModel{lcd->mazeFloorModel},
               m_floorTexture{lcd->mazeFloorTexture},
-              m_extraBounce{lcd->extraBounce},
-              m_minSpeedOnObjBounce{lcd->minSpeedOnBounce},
+              m_extraBounce{1.0f + lcd->extraBounce * m_diagonal},
+              m_minSpeedOnObjBounce{lcd->minSpeedOnBounce * m_diagonal},
               m_speedLimit{m_diagonal / 4.0f}
     {
         init();

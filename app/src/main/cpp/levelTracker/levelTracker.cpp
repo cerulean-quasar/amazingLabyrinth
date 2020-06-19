@@ -196,7 +196,16 @@ namespace levelTracker {
             throw std::runtime_error("Invalid level starter.");
         }
 
-        group.getStarterFcn = starterIt->second(j[DataVariables::Starter], nullptr, m_maxZLevelStarter);
+        if (needsLevelStarter) {
+            group.getStarterFcn = starterIt->second(j[DataVariables::Starter], nullptr,
+                                                    m_maxZLevelStarter);
+        } else {
+            group.getStarterFcn = GenerateLevelFcn(
+                    [](std::shared_ptr<GameRequester>,
+                       glm::mat4 const &, glm::mat4 const &) -> std::shared_ptr<basic::Level> {
+                        return nullptr;
+                    });
+        }
 
         auto levelIt = levelTable().find(components.level);
         if (levelIt == levelTable().end()) {
