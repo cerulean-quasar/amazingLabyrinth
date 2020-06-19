@@ -44,7 +44,7 @@ namespace finisher {
         bool finished;
     public:
         LevelFinisher(std::shared_ptr<GameRequester> inGameRequester, glm::mat4 const &proj,
-                    glm::mat4 const &view, float centerX, float centerY, float maxZ)
+                    glm::mat4 const &view, float centerX, float centerY, float centerZ, float maxZ)
                 : m_gameRequester{std::move(inGameRequester)},
                   m_maxZ(maxZ),
                   m_centerX(centerX),
@@ -55,11 +55,25 @@ namespace finisher {
             auto wh = getWidthHeight(maxZ, proj, view);
             m_width = wh.first;
             m_height = wh.second;
+
+            auto center = getCenter(proj, view, centerX, centerY, centerZ, maxZ);
+            m_centerX = center.first;
+            m_centerY = center.second;
         }
 
         void unveilNewLevel() {
             shouldUnveil = true;
             finished = false;
+        }
+
+        std::pair<float, float> getCenter(glm::mat4 const &proj, glm::mat4 const &view, float x, float y, float z, float atZ) {
+            glm::vec4 locationScreen = proj * view * glm::vec4{x, y, z, 1.0f};
+            glm::vec4 zVec = proj * view * glm::vec4{0.0f, 0.0f, atZ, 1.0f};
+            locationScreen = glm::vec4{locationScreen.x * zVec.w, locationScreen.y * zVec.w,
+                                       zVec.z * locationScreen.w, locationScreen.w * zVec.w};
+            glm::vec4 locationWorld = glm::inverse(view) * glm::inverse(proj) * locationScreen;
+
+            return std::make_pair(locationWorld.x/locationWorld.w, locationWorld.y/locationWorld.w);
         }
 
         bool isUnveiling() { return shouldUnveil; }
@@ -96,7 +110,7 @@ namespace manyQuadsCoverUp {
                                        bool &texturesUpdated) override;
 
         LevelFinisher(std::shared_ptr<GameRequester> inGameRequester, std::shared_ptr<LevelConfigData> const &lcd,
-                glm::mat4 const &proj, glm::mat4 const &view, float centerX, float centerY, float maxZ);
+                glm::mat4 const &proj, glm::mat4 const &view, float centerX, float centerY, float centerZ, float maxZ);
 
         ~LevelFinisher() override = default;
     };
@@ -128,6 +142,7 @@ namespace growingQuad {
             glm::mat4 const &view,
             float centerX,
             float centerY,
+            float centerZ,
             float maxZ);
 
         ~LevelFinisher() override = default;

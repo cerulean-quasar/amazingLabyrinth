@@ -59,9 +59,11 @@ namespace rotatablePassage {
 
         void start() override { m_prevTime = std::chrono::high_resolution_clock::now(); }
 
-        void getLevelFinisherCenter(float &x, float &y) override {
-            x = 0.0f;
-            y = 0.0f;
+        void getLevelFinisherCenter(float &x, float &y, float &z) override {
+            auto endPos = m_gameBoard.position(m_endRow, m_endCol);
+            x = endPos.x;
+            y = endPos.y;
+            z = m_mazeFloorZ;
         };
 
         char const *name() override { return m_name; }

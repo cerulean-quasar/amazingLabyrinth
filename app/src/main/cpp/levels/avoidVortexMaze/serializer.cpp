@@ -53,7 +53,7 @@ namespace avoidVortexMaze {
 
     void from_json(nlohmann::json const &j, LevelConfigData  &val) {
         from_json(j, boost::implicit_cast<generatedMaze::LevelConfigData  &>(val));
-        val.avoidTexture = j[AvoidObjLocation].get<std::string>();
+        val.avoidTexture = j[AvoidTexture].get<std::string>();
         val.numberAvoidObjects = j[NumberAvoidObjects].get<uint32_t>();
     }
 

@@ -82,9 +82,9 @@ bool LevelSequence::updateData(bool alwaysUpdateDynObjs) {
             if (m_levelFinisher->isDone()) {
                 m_levelFinisherObjsData.clear();
                 m_texturesLevelFinisher.clear();
-                float x, y;
-                m_level->getLevelFinisherCenter(x, y);
-                m_levelFinisher = m_levelGroupFcns.getFinisherFcn(m_gameRequester, proj, m_view, x, y);
+                float x, y, z;
+                m_level->getLevelFinisherCenter(x, y, z);
+                m_levelFinisher = m_levelGroupFcns.getFinisherFcn(m_gameRequester, proj, m_view, x, y, z);
                 m_levelStarter->start();
                 return false;
             }
@@ -147,15 +147,16 @@ bool LevelSequence::updateData(bool alwaysUpdateDynObjs) {
 
 void LevelSequence::changeLevel(std::string const &level) {
     m_levelTracker->setLevel(level);
+    m_levelGroupFcns = m_levelTracker->getLevelGroupFcns(m_surfaceWidth, m_surfaceHeight);
     if (!m_initialize()) {
         cleanupLevelData();
         auto proj = getPerspectiveMatrixForLevel(m_surfaceWidth, m_surfaceHeight);
         m_level = m_levelGroupFcns.getLevelFcn(m_gameRequester, proj, m_view);
         m_levelStarter = m_levelGroupFcns.getStarterFcn(m_gameRequester, proj, m_view);
 
-        float x, y;
-        m_level->getLevelFinisherCenter(x, y);
-        m_levelFinisher = m_levelGroupFcns.getFinisherFcn(m_gameRequester, proj, m_view, x, y);
+        float x, y, z;
+        m_level->getLevelFinisherCenter(x, y, z);
+        m_levelFinisher = m_levelGroupFcns.getFinisherFcn(m_gameRequester, proj, m_view, x, y, z);
 
         if (m_levelStarter != nullptr && ! m_levelStarter->isFinished()) {
             initializeLevelData(m_levelStarter, m_levelStarterStaticObjsData,
@@ -200,9 +201,9 @@ void LevelSequence::notifySurfaceChanged(uint32_t surfaceWidth, uint32_t surface
 
     m_levelFinisherObjsData.clear();
     m_texturesLevelFinisher.clear();
-    float x, y;
-    m_level->getLevelFinisherCenter(x, y);
-    m_levelFinisher = m_levelGroupFcns.getFinisherFcn(m_gameRequester, projForLevel, m_view, x, y);
+    float x, y, z;
+    m_level->getLevelFinisherCenter(x, y, z);
+    m_levelFinisher = m_levelGroupFcns.getFinisherFcn(m_gameRequester, projForLevel, m_view, x, y, z);
 
     saveLevelData();
 }

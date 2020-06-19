@@ -136,10 +136,7 @@ namespace basic {
 
         bool isFinished() { return m_finished; }
 
-        virtual void getLevelFinisherCenter(float &x, float &y) {
-            x = 0.0f;
-            y = 0.0f;
-        }
+        virtual void getLevelFinisherCenter(float &x, float &y, float &z) = 0;
 
         virtual bool tap(float, float) { return false; }
 

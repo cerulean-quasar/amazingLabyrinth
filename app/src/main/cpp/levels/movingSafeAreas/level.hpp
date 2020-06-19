@@ -123,9 +123,10 @@ namespace movingSafeAreas {
             m_prevTime = std::chrono::high_resolution_clock::now();
         }
 
-        void getLevelFinisherCenter(float &x, float &y) override {
-            x = 0.0f;
-            y = 0.0f;
+        void getLevelFinisherCenter(float &x, float &y, float &z) override {
+            x = m_endQuadPosition.x;
+            y = m_endQuadPosition.y;
+            z = m_endQuadPosition.z;
         }
 
         char const *name() override { return m_name; }

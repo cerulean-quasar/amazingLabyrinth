@@ -103,9 +103,10 @@ namespace avoidVortexOpenArea {
             prevTime = std::chrono::high_resolution_clock::now();
         }
 
-        void getLevelFinisherCenter(float &x, float &y) override {
+        void getLevelFinisherCenter(float &x, float &y, float &z) override {
             x = holePosition.x;
             y = holePosition.y;
+            z = holePosition.z;
         }
 
         char const *name() override { return m_name; }

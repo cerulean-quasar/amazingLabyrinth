@@ -52,7 +52,7 @@ namespace fixedMaze {
 
         void start() override;
 
-        void getLevelFinisherCenter(float &x, float &y) override;
+        void getLevelFinisherCenter(float &x, float &y, float &z) override;
 
         char const *name() override { return m_name; }
 

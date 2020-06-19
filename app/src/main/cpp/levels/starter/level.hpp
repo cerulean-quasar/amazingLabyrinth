@@ -120,6 +120,12 @@ namespace starter {
                                       char const *) override
         { return std::vector<uint8_t>{}; }
 
+        void getLevelFinisherCenter(float &x, float &y, float &z) override {
+            x = 0.0f;
+            y = 0.0f;
+            z = m_mazeFloorZ;
+        };
+
         void start() override {
             prevTime = std::chrono::high_resolution_clock::now();
         }

@@ -121,15 +121,17 @@ namespace levelTracker {
         Register() {
             finisherTable().insert(std::make_pair(LevelType::m_name,
                  GenerateFinisherGeneratorFcn(
-                     [](nlohmann::json const &lcdjson, float z) -> levelTracker::GenerateFinisherFcn
+                     [](nlohmann::json const &lcdjson, float finisherZ) -> levelTracker::GenerateFinisherFcn
                      {
                          auto lcd = std::make_shared<LevelConfigDataType>(lcdjson.get<LevelConfigDataType>());
                          return levelTracker::GenerateFinisherFcn(
-                             [lcd{std::move(lcd)}, z](std::shared_ptr<GameRequester> gameRequester,
-                                 glm::mat4 const &proj, glm::mat4 const &view, float centerX, float centerY) -> std::shared_ptr<finisher::LevelFinisher>
+                             [lcd{std::move(lcd)}, finisherZ](std::shared_ptr<GameRequester> gameRequester,
+                                 glm::mat4 const &proj, glm::mat4 const &view, float centerX, float centerY, float centerZ)
+                                     -> std::shared_ptr<finisher::LevelFinisher>
                              {
                                  return std::make_shared<LevelType>(
-                                         std::move(gameRequester), lcd, proj, view, centerX, centerY, z);
+                                         std::move(gameRequester), lcd, proj, view,
+                                         centerX, centerY, centerZ, finisherZ);
                              });
                      }))
             );

@@ -32,7 +32,7 @@ namespace levelTracker {
     using GenerateLevelFcn = std::function<std::shared_ptr<basic::Level>(std::shared_ptr<GameRequester>,
                                                                   glm::mat4 const &, glm::mat4 const &)>;
     using GenerateFinisherFcn = std::function<std::shared_ptr<finisher::LevelFinisher>(std::shared_ptr<GameRequester>,
-                                                                           glm::mat4 const &, glm::mat4 const &, float, float)>;
+                                                                           glm::mat4 const &, glm::mat4 const &, float, float, float)>;
 
     struct LevelGroup {
         GenerateLevelFcn getStarterFcn;

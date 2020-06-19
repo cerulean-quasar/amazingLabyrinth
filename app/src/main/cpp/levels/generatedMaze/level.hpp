@@ -200,6 +200,13 @@ namespace generatedMaze {
         bool updateDynamicDrawObjects(DrawObjectTable &objs, TextureMap &textures,
                                       bool &texturesChanged) override;
 
+        void getLevelFinisherCenter(float &x, float &y, float &z) override {
+            auto center = getCellCenterPosition(m_mazeBoard.rowEnd(), m_mazeBoard.colEnd());
+            x = center.x;
+            y = center.y;
+            z = m_mazeFloorZ;
+        }
+
         void start() override {
             prevTime = std::chrono::high_resolution_clock::now();
         }

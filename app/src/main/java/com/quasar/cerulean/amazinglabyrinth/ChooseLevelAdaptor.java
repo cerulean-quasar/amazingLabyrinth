@@ -40,6 +40,7 @@ import java.util.ArrayList;
 
 public class ChooseLevelAdaptor extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
     private static final int BUTTON_TYPE = 1;
+    private static final int m_nbrToLoadAtOnce = 1;
 
     private class LevelEntry {
         String name;
@@ -90,16 +91,16 @@ public class ChooseLevelAdaptor extends RecyclerView.Adapter<RecyclerView.ViewHo
         try {
             m_reader.beginObject();
             String key = m_reader.nextName();
-            if (!key.equals("Levels")) {
-                try {
-                    m_reader.close();
-                } catch (IOException e2) {
-                }
-                activity.setResult(Activity.RESULT_CANCELED);
-                activity.finish();
-                return;
+            while (!key.equals("Levels")) {
+                m_reader.skipValue();
+                key = m_reader.nextName();
             }
             m_reader.beginArray();
+            while (m_reader.hasNext()) {
+                LevelEntry le = readEntry();
+                m_levels.add(le);
+            }
+            m_reader.close();
         } catch (IOException e) {
             try {
                 m_reader.close();
@@ -130,37 +131,13 @@ public class ChooseLevelAdaptor extends RecyclerView.Adapter<RecyclerView.ViewHo
 
     @Override
     public int getItemCount() {
-        try {
-            if (m_reader.hasNext()) {
-                return m_levels.size() + 1;
-            }
-        } catch (IOException e) {
-        }
-
         return m_levels.size();
     }
 
     @Override
     public void onBindViewHolder(@NonNull RecyclerView.ViewHolder vh, final int position) {
         ChooseLevelViewHolder clvh = (ChooseLevelViewHolder) vh;
-        while (position < m_levels.size()) {
-            try {
-                if (m_reader.hasNext()) {
-                    LevelEntry le = readEntry();
-                    m_levels.add(le);
-                } else {
-                    break;
-                }
-            } catch (IOException e) {
-                try {
-                    m_reader.close();
-                } catch (IOException e2) {
-                }
-                m_parentActivity.setResult(Activity.RESULT_CANCELED);
-                m_parentActivity.finish();
-                return;
-            }
-        }
+        int nbrItems = m_levels.size();
         if (position < m_levels.size()) {
             clvh.m_button.setText(m_levels.get(position).description);
             clvh.m_button.setOnClickListener(new View.OnClickListener() {

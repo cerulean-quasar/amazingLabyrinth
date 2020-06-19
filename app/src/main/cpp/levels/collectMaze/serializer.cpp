@@ -21,7 +21,7 @@
 #include <json.hpp>
 #include <boost/implicit_cast.hpp>
 #include "../../levelTracker/internals.hpp"
-#include "../basic/serializer.hpp"
+#include "../generatedMaze/serializer.hpp"
 #include "level.hpp"
 #include "serializer.hpp"
 

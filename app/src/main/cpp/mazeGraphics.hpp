@@ -150,9 +150,9 @@ public:
 
                 m_levelFinisherObjsData.clear();
                 m_texturesLevelFinisher.clear();
-                float x, y;
-                m_level->getLevelFinisherCenter(x, y);
-                m_levelFinisher = m_levelGroupFcns.getFinisherFcn(m_gameRequester, proj, m_view, x, y);
+                float x, y, z;
+                m_level->getLevelFinisherCenter(x, y, z);
+                m_levelFinisher = m_levelGroupFcns.getFinisherFcn(m_gameRequester, proj, m_view, x, y, z);
 
                 setupCommonBuffers();
 
@@ -163,7 +163,9 @@ public:
                 initializeLevelData(m_level, m_staticObjsData, m_dynObjsData, m_texturesLevel);
 
                 m_initialize = std::function<bool()>(
-                        []() -> bool { return false; });
+                        []() -> bool {
+                            return false;
+                        });
 
                 return true;
             });

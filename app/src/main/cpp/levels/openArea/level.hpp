@@ -116,9 +116,10 @@ namespace openArea {
             prevTime = std::chrono::high_resolution_clock::now();
         }
 
-        void getLevelFinisherCenter(float &x, float &y) override {
+        void getLevelFinisherCenter(float &x, float &y, float &z) override {
             x = holePosition.x;
             y = holePosition.y;
+            z = m_mazeFloorZ;
         }
 
         char const *name() override { return m_name; }

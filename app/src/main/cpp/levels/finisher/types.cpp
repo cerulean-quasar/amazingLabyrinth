@@ -28,8 +28,8 @@ namespace manyQuadsCoverUp {
 
     LevelFinisher::LevelFinisher(
             std::shared_ptr<GameRequester> inGameRequester, std::shared_ptr<LevelConfigData> const &lcd,
-            glm::mat4 const &proj, glm::mat4 const &view, float centerX, float centerY, float maxZ)
-            : finisher::LevelFinisher(std::move(inGameRequester), proj, view, centerX, centerY, maxZ),
+            glm::mat4 const &proj, glm::mat4 const &view, float centerX, float centerY, float centerZ, float maxZ)
+            : finisher::LevelFinisher(std::move(inGameRequester), proj, view, centerX, centerY, centerZ, maxZ),
               totalNumberReturned(0),
               imagePaths{lcd->textures}
     {
@@ -127,8 +127,8 @@ namespace growingQuad {
     LevelFinisher::LevelFinisher(
             std::shared_ptr<GameRequester> inGameRequester, std::shared_ptr<LevelConfigData> const &lcd,
             glm::mat4 const &proj, glm::mat4 const &view,
-            float centerX, float centerY, float maxZ)
-            : finisher::LevelFinisher(std::move(inGameRequester), proj, view, centerX, centerY, maxZ),
+            float centerX, float centerY, float centerZ, float maxZ)
+            : finisher::LevelFinisher(std::move(inGameRequester), proj, view, centerX, centerY, centerZ, maxZ),
               finalSize{1.5f * std::max(m_width, m_height)},
               minSize{0.005f * std::min(m_width, m_height)},
               imagePath{lcd->texture}

@@ -477,9 +477,11 @@ namespace fixedMaze {
         m_prevTime = std::chrono::high_resolution_clock::now();
     }
 
-    void Level::getLevelFinisherCenter(float &x, float &y) {
+
+    void Level::getLevelFinisherCenter(float &x, float &y, float &z) {
         x = 0.0f;
         y = 0.0f;
+        z = m_mazeFloorZ;
     }
 
     Level::Level(std::shared_ptr<GameRequester> inGameRequester,

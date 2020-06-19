@@ -42,5 +42,5 @@ public class Constants {
     public static final String KeyLevels = "levels";
 
     // File names
-    public static final String LevelTableFileName = "configs/levels.cbor";
+    public static final String LevelTableFileName = "configs/levels.json";
 }
