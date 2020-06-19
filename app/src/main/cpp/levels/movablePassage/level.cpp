@@ -95,6 +95,11 @@ namespace movablePassage {
             }
         }
 
+        // save the first position where the ball can roll to that can have a user placed placement.
+        // used to save the level state.
+        m_ballFirstPlaceableComponent = std::make_pair(m_gameBoardStartRowColumn.first,
+                m_gameBoardStartRowColumn.second + startColumn);
+
         // the fixed tunnel through the places for extra tunnel pieces at the bottom.
         for (uint32_t k = m_nbrTileRowsForStart;
              k < m_nbrTileRowsForStart + nbrExtraTileRowsY / 2;
@@ -182,59 +187,127 @@ namespace movablePassage {
         }
     }
 
-    void Level::initDone() {
+    void Level::initAddPlayableComponents(std::shared_ptr<LevelSaveData> const &sd) {
         if (m_nbrComponents == 0) {
             throw std::runtime_error("MovablePassage components not initialized properly");
         }
 
-        // place the passage components in the off board sections
-        auto it1 = m_components.begin();
-        auto end1 = m_components.end();
-        if (it1 == end1) {
-            throw std::runtime_error("MovablePassage components not initialized properly");
-        }
+        if (sd) {
+            // place the passage components on the segments that they where on before.
+            auto restorePlacements = [](
+                    std::shared_ptr<Component> const &component,
+                    std::vector<PlacementSaveData> const &vec) -> void
+            {
+                size_t componentNbr = 0;
+                for (auto placementIt = component->placementsBegin();
+                     placementIt != component->placementsEnd();
+                     placementIt++, componentNbr++)
+                {
+                    for (uint32_t i = 0; i < vec[componentNbr].nbr90DegreeRotations; i++) {
+                        placementIt->rotate();
+                    }
 
-        auto it2 = (*it1)->placementsBegin();
-        auto end2 = (*it1)->placementsEnd();
-        uint32_t m = 0;
-        bool finished = false;
-        for (uint32_t k = 0; k < m_gameBoard.heightInTiles() && !finished; k++) {
-            for (uint32_t l = 0; l < m_gameBoard.widthInTiles(); /* increment in loop */) {
-                if (((*it1)->type() != Component::ComponentType::straight &&
-                     (*it1)->type() != Component::ComponentType::tjunction &&
-                     (*it1)->type() != Component::ComponentType::turn &&
-                     (*it1)->type() != Component::ComponentType::crossjunction) || it2 == end2) {
-                    it1++;
+                    placementIt->setRC(vec[componentNbr].rowCol.x, vec[componentNbr].rowCol.y);
+                }
+            };
 
-                    if (it1 == end1) {
-                        finished = true;
+            restorePlacements(m_components[Component::ComponentType::straight], sd->straightPositions);
+            restorePlacements(m_components[Component::ComponentType::tjunction], sd->tjunctionPositions);
+            restorePlacements(m_components[Component::ComponentType::crossjunction], sd->crossjunctionPositions);
+            restorePlacements(m_components[Component::ComponentType::turn], sd->turnPositions);
+
+            // restore the locked in place path
+            if (!sd->pathLockedInPlace.empty()) {
+                bool done = false;
+                Point<uint32_t> rowColPrev{sd->pathLockedInPlace[0]};
+                Point<uint32_t> rowCol{rowColPrev};
+                rowColPrev.y --;
+                size_t i = 0;
+                while (!done) {
+                    auto &bPrev = m_gameBoard.block(rowColPrev.x, rowColPrev.y);
+                    auto &b = m_gameBoard.block(rowCol.x, rowCol.y);
+                    if (b.component() == nullptr) {
+                        // shouldn't happen
                         break;
                     }
+                    auto &prev = b.component()->placement(b.placementIndex()).prev();
+                    prev.first = bPrev.component();
+                    prev.second = bPrev.placementIndex();
 
-                    m = 0;
-                    it2 = (*it1)->placementsBegin();
-                    end2 = (*it1)->placementsEnd();
-                    continue;
-                }
-                auto &block = m_gameBoard.block(k, l);
-                if (block.blockType() != GameBoardBlock::BlockType::offBoard ||
-                    block.component() != nullptr) {
-                    l++;
-                    continue;
-                }
-                if (it2 != end2) {
-                    if (!it2->lockedIntoPlace()) {
-                        block.setComponent(*it1, m);
-                        it2->setRC(k, l);
-
-                        m++;
-                        l++;
+                    if (i + 1 < sd->pathLockedInPlace.size()) {
+                        Point<uint32_t> rowColNext{sd->pathLockedInPlace[i+1]};
+                        auto &next = b.component()->placement(b.placementIndex()).next();
+                        auto bNext = m_gameBoard.block(rowColNext.x, rowColNext.y);
+                        if (bNext.component() == nullptr) {
+                            // shouldn't happen
+                            break;
+                        }
+                        next.first = bNext.component();
+                        next.second = bPrev.placementIndex();
+                        rowColPrev = rowCol;
+                        rowCol = rowColNext;
+                    } else {
+                        done = true;
                     }
-                    it2++;
+                }
+            }
+
+            // restore the ball row and column
+            m_ballRow = sd->ballRC.x;
+            m_ballCol = sd->ballRC.y;
+        } else {
+            // place the passage components in the off board sections
+            auto it1 = m_components.begin();
+            auto end1 = m_components.end();
+            if (it1 == end1) {
+                throw std::runtime_error("MovablePassage components not initialized properly");
+            }
+
+            auto it2 = (*it1)->placementsBegin();
+            auto end2 = (*it1)->placementsEnd();
+            uint32_t m = 0;
+            bool finished = false;
+            for (uint32_t k = 0; k < m_gameBoard.heightInTiles() && !finished; k++) {
+                for (uint32_t l = 0; l < m_gameBoard.widthInTiles(); /* increment in loop */) {
+                    if (((*it1)->type() != Component::ComponentType::straight &&
+                         (*it1)->type() != Component::ComponentType::tjunction &&
+                         (*it1)->type() != Component::ComponentType::turn &&
+                         (*it1)->type() != Component::ComponentType::crossjunction) ||
+                        it2 == end2) {
+                        it1++;
+
+                        if (it1 == end1) {
+                            finished = true;
+                            break;
+                        }
+
+                        m = 0;
+                        it2 = (*it1)->placementsBegin();
+                        end2 = (*it1)->placementsEnd();
+                        continue;
+                    }
+                    auto &block = m_gameBoard.block(k, l);
+                    if (block.blockType() != GameBoardBlock::BlockType::offBoard ||
+                        block.component() != nullptr) {
+                        l++;
+                        continue;
+                    }
+                    if (it2 != end2) {
+                        if (!it2->lockedIntoPlace()) {
+                            block.setComponent(*it1, m);
+                            it2->setRC(k, l);
+
+                            m++;
+                            l++;
+                        }
+                        it2++;
+                    }
                 }
             }
         }
+    }
 
+    void Level::initDone() {
         // add the rock segments that were requested of us.
         std::shared_ptr<Component> &rock = m_components[Component::ComponentType::noMovementRock];
         for (auto const &rc: m_addedRocks) {

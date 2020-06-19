@@ -73,36 +73,6 @@ namespace movablePassage {
         std::vector<uint8_t> saveData(levelTracker::GameSaveData const &gsd,
                                       char const *saveLevelDataKey) override;
 
-        // all the compoents should be added before calling this function.
-        void initSetGameBoard(
-                uint32_t nbrTilesX,
-                uint32_t nbrTilesY,
-                uint32_t startCplumn,
-                uint32_t endColumn);
-
-        // this function can be called anytime before initSetGameBoard. This function must be called for
-        // Component::ComponentType::straight even if the user is not allowed to use the straight
-        // component.
-        void initAddType(
-                Component::ComponentType inComponentType,
-                uint32_t nbrComponents,
-                std::string const &model,
-                std::string const &texture) {
-            if (!texture.empty()) {
-                m_componentTextures[inComponentType].push_back(texture);
-            }
-            if (!model.empty()) {
-                m_componentModels[inComponentType].push_back(model);
-            }
-            for (uint32_t i = 0; i < nbrComponents; i++) {
-                m_components[inComponentType]->add();
-                m_nbrComponents++;
-            }
-        }
-
-        // all other init functions before calling this function or starting the level
-        void initDone();
-
         ~Level() override = default;
 
         Level(
@@ -216,8 +186,44 @@ namespace movablePassage {
         // the row and column which ends the area in which users can place blocks
         std::pair<uint32_t, uint32_t> m_gameBoardEndRowColumn;
 
+        // the first position that the ball is allowed to roll to that may contain a user placeable
+        // component.
+        std::pair<uint32_t, uint32_t> m_ballFirstPlaceableComponent;
+
         // the column in which the end tile is located.
         uint32_t m_columnEndPosition;
+
+        // all the compoents should be added before calling this function.
+        void initSetGameBoard(
+                uint32_t nbrTilesX,
+                uint32_t nbrTilesY,
+                uint32_t startCplumn,
+                uint32_t endColumn);
+
+        // this function can be called anytime before initSetGameBoard. This function must be called for
+        // Component::ComponentType::straight even if the user is not allowed to use the straight
+        // component.
+        void initAddType(
+                Component::ComponentType inComponentType,
+                uint32_t nbrComponents,
+                std::string const &model,
+                std::string const &texture) {
+            if (!texture.empty()) {
+                m_componentTextures[inComponentType].push_back(texture);
+            }
+            if (!model.empty()) {
+                m_componentModels[inComponentType].push_back(model);
+            }
+            for (uint32_t i = 0; i < nbrComponents; i++) {
+                m_components[inComponentType]->add();
+                m_nbrComponents++;
+            }
+        }
+
+        void initAddPlayableComponents(std::shared_ptr<LevelSaveData> const &sd);
+
+        // all other init functions before calling this function or starting the level
+        void initDone();
     };
 } // namespace movablePassage
 

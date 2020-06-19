@@ -21,11 +21,40 @@
 #ifndef AMAZING_LABYRINTH_MOVABLE_PASSAGE_LOAD_DATA_HPP
 #define AMAZING_LABYRINTH_MOVABLE_PASSAGE_LOAD_DATA_HPP
 
+#include <vector>
 #include "../basic/loadData.hpp"
 
 namespace movablePassage {
+    struct PlacementSaveData{
+        Point<uint32_t> rowCol;
+        uint32_t nbr90DegreeRotations;
+
+        PlacementSaveData(uint32_t row, uint32_t col, uint32_t rotationNbr)
+                : rowCol{row, col},
+                  nbr90DegreeRotations{rotationNbr}
+        {}
+
+        PlacementSaveData()
+            : rowCol{0, 0},
+              nbr90DegreeRotations{0}
+        {}
+
+        PlacementSaveData(PlacementSaveData &&other) noexcept = default;
+
+        PlacementSaveData(PlacementSaveData const &other) noexcept  = default;
+
+        PlacementSaveData &operator=(PlacementSaveData const &other) noexcept = default;
+    };
+
     struct LevelSaveData : public basic::LevelSaveData {
         static int constexpr m_movablePassageVersion = 1;
+
+        std::vector<PlacementSaveData> straightPositions;
+        std::vector<PlacementSaveData> tjunctionPositions;
+        std::vector<PlacementSaveData> crossjunctionPositions;
+        std::vector<PlacementSaveData> turnPositions;
+        Point<uint32_t> ballRC;
+        std::vector<Point<uint32_t>> pathLockedInPlace;
 
         LevelSaveData() : basic::LevelSaveData{m_movablePassageVersion} {}
 

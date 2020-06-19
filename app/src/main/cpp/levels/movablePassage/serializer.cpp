@@ -28,12 +28,44 @@
 #include "loadData.hpp"
 
 namespace movablePassage {
+    char constexpr const *StraightPositions = "StraightPositions";
+    char constexpr const *TJunctionPositions = "TJunctionPositions";
+    char constexpr const *CrossJunctionPositions = "CrossJunctionPositions";
+    char constexpr const *TurnPositions = "TurnPositions";
+    char constexpr const *BallRowColumn = "BallRowColumn";
+    char constexpr const *PathLockedInPlace = "PathLockedInPlace";
+    char constexpr const *PlacementPosition = "PlacementPosition";
+    char constexpr const *Nbr90DegreeRotations = "Nbr90DegreeRotations";
+
+    void to_json(nlohmann::json &j, PlacementSaveData const &val) {
+        j[PlacementPosition] = val.rowCol;
+        j[Nbr90DegreeRotations] = val.nbr90DegreeRotations;
+    }
+
     void to_json(nlohmann::json &j, LevelSaveData const &val) {
         to_json(j, boost::implicit_cast<basic::LevelSaveData const &>(val));
+
+        j[StraightPositions] = val.straightPositions;
+        j[TJunctionPositions] = val.tjunctionPositions;
+        j[CrossJunctionPositions] = val.crossjunctionPositions;
+        j[TurnPositions] = val.turnPositions;
+        j[BallRowColumn] = val.ballRC;
+        j[PathLockedInPlace] = val.pathLockedInPlace;
+    }
+
+    void from_json(nlohmann::json const &j, PlacementSaveData &val) {
+        val.rowCol = j[PlacementPosition].get<Point<uint32_t>>();
+        val.nbr90DegreeRotations = j[Nbr90DegreeRotations].get<uint32_t>();
     }
 
     void from_json(nlohmann::json const &j, LevelSaveData &val) {
         from_json(j, boost::implicit_cast<basic::LevelSaveData &>(val));
+        val.straightPositions = j[StraightPositions].get<std::vector<PlacementSaveData>>();
+        val.tjunctionPositions = j[TJunctionPositions].get<std::vector<PlacementSaveData>>();
+        val.crossjunctionPositions = j[CrossJunctionPositions].get<std::vector<PlacementSaveData>>();
+        val.turnPositions = j[TurnPositions].get<std::vector<PlacementSaveData>>();
+        val.ballRC = j[BallRowColumn].get<Point<uint32_t>>();
+        val.pathLockedInPlace = j[PathLockedInPlace].get<std::vector<Point<uint32_t>>>();
     }
 
     char constexpr const *Row = "Row";
@@ -150,6 +182,47 @@ namespace movablePassage {
     std::vector<uint8_t> Level::saveData(levelTracker::GameSaveData const &gsd,
                                   char const *saveLevelDataKey) {
         auto sd = std::make_shared<LevelSaveData>();
+        auto initComponentVector =
+            [&] (Component::ComponentType componentType, std::vector<PlacementSaveData> &vec) {
+                for (auto placementIt = m_components[componentType]->placementsBegin();
+                     placementIt != m_components[componentType]->placementsEnd();
+                     placementIt++)
+                {
+                    float angle = placementIt->rotationAngle();
+                    float halfpi = glm::radians(90.0f);
+                    uint32_t nbrRotations = 0;
+                    while (angle > 0) {
+                        nbrRotations ++;
+                        angle -= halfpi;
+                    }
+                    vec.emplace_back(placementIt->row(), placementIt->col(), nbrRotations);
+                }
+            };
+        initComponentVector(Component::ComponentType::straight, sd->straightPositions);
+        initComponentVector(Component::ComponentType::tjunction, sd->tjunctionPositions);
+        initComponentVector(Component::ComponentType::crossjunction, sd->crossjunctionPositions);
+        initComponentVector(Component::ComponentType::turn, sd->turnPositions);
+        sd->ballRC = Point<uint32_t>(m_ballRow, m_ballCol);
+
+        bool done = false;
+        Point<uint32_t> startRC{m_ballFirstPlaceableComponent.first, m_ballFirstPlaceableComponent.second};
+        do {
+            auto b = m_gameBoard.block(startRC.x, startRC.y);
+            auto &placement = b.component()->placement(b.placementIndex());
+            if (placement.prev().first != nullptr) {
+                sd->pathLockedInPlace.emplace_back(startRC);
+            } else {
+                done = true;
+            }
+            if (placement.next().first != nullptr) {
+                auto &nextPlacement = placement.next().first->placement(placement.next().second);
+                startRC.x = nextPlacement.row();
+                startRC.y = nextPlacement.col();
+            } else {
+                done = true;
+            }
+        } while (!done);
+
         nlohmann::json j;
         to_json(j, gsd);
         j[saveLevelDataKey] = *sd;
