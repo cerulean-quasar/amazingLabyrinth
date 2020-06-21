@@ -22,6 +22,7 @@
 #define AMAZING_LABYRINTH_MOVABLE_PASSAGE_LOAD_DATA_HPP
 
 #include <vector>
+#include "../movablePassageAlgorithms.hpp"
 #include "../basic/loadData.hpp"
 
 namespace movablePassage {
@@ -54,6 +55,7 @@ namespace movablePassage {
         std::vector<PlacementSaveData> crossjunctionPositions;
         std::vector<PlacementSaveData> turnPositions;
         std::vector<Point<uint32_t>> pathLockedInPlace;
+        std::vector<std::vector<ObjReference>> gameBoardObjReferences;
         Point<uint32_t> ballRC;
         Point<float> ballPosition;
 

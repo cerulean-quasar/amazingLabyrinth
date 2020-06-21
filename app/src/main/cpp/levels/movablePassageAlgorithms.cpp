@@ -230,23 +230,37 @@ std::pair<bool, bool> GameBoard::checkforNextWall(Component::CellWall wall1, Com
     }
 }
 
-size_t chooseObj(
+boost::optional<ObjReference> chooseObj(
         Random &randomNumbers,
         std::shared_ptr<Component> const &component,
         size_t placementIndex)
 {
-    std::vector<size_t> refs;
+    std::set<ObjReference> refs;
     if (!component->placement(placementIndex).movementAllowed()) {
-        refs = component->dynObjReferencesLockedComponent();
+        refs = component->objReferencesLockedComponent();
     }
     if (refs.size() == 0) {
-        refs = component->dynObjReferences();
+        refs = component->objReferences();
+    }
+
+    // check to see if the placement has already been assigned a model/texture and we didn't
+    // have an objIndex yet.  This could happen if we were restoring from save.
+    auto placementRef = component->placement(placementIndex).objReference();
+    if (placementRef != boost::none) {
+        if (placementRef.get().objIsDynAndIndex != boost::none) {
+            return placementRef;
+        }
+        auto it = refs.find(placementRef.get());
+        if (it != refs.end()) {
+            component->placement(placementIndex).setObjReference(*it);
+            return *it;
+        }
     }
 
     size_t i;
     switch (refs.size()) {
         case 0:
-            return Component::Placement::m_invalidObjReference;
+            return boost::none;
         case 1:
             i = 0;
             break;
@@ -254,35 +268,71 @@ size_t chooseObj(
             i = randomNumbers.getUInt(0, refs.size() - 1);
     }
 
-    if (component) {
-        component->placement(placementIndex).setDynObjReference(refs[i]);
+    size_t j = 0;
+    for (auto const &ref : refs) {
+        if (j == i) {
+            if (component) {
+                component->placement(placementIndex).setObjReference(ref);
+            }
+            return ref;
+        }
+        j++;
     }
-    return refs[i];
+
+    // shouldn't happen
+    return boost::none;
 }
 
-size_t addModelMatrixToObj(
+boost::optional<ObjReference> addModelMatrixToObj(
         Random &randomNumbers,
         DrawObjectTable &objs,
-        std::vector<size_t> const &refs,
+        std::set<ObjReference> const &refs,
         std::shared_ptr<Component> const &component,
         size_t placementIndex,
         glm::mat4 modelMatrix)
 {
+    if (component) {
+        // check to see if the placement has already been assigned a model/texture and we didn't
+        // have an objIndex yet.  This could happen if we were restoring from save.
+        auto placementRef = component->placement(placementIndex).objReference();
+        if (placementRef != boost::none) {
+            if (placementRef.get().objIsDynAndIndex != boost::none) {
+                objs[placementRef.get().objIsDynAndIndex.get().second].first->modelMatrices.push_back(modelMatrix);
+                return placementRef;
+            }
+            auto it = refs.find(placementRef.get());
+            if (it != refs.end()) {
+                objs[it->objIsDynAndIndex.get().second].first->modelMatrices.push_back(modelMatrix);
+                component->placement(placementIndex).setObjReference(*it);
+                return *it;
+            }
+        }
+    }
+
     size_t i;
     switch (refs.size()) {
         case 0:
-            return Component::Placement::m_invalidObjReference;
+            return boost::none;
         case 1:
             i = 0;
         default:
             i = randomNumbers.getUInt(0, refs.size() - 1);
     }
 
-    objs[refs[i]].first->modelMatrices.insert(objs[refs[i]].first->modelMatrices.begin(), modelMatrix);
-    if (component) {
-        component->placement(placementIndex).setDynObjReference(refs[i]);
+    size_t j = 0;
+    for (auto const &ref : refs) {
+        if (i == j) {
+            objs[ref.objIsDynAndIndex.get().second].first->modelMatrices.push_back(modelMatrix);
+            if (component) {
+                component->placement(placementIndex).setObjReference(ref);
+            }
+            return ref;
+        }
+        j++;
     }
-    return refs[i];
+
+    // shouldn't happen
+    return boost::none;
 }
 
 void blockUnblockPlacements(
@@ -302,7 +352,7 @@ void blockUnblockPlacements(
 
             // remove the obj reference so that the obj reference for the locked placement
             // can be added.
-            oldPlacement.setDynObjReference(Component::Placement::m_invalidObjReference);
+            oldPlacement.setObjReference(boost::none);
         } else {
             // We encountered a loop.  Unblock the entire loop
             std::shared_ptr<Component> nextComponent = newComponent;
@@ -316,7 +366,7 @@ void blockUnblockPlacements(
                 auto &loopPlacement = loopComponent->placement(loopIndex);
                 loopPlacement.prev() = std::make_pair(nullptr, 0);
                 loopPlacement.next() = std::make_pair(nullptr, 0);
-                loopPlacement.setDynObjReference(Component::Placement::m_invalidObjReference);
+                loopPlacement.setObjReference(boost::none);
                 loopComponent = tmp.first;
                 loopIndex = tmp.second;
             }
@@ -325,7 +375,7 @@ void blockUnblockPlacements(
     } else {
         // the ball is entering a new cell that is not in its path yet.
         newPlacement.prev() = std::make_pair(oldComponent, oldPlacementIndex);
-        newPlacement.setDynObjReference(Component::Placement::m_invalidObjReference);
+        newPlacement.setObjReference(boost::none);
 
         oldPlacement.next() = std::make_pair(newComponent, newPlacementIndex);
     }

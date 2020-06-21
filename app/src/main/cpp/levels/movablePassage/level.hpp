@@ -102,7 +102,7 @@ namespace movablePassage {
               m_nbrComponents{ 0 },
               m_texturesChanged{ true },
               m_initDone{ false },
-              m_objsReferenceBall{ 0 }
+              m_objsIndexBall{ 0 }
         {
             m_textureLockedComponent = lcd->placementLockedInPlaceTexture;
 
@@ -141,7 +141,7 @@ namespace movablePassage {
 
             initAddPlayableComponents(sd);
 
-            initDone();
+            initDone(sd);
 
             // do after the game board is initialized.
             auto wh = getWidthHeight(m_gameBoard.getZPosEndTile(), proj, view);
@@ -168,7 +168,7 @@ namespace movablePassage {
         bool m_texturesChanged;
         bool m_initDone;
 
-        uint32_t m_objsReferenceBall;
+        size_t m_objsIndexBall;
 
         std::array<std::vector<std::string>,
                 Component::ComponentType::maxComponentType + 1> m_componentModels;
@@ -225,7 +225,7 @@ namespace movablePassage {
         void initAddPlayableComponents(std::shared_ptr<LevelSaveData> const &sd);
 
         // all other init functions before calling this function or starting the level
-        void initDone();
+        void initDone(std::shared_ptr<LevelSaveData> const &sd);
     };
 } // namespace movablePassage
 

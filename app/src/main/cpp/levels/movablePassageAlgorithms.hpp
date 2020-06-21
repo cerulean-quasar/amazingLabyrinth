@@ -25,12 +25,80 @@
 #include <array>
 #include <set>
 #include <memory>
+#include <set>
 
 #include <glm/glm.hpp>
 #include <glm/gtc/quaternion.hpp>
 #include <glm/gtc/matrix_transform.hpp>
+
+#include <boost/optional.hpp>
+
 #include "basic/level.hpp"
 #include "../random.hpp"
+
+// the model index and the texture index are indices into the set of models name and texture names.
+// they are needed for saving the game data.  This way the game will be restored with the same
+// textures and models for all the components.  We also need to know whether the texture set was
+// from the locked in place models/textures or the non-locked in place models/textures.
+// The objIsDynAndIndex indicates if it is a dynamic reference (true) and what the index is.
+struct ObjReference {
+    // true means it is a dynamic obj, otherwise it is a static obj.
+    boost::optional<std::pair<bool, size_t>> objIsDynAndIndex;
+
+    bool isLockedInPlaceRef;
+    size_t modelIndex;
+    size_t textureIndex;
+
+    ObjReference(
+            bool isDynamicObj,
+            size_t objIndex,
+            bool isLockedInPlaceRef_,
+            size_t modelIndex_,
+            size_t textureIndex_)
+            : objIsDynAndIndex{std::make_pair(isDynamicObj, objIndex)},
+              isLockedInPlaceRef{isLockedInPlaceRef_},
+              modelIndex{modelIndex_},
+              textureIndex{textureIndex_}
+    {}
+
+    ObjReference(
+            bool isLockedInPlaceRef_,
+            size_t modelIndex_,
+            size_t textureIndex_)
+            : objIsDynAndIndex{boost::none},
+              isLockedInPlaceRef{isLockedInPlaceRef_},
+              modelIndex{modelIndex_},
+              textureIndex{textureIndex_}
+    {}
+
+    ObjReference()
+        : objIsDynAndIndex{boost::none},
+          isLockedInPlaceRef{false},
+          modelIndex{0},
+          textureIndex{0}
+    {}
+
+    ObjReference(ObjReference &&other) = default;
+
+    ObjReference(ObjReference const &other) = default;
+
+    ObjReference &operator=(ObjReference const &other) = default;
+
+    ObjReference &operator=(ObjReference &&other) = default;
+
+    bool operator==(ObjReference const &other) const {
+        return isLockedInPlaceRef == other.isLockedInPlaceRef &&
+                modelIndex == other.modelIndex &&
+                textureIndex == other.textureIndex;
+    }
+
+    bool operator<(ObjReference const &other) const {
+        if (isLockedInPlaceRef != other.isLockedInPlaceRef) {
+            return isLockedInPlaceRef;
+        }
+        return textureIndex < other.textureIndex || modelIndex < other.modelIndex;
+    }
+};
 
 class Component {
 public:
@@ -450,8 +518,6 @@ public:
 
     class Placement {
     public:
-        static uint32_t constexpr m_invalidObjReference = std::numeric_limits<uint32_t>::max();
-
         /* accessors */
         uint32_t row() { return m_row; }
         uint32_t col() { return m_col; }
@@ -460,12 +526,12 @@ public:
         auto &prev() { return m_prev; }
         auto &next() { return m_next; }
         glm::vec2 movePositionSoFar() { return m_movePositionSoFar; }
-        uint32_t dynObjReference() { return m_dynObjReference; }
+        boost::optional<ObjReference> objReference() { return m_objReference; }
         bool movementAllowed() { return (!m_lockedIntoPlace) && (m_prev.first == nullptr); }
 
         /* setters */
         void setRC(uint32_t row, uint32_t col) { m_row = row; m_col = col; }
-        void setDynObjReference(uint32_t ref) { m_dynObjReference = ref; }
+        void setObjReference(boost::optional<ObjReference> ref) { m_objReference = ref; }
         void setLockedIntoPlace(bool lockedIntoPlace) { m_lockedIntoPlace = lockedIntoPlace; }
         void rotate() {
             m_rotationAngle += glm::radians(90.0f);
@@ -503,7 +569,7 @@ public:
                   m_next{std::make_pair(nextComponent, nextIndex)},
                   m_moveInProgress{false},
                   m_movePositionSoFar{0.0f, 0.0f},
-                  m_dynObjReference{m_invalidObjReference}
+                  m_objReference{boost::none}
         {
         }
     private:
@@ -515,7 +581,7 @@ public:
         std::pair<std::shared_ptr<Component>, size_t> m_next;
         bool m_moveInProgress;
         glm::vec2 m_movePositionSoFar;
-        uint32_t m_dynObjReference;
+        boost::optional<ObjReference> m_objReference;
     };
 
     uint32_t add(
@@ -560,12 +626,12 @@ public:
     Placement &placement(size_t index) { return m_placements[index]; }
     size_t nbrPlacements() { return m_placements.size(); }
     float componentSize() { return m_componentSize; }
-    std::vector<size_t> dynObjReferences() { return m_dynObjReferences; }
-    std::vector<size_t> dynObjReferencesLockedComponent() { return m_dynObjReferencesLockedComponent; }
+    std::set<ObjReference> objReferences() { return m_objReferences; }
+    std::set<ObjReference> objReferencesLockedComponent() { return m_objReferencesLockedComponent; }
 
     void setSize(float tileSize) { m_componentSize = tileSize; }
-    void setDynObjReferences(std::vector<size_t> refs) { m_dynObjReferences = refs; }
-    void setDynObjReferencesLockedComponent(std::vector<size_t> refs) { m_dynObjReferencesLockedComponent = refs; }
+    void setObjReferences(std::set<ObjReference> refs) { m_objReferences = refs; }
+    void setObjReferencesLockedComponent(std::set<ObjReference> refs) { m_objReferencesLockedComponent = refs; }
 
     Component(ComponentType inType, float componentSize = 0.0f)
             : m_componentType{inType},
@@ -614,8 +680,8 @@ private:
     float m_componentSize;
     std::vector<Placement> m_placements;
     std::set<CellWall> m_cellWalls;
-    std::vector<size_t> m_dynObjReferences;
-    std::vector<size_t> m_dynObjReferencesLockedComponent;
+    std::set<ObjReference> m_objReferences;
+    std::set<ObjReference> m_objReferencesLockedComponent;
 };
 
 class GameBoardBlock {
@@ -724,9 +790,14 @@ public:
     GameBoardBlock::BlockType blockType(uint32_t row, uint32_t col) { return m_blocks[row][col].blockType(); }
 
     GameBoard()
-            : m_width{0.0f},
+            : m_nbrTileRowsForStart{0},
+              m_nbrTileRowsForEnd{0},
+              m_width{0.0f},
               m_height{0.0f},
-              m_centerPos{0.0f, 0.0f, 0.0f}
+              m_centerPos{0.0f, 0.0f, 0.0f},
+              m_blockSize{0.0f},
+              m_moveInProgress{false},
+              m_moveStartingPosition{std::make_pair(0,0)}
     {}
 private:
     uint32_t m_nbrTileRowsForStart;
@@ -754,14 +825,16 @@ private:
 };
 
 template <void (*getModel)(std::vector<Vertex> &vertices, std::vector<uint32_t> &indices)>
-std::vector<size_t> addObjs(
+std::set<ObjReference> addObjs(
         std::shared_ptr<GameRequester> const &gameRequester,
+        bool isDyn,
         DrawObjectTable &objs,
         TextureMap &textures,
+        bool isLockedInPlaceRef,
         std::vector<std::string> const &models,
         std::vector<std::string> const &textureNames)
 {
-    std::vector<size_t> ret;
+    std::set<ObjReference> ret;
     std::vector<std::pair<std::vector<Vertex>, std::vector<uint32_t>>> v;
     if (models.empty()) {
         v.resize(1);
@@ -782,22 +855,22 @@ std::vector<size_t> addObjs(
         if (i < textureNames.size()) {
             textures.insert(std::make_pair(obj->texture, std::shared_ptr<TextureData>()));
         }
-        ret.push_back(objs.size());
+        ret.emplace(isDyn, objs.size(), isLockedInPlaceRef, i % v.size(), i % textureNames.size());
         objs.emplace_back(obj, std::shared_ptr<DrawObjectData>());
     }
 
     return std::move(ret);
 }
 
-size_t chooseObj(
+boost::optional<ObjReference> chooseObj(
         Random &randomNumbers,
         std::shared_ptr<Component> const &component,
         size_t placementIndex);
 
-size_t addModelMatrixToObj(
+boost::optional<ObjReference> addModelMatrixToObj(
         Random &randomNumbers,
         DrawObjectTable &objs,
-        std::vector<size_t> const &refs,
+        std::set<ObjReference> const &refs,
         std::shared_ptr<Component> const &component,
         size_t placementIndex,
         glm::mat4 modelMatrix);

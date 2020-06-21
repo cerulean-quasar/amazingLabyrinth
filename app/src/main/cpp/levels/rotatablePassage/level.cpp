@@ -174,8 +174,8 @@ namespace rotatablePassage {
 
     bool Level::updateStaticDrawObjects(DrawObjectTable &objs, TextureMap &textures) {
         if (objs.empty()) {
-            auto refs = addObjs<getCube>(m_gameRequester, objs, textures,
-                                         std::vector<std::string>{}, m_borderTextures);
+            auto refs = addObjs<getCube>(m_gameRequester, false, objs, textures,
+                                         false, std::vector<std::string>{}, m_borderTextures);
 
             float scale = m_gameBoard.blockSize() / m_modelSize;
 
@@ -248,7 +248,7 @@ namespace rotatablePassage {
             if (!m_holeModel.empty()) {
                 holeModels.push_back(m_holeModel);
             }
-            refs = addObjs<getQuad>(m_gameRequester, objs, textures, holeModels,
+            refs = addObjs<getQuad>(m_gameRequester, false, objs, textures, false, holeModels,
                                     std::vector<std::string>{m_holeTexture});
             pos = m_gameBoard.position(m_endRow, m_endCol);
             addModelMatrixToObj(m_randomNumbers, objs, refs, nullptr, 0,
@@ -268,15 +268,16 @@ namespace rotatablePassage {
         if (objs.empty()) {
             for (auto &component : m_components) {
                 Component::ComponentType type = component->type();
-                auto refs = addObjs<getCube>(m_gameRequester, objs, textures,
+                auto refs = addObjs<getCube>(m_gameRequester, true, objs, textures, false,
                                              m_componentModels[type],
                                              m_componentTextures[type]);
-                component->setDynObjReferences(refs);
+                component->setObjReferences(refs);
 
-                auto refsLockedInPlace = addObjs<getCube>(m_gameRequester, objs, textures,
+                auto refsLockedInPlace = addObjs<getCube>(m_gameRequester, true, objs, textures,
+                                                          true,
                                                           m_componentModels[type],
                                                           m_componentTexturesLockedInPlace[type]);
-                component->setDynObjReferencesLockedComponent(refsLockedInPlace);
+                component->setObjReferencesLockedComponent(refsLockedInPlace);
 
                 size_t i = 0;
                 for (auto placementIt = component->placementsBegin();
@@ -318,26 +319,31 @@ namespace rotatablePassage {
             nbrModelMatrices.resize(objs.size(), 0);
             for (auto &component : m_components) {
                 size_t i = 0;
-                auto refs = component->dynObjReferences();
+                auto refs = component->objReferences();
                 for (auto placementIt = component->placementsBegin();
                      placementIt != component->placementsEnd();
                      placementIt++, i++) {
                     auto pos = m_gameBoard.position(placementIt->row(), placementIt->col());
-                    size_t ref = placementIt->dynObjReference();
-                    if (ref == Component::Placement::m_invalidObjReference) {
+                    auto ref = placementIt->objReference();
+                    if (ref == boost::none) {
                         ref = chooseObj(m_randomNumbers, component, i);
-                        placementIt->setDynObjReference(ref);
+                        placementIt->setObjReference(ref);
+                    }
+                    if (ref == boost::none || ref.get().objIsDynAndIndex == boost::none) {
+                        // shouldn't happen
+                        throw std::runtime_error("unexpected empty draw object reference");
                     }
                     auto modelMatrix = glm::translate(glm::mat4{1.0f}, pos) *
                                        glm::rotate(glm::mat4{1.0f}, placementIt->rotationAngle(),
                                                    glm::vec3{0.0f, 0.0f, 1.0f}) *
                                        glm::scale(glm::mat4{1.0f}, glm::vec3{scale, scale, scale});
-                    if (objs[ref].first->modelMatrices.size() <= nbrModelMatrices[ref]) {
-                        objs[ref].first->modelMatrices.push_back(modelMatrix);
+                    size_t objIndex = ref.get().objIsDynAndIndex.get().second;
+                    if (objs[objIndex].first->modelMatrices.size() <= nbrModelMatrices[objIndex]) {
+                        objs[objIndex].first->modelMatrices.push_back(modelMatrix);
                     } else {
-                        objs[ref].first->modelMatrices[nbrModelMatrices[ref]] = modelMatrix;
+                        objs[objIndex].first->modelMatrices[nbrModelMatrices[objIndex]] = modelMatrix;
                     }
-                    nbrModelMatrices[ref]++;
+                    nbrModelMatrices[objIndex]++;
                 }
             }
 

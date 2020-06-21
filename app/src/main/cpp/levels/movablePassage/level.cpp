@@ -324,7 +324,7 @@ namespace movablePassage {
         }
     }
 
-    void Level::initDone() {
+    void Level::initDone(std::shared_ptr<LevelSaveData> const &sd) {
         // add the rock segments that were requested of us.
         std::shared_ptr<Component> &rock = m_components[Component::ComponentType::noMovementRock];
         for (auto const &rc: m_addedRocks) {
@@ -361,6 +361,15 @@ namespace movablePassage {
             }
         }
 
+        // restore the model/texture for each game board component
+        if (sd) {
+            for (size_t row = 0; row < m_gameBoard.heightInTiles() - m_nbrTileRowsForEnd; row++) {
+                for (size_t col = 0; col < m_gameBoard.widthInTiles(); col++) {
+                    auto &b = m_gameBoard.block(row, col);
+                    b.component()->placement(b.placementIndex()).setObjReference(sd->gameBoardObjReferences[row][col]);
+                }
+            }
+        }
         m_initDone = true;
     }
 
@@ -501,17 +510,20 @@ namespace movablePassage {
         objs.push_back(std::make_pair(objEndOffBoard, std::shared_ptr<DrawObjectData>()));
 
         // the start: closed corner type
-        auto objRefsStartCorner = addObjs<getCube>(m_gameRequester, objs, textures,
+        auto objRefsStartCorner = addObjs<getCube>(m_gameRequester, false, objs, textures,
+                                                   false,
                                                    m_componentModels[Component::ComponentType::closedCorner],
                                                    m_componentTextures[Component::ComponentType::closedCorner]);
 
         // the start: closed bottom type
-        auto objRefsStartSide = addObjs<getCube>(m_gameRequester, objs, textures,
+        auto objRefsStartSide = addObjs<getCube>(m_gameRequester, false, objs, textures,
+                                                 false,
                                                  m_componentModels[Component::ComponentType::closedBottom],
                                                  m_componentTextures[Component::ComponentType::closedBottom]);
 
         // the start: open type
-        auto objRefsStartCenter = addObjs<getCube>(m_gameRequester, objs, textures,
+        auto objRefsStartCenter = addObjs<getCube>(m_gameRequester, false, objs, textures,
+                                                   false,
                                                    m_componentModels[Component::ComponentType::open],
                                                    m_componentTextures[Component::ComponentType::open]);
 
@@ -536,15 +548,15 @@ namespace movablePassage {
                         glm::scale(glm::mat4(1.0f), glm::vec3(scale, scale, scale));
                 switch (component->type()) {
                     case Component::ComponentType::closedCorner:
-                        addModelMatrixToObj(m_random, objs, objRefsStartCorner, nullptr, 0,
+                        addModelMatrixToObj(m_random, objs, objRefsStartCorner, component, placementIndex,
                                             modelMatrix);
                         break;
                     case Component::ComponentType::closedBottom:
-                        addModelMatrixToObj(m_random, objs, objRefsStartSide, nullptr, 0,
+                        addModelMatrixToObj(m_random, objs, objRefsStartSide, component, placementIndex,
                                             modelMatrix);
                         break;
                     case Component::ComponentType::open:
-                        addModelMatrixToObj(m_random, objs, objRefsStartCenter, nullptr, 0,
+                        addModelMatrixToObj(m_random, objs, objRefsStartCenter, component, placementIndex,
                                             modelMatrix);
                         break;
                     default:
@@ -554,7 +566,8 @@ namespace movablePassage {
         }
 
         // fill in the bottom and sides with rocks so that no bg color shows.
-        auto objRefsRock = addObjs<getCube>(m_gameRequester, objs, textures,
+        auto objRefsRock = addObjs<getCube>(m_gameRequester, false, objs, textures,
+                                            false,
                                             m_componentModels[Component::ComponentType::noMovementRock],
                                             m_componentTextures[Component::ComponentType::noMovementRock]);
 
@@ -610,7 +623,7 @@ namespace movablePassage {
         glm::vec3 zaxis{0.0f, 0.0f, 1.0f};
         float scaleBall = m_gameBoard.blockSize() / m_modelSize / 2.0f;
 
-        auto addComponentModelMatrices = [&](size_t ballReference) -> void {
+        auto addComponentModelMatrices = [&](boost::optional<size_t> const &ballReference) -> void {
             bool moveInProgress = m_gameBoard.isMoveInProgress();
             auto rc = m_gameBoard.moveRC();
             std::vector<size_t> nbrPlacements;
@@ -625,20 +638,24 @@ namespace movablePassage {
                                         glm::rotate(glm::mat4(1.0f), component->placement(
                                                 placementIndex).rotationAngle(), zaxis) *
                                         glm::scale(glm::mat4(1.0f), glm::vec3{scale, scale, scale});
-                auto ref = component->placement(placementIndex).dynObjReference();
-                if (ref == Component::Placement::m_invalidObjReference) {
+                auto ref = component->placement(placementIndex).objReference();
+                if (ref == boost::none || ref.get().objIsDynAndIndex == boost::none) {
                     ref = chooseObj(m_random, component, placementIndex);
                 }
-                if (ref != Component::Placement::m_invalidObjReference) {
+                if (ref != boost::none &&
+                    ref.get().objIsDynAndIndex != boost::none &&
+                    ref.get().objIsDynAndIndex.get().first)
+                {
                     // ref should always be valid at this point, but just in case...
-                    auto &obj = objs[ref].first;
+                    size_t objIndex = ref.get().objIsDynAndIndex.get().second;
+                    auto &obj = objs[objIndex].first;
 
-                    if (nbrPlacements[ref] >= obj->modelMatrices.size()) {
+                    if (nbrPlacements[objIndex] >= obj->modelMatrices.size()) {
                         obj->modelMatrices.push_back(modelMatrix);
                     } else {
-                        obj->modelMatrices[nbrPlacements[ref]] = modelMatrix;
+                        obj->modelMatrices[nbrPlacements[objIndex]] = modelMatrix;
                     }
-                    nbrPlacements[ref]++;
+                    nbrPlacements[objIndex]++;
                 }
             };
 
@@ -676,24 +693,32 @@ namespace movablePassage {
                         glm::translate(glm::mat4(1.0f), glm::vec3{xy.x, xy.y, m_zMovingPlacement}) *
                         glm::rotate(glm::mat4(1.0f), placement.rotationAngle(), zaxis) *
                         glm::scale(glm::mat4(1.0f), glm::vec3{size, size, size});
-                auto ref = placement.dynObjReference();
-                if (ref == Component::Placement::m_invalidObjReference) {
-                    ref = addModelMatrixToObj(m_random, objs, component->dynObjReferences(),
-                                              component,
-                                              b.placementIndex(), modelMatrix);
+                auto ref = placement.objReference();
+                size_t objIndex = 0;
+                if (ref == boost::none || ref.get().objIsDynAndIndex == boost::none) {
+                    ref = addModelMatrixToObj(m_random, objs, component->objReferences(),
+                                              component, b.placementIndex(), modelMatrix);
+                    if (ref == boost::none || ref.get().objIsDynAndIndex == boost::none) {
+                        throw (std::runtime_error("Unexpected empty obj index"));
+                    }
+                    objIndex = ref.get().objIsDynAndIndex.get().second;
+                } else if (!ref.get().objIsDynAndIndex.get().first) {
+                    // this should never be none at this point
+                    throw(std::runtime_error("Draw object reference is not a dynamic reference"));
                 } else {
-                    auto obj = objs[ref].first;
-                    if (nbrPlacements[ref] >= obj->modelMatrices.size()) {
+                    objIndex = ref.get().objIsDynAndIndex.get().second;
+                    auto obj = objs[objIndex].first;
+                    if (nbrPlacements[objIndex] >= obj->modelMatrices.size()) {
                         obj->modelMatrices.push_back(modelMatrix);
                     } else {
-                        obj->modelMatrices[nbrPlacements[ref]] = modelMatrix;
+                        obj->modelMatrices[nbrPlacements[objIndex]] = modelMatrix;
                     }
                 }
-                nbrPlacements[ref]++;
+                nbrPlacements[objIndex]++;
             }
 
             for (size_t i = 0; i < objs.size(); i++) {
-                if (i != ballReference) {
+                if (ballReference == boost::none || i != ballReference.get()) {
                     objs[i].first->modelMatrices.resize(nbrPlacements[i]);
                 }
             }
@@ -709,22 +734,24 @@ namespace movablePassage {
                     // These components are handled as static draw objects or we have none of them
                     continue;
                 }
-                auto refs = addObjs<getCube>(m_gameRequester, objs, textures,
+                auto refs = addObjs<getCube>(m_gameRequester, true, objs, textures,
+                                             false,
                                              m_componentModels[component->type()],
                                              m_componentTextures[component->type()]);
-                component->setDynObjReferences(refs);
+                component->setObjReferences(refs);
 
                 // when components are locked into place and cannot be moved, use these objs.
                 // don't do this for the rocks, they are always colored the same way.
                 if (component->type() != Component::ComponentType::noMovementRock) {
-                    refs = addObjs<getCube>(m_gameRequester, objs, textures,
+                    refs = addObjs<getCube>(m_gameRequester, true, objs, textures,
+                                            true,
                                             m_componentModels[component->type()],
                                             texturesLockedIntoPlace);
-                    component->setDynObjReferencesLockedComponent(refs);
+                    component->setObjReferencesLockedComponent(refs);
                 }
             }
 
-            addComponentModelMatrices(Component::Placement::m_invalidObjReference);
+            addComponentModelMatrices(boost::none);
 
             // the ball
             std::pair<std::vector<Vertex>, std::vector<uint32_t>> v;
@@ -739,14 +766,14 @@ namespace movablePassage {
                     glm::translate(glm::mat4(1.0f), m_ball.position) *
                     glm::mat4_cast(m_ball.totalRotated) *
                     glm::scale(glm::mat4(1.0f), glm::vec3{scaleBall, scaleBall, scaleBall}));
-            m_objsReferenceBall = objs.size();
+            m_objsIndexBall = objs.size();
             objs.emplace_back(obj, std::shared_ptr<DrawObjectData>());
             texturesChanged = true;
         } else {
-            addComponentModelMatrices(m_objsReferenceBall);
+            addComponentModelMatrices(m_objsIndexBall);
 
             // the ball
-            objs[m_objsReferenceBall].first->modelMatrices[0] =
+            objs[m_objsIndexBall].first->modelMatrices[0] =
                     glm::translate(glm::mat4(1.0f), m_ball.position) *
                     glm::mat4_cast(m_ball.totalRotated) *
                     glm::scale(glm::mat4(1.0f), glm::vec3{scaleBall, scaleBall, scaleBall});

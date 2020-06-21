@@ -28,6 +28,22 @@
 #include "loadData.hpp"
 #include "../basic/level.hpp"
 
+char constexpr const *LockedInPlaceRef = "LockedInPlaceRef";
+char constexpr const *TextureIndex = "TextureIndex";
+char constexpr const *ModelIndex = "ModelIndex";
+void to_json(nlohmann::json &j, ObjReference const &val) {
+    j[LockedInPlaceRef] = val.isLockedInPlaceRef;
+    j[TextureIndex] = val.textureIndex;
+    j[ModelIndex] = val.modelIndex;
+}
+
+void from_json(nlohmann::json const &j, ObjReference &val) {
+    val.objIsDynAndIndex = boost::none;
+    val.isLockedInPlaceRef = j[LockedInPlaceRef].get<bool>();
+    val.modelIndex = j[ModelIndex].get<size_t>();
+    val.textureIndex = j[TextureIndex].get<size_t>();
+}
+
 namespace movablePassage {
     char constexpr const *StraightPositions = "StraightPositions";
     char constexpr const *TJunctionPositions = "TJunctionPositions";
@@ -38,6 +54,7 @@ namespace movablePassage {
     char constexpr const *PlacementPosition = "PlacementPosition";
     char constexpr const *Nbr90DegreeRotations = "Nbr90DegreeRotations";
     char constexpr const *BallPosition = "BallPosition";
+    char constexpr const *GameBoardObjReferences = "GameBoardObjReferences";
 
     void to_json(nlohmann::json &j, PlacementSaveData const &val) {
         j[PlacementPosition] = val.rowCol;
@@ -54,6 +71,7 @@ namespace movablePassage {
         j[PathLockedInPlace] = val.pathLockedInPlace;
         j[BallRowColumn] = val.ballRC;
         j[BallPosition] = val.ballPosition;
+        j[GameBoardObjReferences] = val.gameBoardObjReferences;
     }
 
     void from_json(nlohmann::json const &j, PlacementSaveData &val) {
@@ -70,6 +88,7 @@ namespace movablePassage {
         val.pathLockedInPlace = j[PathLockedInPlace].get<std::vector<Point<uint32_t>>>();
         val.ballRC = j[BallRowColumn].get<Point<uint32_t>>();
         val.ballPosition = j[BallPosition].get<Point<float>>();
+        val.gameBoardObjReferences = j[GameBoardObjReferences].get<std::vector<std::vector<ObjReference>>>();
     }
 
     char constexpr const *Row = "Row";
@@ -186,6 +205,8 @@ namespace movablePassage {
     std::vector<uint8_t> Level::saveData(levelTracker::GameSaveData const &gsd,
                                   char const *saveLevelDataKey) {
         auto sd = std::make_shared<LevelSaveData>();
+
+        // the component positions.
         auto initComponentVector =
             [&] (Component::ComponentType componentType, std::vector<PlacementSaveData> &vec) {
                 for (auto placementIt = m_components[componentType]->placementsBegin();
@@ -206,9 +227,14 @@ namespace movablePassage {
         initComponentVector(Component::ComponentType::tjunction, sd->tjunctionPositions);
         initComponentVector(Component::ComponentType::crossjunction, sd->crossjunctionPositions);
         initComponentVector(Component::ComponentType::turn, sd->turnPositions);
+
+        // the ball row and column
         sd->ballRC = Point<uint32_t>(m_ballRow, m_ballCol);
+
+        // the ball position from the origin in x and y directions.
         sd->ballPosition = Point<float>(m_ball.position.x, m_ball.position.y);
 
+        // the path the ball has traveled in user placeable components.
         bool done = false;
         Point<uint32_t> startRC{m_ballFirstPlaceableComponent.first, m_ballFirstPlaceableComponent.second};
         do {
@@ -227,6 +253,23 @@ namespace movablePassage {
                 done = true;
             }
         } while (!done);
+
+        // the model/texture each component is using.
+        for (size_t row = 0; row < m_gameBoard.heightInTiles() - m_nbrTileRowsForEnd; row++) {
+            std::vector<ObjReference> refs;
+            for (size_t col = 0; col < m_gameBoard.widthInTiles(); col++) {
+                auto &b = m_gameBoard.block(row, col);
+                auto ref = b.component()->placement(b.placementIndex()).objReference();
+                if (ref == boost::none) {
+                    // should mostly never happen, but just in case we are shutting down before
+                    // updateStaticDrawObjects or updateDynamicDrawObjects happens...
+                    refs.emplace_back();
+                } else {
+                    refs.emplace_back(ref.get());
+                }
+            }
+            sd->gameBoardObjReferences.push_back(refs);
+        }
 
         nlohmann::json j;
         to_json(j, gsd);
