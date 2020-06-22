@@ -20,9 +20,47 @@
 
 #include "level.hpp"
 #include "../generatedMazeAlgorithms.hpp"
+#include "../basic/level.hpp"
 
 namespace rotatablePassage {
     char constexpr const *Level::m_name;
+
+    void Level::initSetGameBoardFromSaveData(std::shared_ptr<LevelSaveData> const &sd) {
+        if (sd->gameBoardPlacements.size() == 0 || sd->gameBoardPlacements[0].size() == 0) {
+            throw std::runtime_error("Unexpected maze size");
+        }
+
+        m_gameBoard.initialize(m_height/sd->gameBoardPlacements.size(),
+                glm::vec3{0.0f, 0.0f, m_mazeFloorZ}, sd->gameBoardPlacements.size(),
+                sd->gameBoardPlacements[0].size(), 0, 0);
+
+        m_ballStartRow = sd->ballStartRC.row;
+        m_ballStartCol = sd->ballStartRC.col;
+
+        m_endRow = sd->ballEndRC.row;
+        m_endCol = sd->ballEndRC.col;
+
+        m_ballRow = sd->ballRC.row;
+        m_ballCol = sd->ballRC.col;
+
+        m_ball.position = glm::vec3{sd->ballPosition.x, sd->ballPosition.y, m_mazeFloorZ + ballRadius()};
+
+        for (size_t rowIndex = 0; rowIndex < sd->gameBoardPlacements.size(); rowIndex++) {
+            for (size_t colIndex = 0; colIndex < sd->gameBoardPlacements[rowIndex].size(); colIndex++) {
+                auto &b = m_gameBoard.block(rowIndex, colIndex);
+                float angle = sd->gameBoardPlacements[rowIndex][colIndex].nbr90DegreeRotations *
+                        glm::radians(90.0f);
+                Component::ComponentType componentType =
+                        sd->gameBoardPlacements[rowIndex][colIndex].componentType;
+                size_t placementIndex = m_components[componentType]->add(rowIndex, colIndex, angle);
+                b.setComponent(m_components[componentType], placementIndex);
+                m_components[componentType]->placement(placementIndex).setObjReference(
+                        sd->gameBoardPlacements[rowIndex][colIndex].objReference);
+            }
+        }
+
+        restorePathLockedInPlace(m_gameBoard, sd->pathLockedInPlace);
+    }
 
     void Level::initSetGameBoard(uint32_t nbrTilesY, GeneratedMazeBoard::Mode mode) {
         uint32_t nbrTilesX = static_cast<uint32_t>(std::floor(nbrTilesY / m_height * m_width));
@@ -39,6 +77,9 @@ namespace rotatablePassage {
 
         m_endRow = mazeBoard.rowEnd();
         m_endCol = mazeBoard.colEnd();
+
+        m_ballStartRow = mazeBoard.rowStart();
+        m_ballStartCol = mazeBoard.colStart();
 
         // add the components into the game board
         for (uint32_t i = 0; i < nbrTilesY; i++) {

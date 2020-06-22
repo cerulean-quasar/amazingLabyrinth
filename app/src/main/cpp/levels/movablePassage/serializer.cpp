@@ -20,29 +20,15 @@
 #include <memory>
 #include <json.hpp>
 #include <boost/implicit_cast.hpp>
+
 #include "../../levelTracker/internals.hpp"
 #include "../basic/serializer.hpp"
 
+#include "../movablePassageAlgorithmsSerializer.hpp"
 #include "serializer.hpp"
 #include "level.hpp"
 #include "loadData.hpp"
 #include "../basic/level.hpp"
-
-char constexpr const *LockedInPlaceRef = "LockedInPlaceRef";
-char constexpr const *TextureIndex = "TextureIndex";
-char constexpr const *ModelIndex = "ModelIndex";
-void to_json(nlohmann::json &j, ObjReference const &val) {
-    j[LockedInPlaceRef] = val.isLockedInPlaceRef;
-    j[TextureIndex] = val.textureIndex;
-    j[ModelIndex] = val.modelIndex;
-}
-
-void from_json(nlohmann::json const &j, ObjReference &val) {
-    val.objIsDynAndIndex = boost::none;
-    val.isLockedInPlaceRef = j[LockedInPlaceRef].get<bool>();
-    val.modelIndex = j[ModelIndex].get<size_t>();
-    val.textureIndex = j[TextureIndex].get<size_t>();
-}
 
 namespace movablePassage {
     char constexpr const *StraightPositions = "StraightPositions";
@@ -235,24 +221,8 @@ namespace movablePassage {
         sd->ballPosition = Point<float>(m_ball.position.x, m_ball.position.y);
 
         // the path the ball has traveled in user placeable components.
-        bool done = false;
-        Point<uint32_t> startRC{m_ballFirstPlaceableComponent.first, m_ballFirstPlaceableComponent.second};
-        do {
-            auto b = m_gameBoard.block(startRC.x, startRC.y);
-            auto &placement = b.component()->placement(b.placementIndex());
-            if (placement.prev().first != nullptr) {
-                sd->pathLockedInPlace.emplace_back(startRC);
-            } else {
-                done = true;
-            }
-            if (placement.next().first != nullptr) {
-                auto &nextPlacement = placement.next().first->placement(placement.next().second);
-                startRC.x = nextPlacement.row();
-                startRC.y = nextPlacement.col();
-            } else {
-                done = true;
-            }
-        } while (!done);
+        sd->pathLockedInPlace = pathLockedInPlace(m_gameBoard, m_ballFirstPlaceableComponent.first,
+                m_ballFirstPlaceableComponent.second);
 
         // the model/texture each component is using.
         for (size_t row = 0; row < m_gameBoard.heightInTiles() - m_nbrTileRowsForEnd; row++) {

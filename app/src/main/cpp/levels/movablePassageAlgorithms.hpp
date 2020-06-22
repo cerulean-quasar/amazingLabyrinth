@@ -102,12 +102,6 @@ struct ObjReference {
 
 class Component {
 public:
-    enum MovableType {
-        noneAssigned = 0,
-        staticObj,
-        dynamicObj
-    };
-
     enum CellWall {
         wallRight = 0,
         wallUp,
@@ -880,5 +874,8 @@ void blockUnblockPlacements(
         size_t oldPlacementIndex,
         std::shared_ptr<Component> const &newComponent,
         size_t newPlacementIndex);
+
+// restore the path that the ball went through
+void restorePathLockedInPlace(GameBoard &gameBoard, std::vector<Point<uint32_t>> const &pathLockedInPlace);
 
 #endif // AMAZING_LABYRINTH_MOVABLE_PASSAGE_ALGORITHMS_HPP

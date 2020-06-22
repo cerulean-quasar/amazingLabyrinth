@@ -381,3 +381,49 @@ void blockUnblockPlacements(
     }
 
 }
+
+void restorePathLockedInPlace(GameBoard &gameBoard, std::vector<Point<uint32_t>> const &pathLockedInPlace) {
+    // restore the locked in place path
+    if (!pathLockedInPlace.empty()) {
+        bool done = false;
+        Point<uint32_t> rowColPrev{pathLockedInPlace[0]};
+        Point<uint32_t> rowCol{rowColPrev};
+        rowColPrev.x --;
+        size_t i = 0;
+        while (!done) {
+            auto &bPrev = gameBoard.block(rowColPrev.x, rowColPrev.y);
+            auto &b = gameBoard.block(rowCol.x, rowCol.y);
+            if (b.component() == nullptr || bPrev.component() == nullptr) {
+                // shouldn't happen
+                break;
+            }
+            if (i == 0) {
+                // hook up the first placement that is user placeable to the last
+                // permanent locked in place component.
+                auto &next = bPrev.component()->placement(bPrev.placementIndex()).next();
+                next.first = b.component();
+                next.second = b.placementIndex();
+            }
+            auto &prev = b.component()->placement(b.placementIndex()).prev();
+            prev.first = bPrev.component();
+            prev.second = bPrev.placementIndex();
+
+            if (i + 1 < pathLockedInPlace.size()) {
+                Point<uint32_t> rowColNext{pathLockedInPlace[i+1]};
+                auto &next = b.component()->placement(b.placementIndex()).next();
+                auto bNext = gameBoard.block(rowColNext.x, rowColNext.y);
+                if (bNext.component() == nullptr) {
+                    // shouldn't happen
+                    break;
+                }
+                next.first = bNext.component();
+                next.second = bNext.placementIndex();
+                rowColPrev = rowCol;
+                rowCol = rowColNext;
+                i++;
+            } else {
+                done = true;
+            }
+        }
+    }
+}

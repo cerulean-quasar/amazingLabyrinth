@@ -74,7 +74,7 @@ namespace rotatablePassage {
         Level(
             std::shared_ptr<GameRequester> inGameRequester,
             std::shared_ptr<LevelConfigData> const &lcd,
-            std::shared_ptr<LevelSaveData> /*sd*/,
+            std::shared_ptr<LevelSaveData> const &sd,
             glm::mat4 const &proj, glm::mat4 const &view, float maxZ)
             : basic::Level(inGameRequester, lcd, proj, view, maxZ, true),
               m_initDone{false},
@@ -122,8 +122,13 @@ namespace rotatablePassage {
 
             m_borderTextures = lcd->borderTextures;
 
-            initSetGameBoard(lcd->numberRows,
-                    lcd->dfsSearch ? GeneratedMazeBoard::Mode::DFS : GeneratedMazeBoard::Mode::BFS);
+            if (sd) {
+                initSetGameBoardFromSaveData(sd);
+            } else {
+                initSetGameBoard(lcd->numberRows,
+                                 lcd->dfsSearch ? GeneratedMazeBoard::Mode::DFS
+                                                : GeneratedMazeBoard::Mode::BFS);
+            }
         }
 
     private:
@@ -139,6 +144,9 @@ namespace rotatablePassage {
 
         uint32_t m_ballRow;
         uint32_t m_ballCol;
+
+        uint32_t m_ballStartRow;
+        uint32_t m_ballStartCol;
 
         uint32_t m_endRow;
         uint32_t m_endCol;
@@ -158,6 +166,7 @@ namespace rotatablePassage {
         std::vector<std::string> m_borderTextures;
 
         void initSetGameBoard(uint32_t numberRows, GeneratedMazeBoard::Mode mode);
+        void initSetGameBoardFromSaveData(std::shared_ptr<LevelSaveData> const &sd);
     };
 } // namespace rotatablePassage
 #endif // AMAZING_LABYRINTH_ROTATABLE_PASSAGE_LEVEL_HPP

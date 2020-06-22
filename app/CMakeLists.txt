@@ -42,6 +42,7 @@ add_library( # Sets the name of the library.
         src/main/cpp/levels/finisher/serializer.cpp
         src/main/cpp/levels/generatedMazeAlgorithms.cpp
         src/main/cpp/levels/movablePassageAlgorithms.cpp
+        src/main/cpp/levels/movablePassageAlgorithmsSerializer.cpp
         src/main/cpp/levels/avoidVortexMaze/level.cpp
         src/main/cpp/levels/avoidVortexMaze/serializer.cpp
         src/main/cpp/levels/avoidVortexOpenArea/level.cpp

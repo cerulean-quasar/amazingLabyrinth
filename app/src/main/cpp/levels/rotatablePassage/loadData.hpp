@@ -21,11 +21,54 @@
 #ifndef AMAZING_LABYRINTH_ROTATABLE_PASSAGE_LOAD_DATA_HPP
 #define AMAZING_LABYRINTH_ROTATABLE_PASSAGE_LOAD_DATA_HPP
 
+#include <vector>
+
 #include "../basic/loadData.hpp"
 
 namespace rotatablePassage {
     static int constexpr levelSaveDataVersion = 1;
+
+    struct PlacementSaveData {
+        ObjReference objReference;
+        Component::ComponentType componentType;
+        uint32_t nbr90DegreeRotations;
+
+        PlacementSaveData(
+                bool isLockedInPlace,
+                uint32_t modelIndex,
+                uint32_t textureIndex,
+                Component::ComponentType type_,
+                uint32_t nbr90DegreeRotations_)
+                : objReference{isLockedInPlace, modelIndex, textureIndex},
+                componentType { type_ },
+                nbr90DegreeRotations { nbr90DegreeRotations_ }
+        {}
+
+        PlacementSaveData(
+                ObjReference const &objReference_,
+                Component::ComponentType type_,
+                uint32_t nbr90DegreeRotations_)
+                : objReference{objReference_},
+                  componentType { type_ },
+                  nbr90DegreeRotations { nbr90DegreeRotations_ }
+        {}
+
+        PlacementSaveData()
+            : objReference{},
+            componentType{Component::ComponentType::noMovementDirt},
+            nbr90DegreeRotations{0}
+        {}
+
+        PlacementSaveData(PlacementSaveData &&other) = default;
+    };
+
     struct LevelSaveData : public basic::LevelSaveData {
+        std::vector<std::vector<PlacementSaveData>> gameBoardPlacements;
+        std::vector<Point<uint32_t>> pathLockedInPlace;
+        Point<uint32_t> ballStartRC;
+        Point<uint32_t> ballEndRC;
+        Point<uint32_t> ballRC;
+        Point<float> ballPosition;
         LevelSaveData() : basic::LevelSaveData{levelSaveDataVersion} {}
     };
 

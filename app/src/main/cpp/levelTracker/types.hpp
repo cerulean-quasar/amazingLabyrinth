@@ -22,8 +22,15 @@
 
 template <typename CoordType>
 struct Point {
-    CoordType x;
-    CoordType y;
+    union {
+        CoordType x;
+        CoordType row;
+    };
+    union {
+        CoordType y;
+        CoordType col;
+    };
+
     Point<CoordType>() : x{0}, y{0} {}
     Point<CoordType>(CoordType x_, CoordType y_) : x{x_}, y{y_} {}
     Point<CoordType>(Point<CoordType> const &other) : x{other.x}, y{other.y} {}

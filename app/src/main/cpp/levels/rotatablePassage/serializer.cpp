@@ -20,21 +20,53 @@
 #include <memory>
 #include <json.hpp>
 #include <boost/implicit_cast.hpp>
-#include "level.hpp"
+
 #include "../basic/serializer.hpp"
 #include "../basic/level.hpp"
 #include "../../levelTracker/internals.hpp"
+#include "../movablePassageAlgorithmsSerializer.hpp"
 
 #include "loadData.hpp"
+#include "level.hpp"
 #include "serializer.hpp"
 
 namespace rotatablePassage {
+    char constexpr const *ObjectReference = "ObjReference";
+    char constexpr const *ComponentType = "ComponentType";
+    char constexpr const *Nbr90DegreeRotations = "Nbr90DegreeRotations";
+    void to_json(nlohmann::json &j, PlacementSaveData const &val) {
+        j[ObjectReference] = val.objReference;
+        j[ComponentType] = val.componentType;
+        j[Nbr90DegreeRotations] = val.nbr90DegreeRotations;
+    }
+
+    char constexpr const *GameBoardPlacements = "GameBoardPlacements";
+    char constexpr const *PathLockedInPlace = "PathLockedInPlace";
+    char constexpr const *BallStartRC = "BallStartRC";
+    char constexpr const *BallRC = "BallRC";
+    char constexpr const *BallPosition = "BallPosition";
     void to_json(nlohmann::json &j, LevelSaveData const &val) {
         to_json(j, boost::implicit_cast<basic::LevelSaveData const &>(val));
+        j[GameBoardPlacements] = val.gameBoardPlacements;
+        j[PathLockedInPlace] = val.pathLockedInPlace;
+        j[BallStartRC] = val.ballStartRC;
+        j[BallRC] = val.ballRC;
+        j[BallPosition] = val.ballPosition;
+    }
+
+    void from_json(nlohmann::json const &j, PlacementSaveData &val) {
+        val.objReference = j[ObjectReference].get<ObjReference>();
+        val.componentType = j[ComponentType].get<Component::ComponentType>();
+        val.nbr90DegreeRotations = j[Nbr90DegreeRotations].get<uint32_t>();
     }
 
     void from_json(nlohmann::json const &j, LevelSaveData &val) {
         from_json(j, boost::implicit_cast<basic::LevelSaveData &>(val));
+        val.gameBoardPlacements = j[GameBoardPlacements].get<std::vector<std::vector<PlacementSaveData>>>();
+        val.pathLockedInPlace = j[PathLockedInPlace].get<std::vector<Point<uint32_t>>>();
+        val.ballStartRC = j[BallStartRC].get<Point<uint32_t>>();
+        val.ballRC = j[BallRC].get<Point<uint32_t>>();
+        val.ballPosition = j[BallPosition].get<Point<float>>();
     }
 
     char constexpr const *Model = "Model";
@@ -92,7 +124,35 @@ namespace rotatablePassage {
 
     std::vector<uint8_t> Level::saveData(levelTracker::GameSaveData const &gsd,
                                   char const *saveLevelDataKey) {
-        auto sd = std::make_shared<LevelSaveData>();
+        auto sd = std::make_shared<LevelSaveData>(levelSaveDataVersion);
+
+        for (size_t rowIndex; rowIndex < m_gameBoard.heightInTiles(); rowIndex++) {
+            std::vector<PlacementSaveData> row;
+            for (size_t colIndex; colIndex < m_gameBoard.widthInTiles(); colIndex++) {
+                auto &b = m_gameBoard.block(rowIndex, colIndex);
+                auto &p = b.component()->placement(b.placementIndex());
+                float rotationAngle = p.rotationAngle();
+                uint32_t nbr90DegreeRotations;
+                float halfPi = glm::radians(90.0f);
+                while (rotationAngle > 0.0f) {
+                    nbr90DegreeRotations ++;
+                    rotationAngle -= halfPi;
+                }
+                auto ref = p.objReference();
+                if (ref == boost::none) {
+                    ref.reset(ObjReference());
+                }
+                row.emplace_back(ref.get(), b.component()->type(), nbr90DegreeRotations);
+            }
+            sd->gameBoardPlacements.push_back(row);
+        }
+
+        sd->pathLockedInPlace = pathLockedInPlace(m_gameBoard, m_ballStartRow, m_ballStartCol);
+        sd->ballStartRC = Point<uint32_t>(m_ballStartRow, m_ballStartCol);
+        sd->ballEndRC = Point<uint32_t>(m_endRow, m_endCol);
+        sd->ballRC = Point<uint32_t>(m_ballRow, m_ballCol);
+        sd->ballPosition = Point<float>(m_ball.position.x, m_ball.position.y);
+
         nlohmann::json j;
         to_json(j, gsd);
         j[saveLevelDataKey] = *sd;

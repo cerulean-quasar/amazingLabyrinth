@@ -219,49 +219,7 @@ namespace movablePassage {
             restorePlacements(m_gameBoard, m_components[Component::ComponentType::crossjunction], sd->crossjunctionPositions);
             restorePlacements(m_gameBoard, m_components[Component::ComponentType::turn], sd->turnPositions);
 
-            // restore the locked in place path
-            if (!sd->pathLockedInPlace.empty()) {
-                bool done = false;
-                Point<uint32_t> rowColPrev{sd->pathLockedInPlace[0]};
-                Point<uint32_t> rowCol{rowColPrev};
-                rowColPrev.x --;
-                size_t i = 0;
-                while (!done) {
-                    auto &bPrev = m_gameBoard.block(rowColPrev.x, rowColPrev.y);
-                    auto &b = m_gameBoard.block(rowCol.x, rowCol.y);
-                    if (b.component() == nullptr || bPrev.component() == nullptr) {
-                        // shouldn't happen
-                        break;
-                    }
-                    if (i == 0) {
-                        // hook up the first placement that is user placeable to the last
-                        // permanent locked in place component.
-                        auto &next = bPrev.component()->placement(bPrev.placementIndex()).next();
-                        next.first = b.component();
-                        next.second = b.placementIndex();
-                    }
-                    auto &prev = b.component()->placement(b.placementIndex()).prev();
-                    prev.first = bPrev.component();
-                    prev.second = bPrev.placementIndex();
-
-                    if (i + 1 < sd->pathLockedInPlace.size()) {
-                        Point<uint32_t> rowColNext{sd->pathLockedInPlace[i+1]};
-                        auto &next = b.component()->placement(b.placementIndex()).next();
-                        auto bNext = m_gameBoard.block(rowColNext.x, rowColNext.y);
-                        if (bNext.component() == nullptr) {
-                            // shouldn't happen
-                            break;
-                        }
-                        next.first = bNext.component();
-                        next.second = bNext.placementIndex();
-                        rowColPrev = rowCol;
-                        rowCol = rowColNext;
-                        i++;
-                    } else {
-                        done = true;
-                    }
-                }
-            }
+            restorePathLockedInPlace(m_gameBoard, sd->pathLockedInPlace);
 
             // restore the ball row and column
             m_ballRow = sd->ballRC.x;
