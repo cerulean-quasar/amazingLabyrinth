@@ -1,0 +1,71 @@
+/**
+ * Copyright 2020 Cerulean Quasar. All Rights Reserved.
+ *
+ *  This file is part of AmazingLabyrinth.
+ *
+ *  AmazingLabyrinth is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 3 of the License, or
+ *  (at your option) any later version.
+ *
+ *  AmazingLabyrinth is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with AmazingLabyrinth.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ */
+#include <memory>
+#include <boost/implicit_cast.hpp>
+#include <json.hpp>
+
+#include "../../levelTracker/internals.hpp"
+#include "../basic/loadData.hpp"
+#include "../basic/level.hpp"
+#include "loadData.hpp"
+#include "level.hpp"
+#include "../basic/serializer.hpp"
+#include "serializer.hpp"
+
+namespace openArea {
+    char constexpr const *BallLocation = "BallLocation";
+    char constexpr const *HoleLocation = "HoleLocation";
+
+    void to_json(nlohmann::json &j, LevelSaveData const &val) {
+        to_json(j, boost::implicit_cast<basic::LevelSaveData const &>(val));
+        j[BallLocation] = val.ball;
+        j[HoleLocation] = val.hole;
+    }
+
+    void from_json(nlohmann::json const &j, LevelSaveData &val) {
+        from_json(j, boost::implicit_cast<basic::LevelSaveData &>(val));
+        val.ball = j[BallLocation].get<Point<float>>();
+        val.hole = j[HoleLocation].get<Point<float>>();
+    }
+
+    char constexpr const *HoleTexture = "HoleTexture";
+    void to_json(nlohmann::json &j, LevelConfigData const &val) {
+        to_json(j, boost::implicit_cast<basic::LevelConfigData const &>(val));
+        j[HoleTexture] = val.holeTexture;
+    }
+
+    void from_json(nlohmann::json const &j, LevelConfigData &val) {
+        from_json(j, boost::implicit_cast<basic::LevelConfigData &>(val));
+        val.holeTexture = j[HoleTexture].get<std::string>();
+    }
+
+    std::vector<uint8_t> Level::saveData(levelTracker::GameSaveData const &gsd,
+                                  char const *saveLevelDataKey) {
+        LevelSaveData sd(
+                Point<float>{m_ball.position.x, m_ball.position.y},
+                Point<float>{holePosition.x, holePosition.y});
+        nlohmann::json j;
+        to_json(j, gsd);
+        j[saveLevelDataKey] = sd;
+        return nlohmann::json::to_cbor(j);
+    }
+
+    levelTracker::Register<levelTracker::LevelMapTable, levelTracker::levelTable, LevelConfigData, LevelSaveData, Level> registerLevel;
+} // namespace openArea

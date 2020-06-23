@@ -40,4 +40,7 @@ public class Constants {
     public static final int AMAZING_LABYRINTH_CHOOSE_LEVEL_ACTIVITY = 3;
     public static final String KeySelectedLevel = "selectedLevel";
     public static final String KeyLevels = "levels";
+
+    // File names
+    public static final String LevelTableFileName = "configs/levels.json";
 }

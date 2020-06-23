@@ -1,0 +1,40 @@
+{
+    "Components" : {
+        "Starter": "starter",
+        "Level": "collectMaze",
+        "Finisher": "manyQuadsCoverUp"
+    },
+    "Starter" : {
+        "BallModel": "models/ball.modelcbor",
+        "BallTexture": "textures/levelStarter/ballLevelStarter.png",
+        "BounceEnabled": false,
+        "BallDiagonalRatio": 0.02,
+
+        "StartupMessages": [
+            "In the jungle,\na mother cat...",
+            "...searches\nfor her\nlost kittens."
+        ]
+    },
+    "Level": {
+        "BallModel": "models/ball.modelcbor",
+        "BallTexture": "textures/cat/catBall.png",
+        "BounceEnabled": false,
+        "BallDiagonalRatio" : 0.0,
+
+        "WallTextureNames": [ "textures/rollerBee/wallFlower1.png",
+                          "textures/rollerBee/wallFlower2.png",
+                          "textures/rollerBee/wallFlower3.png",
+                          "textures/rollerBee/wallFlower4.png" ],
+        "MazeFloorTexture": "textures/rollerBee/floor.png",
+        "HoleTexture": "textures/cat/catHole.png",
+        "NumberRows": 10,
+        "DfsSearch": false,
+
+        "CollectModel": "models/ball.modelcbor",
+        "CollectTexture": "textures/cat/catBall.png",
+        "NumberCollectObjects": 5
+    },
+    "Finisher": {
+        "Textures": [ "textures/pufferFish/hole.png" ]
+    }
+}

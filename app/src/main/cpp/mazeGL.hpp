@@ -24,9 +24,9 @@
 #include "graphics.hpp"
 #include "graphicsGL.hpp"
 #include "mazeGraphics.hpp"
-#include "level/level.hpp"
-#include "level/levelFinish.hpp"
-#include "level/levelTracker.hpp"
+#include "levels/basic/level.hpp"
+#include "levels/finisher/types.hpp"
+#include "levelTracker/levelTracker.hpp"
 
 class TextureDataGL : public TextureData {
 public:

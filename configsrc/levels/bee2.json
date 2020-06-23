@@ -1,0 +1,39 @@
+{
+    "Components" : {
+        "Starter": "starter",
+        "Level": "generatedMaze",
+        "Finisher": "manyQuadsCoverUp"
+    },
+    "Starter" : {
+        "BallModel": "models/ball.modelcbor",
+        "BallTexture": "textures/levelStarter/ballLevelStarter.png",
+        "BounceEnabled": false,
+        "BallDiagonalRatio": 0.02,
+
+        "StartupMessages": [
+            "The leafy plants\nhave become more\nnumerous\nand the\nroller bee...",
+            "...has to search\nlong and hard\nfor the\nlarge flower."
+        ]
+    },
+    "Level": {
+        "BallModel": "models/ball.modelcbor",
+        "BallTexture": "textures/rollerBee/ballBee.png",
+        "BounceEnabled": false,
+        "BallDiagonalRatio" : 0.0,
+
+        "WallTextureNames": [ "textures/rollerBee/wallFlower1.png",
+                          "textures/rollerBee/wallFlower2.png",
+                          "textures/rollerBee/wallFlower3.png",
+                          "textures/rollerBee/wallFlower4.png" ],
+        "MazeFloorTexture": "textures/rollerBee/floor.png",
+        "HoleTexture": "textures/rollerBee/hole.png",
+        "NumberRows": 15,
+        "DfsSearch": true
+    },
+    "Finisher": {
+        "Textures": [ "textures/rollerBee/flower1.png",
+                      "textures/rollerBee/flower2.png",
+                      "textures/rollerBee/flower3.png",
+                      "textures/rollerBee/flower4.png" ]
+    }
+}

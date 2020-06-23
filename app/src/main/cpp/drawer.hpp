@@ -104,13 +104,13 @@ public:
 
     evtype type() override { return levelChanged; }
 
-    LevelChangedEvent(uint32_t inLevel)
-            : m_level{inLevel} {
+    LevelChangedEvent(std::string inLevel)
+            : m_level{std::move(inLevel)} {
     }
 
     ~LevelChangedEvent() override = default;
 private:
-    uint32_t m_level;
+    std::string m_level;
 };
 
 class DragEvent : public DrawEvent {

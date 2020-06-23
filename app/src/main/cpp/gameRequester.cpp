@@ -31,9 +31,6 @@
 
 #include "gameRequester.hpp"
 #include "drawer.hpp"
-#include "level/levelTracker.hpp"
-#include "saveData.hpp"
-#include "serializeSaveData.hpp"
 
 void handleJNIException(JNIEnv *env) {
     if (env->ExceptionCheck()) {
@@ -414,33 +411,6 @@ std::shared_ptr<JGameBundle> JGameRequester::createBundle() {
 
 std::shared_ptr<JGameBundle> JGameRequester::createBundle(std::shared_ptr<_jobject> inBundle) {
     return std::make_shared<JGameBundle>(shared_from_this(), std::move(inBundle));
-}
-
-void JGameRequester::sendSaveData(std::vector<uint8_t> const &saveData) {
-    std::ofstream saveDataStream(m_pathSaveFile);
-
-    if (!saveDataStream.fail()) {
-        saveDataStream.write(reinterpret_cast<char const *>(saveData.data()), saveData.size());
-    }
-}
-
-RestoreData JGameRequester::getSaveData(Point<uint32_t> const &screenSize) {
-    std::ifstream saveDataStream(m_pathSaveFile, std::ifstream::binary);
-
-    if (saveDataStream.good()) {
-        saveDataStream.seekg(0, saveDataStream.end);
-        size_t i = static_cast<size_t >(saveDataStream.tellg());
-        saveDataStream.seekg(0, saveDataStream.beg);
-        std::vector<uint8_t> vec;
-        vec.resize(i);
-        saveDataStream.read(reinterpret_cast<char *>(vec.data()), vec.size());
-
-        if (!saveDataStream.fail()) {
-            return createLevelFromRestore(vec, screenSize);
-        }
-    }
-
-    return createLevelFromRestore();
 }
 
 JGameBundle::JGameBundle(

@@ -1,0 +1,31 @@
+{
+    "Components" : {
+        "Starter" : "starter",
+        "Level" : "avoidVortexOpenArea",
+        "Finisher" : "growingQuad"
+    },
+    "Starter" : {
+        "BallModel": "models/ball.modelcbor",
+        "BallTexture": "textures/levelStarter/ballLevelStarter.png",
+        "BounceEnabled": false,
+        "BallDiagonalRatio": 0.02,
+
+        "StartupMessages": [
+            "Now the maze\nuniverse is\nfilled with stars\nand black holes...",
+            "...and a lonely\nice planet seeks\nout the warmth\nof a star."
+        ]
+    },
+    "Level": {
+        "BallModel": "models/ball.modelcbor",
+        "BallTexture": "textures/icePlanet/ballIcePlanet.png",
+        "BounceEnabled": true,
+        "BallDiagonalRatio" : 0.025,
+
+        "HoleTexture": "textures/icePlanet/holeSun.png",
+        "VortexTexture": "textures/icePlanet/vortexBlackHole.png",
+        "StartVortexTexture" : "textures/beginning/holeAnomaly.png"
+    },
+    "Finisher": {
+        "Texture": "textures/icePlanet/icePlanet.png"
+    }
+}

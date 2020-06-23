@@ -23,7 +23,6 @@
 #include <string>
 #include <memory>
 #include <streambuf>
-#include "saveData.hpp"
 #include "graphics.hpp"
 
 class Graphics;
@@ -62,6 +61,8 @@ public:
 class FileRequester {
 public:
     virtual std::unique_ptr<std::streambuf> getAssetStream(std::string const &file) = 0;
+    virtual std::unique_ptr<std::streambuf> getLevelTableAssetStream() = 0;
+    virtual std::string getSaveDataFileName() = 0;
     virtual ~FileRequester() = default;
 };
 
@@ -70,11 +71,9 @@ public:
     virtual void sendError(std::string const &error) = 0;
     virtual void sendError(char const *error) = 0;
     virtual void sendGraphicsDescription(GraphicsDescription const &description, bool hasAccelerometer) = 0;
-    virtual void sendSaveData(std::vector<uint8_t> const &saveData) = 0;
     virtual void sendKeepAliveEnabled(bool keepAliveEnabled) = 0;
     virtual std::vector<char> getTextImage(std::string text, uint32_t &width, uint32_t &height,
             uint32_t &channels) = 0;
-    virtual RestoreData getSaveData(Point<uint32_t> const &screenSize) = 0;
 
     virtual ~JRequester() = default;
 };

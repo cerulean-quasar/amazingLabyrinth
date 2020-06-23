@@ -1,0 +1,15 @@
+{
+    "Levels": [
+        { "Name": "beginning", "File": "configs/levels/beginning.cbor", "Description": "The beginning" },
+        { "Name": "lonelyPlanet", "File": "configs/levels/lonelyPlanet.cbor", "Description": "The lonely planet" },
+        { "Name": "pufferFish", "File": "configs/levels/pufferFish.cbor", "Description": "The puffer fish" },
+        { "Name": "rolarBear", "File": "configs/levels/rolarBear.cbor", "Description": "The rolar bear" },
+        { "Name": "bee1", "File": "configs/levels/bee1.cbor", "Description": "The bee" },
+        { "Name": "bee2", "File": "configs/levels/bee2.cbor", "Description": "The search" },
+        { "Name": "cat", "File": "configs/levels/cat.cbor", "Description": "The cat" },
+        { "Name": "bunny", "File": "configs/levels/bunny.cbor", "Description": "The bunny" },
+        { "Name": "frog", "File": "configs/levels/frog.cbor", "Description": "The frog" },
+        { "Name": "gopher", "File": "configs/levels/gopher.cbor", "Description": "The gopher" },
+        { "Name": "mouse", "File": "configs/levels/mouse.cbor", "Description": "The mouse" }
+    ]
+}

@@ -49,11 +49,7 @@ public class Draw implements Runnable {
         startGame(m_drawingSurface, m_assetManager, m_saveGameDir, new GameReturnChannel(m_notify), m_rotaation);
     }
 
-    public static String[] levelList() {
-        return getLevelList();
-    }
-
-    public static void switchLevel(int level) {
+    public static void switchLevel(String level) {
         tellDrawerSwitchLevel(level);
     }
 
@@ -83,11 +79,9 @@ public class Draw implements Runnable {
     private static native void tellDrawerDragEnded(float doneX, float doneY);
     private static native void tellDrawerTapOccurred(float x, float y);
     private static native void tellDrawerDragOccurred(float startX, float startY, float distanceX, float distanceY);
-    private static native void tellDrawerSwitchLevel(int level);
+    private static native void tellDrawerSwitchLevel(String level);
     private static native void tellDrawerSurfaceChanged(int width, int height, float rotationAngle);
     private static native void tellDrawerStop();
-
-    private static native String[] getLevelList();
 
     private native void startGame(Surface drawingSurface, AssetManager manager, String saveData,
                                     GameReturnChannel notify, float rotationAngle);

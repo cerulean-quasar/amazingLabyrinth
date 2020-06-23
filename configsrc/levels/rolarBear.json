@@ -1,0 +1,35 @@
+{
+    "Components" : {
+        "Starter" : "starter",
+        "Level" : "movingSafeAreas",
+        "Finisher": "manyQuadsCoverUp"
+    },
+    "Starter" : {
+        "BallModel": "models/ball.modelcbor",
+        "BallTexture": "textures/levelStarter/ballLevelStarter.png",
+        "BounceEnabled": false,
+        "BallDiagonalRatio": 0.02,
+
+        "StartupMessages": [
+            "As the ice\nplanet warms\nand the ice\nmelts...",
+            "...an over hot\nrolar bear\nyearns for\nthe cold of the\nnorth pole."
+        ]
+    },
+    "Level": {
+        "BallModel": "models/ball.modelcbor",
+        "BallTexture": "textures/rolarBear/ballRolarBear.png",
+        "BounceEnabled": true,
+        "BallDiagonalRatio" : 0.0333333,
+
+        "StartQuadTexture": "textures/rolarBear/rolarBearStartQuad.png",
+        "EndQuadTexture": "textures/rolarBear/rolarBearEndQuad.png",
+        "MiddleQuadTextures": [
+            "textures/rolarBear/movingQuadRolarBear1.png",
+            "textures/rolarBear/movingQuadRolarBear2.png",
+            "textures/rolarBear/movingQuadRolarBear3.png",
+            "textures/rolarBear/movingQuadRolarBear4.png" ]
+    },
+    "Finisher": {
+        "Textures": [ "textures/rolarBear/rolarBearSmiley1.png" ]
+    }
+}

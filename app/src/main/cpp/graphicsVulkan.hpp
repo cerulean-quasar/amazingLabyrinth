@@ -46,10 +46,9 @@
 
 #include "android.hpp"
 #include "graphics.hpp"
-#include "level/levelFinish.hpp"
-#include "level/levelTracker.hpp"
-#include "level/levelStarter.hpp"
-#include "../../../../../../Android/Sdk/ndk/21.0.6113669/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/include/vulkan/vulkan.h"
+#include "levels/finisher/types.hpp"
+#include "levelTracker/levelTracker.hpp"
+#include "levels/basic/level.hpp"
 
 namespace vulkan {
 #ifdef DEBUG

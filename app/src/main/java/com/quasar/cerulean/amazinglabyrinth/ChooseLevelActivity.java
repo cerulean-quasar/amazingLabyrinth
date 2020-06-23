@@ -24,12 +24,18 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
+import android.content.res.AssetManager;
 import android.os.Bundle;
+import android.util.JsonReader;
 import android.util.TypedValue;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
 
+import org.json.JSONObject;
+
+import java.io.IOException;
+import java.io.InputStream;
 import java.util.ArrayList;
 
 public class ChooseLevelActivity extends AppCompatActivity {
@@ -41,8 +47,13 @@ public class ChooseLevelActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_choose_level);
-        ArrayList<String> levels = getIntent().getStringArrayListExtra(Constants.KeyLevels);
-        if (levels == null) {
+        ArrayList<String> levels = new ArrayList<>();
+        AssetManager assetManager = getAssets();
+
+        InputStream infilestream = null;
+        try {
+             infilestream = assetManager.open(Constants.LevelTableFileName);
+        } catch (IOException e) {
             setResult(RESULT_CANCELED);
             finish();
             return;
@@ -62,7 +73,7 @@ public class ChooseLevelActivity extends AppCompatActivity {
 
         m_layoutManager = new LinearLayoutManager(this);
 
-        m_adapter = new ChooseLevelAdaptor(this, levels);
+        m_adapter = new ChooseLevelAdaptor(this, infilestream);
 
         m_recycler.setHasFixedSize(false);
         m_recycler.setLayoutManager(m_layoutManager);

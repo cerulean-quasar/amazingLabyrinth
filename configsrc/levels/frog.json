@@ -1,0 +1,32 @@
+{
+    "Components" : {
+        "Starter": "starter",
+        "Level": "fixedMaze",
+        "Finisher": "manyQuadsCoverUp"
+    },
+    "Starter" : {
+        "BallModel": "models/ball.modelcbor",
+        "BallTexture": "textures/levelStarter/ballLevelStarter.png",
+        "BounceEnabled": false,
+        "BallDiagonalRatio": 0.02,
+
+        "StartupMessages": [
+            "In a forest,\na frog\nseeks a fly.",
+            "Watch out for\nmushrooms, they\nare bouncy!"
+        ]
+    },
+    "Level": {
+        "BallModel": "models/frog/frog.modelcbor",
+        "BallTexture": "textures/frog/frog.png",
+        "BounceEnabled": true,
+        "BallDiagonalRatio" : 0.02,
+
+        "MazeFloorModel": "models/frog/frogFloor.modelcbor",
+        "MazeFloorTexture": "textures/frog/frogFloor.png",
+        "ExtraBounce": 0.05,
+        "MinSpeedOnBounce": 0.02
+    },
+    "Finisher": {
+        "Textures": [ "textures/bunny/hole.png" ]
+    }
+}

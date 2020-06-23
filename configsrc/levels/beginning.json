@@ -1,0 +1,29 @@
+{
+    "Components" : {
+        "Starter" : "starter",
+        "Level" : "openArea",
+        "Finisher": "growingQuad"
+    },
+    "Starter" : {
+        "BallModel": "models/ball.modelcbor",
+        "BallTexture": "textures/levelStarter/ballLevelStarter.png",
+        "BounceEnabled": false,
+        "BallDiagonalRatio": 0.02,
+
+        "StartupMessages": [
+            "In the\nbeginning of\nthe universe\nof mazes...",
+            "...there was\nnothing except\nfor a ball and\na strange\nspacial anomaly."
+        ]
+    },
+    "Level": {
+        "BallModel": "models/ball.modelcbor",
+        "BallTexture": "textures/beginning/ballWhite.png",
+        "BounceEnabled": true,
+        "BallDiagonalRatio" : 0.025,
+
+        "HoleTexture": "textures/beginning/holeAnomaly.png"
+    },
+    "Finisher": {
+        "Texture": "textures/beginning/starField.png"
+    }
+}

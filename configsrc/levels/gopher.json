@@ -1,0 +1,103 @@
+{
+    "Components" : {
+        "Starter" : "starter",
+        "Level" : "movablePassage",
+        "Finisher": "manyQuadsCoverUp"
+    },
+    "Starter" : {
+        "BallModel": "models/ball.modelcbor",
+        "BallTexture": "textures/levelStarter/ballLevelStarter.png",
+        "BounceEnabled": false,
+        "BallDiagonalRatio": 0.02,
+
+        "StartupMessages": [
+            "Underground,\na gopher\nsearches for\na juicy beet.",
+            "Move the tunnel\npieces and turn\nthem so that the\ngopher can\nreach the beet."
+        ]
+    },
+    "Level": {
+        "BallModel": "models/gopher/gopher.modelcbor",
+        "BallTexture": "textures/gopher/gopher.png",
+        "BounceEnabled": false,
+        "BallDiagonalRatio" : 0.0,
+
+        "NumberTilesX": 8,
+        "NumberTilesY": 8,
+        "StartColumn": 1,
+        "EndColumn": 6,
+        "EndTexture": "textures/gopher/end.png",
+        "EndOffBoardTexture": "textures/gopher/endOffBoard.png",
+        "PlacementLockedInPlaceTexture": "textures/gopher/dirt1.png",
+        "RockModels": [ "models/gopher/rock1.modelcbor",
+                        "models/gopher/rock2.modelcbor",
+                        "models/gopher/rock3.modelcbor",
+                        "models/gopher/rock4.modelcbor" ],
+        "RockTextures": [ "textures/gopher/rock.png" ],
+        "DirtModels": [],
+        "DirtTextures": [ "textures/gopher/dirt1.png",
+                          "textures/gopher/dirt2.png",
+                          "textures/gopher/dirt3.png",
+                          "textures/gopher/dirt4.png" ],
+        "BeginningSideModels": [ "models/movablePassage/startSide.modelcbor" ],
+        "BeginningSideTextures": [ "textures/gopher/dirt1.png",
+                          "textures/gopher/dirt2.png",
+                          "textures/gopher/dirt3.png",
+                          "textures/gopher/dirt4.png" ],
+        "BeginningOpenModels": [ "models/movablePassage/startOpen.modelcbor" ],
+        "BeginningOpenTextures": [ "textures/gopher/dirt1.png",
+                          "textures/gopher/dirt2.png",
+                          "textures/gopher/dirt3.png",
+                          "textures/gopher/dirt4.png" ],
+        "BeginningCornerModels": [ "models/movablePassage/startCorner.modelcbor" ],
+        "BeginningCornerTextures": [ "textures/gopher/dirt1.png",
+                          "textures/gopher/dirt2.png",
+                          "textures/gopher/dirt3.png",
+                          "textures/gopher/dirt4.png" ],
+        "Straight": {
+            "Model": "models/movablePassage/straight.modelcbor",
+            "Texture": "textures/gopher/dirt.png",
+            "NumberPlacements": 3
+        },
+        "Turn": {
+            "Model": "models/movablePassage/turn.modelcbor",
+            "Texture": "textures/gopher/dirt.png",
+            "NumberPlacements": 10
+        },
+        "CrossJunction": {
+            "Model": "models/movablePassage/crossjunction.modelcbor",
+            "Texture": "textures/gopher/dirt.png",
+            "NumberPlacements": 2
+        },
+        "TJunction": {
+            "Model": "models/movablePassage/crossjunction.modelcbor",
+            "Texture": "textures/gopher/dirt.png",
+            "NumberPlacements": 2
+        },
+        "RockPlacements": [
+            { "Row": 1, "Col": 1 },
+            { "Row": 1, "Col": 2 },
+            { "Row": 1, "Col": 3 },
+            { "Row": 1, "Col": 4 },
+            { "Row": 1, "Col": 5 },
+            { "Row": 1, "Col": 6 },
+            { "Row": 3, "Col": 0 },
+            { "Row": 3, "Col": 2 },
+            { "Row": 3, "Col": 3 },
+            { "Row": 3, "Col": 5 },
+            { "Row": 5, "Col": 1 },
+            { "Row": 5, "Col": 2 },
+            { "Row": 5, "Col": 3 },
+            { "Row": 5, "Col": 5 },
+            { "Row": 5, "Col": 6 },
+            { "Row": 6, "Col": 5 },
+            { "Row": 6, "Col": 6 },
+            { "Row": 7, "Col": 0 },
+            { "Row": 7, "Col": 1 },
+            { "Row": 7, "Col": 2 },
+            { "Row": 7, "Col": 3 }
+        ]
+    },
+    "Finisher": {
+        "Textures": [ "textures/bunny/hole.png" ]
+    }
+}

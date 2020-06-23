@@ -30,8 +30,8 @@
 
 class GameRequester;
 
+// todo: use getCube instead
 static std::string const MODEL_WALL("models/wall.modelcbor");
-static std::string const MODEL_BALL("models/ball.modelcbor");
 
 class TextureDescriptionPtrLess;
 

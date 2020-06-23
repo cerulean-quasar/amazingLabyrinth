@@ -1,0 +1,36 @@
+{
+    "Components" : {
+        "Starter": "starter",
+        "Level": "generatedMaze",
+        "Finisher": "manyQuadsCoverUp"
+    },
+    "Starter" : {
+        "BallModel": "models/ball.modelcbor",
+        "BallTexture": "textures/levelStarter/ballLevelStarter.png",
+        "BounceEnabled": false,
+        "BallDiagonalRatio": 0.02,
+
+        "StartupMessages": [
+            "On the planet,\nthe ice begins\nto melt\nand life ignites...",
+            "...here, a puffer\nfish is looking\nfor a kelp meal."
+        ]
+    },
+    "Level": {
+        "BallModel": "models/ball.modelcbor",
+        "BallTexture": "textures/pufferFish/ballFish.png",
+        "BounceEnabled": false,
+        "BallDiagonalRatio" : 0.0,
+
+        "WallTextureNames": [ "textures/pufferFish/wallIce1.png",
+                          "textures/pufferFish/wallIce2.png",
+                          "textures/pufferFish/wallIce3.png",
+                          "textures/pufferFish/wallIce4.png" ],
+        "MazeFloorTexture": "textures/pufferFish/floor.png",
+        "HoleTexture": "textures/pufferFish/hole.png",
+        "NumberRows": 15,
+        "DfsSearch": false
+    },
+    "Finisher": {
+        "Textures": [ "textures/pufferFish/hole.png" ]
+    }
+}

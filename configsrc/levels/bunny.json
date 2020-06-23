@@ -1,0 +1,38 @@
+{
+    "Components" : {
+        "Starter": "starter",
+        "Level": "avoidVortexMaze",
+        "Finisher": "manyQuadsCoverUp"
+    },
+    "Starter" : {
+        "BallModel": "models/ball.modelcbor",
+        "BallTexture": "textures/levelStarter/ballLevelStarter.png",
+        "BounceEnabled": false,
+        "BallDiagonalRatio": 0.02,
+
+        "StartupMessages": [
+            "In the marsh,\na bunny seeks\na carrot...",
+            "...be carefull\nof quicksand!"
+        ]
+    },
+    "Level": {
+        "BallModel": "models/ball.modelcbor",
+        "BallTexture": "textures/bunny/ball.png",
+        "BounceEnabled": false,
+        "BallDiagonalRatio" : 0.0,
+
+        "WallTextureNames": [ "textures/bunny/wall1.png",
+                          "textures/bunny/wall2.png",
+                          "textures/bunny/wall3.png" ],
+        "MazeFloorTexture": "textures/bunny/floor.png",
+        "HoleTexture": "textures/bunny/hole.png",
+        "NumberRows": 10,
+        "DfsSearch": true,
+
+        "AvoidTexture": "textures/bunny/avoid.png",
+        "NumberAvoidObjects": 5
+    },
+    "Finisher": {
+        "Textures": [ "textures/bunny/hole.png" ]
+    }
+}

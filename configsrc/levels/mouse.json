@@ -1,0 +1,61 @@
+{
+    "Components": {
+        "Starter": "starter",
+        "Level": "rotatablePassage",
+        "Finisher": "manyQuadsCoverUp"
+    },
+    "Starter": {
+        "BallModel": "models/ball.modelcbor",
+        "BallTexture": "textures/levelStarter/ballLevelStarter.png",
+        "BounceEnabled": false,
+        "BallDiagonalRatio": 0.02,
+
+        "StartupMessages": [
+            "A mouse\nsearches for a\npiece of cheese\nin a hedge maze.",
+            "Help the mouse\nby turning the\nhedge maze\npieces so that\nthere is a path\nto the cheese."
+        ]
+    },
+    "Level": {
+        "BallModel": "models/mouse/mouse.modelcbor",
+        "BallTexture": "textures/mouse/mouse.png",
+        "BounceEnabled": false,
+        "BallDiagonalRatio": 0.0,
+
+        "HoleModel": "models/mouse/cheese.modelcbor",
+        "HoleTexture": "textures/mouse/cheese.png",
+        "NumberRows": 15,
+        "DfsSearch": true,
+        "BorderTextures": [ "textures/rollerBee/wallFlower1.png",
+                            "textures/rollerBee/wallFlower2.png",
+                            "textures/rollerBee/wallFlower3.png",
+                            "textures/rollerBee/wallFlower4.png" ],
+        "Straight": {
+            "Model": "models/movablePassage/straight.modelcbor",
+            "Texture": "textures/mouse/wall.png",
+            "LockedInPlaceTexture": "textures/mouse/wallWithFlower.png"
+        },
+        "Turn": {
+            "Model": "models/movablePassage/turn.modelcbor",
+            "Texture": "textures/mouse/wall.png",
+            "LockedInPlaceTexture": "textures/mouse/wallWithFlower.png"
+        },
+        "CrossJunction": {
+            "Model": "models/movablePassage/crossjunction.modelcbor",
+            "Texture": "textures/mouse/wall.png",
+            "LockedInPlaceTexture": "textures/mouse/wallWithFlower.png"
+        },
+        "TJunction": {
+            "Model": "models/movablePassage/tjunction.modelcbor",
+            "Texture": "textures/mouse/wall.png",
+            "LockedInPlaceTexture": "textures/mouse/wallWithFlower.png"
+        },
+        "DeadEnd": {
+            "Model": "models/movablePassage/deadEnd.modelcbor",
+            "Texture": "textures/mouse/wall.png",
+            "LockedInPlaceTexture": "textures/mouse/wallWithFlower.png"
+        }
+    },
+    "Finisher": {
+        "Textures": [ "textures/bunny/hole.png" ]
+    }
+}
