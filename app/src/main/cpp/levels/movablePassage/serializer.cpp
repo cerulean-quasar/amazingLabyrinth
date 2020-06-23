@@ -221,7 +221,7 @@ namespace movablePassage {
         sd->ballPosition = Point<float>(m_ball.position.x, m_ball.position.y);
 
         // the path the ball has traveled in user placeable components.
-        sd->pathLockedInPlace = pathLockedInPlace(m_gameBoard, m_ballFirstPlaceableComponent.first,
+        sd->pathLockedInPlace = pathLockedInPlace(m_gameBoard, m_ballFirstPlaceableComponent.first-1,
                 m_ballFirstPlaceableComponent.second);
 
         // the model/texture each component is using.
