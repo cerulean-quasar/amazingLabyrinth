@@ -44,11 +44,7 @@ namespace rotatablePassage {
         m_ballCol = sd->ballRC.col;
 
         glm::vec3 position = m_gameBoard.position(m_ballRow, m_ballCol);
-        m_ball.position = glm::vec3{sd->ballPosition.x, sd->ballPosition.y, m_mazeFloorZ + ballRadius()};
-
-        if (glm::length(position - m_ball.position) > m_gameBoard.blockSize()) {
-            m_ball.position = position;
-        }
+        m_ball.position = glm::vec3{sd->ballPosition.x, sd->ballPosition.y, position.z};
 
         for (size_t rowIndex = 0; rowIndex < sd->gameBoardPlacements.size(); rowIndex++) {
             for (size_t colIndex = 0; colIndex < sd->gameBoardPlacements[rowIndex].size(); colIndex++) {

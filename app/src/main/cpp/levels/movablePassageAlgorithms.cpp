@@ -370,9 +370,11 @@ void blockUnblockPlacements(
                 loopComponent = tmp.first;
                 loopIndex = tmp.second;
             }
-            loopComponent->placement(loopIndex).next() = std::make_pair(nullptr, 0);
+            if (loopComponent != nullptr) {
+                loopComponent->placement(loopIndex).next() = std::make_pair(nullptr, 0);
+            }
         }
-    } else {
+    } else if (!newPlacement.lockedIntoPlace()) {
         // the ball is entering a new cell that is not in its path yet.
         newPlacement.prev() = std::make_pair(oldComponent, oldPlacementIndex);
         newPlacement.setObjReference(boost::none);

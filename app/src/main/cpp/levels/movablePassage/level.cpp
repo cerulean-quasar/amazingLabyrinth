@@ -226,6 +226,8 @@ namespace movablePassage {
             m_ballCol = sd->ballRC.y;
             m_ball.position.x = sd->ballPosition.x;
             m_ball.position.y = sd->ballPosition.y;
+            auto position = m_gameBoard.position(m_ballRow, m_ballCol);
+            m_ball.position.z = position.z;
         } else {
             // place the passage components in the off board sections
             auto it1 = m_components.begin();

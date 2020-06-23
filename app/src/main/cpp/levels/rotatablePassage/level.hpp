@@ -130,7 +130,7 @@ namespace rotatablePassage {
             }
 
             m_prevTime = std::chrono::high_resolution_clock::now();
-            m_scaleBall = m_gameBoard.blockSize()/2/m_modelSize;
+            m_scaleBall = m_gameBoard.blockSize()/2/m_originalBallDiameter;
 
             for (auto &component : m_components) {
                 component->setSize(m_gameBoard.blockSize());
