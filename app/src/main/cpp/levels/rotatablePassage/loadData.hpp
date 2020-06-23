@@ -60,6 +60,9 @@ namespace rotatablePassage {
         {}
 
         PlacementSaveData(PlacementSaveData &&other) = default;
+        PlacementSaveData(PlacementSaveData &other) = default;
+        PlacementSaveData &operator=(PlacementSaveData &other) = default;
+        PlacementSaveData &operator=(PlacementSaveData &&other) = default;
     };
 
     struct LevelSaveData : public basic::LevelSaveData {

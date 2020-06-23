@@ -77,7 +77,6 @@ namespace rotatablePassage {
             std::shared_ptr<LevelSaveData> const &sd,
             glm::mat4 const &proj, glm::mat4 const &view, float maxZ)
             : basic::Level(inGameRequester, lcd, proj, view, maxZ, true),
-              m_initDone{false},
               m_gameBoard(),
               m_components{
                       std::make_shared<Component>(Component::ComponentType::straight),
@@ -129,11 +128,17 @@ namespace rotatablePassage {
                                  lcd->dfsSearch ? GeneratedMazeBoard::Mode::DFS
                                                 : GeneratedMazeBoard::Mode::BFS);
             }
+
+            m_prevTime = std::chrono::high_resolution_clock::now();
+            m_scaleBall = m_gameBoard.blockSize()/2/m_modelSize;
+
+            for (auto &component : m_components) {
+                component->setSize(m_gameBoard.blockSize());
+            }
         }
 
     private:
         std::chrono::high_resolution_clock::time_point m_prevTime;
-        bool m_initDone;
 
         Random m_randomNumbers;
 

@@ -382,17 +382,21 @@ void blockUnblockPlacements(
 
 }
 
+// restore the locked in place path: the path which the ball followed that is now unchangeable
+// until the ball rolls back along the path.
 void restorePathLockedInPlace(GameBoard &gameBoard, std::vector<Point<uint32_t>> const &pathLockedInPlace) {
-    // restore the locked in place path
-    if (!pathLockedInPlace.empty()) {
-        bool done = false;
+    // if there is only one locked in place element, ignore because it has no meaning.  There is
+    // no next component that the ball went on.  The only element would be the starting position
+    // of the ball.  And in fact, the pathLockedInPlace vector will always either be empty or
+    // contain two or more components.
+    if (pathLockedInPlace.size() > 1) {
         Point<uint32_t> rowColPrev{pathLockedInPlace[0]};
-        Point<uint32_t> rowCol{rowColPrev};
-        rowColPrev.x --;
+        Point<uint32_t> rowCol{pathLockedInPlace[1]};
         size_t i = 0;
+        bool done = false;
         while (!done) {
-            auto &bPrev = gameBoard.block(rowColPrev.x, rowColPrev.y);
-            auto &b = gameBoard.block(rowCol.x, rowCol.y);
+            auto &bPrev = gameBoard.block(rowColPrev.row, rowColPrev.col);
+            auto &b = gameBoard.block(rowCol.row, rowCol.col);
             if (b.component() == nullptr || bPrev.component() == nullptr) {
                 // shouldn't happen
                 break;
@@ -411,7 +415,7 @@ void restorePathLockedInPlace(GameBoard &gameBoard, std::vector<Point<uint32_t>>
             if (i + 1 < pathLockedInPlace.size()) {
                 Point<uint32_t> rowColNext{pathLockedInPlace[i+1]};
                 auto &next = b.component()->placement(b.placementIndex()).next();
-                auto bNext = gameBoard.block(rowColNext.x, rowColNext.y);
+                auto bNext = gameBoard.block(rowColNext.row, rowColNext.col);
                 if (bNext.component() == nullptr) {
                     // shouldn't happen
                     break;

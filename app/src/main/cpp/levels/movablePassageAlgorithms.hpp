@@ -530,7 +530,7 @@ public:
         void rotate() {
             m_rotationAngle += glm::radians(90.0f);
             float twopi = 2 * glm::radians(180.0f);
-            while (m_rotationAngle > twopi) {
+            while (m_rotationAngle >= twopi) {
                 m_rotationAngle -= twopi;
             }
         }

@@ -44,12 +44,12 @@ void from_json(nlohmann::json const &j, ObjReference &val) {
 std::vector<Point<uint32_t>> pathLockedInPlace(GameBoard &gameBoard, size_t startRow, size_t startCol) {
     // the path the ball has traveled in user placeable components.
     bool done = false;
-    Point<uint32_t> startRC{startRow, startCol};
+    Point<uint32_t> startRC{static_cast<uint32_t>(startRow), static_cast<uint32_t>(startCol)};
     std::vector<Point<uint32_t>> ret;
     do {
         auto b = gameBoard.block(startRC.x, startRC.y);
         auto &placement = b.component()->placement(b.placementIndex());
-        if (placement.prev().first != nullptr) {
+        if (placement.prev().first != nullptr || placement.next().first != nullptr) {
             ret.emplace_back(startRC);
         } else {
             done = true;

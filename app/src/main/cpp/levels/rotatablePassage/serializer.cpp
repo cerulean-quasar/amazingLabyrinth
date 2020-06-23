@@ -43,6 +43,7 @@ namespace rotatablePassage {
     char constexpr const *GameBoardPlacements = "GameBoardPlacements";
     char constexpr const *PathLockedInPlace = "PathLockedInPlace";
     char constexpr const *BallStartRC = "BallStartRC";
+    char constexpr const *BallEndRC = "BallEndRC";
     char constexpr const *BallRC = "BallRC";
     char constexpr const *BallPosition = "BallPosition";
     void to_json(nlohmann::json &j, LevelSaveData const &val) {
@@ -50,6 +51,7 @@ namespace rotatablePassage {
         j[GameBoardPlacements] = val.gameBoardPlacements;
         j[PathLockedInPlace] = val.pathLockedInPlace;
         j[BallStartRC] = val.ballStartRC;
+        j[BallEndRC] = val.ballEndRC;
         j[BallRC] = val.ballRC;
         j[BallPosition] = val.ballPosition;
     }
@@ -65,6 +67,7 @@ namespace rotatablePassage {
         val.gameBoardPlacements = j[GameBoardPlacements].get<std::vector<std::vector<PlacementSaveData>>>();
         val.pathLockedInPlace = j[PathLockedInPlace].get<std::vector<Point<uint32_t>>>();
         val.ballStartRC = j[BallStartRC].get<Point<uint32_t>>();
+        val.ballEndRC = j[BallEndRC].get<Point<uint32_t>>();
         val.ballRC = j[BallRC].get<Point<uint32_t>>();
         val.ballPosition = j[BallPosition].get<Point<float>>();
     }
@@ -124,20 +127,29 @@ namespace rotatablePassage {
 
     std::vector<uint8_t> Level::saveData(levelTracker::GameSaveData const &gsd,
                                   char const *saveLevelDataKey) {
-        auto sd = std::make_shared<LevelSaveData>(levelSaveDataVersion);
+        auto sd = std::make_shared<LevelSaveData>();
+        sd->m_version = levelSaveDataVersion;
 
-        for (size_t rowIndex; rowIndex < m_gameBoard.heightInTiles(); rowIndex++) {
+        for (size_t rowIndex = 0; rowIndex < m_gameBoard.heightInTiles(); rowIndex++) {
             std::vector<PlacementSaveData> row;
-            for (size_t colIndex; colIndex < m_gameBoard.widthInTiles(); colIndex++) {
+            for (size_t colIndex = 0; colIndex < m_gameBoard.widthInTiles(); colIndex++) {
                 auto &b = m_gameBoard.block(rowIndex, colIndex);
                 auto &p = b.component()->placement(b.placementIndex());
                 float rotationAngle = p.rotationAngle();
-                uint32_t nbr90DegreeRotations;
                 float halfPi = glm::radians(90.0f);
-                while (rotationAngle > 0.0f) {
-                    nbr90DegreeRotations ++;
-                    rotationAngle -= halfPi;
+                std::array<float, 5> diffs;
+                diffs[0] = std::fabs(rotationAngle);
+                diffs[1] = std::fabs(halfPi - rotationAngle);
+                diffs[2] = std::fabs(2*halfPi - rotationAngle);
+                diffs[3] = std::fabs(3*halfPi - rotationAngle);
+                diffs[4] = std::fabs(4*halfPi - rotationAngle);
+                uint32_t nbr90DegreeRotations = 0;
+                for (uint32_t i = 1; i < diffs.size(); i++) {
+                    if (diffs[i] < diffs[nbr90DegreeRotations]) {
+                        nbr90DegreeRotations = i;
+                    }
                 }
+
                 auto ref = p.objReference();
                 if (ref == boost::none) {
                     ref.reset(ObjReference());

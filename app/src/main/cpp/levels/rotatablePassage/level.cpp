@@ -43,11 +43,17 @@ namespace rotatablePassage {
         m_ballRow = sd->ballRC.row;
         m_ballCol = sd->ballRC.col;
 
+        glm::vec3 position = m_gameBoard.position(m_ballRow, m_ballCol);
         m_ball.position = glm::vec3{sd->ballPosition.x, sd->ballPosition.y, m_mazeFloorZ + ballRadius()};
+
+        if (glm::length(position - m_ball.position) > m_gameBoard.blockSize()) {
+            m_ball.position = position;
+        }
 
         for (size_t rowIndex = 0; rowIndex < sd->gameBoardPlacements.size(); rowIndex++) {
             for (size_t colIndex = 0; colIndex < sd->gameBoardPlacements[rowIndex].size(); colIndex++) {
                 auto &b = m_gameBoard.block(rowIndex, colIndex);
+                b.setBlockType(GameBoardBlock::BlockType::onBoard);
                 float angle = sd->gameBoardPlacements[rowIndex][colIndex].nbr90DegreeRotations *
                         glm::radians(90.0f);
                 Component::ComponentType componentType =
@@ -130,19 +136,9 @@ namespace rotatablePassage {
                 b.setBlockType(GameBoardBlock::BlockType::onBoard);
             }
         }
-
-        for (auto &component : m_components) {
-            component->setSize(m_gameBoard.blockSize());
-        }
-
-        m_initDone = true;
     }
 
     bool Level::updateData() {
-        if (!m_initDone) {
-            return false;
-        }
-
         auto currentTime = std::chrono::high_resolution_clock::now();
         float timeDiff = std::chrono::duration<float, std::chrono::seconds::period>(
                 currentTime - m_prevTime).count();
@@ -305,7 +301,6 @@ namespace rotatablePassage {
     bool Level::updateDynamicDrawObjects(DrawObjectTable &objs, TextureMap &textures,
                                                     bool &texturesChanged) {
         float scale = m_gameBoard.blockSize() / m_modelSize;
-        float scaleBall = scale / 2.0f;
         if (objs.empty()) {
             for (auto &component : m_components) {
                 Component::ComponentType type = component->type();
@@ -349,7 +344,7 @@ namespace rotatablePassage {
             obj->modelMatrices.push_back(
                     glm::translate(glm::mat4(1.0f), m_ball.position) *
                     glm::mat4_cast(m_ball.totalRotated) *
-                    glm::scale(glm::mat4(1.0f), glm::vec3{scaleBall, scaleBall, scaleBall}));
+                    glm::scale(glm::mat4(1.0f), glm::vec3{m_scaleBall, m_scaleBall, m_scaleBall}));
             m_objsReferenceBall = objs.size();
             objs.emplace_back(obj, std::shared_ptr<DrawObjectData>());
 
@@ -400,7 +395,7 @@ namespace rotatablePassage {
             objs[m_objsReferenceBall].first->modelMatrices[0] =
                     glm::translate(glm::mat4(1.0f), m_ball.position) *
                     glm::mat4_cast(m_ball.totalRotated) *
-                    glm::scale(glm::mat4(1.0f), glm::vec3{scaleBall, scaleBall, scaleBall});
+                    glm::scale(glm::mat4(1.0f), glm::vec3{m_scaleBall, m_scaleBall, m_scaleBall});
 
         }
 
