@@ -54,14 +54,13 @@ namespace rotatablePassage {
             for (size_t colIndex = 0; colIndex < sd->gameBoardPlacements[rowIndex].size(); colIndex++) {
                 auto &b = m_gameBoard.block(rowIndex, colIndex);
                 b.setBlockType(GameBoardBlock::BlockType::onBoard);
-                float angle = sd->gameBoardPlacements[rowIndex][colIndex].nbr90DegreeRotations *
-                        glm::radians(90.0f);
-                Component::ComponentType componentType =
-                        sd->gameBoardPlacements[rowIndex][colIndex].componentType;
-                size_t placementIndex = m_components[componentType]->add(rowIndex, colIndex, angle);
+                auto &gameBoardPlacement = sd->gameBoardPlacements[rowIndex][colIndex];
+                Component::ComponentType componentType = gameBoardPlacement.componentType;
+                size_t placementIndex = m_components[componentType]->add(rowIndex, colIndex,
+                        gameBoardPlacement.nbr90DegreeRotations);
                 b.setComponent(m_components[componentType], placementIndex);
                 m_components[componentType]->placement(placementIndex).setObjReference(
-                        sd->gameBoardPlacements[rowIndex][colIndex].objReference);
+                        gameBoardPlacement.objReference);
             }
         }
 
@@ -110,7 +109,7 @@ namespace rotatablePassage {
                     nbrWalls++;
                 }
 
-                float angle = m_randomNumbers.getUInt(0, 3) * glm::radians(90.0f);
+                uint32_t nbr90DegreeRotations = m_randomNumbers.getUInt(0, 3);
                 Component::ComponentType componentType = Component::ComponentType::straight;
                 if (nbrWalls == 3) {
                     // dead end
@@ -130,7 +129,7 @@ namespace rotatablePassage {
                     // cross junction
                     componentType = Component::ComponentType::crossjunction;
                 }
-                uint32_t placementIndex = m_components[componentType]->add(i, j, angle);
+                uint32_t placementIndex = m_components[componentType]->add(i, j, nbr90DegreeRotations);
                 auto &b = m_gameBoard.block(i, j);
                 b.setComponent(m_components[componentType], placementIndex);
                 b.setBlockType(GameBoardBlock::BlockType::onBoard);

@@ -126,39 +126,39 @@ namespace movablePassage {
         for (uint32_t k = 0; k < m_nbrTileRowsForStart; k++) {
             for (uint32_t l = 0; l < m_gameBoard.widthInTiles(); l++) {
                 Component::ComponentType type = Component::ComponentType::open;
-                float rotation = 0.0f;
+                uint32_t nbr90DegreeRotations = 0;
                 if (k == 0) {
                     if (l == 0) {
                         type = Component::ComponentType::closedCorner;
                     } else if (l == m_gameBoard.widthInTiles() - 1) {
                         type = Component::ComponentType::closedCorner;
-                        rotation = glm::radians(90.0f);
+                        nbr90DegreeRotations = 1;
                     } else {
                         type = Component::ComponentType::closedBottom;
                     }
                 } else if (k == m_nbrTileRowsForStart - 1) {
                     if (l == 0) {
                         type = Component::ComponentType::closedCorner;
-                        rotation = glm::radians(270.0f);
+                        nbr90DegreeRotations = 3;
                     } else if (l == m_gameBoard.widthInTiles() - 1) {
                         type = Component::ComponentType::closedCorner;
-                        rotation = glm::radians(180.0f);
+                        nbr90DegreeRotations = 2;
                     } else if (l == m_gameBoardStartRowColumn.second + startColumn) {
                         type = Component::ComponentType::open;
-                        rotation = 0.0f;
+                        nbr90DegreeRotations = 0;
                     } else {
                         type = Component::ComponentType::closedBottom;
-                        rotation = glm::radians(180.0f);
+                        nbr90DegreeRotations = 2;
                     }
                 } else if (l == 0) {
                     type = Component::ComponentType::closedBottom;
-                    rotation = glm::radians(270.0f);
+                    nbr90DegreeRotations = 3;
                 } else if (l == m_gameBoard.widthInTiles() - 1) {
                     type = Component::ComponentType::closedBottom;
-                    rotation = glm::radians(90.0f);
+                    nbr90DegreeRotations = 1;
                 }
                 auto &compEnd = m_components[type];
-                auto pos = compEnd->add(k, l, rotation, true);
+                auto pos = compEnd->add(k, l, nbr90DegreeRotations, true);
                 auto &block = m_gameBoard.block(k, l);
                 block.setComponent(compEnd, pos);
                 block.setBlockType(GameBoardBlock::BlockType::begin);

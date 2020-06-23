@@ -199,14 +199,8 @@ namespace movablePassage {
                      placementIt != m_components[componentType]->placementsEnd();
                      placementIt++)
                 {
-                    float angle = placementIt->rotationAngle();
-                    float halfpi = glm::radians(90.0f);
-                    uint32_t nbrRotations = 0;
-                    while (angle > 0) {
-                        nbrRotations ++;
-                        angle -= halfpi;
-                    }
-                    vec.emplace_back(placementIt->row(), placementIt->col(), nbrRotations);
+                    vec.emplace_back(placementIt->row(), placementIt->col(),
+                            placementIt->nbr90DegreeRotations());
                 }
             };
         initComponentVector(Component::ComponentType::straight, sd->straightPositions);

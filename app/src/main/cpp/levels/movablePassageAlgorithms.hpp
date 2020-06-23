@@ -515,7 +515,8 @@ public:
         /* accessors */
         uint32_t row() { return m_row; }
         uint32_t col() { return m_col; }
-        float rotationAngle () { return m_rotationAngle; }
+        float rotationAngle () { return m_nbr90DegreeRotations * glm::radians(90.0f); }
+        uint32_t nbr90DegreeRotations() { return m_nbr90DegreeRotations; }
         bool lockedIntoPlace() { return m_lockedIntoPlace; }
         auto &prev() { return m_prev; }
         auto &next() { return m_next; }
@@ -528,11 +529,7 @@ public:
         void setObjReference(boost::optional<ObjReference> ref) { m_objReference = ref; }
         void setLockedIntoPlace(bool lockedIntoPlace) { m_lockedIntoPlace = lockedIntoPlace; }
         void rotate() {
-            m_rotationAngle += glm::radians(90.0f);
-            float twopi = 2 * glm::radians(180.0f);
-            while (m_rotationAngle >= twopi) {
-                m_rotationAngle -= twopi;
-            }
+            m_nbr90DegreeRotations = (m_nbr90DegreeRotations + 1) %4;
         }
 
         void movePlacement(glm::vec2 const &fractionalMove) {
@@ -549,7 +546,7 @@ public:
 
         Placement(uint32_t row = 0,
                   uint32_t col = 0,
-                  float rotationAngle = 0.0f, /* radians */
+                  uint32_t nbr90DegreeRotations = 0,
                   bool lockedIntoPlace = false,
                   std::shared_ptr<Component> prevComponent = nullptr,
                   size_t prevIndex = 0,
@@ -557,7 +554,7 @@ public:
                   size_t nextIndex = 0)
                 : m_row{row},
                   m_col{col},
-                  m_rotationAngle{rotationAngle},
+                  m_nbr90DegreeRotations{nbr90DegreeRotations},
                   m_lockedIntoPlace{lockedIntoPlace},
                   m_prev{std::make_pair(prevComponent, prevIndex)},
                   m_next{std::make_pair(nextComponent, nextIndex)},
@@ -569,7 +566,7 @@ public:
     private:
         uint32_t m_row;
         uint32_t m_col;
-        float m_rotationAngle; /*radians */
+        uint32_t m_nbr90DegreeRotations;
         bool m_lockedIntoPlace;
         std::pair<std::shared_ptr<Component>, size_t> m_prev;
         std::pair<std::shared_ptr<Component>, size_t> m_next;
@@ -581,14 +578,14 @@ public:
     uint32_t add(
             uint32_t row = 0,
             uint32_t col = 0,
-            float rotationAngle = 0.0f, /* radians */
+            uint32_t nbr90DegreeRotations = 0,
             bool lockedIntoPlace = false,
             std::shared_ptr<Component> prevComponent = nullptr,
             size_t prevIndex = 0,
             std::shared_ptr<Component> nextComponent = nullptr,
             size_t nextIndex = 0)
     {
-        m_placements.emplace_back(row, col, rotationAngle, lockedIntoPlace,
+        m_placements.emplace_back(row, col, nbr90DegreeRotations, lockedIntoPlace,
                                   prevComponent, prevIndex, nextComponent, nextIndex);
         return m_placements.size() - 1;
     }

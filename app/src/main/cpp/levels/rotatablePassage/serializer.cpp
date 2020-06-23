@@ -135,26 +135,12 @@ namespace rotatablePassage {
             for (size_t colIndex = 0; colIndex < m_gameBoard.widthInTiles(); colIndex++) {
                 auto &b = m_gameBoard.block(rowIndex, colIndex);
                 auto &p = b.component()->placement(b.placementIndex());
-                float rotationAngle = p.rotationAngle();
-                float halfPi = glm::radians(90.0f);
-                std::array<float, 5> diffs;
-                diffs[0] = std::fabs(rotationAngle);
-                diffs[1] = std::fabs(halfPi - rotationAngle);
-                diffs[2] = std::fabs(2*halfPi - rotationAngle);
-                diffs[3] = std::fabs(3*halfPi - rotationAngle);
-                diffs[4] = std::fabs(4*halfPi - rotationAngle);
-                uint32_t nbr90DegreeRotations = 0;
-                for (uint32_t i = 1; i < diffs.size(); i++) {
-                    if (diffs[i] < diffs[nbr90DegreeRotations]) {
-                        nbr90DegreeRotations = i;
-                    }
-                }
 
                 auto ref = p.objReference();
                 if (ref == boost::none) {
                     ref.reset(ObjReference());
                 }
-                row.emplace_back(ref.get(), b.component()->type(), nbr90DegreeRotations);
+                row.emplace_back(ref.get(), b.component()->type(), p.nbr90DegreeRotations());
             }
             sd->gameBoardPlacements.push_back(row);
         }
