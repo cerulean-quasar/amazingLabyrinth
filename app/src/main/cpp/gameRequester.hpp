@@ -56,7 +56,7 @@ public:
     }
     std::string getSaveDataFileName() override { return m_pathSaveFile; }
 
-    std::shared_ptr<TextureData> getDepthTexture(
+    void getDepthTexture(
             DrawObjectTable const &objsData,
             float width,
             float height,

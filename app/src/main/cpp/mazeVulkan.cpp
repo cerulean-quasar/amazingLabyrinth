@@ -18,6 +18,8 @@
  *
  */
 #include <unistd.h>
+#include <vector>
+#include <memory>
 #include <glm/glm.hpp>
 
 #include "mazeVulkan.hpp"
@@ -843,7 +845,7 @@ std::shared_ptr<vulkan::ImageView> GraphicsVulkan::runTextureComputation(
             imageHeight,
             colorImageFormat,
             VK_IMAGE_TILING_OPTIMAL,
-            VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, // todo: remove sampled bit usage
+            VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT,
             VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
             VK_IMAGE_ASPECT_COLOR_BIT);
 
@@ -921,7 +923,7 @@ std::shared_ptr<vulkan::ImageView> GraphicsVulkan::runTextureComputation(
     return colorImage;
 }
 
-std::shared_ptr<TextureData> GraphicsVulkan::getDepthTexture(
+void GraphicsVulkan::getDepthTexture(
         DrawObjectTable const &objsData,
         float width,
         float height,
@@ -939,7 +941,7 @@ std::shared_ptr<TextureData> GraphicsVulkan::getDepthTexture(
     glm::mat4 view = m_levelSequence->viewMatrix();
     glm::mat4 vp = proj * view;
 
-    std::vector<std::shared_ptr<DrawObjectDataVulkanDepthTexture>> drawObjsData;
+    std::vector<std::shared_ptr<DrawObjectDataVulkanDepthTexture>> drawObjsData{};
     for (auto const &objdata : objsData) {
         auto drawObjData = std::make_shared<DrawObjectDataVulkanDepthTexture>(
                 m_device, m_commandPool, dscPools, objdata.first);
@@ -958,7 +960,7 @@ std::shared_ptr<TextureData> GraphicsVulkan::getDepthTexture(
     depthView->image()->transitionImageLayout(VK_IMAGE_LAYOUT_UNDEFINED,
                                               VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL, m_commandPool);
 
-    std::vector<uint32_t> indexArraySizes;
+    std::vector<uint32_t> indexArraySizes{};
     for (auto const &objData : objsData) {
         indexArraySizes.push_back(objData.first->indices.size());
     }
@@ -976,7 +978,7 @@ std::shared_ptr<TextureData> GraphicsVulkan::getDepthTexture(
             dscPools);
 
 
-    std::vector<float> colorDepthMap;
+    std::vector<float> colorDepthMap{};
     colorDepthMap.resize(imageWidth * imageHeight);
 
     // use buffer for both the color depth image (R32) and the color normal image (R32G32B32)
@@ -1004,12 +1006,4 @@ std::shared_ptr<TextureData> GraphicsVulkan::getDepthTexture(
     colorNormalImage->image()->copyImageToBuffer(buffer, m_commandPool);
     buffer.copyRawFrom(colorDepthMap.data(), colorDepthMap.size() * sizeof (float));
     bitmapToNormals(colorDepthMap, imageWidth, imageHeight, 4, true, normalMap);
-
-    colorNormalImage->image()->transitionImageLayout(VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
-                                                     VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
-                                                     m_commandPool);
-
-    auto imgSampler = std::make_shared<vulkan::ImageSampler>(m_device, colorNormalImage);
-
-    return std::make_shared<TextureDataVulkan>(imgSampler);
 }

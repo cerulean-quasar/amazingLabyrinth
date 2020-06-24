@@ -389,7 +389,7 @@ void GraphicsGL::createDepthTexture() {
 }
 
 // some levels use this function to get a depth texture and surface normals
-std::shared_ptr<TextureData> GraphicsGL::getDepthTexture(
+void GraphicsGL::getDepthTexture(
         DrawObjectTable const &objsData,
         float width,
         float height,
@@ -417,7 +417,7 @@ std::shared_ptr<TextureData> GraphicsGL::getDepthTexture(
 }
 
 template <typename data_type>
-std::shared_ptr<TextureData> GraphicsGL::getDepthTextureTemplate(
+void GraphicsGL::getDepthTextureTemplate(
         DrawObjectTable const &objsData,
         Framebuffer::ColorImageFormat colorImageFormat,
         float width,
@@ -527,8 +527,6 @@ std::shared_ptr<TextureData> GraphicsGL::getDepthTextureTemplate(
     // set the viewport back for the rendering to the screen
     glViewport(0, 0, m_surface->width(), m_surface->height());
     checkGraphicsError();
-
-    return std::make_shared<TextureDataGL>(fb.acquireDepthImage());
 }
 
 void GraphicsGL::drawFrame() {

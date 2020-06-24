@@ -239,7 +239,7 @@ void JGameBundle::putDatum<int>(std::string const &key, int const &val) {
     handleJNIException(lenv);
 }
 
-std::shared_ptr<TextureData> JGameRequester::getDepthTexture(
+void JGameRequester::getDepthTexture(
         DrawObjectTable const &objsData,
         float width,
         float height,
@@ -249,7 +249,7 @@ std::shared_ptr<TextureData> JGameRequester::getDepthTexture(
         std::vector<float> &depthMap,
         std::vector<glm::vec3> &normalMap)
 {
-    return m_graphics->getDepthTexture(objsData, width, height, nbrSamplesForWidth, farthestDepth,
+    m_graphics->getDepthTexture(objsData, width, height, nbrSamplesForWidth, farthestDepth,
             nearestDepth, depthMap, normalMap);
 }
 

@@ -209,7 +209,7 @@ public:
             getBugList()};
     }
 
-    virtual std::shared_ptr<TextureData> getDepthTexture(
+    virtual void getDepthTexture(
             DrawObjectTable const &objsData,
             float width,
             float height,
@@ -242,7 +242,7 @@ private:
                     unsigned long nbrIndices, glm::mat4 const &modelMatrix);
 
     template <typename data_type>
-    std::shared_ptr<TextureData> getDepthTextureTemplate(
+    void getDepthTextureTemplate(
             DrawObjectTable const &objsData,
             Framebuffer::ColorImageFormat colorImageFormat,
             float width,

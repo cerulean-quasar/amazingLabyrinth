@@ -310,7 +310,7 @@ public:
     virtual void cleanupThread()=0;
 
     // some levels use this function to get a depth texture.
-    virtual std::shared_ptr<TextureData> getDepthTexture(
+    virtual void getDepthTexture(
             DrawObjectTable const &objsData,
             float width,
             float height,

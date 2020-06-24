@@ -19,7 +19,6 @@
  */
 
 #include "graphicsVulkan.hpp"
-#include "../../../../../../Android/Sdk/ndk/21.0.6113669/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/include/vulkan/vulkan.h"
 
 namespace vulkan {
 /**
@@ -1534,12 +1533,12 @@ namespace vulkan {
 
             sourceStage = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
             destinationStage = VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
-        } else if (oldLayout == VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL &&  // TODO: condition can be removed when testing done
+/*        } else if (oldLayout == VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL &&  // TODO: condition can be removed when testing done
                    newLayout == VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL) {
             barrier.srcAccessMask = VK_ACCESS_TRANSFER_READ_BIT;
             barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
             sourceStage = VK_PIPELINE_STAGE_TRANSFER_BIT;
-            destinationStage = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
+            destinationStage = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT; */
         } else {
             throw std::runtime_error("unsupported layout transition!");
         }

@@ -46,7 +46,7 @@ public:
 
 class GraphicsRequester {
 public:
-    virtual std::shared_ptr<TextureData> getDepthTexture(
+    virtual void getDepthTexture(
             DrawObjectTable const &objsData,
             float width,
             float height,
