@@ -2,7 +2,8 @@ apply plugin: 'com.android.application'
 
 android {
     compileSdkVersion 29
-    ndkVersion "21.0.6113669"
+    ndkVersion "21.3.6528147"
+    //ndkVersion "21.0.6113669"
     //ndkVersion "20.1.5948944"
     defaultConfig {
         applicationId "com.quasar.cerulean.amazinglabyrinth"
@@ -37,7 +38,8 @@ android {
         debug {
             jniLibs {
                 //srcDir "/home/cerulean.quasar/Android/Sdk/ndk/20.1.5948944/sources/third_party/vulkan/src/build-android/jniLibs"
-                srcDir "/home/cerulean.quasar/Android/Sdk/ndk/21.0.6113669/sources/third_party/vulkan/src/build-android/jniLibs"
+                //srcDir "/home/cerulean.quasar/Android/Sdk/ndk/21.0.6113669/sources/third_party/vulkan/src/build-android/jniLibs"
+                srcDir "/home/cerulean.quasar/Android/Sdk/ndk/21.3.6528147/sources/third_party/vulkan/src/build-android/jniLibs"
             }
         }
     }
