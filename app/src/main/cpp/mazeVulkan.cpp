@@ -591,7 +591,7 @@ void GraphicsVulkan::initializeCommandBuffer(uint32_t cmdBufferIndex) {
      */
     vkBeginCommandBuffer(commandBuffer, &beginInfo);
 
-    std::vector<VkClearValue> clearValues;
+    std::vector<VkClearValue> clearValues{};
     clearValues.resize(2);
     glm::vec4 bgColor = m_levelSequence->backgroundColor();
     clearValues[0].color = {1.0f, 0.0f, 0.0f, 1.0f};

@@ -125,24 +125,6 @@ private:
     void createDescriptorSetLayout();
 };
 
-class TextureDataVulkan : public TextureData {
-public:
-    TextureDataVulkan(std::shared_ptr<vulkan::Device> const &inDevice,
-                      std::shared_ptr<vulkan::CommandPool> const &inCommandPool,
-                      std::shared_ptr<TextureDescription> const &inTextureDescription)
-            : m_sampler{new vulkan::ImageSampler{inDevice, inCommandPool, inTextureDescription}}
-    {}
-
-    // TODO: testing, can remove
-    TextureDataVulkan(std::shared_ptr<vulkan::ImageSampler> const &inSampler)
-            : m_sampler{inSampler}
-    {}
-
-    inline std::shared_ptr<vulkan::ImageSampler> const &sampler() { return m_sampler; }
-private:
-    std::shared_ptr<vulkan::ImageSampler> m_sampler;
-};
-
 std::shared_ptr<vulkan::Buffer> createUniformBuffer(
         std::shared_ptr<vulkan::Device> const &device, size_t bufferSize);
 

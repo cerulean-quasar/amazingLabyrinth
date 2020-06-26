@@ -28,6 +28,11 @@ bool Vertex::operator==(const Vertex& other) const {
     return pos == other.pos && color == other.color && texCoord == other.texCoord && normal == other.normal;
 }
 
+bool compareLess(glm::vec3 const &vec1, glm::vec3 const &vec2) {
+    // todo: check to make sure this works
+    return vec1 < vec2;
+}
+
 namespace std {
     template<> struct hash<glm::vec3> {
         size_t operator()(glm::vec3 vector) const {
@@ -278,10 +283,30 @@ private:
     std::vector<float> m_texCoords;
 };
 
-bool loadModel(
+ModelVertices ModelDescriptionPath::getVerticesWithVertexNormals(std::shared_ptr<GameRequester> const &gameRequester) {
+    ModelVertices vertices;
+    loadModel(gameRequester->getAssetStream(m_path), m_modelVertices, &vertices);
+    return std::move(vertices);
+}
+
+ModelVertices ModelDescriptionPath::getData(std::shared_ptr<GameRequester> const &gameRequester) {
+    ModelVertices vertices{};
+    if (m_modelVertices.first.empty()) {
+        loadModel(gameRequester->getAssetStream(m_path), vertices);
+    } else {
+        // the fact that we got here means that the vertices with vertex normals were requested
+        // before.  We cached the result for the vertices with face normals in m_modelVertices.
+        // Just swap the data into the return value because the caller only requests these data
+        // once.  No need to keep it around.
+        std::swap(vertices, m_modelVertices);
+    }
+    return std::move(vertices);
+}
+
+bool ModelDescriptionPath::loadModel(
         std::unique_ptr<std::streambuf> const &modelStreamBuf,
-        std::pair<std::vector<Vertex>, std::vector<uint32_t>> &verticesWithFaceNormals,
-        std::pair<std::vector<Vertex>, std::vector<uint32_t>> *verticesWithVertexNormals)
+        ModelVertices &verticesWithFaceNormals,
+        ModelVertices *verticesWithVertexNormals)
 {
     std::istream assetIstream(modelStreamBuf.get());
 
@@ -297,220 +322,224 @@ bool loadModel(
     return true;
 }
 
-// creates a quad with each side length 2.0f.
-void getQuad(std::vector<Vertex> &vertices, std::vector<uint32_t> &indices, glm::vec3 const &centerPos) {
+ModelVertices ModelDescriptionQuad::getData(std::shared_ptr<GameRequester> const&) {
+    ModelVertices vertices{};
     Vertex vertex = {};
     vertex.color = {0.2f, 0.2f, 0.2f };
     vertex.normal = {0.0f, 0.0f, 1.0f };
 
-    vertex.pos = glm::vec3{ -1.0f, 1.0f, 0.0f } + centerPos;
+    vertex.pos = glm::vec3{ -1.0f, 1.0f, 0.0f } + m_center;
     vertex.texCoord = {0.0f, 0.0f };
-    vertices.push_back(vertex);
+    vertices.first.push_back(vertex);
 
-    vertex.pos = glm::vec3{ -1.0f, -1.0f, 0.0f } + centerPos;
+    vertex.pos = glm::vec3{ -1.0f, -1.0f, 0.0f } + m_center;
     vertex.texCoord = {0.0f, 1.0f };
-    vertices.push_back(vertex);
+    vertices.first.push_back(vertex);
 
-    vertex.pos = glm::vec3{ 1.0f, -1.0f, 0.0f } + centerPos;
+    vertex.pos = glm::vec3{ 1.0f, -1.0f, 0.0f } + m_center;
     vertex.texCoord = {1.0f, 1.0f };
-    vertices.push_back(vertex);
+    vertices.first.push_back(vertex);
 
-    vertex.pos = glm::vec3{ 1.0f, 1.0f, 0.0f } + centerPos;
+    vertex.pos = glm::vec3{ 1.0f, 1.0f, 0.0f } + m_center;
     vertex.texCoord = {1.0f, 0.0f };
-    vertices.push_back(vertex);
+    vertices.first.push_back(vertex);
 
-    indices.push_back(0);
-    indices.push_back(1);
-    indices.push_back(2);
+    vertices.second.push_back(0);
+    vertices.second.push_back(1);
+    vertices.second.push_back(2);
 
-    indices.push_back(0);
-    indices.push_back(2);
-    indices.push_back(3);
+    vertices.second.push_back(0);
+    vertices.second.push_back(2);
+    vertices.second.push_back(3);
 
+    return std::move(vertices);
 }
 
 // creates a cube with each side length 2.0f.
-void getCube(std::vector<Vertex> &vertices, std::vector<uint32_t> &indices, glm::vec3 const &centerPos) {
+ModelVertices ModelDescriptionCube::getData(std::shared_ptr<GameRequester> const &) {
+    ModelVertices vertices{};
     Vertex vertex = {};
     vertex.color = {0.2f, 0.2f, 0.2f };
 
     std::array<glm::vec3, 8> positions = {
-        glm::vec3{ -1.0f, 1.0f, 1.0f } + centerPos,
-        glm::vec3{ -1.0f, -1.0f, 1.0f } + centerPos,
-        glm::vec3{ 1.0f, -1.0f, 1.0f } + centerPos,
-        glm::vec3{ 1.0f, 1.0f, 1.0f } + centerPos,
+        glm::vec3{ -1.0f, 1.0f, 1.0f } + m_center,
+        glm::vec3{ -1.0f, -1.0f, 1.0f } + m_center,
+        glm::vec3{ 1.0f, -1.0f, 1.0f } + m_center,
+        glm::vec3{ 1.0f, 1.0f, 1.0f } + m_center,
 
-        glm::vec3{ -1.0f, 1.0f, -1.0f } + centerPos,
-        glm::vec3{ -1.0f, -1.0f, -1.0f } + centerPos,
-        glm::vec3{ 1.0f, -1.0f, -1.0f } + centerPos,
-        glm::vec3{ 1.0f, 1.0f, -1.0f } + centerPos
+        glm::vec3{ -1.0f, 1.0f, -1.0f } + m_center,
+        glm::vec3{ -1.0f, -1.0f, -1.0f } + m_center,
+        glm::vec3{ 1.0f, -1.0f, -1.0f } + m_center,
+        glm::vec3{ 1.0f, 1.0f, -1.0f } + m_center
     };
 
     // the top, z = 1.0
-    size_t i = vertices.size();
+    size_t i = vertices.first.size();
     vertex.normal = {0.0f, 0.0f, 1.0f };
 
     vertex.pos = positions[0];
     vertex.texCoord = {0.0f, 0.0f };
-    vertices.push_back(vertex);
+    vertices.first.push_back(vertex);
 
     vertex.pos = positions[1];
     vertex.texCoord = {0.0f, 1.0f/3.0f };
-    vertices.push_back(vertex);
+    vertices.first.push_back(vertex);
 
-    vertex.pos = positions[2] + centerPos;
+    vertex.pos = positions[2];
     vertex.texCoord = {1.0f/2.0f, 1.0f/3.0f };
-    vertices.push_back(vertex);
+    vertices.first.push_back(vertex);
 
-    vertex.pos = positions[3] + centerPos;
+    vertex.pos = positions[3];
     vertex.texCoord = {1.0f/2.0f, 0.0f };
-    vertices.push_back(vertex);
+    vertices.first.push_back(vertex);
 
-    indices.push_back(i+0);
-    indices.push_back(i+1);
-    indices.push_back(i+2);
+    vertices.second.push_back(i+0);
+    vertices.second.push_back(i+1);
+    vertices.second.push_back(i+2);
 
-    indices.push_back(i+0);
-    indices.push_back(i+2);
-    indices.push_back(i+3);
+    vertices.second.push_back(i+0);
+    vertices.second.push_back(i+2);
+    vertices.second.push_back(i+3);
 
     // the bottom, z = -1
-    i = vertices.size();
+    i = vertices.first.size();
     vertex.normal = {0.0f, 0.0f, -1.0f };
 
     vertex.pos = positions[7];
     vertex.texCoord = {0.0f, 1.0f/3.0f };
-    vertices.push_back(vertex);
+    vertices.first.push_back(vertex);
 
     vertex.pos = positions[6];
     vertex.texCoord = {0.0f, 2.0f/3.0f };
-    vertices.push_back(vertex);
+    vertices.first.push_back(vertex);
 
     vertex.pos = positions[5];
     vertex.texCoord = {1.0f/2.0f, 2.0f/3.0f };
-    vertices.push_back(vertex);
+    vertices.first.push_back(vertex);
 
     vertex.pos = positions[4];
     vertex.texCoord = {1.0f/2.0f, 1.0f/3.0f };
-    vertices.push_back(vertex);
+    vertices.first.push_back(vertex);
 
-    indices.push_back(i+0);
-    indices.push_back(i+1);
-    indices.push_back(i+2);
+    vertices.second.push_back(i+0);
+    vertices.second.push_back(i+1);
+    vertices.second.push_back(i+2);
 
-    indices.push_back(i+0);
-    indices.push_back(i+2);
-    indices.push_back(i+3);
+    vertices.second.push_back(i+0);
+    vertices.second.push_back(i+2);
+    vertices.second.push_back(i+3);
 
     // the side, y = -1
-    i = vertices.size();
+    i = vertices.first.size();
     vertex.normal = {0.0f, -1.0f, 0.0f };
 
     vertex.pos = positions[1];
     vertex.texCoord = {0.0f, 2.0f/3.0f };
-    vertices.push_back(vertex);
+    vertices.first.push_back(vertex);
 
     vertex.pos = positions[5];
     vertex.texCoord = {0.0f, 1.0f };
-    vertices.push_back(vertex);
+    vertices.first.push_back(vertex);
 
     vertex.pos = positions[6];
     vertex.texCoord = {1.0f/2.0f, 1.0f };
-    vertices.push_back(vertex);
+    vertices.first.push_back(vertex);
 
     vertex.pos = positions[2];
     vertex.texCoord = {1.0f/2.0f, 2.0f/3.0f };
-    vertices.push_back(vertex);
+    vertices.first.push_back(vertex);
 
-    indices.push_back(i+0);
-    indices.push_back(i+1);
-    indices.push_back(i+2);
+    vertices.second.push_back(i+0);
+    vertices.second.push_back(i+1);
+    vertices.second.push_back(i+2);
 
-    indices.push_back(i+0);
-    indices.push_back(i+2);
-    indices.push_back(i+3);
+    vertices.second.push_back(i+0);
+    vertices.second.push_back(i+2);
+    vertices.second.push_back(i+3);
 
     // the side, y = 1
-    i = vertices.size();
+    i = vertices.first.size();
     vertex.normal = {0.0f, 1.0f, 0.0f };
 
     vertex.pos = positions[3];
     vertex.texCoord = {1.0f/2.0f, 0.0f };
-    vertices.push_back(vertex);
+    vertices.first.push_back(vertex);
 
     vertex.pos = positions[7];
     vertex.texCoord = {1.0f/2.0f, 1.0f/3.0f };
-    vertices.push_back(vertex);
+    vertices.first.push_back(vertex);
 
     vertex.pos = positions[4];
     vertex.texCoord = {1.0f, 1.0f/3.0f };
-    vertices.push_back(vertex);
+    vertices.first.push_back(vertex);
 
     vertex.pos = positions[0];
     vertex.texCoord = {1.0f, 0.0f };
-    vertices.push_back(vertex);
+    vertices.first.push_back(vertex);
 
-    indices.push_back(i+0);
-    indices.push_back(i+1);
-    indices.push_back(i+2);
+    vertices.second.push_back(i+0);
+    vertices.second.push_back(i+1);
+    vertices.second.push_back(i+2);
 
-    indices.push_back(i+0);
-    indices.push_back(i+2);
-    indices.push_back(i+3);
+    vertices.second.push_back(i+0);
+    vertices.second.push_back(i+2);
+    vertices.second.push_back(i+3);
 
     // the side, x = -1
-    i = vertices.size();
+    i = vertices.first.size();
     vertex.normal = {-1.0f, 0.0f, 0.0f };
 
     vertex.pos = positions[0];
     vertex.texCoord = {1.0f/2.0f, 1.0f/3.0f };
-    vertices.push_back(vertex);
+    vertices.first.push_back(vertex);
 
     vertex.pos = positions[4];
     vertex.texCoord = {1.0f/2.0f, 2.0f/3.0f };
-    vertices.push_back(vertex);
+    vertices.first.push_back(vertex);
 
     vertex.pos = positions[5];
     vertex.texCoord = {1.0f, 2.0f/3.0f };
-    vertices.push_back(vertex);
+    vertices.first.push_back(vertex);
 
     vertex.pos = positions[1];
     vertex.texCoord = {1.0f, 1.0f/3.0f };
-    vertices.push_back(vertex);
+    vertices.first.push_back(vertex);
 
-    indices.push_back(i+0);
-    indices.push_back(i+1);
-    indices.push_back(i+2);
+    vertices.second.push_back(i+0);
+    vertices.second.push_back(i+1);
+    vertices.second.push_back(i+2);
 
-    indices.push_back(i+0);
-    indices.push_back(i+2);
-    indices.push_back(i+3);
+    vertices.second.push_back(i+0);
+    vertices.second.push_back(i+2);
+    vertices.second.push_back(i+3);
 
     // the side, x = 1
-    i = vertices.size();
+    i = vertices.first.size();
     vertex.normal = {1.0f, 0.0f, 0.0f };
 
     vertex.pos = positions[2];
     vertex.texCoord = {1.0f/2.0f, 2.0f/3.0f };
-    vertices.push_back(vertex);
+    vertices.first.push_back(vertex);
 
     vertex.pos = positions[6];
     vertex.texCoord = {1.0f/2.0f, 1.0f };
-    vertices.push_back(vertex);
+    vertices.first.push_back(vertex);
 
     vertex.pos = positions[7];
     vertex.texCoord = {1.0f, 1.0f };
-    vertices.push_back(vertex);
+    vertices.first.push_back(vertex);
 
     vertex.pos = positions[3];
     vertex.texCoord = {1.0f, 2.0f/3.0f };
-    vertices.push_back(vertex);
+    vertices.first.push_back(vertex);
 
-    indices.push_back(i+0);
-    indices.push_back(i+1);
-    indices.push_back(i+2);
+    vertices.second.push_back(i+0);
+    vertices.second.push_back(i+1);
+    vertices.second.push_back(i+2);
 
-    indices.push_back(i+0);
-    indices.push_back(i+2);
-    indices.push_back(i+3);
+    vertices.second.push_back(i+0);
+    vertices.second.push_back(i+2);
+    vertices.second.push_back(i+3);
+
+    return std::move(vertices);
 }

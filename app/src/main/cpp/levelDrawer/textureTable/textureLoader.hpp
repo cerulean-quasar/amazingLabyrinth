@@ -17,30 +17,22 @@
  *  along with AmazingLabyrinth.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
-#ifndef AMAZING_LABYRINTH_GRAPHICS_HPP
-#define AMAZING_LABYRINTH_GRAPHICS_HPP
+#ifndef AMAZING_LABYRINTH_TEXTURE_LOADER_HPP
+#define AMAZING_LABYRINTH_TEXTURE_LOADER_HPP
 #include <set>
 #include <vector>
 #include <map>
 #include <string>
-
-#include <glm/glm.hpp>
-
-#include "modelLoader.hpp"
+#include "../common.hpp"
 
 class GameRequester;
 
-// todo: use getCube instead
-static std::string const MODEL_WALL("models/wall.modelcbor");
-
-class TextureDescriptionPtrLess;
-
 class TextureDescription {
-    friend TextureDescriptionPtrLess;
+    friend BaseClassPtrLess<TextureDescription>;
 protected:
     std::shared_ptr<GameRequester> m_gameRequester;
 
-    virtual bool compare(TextureDescription *) = 0;
+    virtual bool compareLess(TextureDescription *) = 0;
 public:
     explicit TextureDescription(std::shared_ptr<GameRequester> inGameRequester)
         : m_gameRequester{std::move(inGameRequester)}
@@ -54,7 +46,7 @@ public:
 class TextureDescriptionDummy : public TextureDescription {
 private:
 protected:
-    virtual bool compare(TextureDescription *other) {
+    virtual bool compareLess(TextureDescription *other) {
         return false;
     }
 public:
@@ -71,7 +63,7 @@ class TextureDescriptionPath : public TextureDescription {
 private:
     std::string imagePath;
 protected:
-    virtual bool compare(TextureDescription *other) {
+    virtual bool compareLess(TextureDescription *other) {
         auto otherPath = dynamic_cast<TextureDescriptionPath*>(other);
         return imagePath < otherPath->imagePath;
     }
@@ -82,14 +74,14 @@ public:
         : TextureDescription{std::move(inGameRequester)},
           imagePath{inImagePath}
     {}
-    virtual std::vector<char> getData(uint32_t &texWidth, uint32_t &texHeight, uint32_t &texChannels);
+    std::vector<char> getData(uint32_t &texWidth, uint32_t &texHeight, uint32_t &texChannels) override;
 };
 
 class TextureDescriptionText : public TextureDescription {
 private:
     std::string m_textString;
 protected:
-    bool compare(TextureDescription *other) {
+    bool compareLess(TextureDescription *other) {
         auto otherPath = dynamic_cast<TextureDescriptionText*>(other);
         return m_textString < otherPath->m_textString;
     }
@@ -101,50 +93,11 @@ public:
           m_textString{inTextString}
     {
     }
-    virtual std::vector<char> getData(uint32_t &texWidth, uint32_t &texHeight, uint32_t &texChannels);
+    std::vector<char> getData(uint32_t &texWidth, uint32_t &texHeight, uint32_t &texChannels) override;
 };
 
-class TextureData {
-public:
-    virtual ~TextureData() = default;
-};
-
-class TextureDescriptionPtrLess {
-public:
-    bool operator() (std::shared_ptr<TextureDescription> const &p1,
-                     std::shared_ptr<TextureDescription> const &p2) const {
-        TextureDescription &p1ref = *p1;
-        TextureDescription &p2ref = *p2;
-        std::type_info const &c1 = typeid(p1ref);
-        std::type_info const &c2 = typeid(p2ref);
-        if (c1 != c2) {
-            return c1.before(c2);
-        } else if (p1.get() == p2.get()) {
-            return false;
-        } else {
-            return p1->compare(p2.get());
-        }
-    }
-};
-
-typedef std::map<std::shared_ptr<TextureDescription>, std::shared_ptr<TextureData>,
-                 TextureDescriptionPtrLess > TextureMap;
-
-struct DrawObject {
-    std::vector<Vertex> vertices;
-    std::vector<uint32_t> indices;
-    std::vector<glm::mat4> modelMatrices;
-    std::shared_ptr<TextureDescription> texture;
-};
-
-struct DrawObjectData {
-    virtual ~DrawObjectData() = default;
-};
-
-typedef std::pair<std::shared_ptr<DrawObject>, std::shared_ptr<DrawObjectData> > DrawObjectEntry;
-typedef std::vector<DrawObjectEntry> DrawObjectTable;
 
 int istreamRead(void *userData, char *data, int size);
 void istreamSkip(void *userData, int n);
 int istreamEof(void *userData);
-#endif
+#endif // AMAZING_LABYRINTH_TEXTURE_LOADER_HPP
