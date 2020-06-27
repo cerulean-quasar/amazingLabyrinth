@@ -45,7 +45,6 @@
 #include <map>
 
 #include "android.hpp"
-#include "graphics.hpp"
 #include "levels/finisher/types.hpp"
 #include "levelTracker/levelTracker.hpp"
 #include "levels/basic/level.hpp"

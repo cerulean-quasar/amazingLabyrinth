@@ -27,32 +27,6 @@
 #include "mazeGL.hpp"
 #include "mathGraphics.hpp"
 
-void checkGraphicsError() {
-    GLenum rc = glGetError();
-    if (rc != GL_NO_ERROR) {
-        std::string c;
-        switch (rc) {
-            case GL_INVALID_ENUM:
-                c = "GL_INVALID_ENUM";
-                break;
-            case GL_INVALID_VALUE:
-                c = "GL_INVALID_VALUE";
-                break;
-            case GL_INVALID_OPERATION:
-                c = "GL_INVALID_OPERATION";
-                break;
-            case GL_INVALID_FRAMEBUFFER_OPERATION:
-                c = "GL_INVALID_FRAMEBUFFER_OPERATION";
-                break;
-            case GL_OUT_OF_MEMORY:
-                c = "GL_OUT_OF_MEMORY";
-                break;
-            default:
-                c = "Unknown return code.";
-        }
-        throw std::runtime_error(std::string("A graphics error occurred: ") + c);
-    }
-}
 std::string const SHADER_VERT_FILE("shaders/shaderGL.vert");
 std::string const SHADER_FRAG_FILE("shaders/shaderGL.frag");
 std::string const DEPTH_VERT_FILE("shaders/depthShaderGL.vert");
@@ -77,41 +51,6 @@ void DrawObjectDataGL::createDrawObjectData(std::shared_ptr<DrawObject> const &d
     checkGraphicsError();
     glBufferData(GL_ARRAY_BUFFER, sizeof (Vertex) * drawObj->vertices.size(),
                  drawObj->vertices.data(), GL_STATIC_DRAW);
-    checkGraphicsError();
-}
-
-void TextureDataGL::createTexture(std::shared_ptr<TextureDescription> const &textureDescription) {
-
-    glGenTextures(1, &m_handle);
-    checkGraphicsError();
-    glBindTexture(GL_TEXTURE_2D, m_handle);
-    checkGraphicsError();
-
-    // when sampling outside of the texture
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-    checkGraphicsError();
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-    checkGraphicsError();
-
-    // when the texture is scaled up or down
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, /*GL_LINEAR_MIPMAP_LINEAR*/
-                    GL_NEAREST);
-    checkGraphicsError();
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, /*GL_LINEAR*/ GL_NEAREST);
-    checkGraphicsError();
-
-    uint32_t texHeight;
-    uint32_t texWidth;
-    uint32_t texChannels;
-    std::vector<char> pixels = textureDescription->getData(texWidth, texHeight, texChannels);
-
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, texWidth, texHeight, 0, GL_RGBA,
-                 GL_UNSIGNED_BYTE, pixels.data());
-    checkGraphicsError();
-
-    glGenerateMipmap(GL_TEXTURE_2D);
-    checkGraphicsError();
-    glBindTexture(GL_TEXTURE_2D, 0);
     checkGraphicsError();
 }
 

@@ -27,12 +27,6 @@
 #include "../drawObjectTable/drawObjectDataVulkan.hpp"
 #include "renderDetailsData.hpp"
 
-struct CommonUBO {
-    glm::mat4 viewLightMatrix;
-    glm::mat4 view;
-    glm::mat4 proj;
-};
-
 VkVertexInputBindingDescription getBindingDescription();
 std::vector<VkVertexInputAttributeDescription> getAttributeDescriptions();
 
@@ -168,14 +162,14 @@ public:
                           getShadowsFramebufferHeigth(inSwapChain->extent())),
                   VK_IMAGE_ASPECT_DEPTH_BIT)},
           m_shadowsColorAttachment{vulkan::ImageView::createImageViewAndImage(
-                   m_device,
-                   getShadowsFramebufferWidth(inSwapChain->extent()),
-                   getShadowsFramebufferHeigth(inSwapChain->extent()),
-                   VK_FORMAT_R32G32B32A32_SFLOAT,
-                   VK_IMAGE_TILING_OPTIMAL,
-                   VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
-                   VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
-                   VK_IMAGE_ASPECT_COLOR_BIT)},
+                  m_device,
+                  getShadowsFramebufferWidth(inSwapChain->extent()),
+                  getShadowsFramebufferHeigth(inSwapChain->extent()),
+                  VK_FORMAT_R32G32B32A32_SFLOAT,
+                  VK_IMAGE_TILING_OPTIMAL,
+                  VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
+                  VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+                  VK_IMAGE_ASPECT_COLOR_BIT)},
           m_samplerShadows{std::make_shared<vulkan::ImageSampler>(
                   m_device, m_shadowsColorAttachment, VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER,
                   VK_BORDER_COLOR_FLOAT_OPAQUE_WHITE)},

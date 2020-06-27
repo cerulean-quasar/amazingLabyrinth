@@ -84,22 +84,3 @@ std::vector<char> TextureDescriptionText::getData(std::shared_ptr<GameRequester>
                                                   uint32_t &texChannels) {
     return gameRequester->getTextImage(m_textString, texWidth, texHeight, texChannels);
 }
-
-std::vector<char> readFile(std::shared_ptr<FileRequester> const &requester, std::string const &filename) {
-    std::unique_ptr<std::streambuf> assetStreambuf = requester->getAssetStream(filename);
-    std::istream reader(assetStreambuf.get());
-    std::vector<char> data;
-    unsigned long const readSize = 1024;
-
-    while (!reader.eof()) {
-        unsigned long size = data.size();
-        data.resize(size + readSize);
-        long bytesRead = reader.read(data.data()+size, readSize).gcount();
-
-        if (bytesRead != readSize) {
-            data.resize(size + bytesRead);
-        }
-    }
-
-    return data;
-}

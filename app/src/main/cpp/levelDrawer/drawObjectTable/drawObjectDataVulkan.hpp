@@ -62,6 +62,7 @@ class DrawObjectDataVulkan : DrawObjectData {
         updateDescriptorSet(inDevice);
     }
 
+    ~DrawObjectDataVulkan() override = default;
 private:
     std::shared_ptr<vulkan::DescriptorSet> m_descriptorSet;
     std::shared_ptr<vulkan::DescriptorSet> m_descriptorSetShadows;

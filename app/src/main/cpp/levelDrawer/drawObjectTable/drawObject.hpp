@@ -28,6 +28,7 @@
 class DrawObjectData {
 public:
     virtual void update(glm::mat4 const &) = 0;
+    virtual ~DrawObjectData() = default;
 };
 
 class DrawObject {
