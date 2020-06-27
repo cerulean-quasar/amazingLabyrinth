@@ -32,8 +32,8 @@
 #include <stb_image.h>
 #pragma clang diagnostic pop
 
-#include "common.hpp"
-#include "graphics.hpp"
+#include "../../common.hpp"
+#include "textureLoader.hpp"
 
 int istreamRead(void *userData, char *data, int size) {
     std::istream *stream = static_cast<std::istream*>(userData);
@@ -50,9 +50,10 @@ int istreamEof(void *userData) {
     return stream->eof();
 }
 
-std::vector<char> TextureDescriptionPath::getData(uint32_t &texWidth, uint32_t &texHeight,
+std::vector<char> TextureDescriptionPath::getData(std::shared_ptr<GameRequester> gameRequester,
+                                                  uint32_t &texWidth, uint32_t &texHeight,
                                                   uint32_t &texChannels) {
-    std::unique_ptr<std::streambuf> assetbuf = m_gameRequester->getAssetStream(imagePath);
+    std::unique_ptr<std::streambuf> assetbuf = gameRequester->getAssetStream(imagePath);
     std::istream imageStream(assetbuf.get());
 
     int c, w, h;
@@ -67,7 +68,7 @@ std::vector<char> TextureDescriptionPath::getData(uint32_t &texWidth, uint32_t &
     texHeight = static_cast<uint32_t> (h);
     texChannels = 4;
 
-    std::vector<char> data;
+    std::vector<char> data{};
     unsigned int size = texWidth*texHeight*texChannels;
     data.resize(size);
     memcpy(data.data(), pixels, size);
@@ -78,9 +79,10 @@ std::vector<char> TextureDescriptionPath::getData(uint32_t &texWidth, uint32_t &
     return data;
 }
 
-std::vector<char> TextureDescriptionText::getData(uint32_t &texWidth, uint32_t &texHeight,
+std::vector<char> TextureDescriptionText::getData(std::shared_ptr<GameRequester> gameRequester,
+                                                  uint32_t &texWidth, uint32_t &texHeight,
                                                   uint32_t &texChannels) {
-    return m_gameRequester->getTextImage(m_textString, texWidth, texHeight, texChannels);
+    return gameRequester->getTextImage(m_textString, texWidth, texHeight, texChannels);
 }
 
 std::vector<char> readFile(std::shared_ptr<FileRequester> const &requester, std::string const &filename) {

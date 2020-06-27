@@ -35,8 +35,16 @@ public:
             std::shared_ptr<vulkan::Device> const &inDevice,
             std::shared_ptr<vulkan::CommandPool> const &inCommandPool,
             std::shared_ptr<TextureDescription> const &inTextureDescription)
-            : m_sampler{new vulkan::ImageSampler{inDevice, inCommandPool, inTextureDescription}}
-    {}
+    {
+        uint32_t texWidth{};
+        uint32_t texHeight{};
+        uint32_t texChannels{};
+
+        std::vector<char> pixels = inTextureDescription->getData(gameRequester, texWidth, texHeight, texChannels);
+
+        m_sampler = std::make_shared<vulkan::ImageSampler>(inDevice, inCommandPool, pixels,
+                texWidth, texHeight, texChannels);
+    }
 
     inline std::shared_ptr<vulkan::ImageSampler> const &sampler() { return m_sampler; }
 private:

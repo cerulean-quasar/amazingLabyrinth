@@ -28,11 +28,6 @@
 #include "../common.hpp"
 #include "modelLoader.hpp"
 
-class ModelData {
-public:
-    virtual ~ModelData() = default;
-};
-
 class ModelTable {
 public:
     std::shared_ptr<ModelData> const &getModelData(size_t index) {

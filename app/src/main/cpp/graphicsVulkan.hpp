@@ -812,7 +812,10 @@ namespace vulkan {
         static std::shared_ptr<Image> createTextureImage(
                 std::shared_ptr<Device> const &inDevice,
                 std::shared_ptr<CommandPool> const &cmdPool,
-                std::shared_ptr<TextureDescription> const &texture);
+                std::vector<char> const &pixels,
+                uint32_t texWidth,
+                uint32_t texHeight,
+                uint32_t texChannels);
 
         static std::shared_ptr<Image> createDepthImage(std::shared_ptr<SwapChain> const &inSwapChain) {
             return createDepthImage(inSwapChain->device(), VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT,
@@ -848,14 +851,17 @@ namespace vulkan {
     public:
         ImageSampler(std::shared_ptr<Device> const &inDevice,
                      std::shared_ptr<CommandPool> const &pool,
-                     std::shared_ptr<TextureDescription> const &textureDescription,
+                     std::vector<char> const &pixels,
+                     uint32_t texWidth,
+                     uint32_t texHeight,
+                     uint32_t texChannels,
                      VkSamplerAddressMode beyondBorderSampling = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE,
                      VkBorderColor borderColor = VK_BORDER_COLOR_INT_OPAQUE_BLACK)
                 : m_device{inDevice},
                   m_image{},
                   m_imageView{},
                   m_sampler{} {
-            m_image = ImageFactory::createTextureImage(m_device, pool, textureDescription);
+            m_image = ImageFactory::createTextureImage(m_device, pool, pixels, texWidth, texHeight, texChannels);
 
             m_imageView.reset(new ImageView(m_image, VK_IMAGE_ASPECT_COLOR_BIT));
 

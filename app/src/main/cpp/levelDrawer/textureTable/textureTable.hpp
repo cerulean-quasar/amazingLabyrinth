@@ -28,11 +28,6 @@
 #include "../common.hpp"
 #include "textureLoader.hpp"
 
-class TextureData {
-public:
-    virtual ~TextureData() = default;
-};
-
 class TextureTable {
 public:
     std::shared_ptr<TextureData> const &getTextureData(size_t index) {

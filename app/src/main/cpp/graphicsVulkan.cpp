@@ -1672,13 +1672,11 @@ namespace vulkan {
 
     std::shared_ptr<Image> ImageFactory::createTextureImage(std::shared_ptr<Device> const &device,
                                                             std::shared_ptr<CommandPool> const &cmdPool,
-                                                            std::shared_ptr<TextureDescription> const &texture) {
-        uint32_t texHeight;
-        uint32_t texWidth;
-        uint32_t texChannels;
-
-        std::vector<char> pixels = texture->getData(texWidth, texHeight, texChannels);
-
+                                                            std::vector<char> const &pixels,
+                                                            uint32_t texWidth,
+                                                            uint32_t texHeight,
+                                                            uint32_t texChannels)
+    {
         VkDeviceSize imageSize = texWidth * texHeight * texChannels;
 
         /* copy the image to CPU accessable memory in the graphics card.  Make sure that it has the
@@ -1691,11 +1689,10 @@ namespace vulkan {
         staging.copyRawTo(pixels.data(), static_cast<size_t>(imageSize));
 
         VkFormat format = VK_FORMAT_R8G8B8A8_UNORM;//VK_FORMAT_R8_UNORM;
-        std::shared_ptr<Image> image(
-                new Image(device, texWidth, texHeight, format,
+        auto image = std::make_shared<Image>(device, texWidth, texHeight, format,
                           VK_IMAGE_TILING_OPTIMAL,
                           VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
-                          VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT));
+                          VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 
         /* transition the image to VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL. The image was created with
          * layout: VK_IMAGE_LAYOUT_UNDEFINED, so we use that to specify the old layout.

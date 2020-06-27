@@ -48,6 +48,11 @@ using ModelVertices = std::pair<std::vector<Vertex>, std::vector<uint32_t>>;
 
 bool compareLess(glm::vec3 vec1, glm::vec3 vec2);
 
+class ModelData {
+public:
+    virtual ~ModelData() = default;
+};
+
 class ModelDescription {
     friend BaseClassPtrLess<ModelDescription>;
 public:

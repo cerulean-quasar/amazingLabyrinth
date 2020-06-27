@@ -11,7 +11,8 @@ if ((NOT ${CMAKE_ANDROID_ARCH_ABI} STREQUAL x86) AND (NOT ${CMAKE_ANDROID_ARCH_A
             ${ANDROID_NDK}/sources/third_party/vulkan/src/common/vulkan_wrapper.cpp
             src/main/cpp/graphicsVulkan.cpp
             src/main/cpp/mazeVulkan.cpp
-            src/main/cpp/vk_mem_alloc.cpp)
+            src/main/cpp/vk_mem_alloc.cpp
+            src/main/cpp/levelDrawer/renderDetailsTable/renderDetailsDataVulkan.cpp)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DCQ_ENABLE_VULKAN")
 endif ((NOT ${CMAKE_ANDROID_ARCH_ABI} STREQUAL x86) AND (NOT ${CMAKE_ANDROID_ARCH_ABI} STREQUAL armeabi-v7a))
 
@@ -29,15 +30,15 @@ add_library( # Sets the name of the library.
         src/main/cpp/native-lib.cpp
         src/main/cpp/gameRequester.cpp
         src/main/cpp/android.cpp
-        src/main/cpp/graphics.cpp
-        src/main/cpp/modelLoader.cpp
         src/main/cpp/graphicsGL.cpp
         src/main/cpp/mazeGraphics.cpp
         src/main/cpp/mazeGL.cpp
-        ${platform64_files}
         src/main/cpp/random.cpp
         src/main/cpp/drawer.cpp
         src/main/cpp/mathGraphics.cpp
+        ${platform64_files}
+        src/main/cpp/levelDrawer/modelTable/modelLoader.cpp
+        src/main/cpp/levelDrawer/textureTable/textureLoader.cpp
         src/main/cpp/levels/finisher/types.cpp
         src/main/cpp/levels/finisher/serializer.cpp
         src/main/cpp/levels/generatedMazeAlgorithms.cpp

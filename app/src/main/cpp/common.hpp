@@ -23,7 +23,6 @@
 #include <string>
 #include <memory>
 #include <streambuf>
-#include "graphics.hpp"
 
 class Graphics;
 

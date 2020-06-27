@@ -22,19 +22,18 @@
 
 #include <momory>
 #include <glm/glm.h>
+#include <boost/optional.hpp>
 #include "../textureTable/textureLoader.hpp"
 
 class DrawObjectData {
 public:
     virtual void update(glm::mat4 const &) = 0;
-    virtual void update(std::shared_ptr<TextureData> const &) = 0;
-    virtual void update(glm::mat4 const &, std::shared_ptr<TextureData> const &) = 0;
 };
 
 class DrawObject {
-    size_t renderDetailsIndex() { return m_renderDetailsIndex; }
+    boost::optional<size_t> renderDetailsIndex() { return m_renderDetailsIndex; }
     size_t modelIndex() { return m_modelIndex; }
-    size_t textureIndex() { return m_textureIndex; }
+    boost::optional<size_t> textureIndex() { return m_textureIndex; }
 
     void addLocation(std::shared_ptr<DrawObjectData> location) {
         m_locations.push_back(location);
@@ -46,9 +45,9 @@ class DrawObject {
           m_textureIndex{textureIndex_}
     {}
 private:
-    size_t m_renderDetailsIndex;
+    boost::optional<size_t> m_renderDetailsIndex;
     size_t m_modelIndex;
-    size_t m_textureIndex;
+    boost::optional<size_t> m_textureIndex;
     std::vector<std::shared_ptr<DrawObjectData>> m_locations;
 };
 

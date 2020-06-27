@@ -530,18 +530,6 @@ protected:
     glm::mat4 preTransform();
 
 private:
-    // use less precision for the shadow buffer
-    static float constexpr shadowsSizeMultiplier = 0.5f;
-    uint32_t getShadowsFramebufferHeigth() {
-        return static_cast<uint32_t>(std::floor(m_swapChain->extent().height * shadowsSizeMultiplier));
-        //return m_swapChain->extent().height;
-    }
-    uint32_t getShadowsFramebufferWidth() {
-        return static_cast<uint32_t>(std::floor(m_swapChain->extent().width * shadowsSizeMultiplier));
-        //return m_swapChain->extent().width+1;
-        //return m_swapChain->extent().width;
-    }
-
     std::shared_ptr<vulkan::Instance> m_instance;
     std::shared_ptr<vulkan::Device> m_device;
     std::shared_ptr<vulkan::SwapChain> m_swapChain;
