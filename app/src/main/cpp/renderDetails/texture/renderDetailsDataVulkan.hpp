@@ -22,13 +22,11 @@
 
 #include <memory>
 
+#include "../../levelDrawer/commonVulkan.hpp"
 #include "../../graphicsVulkan.hpp"
-#include "../drawObjectTable/drawObject.hpp"
-#include "../drawObjectTable/drawObjectDataVulkan.hpp"
-#include "renderDetailsData.hpp"
-
-VkVertexInputBindingDescription getBindingDescription();
-std::vector<VkVertexInputAttributeDescription> getAttributeDescriptions();
+#include "../../levelDrawer/drawObjectTable/drawObject.hpp"
+#include "../../levelDrawer/drawObjectTable/drawObjectDataVulkan.hpp"
+#include "../../levelDrawer/renderDetailsTable/renderDetailsData.hpp"
 
 class AmazingLabyrinthDescriptorSetLayout : public vulkan::DescriptorSetLayout {
 public:
@@ -135,7 +133,8 @@ public:
                                     false, true);
     }
 
-    RenderDetailsDataVulkan(std::shared_ptr<GameRequester> const &gameRequester,
+    RenderDetailsDataVulkan(
+            std::shared_ptr<GameRequester> const &gameRequester,
             std::shared_ptr<vulkan::Device> const &inDevice,
             std::shared_ptr<vulkan::CommandPool> const &inCommandPool,
             std::shared_ptr<vulkan::SwapChain> const &inSwapChain,

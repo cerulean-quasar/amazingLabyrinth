@@ -22,9 +22,15 @@
 
 #include <glm/glm.hpp>
 
-#include "renderDetailsData.hpp"
+#include <GLES3/gl3.h>
+
+#include "../../levelDrawer/drawObjectTable/drawObjectDataGL.hpp"
+
+#include "../../levelDrawer/renderDetailsTable/renderDetailsCommonGL.hpp"
+#include "../../levelDrawer/renderDetailsTable/renderDetailsData.hpp"
 
 class RenderDetailsDataGL : public RenderDetailsData {
+public:
     glm::mat4 getPerspectiveMatrixForLevel() override {
         /* perspective matrix: takes the perspective projection, the aspect ratio, near and far
          * view planes.
@@ -34,8 +40,21 @@ class RenderDetailsDataGL : public RenderDetailsData {
                                     m_perspectiveNearPlane, m_perspectiveFarPlane,
                                     false, false);
     }
+
     std::shared_ptr<DrawObjectData> createDrawObjectData(
-            std::shared_ptr<TextureData> &textureData) override;
+        std::shared_ptr<TextureData> &textureData,
+        glm::mat4 const &modelMatrix) override
+    {
+        return std::make_shared<DrawObjectDataGL>(modelMatrix);
+    }
+
+    RenderDetailsDataGL(std::shared_ptr<GameRequester> const &inGameRequester,
+         uint32_t inWidth, uint32_t inHeight);
+
+    ~RenderDetailsDataGL() override = default;
+private:
+    GLuint m_mainProgramID;
+    GLuint m_depthProgramID;
 };
 
 #endif // AMAZING_LABYRINTH_RENDER_DETAILS_DATA_GL_HPP

@@ -27,14 +27,15 @@
 
 class RenderDetailsData {
 public:
-    glm::mat4 getViewMatrix() {
+    static glm::mat4 getViewMatrix() {
         return glm::lookAt(glm::vec3(0.0f, 0.0f, 1.0f),
                            glm::vec3(0.0f, 0.0f, levelTracker::Loader::m_maxZLevel), glm::vec3(0.0f, 1.0f, 0.0f));
     }
 
     virtual glm::mat4 getPerspectiveMatrixForLevel() = 0;
     virtual std::shared_ptr<DrawObjectData> createDrawObjectData(
-            std::shared_ptr<TextureData> &textureData) = 0;
+            std::shared_ptr<TextureData> &textureData,
+            glm::mat4 const &modelMatrix) = 0;
 
     RenderDetailsData(uint32_t inWidth, uint32_t inHeight)
         : m_surfaceWidth{inWidth},

@@ -20,18 +20,34 @@
 #ifndef AMAZING_LABYRINTH_RENDER_DETAILS_TABLE_HPP
 #define AMAZING_LABYRINTH_RENDER_DETAILS_TABLE_HPP
 
+#include <memory>
+#include <vector>
+#include <map>
+
+#include "../common.hpp"
+
+#include "renderDetailsData.hpp"
+
+class RenderDetails {
+    friend BaseClassPtrLess<RenderDetails>;
+protected:
+    // returns true if this < other.
+    virtual bool compareLess(RenderDetails *) { return false; }
+};
+
 class RenderDetailsTable {
 public:
-
-    RenderDetailsTable()
-            : m_textureIndexMap{},
-              m_textureData{}
+    explicit RenderDetailsTable(std::shared_ptr<RenderLoader> inLoader)
+            : m_loader{std::move(inLoader)},
+            m_renderDetailsIndexMap{},
+            m_renderDetailsData{}
     {}
 
     virtual ~RenderDetailsTable() = default;
 protected:
-    std::map<std::shared_ptr<RenderDetails>, size_t> m_textureIndexMap;
-    std::vector<std::shared_ptr<RenderDetailsTransientData>> m_textureDataVector;
+    std::shared_ptr<RenderLoader> m_loader;
+    std::map<std::shared_ptr<RenderDetails>, size_t> m_renderDetailsIndexMap;
+    std::vector<std::shared_ptr<RenderDetailsData>> m_renderDetailsDataVector;
 };
 
 #endif // AMAZING_LABYRINTH_RENDER_DETAILS_TABLE_HPP
