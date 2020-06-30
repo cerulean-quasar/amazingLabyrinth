@@ -25,7 +25,7 @@
 
 #include "../graphicsVulkan.hpp"
 
-#include "../levelDrawer/renderDetailsTable/renderDetailsData.hpp"
+#include "../renderDetails/basic/renderDetailsData.hpp"
 #include "renderLoader.hpp"
 
 class RenderLoaderVulkan : public RenderLoader {

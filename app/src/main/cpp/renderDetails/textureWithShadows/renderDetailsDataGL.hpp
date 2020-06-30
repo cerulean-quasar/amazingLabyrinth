@@ -26,8 +26,8 @@
 
 #include "../../levelDrawer/drawObjectTable/drawObjectDataGL.hpp"
 
-#include "../../levelDrawer/renderDetailsTable/renderDetailsCommonGL.hpp"
-#include "../../levelDrawer/renderDetailsTable/renderDetailsData.hpp"
+#include "../basic/renderDetailsCommonGL.hpp"
+#include "../basic/renderDetailsData.hpp"
 
 class RenderDetailsDataGL : public RenderDetailsData {
 public:

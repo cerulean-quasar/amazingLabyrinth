@@ -22,7 +22,7 @@
 
 #include <memory>
 
-#include "../levelDrawer/renderDetailsTable/renderDetailsData.hpp"
+#include "../renderDetails/basic/renderDetailsData.hpp"
 
 class RenderLoader {
 public:

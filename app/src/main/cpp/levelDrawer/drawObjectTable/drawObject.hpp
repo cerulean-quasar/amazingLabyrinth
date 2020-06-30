@@ -25,12 +25,6 @@
 #include <boost/optional.hpp>
 #include "../textureTable/textureLoader.hpp"
 
-class DrawObjectData {
-public:
-    virtual void update(glm::mat4 const &) = 0;
-    virtual ~DrawObjectData() = default;
-};
-
 class DrawObject {
     boost::optional<size_t> renderDetailsIndex() { return m_renderDetailsIndex; }
     size_t modelIndex() { return m_modelIndex; }

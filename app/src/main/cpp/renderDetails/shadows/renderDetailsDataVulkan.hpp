@@ -21,65 +21,49 @@
 #define AMAZING_LABYRINTH_RENDER_DETAILS_DATA_VULKAN_HPP
 
 #include <memory>
+#include <glm/glm.h>
+#include <glm/gtc/matrix_transform.hpp>
 
 #include "../../levelDrawer/commonVulkan.hpp"
 #include "../../graphicsVulkan.hpp"
 #include "../../levelDrawer/drawObjectTable/drawObject.hpp"
 #include "../../levelDrawer/drawObjectTable/drawObjectDataVulkan.hpp"
-#include "../../levelDrawer/renderDetailsTable/renderDetailsData.hpp"
+#include "../basic/renderDetailsData.hpp"
 
 namespace shadows {
-    class CommonObjectDataVulkan : public CommonObjectData {
+    class RenderDetailsDataVulkan;
+
+    struct Config {
+        float viewAngle;
+        float nearPlane;
+        float farPlane;
+        glm::vec3 lightingSource;
+        glm::vec3 lookAt;
+        glm::vec3 up;
+    };
+
+    class CommonObjectDataVulkan : public renderDetails::CommonObjectData {
+        friend RenderDetailsDataVulkan;
     public:
-        CommonObjectDataVulkan(
-            std::shared_ptr<vulkan::Buffer> buffer,
-            float viewAngle,
-            float aspectRatio,
-            float nearPlane,
-            float farPlane,
-            glm::vec3 const &lightingSource,
-            glm::vec3 const &lookAt,
-            glm::vec3 const &up)
-            : m_camera{std::move(buffer)},
-            m_viewAngle{viewAngle},
-            m_aspectRatio{aspectRatio},
-            m_nearPlane{nearPlane},
-            m_farPlane{farPlane},
-            m_viewPoint{lightingSource},
-            m_lookAt{lookAt},
-            m_up{up}
-        {}
-
-        void setView(
-            glm::vec3 const &lightingSource,
-            glm::vec3 const &lookAt,
-            glm::vec3 const &up)
-        {
-            m_viewPoint = lightingSource;
-            m_lookAt = lookAt;
-            m_up = up;
-            update();
-        }
-
-        void setProjection(
-                float viewAngle,
-                float aspectRatio,
-                float nearPlane,
-                float farPlane)
-        {
-            m_viewAngle = viewAngle;
-            m_aspectRatio = aspectRatio;
-            m_nearPlane = nearPlane;
-            m_farPlane = farPlane;
-            update();
-        }
-
         glm::mat4 getPerspectiveMatrixForLevel() override {
             /* perspective matrix: takes the perspective projection, the aspect ratio, near and far
              * view planes.
              */
             return getPerspectiveMatrix(m_viewAngle, m_aspectRatio, m_nearPlane, m_farPlane,
                                         false, true);
+        }
+
+        glm::vec3 lightSource() { return m_viewPoint; }
+    protected:
+        void update() override {
+            CommonUBO commonUbo;
+            commonUbo.proj = m_preTransform *
+                             getPerspectiveMatrix(m_viewAngle, m_aspectRatio, m_nearPlane, m_farPlane, true, true);
+
+            // eye at the m_viewPoint, looking at the m_lookAt position, pointing up is m_up.
+            commonUbo.view = glm::lookAt(m_viewPoint, m_lookAt, m_up);
+
+            m_camera->copyRawTo(&commonUbo, sizeof(commonUbo));
         }
 
     private:
@@ -91,25 +75,56 @@ namespace shadows {
         std::shared_ptr<vulkan::Buffer> m_camera;
         glm::mat4 m_preTransform;
 
-        float m_viewAngle;
-        float m_aspectRatio;
-        float m_nearPlane;
-        float m_farPlane;
+        CommonObjectDataVulkan(
+                std::shared_ptr<vulkan::Buffer> buffer,
+                glm::mat4 preTransform,
+                float aspectRatio,
+                Config const &config)
+                : renderDetails::CommonObjectData(
+                config.viewAngle, aspectRatio, config.nearPlane, config.farPlane,
+                config.lightingSource, config.lookAt, config.up),
+                m_camera{std::move(buffer)},
+                m_preTransform{preTransform}
+        {}
+    };
 
-        glm::vec3 m_viewPoint;
-        glm::vec3 m_lookAt;
-        glm::vec3 m_up;
-
-        void update() {
-            CommonUBO commonUbo;
-            commonUbo.proj = m_preTransform *
-                getPerspectiveMatrix(m_viewAngle, m_aspectRatio, m_nearPlane, m_farPlane, true, true);
-
-            // eye at the m_viewPoint, looking at the m_lookAt position, pointing up is m_up.
-            commonUbo.view = glm::lookAt(m_viewPoint, m_lookAt, m_up);;
-
-            m_camera->copyRawTo(&commonUbo, sizeof(commonUbo));
+    /* for passing data other than the vertex data to the vertex shader */
+    class DrawObjectDataVulkan : public renderDetails::DrawObjectData {
+    public:
+        void update(glm::mat4 const &modelMatrix) override {
+            PerObjectUBO ubo{};
+            ubo.modelMatrix = modelMatrix;
+            m_uniformBuffer->copyRawTo(&ubo, sizeof(ubo));
         }
+
+        inline std::shared_ptr<vulkan::DescriptorSet> const &descriptorSet() { return m_descriptorSet; }
+
+        DrawObjectDataVulkan(std::shared_ptr<vulkan::Device> const &inDevice,
+                             std::shared_ptr<vulkan::DescriptorPools> const &descriptorPools,
+                             std::shared_ptr<vulkan::Buffer> const &inCommonUBO,
+                             glm::mat4 const &modelMatrix)
+                : m_descriptorSet{descriptorPools->allocateDescriptor()},
+                  m_uniformBuffer{createUniformBuffer(inDevice, sizeof(PerObjectUBO))},
+                  m_commonUBO{inCommonUBO}
+        {
+            PerObjectUBO ubo;
+            ubo.modelMatrix = modelMatrix;
+            m_uniformBuffer->copyRawTo(&ubo, sizeof(ubo));
+            updateDescriptorSet(inDevice);
+        }
+
+        ~DrawObjectDataVulkan() override = default;
+
+    private:
+        struct PerObjectUBO {
+            glm::mat4 modelMatrix;
+        };
+
+        std::shared_ptr<vulkan::DescriptorSet> m_descriptorSet;
+        std::shared_ptr<vulkan::Buffer> m_uniformBuffer;
+        std::shared_ptr<vulkan::Buffer> m_commonUBO;
+
+        void updateDescriptorSet(std::shared_ptr<vulkan::Device> const &inDevice);
     };
 
     class DescriptorSetLayout : public vulkan::DescriptorSetLayout {
@@ -153,11 +168,20 @@ namespace shadows {
         void createDescriptorSetLayout();
     };
 
-    class RenderDetailsDataVulkan : public RenderDetailsData {
+    class RenderDetailsDataVulkan : public renderDetails::RenderDetailsData {
     public:
+        std::shared_ptr<renderDetails::CommonObjectData> createCommonObjectData(
+            glm::mat4 const &preTransform,
+            Config const &config)
+        {
+            auto buffer = createUniformBuffer(m_device, sizeof (CommonObjectDataVulkan::CommonUBO));
+            return std::make_shared<CommonObjectDataVulkan>(buffer, preTransform,
+                    m_surfaceWidth/ static_cast<float>(m_surfaceHeight), config);
+        }
+
         std::shared_ptr<DrawObjectData> createDrawObjectData(
                 std::shared_ptr<TextureData> const&,
-                std::shared_ptr<vulkan::Buffer> const &modelMatrixBuffer) override
+                std::shared_ptr<vulkan::Buffer> const &modelMatrixBuffer)
         {
             return std::make_shared<DrawObjectDataVulkan>(m_device, m_descriptorPools,
                                                           m_commonUBO, modelMatrixBuffer);
@@ -175,6 +199,8 @@ namespace shadows {
                                                           m_commonUBO, modelMatrixBuffer);
         }
 
+        std::shared_ptr<vulkan::RenderPass> const &renderPass() { return m_renderPass; }
+
         RenderDetailsDataVulkan(
             std::shared_ptr<GameRequester> const &gameRequester,
             std::shared_ptr<vulkan::Device> const &inDevice,
@@ -182,7 +208,6 @@ namespace shadows {
             std::shared_ptr<vulkan::Pipeline> const &basePipeline,
             std::vector<vulkan::RenderPass::ImageAttachmentInfo> const &colorAttachmentInfos,
             vulkan::RenderPass::ImageAttachmentInfo depthAttachmentInfos,
-            glm::mat4 inPreTransform,
             uint32_t width,
             uint32_t height)
             : RenderDetailsData{width, height},
@@ -207,35 +232,16 @@ namespace shadows {
         }
 
     private:
-        static char constexpr const *SHADER_VERT_FILE = "shaders/shader.vert.spv";
-        static char constexpr const *SHADER_FRAG_FILE = "shaders/shader.frag.spv";
         static char constexpr const *SHADER_SIMPLE_FRAG_FILE = "shaders/simple.frag.spv";
         static char constexpr const *SHADOW_VERT_FILE = "shaders/depthShader.vert.spv";
 
         std::shared_ptr<vulkan::Device> m_device;
         std::shared_ptr<vulkan::CommandPool> m_commandPool;
-        std::shared_ptr<vulkan::Buffer> m_uniformBufferLighting;
-        std::shared_ptr<vulkan::Buffer> m_commonUBO;
-        glm::mat4 m_preTransform;
 
         std::shared_ptr<vulkan::RenderPass> m_renderPass;
         std::shared_ptr<vulkan::DescriptorPools> m_descriptorPools;
         std::shared_ptr<DescriptorSetLayout> m_descriptorSetLayout;
         std::shared_ptr<vulkan::Pipeline> m_pipeline;
-
-        // use less precision for the shadow buffer
-        static float constexpr shadowsSizeMultiplier = 0.5f;
-
-        uint32_t getShadowsFramebufferHeigth(VkExtent2D const &extent) {
-            return static_cast<uint32_t>(std::floor(extent.height * shadowsSizeMultiplier));
-            //return m_swapChain->extent().height;
-        }
-
-        uint32_t getShadowsFramebufferWidth(VkExtent2D const &extent) {
-            return static_cast<uint32_t>(std::floor(extent.width * shadowsSizeMultiplier));
-            //return m_swapChain->extent().width+1;
-            //return m_swapChain->extent().width;
-        }
     };
 }
 #endif

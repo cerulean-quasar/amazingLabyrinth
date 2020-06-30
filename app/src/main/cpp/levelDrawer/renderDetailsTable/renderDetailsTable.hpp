@@ -26,7 +26,7 @@
 
 #include "../common.hpp"
 
-#include "renderDetailsData.hpp"
+#include "../../renderDetails/basic/renderDetailsData.hpp"
 
 class RenderDetails {
     friend BaseClassPtrLess<RenderDetails>;

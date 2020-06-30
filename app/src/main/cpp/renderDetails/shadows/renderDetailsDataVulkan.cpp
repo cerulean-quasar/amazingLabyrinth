@@ -21,109 +21,92 @@
 #include "../../graphicsVulkan.hpp"
 #include "renderDetailsDataVulkan.hpp"
 
-/* for accessing data other than the vertices from the shaders */
-void AmazingLabyrinthDescriptorSetLayout::createDescriptorSetLayout() {
-    /* model matrix - different for each object */
-    VkDescriptorSetLayoutBinding modelMatrixBinding = {};
-    modelMatrixBinding.binding = 0;
-    modelMatrixBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-    modelMatrixBinding.descriptorCount = 1;
+namespace shadows {
+    /* for accessing data other than the vertices from the shaders */
+    void DescriptorSetLayout::createDescriptorSetLayout() {
+        /* model matrix */
+        VkDescriptorSetLayoutBinding perObject = {};
+        perObject.binding = 0;
+        perObject.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+        perObject.descriptorCount = 1;
+        perObject.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
+        perObject.pImmutableSamplers = nullptr; // Optional
 
-    /* only accessing the MVP matrix from the vertex shader */
-    modelMatrixBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
-    modelMatrixBinding.pImmutableSamplers = nullptr; // Optional
+        /* the projection, view, and view light source matrix */
+        VkDescriptorSetLayoutBinding commonData = {};
+        commonData.binding = 1;
+        commonData.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+        commonData.descriptorCount = 1;
+        commonData.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
+        commonData.pImmutableSamplers = nullptr;
 
-    /* view and projection matrix - the same for all objects */
-    VkDescriptorSetLayoutBinding commonDataBinding = {};
-    commonDataBinding.binding = 1;
-    commonDataBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-    commonDataBinding.descriptorCount = 1;
-    commonDataBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
-    commonDataBinding.pImmutableSamplers = nullptr; // Optional
+        std::array<VkDescriptorSetLayoutBinding, 2> bindings = {perObject, commonData};
 
-    /* image sampler */
-    VkDescriptorSetLayoutBinding samplerLayoutBinding = {};
-    samplerLayoutBinding.binding = 2;
-    samplerLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-    samplerLayoutBinding.descriptorCount = 1;
-    samplerLayoutBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
-    samplerLayoutBinding.pImmutableSamplers = nullptr;
+        VkDescriptorSetLayoutCreateInfo layoutInfo = {};
+        layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
+        layoutInfo.bindingCount = static_cast<uint32_t>(bindings.size());
+        layoutInfo.pBindings = bindings.data();
 
-    VkDescriptorSetLayoutBinding lightingSourceBinding = {};
-    lightingSourceBinding.binding = 3;
-    lightingSourceBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-    lightingSourceBinding.descriptorCount = 1;
-    lightingSourceBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
-    lightingSourceBinding.pImmutableSamplers = nullptr;
+        VkDescriptorSetLayout descriptorSetLayoutRaw;
+        if (vkCreateDescriptorSetLayout(m_device->logicalDevice().get(), &layoutInfo, nullptr,
+                                        &descriptorSetLayoutRaw) != VK_SUCCESS) {
+            throw std::runtime_error("failed to create descriptor set layout!");
+        }
 
-    VkDescriptorSetLayoutBinding samplerShadows = {};
-    samplerShadows.binding = 4;
-    samplerShadows.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-    samplerShadows.descriptorCount = 1;
-    samplerShadows.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
-    samplerShadows.pImmutableSamplers = nullptr;
+        auto const &capDevice = m_device;
+        auto deleter = [capDevice](VkDescriptorSetLayout descriptorSetLayoutRaw) {
+            vkDestroyDescriptorSetLayout(capDevice->logicalDevice().get(), descriptorSetLayoutRaw,
+                                         nullptr);
+        };
 
-    std::array<VkDescriptorSetLayoutBinding, 5> bindings = {modelMatrixBinding,
-                                                            commonDataBinding,
-                                                            samplerLayoutBinding,
-                                                            lightingSourceBinding,
-                                                            samplerShadows};
-
-    VkDescriptorSetLayoutCreateInfo layoutInfo = {};
-    layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
-    layoutInfo.bindingCount = static_cast<uint32_t>(bindings.size());
-    layoutInfo.pBindings = bindings.data();
-
-    VkDescriptorSetLayout descriptorSetLayoutRaw;
-    if (vkCreateDescriptorSetLayout(m_device->logicalDevice().get(), &layoutInfo, nullptr,
-                                    &descriptorSetLayoutRaw) != VK_SUCCESS) {
-        throw std::runtime_error("failed to create descriptor set layout!");
+        m_descriptorSetLayout.reset(descriptorSetLayoutRaw, deleter);
     }
 
-    auto const &capDevice = m_device;
-    auto deleter = [capDevice](VkDescriptorSetLayout descriptorSetLayoutRaw) {
-        vkDestroyDescriptorSetLayout(capDevice->logicalDevice().get(), descriptorSetLayoutRaw, nullptr);
-    };
+    /* descriptor set for the MVP matrix and texture samplers */
+    void
+    DrawObjectDataVulkan::updateDescriptorSet(std::shared_ptr<vulkan::Device> const &inDevice) {
+        VkDescriptorBufferInfo bufferInfo = {};
+        bufferInfo.buffer = m_uniformBuffer->buffer();
+        bufferInfo.offset = 0;
+        bufferInfo.range = sizeof(PerObjectUBO);
 
-    m_descriptorSetLayout.reset(descriptorSetLayoutRaw, deleter);
-}
+        std::array<VkWriteDescriptorSet, 2> descriptorWrites = {};
+        descriptorWrites[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+        descriptorWrites[0].dstSet = m_descriptorSet->descriptorSet().get();
 
-/* for accessing data other than the vertices from the shaders */
-void AmazingLabyrinthShadowsDescriptorSetLayout::createDescriptorSetLayout() {
-    /* model matrix */
-    VkDescriptorSetLayoutBinding perObject = {};
-    perObject.binding = 0;
-    perObject.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-    perObject.descriptorCount = 1;
-    perObject.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
-    perObject.pImmutableSamplers = nullptr; // Optional
+        /* must be the same as the binding in the vertex shader */
+        descriptorWrites[0].dstBinding = 0;
 
-    /* the projection, view, and view light source matrix */
-    VkDescriptorSetLayoutBinding commonData = {};
-    commonData.binding = 1;
-    commonData.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-    commonData.descriptorCount = 1;
-    commonData.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
-    commonData.pImmutableSamplers = nullptr;
+        /* index into the array of descriptors */
+        descriptorWrites[0].dstArrayElement = 0;
 
-    std::array<VkDescriptorSetLayoutBinding, 2> bindings = {perObject, commonData};
+        descriptorWrites[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
 
-    VkDescriptorSetLayoutCreateInfo layoutInfo = {};
-    layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
-    layoutInfo.bindingCount = static_cast<uint32_t>(bindings.size());
-    layoutInfo.pBindings = bindings.data();
+        /* how many array elements you want to update */
+        descriptorWrites[0].descriptorCount = 1;
 
-    VkDescriptorSetLayout descriptorSetLayoutRaw;
-    if (vkCreateDescriptorSetLayout(m_device->logicalDevice().get(), &layoutInfo, nullptr,
-                                    &descriptorSetLayoutRaw) != VK_SUCCESS) {
-        throw std::runtime_error("failed to create descriptor set layout!");
+        /* which one of these pointers needs to be used depends on which descriptorType we are
+         * using.  pBufferInfo is for buffer based data, pImageInfo is used for image data, and
+         * pTexelBufferView is used for decriptors that refer to buffer views.
+         */
+        descriptorWrites[0].pBufferInfo = &bufferInfo;
+        descriptorWrites[0].pImageInfo = nullptr; // Optional
+        descriptorWrites[0].pTexelBufferView = nullptr; // Optional
+
+        VkDescriptorBufferInfo commonInfo = {};
+        commonInfo.buffer = m_commonUBO->buffer();
+        commonInfo.offset = 0;
+        commonInfo.range = sizeof(CommonUBO);
+
+        descriptorWrites[1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+        descriptorWrites[1].dstSet = m_descriptorSet->descriptorSet().get();
+        descriptorWrites[1].dstBinding = 1;
+        descriptorWrites[1].dstArrayElement = 0;
+        descriptorWrites[1].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+        descriptorWrites[1].descriptorCount = 1;
+        descriptorWrites[1].pBufferInfo = &commonInfo;
+
+        vkUpdateDescriptorSets(inDevice->logicalDevice().get(), descriptorWrites.size(),
+                               descriptorWrites.data(), 0, nullptr);
     }
-
-    auto const &capDevice = m_device;
-    auto deleter = [capDevice](VkDescriptorSetLayout descriptorSetLayoutRaw) {
-        vkDestroyDescriptorSetLayout(capDevice->logicalDevice().get(), descriptorSetLayoutRaw, nullptr);
-    };
-
-    m_descriptorSetLayout.reset(descriptorSetLayoutRaw, deleter);
 }
-

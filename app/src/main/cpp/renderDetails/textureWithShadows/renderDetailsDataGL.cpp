@@ -19,7 +19,7 @@
  */
 #include <memory>
 
-#include "../../levelDrawer/renderDetailsTable/renderDetailsCommonGL.hpp"
+#include "../basic/renderDetailsCommonGL.hpp"
 #include "renderDetailsDataGL.hpp"
 char constexpr const *SHADER_VERT_FILE = "shaders/shaderGL.vert";
 char constexpr const *SHADER_FRAG_FILE = "shaders/shaderGL.frag";
