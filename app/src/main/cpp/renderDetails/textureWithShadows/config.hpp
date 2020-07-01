@@ -17,26 +17,23 @@
  *  along with AmazingLabyrinth.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
-#ifndef AMAZING_LABYRINTH_DRAW_OBJECT_GL_HPP
-#define AMAZING_LABYRINTH_DRAW_OBJECT_GL_HPP
+#ifndef AMAZING_LABYRINTH_RENDER_DETAILS_CONFIG_VULKAN_HPP
+#define AMAZING_LABYRINTH_RENDER_DETAILS_CONFIG_VULKAN_HPP
 
-#include <momory>
-#include <glm/glm.h>
-#include "drawObject.hpp"
+#include <glm/glm.hpp>
 
-class DrawObjectDataGL : public DrawObjectData {
-public:
-    void update(glm::mat4 const &modelMatrix) override {
-        m_modelMatrix = modelMatrix;
-    }
+#include "../../levelTracker/levelTracker.hpp"
 
-    DrawObjectDataGL(glm::mat4 const &inModelMatrix)
-        : m_modelMatrix{inModelMatrix}
-    {}
+namespace textureWithShadows {
+    // todo: get these constants from a config file.
+    struct Config {
+        static float constexpr const viewAngle = 3.1415926f/4.0f;
+        static float constexpr const nearPlane = 0.5f;
+        static float constexpr const farPlane = 5.0f;
+        static glm::vec3 constexpr const viewPoint{0.0f, 0.0f, 1.0f};
+        static glm::vec3 constexpr const lightingSource{1.0f, 1.0f, 1.5f};
+        static glm::vec3 constexpr const lookAt{0.0f, 0.0f, levelTracker::Loader::m_maxZLevel};
+        static glm::vec3 constexpr const up{0.0f, 1.0f, 0.0f};
+    };
 
-    ~DrawObjectDataGL() override = default;
-private:
-    glm::mat4 m_modelMatrix;
-};
-
-#endif // AMAZING_LABYRINTH_DRAW_OBJECT_GL_HPP
+}

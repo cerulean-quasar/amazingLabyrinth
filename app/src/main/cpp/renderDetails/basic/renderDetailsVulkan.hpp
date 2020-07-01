@@ -24,7 +24,10 @@
 #include <vector>
 #include "../graphicsVulkan.hpp"
 
-VkVertexInputBindingDescription getBindingDescription();
-std::vector<VkVertexInputAttributeDescription> getAttributeDescriptions();
+namespace renderDetails {
+    VkVertexInputBindingDescription getBindingDescription();
 
+    std::vector <VkVertexInputAttributeDescription> getAttributeDescriptions();
+
+}
 #endif // AMAZING_LABYRINTH_RENDER_DETAILS_COMMON_VULKAN_HPP

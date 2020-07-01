@@ -26,7 +26,9 @@
 
 #include "../../common.hpp"
 
-GLuint loadShaders(std::shared_ptr<GameRequester> const &gameRequester,
-    std::string const &vertexShaderFile, std::string const &fragmentShaderFile);
+namespace renderDetails {
+    GLuint loadShaders(std::shared_ptr<GameRequester> const &gameRequester,
+                       std::string const &vertexShaderFile, std::string const &fragmentShaderFile);
+}
 
 #endif // AMAZING_LABYRINTH_RENDER_DETAILS_COMMON_GL_HPP

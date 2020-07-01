@@ -21,27 +21,21 @@
 #define AMAZING_LABYRINTH_RENDER_DETAILS_DATA_VULKAN_HPP
 
 #include <memory>
+#include <vector>
+
+#include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
 
 #include "../../levelDrawer/commonVulkan.hpp"
 #include "../../graphicsVulkan.hpp"
 #include "../../levelDrawer/drawObjectTable/drawObject.hpp"
-#include "../../levelDrawer/drawObjectTable/drawObjectDataVulkan.hpp"
 #include "../basic/renderDetailsData.hpp"
 #include "../shadows/renderDetailsDataVulkan.hpp"
+#include "config.hpp"
 
 namespace textureWithShadows {
-    // todo: get these constants from a config file.
-    struct Config {
-        static float constexpr const viewAngle = 3.1415926f/4.0f;
-        static float constexpr const nearPlane = 0.5f;
-        static float constexpr const farPlane = 5.0f;
-        static glm::vec3 constexpr const viewPoint{0.0f, 0.0f, 1.0f};
-        static glm::vec3 constexpr const lightingSource{1.0f, 1.0f, 1.5f};
-        static glm::vec3 constexpr const lookAt{0.0f, 0.0f, levelTracker::Loader::m_maxZLevel};
-        static glm::vec3 constexpr const up{0.0f, 1.0f, 0.0f};
-    };
-
     class RenderDetailsDataVulkan;
+
     class CommonObjectDataVulkan : public renderDetails::CommonObjectData {
         friend RenderDetailsDataVulkan;
     public:
@@ -56,19 +50,7 @@ namespace textureWithShadows {
         ~CommonObjectDataVulkan() override = default;
     protected:
         void update() override {
-            CommonVertexUBO commonUbo;
-            commonUbo.proj = m_preTransform *
-                getPerspectiveMatrix(m_viewAngle, m_aspectRatio, m_nearPlane, m_farPlane, true, true);
-
-            // eye at the m_viewPoint, looking at the m_lookAt position, pointing up is m_up.
-            commonUbo.view = glm::lookAt(m_viewPoint, m_lookAt, m_up);
-            commonUbo.lightViewMatrix = m_shadowsCOD->view();
-
-            m_cameraBuffer->copyRawTo(&commonUbo, sizeof(commonUbo));
-
-            CommonFragmentUBO commonFragmentUbo;
-            commonFragmentUbo.lightingSource = m_shadowsCOD->lightingSource();
-            m_lightingSourceBuffer->copyRawTo(&commonFragmentUbo, sizeof(commonFragmentUbo));
+            doUpdate();
         }
 
     private:
@@ -102,7 +84,23 @@ namespace textureWithShadows {
             m_lightingSourceBuffer{std::move(lightingSourceBuffer)},
             m_preTransform{preTransform}
         {
-            update();
+            doUpdate();
+        }
+
+        void doUpdate() {
+            CommonVertexUBO commonUbo;
+            commonUbo.proj = m_preTransform *
+                             getPerspectiveMatrix(m_viewAngle, m_aspectRatio, m_nearPlane, m_farPlane, true, true);
+
+            // eye at the m_viewPoint, looking at the m_lookAt position, pointing up is m_up.
+            commonUbo.view = glm::lookAt(m_viewPoint, m_lookAt, m_up);
+            commonUbo.lightViewMatrix = m_shadowsCOD->view();
+
+            m_cameraBuffer->copyRawTo(&commonUbo, sizeof(commonUbo));
+
+            CommonFragmentUBO commonFragmentUbo;
+            commonFragmentUbo.lightingSource = m_shadowsCOD->lightingSource();
+            m_lightingSourceBuffer->copyRawTo(&commonFragmentUbo, sizeof(commonFragmentUbo));
         }
     };
 
@@ -153,20 +151,70 @@ namespace textureWithShadows {
         void createDescriptorSetLayout();
     };
 
+    /* for passing data other than the vertex data to the vertex shader */
+    class DrawObjectDataVulkan : renderDetails::DrawObjectData {
+        void update(glm::mat4 const &modelMatrix) override {
+            PerObjectUBO ubo{};
+            ubo.model = modelMatrix;
+            m_uniformBuffer->copyRawTo(&ubo, sizeof (ubo));
+        }
+
+        inline std::shared_ptr<vulkan::DescriptorSet> const &descriptorSetShadows() { return m_descriptorSetShadows; }
+        inline std::shared_ptr<vulkan::DescriptorSet> const &descriptorSet() { return m_descriptorSet; }
+
+        DrawObjectDataVulkan(std::shared_ptr<vulkan::Device> const &inDevice,
+                             std::shared_ptr<vulkan::DescriptorPools> const &descriptorPools,
+                             std::shared_ptr<vulkan::DescriptorPools> const &descriptorPoolsShadows,
+                             std::shared_ptr<vulkan::ImageSampler> const &inSampler,
+                             std::shared_ptr<vulkan::ImageSampler> const &inShadows,
+                             std::shared_ptr<vulkan::Buffer> const &inUniformBufferLighting,
+                             std::shared_ptr<vulkan::Buffer> const &inCommonUBO,
+                             glm::mat4 const &modelMatrix)
+                : m_descriptorSet{descriptorPools->allocateDescriptor()},
+                  m_descriptorSetShadows{descriptorPoolsShadows->allocateDescriptor()},
+                  m_sampler{inSampler},
+                  m_shadows{inShadows},
+                  m_uniformBufferLighting{inUniformBufferLighting},
+                  m_uniformBuffer{createUniformBuffer(inDevice, sizeof (PerObjectUBO))},
+                  m_commonUBO{inCommonUBO}
+        {
+            PerObjectUBO ubo;
+            ubo.modelMatrix = modelMatrix;
+            m_uniformBuffer->copyRawTo(&ubo, sizeof (ubo));
+            updateDescriptorSet(inDevice);
+        }
+
+        ~DrawObjectDataVulkan() override = default;
+    private:
+        struct PerObjectUBO {
+            glm::mat4 modelMatrix;
+        };
+
+        std::shared_ptr<vulkan::DescriptorSet> m_descriptorSet;
+        std::shared_ptr<vulkan::DescriptorSet> m_descriptorSetShadows;
+        std::shared_ptr<vulkan::ImageSampler> m_sampler;
+        std::shared_ptr<vulkan::ImageSampler> m_shadows;
+        std::shared_ptr<vulkan::Buffer> m_uniformBufferLighting;
+        std::shared_ptr<vulkan::Buffer> m_uniformBuffer;
+        std::shared_ptr<vulkan::Buffer> m_commonUBO;
+
+        void updateDescriptorSet(std::shared_ptr<vulkan::Device> const &inDevice);
+    };
+
     class RenderDetailsDataVulkan : public renderDetails::RenderDetailsData {
     public:
         std::shared_ptr<renderDetails::CommonObjectData> createCommonObjectData(
                 glm::mat4 const &preTransform,
-                RenderDetailsConfig const &config)
+                Config const &config)
         {
-            shadows::RenderDetailsConfig configShadows{};
+            shadows::Config configShadows{};
             configShadows.viewAngle = config.viewAngle;
             configShadows.nearPlane = config.nearPlane;
             configShadows.farPlane = config.farPlane;
             configShadows.lightingSource = config.lightingSource;
             configShadows.lookAt = config.lookAt;
             configShadows.up = config.up;
-            auto shadowsCOD = m_shadowsRenderDetails->createCommonObjectData(configShadows);
+            auto shadowsCOD = m_shadowsRenderDetails->createCommonObjectData(preTransform, configShadows);
 
             auto vertexUbo = createUniformBuffer(m_device, sizeof (CommonObjectDataVulkan::CommonVertexUBO));
             auto fragUbo = createUniformBuffer(m_device, sizeof (CommonObjectDataVulkan::CommonFragmentUBO));
@@ -188,98 +236,73 @@ namespace textureWithShadows {
         }
 
         RenderDetailsDataVulkan(
-                std::shared_ptr<GameRequester> const &gameRequester,
-                std::shared_ptr<vulkan::Device> const &inDevice,
-                std::shared_ptr<vulkan::CommandPool> const &inCommandPool,
-                std::vector<vulkan::RenderPass::ImageAttachmentInfo> const &colorAttachmentInfos,
-                vulkan::RenderPass::ImageAttachmentInfo depthAttachmentInfos,
-                uint32_t width,
-                uint32_t height)
-                : RenderDetailsData{width, height},
-                  m_device{inDevice},
-                  m_commandPool{inCommandPool},
-                  m_uniformBufferLighting{createUniformBuffer(inDevice, sizeof(glm::vec3))},
-                  m_commonUBO{createUniformBuffer(inDevice, sizeof(CommonUBO))},
-                  m_preTransform{std::move(inPreTransform)},
-                  m_renderPass{vulkan::RenderPass::createDepthTextureRenderPass(m_device,
-                          colorAttachmentInfos, depthAttachmentInfos)},
-                  m_descriptorSetLayout{new AmazingLabyrinthDescriptorSetLayout{m_device}},
-                  m_descriptorPools{new vulkan::DescriptorPools{m_device, m_descriptorSetLayout}},
-                  m_graphicsPipeline{new vulkan::Pipeline{
-                          gameRequester, m_device, VkExtent2D{width, height},
-                          m_renderPass, m_descriptorPools,
-                          getBindingDescription(), getAttributeDescriptions(),
-                          SHADER_VERT_FILE, SHADER_FRAG_FILE, nullptr}},
-                  m_depthImageViewShadows{std::make_shared<vulkan::ImageView>(
-                          vulkan::ImageFactory::createDepthImage(
-                                  m_device,
-                                  VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT,
-                                  getShadowsFramebufferWidth(width),
-                                  getShadowsFramebufferHeigth(height)),
-                          VK_IMAGE_ASPECT_DEPTH_BIT)},
-                  m_shadowsColorAttachment{vulkan::ImageView::createImageViewAndImage(
-                          m_device,
-                          getShadowsFramebufferWidth(width),
-                          getShadowsFramebufferHeigth(height),
-                          VK_FORMAT_R32G32B32A32_SFLOAT,
-                          VK_IMAGE_TILING_OPTIMAL,
-                          VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
-                          VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
-                          VK_IMAGE_ASPECT_COLOR_BIT)},
-                  m_samplerShadows{std::make_shared<vulkan::ImageSampler>(
-                          m_device, m_shadowsColorAttachment,
-                          VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER,
-                          VK_BORDER_COLOR_FLOAT_OPAQUE_WHITE)},
-                  m_shadowsRenderDetails{
-                          gameRequester, inDevice, inCommandPool,
-                          std::vector<vulkan::RenderPass::ImageAttachmentInfo>{vulkan::RenderPass::ImageAttachmentInfo{
-                                  VK_ATTACHMENT_LOAD_OP_CLEAR, VK_ATTACHMENT_STORE_OP_STORE,
-                                  m_shadowsColorAttachment->image()->format(),
-                                  VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
-                          }},
-                          std::make_shared<vulkan::RenderPass::ImageAttachmentInfo>(
-                                  VK_ATTACHMENT_LOAD_OP_CLEAR, VK_ATTACHMENT_STORE_OP_STORE,
-                                  m_depthImageViewShadows->image()->format(),
-                                  VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL)},
-                  m_framebufferShadows{std::make_shared<vulkan::Framebuffer>(
-                          m_device, m_shadowsRenderDetails->renderPass(),
-                          std::vector<std::shared_ptr<vulkan::ImageView>>{m_shadowsColorAttachment,
-                                                                          m_depthImageViewShadows},
-                          getShadowsFramebufferWidth(width),
-                          getShadowsFramebufferHeigth(height))}
-        {
-            Extent2D extent = inSwapChain->extent();
-            m_uniformBufferLighting->copyRawTo(&m_lightingSource, sizeof(m_lightingSource));
-            CommonUBO commonUbo;
-            commonUbo.proj = m_preTransform *
-                             getPerspectiveMatrix(m_perspectiveViewAngle,
-                                                  m_surfaceWidth /
-                                                  static_cast<float>(m_surfaceHeight),
-                                                  m_perspectiveNearPlane, m_perspectiveFarPlane,
-                                                  true, true);
-            commonUbo.view = getViewMatrix();
-            commonUbo.viewLightMatrix = glm::lookAt(m_lightingSource,
-                                                    glm::vec3(0.0f, 0.0f,
-                                                              levelTracker::Loader::m_maxZLevel),
-                                                    glm::vec3(0.0f, 1.0f, 0.0f));
-
-            m_commonUBO->copyRawTo(&commonUbo, sizeof(commonUbo));
-
-        }
+            std::shared_ptr<GameRequester> const &gameRequester,
+            std::shared_ptr<vulkan::Device> const &inDevice,
+            std::vector<vulkan::RenderPass::ImageAttachmentInfo> const &colorAttachmentInfos,
+            vulkan::RenderPass::ImageAttachmentInfo depthAttachmentInfos,
+            uint32_t width,
+            uint32_t height)
+            : RenderDetailsData{width, height},
+              m_device{inDevice},
+              m_renderPass{vulkan::RenderPass::createDepthTextureRenderPass(m_device,
+                      colorAttachmentInfos, depthAttachmentInfos)},
+              m_descriptorSetLayout{std::make_shared<DescriptorSetLayout>(m_device)},
+              m_descriptorPools{std::make_shared<vulkan::DescriptorPools>(m_device, m_descriptorSetLayout)},
+              m_graphicsPipeline{std::make_shared<vulkan::Pipeline>(
+                      gameRequester, m_device, VkExtent2D{width, height},
+                      m_renderPass, m_descriptorPools,
+                      renderDetails::getBindingDescription(),
+                      renderDetails::getAttributeDescriptions(),
+                      SHADER_VERT_FILE, SHADER_FRAG_FILE, nullptr)},
+              m_depthImageViewShadows{std::make_shared<vulkan::ImageView>(
+                      vulkan::ImageFactory::createDepthImage(
+                              m_device,
+                              VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT,
+                              getShadowsFramebufferWidth(width),
+                              getShadowsFramebufferHeigth(height)),
+                      VK_IMAGE_ASPECT_DEPTH_BIT)},
+              m_shadowsColorAttachment{vulkan::ImageView::createImageViewAndImage(
+                      m_device,
+                      getShadowsFramebufferWidth(width),
+                      getShadowsFramebufferHeigth(height),
+                      VK_FORMAT_R32G32B32A32_SFLOAT,
+                      VK_IMAGE_TILING_OPTIMAL,
+                      VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
+                      VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+                      VK_IMAGE_ASPECT_COLOR_BIT)},
+              m_samplerShadows{std::make_shared<vulkan::ImageSampler>(
+                      m_device, m_shadowsColorAttachment,
+                      VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER,
+                      VK_BORDER_COLOR_FLOAT_OPAQUE_WHITE)},
+              m_shadowsRenderDetails{std::nake_shared<shadows::RenderDetailsDataVulkan>(
+                      gameRequester, inDevice,
+                      std::vector<vulkan::RenderPass::ImageAttachmentInfo>{vulkan::RenderPass::ImageAttachmentInfo{
+                              VK_ATTACHMENT_LOAD_OP_CLEAR, VK_ATTACHMENT_STORE_OP_STORE,
+                              m_shadowsColorAttachment->image()->format(),
+                              VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
+                      }},
+                      std::make_shared<vulkan::RenderPass::ImageAttachmentInfo>(
+                              VK_ATTACHMENT_LOAD_OP_CLEAR, VK_ATTACHMENT_STORE_OP_STORE,
+                              m_depthImageViewShadows->image()->format(),
+                              VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL),
+                      getShadowsFramebufferWidth(width), getShadowsFramebufferHeigth(height))},
+              m_framebufferShadows{std::make_shared<vulkan::Framebuffer>(
+                      m_device, m_shadowsRenderDetails->renderPass(),
+                      std::vector<std::shared_ptr<vulkan::ImageView>>{m_shadowsColorAttachment,
+                                                                      m_depthImageViewShadows},
+                      getShadowsFramebufferWidth(width),
+                      getShadowsFramebufferHeigth(height))}
+        {}
 
     private:
         static char constexpr const *SHADER_VERT_FILE = "shaders/shader.vert.spv";
         static char constexpr const *SHADER_FRAG_FILE = "shaders/shader.frag.spv";
 
         std::shared_ptr<vulkan::Device> m_device;
-        std::shared_ptr<vulkan::CommandPool> m_commandPool;
-        std::shared_ptr<vulkan::Buffer> m_uniformBufferLighting;
-        std::shared_ptr<vulkan::Buffer> m_commonUBO;
-        glm::mat4 m_preTransform;
 
         /* main draw resources */
         std::shared_ptr<vulkan::RenderPass> m_renderPass;
-        std::shared_ptr<AmazingLabyrinthDescriptorSetLayout> m_descriptorSetLayout;
+        std::shared_ptr<DescriptorSetLayout> m_descriptorSetLayout;
         std::shared_ptr<vulkan::DescriptorPools> m_descriptorPools;
         std::shared_ptr<vulkan::Pipeline> m_graphicsPipeline;
 

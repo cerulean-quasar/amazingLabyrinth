@@ -20,41 +20,80 @@
 #ifndef AMAZING_LABYRINTH_RENDER_DETAILS_DATA_GL_HPP
 #define AMAZING_LABYRINTH_RENDER_DETAILS_DATA_GL_HPP
 
+#include <memory>
+
 #include <glm/glm.hpp>
 
 #include <GLES3/gl3.h>
 
-#include "../../levelDrawer/drawObjectTable/drawObjectDataGL.hpp"
-
 #include "../basic/renderDetailsCommonGL.hpp"
 #include "../basic/renderDetailsData.hpp"
+#include "config.hpp"
+#include "../../levelDrawer/textureTable/textureLoader.hpp"
 
-class RenderDetailsDataGL : public RenderDetailsData {
-public:
-    glm::mat4 getPerspectiveMatrixForLevel() override {
-        /* perspective matrix: takes the perspective projection, the aspect ratio, near and far
-         * view planes.
-         */
-        return getPerspectiveMatrix(m_perspectiveViewAngle,
-                                    m_surfaceWidth / static_cast<float>(m_surfaceHeight),
-                                    m_perspectiveNearPlane, m_perspectiveFarPlane,
-                                    false, false);
-    }
+namespace textureWithShadows {
+    class RenderDetailsDataGL;
+    class CommonObjectDataGL : public renderDetails::CommonObjectData {
+        friend RenderDetailsDataGL;
+    public:
+        glm::mat4 getPerspectiveMatrixForLevel() override {
+            /* perspective matrix: takes the perspective projection, the aspect ratio, near and far
+             * view planes.
+             */
+            return getPerspectiveMatrix(m_viewAngle, m_aspectRatio, m_nearPlane, m_farPlane,
+                                        false, false);
+        }
+    private:
+        CommonObjectDataGL(float aspectRatio, Config const &config)
+            : CommonObjectData(config.viewAngle, aspectRatio, config.nearPlane, config.farPlane,
+                    config.viewPoint, config.lookAt, config.up)
+        {}
+    };
 
-    std::shared_ptr<DrawObjectData> createDrawObjectData(
-        std::shared_ptr<TextureData> &textureData,
-        glm::mat4 const &modelMatrix) override
-    {
-        return std::make_shared<DrawObjectDataGL>(modelMatrix);
-    }
+    class DrawObjectDataGL : public renderDetails::DrawObjectData {
+    public:
+        void update(glm::mat4 const &modelMatrix) override {
+            m_modelMatrix = modelMatrix;
+        }
 
-    RenderDetailsDataGL(std::shared_ptr<GameRequester> const &inGameRequester,
-         uint32_t inWidth, uint32_t inHeight);
+        DrawObjectDataGL(glm::mat4 const &inModelMatrix)
+                : m_modelMatrix{inModelMatrix}
+        {}
 
-    ~RenderDetailsDataGL() override = default;
-private:
-    GLuint m_mainProgramID;
-    GLuint m_depthProgramID;
-};
+        ~DrawObjectDataGL() override = default;
+    private:
+        glm::mat4 m_modelMatrix;
+    };
 
+    class RenderDetailsDataGL : public renderDetails::RenderDetailsData {
+    public:
+        std::shared_ptr<renderDetails::CommonObjectData> createCommonObjectData(
+                Config const &config)
+        {
+            return std::make_shared<CommonObjectDataGL>(
+                    m_surfaceWidth/static_cast<float>(m_surfaceHeight),
+                    config);
+        }
+
+        std::shared_ptr<renderDetails::DrawObjectData> createDrawObjectData(
+                std::shared_ptr<TextureData> &textureData,
+                glm::mat4 const &modelMatrix) override {
+            return std::make_shared<DrawObjectDataGL>(modelMatrix);
+        }
+
+        RenderDetailsDataGL(std::shared_ptr<GameRequester> const &inGameRequester,
+                            uint32_t inWidth, uint32_t inHeight);
+
+        ~RenderDetailsDataGL() override = default;
+
+    private:
+        static char constexpr const *SHADER_VERT_FILE = "shaders/shaderGL.vert";
+        static char constexpr const *SHADER_FRAG_FILE = "shaders/shaderGL.frag";
+        static char constexpr const *DEPTH_VERT_FILE = "shaders/depthShaderGL.vert";
+        static char constexpr const *SIMPLE_FRAG_FILE = "shaders/simpleGL.frag";
+
+        GLuint m_mainProgramID;
+        GLuint m_depthProgramID;
+    };
+}
 #endif // AMAZING_LABYRINTH_RENDER_DETAILS_DATA_GL_HPP

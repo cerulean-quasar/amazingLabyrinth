@@ -26,6 +26,7 @@
 #include <glm/gtc/matrix_transform.hpp>
 
 #include "../../levelTracker/levelTracker.hpp"
+#include "../../levelDrawer/textureTable/textureLoader.hpp"
 
 namespace renderDetails {
     class CommonObjectData {
@@ -37,11 +38,11 @@ namespace renderDetails {
         }
 
         void setView(
-                glm::vec3 const &lightingSource,
+                glm::vec3 const &viewPoint,
                 glm::vec3 const &lookAt,
                 glm::vec3 const &up)
         {
-            m_viewPoint = lightingSource;
+            m_viewPoint = viewPoint;
             m_lookAt = lookAt;
             m_up = up;
             update();
@@ -61,7 +62,6 @@ namespace renderDetails {
         }
 
         CommonObjectData(
-            glm::mat4 preTransform,
             float viewAngle,
             float aspectRatio,
             float nearPlane,
@@ -106,19 +106,14 @@ namespace renderDetails {
 
         RenderDetailsData(uint32_t inWidth, uint32_t inHeight)
                 : m_surfaceWidth{inWidth},
-                  m_surfaceHeight{inHeight},
-                  m_lightingSource{1.0f, 1.0f, 1.5f} {}
+                  m_surfaceHeight{inHeight}
+        {}
 
         virtual ~RenderDetailsData() = default;
 
     protected:
-        static float constexpr m_perspectiveViewAngle = 3.141593f / 4.0f;
-        static float constexpr m_perspectiveNearPlane = 0.5f;
-        static float constexpr m_perspectiveFarPlane = 5.0f;
-
         uint32_t m_surfaceWidth;
         uint32_t m_surfaceHeight;
-        glm::vec3 m_lightingSource;
     };
 }
 #endif

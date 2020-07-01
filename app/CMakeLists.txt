@@ -28,8 +28,7 @@ if ((NOT ${CMAKE_ANDROID_ARCH_ABI} STREQUAL x86) AND (NOT ${CMAKE_ANDROID_ARCH_A
             src/main/cpp/graphicsVulkan.cpp
             src/main/cpp/mazeVulkan.cpp
             src/main/cpp/vk_mem_alloc.cpp
-            src/main/cpp/renderDetails/textureWithShadows/renderDetailsDataVulkan.cpp
-            src/main/cpp/levelDrawer/drawObjectTable/drawObjectDataVulkan.cpp)
+            src/main/cpp/renderDetails/textureWithShadows/renderDetailsDataVulkan.cpp)
 
     list(APPEND platform64_files
         graphics-vulkan)

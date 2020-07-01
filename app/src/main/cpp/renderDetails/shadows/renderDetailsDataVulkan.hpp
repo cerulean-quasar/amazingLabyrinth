@@ -204,7 +204,6 @@ namespace shadows {
         RenderDetailsDataVulkan(
             std::shared_ptr<GameRequester> const &gameRequester,
             std::shared_ptr<vulkan::Device> const &inDevice,
-            std::shared_ptr<vulkan::CommandPool> const &inCommandPool,
             std::shared_ptr<vulkan::Pipeline> const &basePipeline,
             std::vector<vulkan::RenderPass::ImageAttachmentInfo> const &colorAttachmentInfos,
             vulkan::RenderPass::ImageAttachmentInfo depthAttachmentInfos,
@@ -236,7 +235,6 @@ namespace shadows {
         static char constexpr const *SHADOW_VERT_FILE = "shaders/depthShader.vert.spv";
 
         std::shared_ptr<vulkan::Device> m_device;
-        std::shared_ptr<vulkan::CommandPool> m_commandPool;
 
         std::shared_ptr<vulkan::RenderPass> m_renderPass;
         std::shared_ptr<vulkan::DescriptorPools> m_descriptorPools;
