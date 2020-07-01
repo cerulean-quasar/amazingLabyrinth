@@ -20,7 +20,10 @@
 
 #include "textureTableGL.hpp"
 
-void TextureDataGL::createTexture(std::shared_ptr<TextureDescription> const &textureDescription) {
+void TextureDataGL::createTexture(
+        std::shared_ptr<GameRequester> const &gameRequester,
+        std::shared_ptr<TextureDescription> const &textureDescription)
+{
 
     glGenTextures(1, &m_handle);
     checkGraphicsError();
@@ -43,7 +46,8 @@ void TextureDataGL::createTexture(std::shared_ptr<TextureDescription> const &tex
     uint32_t texHeight{};
     uint32_t texWidth{};
     uint32_t texChannels{};
-    std::vector<char> pixels = textureDescription->getData(texWidth, texHeight, texChannels);
+    std::vector<char> pixels = textureDescription->getData(gameRequester,
+            texWidth, texHeight, texChannels);
 
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, texWidth, texHeight, 0, GL_RGBA,
                  GL_UNSIGNED_BYTE, pixels.data());

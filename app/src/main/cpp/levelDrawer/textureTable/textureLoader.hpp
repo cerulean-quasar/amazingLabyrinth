@@ -37,7 +37,7 @@ class TextureDescription {
 protected:
     virtual bool compareLess(TextureDescription *) = 0;
 public:
-    virtual std::vector<char> getData(std::shared_ptr<GameRequester> gameRequester,
+    virtual std::vector<char> getData(std::shared_ptr<GameRequester> const &gameRequester,
             uint32_t &texWidth, uint32_t &texHeight, uint32_t &texChannels) = 0;
     virtual ~TextureDescription() = default;
 };
@@ -75,7 +75,7 @@ public:
         : TextureDescription{},
           imagePath{inImagePath}
     {}
-    std::vector<char> getData(std::shared_ptr<GameRequester> gameRequester,
+    std::vector<char> getData(std::shared_ptr<GameRequester> const &gameRequester,
                           uint32_t &texWidth, uint32_t &texHeight, uint32_t &texChannels) override;
 };
 
@@ -93,7 +93,7 @@ public:
           m_textString{inTextString}
     {
     }
-    std::vector<char> getData(std::shared_ptr<GameRequester> gameRequester,
+    std::vector<char> getData(std::shared_ptr<GameRequester> const &gameRequester,
                           uint32_t &texWidth, uint32_t &texHeight, uint32_t &texChannels) override;
 };
 

@@ -50,7 +50,7 @@ int istreamEof(void *userData) {
     return stream->eof();
 }
 
-std::vector<char> TextureDescriptionPath::getData(std::shared_ptr<GameRequester> gameRequester,
+std::vector<char> TextureDescriptionPath::getData(std::shared_ptr<GameRequester> const &gameRequester,
                                                   uint32_t &texWidth, uint32_t &texHeight,
                                                   uint32_t &texChannels) {
     std::unique_ptr<std::streambuf> assetbuf = gameRequester->getAssetStream(imagePath);
@@ -79,7 +79,7 @@ std::vector<char> TextureDescriptionPath::getData(std::shared_ptr<GameRequester>
     return data;
 }
 
-std::vector<char> TextureDescriptionText::getData(std::shared_ptr<GameRequester> gameRequester,
+std::vector<char> TextureDescriptionText::getData(std::shared_ptr<GameRequester> const &gameRequester,
                                                   uint32_t &texWidth, uint32_t &texHeight,
                                                   uint32_t &texChannels) {
     return gameRequester->getTextImage(m_textString, texWidth, texHeight, texChannels);

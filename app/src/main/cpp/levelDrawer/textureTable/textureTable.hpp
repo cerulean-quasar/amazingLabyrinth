@@ -30,33 +30,36 @@
 
 class TextureTable {
 public:
-    std::shared_ptr<TextureData> const &getTextureData(size_t index) {
-        return m_textureData[index];
+    virtual size_t addTexture(std::shared_ptr<GameRequester> const &gameRequester,
+                      std::shared_ptr<TextureDescription> const &textureDescription) = 0;
+
+    virtual ~TextureTable() = default;
+};
+
+template <typename TextureDataType>
+class TextureTableGeneric : public TextureTable {
+public:
+    std::shared_ptr<TextureDataType> const &getTextureData(size_t index) {
+        return m_textureIndexMap[index];
     }
 
     size_t addTexture(std::shared_ptr<GameRequester> const &gameRequester,
-            std::shared_ptr<TextureDescription> const &textureDescription)
+            std::shared_ptr<TextureDescription> const &textureDescription) override
     {
         auto item = m_textureIndexMap.emplace(textureDescription, 0);
-        if (item.second) {
-            return item.first->second;
-        } else {
+        if (!item.second) {
             m_textureDataVector.push_back(getTextureData(gameRequester, textureDescription));
             item.first->second = m_textureDataVector.size() - 1;
         }
+        return item.first->second;
     }
 
-    TextureTable()
-            : m_textureIndexMap{},
-              m_textureData{}
-    {}
-
-    virtual ~TextureTable() = default;
+    ~TextureTableGeneric() override = default;
 protected:
-    virtual std::shared_ptr<TextureData> getTextureData(std::shared_ptr<GameRequester> const &gameRequester,
+    virtual std::shared_ptr<TextureDataType> getTextureData(std::shared_ptr<GameRequester> const &gameRequester,
             std::shared_ptr<TextureDescription> const &textureDescription) = 0;
 
     std::map<std::shared_ptr<TextureDescription>, size_t, BaseClassPtrLess<TextureDescription>> m_textureIndexMap;
-    std::vector<std::shared_ptr<TextureData>> m_textureDataVector;
+    std::vector<std::shared_ptr<TextureDataType>> m_textureDataVector;
 };
 #endif // AMAZING_LABYRINTH_TEXTURE_TABLE_HPP

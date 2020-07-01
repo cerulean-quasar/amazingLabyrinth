@@ -72,12 +72,8 @@ private:
     GLuint m_indexBuffer;
 };
 
-class ModelTableGL : public ModelTable {
+class ModelTableGL : public ModelTableGeneric<ModelDataGL> {
 public:
-    ModelTableGL()
-            : ModelTable{}
-    {}
-
     ~ModelTableGL() override = default;
 protected:
     std::shared_ptr<ModelData> getModelData(std::shared_ptr<GameRequester> const &gameRequester,

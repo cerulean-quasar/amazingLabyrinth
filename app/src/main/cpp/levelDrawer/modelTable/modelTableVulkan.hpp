@@ -77,15 +77,19 @@ private:
     }
 };
 
-class ModelTableVulkan : public ModelTable {
+class ModelTableVulkan : public ModelTableGeneric<ModelDataVulkan> {
 public:
-    ModelTableVulkan()
-            : ModelTable{}
+    ModelTableVulkan(
+            std::shared_ptr<vulkan::Device> inDevice,
+            std::shared_ptr<vulkan::CommandPool> inCommandPool)
+            : ModelTableGeneric<ModelDataVulkan>{},
+            m_device{inDevice},
+            m_commandPool{inCommandPool}
     {}
 
     ~ModelTableVulkan() override = default;
 protected:
-    std::shared_ptr<ModelData> getModelData(std::shared_ptr<GameRequester> const &gameRequester,
+    std::shared_ptr<ModelDataVulkan> getModelData(std::shared_ptr<GameRequester> const &gameRequester,
                            std::shared_ptr<ModelDescription> const &modelDescription) override
     {
         return std::make_shared<ModelDataVulkan>(gameRequester, m_device, m_commandPool,

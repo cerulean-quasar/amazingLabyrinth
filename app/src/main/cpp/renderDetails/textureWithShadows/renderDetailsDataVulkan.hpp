@@ -26,7 +26,6 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 
-#include "../../levelDrawer/commonVulkan.hpp"
 #include "../../graphicsVulkan.hpp"
 #include "../../levelDrawer/drawObjectTable/drawObject.hpp"
 #include "../basic/renderDetailsData.hpp"

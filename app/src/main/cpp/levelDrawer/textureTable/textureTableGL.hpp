@@ -30,8 +30,10 @@
 
 class TextureDataGL : public TextureData {
 public:
-    TextureDataGL(std::shared_ptr<TextureDescription> const &textureDescription) {
-        createTexture(textureDescription);
+    TextureDataGL(std::shared_ptr<GameRequester> const &gameRequester,
+            std::shared_ptr<TextureDescription> const &textureDescription)
+    {
+        createTexture(gameRequester, textureDescription);
     }
 
     ~TextureDataGL() override {
@@ -42,7 +44,20 @@ public:
 private:
     GLuint m_handle;
 
-    void createTexture(std::shared_ptr<TextureDescription> const &textureDescription);
+    void createTexture(std::shared_ptr<GameRequester> const &gameRequester,
+            std::shared_ptr<TextureDescription> const &textureDescription);
+};
+
+class TextureTableGL : public TextureTableGeneric<TextureDataGL> {
+public:
+    ~TextureTableGL() override = default;
+protected:
+    std::shared_ptr<TextureDataGL> getTextureData(std::shared_ptr<GameRequester> const &gameRequester,
+                                                  std::shared_ptr<TextureDescription> const &textureDescription) override
+    {
+        return std::make_shared<TextureDataGL>(gameRequester, textureDescription);
+    }
+
 };
 
 #endif // AMAZING_LABYRINTH_TEXTURE_TABLE_GL_HPP

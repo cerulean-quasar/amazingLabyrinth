@@ -24,10 +24,8 @@
 #include <glm/glm.h>
 #include <glm/gtc/matrix_transform.hpp>
 
-#include "../../levelDrawer/commonVulkan.hpp"
 #include "../../graphicsVulkan.hpp"
 #include "../../levelDrawer/drawObjectTable/drawObject.hpp"
-#include "../../levelDrawer/drawObjectTable/drawObjectDataVulkan.hpp"
 #include "../basic/renderDetailsData.hpp"
 
 namespace shadows {

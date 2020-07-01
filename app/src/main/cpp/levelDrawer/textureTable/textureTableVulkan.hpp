@@ -51,15 +51,15 @@ private:
     std::shared_ptr<vulkan::ImageSampler> m_sampler;
 };
 
-class TextureTableVulkan : public TextureTable {
+class TextureTableVulkan : public TextureTableGeneric<TextureDataVulkan> {
 public:
     TextureTableVulkan()
-            : TextureTable{}
+            : TextureTableGeneric{}
     {}
 
-    virtual ~TextureTableVulkan() = default;
+    ~TextureTableVulkan() override = default;
 protected:
-    std::shared_ptr<TextureData> getTextureData(std::shared_ptr<GameRequester> const &gameRequester,
+    std::shared_ptr<TextureDataVulkan> getTextureData(std::shared_ptr<GameRequester> const &gameRequester,
             std::shared_ptr<TextureDescription> const &textureDescription) override
     {
         return std::make_shared<TextureDataVulkan>(gameRequester, m_device, m_commandPool,
