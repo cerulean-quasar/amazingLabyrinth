@@ -26,6 +26,7 @@
 #include "../textureTable/textureLoader.hpp"
 
 class DrawObject {
+public:
     boost::optional<size_t> renderDetailsIndex() { return m_renderDetailsIndex; }
     size_t modelIndex() { return m_modelIndex; }
     boost::optional<size_t> textureIndex() { return m_textureIndex; }

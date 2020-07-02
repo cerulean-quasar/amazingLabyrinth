@@ -17,8 +17,8 @@
  *  along with AmazingLabyrinth.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
-#ifndef AMAZING_LABYRINTH_RENDER_DETAILS_DATA_VULKAN_HPP
-#define AMAZING_LABYRINTH_RENDER_DETAILS_DATA_VULKAN_HPP
+#ifndef AMAZING_LABYRINTH_SHADOWS_RENDER_DETAILS_DATA_VULKAN_HPP
+#define AMAZING_LABYRINTH_SHADOWS_RENDER_DETAILS_DATA_VULKAN_HPP
 
 #include <memory>
 #include <glm/glm.h>
@@ -30,15 +30,6 @@
 
 namespace shadows {
     class RenderDetailsDataVulkan;
-
-    struct Config {
-        float viewAngle;
-        float nearPlane;
-        float farPlane;
-        glm::vec3 lightingSource;
-        glm::vec3 lookAt;
-        glm::vec3 up;
-    };
 
     class CommonObjectDataVulkan : public renderDetails::CommonObjectData {
         friend RenderDetailsDataVulkan;
@@ -240,4 +231,4 @@ namespace shadows {
         std::shared_ptr<vulkan::Pipeline> m_pipeline;
     };
 }
-#endif
+#endif // AMAZING_LABYRINTH_SHADOWS_RENDER_DETAILS_DATA_VULKAN_HPP

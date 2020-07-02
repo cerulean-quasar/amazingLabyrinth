@@ -101,7 +101,7 @@ namespace renderDetails {
     class RenderDetailsData {
     public:
         virtual std::shared_ptr <DrawObjectData> createDrawObjectData(
-                std::shared_ptr <TextureData> &textureData,
+                std::shared_ptr <TextureData> const &textureData,
                 glm::mat4 const &modelMatrix) = 0;
 
         RenderDetailsData(uint32_t inWidth, uint32_t inHeight)

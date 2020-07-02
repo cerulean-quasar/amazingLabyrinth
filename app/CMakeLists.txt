@@ -28,6 +28,7 @@ if ((NOT ${CMAKE_ANDROID_ARCH_ABI} STREQUAL x86) AND (NOT ${CMAKE_ANDROID_ARCH_A
             src/main/cpp/graphicsVulkan.cpp
             src/main/cpp/mazeVulkan.cpp
             src/main/cpp/vk_mem_alloc.cpp
+            src/main/cpp/renderDetails/shadows/renderDetailsDataVulkan.cpp
             src/main/cpp/renderDetails/textureWithShadows/renderDetailsDataVulkan.cpp)
 
     list(APPEND platform64_files
@@ -57,6 +58,7 @@ add_library( # Sets the name of the library.
         src/main/cpp/mathGraphics.cpp
         src/main/cpp/common.cpp
         src/main/cpp/renderDetails/basic/renderDetailsCommonGL.cpp
+        src/main/cpp/renderDetails/shadows/renderDetailsDataGL.cpp
         src/main/cpp/renderDetails/textureWithShadows/renderDetailsDataGL.cpp
         src/main/cpp/levelDrawer/modelTable/modelLoader.cpp
         src/main/cpp/levelDrawer/textureTable/textureTableGL.cpp

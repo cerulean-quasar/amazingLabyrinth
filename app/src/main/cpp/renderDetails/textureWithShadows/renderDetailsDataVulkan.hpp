@@ -17,8 +17,8 @@
  *  along with AmazingLabyrinth.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
-#ifndef AMAZING_LABYRINTH_RENDER_DETAILS_DATA_VULKAN_HPP
-#define AMAZING_LABYRINTH_RENDER_DETAILS_DATA_VULKAN_HPP
+#ifndef AMAZING_LABYRINTH_TEXTUREWITHSHADOWS_RENDER_DETAILS_DATA_VULKAN_HPP
+#define AMAZING_LABYRINTH_TEXTUREWITHSHADOWS_RENDER_DETAILS_DATA_VULKAN_HPP
 
 #include <memory>
 #include <vector>
@@ -327,4 +327,5 @@ namespace textureWithShadows {
         }
     };
 }
-#endif
+
+#endif // AMAZING_LABYRINTH_TEXTUREWITHSHADOWS_RENDER_DETAILS_DATA_VULKAN_HPP

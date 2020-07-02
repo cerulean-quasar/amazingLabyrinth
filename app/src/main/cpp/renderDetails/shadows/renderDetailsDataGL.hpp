@@ -17,8 +17,8 @@
  *  along with AmazingLabyrinth.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
-#ifndef AMAZING_LABYRINTH_TEXTUREWITHSHADOWS_RENDER_DETAILS_DATA_GL_HPP
-#define AMAZING_LABYRINTH_TEXTUREWITHSHADOWS_RENDER_DETAILS_DATA_GL_HPP
+#ifndef AMAZING_LABYRINTH_SHADOWS_RENDER_DETAILS_DATA_GL_HPP
+#define AMAZING_LABYRINTH_SHADOWS_RENDER_DETAILS_DATA_GL_HPP
 
 #include <memory>
 
@@ -30,9 +30,8 @@
 #include "../basic/renderDetailsData.hpp"
 #include "config.hpp"
 #include "../../levelDrawer/textureTable/textureLoader.hpp"
-#include "../shadows/renderDetailsDataGL.hpp"
 
-namespace textureWithShadows {
+namespace shadows {
     class RenderDetailsDataGL;
     class CommonObjectDataGL : public renderDetails::CommonObjectData {
         friend RenderDetailsDataGL;
@@ -45,36 +44,24 @@ namespace textureWithShadows {
                                         false, false);
         }
     private:
-        std::shared_ptr<shadows::CommonObjectDataGL> m_shadowsCOD;
-
-        CommonObjectDataGL(
-                std::shared_ptr<shadows::CommonObjectDataGL> shadowsCOD,
-                float aspectRatio,
-                Config const &config)
+        CommonObjectDataGL(float aspectRatio, Config const &config)
             : CommonObjectData(config.viewAngle, aspectRatio, config.nearPlane, config.farPlane,
-                    config.viewPoint, config.lookAt, config.up),
-            m_shadowsCOD(std::move(shadowsCOD))
+                    config.lightingSource, config.lookAt, config.up)
         {}
     };
 
     class DrawObjectDataGL : public renderDetails::DrawObjectData {
-        friend RenderDetailsDataGL;
     public:
         void update(glm::mat4 const &modelMatrix) override {
             m_modelMatrix = modelMatrix;
         }
 
-        ~DrawObjectDataGL() override = default;
-    private:
-        DrawObjectDataGL(
-                std::shared_ptr<shadows::DrawObjectDataGL> shadowsDOD,
-                glm::mat4 const &inModelMatrix)
-                : renderDetails::DrawObjectData{},
-                  m_shadowsDOD{std::move(shadowsDOD)},
-                  m_modelMatrix{inModelMatrix}
+        DrawObjectDataGL(glm::mat4 const &inModelMatrix)
+                : m_modelMatrix{inModelMatrix}
         {}
 
-        std::shared_ptr<shadows::DrawObjectDataGL> m_shadowsDOD;
+        ~DrawObjectDataGL() override = default;
+    private:
         glm::mat4 m_modelMatrix;
     };
 
@@ -83,44 +70,27 @@ namespace textureWithShadows {
         std::shared_ptr<renderDetails::CommonObjectData> createCommonObjectData(
                 Config const &config)
         {
-            shadows::Config configShadows{};
-            configShadows.viewAngle = config.viewAngle;
-            configShadows.nearPlane = config.nearPlane;
-            configShadows.farPlane = config.farPlane;
-            configShadows.lightingSource = config.lightingSource;
-            configShadows.lookAt = config.lookAt;
-            configShadows.up = config.up;
-            auto shadowsCOD = m_shadowsRenderDetails->createCommonObjectData(configShadows);
             return std::make_shared<CommonObjectDataGL>(
-                    std::move(shadowsCOD),
                     m_surfaceWidth/static_cast<float>(m_surfaceHeight),
                     config);
         }
 
         std::shared_ptr<renderDetails::DrawObjectData> createDrawObjectData(
-                std::shared_ptr<TextureData> &textureData,
-                glm::mat4 const &modelMatrix) override
-        {
-            auto fakeTexture = std::shared_ptr<TextureData>();
-            auto shadowsDOD = m_shadowsRenderDetails->createDrawObjectData(
-                    fakeTexture, modelMatrix);
-            return std::make_shared<DrawObjectDataGL>(shadowsDOD, modelMatrix);
+                std::shared_ptr<TextureData> const &textureData,
+                glm::mat4 const &modelMatrix) override {
+            return std::make_shared<DrawObjectDataGL>(modelMatrix);
         }
 
         RenderDetailsDataGL(std::shared_ptr<GameRequester> const &inGameRequester,
-                            bool useIntTexture,
                             uint32_t inWidth, uint32_t inHeight);
 
         ~RenderDetailsDataGL() override = default;
 
     private:
-        static char constexpr const *SHADER_VERT_FILE = "shaders/shaderGL.vert";
-        static char constexpr const *SHADER_FRAG_FILE = "shaders/shaderGL.frag";
+        static char constexpr const *DEPTH_VERT_FILE = "shaders/depthShaderGL.vert";
+        static char constexpr const *SIMPLE_FRAG_FILE = "shaders/simpleGL.frag";
 
-        bool m_useIntTexture;
-        std::shared_ptr<renderDetails::Framebuffer> m_framebufferShadows;
-        std::shared_ptr<shadows::RenderDetailsDataGL> m_shadowsRenderDetails;
-        GLuint m_mainProgramID;
+        GLuint m_depthProgramID;
     };
 }
-#endif // AMAZING_LABYRINTH_TEXTUREWITHSHADOWS_RENDER_DETAILS_DATA_GL_HPP
+#endif // AMAZING_LABYRINTH_SHADOWS_RENDER_DETAILS_DATA_GL_HPP

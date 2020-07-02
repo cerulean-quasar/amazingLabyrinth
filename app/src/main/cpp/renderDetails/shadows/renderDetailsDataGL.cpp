@@ -18,30 +18,15 @@
  *
  */
 #include <memory>
-#include <vector>
 
 #include "../basic/renderDetailsCommonGL.hpp"
 #include "renderDetailsDataGL.hpp"
-#include "../shadows/renderDetailsDataGL.hpp"
 
-namespace textureWithShadows {
+namespace shadows {
     RenderDetailsDataGL::RenderDetailsDataGL(std::shared_ptr<GameRequester> const &inGameRequester,
-                                             bool useIntTexture,
                                              uint32_t inWidth, uint32_t inHeight)
             : RenderDetailsData(inWidth, inHeight),
-            m_useIntTexture{useIntTexture},
-            m_framebufferShadows{},
-            m_shadowsRenderDetails{std::make_shared<shadows::RenderDetailsDataGL>(inGameRequester, inWidth, inHeight)},
-            m_mainProgramID{renderDetails::loadShaders(inGameRequester, SHADER_VERT_FILE, SHADER_FRAG_FILE)}
-    {
-        std::vector<renderDetails::Framebuffer::ColorImageFormat> colorImageFormats;
-        if (m_useIntTexture) {
-            colorImageFormats.emplace_back(GL_RGBA32UI, GL_RGBA_INTEGER, GL_UNSIGNED_INT);
-        } else {
-            colorImageFormats.emplace_back(GL_RGBA8, GL_RGBA, GL_UNSIGNED_BYTE);
-        }
+              m_depthProgramID{renderDetails::loadShaders(inGameRequester, DEPTH_VERT_FILE, SIMPLE_FRAG_FILE)}
+    {}
 
-        m_framebufferShadows = std::make_shared<renderDetails::Framebuffer>(
-                m_surfaceWidth, m_surfaceHeight, colorImageFormats);
-    }
 }
