@@ -79,7 +79,7 @@ namespace textureWithShadows {
                 config.viewAngle, aspectRatio, config.nearPlane, config.farPlane,
                 config.viewPoint, config.lookAt, config.up),
             m_shadowsCOD{std::move(shadowsCOD)},
-            m_cameraBuffer{std::move(buffer)},
+            m_cameraBuffer{std::move(cameraBuffer)},
             m_lightingSourceBuffer{std::move(lightingSourceBuffer)},
             m_preTransform{preTransform}
         {

@@ -17,22 +17,24 @@
  *  along with AmazingLabyrinth.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
+#ifndef AMAZING_LABYRINTH_LEVEL_DRAWER_VULKAN_HPP
+#define AMAZING_LABYRINTH_LEVEL_DRAWER_VULKAN_HPP
 
-#ifndef AMAZING_LABYRINTH_RENDER_DETAILS_COMMON_VULKAN_HPP
-#define AMAZING_LABYRINTH_RENDER_DETAILS_COMMON_VULKAN_HPP
+#include <memory>
+#include <string>
+#include "levelDrawerGraphics.hpp"
+#include "../graphicsVulkan.hpp"
+#include "modelTable/modelTableVulkan.hpp"
+#include "textureTable/textureTableVulkan.hpp"
 
-#include <vector>
-#include "../../graphicsVulkan.hpp"
-#include "renderDetailsData.hpp"
+struct VulkanTraits {
+    using ModelTableType = ModelTableVulkan;
+    using TextureTableType = TextureTableVulkan;
+    using DrawObjectTableType = DrawObjectTableVulkan;
+    using RenderDetailsReferenceType = RenderDetailsReference<RenderDetailsVulkan, CommonObjectDataVulkan>;
+    using DrawArgumentType = VkCommandBuffer;
+};
 
-namespace renderDetails {
-    class RenderDetailsVulkan : public RenderDetails {
-    public:
-        void draw
-    protected:
-        VkVertexInputBindingDescription getBindingDescription();
+using LevelDrawerVulkan = LevelDrawerGraphics<VulkanTraits>;
 
-        std::vector <VkVertexInputAttributeDescription> getAttributeDescriptions();
-    };
-}
-#endif // AMAZING_LABYRINTH_RENDER_DETAILS_COMMON_VULKAN_HPP
+#endif // AMAZING_LABYRINTH_LEVEL_DRAWER_VULKAN_HPP

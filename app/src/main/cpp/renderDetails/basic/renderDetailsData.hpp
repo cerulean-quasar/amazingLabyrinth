@@ -31,8 +31,6 @@
 namespace renderDetails {
     class CommonObjectData {
     public:
-        virtual glm::mat4 getPerspectiveMatrixForLevel() = 0;
-
         glm::mat4 view() {
             return glm::lookAt(m_viewPoint, m_lookAt, m_up);
         }
@@ -48,6 +46,28 @@ namespace renderDetails {
             update();
         }
 
+        CommonObjectData(
+                glm::vec3 viewPoint,
+                glm::vec3 lookAt,
+                glm::vec3 up)
+                : m_viewPoint{viewPoint},
+                m_lookAt{lookAt},
+                m_up{up}
+        {}
+
+    protected:
+        virtual void update() = 0;
+    private:
+        glm::vec3 m_viewPoint;
+        glm::vec3 m_lookAt;
+        glm::vec3 m_up;
+
+    };
+
+    class CommonObjectDataPerspective : public CommonObjectData {
+    public:
+        virtual glm::mat4 getPerspectiveMatrixForLevel() = 0;
+
         void setProjection(
                 float viewAngle,
                 float aspectRatio,
@@ -61,7 +81,7 @@ namespace renderDetails {
             update();
         }
 
-        CommonObjectData(
+        CommonObjectDataPerspective(
             float viewAngle,
             float aspectRatio,
             float nearPlane,
@@ -69,27 +89,70 @@ namespace renderDetails {
             glm::vec3 viewPoint,
             glm::vec3 lookAt,
             glm::vec3 up)
-            : m_viewAngle{viewAngle},
+            : CommonObjectData{viewPoint, lookAt, up},
+            m_viewAngle{viewAngle},
             m_aspectRatio{aspectRatio},
             m_nearPlane{nearPlane},
-            m_farPlane{farPlane},
-            m_viewPoint{viewPoint},
-            m_lookAt{lookAt},
-            m_up{up}
+            m_farPlane{farPlane}
         {}
 
-        virtual ~CommonObjectData() = default;
+        virtual ~CommonObjectDataPerspective() = default;
     protected:
-        virtual void update() = 0;
-
         float m_viewAngle;
         float m_aspectRatio;
         float m_nearPlane;
         float m_farPlane;
+    };
 
-        glm::vec3 m_viewPoint;
-        glm::vec3 m_lookAt;
-        glm::vec3 m_up;
+    class CommonObjectDataOrtho : public CommonObjectData {
+    public:
+        virtual glm::mat4 getPerspectiveMatrixForLevel() = 0;
+
+        void setProjection(
+                float minusX,
+                float plusX,
+                float minusY,
+                float plusY,
+                float nearPlane,
+                float farPlane)
+        {
+            m_minusX = minusX;
+            m_plusX = plusX;
+            m_minusY = minusY;
+            m_plusY = plusY;
+            m_nearPlane = nearPlane;
+            m_farPlane = farPlane;
+            update();
+        }
+
+        CommonObjectDataOrtho(
+                float minusX,
+                float plusX,
+                float minusY,
+                float plusY,
+                float nearPlane,
+                float farPlane,
+                glm::vec3 viewPoint,
+                glm::vec3 lookAt,
+                glm::vec3 up)
+                : CommonObjectData{viewPoint, lookAt, up},
+                  m_minusX{minusX},
+                  m_plusX{plusX},
+                  m_minusY{minusY},
+                  m_plusY{plusY},
+                  m_nearPlane{nearPlane},
+                  m_farPlane{farPlane}
+        {}
+
+        virtual ~CommonObjectDataOrtho() = default;
+    protected:
+        float m_minusX;
+        float m_plusX;
+        float m_minusY;
+        float m_plusY;
+        float m_aspectRatio;
+        float m_nearPlane;
+        float m_farPlane;
     };
 
     class DrawObjectData {
@@ -98,18 +161,18 @@ namespace renderDetails {
         virtual ~DrawObjectData() = default;
     };
 
-    class RenderDetailsData {
+    class RenderDetails {
     public:
         virtual std::shared_ptr <DrawObjectData> createDrawObjectData(
                 std::shared_ptr <TextureData> const &textureData,
                 glm::mat4 const &modelMatrix) = 0;
 
-        RenderDetailsData(uint32_t inWidth, uint32_t inHeight)
+        RenderDetails(uint32_t inWidth, uint32_t inHeight)
                 : m_surfaceWidth{inWidth},
                   m_surfaceHeight{inHeight}
         {}
 
-        virtual ~RenderDetailsData() = default;
+        virtual ~RenderDetails() = default;
 
     protected:
         uint32_t m_surfaceWidth;

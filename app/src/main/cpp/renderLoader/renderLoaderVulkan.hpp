@@ -45,13 +45,12 @@ protected:
     }
 
     void reload(std::shared_ptr<RenderDetailsData> const &renderDetailsData) override {
-        renderDetailsData.reload(m_device, m_commandPool, m_swapChain);
+        renderDetailsData.reload(uint32_t width, uint32_t height);
     }
 
 private:
     std::shared_ptr<vulkan::Device> m_device;
     std::shared_ptr<vulkan::CommandPool> m_commandPool;
-    std::shared_ptr<vulkan::SwapChain> m_swapChain;  // todo: this variable can be eliminated...
 };
 
 #endif // AMAZING_LABYRINTH_RENDER_LOADER_HPP
