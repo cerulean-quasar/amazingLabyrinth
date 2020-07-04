@@ -31,7 +31,7 @@
 namespace renderDetails {
     template <typename RenderDetailsType, typename CommonObjectDataType>
     struct RenderDetailsReference {
-        std::shared_ptr<RenderDetailsType> renderDetailsData;
+        std::shared_ptr<RenderDetailsType> renderDetails;
         std::shared_ptr<CommonObjectDataType> commonObjectData;
     };
 

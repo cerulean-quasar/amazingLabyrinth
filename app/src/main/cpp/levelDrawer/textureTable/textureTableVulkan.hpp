@@ -51,16 +51,21 @@ private:
     std::shared_ptr<vulkan::ImageSampler> m_sampler;
 };
 
-class TextureTableVulkan : public TextureTableGeneric<TextureDataVulkan> {
+class TextureTableVulkan : public TextureTable<TextureDataVulkan> {
 public:
-    TextureTableVulkan()
-            : TextureTableGeneric{}
+    TextureTableVulkan(
+        std::shared_ptr<vulkan::Device> inDevice,
+        std::shared_ptr<vulkan::CommandPool> inCommandPool)
+        : TextureTable{},
+        m_device{inDevice},
+        m_commandPool{inCommandPool}
     {}
 
     ~TextureTableVulkan() override = default;
 protected:
-    std::shared_ptr<TextureDataVulkan> getTextureData(std::shared_ptr<GameRequester> const &gameRequester,
-            std::shared_ptr<TextureDescription> const &textureDescription) override
+    std::shared_ptr<TextureDataVulkan> getTextureData(
+        std::shared_ptr<GameRequester> const &gameRequester,
+        std::shared_ptr<TextureDescription> const &textureDescription) override
     {
         return std::make_shared<TextureDataVulkan>(gameRequester, m_device, m_commandPool,
                 textureDescription);
@@ -69,4 +74,5 @@ private:
     std::shared_ptr<vulkan::Device> m_device;
     std::shared_ptr<vulkan::CommandPool> m_commandPool;
 };
+
 #endif // AMAZING_LABYRINTH_TEXTURE_TABLE_VULKAN_HPP

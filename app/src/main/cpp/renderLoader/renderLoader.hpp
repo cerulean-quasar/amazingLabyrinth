@@ -21,45 +21,63 @@
 #define AMAZING_LABYRINTH_RENDER_LOADER_HPP
 
 #include <memory>
+#include <list>
+#include <string>
 
 #include "../renderDetails/basic/renderDetailsData.hpp"
 
+template <typename traits>
 class RenderLoader {
 public:
-    std::shared_ptr<RenderDetailsData> load(std::shared_ptr<RenderDetails> const &renderDetails,
-            uint32_t width, uint32_t height)
+    typename traits::RenderDetailsReferenceType load(
+            std::string const &name,
+            typename traits::RenderDetailsParameters const &parameters)
     {
-        for (auto it = m_loadedRenderDetailsData.begin(); it != m_loadedRenderDetailsData.end(); it++) {
-            if (it->name() == renderDetails.name()) {
-                auto renderDetailsData = *it;
-                if (renderDetailsData.width() != width || renderDetailsData.height() != height) {
-                    reload(renderDetailsData);
+        for (auto it = m_loadedRenderDetails.begin(); it != m_loadedRenderDetails.end(); it++) {
+            if (it->name() == name) {
+                auto renderDetails = *it;
+                if (renderDetails->width() != parameters.width ||
+                    renderDetails->height() != parameters.height)
+                {
+                    reload(renderDetails, parameters);
                 }
-                if (m_loadedRenderDetailsData.size() > m_nbrRenderDetailsDataToKeep) {
-                    m_loadedRenderDetailsData.erase(it);
-                    m_loadedRenderDetailsData.push_front(renderDetailsData);
+
+                if (m_loadedRenderDetails.size() > m_nbrRenderDetailsToKeep/2) {
+                    m_loadedRenderDetails.erase(it);
+                    m_loadedRenderDetails.push_front(renderDetails);
                 }
-                return std::move(renderDetailsData);
+
+                typename traits::RenderDetailsReferenceType ref;
+                ref.renderDetails = std::move(renderDetails);
+                ref.commonObjectData = allocateCommonObjectData(ref.renderDetails, parameters);
+                return std::move(ref);
             }
         }
 
-        auto renderDetailsData = loadNew(renderDetails->name());
-        m_loadedRenderDetailsData.push_front(renderDetailsData);
-        while (m_loadedRenderDetailsData.size() > m_nbrRenderDetailsDataToKeep) {
-            m_loadedRenderDetailsData.pop_back();
+        auto renderDetailsRef = loadNew(name);
+        m_loadedRenderDetails.push_front(renderDetailsRef.renderDetails);
+        while (m_loadedRenderDetails.size() > m_nbrRenderDetailsToKeep) {
+            m_loadedRenderDetails.pop_back();
         }
 
-        return renderDetailsData;
+        return renderDetailsRef;
     };
 
     virtual ~RenderLoader() = default;
 
 protected:
-    virtual std::shared_ptr<RenderDetailsData> loadNew(std::string const &name, uint32_t width, uint32_t height) = 0;
-    virtual void reload(std::shared_ptr<RenderDetailsData> const &renderDetailsData) = 0;
+    virtual typename traits::RenderDetailsReferenceType loadNew(
+            std::string const &name,
+            typename traits::RenderDetailsParameters const &parameters) = 0;
+    virtual void reload(
+            std::shared_ptr<typename traits::RenderDetailsType> const &renderDetails,
+            typename traits::RenderDetailsParameters const &parameters) = 0;
+    virtual std::shared_ptr<typename traits::CommonObjectDataType> allocateCommonObjectData(
+            std::shared_ptr<typename traits::RenderDetailsType> const &renderDetails,
+            typename traits::RenderDetailsParameters const &parameters) = 0;
 private:
-    static size_t constexpr m_nbrRenderDetailsDataToKeep = 10;
-    std::list<std::shared_ptr<RenderDetailsData>> m_loadedRenderDetailsData;
+    static size_t constexpr m_nbrRenderDetailsToKeep = 10;
+    std::list<std::shared_ptr<traits::RenderDetailsType>> m_loadedRenderDetails;
 };
 
 #endif // AMAZING_LABYRINTH_RENDER_LOADER_HPP

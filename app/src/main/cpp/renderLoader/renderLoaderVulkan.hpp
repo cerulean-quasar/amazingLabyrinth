@@ -28,29 +28,32 @@
 #include "../renderDetails/basic/renderDetailsData.hpp"
 #include "renderLoader.hpp"
 
-class RenderLoaderVulkan : public RenderLoader {
+class RenderLoaderVulkan : public RenderLoader<renderDetails::RenderDetailsVulkan> {
 public:
     ~RenderLoaderVulkan() override = default;
 
 protected:
-    std::shared_ptr<RenderDetailsData> loadNew(std::string const &name,
+    std::shared_ptr<renderDetails::RenderDetailsVulkan> loadNew(std::string const &name,
             uint32_t width, uint32_t height)
     {
-        auto loaderFcnIt = getRenderDetailsVulkanMap().find(renderDetails.name);
+        auto loaderFcnIt = getRenderDetailsVulkanMap().find(name);
         if (loaderFcnIt == getRenderDetailsVulkanMap().end()) {
             throw std::runtime_error("RenderDetails not registered.");
         }
 
-        auto renderDetailsData = loaderFcnIt->second(m_device, renderDetails);
+        auto renderDetails = loaderFcnIt->second(m_device);
     }
 
-    void reload(std::shared_ptr<RenderDetailsData> const &renderDetailsData) override {
-        renderDetailsData.reload(uint32_t width, uint32_t height);
+    void reload(
+            std::shared_ptr<renderDetails::RenderDetailsVulkan> const &renderDetails,
+            uint32_t width,
+            uint32_t height) override
+    {
+        renderDetails.reload(width, height);
     }
 
 private:
     std::shared_ptr<vulkan::Device> m_device;
-    std::shared_ptr<vulkan::CommandPool> m_commandPool;
 };
 
 #endif // AMAZING_LABYRINTH_RENDER_LOADER_HPP

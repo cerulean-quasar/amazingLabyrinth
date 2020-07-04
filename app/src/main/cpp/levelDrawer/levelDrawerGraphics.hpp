@@ -36,22 +36,29 @@ public:
         std::shared_ptr<ModelDescription> const &modelDescription,
         std::shared_ptr<TextureDescription> const &textureDescription);
 
+    size_t addObject(
+            std::shared_ptr<ModelDescription> const &modelDescription,
+            std::shared_ptr<TextureDescription> const &textureDescription,
+            std::string const &renderDetailsName);
+
     size_t addModelMatrixForObject(size_t objsIndex, glm::mat4 const &modelMatrix);
 
     size_t resizeModelMatrices(size_t objsIndex, size_t newSize);
 
     size_t getNumberModelMatricesForObject(size_t objsIndex);
 
-    void requestRenderDetails(std::string const &name);
-
-    void requestRenderDetailsForObject(size_t objsIndex, std::string const &name);
+    void requestRenderDetails(std::string const &name) override {
+        m_renderDetailsReference = m_renderLoader.load(name, m_renderDetailsParameters);
+    }
 
     void draw(typename traits::DrawArgumentType info);
 private:
-    std::shared_ptr<typename traits::RenderDetailsReferenceType>> m_renderDetailsReference;
+    typename traits::RenderDetailsReferenceType m_renderDetailsReference;
     typename traits::ModelTableType m_modelTable;
     typename traits::TextureTableType m_textureTable;
     typename traits::DrawObjectTableType m_drawObjectTable;
+    typename traits::RenderLoaderType m_renderLoader;
+    typename traits::RenderDetailsParameters m_renderDetailsParameters;
 };
 
 #endif // AMAZING_LABYRINTH_LEVEL_DRAWER_GRAPHICS_HPP

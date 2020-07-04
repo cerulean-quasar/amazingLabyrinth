@@ -28,38 +28,26 @@
 #include "../common.hpp"
 #include "textureLoader.hpp"
 
+template <typename TextureDataType>
 class TextureTable {
 public:
-    virtual size_t addTexture(std::shared_ptr<GameRequester> const &gameRequester,
-                      std::shared_ptr<TextureDescription> const &textureDescription) = 0;
-
-    virtual ~TextureTable() = default;
-};
-
-template <typename TextureDataType>
-class TextureTableGeneric : public TextureTable {
-public:
-    std::shared_ptr<TextureDataType> const &getTextureData(size_t index) {
-        return m_textureIndexMap[index];
-    }
-
-    size_t addTexture(std::shared_ptr<GameRequester> const &gameRequester,
+    std::shared_ptr<TextureDataType> addTexture(std::shared_ptr<GameRequester> const &gameRequester,
             std::shared_ptr<TextureDescription> const &textureDescription) override
     {
         auto item = m_textureIndexMap.emplace(textureDescription, 0);
         if (!item.second) {
-            m_textureDataVector.push_back(getTextureData(gameRequester, textureDescription));
-            item.first->second = m_textureDataVector.size() - 1;
+            item.first->second = getTextureData(gameRequester, textureDescription);
         }
         return item.first->second;
     }
 
-    ~TextureTableGeneric() override = default;
+    TextureTable() = default;
+
+    ~TextureTable() = default;
 protected:
     virtual std::shared_ptr<TextureDataType> getTextureData(std::shared_ptr<GameRequester> const &gameRequester,
             std::shared_ptr<TextureDescription> const &textureDescription) = 0;
 
-    std::map<std::shared_ptr<TextureDescription>, size_t, BaseClassPtrLess<TextureDescription>> m_textureIndexMap;
-    std::vector<std::shared_ptr<TextureDataType>> m_textureDataVector;
+    std::map<std::shared_ptr<TextureDescription>, std::shared_ptr<TextureDataType>, BaseClassPtrLess<TextureDescription>> m_textureIndexMap;
 };
 #endif // AMAZING_LABYRINTH_TEXTURE_TABLE_HPP
