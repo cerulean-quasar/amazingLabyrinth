@@ -30,7 +30,7 @@
 #include "modelLoader.hpp"
 #include "modelTable.hpp"
 
-class ModelDataGL : public ModelData {
+class ModelDataGL {
 public:
     ModelDataGL(std::shared_ptr<GameRequester> const &gameRequester,
             std::shared_ptr<ModelDescription> const &modelDescription)
@@ -56,7 +56,7 @@ public:
         checkGraphicsError();
     }
 
-    ~ModelDataGL() override {
+    ~ModelDataGL() {
         glDeleteBuffers(1, &m_vertexBuffer);
         glDeleteBuffers(1, &m_indexBuffer);
     }
@@ -65,18 +65,15 @@ public:
     inline GLuint indexBuffer() const { return m_indexBuffer; }
 
 private:
-    void DrawObjectDataGL::createDrawObjectData(std::shared_ptr<DrawObject> const &drawObj) {
-    }
-
     GLuint m_vertexBuffer;
     GLuint m_indexBuffer;
 };
 
-class ModelTableGL : public ModelTableGeneric<ModelDataGL> {
+class ModelTableGL : public ModelTable<ModelDataGL> {
 public:
     ~ModelTableGL() override = default;
 protected:
-    std::shared_ptr<ModelData> getModelData(std::shared_ptr<GameRequester> const &gameRequester,
+    std::shared_ptr<ModelDataGL> getModelData(std::shared_ptr<GameRequester> const &gameRequester,
                                             std::shared_ptr<ModelDescription> const &modelDescription) override
     {
         return std::make_shared<ModelDataGL>(gameRequester,  modelDescription);

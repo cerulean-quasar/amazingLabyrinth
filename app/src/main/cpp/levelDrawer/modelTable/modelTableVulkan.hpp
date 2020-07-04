@@ -29,7 +29,7 @@
 #include "modelTable.hpp"
 #include "../../graphicsVulkan.hpp"
 
-class ModelDataVulkan : public ModelData {
+class ModelDataVulkan {
 public:
     ModelDataVulkan(std::shared_ptr<GameRequester> const &gameRequester,
                     std::shared_ptr<vulkan::Device> const &inDevice,
@@ -55,7 +55,7 @@ public:
     inline std::shared_ptr<vulkan::Buffer> const &vertexBuffer() { return m_vertexBuffer; }
     inline std::shared_ptr<vulkan::Buffer> const &indexBuffer() { return m_indexBuffer; }
 
-    ~ModelDataVulkan() override = default;
+    ~ModelDataVulkan() = default;
 private:
     /* vertex buffer and index buffer. the index buffer indicates which vertices to draw and in
      * the specified order.  Note, vertices can be listed twice if they should be part of more
@@ -77,7 +77,7 @@ private:
     }
 };
 
-class ModelTableVulkan : public ModelTableGeneric<ModelDataVulkan> {
+class ModelTableVulkan : public ModelTable<ModelDataVulkan> {
 public:
     ModelTableVulkan(
             std::shared_ptr<vulkan::Device> inDevice,

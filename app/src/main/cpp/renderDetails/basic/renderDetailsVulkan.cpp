@@ -20,9 +20,10 @@
 
 #include <vector>
 #include "../graphicsVulkan.hpp"
+#include "renderDetailsVulkan.hpp"
 
 namespace renderDetails {
-    VkVertexInputBindingDescription getBindingDescription() {
+    VkVertexInputBindingDescription RenderDetailsVulkan::getBindingDescription() {
         VkVertexInputBindingDescription bindingDescription = {};
 
         bindingDescription.binding = 0;
@@ -37,7 +38,7 @@ namespace renderDetails {
         return bindingDescription;
     }
 
-    std::vector <VkVertexInputAttributeDescription> getAttributeDescriptions() {
+    std::vector <VkVertexInputAttributeDescription> RenderDetailsVulkan::getAttributeDescriptions() {
         std::vector <VkVertexInputAttributeDescription> attributeDescriptions = {};
 
         attributeDescriptions.resize(4);

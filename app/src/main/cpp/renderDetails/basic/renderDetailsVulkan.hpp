@@ -18,21 +18,29 @@
  *
  */
 
-#ifndef AMAZING_LABYRINTH_RENDER_DETAILS_COMMON_VULKAN_HPP
-#define AMAZING_LABYRINTH_RENDER_DETAILS_COMMON_VULKAN_HPP
+#ifndef AMAZING_LABYRINTH_RENDER_DETAILS_VULKAN_HPP
+#define AMAZING_LABYRINTH_RENDER_DETAILS_VULKAN_HPP
 
+#include <memory>
 #include <vector>
 #include "../../graphicsVulkan.hpp"
+#include "../../levelDrawer/modelTable/modelTableVulkan.hpp"
 #include "renderDetailsData.hpp"
 
 namespace renderDetails {
     class RenderDetailsVulkan : public RenderDetails {
     public:
-        void draw
+        void draw(
+            vulkan::VkCommandBuffer commandBuffer,
+            DrawObjectTableVulkan const &drawObjTable,
+            NidekTabkeVulkan const &modelTable,
+            std::vector<size_t> const &drawObjectsIndexList) = 0;
+
+        ~RenderDetailsVulkan() override  = default;
     protected:
         VkVertexInputBindingDescription getBindingDescription();
 
         std::vector <VkVertexInputAttributeDescription> getAttributeDescriptions();
     };
 }
-#endif // AMAZING_LABYRINTH_RENDER_DETAILS_COMMON_VULKAN_HPP
+#endif // AMAZING_LABYRINTH_RENDER_DETAILS_VULKAN_HPP

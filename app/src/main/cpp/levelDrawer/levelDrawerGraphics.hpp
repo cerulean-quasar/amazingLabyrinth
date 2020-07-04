@@ -33,8 +33,8 @@ template <typename traits>
 class LevelDrawerGraphics : public LevelDrawer {
 public:
     size_t addObject(
-            std::shared_ptr<ModelDescription> const &modelDescription,
-            std::shared_ptr<TextureDescription> const &textureDescription);
+        std::shared_ptr<ModelDescription> const &modelDescription,
+        std::shared_ptr<TextureDescription> const &textureDescription);
 
     size_t addModelMatrixForObject(size_t objsIndex, glm::mat4 const &modelMatrix);
 

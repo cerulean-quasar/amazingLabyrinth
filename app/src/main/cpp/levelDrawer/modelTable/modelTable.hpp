@@ -28,38 +28,26 @@
 #include "../common.hpp"
 #include "modelLoader.hpp"
 
+template <typename ModelDataType>
 class ModelTable {
 public:
-    virtual size_t addModel(std::shared_ptr<GameRequester> const &gameRequester,
-                    std::shared_ptr<ModelDescription> const &modelDescription) = 0;
-
-    virtual ~ModelTable() = default;
-};
-
-template <typename ModelDataType>
-class ModelTableGeneric : public ModelTable {
-public:
-    std::shared_ptr<ModelDataType> const &getModelData(size_t index) {
-        return m_modelData[index];
-    }
-
-    size_t addModel(std::shared_ptr<GameRequester> const &gameRequester,
+    std::shared_ptr<ModelDataType> const &addModel(std::shared_ptr<GameRequester> const &gameRequester,
                       std::shared_ptr<ModelDescription> const &modelDescription)
     {
-        auto item = m_modelIndexMap.emplace(modelDescription, 0);
+        auto item = m_modelIndexMap.emplace(modelDescription, nullptr);
         if (!item.second) {
-            m_modelDataVector.emplace_back(getModelData(gameRequester, modelDescription));
-            item.first->second = m_modelDataVector.size() - 1;
+            item.first->second = getModelData(gameRequester, modelDescription);
         }
         return item.first->second;
     }
 
-    ~ModelTableGeneric() override = default;
-protected:
+    ModelTable() = default;
+
+    virtual ~ModelTable() = default;
+private:
     virtual std::shared_ptr<ModelDataType> getModelData(std::shared_ptr<GameRequester> const &gameRequester,
                                      std::shared_ptr<ModelDescription> const &modelDescription) = 0;
 
-    std::map<std::shared_ptr<ModelDescription>, size_t, BaseClassPtrLess<ModelDescription>> m_modelIndexMap;
-    std::vector<std::shared_ptr<ModelDataType>> m_modelDataVector;
+    std::map<std::shared_ptr<ModelDescription>, std::shared_ptr<ModelDataType>, BaseClassPtrLess<ModelDescription>> m_modelMap;
 };
 #endif // AMAZING_LABYRINTH_MODEL_TABLE_HPP

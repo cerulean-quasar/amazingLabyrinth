@@ -29,6 +29,12 @@
 #include "../../levelDrawer/textureTable/textureLoader.hpp"
 
 namespace renderDetails {
+    template <typename RenderDetailsType, typename CommonObjectDataType>
+    struct RenderDetailsReference {
+        std::shared_ptr<RenderDetailsType> renderDetailsData;
+        std::shared_ptr<CommonObjectDataType> commonObjectData;
+    };
+
     class CommonObjectData {
     public:
         glm::mat4 view() {

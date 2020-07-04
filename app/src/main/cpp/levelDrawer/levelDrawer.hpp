@@ -27,12 +27,6 @@
 #include "textureTable/textureLoader.hpp"
 #include "../renderDetails/basic/renderDetailsData.hpp"
 
-template <typename RenderDetailsType, typename CommonObjectDataType>
-struct RenderDetailsReference {
-    std::shared_ptr<RenderDetailsType> renderDetailsData;
-    std::shared_ptr<CommonObjectDataType> commonObjectData;
-};
-
 class LevelDrawer {
 public:
     size_t addObject(
