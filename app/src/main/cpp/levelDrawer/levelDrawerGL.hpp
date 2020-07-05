@@ -26,13 +26,25 @@
 #include "modelTable/modelTableGL.hpp"
 #include "levelDrawerGraphics.hpp"
 
-struct GLTraits {
-    using ModelTableType = ModelTableGL;
-    using TextureTableType = TextureTableGL;
-    using DrawObjectTableType = DrawObjectTableGL;
-    using RenderDetailsReferenceType = RenderDetailsReference<RenderDetailsGL, CommonObjectDataGL>;
-    struct DrawArgumentType{};
+struct DrawObjectGLTraits {
+    using RenderDetailsType = renderDetails::RenderDetailsGL;
+    using CommonObjectDataType = renderDetails::CommonObjectDataGL;
+    using RenderDetailsReferenceType = RenderDetailsReference<RenderDetailsType, CommonObjectDataType>;
+    using ModelDataType = ModelDataGL;
+    using TextureDataType = TextureDataGL;
+    using DrawObjectDataType = renderDetails::DrawObjectDataGL;
 };
 
-using LevelTableGL = LevelDrawerGraphics<GLTraits>;
+struct LevelDrawerGLTraits {
+    using RenderLoaderType = RenderLoaderGL;
+    using RenderDetailsType = renderDetails::RenderDetailsGL;
+    using CommonObjectDataType = renderDetails::CommonObjectDataGL;
+    using RenderDetailsReferenceType = RenderDetailsReference<RenderDetailsType, CommonObjectDataType>;
+    using ModelTableType = ModelTableGL;
+    using TextureTableType = TextureTableGL;
+    using DrawObjectTableType = DrawObjectTable<DrawObjectGLTraits>;
+    struct DrawArgumentType {};
+};
+
+using LevelTableGL = LevelDrawerGraphics<LevelDrawerGLTraits>;
 #endif // AMAZING_LABYRINTH_LEVEL_DRAWER_GL_HPP

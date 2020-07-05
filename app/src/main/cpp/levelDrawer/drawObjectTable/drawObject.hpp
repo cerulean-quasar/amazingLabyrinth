@@ -25,21 +25,21 @@
 #include <glm/glm.hpp>
 #include <boost/optional.hpp>
 #include "../../renderDetails/basic/renderDetailsData.hpp"
+#include "../modelTable/modelTableVulkan.hpp"
+#include "../../mazeVulkan.hpp"
 
-template <typename DrawObjectTableTraits>
+template <typename traits>
 class DrawObject {
 public:
-    std::shared_ptr<typename DrawObjectTableTraits::RenderDetailsReferenceType> const &
-            renderDetailsReference() { return m_renderDetailsReference; }
+    typename traits::RenderDetailsReferenceType const &renderDetailsReference() {
+        return m_renderDetailsReference;
+    }
 
-    std::shared_ptr<typename DrawObjectTableTraits::ModelDataType> const &
-            modelData() { return m_modelData; }
+    std::shared_ptr<typename traits::ModelDataType> const &modelData() { return m_modelData; }
 
-    std::shared_ptr<typename DrawObjectTableTraits::TextureDataType> const &
-            textureData() { return m_textureData; }
+    std::shared_ptr<typename traits::TextureDataType> const &textureData() { return m_textureData; }
 
-    std::shared_ptr<typename DrawObjectTableTraits::DrawObjectDataType> const &
-            objData(size_t index)
+    std::shared_ptr<typename traits::DrawObjectDataType> const &objData(size_t index)
     {
         if (index >= m_objsData.size()) {
             throw std::runtime_error("Invalid draw object data index");
@@ -48,13 +48,12 @@ public:
         return m_objsData[index];
     }
 
-    std::shared_ptr<typename DrawObjectTableTraits::DrawObjectDataType> const &endObjData()
+    std::shared_ptr<typename traits::DrawObjectDataType> const &endObjData()
     {
         return m_objsData[m_objsData.size() - 1];
     }
 
-    void addObjectData(
-        std::shared_ptr<typename DrawObjectTableTraits::DrawObjectDataType> objectData)
+    void addObjectData(std::shared_ptr<typename traits::DrawObjectDataType> objectData)
     {
         m_objsData.push_back(objectData);
     }
@@ -74,36 +73,57 @@ public:
         return m_objsData.size();
     }
 
-    DrawObject(size_t renderDetailsIndex_, size_t modelIndex_, size_t textureIndex_)
-        : m_renderDetailsIndex{renderDetailsIndex_},
-          m_modelIndex{modelIndex_},
-          m_textureIndex{textureIndex_}
+    DrawObject(
+        std::shared_ptr<typename traits::RenderDetailsReferenceType> renderDetailsReference_,
+        std::shared_ptr<typename traits::ModelDataType> modelData_,
+        std::shared_ptr<typename traits::TextureDataType> textureData_)
+        : m_renderDetailsReference{std::move(renderDetailsReference_)},
+          m_modelData{std::move(modelData_)},
+          m_textureData{textureData_}
     {}
 
-    DrawObject(size_t renderDetailsIndex_, size_t modelIndex_, size_t textureIndex_,
-        std::vector<std::shared_ptr<typename DrawObjectTableTraits::DrawObjectDataType>> objsData)
-        : m_renderDetailsIndex{renderDetailsIndex_},
-          m_modelIndex{modelIndex_},
-          m_textureIndex{textureIndex_},
-          m_objsData{std::move(objsData)}
+    DrawObject(
+        std::shared_ptr<typename traits::RenderDetailsReferenceType> renderDetails_,
+        std::shared_ptr<typename traits::ModelDataType> modelData_,
+        std::shared_ptr<typename traits::TextureDataType> textureData_)
+        : m_renderDetailsReference{},
+          m_modelData{modelData_},
+          m_textureIndex{textureData_}
     {}
 private:
-    std::shared_ptr<typename DrawObjectTableTraits::RenderDetailsReferenceType> m_renderDetailsReference;
-    std::shared_ptr<typename DrawObjectTableTraits::ModelDataType> m_modelData;
-    std::shared_ptr<typename DrawObjectTableTraits::TextureDataType> m_textureData;
-    std::vector<std::shared_ptr<typename DrawObjectTableTraits::DrawObjectDataType>> m_objsData;
+    typename traits::RenderDetailsReferenceType m_renderDetailsReference;
+    std::shared_ptr<typename traits::ModelDataType> m_modelData;
+    std::shared_ptr<typename traits::TextureDataType> m_textureData;
+    std::vector<std::shared_ptr<typename traits::DrawObjectDataType>> m_objsData;
 };
 
-template <typename DrawObjectTableTraits>
+template <typename traits>
 class DrawObjectTable {
 public:
     // returns index of added object.
     size_t addObject(
-        std::shared_ptr<typename DrawObjectTableTraits::RenderDetailsReferenceType> renderDetailsReference,
-        std::shared_ptr<typename DrawObjectTableTraits::ModelData> modelData,
-        std::shared_ptr<typename DrawObjectTableTraits::TextureData> textureData)
+            std::shared_ptr<typename traits::ModelData> modelData,
+            std::shared_ptr<typename traits::TextureData> textureData)
     {
-        m_drawObjects.emplace_back(std::make_shared<DrawObjectTableTraits::DrawObjectDataType>(
+        m_drawObjects.emplace_back(std::make_shared<traits::DrawObjectDataType>(
+                std::move(modelData), std::move(textureData)));
+
+        size_t newObjectIndex = m_drawObjects.size() - 1;
+        if (renderDetailsReference != nullptr) {
+            m_objsIndicesWithOverridingRenderDetails.push_back(newObjectIndex);
+        } else {
+            m_objsIndicesWithGlobalRenderDetails.push_back(newObjectIndex);
+        }
+        return newObjectIndex;
+    }
+
+    // returns index of added object.
+    size_t addObject(
+        std::shared_ptr<typename traits::RenderDetailsReferenceType> renderDetailsReference,
+        std::shared_ptr<typename traits::ModelData> modelData,
+        std::shared_ptr<typename traits::TextureData> textureData)
+    {
+        m_drawObjects.emplace_back(std::make_shared<traits::DrawObjectDataType>(
                 std::move(renderDetailsReference), std::move(modelData), std::move(textureData)));
 
         size_t newObjectIndex = m_drawObjects.size() - 1;
@@ -117,12 +137,12 @@ public:
 
     // returns index of added object.
     size_t addObject(
-        std::shared_ptr<typename DrawObjectTableTraits::RenderDetailsReferenceType> renderDetailsReference,
-        std::shared_ptr<typename DrawObjectTableTraits::ModelData> modelData,
-        std::shared_ptr<typename DrawObjectTableTraits::TextureData> textureData,
-        std::vector<std::shared_ptr<typename DrawObjectTableTraits::DrawObjectDataType> objsData)
+        std::shared_ptr<typename traits::RenderDetailsReferenceType> renderDetailsReference,
+        std::shared_ptr<typename traits::ModelData> modelData,
+        std::shared_ptr<typename traits::TextureData> textureData,
+        std::vector<std::shared_ptr<typename traits::DrawObjectDataType> objsData)
     {
-        m_drawObjects.emplace_back(std::make_shared<DrawObjectTableTraits::DrawObjectDataType>(
+        m_drawObjects.emplace_back(std::make_shared<traits::DrawObjectDataType>(
                 std::move(renderDetailsReference), modelData, textureData, std::move(objsData)));
 
         size_t newObjectIndex = m_drawObjects.size() - 1;
@@ -137,7 +157,16 @@ public:
     std::vector<size_t> objsIndicesWithOverridingRenderDetails() { return m_objsIndicesWithOverridingRenderDetails; }
     std::vector<size_t> objsIndicesWithGlobalRenderDetails() { return m_objsIndicesWithGlobalRenderDetails; }
     size_t numberObjects() { return m_drawObjects.size(); }
-    std::shared_ptr<typename DrawObjectTableTraits::DrawObjectDataType> const &drawObject(
+
+    size_t numberObjectsDataForObject(size_t drawObjectIndex) {
+        if (drawObjectIndex >= m_drawObjects.size()) {
+            throw std::runtime_error("Invalid draw object index.");
+        }
+
+        return m_drawObjects[drawObjectIndex]->numberObjectsData();
+    }
+
+    std::shared_ptr<typename traits::DrawObjectDataType> const &drawObject(
             size_t drawObjectIndex)
     {
         if (drawObjectIndex >= m_drawObjects.size()) {
@@ -160,7 +189,7 @@ public:
                 obj1->renderDetailsReference().renderDetails->name() == obj2->renderDetailsReference().renderDetails->name()))
         {
             // object is of the same render details, it is ok to move.
-            std::shared_ptr<typename DrawObjectTableTraits::DrawObjectDataType> objData = obj1->endObjData();
+            std::shared_ptr<typename traits::DrawObjectDataType> objData = obj1->endObjData();
             obj1->trimBack(obj1->numberObjsData() - 1);
             objData->updateTextureData(obj2->textureData());
             obj2->addObjectData(objData);
@@ -174,7 +203,7 @@ public:
         m_drawObjects[objectIndex]->updateObjectData(objectDataIndex, modelMatrix);
     }
 private:
-    std::vector<std::shared_ptr<DrawObject<typename DrawObjectTableTraits::DrawObjectDataType>>> m_drawObjects;
+    std::vector<std::shared_ptr<DrawObject<typename traits::DrawObjectDataType>>> m_drawObjects;
     std::vector<size_t> m_objsIndicesWithOverridingRenderDetails;
     std::vector<size_t> m_objsIndicesWithGlobalRenderDetails;
 };

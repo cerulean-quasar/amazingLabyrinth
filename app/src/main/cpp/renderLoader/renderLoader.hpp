@@ -30,6 +30,7 @@ template <typename traits>
 class RenderLoader {
 public:
     typename traits::RenderDetailsReferenceType load(
+            std::shared_ptr<GameRequester> const &gameRequester,
             std::string const &name,
             typename traits::RenderDetailsParameters const &parameters)
     {
@@ -39,7 +40,7 @@ public:
                 if (renderDetails->width() != parameters.width ||
                     renderDetails->height() != parameters.height)
                 {
-                    reload(renderDetails, parameters);
+                    reload(gameRequester, renderDetails, parameters);
                 }
 
                 if (m_loadedRenderDetails.size() > m_nbrRenderDetailsToKeep/2) {
@@ -48,33 +49,36 @@ public:
                 }
 
                 typename traits::RenderDetailsReferenceType ref;
+                ref.commonObjectData = allocateCommonObjectData(renderDetails, parameters);
                 ref.renderDetails = std::move(renderDetails);
-                ref.commonObjectData = allocateCommonObjectData(ref.renderDetails, parameters);
                 return std::move(ref);
             }
         }
 
-        auto renderDetailsRef = loadNew(name);
+        typename traits::RenderDetailsReferenceType renderDetailsRef =
+                loadNew(gameRequester, name, parameters);
         m_loadedRenderDetails.push_front(renderDetailsRef.renderDetails);
         while (m_loadedRenderDetails.size() > m_nbrRenderDetailsToKeep) {
             m_loadedRenderDetails.pop_back();
         }
 
-        return renderDetailsRef;
+        return std::move(renderDetailsRef);
     };
 
     virtual ~RenderLoader() = default;
 
 protected:
     virtual typename traits::RenderDetailsReferenceType loadNew(
+            std::shared_ptr<GameRequester> const &gameRequester,
             std::string const &name,
-            typename traits::RenderDetailsParameters const &parameters) = 0;
+            typename traits::RenderDetailsParametersType const &parameters) = 0;
     virtual void reload(
+            std::shared_ptr<GameRequester> const &gameRequester,
             std::shared_ptr<typename traits::RenderDetailsType> const &renderDetails,
-            typename traits::RenderDetailsParameters const &parameters) = 0;
+            typename traits::RenderDetailsParametersType const &parameters) = 0;
     virtual std::shared_ptr<typename traits::CommonObjectDataType> allocateCommonObjectData(
             std::shared_ptr<typename traits::RenderDetailsType> const &renderDetails,
-            typename traits::RenderDetailsParameters const &parameters) = 0;
+            typename traits::RenderDetailsParametersType const &parameters) = 0;
 private:
     static size_t constexpr m_nbrRenderDetailsToKeep = 10;
     std::list<std::shared_ptr<traits::RenderDetailsType>> m_loadedRenderDetails;

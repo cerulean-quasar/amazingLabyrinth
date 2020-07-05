@@ -27,31 +27,52 @@
 
 #include "../renderDetails/basic/renderDetailsData.hpp"
 #include "renderLoader.hpp"
+#include "../renderDetails/basic/renderDetailsVulkan.hpp"
 
-class RenderLoaderVulkan : public RenderLoader<renderDetails::RenderDetailsVulkan> {
+struct RenderLoaderVulkanTraits {
+    using RenderDetailsType = renderDetails::RenderDetailsVulkan;
+    using CommonObjectDataType = renderDetails::CommonObjectDataVulkan;
+    using RenderDetailsReferenceType = renderDetails::RenderDetailsReference<RenderDetailsType, CommonObjectDataType>;
+    using RenderDetailsParameterType = renderDetails::RenderDetailsParametersVulkan;
+};
+
+class RenderLoaderVulkan : public RenderLoader<RenderLoaderVulkanTraits> {
 public:
     ~RenderLoaderVulkan() override = default;
 
 protected:
-    std::shared_ptr<renderDetails::RenderDetailsVulkan> loadNew(std::string const &name,
-            uint32_t width, uint32_t height)
+    std::shared_ptr<RenderLoaderVulkanTraits::RenderDetailsReferenceType> loadNew(
+        std::shared_ptr<GameRequester> const &gameRequester,
+        std::string const &name,
+        RenderLoaderVulkanTraits::RenderDetailsParameterType const &parameters)
     {
         auto loaderFcnIt = getRenderDetailsVulkanMap().find(name);
         if (loaderFcnIt == getRenderDetailsVulkanMap().end()) {
             throw std::runtime_error("RenderDetails not registered.");
         }
 
-        auto renderDetails = loaderFcnIt->second(m_device);
+        auto renderDetails = loaderFcnIt->second.load(gameRequester, m_device, parameters);
     }
 
     void reload(
-            std::shared_ptr<renderDetails::RenderDetailsVulkan> const &renderDetails,
-            uint32_t width,
-            uint32_t height) override
+        std::shared_ptr<GameRequester> const &gameRequester,
+        std::shared_ptr<RenderLoaderVulkanTraits::RenderDetailsType> const &renderDetails,
+        RenderLoaderVulkanTraits::RenderDetailsParameterType const &parameters) override
     {
-        renderDetails.reload(width, height);
+        renderDetails.reload(gameRequester, parameters);
     }
 
+    std::shared_ptr<RenderLoaderVulkanTraits::CommonObjectDataType> allocateCommonObjectData(
+        std::shared_ptr<RenderLoaderVulkanTraits::RenderDetailsType> const &renderDetails,
+        RenderLoaderVulkanTraits::RenderDetailsParameterType const &parameters)
+    {
+        auto loaderFcnIt = getRenderDetailsVulkanMap().find(renderDetails.name());
+        if (loaderFcnIt == getRenderDetailsVulkanMap().end()) {
+            throw std::runtime_error("RenderDetails not registered.");
+        }
+
+        loaderFcnIt->second.createCommonData(renderDetails, parameters.preTransform);
+    }
 private:
     std::shared_ptr<vulkan::Device> m_device;
 };

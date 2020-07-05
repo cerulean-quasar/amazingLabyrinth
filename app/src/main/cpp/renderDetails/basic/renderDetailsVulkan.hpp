@@ -23,11 +23,21 @@
 
 #include <memory>
 #include <vector>
+#include <glm/glm.hpp>
+
 #include "../../graphicsVulkan.hpp"
 #include "../../levelDrawer/modelTable/modelTableVulkan.hpp"
 #include "renderDetailsData.hpp"
 
 namespace renderDetails {
+    struct RenderDetailsParametersVulkan {
+        std::vector<vulkan::RenderPass::ImageAttachmentInfo> colorImageInfo;
+        vulkan::RenderPass::ImageAttachmentInfo depthImageInfo;
+        glm::mat4 preTransform;
+        uint32_t width;
+        uint32_t height;
+    };
+
     class RenderDetailsVulkan : public RenderDetails {
     public:
         void draw(

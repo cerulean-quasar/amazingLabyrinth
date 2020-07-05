@@ -23,35 +23,113 @@
 #include <memory>
 #include <string>
 
+#include <glm/glm.hpp>
+
 #include "modelTable/modelLoader.hpp"
 #include "textureTable/textureLoader.hpp"
 #include "../renderDetails/basic/renderDetailsData.hpp"
 
 #include "levelDrawer.hpp"
+#include "textureTable/textureTableVulkan.hpp"
 
 template <typename traits>
 class LevelDrawerGraphics : public LevelDrawer {
 public:
     size_t addObject(
         std::shared_ptr<ModelDescription> const &modelDescription,
-        std::shared_ptr<TextureDescription> const &textureDescription);
+        std::shared_ptr<TextureDescription> const &textureDescription)
+    {
+        std::shared_ptr<traits::ModelDataType> modelData = m_modelTable.addModel(modelDescription);
+        std::shared_ptr<traits::TextureDataType> textureData{};
+
+        if (textureDescription) {
+            textureData = m_textureTable.addTexture(textureDescription);
+        }
+
+        m_drawObjectTable.addObject(modelData, textureData);
+    }
 
     size_t addObject(
-            std::shared_ptr<ModelDescription> const &modelDescription,
-            std::shared_ptr<TextureDescription> const &textureDescription,
-            std::string const &renderDetailsName);
+        std::shared_ptr<ModelDescription> const &modelDescription,
+        std::shared_ptr<TextureDescription> const &textureDescription,
+        std::string const &renderDetailsName)
+    {
+        std::shared_ptr<traits::ModelDataType> modelData = m_modelTable.addModel(modelDescription);
+        std::shared_ptr<traits::TextureDataType> textureData{};
 
-    size_t addModelMatrixForObject(size_t objsIndex, glm::mat4 const &modelMatrix);
+        if (textureDescription) {
+            textureData = m_textureTable.addTexture(textureDescription);
+        }
 
-    size_t resizeModelMatrices(size_t objsIndex, size_t newSize);
+        m_drawObjectTable.addObject(
+                m_renderLoader->load(renderDetailsName, m_renderDetailsParameters),
+                modelData,
+                textureData);
+    }
 
-    size_t getNumberModelMatricesForObject(size_t objsIndex);
+    size_t addModelMatrixForObject(size_t objsIndex, glm::mat4 const &modelMatrix) override {
+        std::shared_ptr<typename traits::DrawObjectType> drawObj = m_drawObjectTable.drawObject(objsIndex);
+
+        auto renderDetailsRef = drawObj->renderDetailsReference();
+
+        auto const &renderDetails = renderDetailsRef.renderDetails ?
+                                    renderDetailsRef.renderDetails :
+                                    m_renderDetailsReference.renderDetails;
+
+        if (renderDetails == nullptr) {
+            throw runtime_error("Render details not initialized!");
+        }
+
+        std::shared_ptr<TextureDataVulkan> textureData = drawObj->textureData();
+
+        // we need to add new objects data.
+        std::shared_ptr<typename traits::DrawObjectDataType> objData =
+                renderDetails->createDrawObject(textureData, glm::mat4(1.0f));
+
+        drawObj->addObjectData(objData);
+
+        return drawObj->numberObjectsData() - 1;
+    }
+
+    void resizeObjectsData(size_t objsIndex, size_t newSize) override {
+        std::shared_ptr<typename traits::DrawObjectType> drawObj = m_drawObjectTable.drawObject(objsIndex);
+
+        size_t nbrObjsData = drawObj->numberObjectsData();
+        if (nbrObjsData == newSize) {
+            return;
+        } else if (nbrObjsData > newSize) {
+            drawObj->trimBack(newSize);
+            return;
+        }
+
+        auto renderDetailsRef = drawObj->renderDetailsReference();
+
+        auto const &renderDetails = renderDetailsRef.renderDetails ?
+                renderDetailsRef.renderDetails :
+                m_renderDetailsReference.renderDetails;
+
+        if (renderDetails == nullptr) {
+            throw runtime_error("Render details not initialized!");
+        }
+
+        std::shared_ptr<TextureDataVulkan> textureData = drawObj->textureData();
+        // we need to add new objects data.
+        while (nbrObjsData < newSize) {
+            std::shared_ptr<typename traits::DrawObjectDataType> objData =
+                    renderDetails->createDrawObject(textureData, glm::mat4(1.0f));
+            drawObj->addObjectData(objData);
+        }
+    }
+
+    size_t numberObjectsDataForObject(size_t objsIndex) override {
+        return m_drawObjectTable.numberObjectsDataForObject(objsIndex);
+    }
 
     void requestRenderDetails(std::string const &name) override {
         m_renderDetailsReference = m_renderLoader.load(name, m_renderDetailsParameters);
     }
 
-    void draw(typename traits::DrawArgumentType info);
+    virtual void draw(typename traits::DrawArgumentType info) = 0;
 private:
     typename traits::RenderDetailsReferenceType m_renderDetailsReference;
     typename traits::ModelTableType m_modelTable;

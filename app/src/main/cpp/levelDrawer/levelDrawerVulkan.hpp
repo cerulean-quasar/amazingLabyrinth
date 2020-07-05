@@ -26,15 +26,30 @@
 #include "../graphicsVulkan.hpp"
 #include "modelTable/modelTableVulkan.hpp"
 #include "textureTable/textureTableVulkan.hpp"
+#include "../renderDetails/basic/renderDetailsVulkan.hpp"
+#include "drawObjectTable/drawObject.hpp"
+#include "../renderLoader/renderLoaderVulkan.hpp"
 
-struct VulkanTraits {
+struct DrawObjectVulkanTraits {
+    using RenderDetailsType = renderDetails::RenderDetailsVulkan;
+    using CommonObjectDataType = renderDetails::CommonObjectDataVulkan;
+    using RenderDetailsReferenceType = RenderDetailsReference<RenderDetailsType, CommonObjectDataType>;
+    using ModelDataType = ModelDataVulkan;
+    using TextureDataType = TextureDataVulkan;
+    using DrawObjectDataType = renderDetails::DrawObjectDataVulkan;
+};
+
+struct LevelDrawerVulkanTraits {
+    using RenderLoaderType = RenderLoaderVulkan;
+    using RenderDetailsType = renderDetails::RenderDetailsVulkan;
+    using CommonObjectDataType = renderDetails::CommonObjectDataVulkan;
+    using RenderDetailsReferenceType = RenderDetailsReference<RenderDetailsType, CommonObjectDataType>;
     using ModelTableType = ModelTableVulkan;
     using TextureTableType = TextureTableVulkan;
-    using DrawObjectTableType = DrawObjectTableVulkan;
-    using RenderDetailsReferenceType = RenderDetailsReference<RenderDetailsVulkan, CommonObjectDataVulkan>;
+    using DrawObjectTableType = DrawObjectTable<DrawObjectVulkanTraits>;
     using DrawArgumentType = VkCommandBuffer;
 };
 
-using LevelDrawerVulkan = LevelDrawerGraphics<VulkanTraits>;
+using LevelDrawerVulkan = LevelDrawerGraphics<LevelDrawerVulkanTraits>;
 
 #endif // AMAZING_LABYRINTH_LEVEL_DRAWER_VULKAN_HPP
