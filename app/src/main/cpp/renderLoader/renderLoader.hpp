@@ -34,6 +34,7 @@ public:
             std::string const &name,
             typename traits::RenderDetailsParameters const &parameters)
     {
+        typename traits::RenderDetailsRetrieveFcnsType fcns = getFcns(name);
         for (auto it = m_loadedRenderDetails.begin(); it != m_loadedRenderDetails.end(); it++) {
             if (it->name() == name) {
                 auto renderDetails = *it;
@@ -49,14 +50,14 @@ public:
                 }
 
                 typename traits::RenderDetailsReferenceType ref;
-                ref.commonObjectData = allocateCommonObjectData(renderDetails, parameters);
+                ref.commonObjectData = allocateCommonObjectData(fcns, renderDetails, parameters);
                 ref.renderDetails = std::move(renderDetails);
                 return std::move(ref);
             }
         }
 
         typename traits::RenderDetailsReferenceType renderDetailsRef =
-                loadNew(gameRequester, name, parameters);
+                loadNew(fcns, gameRequester, name, parameters);
         m_loadedRenderDetails.push_front(renderDetailsRef.renderDetails);
         while (m_loadedRenderDetails.size() > m_nbrRenderDetailsToKeep) {
             m_loadedRenderDetails.pop_back();
@@ -82,6 +83,14 @@ protected:
 private:
     static size_t constexpr m_nbrRenderDetailsToKeep = 10;
     std::list<std::shared_ptr<traits::RenderDetailsType>> m_loadedRenderDetails;
+
+    typename traits::RetrieveFcns getFcns(std::string const &name) {
+        auto loaderFcnIt = traits::getRenderDetailsMap().find(name);
+        if (loaderFcnIt == traits::getRenderDetailsMap().end()) {
+            throw std::runtime_error("RenderDetails not registered.");
+        }
+        return loaderFcnIt->second;
+    }
 };
 
 #endif // AMAZING_LABYRINTH_RENDER_LOADER_HPP

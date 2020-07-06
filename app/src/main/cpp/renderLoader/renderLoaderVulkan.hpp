@@ -21,19 +21,21 @@
 #define AMAZING_LABYRINTH_RENDER_LOADER_VULKAN_HPP
 
 #include <memory>
-#include <list>
 
 #include "../graphicsVulkan.hpp"
 
 #include "../renderDetails/basic/renderDetailsData.hpp"
 #include "renderLoader.hpp"
 #include "../renderDetails/basic/renderDetailsVulkan.hpp"
+#include "registerVulkan.hpp"
 
 struct RenderLoaderVulkanTraits {
     using RenderDetailsType = renderDetails::RenderDetailsVulkan;
     using CommonObjectDataType = renderDetails::CommonObjectDataVulkan;
     using RenderDetailsReferenceType = renderDetails::RenderDetailsReference<RenderDetailsType, CommonObjectDataType>;
     using RenderDetailsParameterType = renderDetails::RenderDetailsParametersVulkan;
+    using RetrieveFcns = RenderDetailsVulkanRetrieveFcns;
+    RenderDetailsVulkanRetrieveMap (*getRenderDetailsMap)()
 };
 
 class RenderLoaderVulkan : public RenderLoader<RenderLoaderVulkanTraits> {
@@ -42,16 +44,12 @@ public:
 
 protected:
     std::shared_ptr<RenderLoaderVulkanTraits::RenderDetailsReferenceType> loadNew(
+        RenderLoaderVulkanTraits::RetrieveFcns const &fcns,
         std::shared_ptr<GameRequester> const &gameRequester,
         std::string const &name,
         RenderLoaderVulkanTraits::RenderDetailsParameterType const &parameters)
     {
-        auto loaderFcnIt = getRenderDetailsVulkanMap().find(name);
-        if (loaderFcnIt == getRenderDetailsVulkanMap().end()) {
-            throw std::runtime_error("RenderDetails not registered.");
-        }
-
-        auto renderDetails = loaderFcnIt->second.load(gameRequester, m_device, parameters);
+        auto renderDetails = fcns.renderDetailsLoadFcn(gameRequester, m_device, parameters);
     }
 
     void reload(
@@ -63,18 +61,14 @@ protected:
     }
 
     std::shared_ptr<RenderLoaderVulkanTraits::CommonObjectDataType> allocateCommonObjectData(
+        RenderLoaderVulkanTraits::RetrieveFcns const &fcns,
         std::shared_ptr<RenderLoaderVulkanTraits::RenderDetailsType> const &renderDetails,
         RenderLoaderVulkanTraits::RenderDetailsParameterType const &parameters)
     {
-        auto loaderFcnIt = getRenderDetailsVulkanMap().find(renderDetails.name());
-        if (loaderFcnIt == getRenderDetailsVulkanMap().end()) {
-            throw std::runtime_error("RenderDetails not registered.");
-        }
-
-        loaderFcnIt->second.createCommonData(renderDetails, parameters.preTransform);
+        return fcns.commonObjectDataCreateFcn(renderDetails, parameters.preTransform);
     }
 private:
     std::shared_ptr<vulkan::Device> m_device;
 };
 
-#endif // AMAZING_LABYRINTH_RENDER_LOADER_HPP
+#endif // AMAZING_LABYRINTH_RENDER_LOADER_VULKAN_HPP
