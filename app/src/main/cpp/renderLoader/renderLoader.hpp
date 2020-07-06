@@ -24,7 +24,7 @@
 #include <list>
 #include <string>
 
-#include "../renderDetails/basic/renderDetailsData.hpp"
+#include "../renderDetails/renderDetails.hpp"
 
 template <typename traits>
 class RenderLoader {
@@ -32,9 +32,9 @@ public:
     typename traits::RenderDetailsReferenceType load(
             std::shared_ptr<GameRequester> const &gameRequester,
             std::string const &name,
-            typename traits::RenderDetailsParameters const &parameters)
+            typename traits::RenderDetailsParametersType const &parameters)
     {
-        typename traits::RenderDetailsRetrieveFcnsType fcns = getFcns(name);
+        typename traits::RetrieveFcns fcns = getFcns(name);
         for (auto it = m_loadedRenderDetails.begin(); it != m_loadedRenderDetails.end(); it++) {
             if (it->name() == name) {
                 auto renderDetails = *it;
@@ -70,14 +70,15 @@ public:
 
 protected:
     virtual typename traits::RenderDetailsReferenceType loadNew(
+            typename traits::RetrieveFcns const &fcns,
             std::shared_ptr<GameRequester> const &gameRequester,
-            std::string const &name,
             typename traits::RenderDetailsParametersType const &parameters) = 0;
     virtual void reload(
             std::shared_ptr<GameRequester> const &gameRequester,
             std::shared_ptr<typename traits::RenderDetailsType> const &renderDetails,
             typename traits::RenderDetailsParametersType const &parameters) = 0;
     virtual std::shared_ptr<typename traits::CommonObjectDataType> allocateCommonObjectData(
+            typename traits::RetrieveFcns const &fcns,
             std::shared_ptr<typename traits::RenderDetailsType> const &renderDetails,
             typename traits::RenderDetailsParametersType const &parameters) = 0;
 private:

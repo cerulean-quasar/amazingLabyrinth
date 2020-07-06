@@ -26,8 +26,8 @@
 #include "../graphicsVulkan.hpp"
 #include "modelTable/modelTableVulkan.hpp"
 #include "textureTable/textureTableVulkan.hpp"
-#include "../renderDetails/basic/renderDetailsVulkan.hpp"
-#include "drawObjectTable/drawObject.hpp"
+#include "../renderDetails/renderDetailsVulkan.hpp"
+#include "drawObjectTable/drawObjectTable.hpp"
 #include "../renderLoader/renderLoaderVulkan.hpp"
 
 struct DrawObjectVulkanTraits {

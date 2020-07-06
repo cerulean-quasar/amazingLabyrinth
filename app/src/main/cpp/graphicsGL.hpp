@@ -69,6 +69,74 @@ namespace graphicsGL {
         void createSurface();
         void destroyWindow();
     };
+
+    class Framebuffer {
+    public:
+        struct ColorImageFormat {
+            GLint internalFormat;
+            GLenum format;
+            GLenum type;
+
+            ColorImageFormat(
+                    GLint internalFormat_,
+                    GLenum format_,
+                    GLenum type_) {
+                internalFormat = internalFormat_;
+                format = format_;
+                type = type_;
+            }
+
+            ColorImageFormat(ColorImageFormat const &other) {
+                internalFormat = other.internalFormat;
+                format = other.format;
+                type = other.type;
+            }
+
+            ColorImageFormat(ColorImageFormat &&other) {
+                internalFormat = other.internalFormat;
+                format = other.format;
+                type = other.type;
+            }
+        };
+        Framebuffer(uint32_t width, uint32_t height, std::vector<ColorImageFormat> colorImageFormats);
+        ~Framebuffer() {
+            if (m_depthMapFBO != GL_INVALID_VALUE) {
+                glDeleteFramebuffers(1, &m_depthMapFBO);
+            }
+
+            if (m_depthMap != GL_INVALID_VALUE) {
+                glDeleteTextures(1, &m_depthMap);
+            }
+
+            for (auto &colorImage : m_colorImage) {
+                if (colorImage != GL_INVALID_VALUE) {
+                    glDeleteTextures(1, &colorImage);
+                    colorImage = GL_INVALID_VALUE;
+                }
+            }
+        }
+
+        GLuint fbo() { return m_depthMapFBO; }
+        GLuint depthImage() { return m_depthMap; }
+        GLuint colorImage(uint32_t attachmentNbr = 0) { return m_colorImage[attachmentNbr]; }
+
+        GLuint acquireDepthImage() {
+            GLuint depthMap_ = m_depthMap;
+            m_depthMap = GL_INVALID_VALUE;
+            return depthMap_;
+        }
+
+        GLuint acquireColorImage(uint32_t attachmentNbr = 0) {
+            GLuint colorImage = m_colorImage[attachmentNbr];
+            m_colorImage[attachmentNbr] = GL_INVALID_VALUE;
+            return colorImage;
+        }
+    private:
+        GLuint m_depthMapFBO;
+        GLuint m_depthMap;
+        std::vector<GLuint> m_colorImage;
+    };
+
 } /* namespace graphicsGL */
 
 #endif

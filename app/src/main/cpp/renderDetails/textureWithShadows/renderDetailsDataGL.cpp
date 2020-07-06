@@ -20,7 +20,7 @@
 #include <memory>
 #include <vector>
 
-#include "../basic/renderDetailsCommonGL.hpp"
+#include "../renderDetailsGL.hpp"
 #include "renderDetailsDataGL.hpp"
 #include "../shadows/renderDetailsDataGL.hpp"
 

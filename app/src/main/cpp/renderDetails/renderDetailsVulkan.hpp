@@ -25,9 +25,9 @@
 #include <vector>
 #include <glm/glm.hpp>
 
-#include "../../graphicsVulkan.hpp"
-#include "../../levelDrawer/modelTable/modelTableVulkan.hpp"
-#include "renderDetailsData.hpp"
+#include "../graphicsVulkan.hpp"
+#include "../levelDrawer/modelTable/modelTableVulkan.hpp"
+#include "renderDetails.hpp"
 
 namespace renderDetails {
     struct RenderDetailsParametersVulkan {
@@ -38,12 +38,18 @@ namespace renderDetails {
         uint32_t height;
     };
 
+    class DrawObjectDataVulkan : public DrawObjectData {
+    public:
+        virtual std::shared_ptr<vulkan::DescriptorSet> const &descriptorSet() = 0;
+
+        ~DrawObjectDataVulkan() override = default;
+    };
+
     class RenderDetailsVulkan : public RenderDetails {
     public:
         void draw(
             vulkan::VkCommandBuffer commandBuffer,
             DrawObjectTableVulkan const &drawObjTable,
-            NidekTabkeVulkan const &modelTable,
             std::vector<size_t> const &drawObjectsIndexList) = 0;
 
         ~RenderDetailsVulkan() override  = default;

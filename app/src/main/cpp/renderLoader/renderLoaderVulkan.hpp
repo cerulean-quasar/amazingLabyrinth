@@ -24,18 +24,19 @@
 
 #include "../graphicsVulkan.hpp"
 
-#include "../renderDetails/basic/renderDetailsData.hpp"
+#include "../renderDetails/renderDetails.hpp"
 #include "renderLoader.hpp"
-#include "../renderDetails/basic/renderDetailsVulkan.hpp"
+#include "../renderDetails/renderDetailsVulkan.hpp"
 #include "registerVulkan.hpp"
 
 struct RenderLoaderVulkanTraits {
+    using RenderDetailsParametersType = renderDetails::RenderDetailsParametersVulkan;
     using RenderDetailsType = renderDetails::RenderDetailsVulkan;
-    using CommonObjectDataType = renderDetails::CommonObjectDataVulkan;
+    using CommonObjectDataType = renderDetails::CommonObjectData;
     using RenderDetailsReferenceType = renderDetails::RenderDetailsReference<RenderDetailsType, CommonObjectDataType>;
     using RenderDetailsParameterType = renderDetails::RenderDetailsParametersVulkan;
     using RetrieveFcns = RenderDetailsVulkanRetrieveFcns;
-    RenderDetailsVulkanRetrieveMap (*getRenderDetailsMap)()
+    static RenderDetailsVulkanRetrieveMap &(*getRenderDetailsMap)() = getRenderDetailsVulkanMap;
 };
 
 class RenderLoaderVulkan : public RenderLoader<RenderLoaderVulkanTraits> {
@@ -43,13 +44,12 @@ public:
     ~RenderLoaderVulkan() override = default;
 
 protected:
-    std::shared_ptr<RenderLoaderVulkanTraits::RenderDetailsReferenceType> loadNew(
+    RenderLoaderVulkanTraits::RenderDetailsReferenceType loadNew(
         RenderLoaderVulkanTraits::RetrieveFcns const &fcns,
         std::shared_ptr<GameRequester> const &gameRequester,
-        std::string const &name,
-        RenderLoaderVulkanTraits::RenderDetailsParameterType const &parameters)
+        RenderLoaderVulkanTraits::RenderDetailsParameterType const &parameters) override
     {
-        auto renderDetails = fcns.renderDetailsLoadFcn(gameRequester, m_device, parameters);
+        return fcns.renderDetailsLoadFcn(gameRequester, m_device, parameters);
     }
 
     void reload(
@@ -63,7 +63,7 @@ protected:
     std::shared_ptr<RenderLoaderVulkanTraits::CommonObjectDataType> allocateCommonObjectData(
         RenderLoaderVulkanTraits::RetrieveFcns const &fcns,
         std::shared_ptr<RenderLoaderVulkanTraits::RenderDetailsType> const &renderDetails,
-        RenderLoaderVulkanTraits::RenderDetailsParameterType const &parameters)
+        RenderLoaderVulkanTraits::RenderDetailsParameterType const &parameters) override
     {
         return fcns.commonObjectDataCreateFcn(renderDetails, parameters.preTransform);
     }

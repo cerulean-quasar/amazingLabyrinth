@@ -25,8 +25,8 @@
 #include <glm/gtc/matrix_transform.hpp>
 
 #include "../../graphicsVulkan.hpp"
-#include "../../levelDrawer/drawObjectTable/drawObject.hpp"
-#include "../basic/renderDetailsData.hpp"
+#include "../../levelDrawer/drawObjectTable/drawObjectTable.hpp"
+#include "../renderDetails.hpp"
 
 namespace shadows {
     class RenderDetailsDataVulkan;

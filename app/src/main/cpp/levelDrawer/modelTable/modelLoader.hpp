@@ -27,107 +27,117 @@
 #include "../../common.hpp"
 #include "../common.hpp"
 
+namespace levelDrawer {
 // todo: use getCube instead
-static std::string const MODEL_WALL("models/wall.modelcbor");
+    static std::string const MODEL_WALL("models/wall.modelcbor");
 
-char constexpr const *KeyVertices = "V";
-char constexpr const *KeyTexCoords = "TX";
-char constexpr const *KeyNormals = "N";
-char constexpr const *KeyIndices = "I";
+    char constexpr const *KeyVertices = "V";
+    char constexpr const *KeyTexCoords = "TX";
+    char constexpr const *KeyNormals = "N";
+    char constexpr const *KeyIndices = "I";
 
-struct Vertex {
-    glm::vec3 pos;
-    glm::vec3 color;
-    glm::vec2 texCoord;
-    glm::vec3 normal;
+    struct Vertex {
+        glm::vec3 pos;
+        glm::vec3 color;
+        glm::vec2 texCoord;
+        glm::vec3 normal;
 
-    bool operator==(const Vertex& other) const;
-};
+        bool operator==(const Vertex &other) const;
+    };
 
-using ModelVertices = std::pair<std::vector<Vertex>, std::vector<uint32_t>>;
+    using ModelVertices = std::pair<std::vector<Vertex>, std::vector<uint32_t>>;
 
-bool compareLess(glm::vec3 vec1, glm::vec3 vec2);
+    bool compareLess(glm::vec3 vec1, glm::vec3 vec2);
 
-class ModelDescription {
-    friend BaseClassPtrLess<ModelDescription>;
-public:
-    virtual ModelVertices getData(std::shared_ptr<GameRequester> const &gameRequester) = 0;
-protected:
-    // returns true if this < other.
-    virtual bool compareLess(ModelDescription *) = 0;
-};
+    class ModelDescription {
+        friend BaseClassPtrLess<ModelDescription>;
+    public:
+        virtual ModelVertices getData(std::shared_ptr<GameRequester> const &gameRequester) = 0;
 
-class ModelDescriptionPath : ModelDescription {
-public:
-    ModelVertices getVerticesWithVertexNormals(std::shared_ptr<GameRequester> const &gameRequester);
-    ModelVertices getData(std::shared_ptr<GameRequester> const &gameRequester) override;
-    ModelDescriptionPath(std::string path)
-            : m_path{std::move(path)}
-    {}
-protected:
-    // Always equal to other, never less than other
-    bool compareLess(ModelDescription *other) override {
-        auto otherPath = dynamic_cast<ModelDescriptionPath*>(other);
-        if (otherPath == nullptr) {
-            // should never happen
-            throw std::runtime_error("Comparing incompatible pointers");
+    protected:
+        // returns true if this < other.
+        virtual bool compareLess(ModelDescription *) = 0;
+    };
+
+    class ModelDescriptionPath : ModelDescription {
+    public:
+        ModelVertices
+        getVerticesWithVertexNormals(std::shared_ptr<GameRequester> const &gameRequester);
+
+        ModelVertices getData(std::shared_ptr<GameRequester> const &gameRequester) override;
+
+        ModelDescriptionPath(std::string path)
+                : m_path{std::move(path)} {}
+
+    protected:
+        // Always equal to other, never less than other
+        bool compareLess(ModelDescription *other) override {
+            auto otherPath = dynamic_cast<ModelDescriptionPath *>(other);
+            if (otherPath == nullptr) {
+                // should never happen
+                throw std::runtime_error("Comparing incompatible pointers");
+            }
+            return m_path < other->m_path;
         }
-        return m_path < other->m_path;
-    }
-private:
-    std::string m_path;
-    ModelVertices m_modelVertices;
 
-    bool loadModel(
-            std::unique_ptr<std::streambuf> const &modelStreamBuf,
-            ModelVertices &verticesWithFaceNormals,
-            ModelVertices *verticesWithVertexNormals = nullptr);
-};
+    private:
+        std::string m_path;
+        ModelVertices m_modelVertices;
+
+        bool loadModel(
+                std::unique_ptr<std::streambuf> const &modelStreamBuf,
+                ModelVertices &verticesWithFaceNormals,
+                ModelVertices *verticesWithVertexNormals = nullptr);
+    };
 
 // creates a quad with each side length 2.0f and center at specified location.
-class ModelDescriptionQuad : ModelDescription {
-public:
-    ModelVertices getData(std::shared_ptr<GameRequester> const &gameRequester) override;
-    ModelDescriptionQuad()
-            : m_center{0.0f, 0.0f, 0.0f}
-    {}
-    ModelDescriptionQuad(glm::vec3 const &center)
-        : m_center{center}
-    {}
-protected:
-    bool compareLess(ModelDescription *other) override {
-        auto otherQuad = dynamic_cast<ModelDescriptionQuad*>(other);
-        if (otherQuad == nullptr) {
-            // should never happen
-            throw std::runtime_error("Quad: Comparing incompatible pointers");
-        }
-        return compareLess(m_center, otherQuad->m_center);
-    }
-private:
-    glm::vec3 m_center;
-};
+    class ModelDescriptionQuad : ModelDescription {
+    public:
+        ModelVertices getData(std::shared_ptr<GameRequester> const &gameRequester) override;
 
-// creates a cube with each side length 2.0f and center at specified location
-class ModelDescriptionCube : ModelDescription {
-public:
-    ModelVertices getData(std::shared_ptr<GameRequester> const &gameRequester) override;
-    ModelDescriptionCube()
-            : m_center{0.0f, 0.0f, 0.0f}
-    {}
-    ModelDescriptionCube(glm::vec3 const &center)
-        : m_center{center}
-    {}
-protected:
-    bool compareLess(ModelDescription *other) override {
-        auto otherCube = dynamic_cast<ModelDescriptionCube*>(other);
-        if (otherCube == nullptr) {
-            // should never happen
-            throw std::runtime_error("Cube: Comparing incompatible pointers");
-        }
-        return compareLess(m_center, otherCube->m_center);
-    }
-private:
-    glm::vec3 m_center;
-};
+        ModelDescriptionQuad()
+                : m_center{0.0f, 0.0f, 0.0f} {}
 
+        ModelDescriptionQuad(glm::vec3 const &center)
+                : m_center{center} {}
+
+    protected:
+        bool compareLess(ModelDescription *other) override {
+            auto otherQuad = dynamic_cast<ModelDescriptionQuad *>(other);
+            if (otherQuad == nullptr) {
+                // should never happen
+                throw std::runtime_error("Quad: Comparing incompatible pointers");
+            }
+            return compareLess(m_center, otherQuad->m_center);
+        }
+
+    private:
+        glm::vec3 m_center;
+    };
+
+    // creates a cube with each side length 2.0f and center at specified location
+    class ModelDescriptionCube : ModelDescription {
+    public:
+        ModelVertices getData(std::shared_ptr<GameRequester> const &gameRequester) override;
+
+        ModelDescriptionCube()
+                : m_center{0.0f, 0.0f, 0.0f} {}
+
+        ModelDescriptionCube(glm::vec3 const &center)
+                : m_center{center} {}
+
+    protected:
+        bool compareLess(ModelDescription *other) override {
+            auto otherCube = dynamic_cast<ModelDescriptionCube *>(other);
+            if (otherCube == nullptr) {
+                // should never happen
+                throw std::runtime_error("Cube: Comparing incompatible pointers");
+            }
+            return compareLess(m_center, otherCube->m_center);
+        }
+
+    private:
+        glm::vec3 m_center;
+    };
+}
 #endif /* AMAZING_LABYRINTH_MODEL_LOADER_HPP */

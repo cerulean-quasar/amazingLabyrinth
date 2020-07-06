@@ -24,7 +24,7 @@
 #include <map>
 
 #include "../common.hpp"
-#include "../renderDetails/basic/renderDetailsGL.hpp"
+#include "../renderDetails/renderDetailsGL.hpp"
 
 // Register RenderDetailsGL types
 struct RenderDetailsGLRetrieveFcns {

@@ -28,26 +28,30 @@
 #include "../common.hpp"
 #include "textureLoader.hpp"
 
-template <typename TextureDataType>
-class TextureTable {
-public:
-    std::shared_ptr<TextureDataType> addTexture(std::shared_ptr<GameRequester> const &gameRequester,
-            std::shared_ptr<TextureDescription> const &textureDescription) override
-    {
-        auto item = m_textureIndexMap.emplace(textureDescription, 0);
-        if (!item.second) {
-            item.first->second = getTextureData(gameRequester, textureDescription);
+namespace levelDrawer {
+    template<typename TextureDataType>
+    class TextureTable {
+    public:
+        std::shared_ptr<TextureDataType>
+        addTexture(std::shared_ptr<GameRequester> const &gameRequester,
+                   std::shared_ptr<TextureDescription> const &textureDescription) override {
+            auto item = m_textureIndexMap.emplace(textureDescription, 0);
+            if (!item.second) {
+                item.first->second = getTextureData(gameRequester, textureDescription);
+            }
+            return item.first->second;
         }
-        return item.first->second;
-    }
 
-    TextureTable() = default;
+        TextureTable() = default;
 
-    ~TextureTable() = default;
-protected:
-    virtual std::shared_ptr<TextureDataType> getTextureData(std::shared_ptr<GameRequester> const &gameRequester,
-            std::shared_ptr<TextureDescription> const &textureDescription) = 0;
+        ~TextureTable() = default;
 
-    std::map<std::shared_ptr<TextureDescription>, std::shared_ptr<TextureDataType>, BaseClassPtrLess<TextureDescription>> m_textureIndexMap;
-};
+    protected:
+        virtual std::shared_ptr<TextureDataType>
+        getTextureData(std::shared_ptr<GameRequester> const &gameRequester,
+                       std::shared_ptr<TextureDescription> const &textureDescription) = 0;
+
+        std::map<std::shared_ptr<TextureDescription>, std::shared_ptr<TextureDataType>, BaseClassPtrLess<TextureDescription>> m_textureIndexMap;
+    };
+}
 #endif // AMAZING_LABYRINTH_TEXTURE_TABLE_HPP

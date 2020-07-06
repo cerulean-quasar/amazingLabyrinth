@@ -20,41 +20,42 @@
 
 #include "textureTableGL.hpp"
 
-void TextureDataGL::createTexture(
-        std::shared_ptr<GameRequester> const &gameRequester,
-        std::shared_ptr<TextureDescription> const &textureDescription)
-{
+namespace levelDrawer {
+    void TextureDataGL::createTexture(
+            std::shared_ptr<GameRequester> const &gameRequester,
+            std::shared_ptr<TextureDescription> const &textureDescription) {
 
-    glGenTextures(1, &m_handle);
-    checkGraphicsError();
-    glBindTexture(GL_TEXTURE_2D, m_handle);
-    checkGraphicsError();
+        glGenTextures(1, &m_handle);
+        checkGraphicsError();
+        glBindTexture(GL_TEXTURE_2D, m_handle);
+        checkGraphicsError();
 
-    // when sampling outside of the texture
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-    checkGraphicsError();
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-    checkGraphicsError();
+        // when sampling outside of the texture
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+        checkGraphicsError();
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+        checkGraphicsError();
 
-    // when the texture is scaled up or down
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, /*GL_LINEAR_MIPMAP_LINEAR*/
-                    GL_NEAREST);
-    checkGraphicsError();
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, /*GL_LINEAR*/ GL_NEAREST);
-    checkGraphicsError();
+        // when the texture is scaled up or down
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, /*GL_LINEAR_MIPMAP_LINEAR*/
+                        GL_NEAREST);
+        checkGraphicsError();
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, /*GL_LINEAR*/ GL_NEAREST);
+        checkGraphicsError();
 
-    uint32_t texHeight{};
-    uint32_t texWidth{};
-    uint32_t texChannels{};
-    std::vector<char> pixels = textureDescription->getData(gameRequester,
-            texWidth, texHeight, texChannels);
+        uint32_t texHeight{};
+        uint32_t texWidth{};
+        uint32_t texChannels{};
+        std::vector<char> pixels = textureDescription->getData(gameRequester,
+                                                               texWidth, texHeight, texChannels);
 
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, texWidth, texHeight, 0, GL_RGBA,
-                 GL_UNSIGNED_BYTE, pixels.data());
-    checkGraphicsError();
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, texWidth, texHeight, 0, GL_RGBA,
+                     GL_UNSIGNED_BYTE, pixels.data());
+        checkGraphicsError();
 
-    glGenerateMipmap(GL_TEXTURE_2D);
-    checkGraphicsError();
-    glBindTexture(GL_TEXTURE_2D, 0);
-    checkGraphicsError();
+        glGenerateMipmap(GL_TEXTURE_2D);
+        checkGraphicsError();
+        glBindTexture(GL_TEXTURE_2D, 0);
+        checkGraphicsError();
+    }
 }

@@ -26,8 +26,8 @@
 
 #include <GLES3/gl3.h>
 
-#include "../basic/renderDetailsCommonGL.hpp"
-#include "../basic/renderDetailsData.hpp"
+#include "../renderDetailsGL.hpp"
+#include "../renderDetails.hpp"
 #include "config.hpp"
 #include "../../levelDrawer/textureTable/textureLoader.hpp"
 

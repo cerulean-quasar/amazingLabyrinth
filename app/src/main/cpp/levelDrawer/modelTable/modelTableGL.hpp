@@ -30,54 +30,57 @@
 #include "modelLoader.hpp"
 #include "modelTable.hpp"
 
-class ModelDataGL {
-public:
-    ModelDataGL(std::shared_ptr<GameRequester> const &gameRequester,
-            std::shared_ptr<ModelDescription> const &modelDescription)
-    {
-        ModelVertices vertices = modelDescription->getData(gameRequester);
+namespace levelDrawer {
+    class ModelDataGL {
+    public:
+        ModelDataGL(std::shared_ptr <GameRequester> const &gameRequester,
+                    std::shared_ptr <ModelDescription> const &modelDescription) {
+            ModelVertices vertices = modelDescription->getData(gameRequester);
 
-        // the index buffer
-        glGenBuffers(1, &(m_indexBuffer));
-        checkGraphicsError();
-        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_indexBuffer);
-        checkGraphicsError();
-        glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof (uint32_t) * vertices.second.size(),
-                     vertices.second.data(), GL_STATIC_DRAW);
-        checkGraphicsError();
+            // the index buffer
+            glGenBuffers(1, &(m_indexBuffer));
+            checkGraphicsError();
+            glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_indexBuffer);
+            checkGraphicsError();
+            glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(uint32_t) * vertices.second.size(),
+                         vertices.second.data(), GL_STATIC_DRAW);
+            checkGraphicsError();
 
-        // the vertex buffer
-        glGenBuffers(1, &(m_vertexBuffer));
-        checkGraphicsError();
-        glBindBuffer(GL_ARRAY_BUFFER, m_vertexBuffer);
-        checkGraphicsError();
-        glBufferData(GL_ARRAY_BUFFER, sizeof (Vertex) * vertices.first.size(),
-                     vertices.first.data(), GL_STATIC_DRAW);
-        checkGraphicsError();
-    }
+            // the vertex buffer
+            glGenBuffers(1, &(m_vertexBuffer));
+            checkGraphicsError();
+            glBindBuffer(GL_ARRAY_BUFFER, m_vertexBuffer);
+            checkGraphicsError();
+            glBufferData(GL_ARRAY_BUFFER, sizeof(Vertex) * vertices.first.size(),
+                         vertices.first.data(), GL_STATIC_DRAW);
+            checkGraphicsError();
+        }
 
-    ~ModelDataGL() {
-        glDeleteBuffers(1, &m_vertexBuffer);
-        glDeleteBuffers(1, &m_indexBuffer);
-    }
+        ~ModelDataGL() {
+            glDeleteBuffers(1, &m_vertexBuffer);
+            glDeleteBuffers(1, &m_indexBuffer);
+        }
 
-    inline GLuint vertexBuffer() const { return m_vertexBuffer; }
-    inline GLuint indexBuffer() const { return m_indexBuffer; }
+        inline GLuint vertexBuffer() const { return m_vertexBuffer; }
 
-private:
-    GLuint m_vertexBuffer;
-    GLuint m_indexBuffer;
-};
+        inline GLuint indexBuffer() const { return m_indexBuffer; }
 
-class ModelTableGL : public ModelTable<ModelDataGL> {
-public:
-    ~ModelTableGL() override = default;
-protected:
-    std::shared_ptr<ModelDataGL> getModelData(std::shared_ptr<GameRequester> const &gameRequester,
-                                            std::shared_ptr<ModelDescription> const &modelDescription) override
-    {
-        return std::make_shared<ModelDataGL>(gameRequester,  modelDescription);
-    }
-};
+    private:
+        GLuint m_vertexBuffer;
+        GLuint m_indexBuffer;
+    };
+
+    class ModelTableGL : public ModelTable<ModelDataGL> {
+    public:
+        ~ModelTableGL() override = default;
+
+    protected:
+        std::shared_ptr <ModelDataGL>
+        getModelData(std::shared_ptr <GameRequester> const &gameRequester,
+                     std::shared_ptr <ModelDescription> const &modelDescription) override {
+            return std::make_shared<ModelDataGL>(gameRequester, modelDescription);
+        }
+    };
+}
 
 #endif // AMAZING_LABYRINTH_MODEL_TABLE_GL_HPP

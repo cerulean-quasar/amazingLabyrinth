@@ -27,10 +27,11 @@
 #include <glm/gtc/matrix_transform.hpp>
 
 #include "../../graphicsVulkan.hpp"
-#include "../../levelDrawer/drawObjectTable/drawObject.hpp"
-#include "../basic/renderDetailsData.hpp"
+#include "../../levelDrawer/drawObjectTable/drawObjectTable.hpp"
+#include "../renderDetails.hpp"
 #include "../shadows/renderDetailsDataVulkan.hpp"
 #include "config.hpp"
+#include "../renderDetailsVulkan.hpp"
 
 namespace textureWithShadows {
     class RenderDetailsDataVulkan;
@@ -151,7 +152,7 @@ namespace textureWithShadows {
     };
 
     /* for passing data other than the vertex data to the vertex shader */
-    class DrawObjectDataVulkan : renderDetails::DrawObjectData {
+    class DrawObjectDataVulkan : public renderDetails::DrawObjectDataVulkan {
         void update(glm::mat4 const &modelMatrix) override {
             PerObjectUBO ubo{};
             ubo.model = modelMatrix;
@@ -159,7 +160,7 @@ namespace textureWithShadows {
         }
 
         inline std::shared_ptr<vulkan::DescriptorSet> const &descriptorSetShadows() { return m_descriptorSetShadows; }
-        inline std::shared_ptr<vulkan::DescriptorSet> const &descriptorSet() { return m_descriptorSet; }
+        std::shared_ptr<vulkan::DescriptorSet> const &descriptorSet() override { return m_descriptorSet; }
 
         DrawObjectDataVulkan(std::shared_ptr<vulkan::Device> const &inDevice,
                              std::shared_ptr<vulkan::DescriptorPools> const &descriptorPools,

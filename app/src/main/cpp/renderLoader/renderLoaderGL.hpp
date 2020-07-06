@@ -25,30 +25,30 @@
 
 #include "../graphicsVulkan.hpp"
 
-#include "../renderDetails/basic/renderDetailsData.hpp"
+#include "../renderDetails/renderDetails.hpp"
 #include "renderLoader.hpp"
-#include "../renderDetails/basic/renderDetailsVulkan.hpp"
-#include "registerVulkan.hpp"
+#include "../renderDetails/renderDetailsGL.hpp"
+#include "registerGL.hpp"
 
 struct RenderLoaderGLTraits {
+    using RenderDetailsParametersType = renderDetails::RenderDetailsParametersGL;
     using RenderDetailsType = renderDetails::RenderDetailsGL;
-    using CommonObjectDataType = renderDetails::CommonObjectDataGL;
+    using CommonObjectDataType = renderDetails::CommonObjectData;
     using RenderDetailsReferenceType = renderDetails::RenderDetailsReference<RenderDetailsType, CommonObjectDataType>;
     using RenderDetailsParameterType = renderDetails::RenderDetailsParametersGL;
     using RetrieveFcns = RenderDetailsGLRetrieveFcns;
-    RenderDetailsGLRetrieveMap (*getRenderDetailsMap)()
+    static RenderDetailsGLRetrieveMap &(*getRenderDetailsMap)() = getRenderDetailsGLMap;
 };
 
-class RenderLoaderVulkan : public RenderLoader<RenderLoaderGLTraits> {
+class RenderLoaderGL : public RenderLoader<RenderLoaderGLTraits> {
 public:
-    ~RenderLoaderVulkan() override = default;
+    ~RenderLoaderGL() override = default;
 
 protected:
-    std::shared_ptr<RenderLoaderGLTraits::RenderDetailsReferenceType> loadNew(
+    RenderLoaderGLTraits::RenderDetailsReferenceType loadNew(
             RenderLoaderGLTraits::RetrieveFcns const &fcns,
             std::shared_ptr<GameRequester> const &gameRequester,
-            std::string const &name,
-            RenderLoaderGLTraits::RenderDetailsParameterType const &parameters)
+            RenderLoaderGLTraits::RenderDetailsParameterType const &parameters) override
     {
         auto renderDetails = fcns.renderDetailsLoadFcn(gameRequester, parameters);
     }
@@ -64,7 +64,7 @@ protected:
     std::shared_ptr<RenderLoaderGLTraits::CommonObjectDataType> allocateCommonObjectData(
             RenderLoaderGLTraits::RetrieveFcns const &fcns,
             std::shared_ptr<RenderLoaderGLTraits::RenderDetailsType> const &renderDetails,
-            RenderLoaderGLTraits::RenderDetailsParameterType const &parameters)
+            RenderLoaderGLTraits::RenderDetailsParameterType const &parameters) override
     {
         return fcns.commonObjectDataCreateFcn(renderDetails);
     }

@@ -35,52 +35,56 @@
 #include "../../common.hpp"
 #include "textureLoader.hpp"
 
-int istreamRead(void *userData, char *data, int size) {
-    std::istream *stream = static_cast<std::istream*>(userData);
-    return stream->read(data,size).gcount();
-}
+namespace levelDrawer {
+    int istreamRead(void *userData, char *data, int size) {
+        std::istream *stream = static_cast<std::istream *>(userData);
+        return stream->read(data, size).gcount();
+    }
 
-void istreamSkip(void *userData, int n) {
-    std::istream *stream = static_cast<std::istream*>(userData);
-    stream->seekg(n, stream->cur);
-}
+    void istreamSkip(void *userData, int n) {
+        std::istream *stream = static_cast<std::istream *>(userData);
+        stream->seekg(n, stream->cur);
+    }
 
-int istreamEof(void *userData) {
-    std::istream *stream = static_cast<std::istream*>(userData);
-    return stream->eof();
-}
+    int istreamEof(void *userData) {
+        std::istream *stream = static_cast<std::istream *>(userData);
+        return stream->eof();
+    }
 
-std::vector<char> TextureDescriptionPath::getData(std::shared_ptr<GameRequester> const &gameRequester,
-                                                  uint32_t &texWidth, uint32_t &texHeight,
-                                                  uint32_t &texChannels) {
-    std::unique_ptr<std::streambuf> assetbuf = gameRequester->getAssetStream(imagePath);
-    std::istream imageStream(assetbuf.get());
+    std::vector<char>
+    TextureDescriptionPath::getData(std::shared_ptr<GameRequester> const &gameRequester,
+                                    uint32_t &texWidth, uint32_t &texHeight,
+                                    uint32_t &texChannels) {
+        std::unique_ptr<std::streambuf> assetbuf = gameRequester->getAssetStream(imagePath);
+        std::istream imageStream(assetbuf.get());
 
-    int c, w, h;
+        int c, w, h;
 
-    stbi_io_callbacks clbk;
-    clbk.read = istreamRead;
-    clbk.skip = istreamSkip;
-    clbk.eof = istreamEof;
+        stbi_io_callbacks clbk;
+        clbk.read = istreamRead;
+        clbk.skip = istreamSkip;
+        clbk.eof = istreamEof;
 
-    stbi_uc *pixels = stbi_load_from_callbacks(&clbk, &imageStream, &w, &h, &c, STBI_rgb_alpha);
-    texWidth = static_cast<uint32_t> (w);
-    texHeight = static_cast<uint32_t> (h);
-    texChannels = 4;
+        stbi_uc *pixels = stbi_load_from_callbacks(&clbk, &imageStream, &w, &h, &c, STBI_rgb_alpha);
+        texWidth = static_cast<uint32_t> (w);
+        texHeight = static_cast<uint32_t> (h);
+        texChannels = 4;
 
-    std::vector<char> data{};
-    unsigned int size = texWidth*texHeight*texChannels;
-    data.resize(size);
-    memcpy(data.data(), pixels, size);
+        std::vector<char> data{};
+        unsigned int size = texWidth * texHeight * texChannels;
+        data.resize(size);
+        memcpy(data.data(), pixels, size);
 
-    /* free the CPU memory for the image */
-    stbi_image_free(pixels);
+        /* free the CPU memory for the image */
+        stbi_image_free(pixels);
 
-    return data;
-}
+        return data;
+    }
 
-std::vector<char> TextureDescriptionText::getData(std::shared_ptr<GameRequester> const &gameRequester,
-                                                  uint32_t &texWidth, uint32_t &texHeight,
-                                                  uint32_t &texChannels) {
-    return gameRequester->getTextImage(m_textString, texWidth, texHeight, texChannels);
+    std::vector<char>
+    TextureDescriptionText::getData(std::shared_ptr<GameRequester> const &gameRequester,
+                                    uint32_t &texWidth, uint32_t &texHeight,
+                                    uint32_t &texChannels) {
+        return gameRequester->getTextImage(m_textString, texWidth, texHeight, texChannels);
+    }
 }

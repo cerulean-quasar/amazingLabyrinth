@@ -20,13 +20,13 @@
 #ifndef AMAZING_LABYRINTH_RENDER_DETAILS_DATA_HPP
 #define AMAZING_LABYRINTH_RENDER_DETAILS_DATA_HPP
 
-#include <memory>
+#include "../../../../../../../Android/Sdk/ndk/21.3.6528147/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/include/c++/v1/memory"
 
-#include <glm/glm.hpp>
-#include <glm/gtc/matrix_transform.hpp>
+#include "../../../../../../../../../opt/glm-0.9.9.5/glm/glm/glm.hpp"
+#include "../../../../../../../../../opt/glm-0.9.9.5/glm/glm/gtc/matrix_transform.hpp"
 
-#include "../../levelTracker/levelTracker.hpp"
-#include "../../levelDrawer/textureTable/textureLoader.hpp"
+#include "../levelTracker/levelTracker.hpp"
+#include "../levelDrawer/textureTable/textureLoader.hpp"
 
 namespace renderDetails {
     template <typename RenderDetailsType, typename CommonObjectDataType>

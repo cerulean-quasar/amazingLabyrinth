@@ -29,75 +29,81 @@
 #include "modelTable.hpp"
 #include "../../graphicsVulkan.hpp"
 
-class ModelDataVulkan {
-public:
-    ModelDataVulkan(std::shared_ptr<GameRequester> const &gameRequester,
-                    std::shared_ptr<vulkan::Device> const &inDevice,
-                    std::shared_ptr<vulkan::CommandPool> const &inPool,
-                    std::shared_ptr<ModelDescription> const &model)
-    {
-        auto modelData = model->getData(gameRequester);
-        if (modelData.first.size() == 0 || modelData.second.size() == 0) {
-            throw std::runtime_error("Error: model has no vertices or indices");
+namespace levelDrawer {
+    class ModelDataVulkan {
+    public:
+        ModelDataVulkan(std::shared_ptr<GameRequester> const &gameRequester,
+                        std::shared_ptr<vulkan::Device> const &inDevice,
+                        std::shared_ptr<vulkan::CommandPool> const &inPool,
+                        std::shared_ptr<ModelDescription> const &model) {
+            auto modelData = model->getData(gameRequester);
+            if (modelData.first.size() == 0 || modelData.second.size() == 0) {
+                throw std::runtime_error("Error: model has no vertices or indices");
+            }
+
+            m_vertexBuffer = std::make_shared<vulkan::Buffer>(inDevice, sizeof(modelData.first[0]) *
+                                                                        modelData.first.size(),
+                                                              VK_BUFFER_USAGE_TRANSFER_DST_BIT |
+                                                              VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
+                                                              VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+            m_indexBuffer = std::make_shared<vulkan::Buffer>(inDevice, sizeof(modelData.second[0]) *
+                                                                       modelData.second.size(),
+                                                             VK_BUFFER_USAGE_TRANSFER_DST_BIT |
+                                                             VK_BUFFER_USAGE_INDEX_BUFFER_BIT,
+                                                             VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+
+            copyVerticesToBuffer(inPool, modelData.first);
+            copyIndicesToBuffer(inPool, modelData.second);
         }
 
-        m_vertexBuffer = std::make_shared<vulkan::Buffer>(inDevice, sizeof(modelData.first[0]) * modelData.first.size(),
-                       VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
-                       VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
-        m_indexBuffer = std::make_shared<vulkan::Buffer>(inDevice, sizeof(modelData.second[0]) * modelData.second.size(),
-                       VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT,
-                       VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+        inline std::shared_ptr<vulkan::Buffer> const &vertexBuffer() { return m_vertexBuffer; }
 
-        copyVerticesToBuffer(inPool, modelData.first);
-        copyIndicesToBuffer(inPool, modelData.second);
-    }
+        inline std::shared_ptr<vulkan::Buffer> const &indexBuffer() { return m_indexBuffer; }
 
-    inline std::shared_ptr<vulkan::Buffer> const &vertexBuffer() { return m_vertexBuffer; }
-    inline std::shared_ptr<vulkan::Buffer> const &indexBuffer() { return m_indexBuffer; }
+        ~ModelDataVulkan() = default;
 
-    ~ModelDataVulkan() = default;
-private:
-    /* vertex buffer and index buffer. the index buffer indicates which vertices to draw and in
-     * the specified order.  Note, vertices can be listed twice if they should be part of more
-     * than one triangle.
-     */
-    std::shared_ptr<vulkan::Buffer> m_vertexBuffer;
-    std::shared_ptr<vulkan::Buffer> m_indexBuffer;
+    private:
+        /* vertex buffer and index buffer. the index buffer indicates which vertices to draw and in
+         * the specified order.  Note, vertices can be listed twice if they should be part of more
+         * than one triangle.
+         */
+        std::shared_ptr<vulkan::Buffer> m_vertexBuffer;
+        std::shared_ptr<vulkan::Buffer> m_indexBuffer;
 
-    void copyVerticesToBuffer(std::shared_ptr<vulkan::CommandPool> const &cmdpool,
-                              std::vector<Vertex> const &vertices)
-    {
-        vulkan::copyVerticesToBuffer<Vertex>(cmdpool, vertices, m_vertexBuffer);
-    }
+        void copyVerticesToBuffer(std::shared_ptr<vulkan::CommandPool> const &cmdpool,
+                                  std::vector<Vertex> const &vertices) {
+            vulkan::copyVerticesToBuffer<Vertex>(cmdpool, vertices, m_vertexBuffer);
+        }
 
-    void copyIndicesToBuffer(std::shared_ptr<vulkan::CommandPool> const &cmdpool,
-                             std::vector<uint32_t> const &indices)
-    {
-        vulkan::copyIndicesToBuffer(cmdpool, indices, m_indexBuffer);
-    }
-};
+        void copyIndicesToBuffer(std::shared_ptr<vulkan::CommandPool> const &cmdpool,
+                                 std::vector<uint32_t> const &indices) {
+            vulkan::copyIndicesToBuffer(cmdpool, indices, m_indexBuffer);
+        }
+    };
 
-class ModelTableVulkan : public ModelTable<ModelDataVulkan> {
-public:
-    ModelTableVulkan(
-            std::shared_ptr<vulkan::Device> inDevice,
-            std::shared_ptr<vulkan::CommandPool> inCommandPool)
-            : ModelTableGeneric<ModelDataVulkan>{},
-            m_device{inDevice},
-            m_commandPool{inCommandPool}
-    {}
+    class ModelTableVulkan : public ModelTable<ModelDataVulkan> {
+    public:
+        ModelTableVulkan(
+                std::shared_ptr<vulkan::Device> inDevice,
+                std::shared_ptr<vulkan::CommandPool> inCommandPool)
+                : ModelTableGeneric<ModelDataVulkan>{},
+                  m_device{inDevice},
+                  m_commandPool{inCommandPool} {}
 
-    ~ModelTableVulkan() override = default;
-protected:
-    std::shared_ptr<ModelDataVulkan> getModelData(std::shared_ptr<GameRequester> const &gameRequester,
-                           std::shared_ptr<ModelDescription> const &modelDescription) override
-    {
-        return std::make_shared<ModelDataVulkan>(gameRequester, m_device, m_commandPool,
-                modelDescription);
-    }
+        ~ModelTableVulkan() override = default;
 
-private:
-    std::shared_ptr<vulkan::Device> m_device;
-    std::shared_ptr<vulkan::CommandPool> m_commandPool;
-};
+    protected:
+        std::shared_ptr<ModelDataVulkan>
+        getModelData(std::shared_ptr<GameRequester> const &gameRequester,
+                     std::shared_ptr<ModelDescription> const &modelDescription) override {
+            return std::make_shared<ModelDataVulkan>(gameRequester, m_device, m_commandPool,
+                                                     modelDescription);
+        }
+
+    private:
+        std::shared_ptr<vulkan::Device> m_device;
+        std::shared_ptr<vulkan::CommandPool> m_commandPool;
+    };
+}
+
 #endif // AMAZING_LABYRINTH_MODEL_TABLE_VULKAN_HPP

@@ -28,51 +28,54 @@
 #include "textureLoader.hpp"
 #include "textureTable.hpp"
 
-class TextureDataVulkan : public TextureData {
-public:
-    TextureDataVulkan(
-            std::shared_ptr<GameRequester> const &gameRequester,
-            std::shared_ptr<vulkan::Device> const &inDevice,
-            std::shared_ptr<vulkan::CommandPool> const &inCommandPool,
-            std::shared_ptr<TextureDescription> const &inTextureDescription)
-    {
-        uint32_t texWidth{};
-        uint32_t texHeight{};
-        uint32_t texChannels{};
+namespace levelDrawer {
+    class TextureDataVulkan : public TextureData {
+    public:
+        TextureDataVulkan(
+                std::shared_ptr<GameRequester> const &gameRequester,
+                std::shared_ptr<vulkan::Device> const &inDevice,
+                std::shared_ptr<vulkan::CommandPool> const &inCommandPool,
+                std::shared_ptr<TextureDescription> const &inTextureDescription) {
+            uint32_t texWidth{};
+            uint32_t texHeight{};
+            uint32_t texChannels{};
 
-        std::vector<char> pixels = inTextureDescription->getData(gameRequester, texWidth, texHeight, texChannels);
+            std::vector<char> pixels = inTextureDescription->getData(gameRequester, texWidth,
+                                                                     texHeight, texChannels);
 
-        m_sampler = std::make_shared<vulkan::ImageSampler>(inDevice, inCommandPool, pixels,
-                texWidth, texHeight, texChannels);
-    }
+            m_sampler = std::make_shared<vulkan::ImageSampler>(inDevice, inCommandPool, pixels,
+                                                               texWidth, texHeight, texChannels);
+        }
 
-    inline std::shared_ptr<vulkan::ImageSampler> const &sampler() { return m_sampler; }
-private:
-    std::shared_ptr<vulkan::ImageSampler> m_sampler;
-};
+        inline std::shared_ptr<vulkan::ImageSampler> const &sampler() { return m_sampler; }
 
-class TextureTableVulkan : public TextureTable<TextureDataVulkan> {
-public:
-    TextureTableVulkan(
-        std::shared_ptr<vulkan::Device> inDevice,
-        std::shared_ptr<vulkan::CommandPool> inCommandPool)
-        : TextureTable{},
-        m_device{inDevice},
-        m_commandPool{inCommandPool}
-    {}
+    private:
+        std::shared_ptr<vulkan::ImageSampler> m_sampler;
+    };
 
-    ~TextureTableVulkan() override = default;
-protected:
-    std::shared_ptr<TextureDataVulkan> getTextureData(
-        std::shared_ptr<GameRequester> const &gameRequester,
-        std::shared_ptr<TextureDescription> const &textureDescription) override
-    {
-        return std::make_shared<TextureDataVulkan>(gameRequester, m_device, m_commandPool,
-                textureDescription);
-    }
-private:
-    std::shared_ptr<vulkan::Device> m_device;
-    std::shared_ptr<vulkan::CommandPool> m_commandPool;
-};
+    class TextureTableVulkan : public TextureTable<TextureDataVulkan> {
+    public:
+        TextureTableVulkan(
+                std::shared_ptr<vulkan::Device> inDevice,
+                std::shared_ptr<vulkan::CommandPool> inCommandPool)
+                : TextureTable{},
+                  m_device{inDevice},
+                  m_commandPool{inCommandPool} {}
+
+        ~TextureTableVulkan() override = default;
+
+    protected:
+        std::shared_ptr<TextureDataVulkan> getTextureData(
+                std::shared_ptr<GameRequester> const &gameRequester,
+                std::shared_ptr<TextureDescription> const &textureDescription) override {
+            return std::make_shared<TextureDataVulkan>(gameRequester, m_device, m_commandPool,
+                                                       textureDescription);
+        }
+
+    private:
+        std::shared_ptr<vulkan::Device> m_device;
+        std::shared_ptr<vulkan::CommandPool> m_commandPool;
+    };
+}
 
 #endif // AMAZING_LABYRINTH_TEXTURE_TABLE_VULKAN_HPP

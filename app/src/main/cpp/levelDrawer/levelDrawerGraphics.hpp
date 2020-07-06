@@ -27,7 +27,7 @@
 
 #include "modelTable/modelLoader.hpp"
 #include "textureTable/textureLoader.hpp"
-#include "../renderDetails/basic/renderDetailsData.hpp"
+#include "../renderDetails/renderDetails.hpp"
 
 #include "levelDrawer.hpp"
 #include "textureTable/textureTableVulkan.hpp"

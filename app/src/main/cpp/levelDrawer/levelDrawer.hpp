@@ -25,7 +25,7 @@
 
 #include "modelTable/modelLoader.hpp"
 #include "textureTable/textureLoader.hpp"
-#include "../renderDetails/basic/renderDetailsData.hpp"
+#include "../renderDetails/renderDetails.hpp"
 
 class LevelDrawer {
 public:

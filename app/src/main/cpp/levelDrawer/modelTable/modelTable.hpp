@@ -28,26 +28,31 @@
 #include "../common.hpp"
 #include "modelLoader.hpp"
 
-template <typename ModelDataType>
-class ModelTable {
-public:
-    std::shared_ptr<ModelDataType> const &addModel(std::shared_ptr<GameRequester> const &gameRequester,
-                      std::shared_ptr<ModelDescription> const &modelDescription)
-    {
-        auto item = m_modelIndexMap.emplace(modelDescription, nullptr);
-        if (!item.second) {
-            item.first->second = getModelData(gameRequester, modelDescription);
+namespace levelDrawer {
+    template <typename ModelDataType>
+    class ModelTable {
+    public:
+        std::shared_ptr <ModelDataType> const &
+        addModel(std::shared_ptr <GameRequester> const &gameRequester,
+                 std::shared_ptr <ModelDescription> const &modelDescription) {
+            auto item = m_modelIndexMap.emplace(modelDescription, nullptr);
+            if (!item.second) {
+                item.first->second = getModelData(gameRequester, modelDescription);
+            }
+            return item.first->second;
         }
-        return item.first->second;
-    }
 
-    ModelTable() = default;
+        ModelTable() = default;
 
-    virtual ~ModelTable() = default;
-private:
-    virtual std::shared_ptr<ModelDataType> getModelData(std::shared_ptr<GameRequester> const &gameRequester,
-                                     std::shared_ptr<ModelDescription> const &modelDescription) = 0;
+        virtual ~ModelTable() = default;
 
-    std::map<std::shared_ptr<ModelDescription>, std::shared_ptr<ModelDataType>, BaseClassPtrLess<ModelDescription>> m_modelMap;
-};
+    private:
+        virtual std::shared_ptr <ModelDataType>
+        getModelData(std::shared_ptr <GameRequester> const &gameRequester,
+                     std::shared_ptr <ModelDescription> const &modelDescription) = 0;
+
+        std::map <std::shared_ptr<ModelDescription>, std::shared_ptr<ModelDataType>, BaseClassPtrLess<ModelDescription>> m_modelMap;
+    };
+}
+
 #endif // AMAZING_LABYRINTH_MODEL_TABLE_HPP

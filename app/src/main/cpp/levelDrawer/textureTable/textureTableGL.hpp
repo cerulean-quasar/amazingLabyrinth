@@ -27,37 +27,38 @@
 #include <GLES3/gl3ext.h>
 
 #include "textureTable.hpp"
+namespace levelDrawer {
+    class TextureDataGL : public TextureData {
+    public:
+        TextureDataGL(std::shared_ptr<GameRequester> const &gameRequester,
+                      std::shared_ptr<TextureDescription> const &textureDescription) {
+            createTexture(gameRequester, textureDescription);
+        }
 
-class TextureDataGL : public TextureData {
-public:
-    TextureDataGL(std::shared_ptr<GameRequester> const &gameRequester,
-            std::shared_ptr<TextureDescription> const &textureDescription)
-    {
-        createTexture(gameRequester, textureDescription);
-    }
+        ~TextureDataGL() override {
+            glDeleteTextures(1, &m_handle);
+        }
 
-    ~TextureDataGL() override {
-        glDeleteTextures(1, &m_handle);
-    }
+        inline GLuint handle() const { return m_handle; }
 
-    inline GLuint handle() const { return m_handle; }
-private:
-    GLuint m_handle;
+    private:
+        GLuint m_handle;
 
-    void createTexture(std::shared_ptr<GameRequester> const &gameRequester,
-            std::shared_ptr<TextureDescription> const &textureDescription);
-};
+        void createTexture(std::shared_ptr<GameRequester> const &gameRequester,
+                           std::shared_ptr<TextureDescription> const &textureDescription);
+    };
 
-class TextureTableGL : public TextureTableGeneric<TextureDataGL> {
-public:
-    ~TextureTableGL() override = default;
-protected:
-    std::shared_ptr<TextureDataGL> getTextureData(std::shared_ptr<GameRequester> const &gameRequester,
-                                                  std::shared_ptr<TextureDescription> const &textureDescription) override
-    {
-        return std::make_shared<TextureDataGL>(gameRequester, textureDescription);
-    }
+    class TextureTableGL : public TextureTableGeneric<TextureDataGL> {
+    public:
+        ~TextureTableGL() override = default;
 
-};
+    protected:
+        std::shared_ptr<TextureDataGL>
+        getTextureData(std::shared_ptr<GameRequester> const &gameRequester,
+                       std::shared_ptr<TextureDescription> const &textureDescription) override {
+            return std::make_shared<TextureDataGL>(gameRequester, textureDescription);
+        }
 
+    };
+}
 #endif // AMAZING_LABYRINTH_TEXTURE_TABLE_GL_HPP
