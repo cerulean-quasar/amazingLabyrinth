@@ -49,10 +49,7 @@ public:
                     m_loadedRenderDetails.push_front(renderDetails);
                 }
 
-                typename traits::RenderDetailsReferenceType ref;
-                ref.commonObjectData = allocateCommonObjectData(fcns, renderDetails, parameters);
-                ref.renderDetails = std::move(renderDetails);
-                return std::move(ref);
+                return loadExisting(fcns, renderDetails, parameters);
             }
         }
 
@@ -77,7 +74,7 @@ protected:
             std::shared_ptr<GameRequester> const &gameRequester,
             std::shared_ptr<typename traits::RenderDetailsType> const &renderDetails,
             typename traits::RenderDetailsParametersType const &parameters) = 0;
-    virtual std::shared_ptr<typename traits::CommonObjectDataType> allocateCommonObjectData(
+    virtual std::shared_ptr<typename traits::RenderDetailsReferenceType> loadExisting(
             typename traits::RetrieveFcns const &fcns,
             std::shared_ptr<typename traits::RenderDetailsType> const &renderDetails,
             typename traits::RenderDetailsParametersType const &parameters) = 0;

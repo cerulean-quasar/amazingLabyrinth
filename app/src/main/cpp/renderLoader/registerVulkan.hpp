@@ -22,23 +22,26 @@
 
 #include <memory>
 #include <map>
+#include <string>
+#include <functional>
 
 #include "../graphicsVulkan.hpp"
 #include "../renderDetails/renderDetailsVulkan.hpp"
 
 // Register RenderDetailsVulkan types
 struct RenderDetailsVulkanRetrieveFcns {
-    using RenderDetailsFcn = std::function<std::shared_ptr<renderDetails::RenderDetailsVulkan>(
-            std::shared_ptr<GameRequester> const &,
-    std::shared_ptr<vulkan::Device>,
-    renderDetails::RenderDetailsParametersVulkan const &);
+    using RenderDetailsReferenceVulkan = renderDetails::RenderDetailsReference<renderDetails::RenderDetailsVulkan, renderDetails::CommonObjectData>;
+    using RenderDetailsLoadNewFcn = std::function<std::shared_ptr<RenderDetailsReferenceVulkan>(
+        std::shared_ptr<GameRequester> const &,
+        std::shared_ptr<vulkan::Device>,
+        renderDetails::RenderDetailsParametersVulkan const &)>;
 
-    using CommonObjectDataFcn = std::function<std::shared_ptr<renderDetails::CommonObjectDataVulkan>(
-            std::shared_ptr<renderDetails::RenderDetailsVulkan> const &,
-    renderDetails::RenderDetailsParametersVulkan const &);
+    using RenderDetailsLoadExistingFcn = std::function<std::shared_ptr<RenderDetailsReferenceVulkan>(
+        std::shared_ptr<renderDetails::RenderDetailsVulkan> const &,
+        renderDetails::RenderDetailsParametersVulkan const &);
 
-    RenderDetailsFcn renderDetailsLoadFcn;
-    CommonObjectDataFcn commonObjectDataCreateFcn;
+    RenderDetailsLoadNewFcn renderDetailsLoadNewFcn;
+    RenderDetailsLoadExistingFcn renderDetailsLoadExistingFcn;
 };
 
 using RenderDetailsVulkanRetrieveMap =
@@ -59,16 +62,17 @@ class RegisterVulkan {
                 []() -> RenderDetailsVulkanRetrieveFcns {
                     RenderDetailsVulkanRetrieveFcns fcns;
                     ConfigType config;
-                    fcns.renderDetailsLoadFcn = RenderDetailsVulkanRetrieveFcns::RenderDetailsFcn (
-                            [] (std::shared_ptr<GameRequester> const &gameRequester,
+                    fcns.renderDetailsLoadNewFcn = RenderDetailsVulkanRetrieveFcns::RenderDetailsLoadNewFcn (
+                            [config] (std::shared_ptr<GameRequester> const &gameRequester,
                                     std::shared_ptr<vulkan::Device> inDevice,
-                                    ParametersType const &parameters) {
-                                return std::make_shared<RenderDetailsType>(gameRequester, inDevice, parameters);
+                                    ParametersType const &parameters) -> RenderDetailsVulkanRetrieveFcns::RenderDetailsReferenceVulkan
+                            {
+                                return RenderDetailsType::loadNew(gameRequester, inDevice, parameters, config);
                             });
-                    fcns.commonObjectDataCreateFcn = RenderDetailsVulkanRetrieveFcns::CommonObjectDataFcn (
+                    fcns.renderDetailsLoadExistingFcn = RenderDetailsVulkanRetrieveFcns::RenderDetailsLoadExistingFcn (
                             [config] (std::shared_ptr<RenderDetailsType> const &renderDetails,
-                                    ParametersType const &parameters) {
-                                return renderDetails->createCommonObjectData(parameters, config);
+                                    ParametersType const &parameters)  -> RenderDetailsVulkanRetrieveFcns::RenderDetailsReferenceVulkan {
+                                return RenderDetailsType::loadExisting(renderDetails, parameters, config);
                             });
                     return std::move(fcns);
                 }

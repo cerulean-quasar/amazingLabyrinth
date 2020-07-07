@@ -26,25 +26,28 @@
 #include "modelTable/modelTableGL.hpp"
 #include "levelDrawerGraphics.hpp"
 
-struct DrawObjectGLTraits {
-    using RenderDetailsType = renderDetails::RenderDetailsGL;
-    using CommonObjectDataType = renderDetails::CommonObjectDataGL;
-    using RenderDetailsReferenceType = RenderDetailsReference<RenderDetailsType, CommonObjectDataType>;
-    using ModelDataType = ModelDataGL;
-    using TextureDataType = TextureDataGL;
-    using DrawObjectDataType = renderDetails::DrawObjectDataGL;
-};
+namespace {
+    struct DrawObjectGLTraits {
+        using RenderDetailsType = renderDetails::RenderDetailsGL;
+        using CommonObjectDataType = renderDetails::CommonObjectDataGL;
+        using RenderDetailsReferenceType = RenderDetailsReference<RenderDetailsType, CommonObjectDataType>;
+        using ModelDataType = ModelDataGL;
+        using TextureDataType = TextureDataGL;
+        using DrawObjectDataType = renderDetails::DrawObjectDataGL;
+    };
 
-struct LevelDrawerGLTraits {
-    using RenderLoaderType = RenderLoaderGL;
-    using RenderDetailsType = renderDetails::RenderDetailsGL;
-    using CommonObjectDataType = renderDetails::CommonObjectDataGL;
-    using RenderDetailsReferenceType = RenderDetailsReference<RenderDetailsType, CommonObjectDataType>;
-    using ModelTableType = ModelTableGL;
-    using TextureTableType = TextureTableGL;
-    using DrawObjectTableType = DrawObjectTable<DrawObjectGLTraits>;
-    struct DrawArgumentType {};
-};
+    struct LevelDrawerGLTraits {
+        using RenderLoaderType = RenderLoaderGL;
+        using RenderDetailsType = renderDetails::RenderDetailsGL;
+        using CommonObjectDataType = renderDetails::CommonObjectDataGL;
+        using RenderDetailsReferenceType = RenderDetailsReference<RenderDetailsType, CommonObjectDataType>;
+        using ModelTableType = ModelTableGL;
+        using TextureTableType = TextureTableGL;
+        using DrawObjectTableType = DrawObjectTable<DrawObjectGLTraits>;
+        struct DrawArgumentType {
+        };
+    };
 
-using LevelTableGL = LevelDrawerGraphics<LevelDrawerGLTraits>;
+    using LevelTableGL = LevelDrawerGraphics<LevelDrawerGLTraits>;
+}
 #endif // AMAZING_LABYRINTH_LEVEL_DRAWER_GL_HPP

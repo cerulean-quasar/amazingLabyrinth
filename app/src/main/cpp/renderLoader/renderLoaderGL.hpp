@@ -61,12 +61,12 @@ protected:
         renderDetails.reload(gameRequester, parameters);
     }
 
-    std::shared_ptr<RenderLoaderGLTraits::CommonObjectDataType> allocateCommonObjectData(
+    RenderLoaderGLTraits::RenderDetailsReferenceType loadExisting(
             RenderLoaderGLTraits::RetrieveFcns const &fcns,
             std::shared_ptr<RenderLoaderGLTraits::RenderDetailsType> const &renderDetails,
             RenderLoaderGLTraits::RenderDetailsParameterType const &parameters) override
     {
-        return fcns.commonObjectDataCreateFcn(renderDetails);
+        return fcns.commonObjectDataCreateFcn(renderDetails, parameters);
     }
 private:
 };

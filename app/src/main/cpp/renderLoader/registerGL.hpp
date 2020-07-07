@@ -28,17 +28,18 @@
 
 // Register RenderDetailsGL types
 struct RenderDetailsGLRetrieveFcns {
-    using RenderDetailsFcn = std::function<std::shared_ptr<renderDetails::RenderDetailsGL>(
-            std::shared_ptr<GameRequester> const &,
-    std::shared_ptr<vulkan::Device>,
-    renderDetails::RenderDetailsParametersGL const &);
+    using RenderDetailsReferenceGL = renderDetails::RenderDetailsReference<renderDetails::RenderDetailsGL, renderDetails::CommonObjectData>;
+    using RenderDetailsLoadNewFcn = std::function<std::shared_ptr<RenderDetailsReferenceGL>(
+        std::shared_ptr<GameRequester> const &,
+        std::shared_ptr<vulkan::Device>,
+        renderDetails::RenderDetailsParametersGL const &);
 
-    using CommonObjectDataFcn = std::function<std::shared_ptr<renderDetails::CommonObjectDataGL>(
-            std::shared_ptr<renderDetails::RenderDetailsGL> const &,
-    renderDetails::RenderDetailsParametersGL const &);
+    using RenderDetailsLoadExistingFcn = std::function<std::shared_ptr<RenderDetailsReferenceGL>(
+        std::shared_ptr<renderDetails::RenderDetailsGL> const &,
+        renderDetails::RenderDetailsParametersGL const &);
 
-    RenderDetailsFcn renderDetailsLoadFcn;
-    CommonObjectDataFcn commonObjectDataCreateFcn;
+    RenderDetailsLoadNewFcn renderDetailsLoadNewFcn;
+    RenderDetailsLoadExistingFcn renderDetailsLoadExistingFcn;
 };
 
 using RenderDetailsGLRetrieveMap =
@@ -59,15 +60,17 @@ class RegisterGL {
                 []() -> RenderDetailsGLRetrieveFcns {
                     RenderDetailsGLRetrieveFcns fcns;
                     ConfigType config;
-                    fcns.renderDetailsLoadFcn = RenderDetailsGLRetrieveFcns::RenderDetailsFcn (
+                    fcns.renderDetailsLoadNewFcn = RenderDetailsGLRetrieveFcns::RenderDetailsLoadNewFcn (
                             [] (std::shared_ptr<GameRequester> const &gameRequester,
-                                    ParametersType const &parameters) {
-                                return std::make_shared<RenderDetailsType>(gameRequester, parameters);
+                                    ParametersType const &parameters) -> RenderDetailsGLRetrieveFcns::RenderDetailsReferenceGL
+                            {
+                                return RenderDetailsType::loadNew(gameRequester, parameters);
                             });
-                    fcns.commonObjectDataCreateFcn = RenderDetailsGLRetrieveFcns::CommonObjectDataFcn (
+                    fcns.renderDetailsLoadExistingFcn = RenderDetailsGLRetrieveFcns::RenderDetailsLoadExistingFcn (
                             [config] (std::shared_ptr<RenderDetailsType> const &renderDetails,
-                                    ParametersType const &parameters) {
-                                return renderDetails->createCommonObjectData(parameters, config);
+                                    ParametersType const &parameters) -> RenderDetailsGLRetrieveFcns::RenderDetailsReferenceGL
+                            {
+                                return RenderDetailsType::loadExisting(renderDetails, parameters, config);
                             });
                     return std::move(fcns);
                 }

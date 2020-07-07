@@ -49,7 +49,7 @@ protected:
         std::shared_ptr<GameRequester> const &gameRequester,
         RenderLoaderVulkanTraits::RenderDetailsParameterType const &parameters) override
     {
-        return fcns.renderDetailsLoadFcn(gameRequester, m_device, parameters);
+        return fcns.renderDetailsLoadNewFcn(gameRequester, m_device, parameters);
     }
 
     void reload(
@@ -60,12 +60,12 @@ protected:
         renderDetails.reload(gameRequester, parameters);
     }
 
-    std::shared_ptr<RenderLoaderVulkanTraits::CommonObjectDataType> allocateCommonObjectData(
+    RenderLoaderVulkanTraits::RenderDetailsReferenceType loadExisting(
         RenderLoaderVulkanTraits::RetrieveFcns const &fcns,
         std::shared_ptr<RenderLoaderVulkanTraits::RenderDetailsType> const &renderDetails,
         RenderLoaderVulkanTraits::RenderDetailsParameterType const &parameters) override
     {
-        return fcns.commonObjectDataCreateFcn(renderDetails, parameters.preTransform);
+        return fcns.renderDetailsLoadExistingFcn(renderDetails, parameters);
     }
 private:
     std::shared_ptr<vulkan::Device> m_device;
