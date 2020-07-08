@@ -20,7 +20,7 @@
 #include <memory>
 
 #include "../../graphicsVulkan.hpp"
-#include "renderDetailsDataVulkan.hpp"
+#include "renderDetailsVulkan.hpp"
 
 namespace textureWithShadows {
     /* descriptor set for the MVP matrix and texture samplers */

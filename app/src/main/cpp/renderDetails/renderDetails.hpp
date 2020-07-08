@@ -35,7 +35,7 @@ namespace renderDetails {
                 glm::mat4 const &)>;
         std::shared_ptr<RenderDetailsType> renderDetails;
         std::shared_ptr<CommonObjectDataType> commonObjectData;
-
+        CreateDrawObjectData createDrawObjectData;
     };
 
     class CommonObjectData {
@@ -170,10 +170,6 @@ namespace renderDetails {
 
     class RenderDetails {
     public:
-        virtual std::shared_ptr <DrawObjectData> createDrawObjectData(
-                std::shared_ptr <TextureData> const &textureData,
-                glm::mat4 const &modelMatrix) = 0;
-
         RenderDetails(uint32_t inWidth, uint32_t inHeight)
                 : m_surfaceWidth{inWidth},
                   m_surfaceHeight{inHeight}

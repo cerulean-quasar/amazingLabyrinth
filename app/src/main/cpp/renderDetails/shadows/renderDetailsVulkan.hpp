@@ -27,9 +27,10 @@
 #include "../../graphicsVulkan.hpp"
 #include "../../levelDrawer/drawObjectTable/drawObjectTable.hpp"
 #include "../renderDetails.hpp"
+#include "../../renderLoader/renderLoaderVulkan.hpp"
+#include "../renderDetailsVulkan.hpp"
 
 #include "config.hpp"
-#include "../renderDetailsVulkan.hpp"
 
 namespace shadows {
     class RenderDetailsVulkan;
@@ -106,19 +107,6 @@ namespace shadows {
             updateDescriptorSet(inDevice, inCommonObjectData);
         }
 
-        DrawObjectDataVulkan(std::shared_ptr<vulkan::Device> const &inDevice,
-                             std::shared_ptr<vulkan::DescriptorPools> const &descriptorPools,
-                             std::shared_ptr<CommonObjectDataVulkan> const &inCommonObjectData,
-                             glm::mat4 const &modelMatrix)
-                : m_descriptorSet{descriptorPools->allocateDescriptor()},
-                  m_uniformBuffer{createUniformBuffer(inDevice, sizeof(PerObjectUBO))}
-        {
-            PerObjectUBO ubo;
-            ubo.modelMatrix = modelMatrix;
-            m_uniformBuffer->copyRawTo(&ubo, sizeof(ubo));
-            updateDescriptorSet(inDevice, inCommonObjectData);
-        }
-
         ~DrawObjectDataVulkan() override = default;
 
     private:
@@ -182,38 +170,30 @@ namespace shadows {
                 std::shared_ptr<GameRequester> const &gameRequester,
                 std::shared_ptr<RenderLoaderVulkan> const &renderLoader,
                 std::shared_ptr<vulkan::Device> const &inDevice,
-                renderDetails::RenderDetailsParametersVulkan const &parameters)
+                renderDetails::RenderDetailsParametersVulkan const &parameters,
+                Config const &config)
         {
-            auto rd = std::make_shared<RenderDetailsVulkan>(gameRequester, inDevice, nullptr, parameters);
+            auto rd = std::make_shared<RenderDetailsVulkan>(
+                    gameRequester, inDevice, nullptr, parameters);
+
+            auto cod = rd->createCommonObjectData(parameters.preTransform, config);
+
+            return createReference(std::move(rd), std::move(cod));
         }
 
-        std::shared_ptr<renderDetails::CommonObjectData> createCommonObjectData(
-            glm::mat4 const &preTransform,
-            Config const &config)
+        static renderDetails::ReferenceVulkan loadExisting(
+                std::shared_ptr<renderDetails::RenderDetailsVulkan> const &rdBase,
+                renderDetails::RenderDetailsParametersVulkan const &parameters,
+                Config const &config)
         {
-            auto buffer = createUniformBuffer(m_device, sizeof (CommonObjectDataVulkan::CommonUBO));
-            return std::make_shared<CommonObjectDataVulkan>(buffer, preTransform,
-                    m_surfaceWidth/ static_cast<float>(m_surfaceHeight), config);
-        }
+            auto rd = dynamic_cast<RenderDetailsVulkan*>(rdBase.get());
+            if (rd == nullptr) {
+                throw std::runtime_error("Invalid render details type.")
+            }
 
-        std::shared_ptr<DrawObjectData> createDrawObjectData(
-                std::shared_ptr<TextureData> const&,
-                std::shared_ptr<vulkan::Buffer> const &modelMatrixBuffer)
-        {
-            return std::make_shared<DrawObjectDataVulkan>(m_device, m_descriptorPools,
-                                                          m_commonUBO, modelMatrixBuffer);
-        }
+            auto cod = rd->createCommonObjectData(parameters.preTransform, config);
 
-        std::shared_ptr<DrawObjectData> createDrawObjectData(
-                std::shared_ptr<TextureData> const&,
-                glm::mat4 const &modelMatrix) override
-        {
-            auto modelMatrixBuffer = createUniformBuffer(m_device, sizeof (PerObjectUBO));
-            PerObjectUBO perObjectUbo{};
-            perObjectUbo.model = modelMatrix;
-            modelMatrixBuffer->copyRawTo(&perObjectUbo, sizeof(PerObjectUBO));
-            return std::make_shared<DrawObjectDataVulkan>(m_device, m_descriptorPools,
-                                                          m_commonUBO, modelMatrixBuffer);
+            return createReference(std::move(rdBase), std::move(cod));
         }
 
         std::shared_ptr<vulkan::RenderPass> const &renderPass() { return m_renderPass; }
@@ -252,6 +232,44 @@ namespace shadows {
                         VK_CULL_MODE_FRONT_BIT)}
         {}
 
+        static renderDetails::ReferenceVulkan createReference(
+                std::shared_ptr<RenderDetailsVulkan> rd,
+                std::shared_ptr<CommonObjectDataVulkan> cod)
+        {
+            renderDetails::ReferenceVulkan ref;
+            ref.createDrawObjectData = renderDetails::ReferenceVulkan::CreateDrawObjectData(
+                    [rd, cod] (std::shared_ptr<renderDetails::DrawObjectDataVulkan> const &sharingDOD,
+                           std::shared_ptr<TextureData> const &textureData,
+                           glm::mat4 const &modelMatrix) ->
+                           std::shared_ptr<renderDetails::DrawObjectDataVulkan>
+                    {
+                        std::shared_ptr<vulkan::Buffer> modelMatrixBuffer{};
+                        if (sharingDOD) {
+                            modelMatrixBuffer = sharingDOD->bufferModelMatrix();
+                        } else {
+                            modelMatrixBuffer = createUniformBuffer(rd->m_device, sizeof (PerObjectUBO));
+                            PerObjectUBO perObjectUbo{};
+                            perObjectUbo.model = modelMatrix;
+                            modelMatrixBuffer->copyRawTo(&perObjectUbo, sizeof(PerObjectUBO));
+                        }
+                        return std::make_shared<DrawObjectDataVulkan>(rd->m_device, rd->m_descriptorPools,
+                                                                      cod, modelMatrixBuffer);
+                    });
+
+            ref.renderDetails = std::move(rd);
+            ref.commonObjectData = std::move(cod);
+
+            return std::move(ref);
+        }
+
+        std::shared_ptr<CommonObjectDataVulkan> createCommonObjectData(
+                glm::mat4 const &preTransform,
+                Config const &config)
+        {
+            auto buffer = createUniformBuffer(m_device, sizeof (CommonObjectDataVulkan::CommonUBO));
+            return std::make_shared<CommonObjectDataVulkan>(buffer, preTransform,
+                                                            m_surfaceWidth/ static_cast<float>(m_surfaceHeight), config);
+        }
     };
 }
 #endif // AMAZING_LABYRINTH_SHADOWS_RENDER_DETAILS_DATA_VULKAN_HPP

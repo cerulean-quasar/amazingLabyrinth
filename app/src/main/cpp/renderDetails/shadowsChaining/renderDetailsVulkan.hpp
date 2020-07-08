@@ -26,11 +26,12 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 
-#include "../textureWithShadows/renderDetailsDataVulkan.hpp"
+#include "../textureWithShadows/renderDetailsVulkan.hpp"
 #include "../renderDetailsVulkan.hpp"
 #include "../../renderLoader/renderLoaderVulkan.hpp"
+#include "config.hpp"
 
-namespace chainingShadows {
+namespace shadowsChaining {
     class RenderDetailsVulkan;
 
     class CommonObjectDataVulkan : renderDetails::CommonObjectData {
@@ -82,12 +83,11 @@ namespace chainingShadows {
             std::shared_ptr<GameRequester> const &gameRequester,
             std::shared_ptr<RenderLoaderVulkan> const &renderLoader,
             std::shared_ptr<vulkan::Device> const &inDevice,
-            renderDetails::RenderDetailsParametersVulkan const &parameters)
+            renderDetails::RenderDetailsParametersVulkan const &parameters,
+            Config const &config)
         {
             // initialize main render details
-            auto rd = std::make_shared<RenderDetailsVulkan>();
-            rd->m_width = parameters.width;
-            rd->m_height = parameters.height;
+            auto rd = std::make_shared<RenderDetailsVulkan>(parameters.width, parameters.height);
             rd->m_device = inDevice;
 
             // shadow resources
@@ -137,12 +137,13 @@ namespace chainingShadows {
                                                colorWithShadows::RenderDetailsVulkan::name(),
                                                parameters);
 
-            return createCODFromRefs(std::move(rd), refShadows, refTexture, refColor);
+            return createReference(std::move(rd), refShadows, refTexture, refColor);
         }
 
         static renderDetails::ReferenceVulkan loadExisting(
             std::shared_ptr<renderDetails::RenderDetailsVulkan> const &rdBase,
-            renderDetails::RenderDetailsParametersVulkan const &parameters)
+            renderDetails::RenderDetailsParametersVulkan const &parameters,
+            Config const &config)
         {
             auto rd = dynamic_cast<RenderDetailsVulkan*>(rdBase.get());
             if (rd == nullptr) {
@@ -161,7 +162,7 @@ namespace chainingShadows {
             cod->m_colorCOD = refColor.commonObjectData;
             cod->m_shadowsCOD = refShadows.commonObjectData;
 
-            return createCODFromRefs(std::move(rdBase), refShadows, refTexture, refColor);
+            return createReference(std::move(rdBase), refShadows, refTexture, refColor);
         }
 
     private:
@@ -170,8 +171,6 @@ namespace chainingShadows {
         // use less precision for the shadow buffer
         static float constexpr shadowsSizeMultiplier = 0.5f;
 
-        uint32_t m_width;
-        uint32_t m_height;
         std::shared_ptr<vulkan::Device> m_device;
         std::shared_ptr<colorWithShadows::RenderDetailsVulkan> m_colorRenderDetails;
         std::shared_ptr<textureWithShadows::RenderDetailsVulkan> m_textureRenderDetails;
@@ -182,13 +181,17 @@ namespace chainingShadows {
         std::shared_ptr<shadows::RenderDetailsVulkan> m_shadowsRenderDetails;
         std::shared_ptr<vulkan::Framebuffer> m_framebufferShadows;
 
-        RenderDetailsVulkan() = default;
+        RenderDetailsVulkan(
+            uint32_t inWidth,
+            uint32_t inHeight)
+            : renderDetails::RenderDetailsVulkan{inWidth, inHeight}
+        {}
 
         static uint32_t getShadowsFramebufferDimension(uint32_t dimension) {
             return static_cast<uint32_t>(std::floor(dimension * shadowsSizeMultiplier));
         }
 
-        static renderDetails::ReferenceVulkan createCODFromRefs(
+        static renderDetails::ReferenceVulkan createReference(
                 std::shared_ptr<RenderDetailsVulkan> rd,
                 renderDetails::ReferenceVulkan const &refShadows,
                 renderDetails::ReferenceVulkan const &refTexture,
@@ -207,7 +210,7 @@ namespace chainingShadows {
                             createDODTexture = refTexture.createDrawObjectData,
                             createDODColor = refColor.createDrawObjectData] (
                             std::shared_ptr<renderDetails::DrawObjectDataVulkan> const &sharingDOD,
-                            std::shared_ptr<TextureData> const&textureData,
+                            std::shared_ptr<TextureData> const &textureData,
                             glm::mat4 const &modelMatrix) ->
                             std::shared_ptr<renderDetails::DrawObjectDataVulkan>
                     {

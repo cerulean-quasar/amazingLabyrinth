@@ -54,7 +54,7 @@ RenderDetailsVulkanRetrieveMap &getRenderDetailsVulkanMap() {
     return map;
 }
 
-template <typename RenderDetailsType, typename CommonObjectDataType, typename ConfigType, typename ParametersType>
+template <typename RenderDetailsBaseType, typename RenderDetailsType, typename CommonObjectDataType, typename ConfigType, typename ParametersType>
 class RegisterVulkan {
     RegisterVulkan() {
         getRenderDetailsVulkanMap().emplace(
@@ -71,8 +71,8 @@ class RegisterVulkan {
                                 return RenderDetailsType::loadNew(gameRequester, inDevice, parameters, config);
                             });
                     fcns.renderDetailsLoadExistingFcn = RenderDetailsVulkanRetrieveFcns::RenderDetailsLoadExistingFcn (
-                            [config] (std::shared_ptr<RenderDetailsType> const &renderDetails,
-                                    ParametersType const &parameters)  -> RenderDetailsVulkanRetrieveFcns::RenderDetailsReferenceVulkan {
+                            [config] (std::shared_ptr<RenderDetailsBaseType> const &renderDetails,
+                                    ParametersType const &parameters) -> RenderDetailsVulkanRetrieveFcns::RenderDetailsReferenceVulkan {
                                 return RenderDetailsType::loadExisting(renderDetails, parameters, config);
                             });
                     return std::move(fcns);
