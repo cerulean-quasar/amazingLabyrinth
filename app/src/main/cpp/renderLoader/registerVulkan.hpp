@@ -33,6 +33,7 @@ struct RenderDetailsVulkanRetrieveFcns {
     using RenderDetailsReferenceVulkan = renderDetails::RenderDetailsReference<renderDetails::RenderDetailsVulkan, renderDetails::CommonObjectData>;
     using RenderDetailsLoadNewFcn = std::function<std::shared_ptr<RenderDetailsReferenceVulkan>(
         std::shared_ptr<GameRequester> const &,
+        std::shared_ptr<RenderLoaderVulkan> const &,
         std::shared_ptr<vulkan::Device>,
         renderDetails::RenderDetailsParametersVulkan const &)>;
 

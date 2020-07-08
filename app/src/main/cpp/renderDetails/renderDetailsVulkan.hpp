@@ -58,5 +58,7 @@ namespace renderDetails {
 
         std::vector <VkVertexInputAttributeDescription> getAttributeDescriptions();
     };
+
+    using ReferenceVulkan = renderDetails::RenderDetailsReference<RenderDetailsVulkan, renderDetails::CommonObjectData>;
 }
 #endif // AMAZING_LABYRINTH_RENDER_DETAILS_VULKAN_HPP

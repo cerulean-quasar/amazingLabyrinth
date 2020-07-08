@@ -39,7 +39,7 @@ struct RenderLoaderVulkanTraits {
     static RenderDetailsVulkanRetrieveMap &(*getRenderDetailsMap)() = getRenderDetailsVulkanMap;
 };
 
-class RenderLoaderVulkan : public RenderLoader<RenderLoaderVulkanTraits> {
+class RenderLoaderVulkan : public std::enable_shared_from_this<RenderLoaderVulkan>, public RenderLoader<RenderLoaderVulkanTraits> {
 public:
     ~RenderLoaderVulkan() override = default;
 
@@ -49,7 +49,7 @@ protected:
         std::shared_ptr<GameRequester> const &gameRequester,
         RenderLoaderVulkanTraits::RenderDetailsParameterType const &parameters) override
     {
-        return fcns.renderDetailsLoadNewFcn(gameRequester, m_device, parameters);
+        return fcns.renderDetailsLoadNewFcn(gameRequester, shared_from_this(), m_device, parameters);
     }
 
     void reload(

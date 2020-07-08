@@ -201,7 +201,7 @@ namespace textureWithShadows {
         void updateDescriptorSet(std::shared_ptr<vulkan::Device> const &inDevice);
     };
 
-    class RenderDetailsDataVulkan : public renderDetails::RenderDetailsData {
+    class RenderDetailsVulkan : public renderDetails::RenderDetails {
     public:
         std::shared_ptr<renderDetails::CommonObjectData> createCommonObjectData(
                 glm::mat4 const &preTransform,
@@ -235,7 +235,7 @@ namespace textureWithShadows {
                                                           perObjectUBO);
         }
 
-        RenderDetailsDataVulkan(
+        RenderDetailsVulkan(
             std::shared_ptr<GameRequester> const &gameRequester,
             std::shared_ptr<vulkan::Device> const &inDevice,
             std::vector<vulkan::RenderPass::ImageAttachmentInfo> const &colorAttachmentInfos,
