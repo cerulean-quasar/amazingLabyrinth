@@ -19,7 +19,7 @@
  */
 
 #include "../../graphicsVulkan.hpp"
-#include "renderDetailsDataVulkan.hpp"
+#include "renderDetailsVulkan.hpp"
 
 namespace shadows {
     /* for accessing data other than the vertices from the shaders */
@@ -64,7 +64,9 @@ namespace shadows {
 
     /* descriptor set for the MVP matrix and texture samplers */
     void
-    DrawObjectDataVulkan::updateDescriptorSet(std::shared_ptr<vulkan::Device> const &inDevice) {
+    DrawObjectDataVulkan::updateDescriptorSet(std::shared_ptr<vulkan::Device> const &inDevice,
+            std::shared_ptr<CommonObjectDataVulkan> const &inCommonObjectData)
+    {
         VkDescriptorBufferInfo bufferInfo = {};
         bufferInfo.buffer = m_uniformBuffer->buffer();
         bufferInfo.offset = 0;
@@ -94,9 +96,9 @@ namespace shadows {
         descriptorWrites[0].pTexelBufferView = nullptr; // Optional
 
         VkDescriptorBufferInfo commonInfo = {};
-        commonInfo.buffer = m_commonUBO->buffer();
+        commonInfo.buffer = inCommonObjectData->buffer();
         commonInfo.offset = 0;
-        commonInfo.range = sizeof(CommonUBO);
+        commonInfo.range = inCommonObjectData->bufferSize();
 
         descriptorWrites[1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
         descriptorWrites[1].dstSet = m_descriptorSet->descriptorSet().get();

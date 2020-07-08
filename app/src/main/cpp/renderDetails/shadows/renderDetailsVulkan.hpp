@@ -28,11 +28,14 @@
 #include "../../levelDrawer/drawObjectTable/drawObjectTable.hpp"
 #include "../renderDetails.hpp"
 
-namespace shadows {
-    class RenderDetailsDataVulkan;
+#include "config.hpp"
+#include "../renderDetailsVulkan.hpp"
 
-    class CommonObjectDataVulkan : public renderDetails::CommonObjectData {
-        friend RenderDetailsDataVulkan;
+namespace shadows {
+    class RenderDetailsVulkan;
+
+    class CommonObjectDataVulkan : public renderDetails::CommonObjectDataPerspective {
+        friend RenderDetailsVulkan;
     public:
         glm::mat4 getPerspectiveMatrixForLevel() override {
             /* perspective matrix: takes the perspective projection, the aspect ratio, near and far
@@ -43,6 +46,10 @@ namespace shadows {
         }
 
         glm::vec3 lightSource() { return m_viewPoint; }
+
+        std::shared_ptr<vulkan::Buffer> const &buffer() { return m_camera; }
+        uint32_t bufferSize() { return sizeof(CommonUBO); }
+
     protected:
         void update() override {
             CommonUBO commonUbo;
@@ -78,7 +85,7 @@ namespace shadows {
     };
 
     /* for passing data other than the vertex data to the vertex shader */
-    class DrawObjectDataVulkan : public renderDetails::DrawObjectData {
+    class DrawObjectDataVulkan : public renderDetails::DrawObjectDataVulkan {
     public:
         void update(glm::mat4 const &modelMatrix) override {
             PerObjectUBO ubo{};
@@ -86,20 +93,30 @@ namespace shadows {
             m_uniformBuffer->copyRawTo(&ubo, sizeof(ubo));
         }
 
-        inline std::shared_ptr<vulkan::DescriptorSet> const &descriptorSet() { return m_descriptorSet; }
+        std::shared_ptr<vulkan::Buffer> const &bufferModelMatrix() override { return m_uniformBuffer; }
+        std::shared_ptr<vulkan::DescriptorSet> const &descriptorSet(uint32_t id) override { return m_descriptorSet; }
 
         DrawObjectDataVulkan(std::shared_ptr<vulkan::Device> const &inDevice,
                              std::shared_ptr<vulkan::DescriptorPools> const &descriptorPools,
-                             std::shared_ptr<vulkan::Buffer> const &inCommonUBO,
+                             std::shared_ptr<CommonObjectDataVulkan> const &inCommonObjectData,
+                             std::shared_ptr<renderDetails::DrawObjectDataVulkan> const &inSharingDOD)
+                : m_descriptorSet{descriptorPools->allocateDescriptor()},
+                  m_uniformBuffer{inSharingDOD->bufferModelMatrix()}
+        {
+            updateDescriptorSet(inDevice, inCommonObjectData);
+        }
+
+        DrawObjectDataVulkan(std::shared_ptr<vulkan::Device> const &inDevice,
+                             std::shared_ptr<vulkan::DescriptorPools> const &descriptorPools,
+                             std::shared_ptr<CommonObjectDataVulkan> const &inCommonObjectData,
                              glm::mat4 const &modelMatrix)
                 : m_descriptorSet{descriptorPools->allocateDescriptor()},
-                  m_uniformBuffer{createUniformBuffer(inDevice, sizeof(PerObjectUBO))},
-                  m_commonUBO{inCommonUBO}
+                  m_uniformBuffer{createUniformBuffer(inDevice, sizeof(PerObjectUBO))}
         {
             PerObjectUBO ubo;
             ubo.modelMatrix = modelMatrix;
             m_uniformBuffer->copyRawTo(&ubo, sizeof(ubo));
-            updateDescriptorSet(inDevice);
+            updateDescriptorSet(inDevice, inCommonObjectData);
         }
 
         ~DrawObjectDataVulkan() override = default;
@@ -111,9 +128,9 @@ namespace shadows {
 
         std::shared_ptr<vulkan::DescriptorSet> m_descriptorSet;
         std::shared_ptr<vulkan::Buffer> m_uniformBuffer;
-        std::shared_ptr<vulkan::Buffer> m_commonUBO;
 
-        void updateDescriptorSet(std::shared_ptr<vulkan::Device> const &inDevice);
+        void updateDescriptorSet(std::shared_ptr<vulkan::Device> const &inDevice,
+                std::shared_ptr<CommonObjectDataVulkan> const &inCommonObjectData);
     };
 
     class DescriptorSetLayout : public vulkan::DescriptorSetLayout {
@@ -157,8 +174,19 @@ namespace shadows {
         void createDescriptorSetLayout();
     };
 
-    class RenderDetailsDataVulkan : public renderDetails::RenderDetailsData {
+    class RenderDetailsVulkan : public renderDetails::RenderDetails {
     public:
+        static char const *name() { return m_name; }
+
+        static renderDetails::ReferenceVulkan loadNew(
+                std::shared_ptr<GameRequester> const &gameRequester,
+                std::shared_ptr<RenderLoaderVulkan> const &renderLoader,
+                std::shared_ptr<vulkan::Device> const &inDevice,
+                renderDetails::RenderDetailsParametersVulkan const &parameters)
+        {
+            auto rd = std::make_shared<RenderDetailsVulkan>(gameRequester, inDevice, nullptr, parameters);
+        }
+
         std::shared_ptr<renderDetails::CommonObjectData> createCommonObjectData(
             glm::mat4 const &preTransform,
             Config const &config)
@@ -190,36 +218,8 @@ namespace shadows {
 
         std::shared_ptr<vulkan::RenderPass> const &renderPass() { return m_renderPass; }
 
-        RenderDetailsDataVulkan(
-            std::shared_ptr<GameRequester> const &gameRequester,
-            std::shared_ptr<vulkan::Device> const &inDevice,
-            std::shared_ptr<vulkan::Pipeline> const &basePipeline,
-            std::vector<vulkan::RenderPass::ImageAttachmentInfo> const &colorAttachmentInfos,
-            vulkan::RenderPass::ImageAttachmentInfo depthAttachmentInfos,
-            uint32_t width,
-            uint32_t height)
-            : RenderDetailsData{width, height},
-            m_device{inDevice},
-            m_commandPool{inCommandPool},
-            m_commonUBO{createUniformBuffer(inDevice, sizeof(CommonUBO))},
-            m_preTransform{std::move(inPreTransform)},
-            m_descriptorSetLayout{
-                std::make_shared<DescriptorSetLayout>(m_device)},
-            m_descriptorPools{
-                std::make_shared<vulkan::DescriptorPools>(m_device, m_descriptorSetLayout)},
-            m_renderPass{vulkan::RenderPass::createDepthTextureRenderPass(
-                m_device, colorAttachmentInfos, depthAttachmentInfos)},
-            m_pipeline{std::make_shared<vulkan::Pipeline>(
-                gameRequester, m_device,
-                VkExtent2D{width, height},
-                m_renderPass, m_descriptorPools, getBindingDescription(),
-                getAttributeDescriptions(),
-                SHADOW_VERT_FILE, SHADER_SIMPLE_FRAG_FILE, mainPipeline,
-                VK_CULL_MODE_FRONT_BIT)}
-        {
-        }
-
     private:
+        static char constexpr const *m_name = "shadows";
         static char constexpr const *SHADER_SIMPLE_FRAG_FILE = "shaders/simple.frag.spv";
         static char constexpr const *SHADOW_VERT_FILE = "shaders/depthShader.vert.spv";
 
@@ -229,6 +229,29 @@ namespace shadows {
         std::shared_ptr<vulkan::DescriptorPools> m_descriptorPools;
         std::shared_ptr<DescriptorSetLayout> m_descriptorSetLayout;
         std::shared_ptr<vulkan::Pipeline> m_pipeline;
+
+        RenderDetailsDataVulkan(
+            std::shared_ptr<GameRequester> const &gameRequester,
+            std::shared_ptr<vulkan::Device> const &inDevice,
+            std::shared_ptr<vulkan::Pipeline> const &basePipeline,
+            renderDetails::RenderDetailsParametersVulkan const &parameters)
+            : RenderDetails{parameters.width, parameters.height},
+            m_device{inDevice},
+            m_commonUBO{createUniformBuffer(inDevice, sizeof(CommonUBO))},
+            m_preTransform{parameters.preTransform},
+            m_descriptorSetLayout{std::make_shared<DescriptorSetLayout>(m_device)},
+            m_descriptorPools{std::make_shared<vulkan::DescriptorPools>(m_device, m_descriptorSetLayout)},
+            m_renderPass{vulkan::RenderPass::createDepthTextureRenderPass(
+                        m_device, parameters.colorImageInfo, parameters.depthImageInfo)},
+            m_pipeline{std::make_shared<vulkan::Pipeline>(
+                        gameRequester, m_device,
+                        VkExtent2D{m_width, m_height},
+                        m_renderPass, m_descriptorPools, getBindingDescription(),
+                        getAttributeDescriptions(),
+                        SHADOW_VERT_FILE, SHADER_SIMPLE_FRAG_FILE, basePipeline,
+                        VK_CULL_MODE_FRONT_BIT)}
+        {}
+
     };
 }
 #endif // AMAZING_LABYRINTH_SHADOWS_RENDER_DETAILS_DATA_VULKAN_HPP

@@ -41,8 +41,33 @@ namespace chainingShadows {
         std::shared_ptr<shadows::CommonObjectDataVulkan> m_shadowsCOD;
     };
 
-    class DrawObjectDataVulkan : renderDetails::DrawObjectDataVulkan {
-        friend RenderDetailsVulkan;
+    class DrawObjectDataVulkan : public renderDetails::DrawObjectDataVulkan {
+    public:
+        bool hasTexture() { return m_hasTexture; }
+
+        std::shared_ptr<vulkan::Buffer> const &bufferModelMatrix() override {
+            return m_mainDrawObjectData->bufferModelMatrix();
+        }
+
+        std::shared_ptr<vulkan::DescriptorSet> const &descriptorSet(uint32_t id) override {
+            switch (id) {
+                case 0:
+                    return m_mainDrawObjectData->descriptorSet(id);
+                case 1:
+                default:
+                    return m_shadowsDrawObjectData->descriptorSet(id);
+            }
+        }
+
+        DrawObjectDataVulkan(
+                std::shared_ptr<renderDetails::DrawObjectDataVulkan> inMainDrawObjectData,
+                std::shared_ptr<renderDetails::DrawObjectDataVulkan> inShadowsDrawObjectData)
+                : renderDetails::DrawObjectDataVulkan(),
+                m_mainDrawObjectData{std::move(inMainDrawObjectData)},
+                m_shadowsDrawObjectData{std::move(inShadowsDrawObjectData)}
+        {}
+
+        ~DrawObjectDataVulkan() override = default;
     private:
         bool m_hasTexture;
         std::shared_ptr<renderDetails::DrawObjectDataVulkan> m_mainDrawObjectData;
@@ -51,6 +76,8 @@ namespace chainingShadows {
 
     class RenderDetailsVulkan : public renderDetails::RenderDetailsVulkan {
     public:
+        static char const *name() { return m_name; }
+
         static renderDetails::ReferenceVulkan loadNew(
             std::shared_ptr<GameRequester> const &gameRequester,
             std::shared_ptr<RenderLoaderVulkan> const &renderLoader,
@@ -62,17 +89,14 @@ namespace chainingShadows {
             rd->m_width = parameters.width;
             rd->m_height = parameters.height;
             rd->m_device = inDevice;
-            renderDetails::RenderDetailsParametersVulkan shadowParameters;
-            shadowParameters.width = getShadowsFramebufferDimension(parameters.width);
-            shadowParameters.height = getShadowsFramebufferDimension(parameters.height);
-            shadowParameters.preTransform = parameters.preTransform;
 
+            // shadow resources
             rd->m_depthImageViewShadows = std::make_shared<vulkan::ImageView>(
                     vulkan::ImageFactory::createDepthImage(
                             inDevice,
                             VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT,
-                            shadowParameters.width,
-                            shadowParameters.height),
+                            getShadowsFramebufferWidth(parameters.width),
+                            getShadowsFramebufferHeigth(parameters.height)),
                     VK_IMAGE_ASPECT_DEPTH_BIT);
             rd->m_shadowsColorAttachment = vulkan::ImageView::createImageViewAndImage(
                     inDevice,
@@ -88,44 +112,61 @@ namespace chainingShadows {
                     VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER,
                     VK_BORDER_COLOR_FLOAT_OPAQUE_WHITE);
 
-            shadowParameters.colorImageInfo =
-                    std::vector<vulkan::RenderPass::ImageAttachmentInfo>{vulkan::RenderPass::ImageAttachmentInfo{
-                            VK_ATTACHMENT_LOAD_OP_CLEAR, VK_ATTACHMENT_STORE_OP_STORE,
-                            rd->m_shadowsColorAttachment->image()->format(),
-                            VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL}};
-            shadowParameters.depthImageInfo =
-                    std::make_shared<vulkan::RenderPass::ImageAttachmentInfo>(
-                            VK_ATTACHMENT_LOAD_OP_CLEAR, VK_ATTACHMENT_STORE_OP_STORE,
-                            rd->m_depthImageViewShadows->image()->format(),
-                            VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL);
+            auto shadowParameters = createShadowParameters(rd, parameters);
 
-            auto refShadows = renderLoader->load(gameRequester,
-                    shadows::RenderDetailsVulkan::name(), shadowParameters);
+            // shadows render details
+            auto refShadows = renderLoader->load(
+                    gameRequester,
+                    shadows::RenderDetailsVulkan::name(),
+                    shadowParameters);
 
+            // shadows framebuffer.
             rd->m_framebufferShadows = std::make_shared<vulkan::Framebuffer>(
                     inDevice, refShadows.renderDetails->renderPass(),
                     std::vector<std::shared_ptr<vulkan::ImageView>>{rd->m_shadowsColorAttachment,
                                                                     rd->m_depthImageViewShadows},
                     shadowParameters.width, shadowParameters.height);
 
+            // texture render details
             auto refTexture = renderLoader->load(gameRequester,
-                    textureWithShadows::RenderDetailsVulkan::name(), parameters);
+                                                 textureWithShadows::RenderDetailsVulkan::name(),
+                                                 parameters);
+
+            // color render details
             auto refColor = renderLoader->load(gameRequester,
-                    colorWithShadows::RenderDetailsVulkan::name(), parameters);
+                                               colorWithShadows::RenderDetailsVulkan::name(),
+                                               parameters);
+
+            return createCODFromRefs(std::move(rd), refShadows, refTexture, refColor);
+        }
+
+        static renderDetails::ReferenceVulkan loadExisting(
+            std::shared_ptr<renderDetails::RenderDetailsVulkan> const &rdBase,
+            renderDetails::RenderDetailsParametersVulkan const &parameters)
+        {
+            auto rd = dynamic_cast<RenderDetailsVulkan*>(rdBase.get());
+            if (rd == nullptr) {
+                throw std::runtime_error("Invalid render details type.")
+            }
+            auto shadowParameters = createShadowParameters(rd, parameters);
+            auto refShadows = shadows::RenderDetailsVulkan::loadExisting(
+                    rd->m_shadowsRenderDetails, shadowParameters);
+            auto refTexture = textureWithShadows::RenderDetailsVulkan::loadExisting(
+                    rd->m_textureRenderDetails, parameters);
+            auto refColor = colorWithShadows::RenderDetailsVulkan::loadExisting(
+                    rd->m_colorRenderDetails, parameters);
 
             auto cod = std::make_shared<CommonObjectDataVulkan>();
             cod->m_textureCOD = refTexture.commonObjectData;
             cod->m_colorCOD = refColor.commonObjectData;
             cod->m_shadowsCOD = refShadows.commonObjectData;
 
-            renderDetails::ReferenceVulkan ref;
-            ref.renderDetails = rd;
-            ref.commonObjectData = cod;
-
-            return std::move(ref);
+            return createCODFromRefs(std::move(rdBase), refShadows, refTexture, refColor);
         }
 
     private:
+        static char constexpr const *m_name = "shadowsChaining";
+
         // use less precision for the shadow buffer
         static float constexpr shadowsSizeMultiplier = 0.5f;
 
@@ -145,6 +186,65 @@ namespace chainingShadows {
 
         static uint32_t getShadowsFramebufferDimension(uint32_t dimension) {
             return static_cast<uint32_t>(std::floor(dimension * shadowsSizeMultiplier));
+        }
+
+        static renderDetails::ReferenceVulkan createCODFromRefs(
+                std::shared_ptr<RenderDetailsVulkan> rd,
+                renderDetails::ReferenceVulkan const &refShadows,
+                renderDetails::ReferenceVulkan const &refTexture,
+                renderDetails::ReferenceVulkan const &refColor)
+        {
+            auto cod = std::make_shared<CommonObjectDataVulkan>();
+            cod->m_textureCOD = refTexture.commonObjectData;
+            cod->m_colorCOD = refColor.commonObjectData;
+            cod->m_shadowsCOD = refShadows.commonObjectData;
+
+            renderDetails::ReferenceVulkan ref;
+            ref.renderDetails = rd;
+            ref.commonObjectData = cod;
+            ref.createDrawObjectData = renderDetails::ReferenceVulkan::CreateDrawObjectData(
+                    [createDODShadows = refShadows.createDrawObjectData,
+                            createDODTexture = refTexture.createDrawObjectData,
+                            createDODColor = refColor.createDrawObjectData] (
+                            std::shared_ptr<renderDetails::DrawObjectDataVulkan> const &sharingDOD,
+                            std::shared_ptr<TextureData> const&textureData,
+                            glm::mat4 const &modelMatrix) ->
+                            std::shared_ptr<renderDetails::DrawObjectDataVulkan>
+                    {
+                        std::shared_ptr<renderDetails::DrawObjectDataVulkan> dodMain;
+                        if (textureData) {
+                            dodMain = createDODTexture(sharingDOD, textureData, modelMatrix);
+                        } else {
+                            dodMain = createDODColor(sharingDOD, textureData, modelMatrix);
+                        }
+                        auto dodShadows = createDODShadows(dodMain, std::shared_ptr<levelDrawer::TextureData>(), modelMatrix);
+
+                        return std::make_shared<DrawObjectDataVulkan>(dodMain, dodShadows);
+                    }
+            )
+
+            return std::move(ref);
+        }
+
+        static renderDetails::RenderDetailsParametersVulkan createShadowParameters(
+                std::shared_ptr<RenderDetailsVulkan> const &rd,
+                renderDetails::RenderDetailsParametersVulkan const &parameters)
+        {
+            renderDetails::RenderDetailsParametersVulkan shadowParameters;
+            shadowParameters.width = getShadowsFramebufferDimension(parameters.width);
+            shadowParameters.height = getShadowsFramebufferDimension(parameters.height);
+            shadowParameters.preTransform = parameters.preTransform;
+            shadowParameters.colorImageInfo =
+                    std::vector<vulkan::RenderPass::ImageAttachmentInfo>{vulkan::RenderPass::ImageAttachmentInfo{
+                            VK_ATTACHMENT_LOAD_OP_CLEAR, VK_ATTACHMENT_STORE_OP_STORE,
+                            rd->m_shadowsColorAttachment->image()->format(),
+                            VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL}};
+            shadowParameters.depthImageInfo =
+                    std::make_shared<vulkan::RenderPass::ImageAttachmentInfo>(
+                            VK_ATTACHMENT_LOAD_OP_CLEAR, VK_ATTACHMENT_STORE_OP_STORE,
+                            rd->m_depthImageViewShadows->image()->format(),
+                            VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL);
+            return std::move(shadowParameters);
         }
     };
 }

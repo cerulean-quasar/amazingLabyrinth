@@ -40,7 +40,8 @@ namespace renderDetails {
 
     class DrawObjectDataVulkan : public DrawObjectData {
     public:
-        virtual std::shared_ptr<vulkan::DescriptorSet> const &descriptorSet() = 0;
+        virtual std::shared_ptr<vulkan::Buffer> const &bufferModelMatrix() = 0;
+        virtual std::shared_ptr<vulkan::DescriptorSet> const &descriptorSet(uint32_t id) = 0;
 
         ~DrawObjectDataVulkan() override = default;
     };
@@ -59,6 +60,6 @@ namespace renderDetails {
         std::vector <VkVertexInputAttributeDescription> getAttributeDescriptions();
     };
 
-    using ReferenceVulkan = renderDetails::RenderDetailsReference<RenderDetailsVulkan, renderDetails::CommonObjectData>;
+    using ReferenceVulkan = renderDetails::RenderDetailsReference<RenderDetailsVulkan, renderDetails::CommonObjectData, renderDetails::DrawObjectDataVulkan>;
 }
 #endif // AMAZING_LABYRINTH_RENDER_DETAILS_VULKAN_HPP

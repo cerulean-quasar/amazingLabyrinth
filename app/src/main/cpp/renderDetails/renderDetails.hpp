@@ -21,15 +21,21 @@
 #define AMAZING_LABYRINTH_RENDER_DETAILS_DATA_HPP
 
 #include <memory>
+#include <functional>
 #include <glm/glm.hpp>
 #include "../levelTracker/levelTracker.hpp"
 #include "../levelDrawer/textureTable/textureLoader.hpp"
 
 namespace renderDetails {
-    template <typename RenderDetailsType, typename CommonObjectDataType>
+    template <typename RenderDetailsType, typename CommonObjectDataType, typename DrawObjectDataType>
     struct RenderDetailsReference {
+        using CreateDrawObjectData = std::function<std::shared_ptr<DrawObjectDataType>(
+                std::shared_ptr<DrawObjectDataType> const &,
+                std::shared_ptr<levelDrawer::TextureData> const &,
+                glm::mat4 const &)>;
         std::shared_ptr<RenderDetailsType> renderDetails;
         std::shared_ptr<CommonObjectDataType> commonObjectData;
+
     };
 
     class CommonObjectData {
@@ -59,12 +65,11 @@ namespace renderDetails {
         {}
 
     protected:
-        virtual void update() = 0;
-    private:
         glm::vec3 m_viewPoint;
         glm::vec3 m_lookAt;
         glm::vec3 m_up;
 
+        virtual void update() = 0;
     };
 
     class CommonObjectDataPerspective : public CommonObjectData {
