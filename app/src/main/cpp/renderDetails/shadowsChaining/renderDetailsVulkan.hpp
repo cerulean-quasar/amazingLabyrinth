@@ -120,7 +120,7 @@ namespace shadowsChaining {
                     shadows::RenderDetailsVulkan::name(),
                     shadowParameters);
 
-            // shadows framebuffer.
+            // shadows framebuffer
             rd->m_framebufferShadows = std::make_shared<vulkan::Framebuffer>(
                     inDevice, refShadows.renderDetails->renderPass(),
                     std::vector<std::shared_ptr<vulkan::ImageView>>{rd->m_shadowsColorAttachment,
@@ -157,11 +157,6 @@ namespace shadowsChaining {
             auto refColor = colorWithShadows::RenderDetailsVulkan::loadExisting(
                     rd->m_colorRenderDetails, parameters);
 
-            auto cod = std::make_shared<CommonObjectDataVulkan>();
-            cod->m_textureCOD = refTexture.commonObjectData;
-            cod->m_colorCOD = refColor.commonObjectData;
-            cod->m_shadowsCOD = refShadows.commonObjectData;
-
             return createReference(std::move(rdBase), refShadows, refTexture, refColor);
         }
 
@@ -195,12 +190,26 @@ namespace shadowsChaining {
                 std::shared_ptr<RenderDetailsVulkan> rd,
                 renderDetails::ReferenceVulkan const &refShadows,
                 renderDetails::ReferenceVulkan const &refTexture,
-                renderDetails::ReferenceVulkan const &refColor)
+                renderDetails::ReferenceVulkan const &refColor,
+                std::shared_ptr<vulkan::ImageSampler> const &shadowsImageSampler)
         {
             auto cod = std::make_shared<CommonObjectDataVulkan>();
             cod->m_textureCOD = refTexture.commonObjectData;
             cod->m_colorCOD = refColor.commonObjectData;
             cod->m_shadowsCOD = refShadows.commonObjectData;
+
+            // set the shadows image sampler
+            auto codTexture = dynamic_cast<textureWithShadows::CommonObjectDataVulkan*>(refTexture.commonObjectData.get());
+            if (codTexture == nullptr) {
+                throw std::runtime_error("Invalid common object data");
+            }
+            codTexture->setShadowsImageSampler(shadowsImageSampler);
+
+            auto codColor = dynamic_cast<colorWithShadows::CommonObjectDataVulkan*>(refTexture.commonObjectData.get());
+            if (codColor == nullptr) {
+                throw std::runtime_error("Invalid common object data");
+            }
+            codColor->setShadowsImageSampler(rd->m_samplerShadows);
 
             renderDetails::ReferenceVulkan ref;
             ref.renderDetails = rd;

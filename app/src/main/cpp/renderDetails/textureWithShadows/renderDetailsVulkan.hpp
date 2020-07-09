@@ -36,9 +36,19 @@
 namespace textureWithShadows {
     class RenderDetailsDataVulkan;
 
-    class CommonObjectDataVulkan : public renderDetails::CommonObjectData {
+    class CommonObjectDataVulkan : public renderDetails::CommonObjectDataPerspective {
         friend RenderDetailsDataVulkan;
     public:
+        void setShadowsImageSampler(std::shared_ptr<vulkan::ImageSampler> shadowsImageSampler) {
+            m_shadowsSampler = std::move(shadowsImageSampler);
+        }
+
+        std::shared_ptr<vulkan::Buffer> const &cameraBuffer() { return m_cameraBuffer; }
+        uint32_t cameraBufferSize() { return sizeof (CommonVertexUBO); }
+        std::shared_ptr<vulkan::Buffer> const &lightingBuffer() { return m_lightingSourceBuffer; }
+        uint32_t lightingBufferSize() { return sizeof (CommonFragmentUBO); }
+        std::shared_ptr<vulkan::ImageSampler> const &shadowsSampler() { return m_shadowsSampler; }
+
         glm::mat4 getPerspectiveMatrixForLevel() override {
             /* perspective matrix: takes the perspective projection, the aspect ratio, near and far
              * view planes.
@@ -64,9 +74,9 @@ namespace textureWithShadows {
             glm::vec3 lightingSource;
         };
 
-        std::shared_ptr<shadows::CommonObjectDataVulkan> m_shadowsCOD;
         std::shared_ptr<vulkan::Buffer> m_cameraBuffer;
         std::shared_ptr<vulkan::Buffer> m_lightingSourceBuffer;
+        std::shared_ptr<vulkan::ImageSampler> m_shadowsSampler;
         glm::mat4 m_preTransform;
 
         CommonObjectDataVulkan(
@@ -153,55 +163,35 @@ namespace textureWithShadows {
 
     /* for passing data other than the vertex data to the vertex shader */
     class DrawObjectDataVulkan : public renderDetails::DrawObjectDataVulkan {
-        void update(glm::mat4 const &modelMatrix) override {
-            PerObjectUBO ubo{};
-            ubo.model = modelMatrix;
-            m_uniformBuffer->copyRawTo(&ubo, sizeof (ubo));
+        std::shared_ptr<vulkan::Buffer> const &bufferModelMatrix() override {
+            return m_uniformBuffer;
         }
 
-        inline std::shared_ptr<vulkan::DescriptorSet> const &descriptorSetShadows() { return m_descriptorSetShadows; }
-        std::shared_ptr<vulkan::DescriptorSet> const &descriptorSet() override { return m_descriptorSet; }
+        std::shared_ptr<vulkan::DescriptorSet> const &descriptorSet(uint32_t id) override {
+            return m_descriptorSet;
+        }
 
         DrawObjectDataVulkan(std::shared_ptr<vulkan::Device> const &inDevice,
-                             std::shared_ptr<vulkan::DescriptorPools> const &descriptorPools,
-                             std::shared_ptr<vulkan::DescriptorPools> const &descriptorPoolsShadows,
-                             std::shared_ptr<vulkan::ImageSampler> const &inSampler,
-                             std::shared_ptr<vulkan::ImageSampler> const &inShadows,
-                             std::shared_ptr<vulkan::Buffer> const &inUniformBufferLighting,
-                             std::shared_ptr<vulkan::Buffer> const &inCommonUBO,
-                             glm::mat4 const &modelMatrix)
-                : m_descriptorSet{descriptorPools->allocateDescriptor()},
-                  m_descriptorSetShadows{descriptorPoolsShadows->allocateDescriptor()},
-                  m_sampler{inSampler},
-                  m_shadows{inShadows},
-                  m_uniformBufferLighting{inUniformBufferLighting},
-                  m_uniformBuffer{createUniformBuffer(inDevice, sizeof (PerObjectUBO))},
-                  m_commonUBO{inCommonUBO}
+                std::shared_ptr<CommonObjectDataVulkan> const &cod,
+                std::shared_ptr<vulkan::DescriptorSet> inDescriptorSet,
+                std::shared_ptr<vulkan::Buffer> inBuffer)
+                : m_descriptorSet{std::move(inDescriptorSet)},
+                  m_uniformBuffer{std::move(inBuffer)}
         {
-            PerObjectUBO ubo;
-            ubo.modelMatrix = modelMatrix;
-            m_uniformBuffer->copyRawTo(&ubo, sizeof (ubo));
-            updateDescriptorSet(inDevice);
+            updateDescriptorSet(inDevice, cod);
         }
 
         ~DrawObjectDataVulkan() override = default;
     private:
-        struct PerObjectUBO {
-            glm::mat4 modelMatrix;
-        };
-
         std::shared_ptr<vulkan::DescriptorSet> m_descriptorSet;
-        std::shared_ptr<vulkan::DescriptorSet> m_descriptorSetShadows;
-        std::shared_ptr<vulkan::ImageSampler> m_sampler;
-        std::shared_ptr<vulkan::ImageSampler> m_shadows;
-        std::shared_ptr<vulkan::Buffer> m_uniformBufferLighting;
         std::shared_ptr<vulkan::Buffer> m_uniformBuffer;
-        std::shared_ptr<vulkan::Buffer> m_commonUBO;
 
-        void updateDescriptorSet(std::shared_ptr<vulkan::Device> const &inDevice);
+        void updateDescriptorSet(
+                std::shared_ptr<vulkan::Device> const &inDevice,
+                std::shared_ptr<CommonObjectDataVulkan> const &cod);
     };
 
-    class RenderDetailsVulkan : public renderDetails::RenderDetails {
+    class RenderDetailsVulkan : public renderDetails::RenderDetailsVulkan {
     public:
         static char const *name() { return m_name; }
 
@@ -266,7 +256,7 @@ namespace textureWithShadows {
                 std::shared_ptr<vulkan::Device> const &inDevice,
                 std::shared_ptr<vulkan::Pipeline> const &basePipeline,
                 renderDetails::RenderDetailsParametersVulkan const &parameters)
-                : renderDetails::RenderDetails{parameters.width, parameters.height},
+                : renderDetails::RenderDetailsVulkan{parameters.width, parameters.height},
                   m_device{inDevice},
                   m_renderPass{vulkan::RenderPass::createDepthTextureRenderPass(
                           m_device, parameters.colorImageInfo, parameters.depthImageInfo)},
@@ -275,8 +265,8 @@ namespace textureWithShadows {
                   m_graphicsPipeline{std::make_shared<vulkan::Pipeline>(
                           gameRequester, m_device, VkExtent2D{m_surfaceWidth, m_surfaceHeight},
                           m_renderPass, m_descriptorPools,
-                          renderDetails::getBindingDescription(),
-                          renderDetails::getAttributeDescriptions(),
+                          getBindingDescription(),
+                          getAttributeDescriptions(),
                           SHADER_VERT_FILE, SHADER_FRAG_FILE, nullptr)}
         {}
 
@@ -298,6 +288,42 @@ namespace textureWithShadows {
 
             return std::make_shared<CommonObjectDataVulkan>(shadowsCOD, vertexUbo, fragUbo, preTransform,
                                                             m_surfaceWidth/static_cast<float>(m_surfaceHeight), config);
+        }
+
+        static renderDetails::ReferenceVulkan createReference(
+                std::shared_ptr<RenderDetailsVulkan> rd,
+                std::shared_ptr<CommonObjectDataVulkan> cod)
+        {
+            renderDetails::ReferenceVulkan ref;
+            ref.createDrawObjectData = renderDetails::ReferenceVulkan::CreateDrawObjectData(
+                    [rd, cod] (std::shared_ptr<renderDetails::DrawObjectDataVulkan> const &sharingDOD,
+                               std::shared_ptr<TextureData> const &textureData,
+                               glm::mat4 const &modelMatrix) ->
+                            std::shared_ptr<renderDetails::DrawObjectDataVulkan>
+                    {
+                        std::shared_ptr<vulkan::Buffer> modelMatrixBuffer{};
+                        if (sharingDOD) {
+                            modelMatrixBuffer = sharingDOD->bufferModelMatrix();
+                        } else {
+                            modelMatrixBuffer = createUniformBuffer(
+                                    rd->device(), sizeof (DrawObjectDataVulkan::PerObjectUBO));
+                            DrawObjectDataVulkan::PerObjectUBO perObjectUbo{};
+                            perObjectUbo.model = modelMatrix;
+                            modelMatrixBuffer->copyRawTo(
+                                    &perObjectUbo, sizeof(DrawObjectDataVulkan::PerObjectUBO));
+                        }
+
+                        return std::make_shared<DrawObjectDataVulkan>(
+                                rd->device(),
+                                cod,
+                                rd->descriptorPools()->allocateDescriptor(),
+                                std::move(modelMatrixBuffer));
+                    });
+
+            ref.renderDetails = std::move(rd);
+            ref.commonObjectData = std::move(cod);
+
+            return std::move(ref);
         }
     };
 }

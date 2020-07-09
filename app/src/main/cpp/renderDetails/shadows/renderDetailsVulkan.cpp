@@ -70,7 +70,7 @@ namespace shadows {
         VkDescriptorBufferInfo bufferInfo = {};
         bufferInfo.buffer = m_uniformBuffer->buffer();
         bufferInfo.offset = 0;
-        bufferInfo.range = sizeof(PerObjectUBO);
+        bufferInfo.range = sizeof (PerObjectUBO);
 
         std::array<VkWriteDescriptorSet, 2> descriptorWrites = {};
         descriptorWrites[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
@@ -96,9 +96,9 @@ namespace shadows {
         descriptorWrites[0].pTexelBufferView = nullptr; // Optional
 
         VkDescriptorBufferInfo commonInfo = {};
-        commonInfo.buffer = inCommonObjectData->buffer();
+        commonInfo.buffer = inCommonObjectData->cameraBuffer();
         commonInfo.offset = 0;
-        commonInfo.range = inCommonObjectData->bufferSize();
+        commonInfo.range = inCommonObjectData->cameraBufferSize();
 
         descriptorWrites[1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
         descriptorWrites[1].dstSet = m_descriptorSet->descriptorSet().get();

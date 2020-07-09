@@ -24,11 +24,14 @@
 
 namespace textureWithShadows {
     /* descriptor set for the MVP matrix and texture samplers */
-    void DrawObjectDataVulkan::updateDescriptorSet(std::shared_ptr<vulkan::Device> const &inDevice) {
+    void DrawObjectDataVulkan::updateDescriptorSet(
+            std::shared_ptr<vulkan::Device> const &inDevice,
+            std::shared_ptr<CommonObjectDataVulkan> const &cod)
+    {
         VkDescriptorBufferInfo bufferInfo = {};
         bufferInfo.buffer = m_uniformBuffer->buffer();
         bufferInfo.offset = 0;
-        bufferInfo.range = sizeof(PerObjectUBO);
+        bufferInfo.range = sizeof (PerObjectUBO);
 
         std::array<VkWriteDescriptorSet, 5> descriptorWrites = {};
         descriptorWrites[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
@@ -54,9 +57,9 @@ namespace textureWithShadows {
         descriptorWrites[0].pTexelBufferView = nullptr; // Optional
 
         VkDescriptorBufferInfo commonInfo = {};
-        commonInfo.buffer = m_commonUBO->buffer();
+        commonInfo.buffer = cod->cameraBuffer()->buffer();
         commonInfo.offset = 0;
-        commonInfo.range = sizeof(CommonUBO);
+        commonInfo.range = cod->cameraBufferSize();
 
         descriptorWrites[1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
         descriptorWrites[1].dstSet = m_descriptorSet->descriptorSet().get();
@@ -80,9 +83,9 @@ namespace textureWithShadows {
         descriptorWrites[2].pImageInfo = &imageInfo;
 
         VkDescriptorBufferInfo bufferLightingSource = {};
-        bufferLightingSource.buffer = m_uniformBufferLighting->buffer();
+        bufferLightingSource.buffer = cod->lightingBuffer()->buffer();
         bufferLightingSource.offset = 0;
-        bufferLightingSource.range = sizeof(glm::vec3);
+        bufferLightingSource.range = cod->lightingBufferSize();
 
         descriptorWrites[3].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
         descriptorWrites[3].dstSet = m_descriptorSet->descriptorSet().get();
@@ -94,8 +97,8 @@ namespace textureWithShadows {
 
         VkDescriptorImageInfo shadowInfo = {};
         shadowInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-        shadowInfo.imageView = m_shadows->imageView()->imageView().get();
-        shadowInfo.sampler = m_shadows->sampler().get();
+        shadowInfo.imageView = cod->shadowsSampler()->imageView()->imageView().get();
+        shadowInfo.sampler = cod->shadowsSampler()->sampler().get();
 
         descriptorWrites[4].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
         descriptorWrites[4].dstSet = m_descriptorSet->descriptorSet().get();
