@@ -17,8 +17,8 @@
  *  along with AmazingLabyrinth.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
-#ifndef AMAZING_LABYRINTH_TEXTUREWITHSHADOWS_RENDER_DETAILS_VULKAN_HPP
-#define AMAZING_LABYRINTH_TEXTUREWITHSHADOWS_RENDER_DETAILS_VULKAN_HPP
+#ifndef AMAZING_LABYRINTH_COLORWITHSHADOWS_RENDER_DETAILS_VULKAN_HPP
+#define AMAZING_LABYRINTH_COLORWITHSHADOWS_RENDER_DETAILS_VULKAN_HPP
 
 #include <memory>
 #include <vector>
@@ -33,7 +33,7 @@
 #include "config.hpp"
 #include "../renderDetailsVulkan.hpp"
 
-namespace textureWithShadows {
+namespace colorWithShadows {
     class RenderDetailsDataVulkan;
 
     class CommonObjectDataVulkan : public renderDetails::CommonObjectDataPerspective {
@@ -80,19 +80,19 @@ namespace textureWithShadows {
         glm::mat4 m_preTransform;
 
         CommonObjectDataVulkan(
-            std::shared_ptr<shadows::CommonObjectDataVulkan> shadowsCOD,
-            std::shared_ptr<vulkan::Buffer> cameraBuffer,
-            std::shared_ptr<vulkan::Buffer> lightingSourceBuffer,
-            glm::mat4 const &preTransform,
-            float aspectRatio,
-            Config const &config)
-            : renderDetails::CommonObjectData(
+                std::shared_ptr<shadows::CommonObjectDataVulkan> shadowsCOD,
+                std::shared_ptr<vulkan::Buffer> cameraBuffer,
+                std::shared_ptr<vulkan::Buffer> lightingSourceBuffer,
+                glm::mat4 const &preTransform,
+                float aspectRatio,
+                Config const &config)
+                : renderDetails::CommonObjectData(
                 config.viewAngle, aspectRatio, config.nearPlane, config.farPlane,
                 config.viewPoint, config.lookAt, config.up),
-            m_shadowsCOD{std::move(shadowsCOD)},
-            m_cameraBuffer{std::move(cameraBuffer)},
-            m_lightingSourceBuffer{std::move(lightingSourceBuffer)},
-            m_preTransform{preTransform}
+                  m_shadowsCOD{std::move(shadowsCOD)},
+                  m_cameraBuffer{std::move(cameraBuffer)},
+                  m_lightingSourceBuffer{std::move(lightingSourceBuffer)},
+                  m_preTransform{preTransform}
         {
             doUpdate();
         }
@@ -172,10 +172,10 @@ namespace textureWithShadows {
         }
 
         DrawObjectDataVulkan(std::shared_ptr<vulkan::Device> const &inDevice,
-                std::shared_ptr<CommonObjectDataVulkan> const &cod,
-                std::shared_ptr<levelDrawer::TextureData> const &textureData,
-                std::shared_ptr<vulkan::DescriptorSet> inDescriptorSet,
-                std::shared_ptr<vulkan::Buffer> inBuffer)
+                             std::shared_ptr<CommonObjectDataVulkan> const &cod,
+                             std::shared_ptr<levelDrawer::TextureData> const &textureData,
+                             std::shared_ptr<vulkan::DescriptorSet> inDescriptorSet,
+                             std::shared_ptr<vulkan::Buffer> inBuffer)
                 : m_descriptorSet{std::move(inDescriptorSet)},
                   m_uniformBuffer{std::move(inBuffer)}
         {
@@ -331,4 +331,4 @@ namespace textureWithShadows {
     };
 }
 
-#endif // AMAZING_LABYRINTH_TEXTUREWITHSHADOWS_RENDER_DETAILS_VULKAN_HPP
+#endif // AMAZING_LABYRINTH_COLORWITHSHADOWS_RENDER_DETAILS_VULKAN_HPP

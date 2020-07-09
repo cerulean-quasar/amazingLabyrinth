@@ -27,6 +27,7 @@
 #include <glm/gtc/matrix_transform.hpp>
 
 #include "../textureWithShadows/renderDetailsVulkan.hpp"
+#include "../colorWithShadows/renderDetailsVulkan.hpp"
 #include "../renderDetailsVulkan.hpp"
 #include "../../renderLoader/renderLoaderVulkan.hpp"
 #include "config.hpp"

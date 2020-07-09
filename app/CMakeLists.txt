@@ -29,6 +29,7 @@ if ((NOT ${CMAKE_ANDROID_ARCH_ABI} STREQUAL x86) AND (NOT ${CMAKE_ANDROID_ARCH_A
             src/main/cpp/mazeVulkan.cpp
             src/main/cpp/vk_mem_alloc.cpp
             src/main/cpp/renderDetails/shadows/renderDetailsVulkan.cpp
+            src/main/cpp/renderDetails/colorWithShadows/renderDetailsVulkan.cpp
             src/main/cpp/renderDetails/textureWithShadows/renderDetailsVulkan.cpp)
 
     list(APPEND platform64_files
