@@ -48,9 +48,13 @@ namespace renderDetails {
                 levelDrawer::DrawObjectTable<levelDrawer::DrawObjectGLTraits> const &drawObjectTable,
                 std::vector<size_t> const &drawObjectsIndexList) = 0;
 
+        RenderDetailsGL(uint32_t inWidth, uint32_t inHeight)
+        : RenderDetails{inWidth, inHeight}
+        {}
+
         ~RenderDetailsGL() override  = default;
     protected:
-        GLuint loadShaders(std::shared_ptr<GameRequester> const &gameRequester,
+        static GLuint loadShaders(std::shared_ptr<GameRequester> const &gameRequester,
                            std::string const &vertexShaderFile, std::string const &fragmentShaderFile);
     };
 }

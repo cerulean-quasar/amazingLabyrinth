@@ -36,6 +36,10 @@
 namespace textureWithShadows {
     class RenderDetailsDataVulkan;
 
+    struct ParametersVulkan : public renderDetails::ParametersVulkan {
+        std::shared_ptr<vulkan::ImageSampler> shadowsSampler;
+    };
+
     class CommonObjectDataVulkan : public renderDetails::CommonObjectDataPerspective {
         friend RenderDetailsDataVulkan;
     public:
@@ -74,10 +78,11 @@ namespace textureWithShadows {
             glm::vec3 lightingSource;
         };
 
+        glm::mat4 m_preTransform;
+        glm::vec3 m_lightingSource;
         std::shared_ptr<vulkan::Buffer> m_cameraBuffer;
         std::shared_ptr<vulkan::Buffer> m_lightingSourceBuffer;
         std::shared_ptr<vulkan::ImageSampler> m_shadowsSampler;
-        glm::mat4 m_preTransform;
 
         CommonObjectDataVulkan(
             std::shared_ptr<shadows::CommonObjectDataVulkan> shadowsCOD,
@@ -86,13 +91,14 @@ namespace textureWithShadows {
             glm::mat4 const &preTransform,
             float aspectRatio,
             Config const &config)
-            : renderDetails::CommonObjectData(
+            : renderDetails::CommonObjectDataPerspective(
                 config.viewAngle, aspectRatio, config.nearPlane, config.farPlane,
                 config.viewPoint, config.lookAt, config.up),
+            m_preTransform{preTransform},
+            m_lightingSource{config.lightingSource},
             m_shadowsCOD{std::move(shadowsCOD)},
             m_cameraBuffer{std::move(cameraBuffer)},
-            m_lightingSourceBuffer{std::move(lightingSourceBuffer)},
-            m_preTransform{preTransform}
+            m_lightingSourceBuffer{std::move(lightingSourceBuffer)}
         {
             doUpdate();
         }
@@ -104,12 +110,12 @@ namespace textureWithShadows {
 
             // eye at the m_viewPoint, looking at the m_lookAt position, pointing up is m_up.
             commonUbo.view = glm::lookAt(m_viewPoint, m_lookAt, m_up);
-            commonUbo.lightViewMatrix = m_shadowsCOD->view();
+            commonUbo.lightViewMatrix = glm::lookAt(m_lightingSource, m_lookAt, m_up);
 
             m_cameraBuffer->copyRawTo(&commonUbo, sizeof(commonUbo));
 
             CommonFragmentUBO commonFragmentUbo;
-            commonFragmentUbo.lightingSource = m_shadowsCOD->lightingSource();
+            commonFragmentUbo.lightingSource = m_lightingSource;
             m_lightingSourceBuffer->copyRawTo(&commonFragmentUbo, sizeof(commonFragmentUbo));
         }
     };
@@ -201,7 +207,7 @@ namespace textureWithShadows {
                 std::shared_ptr<GameRequester> const &gameRequester,
                 std::shared_ptr<RenderLoaderVulkan> const &renderLoader,
                 std::shared_ptr<vulkan::Device> const &inDevice,
-                renderDetails::RenderDetailsParametersVulkan const &parameters,
+                renderDetails::ParametersVulkan const &parameters,
                 Config const &config)
         {
             auto rd = std::make_shared<RenderDetailsVulkan>(
@@ -214,7 +220,7 @@ namespace textureWithShadows {
 
         static renderDetails::ReferenceVulkan loadExisting(
                 std::shared_ptr<renderDetails::RenderDetailsVulkan> const &rdBase,
-                renderDetails::RenderDetailsParametersVulkan const &parameters,
+                renderDetails::ParametersVulkan const &parameters,
                 Config const &config)
         {
             auto rd = dynamic_cast<RenderDetailsVulkan*>(rdBase.get());
@@ -257,7 +263,7 @@ namespace textureWithShadows {
                 std::shared_ptr<GameRequester> const &gameRequester,
                 std::shared_ptr<vulkan::Device> const &inDevice,
                 std::shared_ptr<vulkan::Pipeline> const &basePipeline,
-                renderDetails::RenderDetailsParametersVulkan const &parameters)
+                renderDetails::ParametersVulkan const &parameters)
                 : renderDetails::RenderDetailsVulkan{parameters.width, parameters.height},
                   m_device{inDevice},
                   m_renderPass{vulkan::RenderPass::createDepthTextureRenderPass(

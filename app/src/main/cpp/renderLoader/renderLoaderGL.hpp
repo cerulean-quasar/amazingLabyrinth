@@ -40,7 +40,7 @@ struct RenderLoaderGLTraits {
     static RenderDetailsGLRetrieveMap &(*getRenderDetailsMap)() = getRenderDetailsGLMap;
 };
 
-class RenderLoaderGL : public RenderLoader<RenderLoaderGLTraits> {
+class RenderLoaderGL :  public std::enable_shared_from_this<RenderLoaderGL>, public RenderLoader<RenderLoaderGLTraits> {
 public:
     ~RenderLoaderGL() override = default;
 
@@ -50,7 +50,7 @@ protected:
             std::shared_ptr<GameRequester> const &gameRequester,
             RenderLoaderGLTraits::RenderDetailsParameterType const &parameters) override
     {
-        auto renderDetails = fcns.renderDetailsLoadFcn(gameRequester, parameters);
+        auto renderDetails = fcns.renderDetailsLoadFcn(gameRequester, shared_from_this(), parameters);
     }
 
     void reload(
@@ -66,7 +66,7 @@ protected:
             std::shared_ptr<RenderLoaderGLTraits::RenderDetailsType> const &renderDetails,
             RenderLoaderGLTraits::RenderDetailsParameterType const &parameters) override
     {
-        return fcns.commonObjectDataCreateFcn(renderDetails, parameters);
+        return fcns.commonObjectDataCreateFcn(renderDetails, shared_from_this(), parameters);
     }
 private:
 };

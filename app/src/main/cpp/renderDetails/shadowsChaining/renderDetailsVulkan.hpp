@@ -84,7 +84,7 @@ namespace shadowsChaining {
             std::shared_ptr<GameRequester> const &gameRequester,
             std::shared_ptr<RenderLoaderVulkan> const &renderLoader,
             std::shared_ptr<vulkan::Device> const &inDevice,
-            renderDetails::RenderDetailsParametersVulkan const &parameters,
+            renderDetails::ParametersVulkan const &parameters,
             Config const &config)
         {
             // initialize main render details
@@ -143,7 +143,8 @@ namespace shadowsChaining {
 
         static renderDetails::ReferenceVulkan loadExisting(
             std::shared_ptr<renderDetails::RenderDetailsVulkan> const &rdBase,
-            renderDetails::RenderDetailsParametersVulkan const &parameters,
+            std::shared_ptr<RenderLoaderVulkan> const &renderLoader,
+            renderDetails::ParametersVulkan const &parameters,
             Config const &config)
         {
             auto rd = dynamic_cast<RenderDetailsVulkan*>(rdBase.get());
@@ -239,11 +240,11 @@ namespace shadowsChaining {
             return std::move(ref);
         }
 
-        static renderDetails::RenderDetailsParametersVulkan createShadowParameters(
+        static renderDetails::ParametersVulkan createShadowParameters(
                 std::shared_ptr<RenderDetailsVulkan> const &rd,
-                renderDetails::RenderDetailsParametersVulkan const &parameters)
+                renderDetails::ParametersVulkan const &parameters)
         {
-            renderDetails::RenderDetailsParametersVulkan shadowParameters;
+            renderDetails::ParametersVulkan shadowParameters;
             shadowParameters.width = getShadowsFramebufferDimension(parameters.width);
             shadowParameters.height = getShadowsFramebufferDimension(parameters.height);
             shadowParameters.preTransform = parameters.preTransform;

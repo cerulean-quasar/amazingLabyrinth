@@ -171,7 +171,7 @@ namespace shadows {
                 std::shared_ptr<GameRequester> const &gameRequester,
                 std::shared_ptr<RenderLoaderVulkan> const &renderLoader,
                 std::shared_ptr<vulkan::Device> const &inDevice,
-                renderDetails::RenderDetailsParametersVulkan const &parameters,
+                renderDetails::ParametersVulkan const &parameters,
                 Config const &config)
         {
             auto rd = std::make_shared<RenderDetailsVulkan>(
@@ -184,7 +184,7 @@ namespace shadows {
 
         static renderDetails::ReferenceVulkan loadExisting(
                 std::shared_ptr<renderDetails::RenderDetailsVulkan> const &rdBase,
-                renderDetails::RenderDetailsParametersVulkan const &parameters,
+                renderDetails::ParametersVulkan const &parameters,
                 Config const &config)
         {
             auto rd = dynamic_cast<RenderDetailsVulkan*>(rdBase.get());
@@ -219,7 +219,7 @@ namespace shadows {
             std::shared_ptr<GameRequester> const &gameRequester,
             std::shared_ptr<vulkan::Device> const &inDevice,
             std::shared_ptr<vulkan::Pipeline> const &basePipeline,
-            renderDetails::RenderDetailsParametersVulkan const &parameters)
+            renderDetails::ParametersVulkan const &parameters)
             : RenderDetails{parameters.width, parameters.height},
             m_device{inDevice},
             m_descriptorSetLayout{std::make_shared<DescriptorSetLayout>(m_device)},

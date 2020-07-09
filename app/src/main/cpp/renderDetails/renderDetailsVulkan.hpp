@@ -30,12 +30,14 @@
 #include "renderDetails.hpp"
 
 namespace renderDetails {
-    struct RenderDetailsParametersVulkan {
+    struct ParametersVulkan {
         std::vector<vulkan::RenderPass::ImageAttachmentInfo> colorImageInfo;
         vulkan::RenderPass::ImageAttachmentInfo depthImageInfo;
         glm::mat4 preTransform;
         uint32_t width;
         uint32_t height;
+
+        virtual ~ParametersVulkan() = default;
     };
 
     class DrawObjectDataVulkan : public DrawObjectData {

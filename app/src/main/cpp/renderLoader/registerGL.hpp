@@ -51,6 +51,7 @@ RenderDetailsGLRetrieveMap &getRenderDetailsGLMap() {
     return map;
 }
 
+class RenderLoaderGL;
 template <typename RenderDetailsType, typename CommonObjectDataType, typename ConfigType, typename ParametersType>
 class RegisterGL {
     RegisterGL() {
@@ -61,16 +62,18 @@ class RegisterGL {
                     RenderDetailsGLRetrieveFcns fcns;
                     ConfigType config;
                     fcns.renderDetailsLoadNewFcn = RenderDetailsGLRetrieveFcns::RenderDetailsLoadNewFcn (
-                            [] (std::shared_ptr<GameRequester> const &gameRequester,
+                            [config] (std::shared_ptr<GameRequester> const &gameRequester,
+                                    std::shared_ptr<RenderLoaderGL> const &renderLoader,
                                     ParametersType const &parameters) -> RenderDetailsGLRetrieveFcns::RenderDetailsReferenceGL
                             {
-                                return RenderDetailsType::loadNew(gameRequester, parameters);
+                                return RenderDetailsType::loadNew(gameRequester, renderLoader, parameters, config);
                             });
                     fcns.renderDetailsLoadExistingFcn = RenderDetailsGLRetrieveFcns::RenderDetailsLoadExistingFcn (
-                            [config] (std::shared_ptr<RenderDetailsType> const &renderDetails,
-                                    ParametersType const &parameters) -> RenderDetailsGLRetrieveFcns::RenderDetailsReferenceGL
+                            [config] (std::shared_ptr<RenderDetailsType> const &rd,
+                                      std::shared_ptr<RenderLoaderGL> const &renderLoader,
+                                      ParametersType const &parameters) -> RenderDetailsGLRetrieveFcns::RenderDetailsReferenceGL
                             {
-                                return RenderDetailsType::loadExisting(renderDetails, parameters, config);
+                                return RenderDetailsType::loadExisting(rd, renderLoader, parameters, config);
                             });
                     return std::move(fcns);
                 }

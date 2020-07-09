@@ -21,27 +21,28 @@
 #include <vector>
 
 #include "../renderDetailsGL.hpp"
-#include "renderDetailsDataGL.hpp"
-#include "../shadows/renderDetailsDataGL.hpp"
+#include "renderDetailsGL.hpp"
+#include "../shadows/renderDetailsGL.hpp"
+#include "../../graphicsGL.hpp"
 
 namespace textureWithShadows {
-    RenderDetailsDataGL::RenderDetailsDataGL(std::shared_ptr<GameRequester> const &inGameRequester,
+    RenderDetailsGL::RenderDetailsGL(std::shared_ptr<GameRequester> const &inGameRequester,
                                              bool useIntTexture,
                                              uint32_t inWidth, uint32_t inHeight)
-            : RenderDetailsData(inWidth, inHeight),
+            : renderDetails::RenderDetailsGL(inWidth, inHeight),
             m_useIntTexture{useIntTexture},
             m_framebufferShadows{},
             m_shadowsRenderDetails{std::make_shared<shadows::RenderDetailsDataGL>(inGameRequester, inWidth, inHeight)},
-            m_mainProgramID{renderDetails::loadShaders(inGameRequester, SHADER_VERT_FILE, SHADER_FRAG_FILE)}
+            m_mainProgramID{loadShaders(inGameRequester, SHADER_VERT_FILE, SHADER_FRAG_FILE)}
     {
-        std::vector<renderDetails::Framebuffer::ColorImageFormat> colorImageFormats;
+        std::vector<graphicsGL::Framebuffer::ColorImageFormat> colorImageFormats;
         if (m_useIntTexture) {
             colorImageFormats.emplace_back(GL_RGBA32UI, GL_RGBA_INTEGER, GL_UNSIGNED_INT);
         } else {
             colorImageFormats.emplace_back(GL_RGBA8, GL_RGBA, GL_UNSIGNED_BYTE);
         }
 
-        m_framebufferShadows = std::make_shared<renderDetails::Framebuffer>(
+        m_framebufferShadows = std::make_shared<graphicsGL::Framebuffer>(
                 m_surfaceWidth, m_surfaceHeight, colorImageFormats);
     }
 }

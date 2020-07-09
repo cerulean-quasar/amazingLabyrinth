@@ -17,20 +17,22 @@
  *  along with AmazingLabyrinth.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
-#ifndef AMAZING_LABYRINTH_RENDER_DETAILS_CONFIG_HPP
-#define AMAZING_LABYRINTH_RENDER_DETAILS_CONFIG_HPP
+#ifndef AMAZING_LABYRINTH_SHADOWS_CONFIG_HPP
+#define AMAZING_LABYRINTH_SHADOWS_CONFIG_HPP
 
 #include <glm/glm.hpp>
 
+#include "../../levelTracker/levelTracker.hpp"
+
 namespace shadows {
     struct Config {
-        float viewAngle;
-        float nearPlane;
-        float farPlane;
-        glm::vec3 lightingSource;
-        glm::vec3 lookAt;
-        glm::vec3 up;
+        static float constexpr const viewAngle = 3.1415926f/4.0f;
+        static float constexpr const nearPlane = 0.5f;
+        static float constexpr const farPlane = 5.0f;
+        static glm::vec3 constexpr const lightingSource{1.0f, 1.0f, 1.5f};
+        static glm::vec3 constexpr const lookAt{0.0f, 0.0f, levelTracker::Loader::m_maxZLevel};
+        static glm::vec3 constexpr const up{0.0f, 1.0f, 0.0f};
     };
 }
 
-#endif // AMAZING_LABYRINTH_RENDER_DETAILS_CONFIG_HPP
+#endif // AMAZING_LABYRINTH_SHADOWS_CONFIG_HPP

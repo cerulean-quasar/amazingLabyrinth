@@ -30,11 +30,11 @@
 #include "registerVulkan.hpp"
 
 struct RenderLoaderVulkanTraits {
-    using RenderDetailsParametersType = renderDetails::RenderDetailsParametersVulkan;
+    using RenderDetailsParametersType = renderDetails::ParametersVulkan;
     using RenderDetailsType = renderDetails::RenderDetailsVulkan;
     using CommonObjectDataType = renderDetails::CommonObjectData;
     using RenderDetailsReferenceType = renderDetails::RenderDetailsReference<RenderDetailsType, CommonObjectDataType>;
-    using RenderDetailsParameterType = renderDetails::RenderDetailsParametersVulkan;
+    using RenderDetailsParameterType = renderDetails::ParametersVulkan;
     using RetrieveFcns = RenderDetailsVulkanRetrieveFcns;
     static RenderDetailsVulkanRetrieveMap &(*getRenderDetailsMap)() = getRenderDetailsVulkanMap;
 };
@@ -57,7 +57,7 @@ protected:
         std::shared_ptr<RenderLoaderVulkanTraits::RenderDetailsType> const &renderDetails,
         RenderLoaderVulkanTraits::RenderDetailsParameterType const &parameters) override
     {
-        renderDetails.reload(gameRequester, parameters);
+        renderDetails.reload(gameRequester, shared_from_this(), parameters);
     }
 
     RenderLoaderVulkanTraits::RenderDetailsReferenceType loadExisting(
