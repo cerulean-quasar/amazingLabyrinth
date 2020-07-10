@@ -51,6 +51,12 @@ namespace shadowsChaining {
             return m_mainDrawObjectData->bufferModelMatrix();
         }
 
+        void update(glm::mat4 const &modelMatrix) override {
+            // the main draw object data and the shadows draw object data share a buffer.
+            // So it is only necessary to update one.
+            m_mainDrawObjectData.update(modelMatrix);
+        }
+
         std::shared_ptr<vulkan::DescriptorSet> const &descriptorSet(uint32_t id) override {
             switch (id) {
                 case 0:
@@ -117,9 +123,7 @@ namespace shadowsChaining {
 
             // shadows render details
             auto refShadows = renderLoader->load(
-                    gameRequester,
-                    shadows::RenderDetailsVulkan::name(),
-                    shadowParameters);
+                    gameRequester, shadows::RenderDetailsVulkan::name(), shadowParameters);
 
             // shadows framebuffer
             rd->m_framebufferShadows = std::make_shared<vulkan::Framebuffer>(
@@ -129,21 +133,24 @@ namespace shadowsChaining {
                     shadowParameters.width, shadowParameters.height);
 
             // texture render details
-            auto refTexture = renderLoader->load(gameRequester,
-                                                 textureWithShadows::RenderDetailsVulkan::name(),
-                                                 parameters);
+            auto refTexture = renderLoader->load(
+                    gameRequester, textureWithShadows::RenderDetailsVulkan::name(), parameters);
 
             // color render details
-            auto refColor = renderLoader->load(gameRequester,
-                                               colorWithShadows::RenderDetailsVulkan::name(),
-                                               parameters);
+            auto refColor = renderLoader->load(
+                    gameRequester, colorWithShadows::RenderDetailsVulkan::name(), parameters);
+
+            rd->m_textureRenderDetails = refTexture.renderDetails;
+            rd->m_colorRenderDetails = refColor.renderDetails;
+            rd->m_shadowsRenderDetails = refShadows.renderDetails;
 
             return createReference(std::move(rd), refShadows, refTexture, refColor);
         }
 
         static renderDetails::ReferenceVulkan loadExisting(
-            std::shared_ptr<renderDetails::RenderDetailsVulkan> const &rdBase,
+            std::shared_ptr<GameRequester> const &gameRequester,
             std::shared_ptr<RenderLoaderVulkan> const &renderLoader,
+            std::shared_ptr<renderDetails::RenderDetailsVulkan> const &rdBase,
             renderDetails::ParametersVulkan const &parameters,
             Config const &config)
         {
@@ -152,12 +159,22 @@ namespace shadowsChaining {
                 throw std::runtime_error("Invalid render details type.")
             }
             auto shadowParameters = createShadowParameters(rd, parameters);
-            auto refShadows = shadows::RenderDetailsVulkan::loadExisting(
-                    rd->m_shadowsRenderDetails, shadowParameters);
-            auto refTexture = textureWithShadows::RenderDetailsVulkan::loadExisting(
-                    rd->m_textureRenderDetails, parameters);
-            auto refColor = colorWithShadows::RenderDetailsVulkan::loadExisting(
-                    rd->m_colorRenderDetails, parameters);
+
+            // shadows render details
+            auto refShadows = renderLoader->load(
+                gameRequester, renderLoader, shadows::RenderDetailsVulkan::name(), shadowParameters);
+
+            // texture render details
+            auto refTexture = renderLoader->load(
+                gameRequester, renderLoader, textureWithShadows::RenderDetailsVulkan::name(), parameters);
+
+            // color render details
+            auto refColor = renderLoader->load(
+                gameRequester, renderLoader, colorWithShadows::RenderDetailsVulkan::name(), parameters);
+
+            rd->m_textureRenderDetails = refTexture.renderDetails;
+            rd->m_colorRenderDetails = refColor.renderDetails;
+            rd->m_shadowsRenderDetails = refShadows.renderDetails;
 
             return createReference(std::move(rdBase), refShadows, refTexture, refColor);
         }

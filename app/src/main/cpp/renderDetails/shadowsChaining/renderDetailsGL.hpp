@@ -70,7 +70,7 @@ namespace shadowsChaining {
                 std::shared_ptr<shadows::DrawObjectDataGL> shadowsDOD)
                 : renderDetails::DrawObjectData{},
                   m_mainDOD{std::move(mainDOD)},
-                  m_shadowsDOD{std::move(shadowsDOD)},
+                  m_shadowsDOD{std::move(shadowsDOD)}
         {}
 
         std::shared_ptr<renderDetails::DrawObjectDataGL> m_mainDOD;
@@ -82,10 +82,11 @@ namespace shadowsChaining {
         renderDetails::ReferenceGL loadNew(
                 std::shared_ptr<GameRequester> const &gameRequester,
                 std::shared_ptr<RenderLoaderGL> const &renderLoader,
-                renderDetails::RenderDetailsParametersGL const &parameters,
+                renderDetails::ParametersGL const &parameters,
                 Config const &config)
         {
-            auto rd = std::make_shared<RenderDetailsGL>(parameters.useIntTexture, parameters.width, parameters.height);
+            auto rd = std::make_shared<RenderDetailsGL>(
+                    parameters.useIntTexture, parameters.width, parameters.height);
 
             std::vector<graphicsGL::Framebuffer::ColorImageFormat> colorImageFormats;
             // for shadow mapping.
@@ -97,8 +98,8 @@ namespace shadowsChaining {
             m_framebufferShadows = std::make_shared<graphicsGL::Framebuffer>(
                     m_surfaceWidth, m_surfaceHeight, colorImageFormats);
 
-            auto refShadows = renderLoader->load(gameRequester, shadows::RenderDetailsGL::name(),
-                    parameters);
+            auto refShadows = renderLoader->load(
+                    gameRequester, renderLoader, shadows::RenderDetailsGL::name(), parameters);
 
             renderDetails::ParametersWithShadowsGL parametersWithShadows = {};
             parametersWithShadows.width = parameters.width;
@@ -106,13 +107,55 @@ namespace shadowsChaining {
             parametersWithShadows.useIntTexture = parameters.useIntTexture;
             parametersWithShadows.shadowsFB = rd->m_framebufferShadows;
 
-            auto refTexture = renderLoader->load(gameRequester,
+            auto refTexture = renderLoader->load(
+                    gameRequester, renderLoader,
                     textureWithShadows::RenderDetailsGL::name(), parametersWithShadows);
 
-            auto refColor = renderLoader->load(gameRequester,
+            auto refColor = renderLoader->load(
+                    gameRequester, renderLoader,
                     colorWithShadows::RenderDetailsGL::name(), parametersWithShadows);
 
-            return createReference(rd, refTexture, refColor, refShadows);
+            rd->m_shadowsRenderDetails = refShadows.renderDetails;
+            rd->m_textureRenderDetails = refTexture.renderDetails;
+            rd->m_colorRenderDetails = refColor.renderDetails;
+
+            return createReference(std::move(rd), refTexture, refColor, refShadows);
+        }
+
+        renderDetails::RenderDetailsGL loadExisting(
+                std::shared_ptr<GameRequester> const &gameRequester,
+                std::shared_ptr<RenderLoaderGL> const &renderLoader,
+                std::shared_ptr<renderDetails::RenderDetailsGL> rdBase,
+                renderDetails::ParametersGL const &parameters,
+                Config const &config)
+        {
+            auto rd = dynamic_cast<RenderDetailsGL*>(rdBase.get());
+            if (rd == nullptr) {
+                throw std::runtime_error("Invalid render details type.")
+            }
+
+            auto refShadows = renderLoader->load(
+                    gameRequester, renderLoader, shadows::RenderDetailsGL::name(), parameters);
+
+            renderDetails::ParametersWithShadowsGL parametersWithShadows = {};
+            parametersWithShadows.width = parameters.width;
+            parametersWithShadows.height = parameters.height;
+            parametersWithShadows.useIntTexture = parameters.useIntTexture;
+            parametersWithShadows.shadowsFB = rd->m_framebufferShadows;
+
+            auto refTexture = renderLoader->load(
+                    gameRequester, renderLoader, textureWithShadows::RenderDetailsGL::name(),
+                    parametersWithShadows);
+
+            auto refColor = renderLoader->load(
+                    gameRequester, renderLoader, colorWithShadows::RenderDetailsGL::name(),
+                    parametersWithShadows);
+
+            rd->m_shadowsRenderDetails = refShadows.renderDetails;
+            rd->m_textureRenderDetails = refTexture.renderDetails;
+            rd->m_colorRenderDetails = refColor.renderDetails;
+
+            return createReference(std::move(rd), refTexture, refColor, refShadows);
         }
 
         std::shared_ptr<renderDetails::DrawObjectData> createDrawObjectData(
@@ -162,7 +205,7 @@ namespace shadowsChaining {
                     auto dodShadows = createDODShadows(std::shared_ptr<levelDrawer::TextureData>(),
                             modelMatrix);
 
-
+                    return std::make_shared<DrawObjectDataGL>(dodMain, dodShadows);
                 }
             };
 

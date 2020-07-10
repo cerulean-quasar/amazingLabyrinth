@@ -38,9 +38,10 @@ struct RenderDetailsVulkanRetrieveFcns {
         renderDetails::ParametersVulkan const &)>;
 
     using RenderDetailsLoadExistingFcn = std::function<std::shared_ptr<RenderDetailsReferenceVulkan>(
-        std::shared_ptr<renderDetails::RenderDetailsVulkan> const &,
+        std::shared_ptr<GameRequester> const &,
         std::shared_ptr<RenderLoaderVulkan> const &,
-        renderDetails::ParametersVulkan const &);
+        std::shared_ptr<renderDetails::RenderDetailsVulkan> const &,
+        renderDetails::ParametersVulkan const &)>;
 
     RenderDetailsLoadNewFcn renderDetailsLoadNewFcn;
     RenderDetailsLoadExistingFcn renderDetailsLoadExistingFcn;
@@ -72,14 +73,17 @@ class RegisterVulkan {
                                       std::shared_ptr<vulkan::Device> inDevice,
                                       ParametersType const &parameters) -> RenderDetailsVulkanRetrieveFcns::RenderDetailsReferenceVulkan
                             {
-                                return RenderDetailsType::loadNew(gameRequester, renderLoader, inDevice, parameters, config);
+                                return RenderDetailsType::loadNew(gameRequester, renderLoader,
+                                        inDevice, parameters, config);
                             });
                     fcns.renderDetailsLoadExistingFcn = RenderDetailsVulkanRetrieveFcns::RenderDetailsLoadExistingFcn (
-                            [config] (std::shared_ptr<RenderDetailsBaseType> const &renderDetails,
+                            [config] (std::shared_ptr<GameRequester> const &gameRequester,
                                       std::shared_ptr<RenderLoaderVulkan> const &renderLoader,
+                                      std::shared_ptr<RenderDetailsBaseType> const &renderDetails,
                                       ParametersType const &parameters) -> RenderDetailsVulkanRetrieveFcns::RenderDetailsReferenceVulkan
                             {
-                                return RenderDetailsType::loadExisting(renderDetails, renderLoader, parameters, config);
+                                return RenderDetailsType::loadExisting(gameRequester, renderLoader,
+                                        renderDetails, parameters, config);
                             });
                     return std::move(fcns);
                 }

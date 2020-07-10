@@ -62,10 +62,11 @@ protected:
 
     RenderLoaderVulkanTraits::RenderDetailsReferenceType loadExisting(
         RenderLoaderVulkanTraits::RetrieveFcns const &fcns,
+        std::shared_ptr<GameRequester> const &gameRequester,
         std::shared_ptr<RenderLoaderVulkanTraits::RenderDetailsType> const &renderDetails,
         RenderLoaderVulkanTraits::RenderDetailsParameterType const &parameters) override
     {
-        return fcns.renderDetailsLoadExistingFcn(renderDetails, parameters);
+        return fcns.renderDetailsLoadExistingFcn(gameRequester, shared_from_this(), renderDetails, parameters);
     }
 private:
     std::shared_ptr<vulkan::Device> m_device;

@@ -49,7 +49,7 @@ public:
                     m_loadedRenderDetails.push_front(renderDetails);
                 }
 
-                return loadExisting(fcns, renderDetails, parameters);
+                return loadExisting(fcns, gameRequester, renderDetails, parameters);
             }
         }
 
