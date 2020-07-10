@@ -21,6 +21,7 @@
 #define AMAZING_LABYRINTH_TEXTUREWITHSHADOWS_RENDER_DETAILS_DATA_GL_HPP
 
 #include <memory>
+#include <vector>
 
 #include <glm/glm.hpp>
 
@@ -32,6 +33,7 @@
 #include "../shadows/renderDetailsGL.hpp"
 #include "../textureWithShadows/renderDetailsGL.hpp"
 #include "../../graphicsGL.hpp"
+#include "../../renderLoader/renderLoaderGL.hpp"
 
 namespace shadowsChaining {
     class RenderDetailsGL;
@@ -57,25 +59,62 @@ namespace shadowsChaining {
         friend RenderDetailsGL;
     public:
         void update(glm::mat4 const &modelMatrix) override {
-            m_modelMatrix = modelMatrix;
+            m_mainDOD->update(modelMatrix);
+            m_shadowsDOD->update(modelMatrix);
         }
 
         ~DrawObjectDataGL() override = default;
     private:
         DrawObjectDataGL(
-                std::shared_ptr<shadows::DrawObjectDataGL> shadowsDOD,
-                glm::mat4 const &inModelMatrix)
+                std::shared_ptr<renderDetails::DrawObjectDataGL> mainDOD,
+                std::shared_ptr<shadows::DrawObjectDataGL> shadowsDOD)
                 : renderDetails::DrawObjectData{},
+                  m_mainDOD{std::move(mainDOD)},
                   m_shadowsDOD{std::move(shadowsDOD)},
-                  m_modelMatrix{inModelMatrix}
         {}
 
+        std::shared_ptr<renderDetails::DrawObjectDataGL> m_mainDOD;
         std::shared_ptr<shadows::DrawObjectDataGL> m_shadowsDOD;
-        glm::mat4 m_modelMatrix;
     };
 
     class RenderDetailsGL : public renderDetails::RenderDetailsGL {
     public:
+        renderDetails::ReferenceGL loadNew(
+                std::shared_ptr<GameRequester> const &gameRequester,
+                std::shared_ptr<RenderLoaderGL> const &renderLoader,
+                renderDetails::RenderDetailsParametersGL const &parameters,
+                Config const &config)
+        {
+            auto rd = std::make_shared<RenderDetailsGL>(parameters.useIntTexture, parameters.width, parameters.height);
+
+            std::vector<graphicsGL::Framebuffer::ColorImageFormat> colorImageFormats;
+            // for shadow mapping.
+            if (m_useIntTexture) {
+                colorImageFormats.emplace_back(GL_RGBA32UI, GL_RGBA_INTEGER, GL_UNSIGNED_INT);
+            } else {
+                colorImageFormats.emplace_back(GL_RGBA8, GL_RGBA, GL_UNSIGNED_BYTE);
+            }
+            m_framebufferShadows = std::make_shared<graphicsGL::Framebuffer>(
+                    m_surfaceWidth, m_surfaceHeight, colorImageFormats);
+
+            auto refShadows = renderLoader->load(gameRequester, shadows::RenderDetailsGL::name(),
+                    parameters);
+
+            renderDetails::ParametersWithShadowsGL parametersWithShadows = {};
+            parametersWithShadows.width = parameters.width;
+            parametersWithShadows.height = parameters.height;
+            parametersWithShadows.useIntTexture = parameters.useIntTexture;
+            parametersWithShadows.shadowsFB = rd->m_framebufferShadows;
+
+            auto refTexture = renderLoader->load(gameRequester,
+                    textureWithShadows::RenderDetailsGL::name(), parametersWithShadows);
+
+            auto refColor = renderLoader->load(gameRequester,
+                    colorWithShadows::RenderDetailsGL::name(), parametersWithShadows);
+
+            return createReference(rd, refTexture, refColor, refShadows);
+        }
+
         std::shared_ptr<renderDetails::DrawObjectData> createDrawObjectData(
                 std::shared_ptr<levelDrawer::TextureData> &textureData,
                 glm::mat4 const &modelMatrix) override
@@ -89,14 +128,49 @@ namespace shadowsChaining {
         ~RenderDetailsGL() override = default;
 
     private:
+        bool m_useIntTexture;
         std::shared_ptr<graphicsGL::Framebuffer> m_framebufferShadows;
         std::shared_ptr<shadows::RenderDetailsGL> m_shadowsRenderDetails;
         std::shared_ptr<textureWithShadows::RenderDetailsGL> m_textureRenderDetails;
         std::shared_ptr<colorWithShadows::RenderDetailsGL> m_colorRenderDetails;
 
-        RenderDetailsGL(std::shared_ptr<GameRequester> const &inGameRequester,
-                        uint32_t inWidth, uint32_t inHeight)
-                : renderDetails::RenderDetailsGL{inWidth, inHeight}
+        renderDetails::ReferenceGL createReference(
+                std::shared_ptr<renderDetails::RenderDetailsGL> rd,
+                renderDetails::ReferenceGL const &refTexture,
+                renderDetails::ReferenceGL const &refColor,
+                renderDetails::ReferenceGL const &refShadows)
+        {
+            renderDetails::ReferenceGL ref = {};
+            auto cod = std::make_shared<CommonObjectDataGL>(refTexture.commonObjectData,
+                    refColor.commonObjectData, refShadows.commonObjectData);
+            ref.createDrawObjectData = renderDetails::ReferenceGL::CreateDrawObjectData{
+                [createDODTexture(refTexture.createDrawObjectData),
+                 createDODColor(refColor.createDrawObjectData),
+                 createDODShadows(refShadows.createDrawObjectData)] (
+                         std::shared_ptr<levelDrawer::TextureData> textureData,
+                         glm::mat4 modelMatrix) ->
+                         std::shared_ptr<renderDetails::DrawObjectData>
+                {
+                    std::shared_ptr<renderDetails::DrawObjectData> dodMain;
+
+                    if (textureData) {
+                        dodMain = createDODTexture(std::move(textureData), std::move(modelMatrix));
+                    } else {
+                        dodMain = createDODColor(std::move(textureData), std::move(modelMatrix));
+                    }
+
+                    auto dodShadows = createDODShadows(std::shared_ptr<levelDrawer::TextureData>(),
+                            modelMatrix);
+
+
+                }
+            };
+
+        }
+
+        RenderDetailsGL(bool useIntTexture, uint32_t inWidth, uint32_t inHeight)
+                : renderDetails::RenderDetailsGL{inWidth, inHeight},
+                m_useIntTexture(useIntTexture)
         {}
     };
 }

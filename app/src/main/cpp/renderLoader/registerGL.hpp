@@ -29,14 +29,14 @@
 // Register RenderDetailsGL types
 struct RenderDetailsGLRetrieveFcns {
     using RenderDetailsReferenceGL = renderDetails::RenderDetailsReference<renderDetails::RenderDetailsGL, renderDetails::CommonObjectData>;
-    using RenderDetailsLoadNewFcn = std::function<std::shared_ptr<RenderDetailsReferenceGL>(
+    using RenderDetailsLoadNewFcn = std::function<std::shared_ptr<renderDetails::ReferenceGL>(
         std::shared_ptr<GameRequester> const &,
         std::shared_ptr<vulkan::Device>,
-        renderDetails::RenderDetailsParametersGL const &);
+        renderDetails::ParametersGL const &);
 
-    using RenderDetailsLoadExistingFcn = std::function<std::shared_ptr<RenderDetailsReferenceGL>(
+    using RenderDetailsLoadExistingFcn = std::function<std::shared_ptr<renderDetails::ReferenceGL>(
         std::shared_ptr<renderDetails::RenderDetailsGL> const &,
-        renderDetails::RenderDetailsParametersGL const &);
+        renderDetails::ParametersGL const &);
 
     RenderDetailsLoadNewFcn renderDetailsLoadNewFcn;
     RenderDetailsLoadExistingFcn renderDetailsLoadExistingFcn;
@@ -82,4 +82,4 @@ class RegisterGL {
     }
 };
 
-#endif // AMAZING_LABYRINTH_RENDER_LOADER_REGISTER_VULKAN_HPP
+#endif // AMAZING_LABYRINTH_RENDER_LOADER_REGISTER_GL_HPP

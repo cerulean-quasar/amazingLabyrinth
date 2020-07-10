@@ -28,11 +28,17 @@
 #include "renderDetails.hpp"
 #include "../levelDrawer/drawObjectTable/drawObjectTable.hpp"
 #include "../levelDrawer/drawObjectTable/drawObjectTableGL.hpp"
+#include "../graphicsGL.hpp"
 
 namespace renderDetails {
-    struct RenderDetailsParametersGL {
+    struct ParametersGL {
+        bool useIntTexture;
         uint32_t width;
         uint32_t height;
+    };
+
+    struct ParametersWithShadowsGL : public ParametersGL {
+        std::shared_ptr<graphicsGL::Framebuffer> shadowsFB;
     };
 
     class DrawObjectDataGL : public DrawObjectData {
@@ -57,6 +63,8 @@ namespace renderDetails {
         static GLuint loadShaders(std::shared_ptr<GameRequester> const &gameRequester,
                            std::string const &vertexShaderFile, std::string const &fragmentShaderFile);
     };
+
+    using ReferenceGL = renderDetails::RenderDetailsReference<RenderDetailsGL, renderDetails::CommonObjectData, renderDetails::DrawObjectDataGL>;
 }
 
 #endif // AMAZING_LABYRINTH_RENDER_DETAILS_COMMON_GL_HPP

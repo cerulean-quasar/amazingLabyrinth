@@ -217,9 +217,9 @@ namespace shadowsChaining {
             ref.renderDetails = rd;
             ref.commonObjectData = cod;
             ref.createDrawObjectData = renderDetails::ReferenceVulkan::CreateDrawObjectData(
-                    [createDODShadows = refShadows.createDrawObjectData,
-                            createDODTexture = refTexture.createDrawObjectData,
-                            createDODColor = refColor.createDrawObjectData] (
+                    [createDODShadows(refShadows.createDrawObjectData),
+                            createDODTexture(refTexture.createDrawObjectData),
+                            createDODColor(refColor.createDrawObjectData)] (
                             std::shared_ptr<renderDetails::DrawObjectDataVulkan> const &sharingDOD,
                             std::shared_ptr<TextureData> const &textureData,
                             glm::mat4 const &modelMatrix) ->
