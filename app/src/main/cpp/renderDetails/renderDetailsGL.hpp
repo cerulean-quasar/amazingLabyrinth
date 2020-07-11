@@ -35,15 +35,19 @@ namespace renderDetails {
         bool useIntTexture;
         uint32_t width;
         uint32_t height;
+
+        virtual ~ParametersGL() = default;
     };
 
     struct ParametersWithShadowsGL : public ParametersGL {
         std::shared_ptr<graphicsGL::Framebuffer> shadowsFB;
+
+        ~ParametersWithShadowsGL() override = default;
     };
 
     class DrawObjectDataGL : public DrawObjectData {
     public:
-        virtual glm::mat4 modelMatrix() = 0;
+        virtual glm::mat4 modelMatrix(uint32_t) = 0;
 
         ~DrawObjectDataGL() override = default;
     };

@@ -26,23 +26,61 @@
 #include "../../graphicsGL.hpp"
 
 namespace textureWithShadows {
+    renderDetails::ReferenceGL RenderDetailsGL::loadNew(
+            std::shared_ptr<GameRequester> const &gameRequester,
+            std::shared_ptr<RenderLoaderGL> const &renderLoader,
+            renderDetails::ParametersGL const &parameters,
+            Config const &config)
+    {
+        auto rd = std::make_shared<RenderDetailsGL>(gameRequester, parameters.width,
+                                                    parameters.height);
+
+        renderDetails::ParametersWithShadowsGL const &p =
+                dynamic_cast<renderDetails::ParametersWithShadowsGL const &>(parameters);
+
+        auto cod = std::make_shared<CommonObjectDataGL>(p.shadowsFB,
+                parameters.width / static_cast<float>(parameters.height), config);
+
+        return createReference(std::move(rd), std::move(cod));
+    }
+
+    renderDetails::ReferenceGL RenderDetailsGL::loadExisting(
+            std::shared_ptr<GameRequester> const &gameRequester,
+            std::shared_ptr<RenderLoaderGL> const &renderLoader,
+            std::shared_ptr<renderDetails::RenderDetailsGL> rdBase,
+            renderDetails::ParametersGL const &parameters,
+            Config const &config)
+    {
+        renderDetails::ParametersWithShadowsGL const &p =
+                dynamic_cast<renderDetails::ParametersWithShadowsGL const &>(parameters);
+
+        auto cod = std::make_shared<CommonObjectDataGL>(p.shadowsFB,
+                parameters.width / static_cast<float>(parameters.height), config);
+
+        return createReference(std::move(rdBase), std::move(cod));
+    }
+
+    renderDetails::ReferenceGL RenderDetailsGL::createReference(
+            std::shared_ptr<renderDetails::RenderDetailsGL> rd,
+            std::shared_ptr<CommonObjectDataGL> cod)
+    {
+        renderDetails::ReferenceGL ref;
+        ref.createDrawObjectData = renderDetails::ReferenceGL::CreateDrawObjectData(
+            [] (
+                    std::shared_ptr<renderDetails::DrawObjectDataGL> const &,
+                    std::shared_ptr<levelDrawer::TextureData>,
+                    glm::mat4 modelMatrix) -> std::shared_ptr<renderDetails::DrawObjectDataGL>
+            {
+                return std::make_shared<DrawObjectDataGL>(std::move(modelMatrix));
+            });
+        ref.renderDetails = std::move(rd);
+        ref.commonObjectData = std::move(cod);
+        return std::move(ref);
+    }
+
     RenderDetailsGL::RenderDetailsGL(std::shared_ptr<GameRequester> const &inGameRequester,
-                                             bool useIntTexture,
                                              uint32_t inWidth, uint32_t inHeight)
             : renderDetails::RenderDetailsGL(inWidth, inHeight),
-            m_useIntTexture{useIntTexture},
-            m_framebufferShadows{},
-            m_shadowsRenderDetails{std::make_shared<shadows::RenderDetailsDataGL>(inGameRequester, inWidth, inHeight)},
             m_mainProgramID{loadShaders(inGameRequester, SHADER_VERT_FILE, SHADER_FRAG_FILE)}
-    {
-        std::vector<graphicsGL::Framebuffer::ColorImageFormat> colorImageFormats;
-        if (m_useIntTexture) {
-            colorImageFormats.emplace_back(GL_RGBA32UI, GL_RGBA_INTEGER, GL_UNSIGNED_INT);
-        } else {
-            colorImageFormats.emplace_back(GL_RGBA8, GL_RGBA, GL_UNSIGNED_BYTE);
-        }
-
-        m_framebufferShadows = std::make_shared<graphicsGL::Framebuffer>(
-                m_surfaceWidth, m_surfaceHeight, colorImageFormats);
-    }
+    {}
 }

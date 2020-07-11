@@ -58,6 +58,14 @@ namespace shadowsChaining {
     class DrawObjectDataGL : public renderDetails::DrawObjectData {
         friend RenderDetailsGL;
     public:
+        glm::mat4 modelMatrix(uint32_t id) override {
+            if (id == 0) {
+                return m_mainDOD->modelMatrix(id);
+            } else {
+                return m_shadowsDOD->modelMatrix(id);
+            }
+        }
+
         void update(glm::mat4 const &modelMatrix) override {
             m_mainDOD->update(modelMatrix);
             m_shadowsDOD->update(modelMatrix);
@@ -79,7 +87,7 @@ namespace shadowsChaining {
 
     class RenderDetailsGL : public renderDetails::RenderDetailsGL {
     public:
-        renderDetails::ReferenceGL loadNew(
+        static renderDetails::ReferenceGL loadNew(
                 std::shared_ptr<GameRequester> const &gameRequester,
                 std::shared_ptr<RenderLoaderGL> const &renderLoader,
                 renderDetails::ParametersGL const &parameters,
@@ -122,7 +130,7 @@ namespace shadowsChaining {
             return createReference(std::move(rd), refTexture, refColor, refShadows);
         }
 
-        renderDetails::RenderDetailsGL loadExisting(
+        static renderDetails::ReferenceGL loadExisting(
                 std::shared_ptr<GameRequester> const &gameRequester,
                 std::shared_ptr<RenderLoaderGL> const &renderLoader,
                 std::shared_ptr<renderDetails::RenderDetailsGL> rdBase,

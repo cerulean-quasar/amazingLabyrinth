@@ -17,8 +17,8 @@
  *  along with AmazingLabyrinth.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
-#ifndef AMAZING_LABYRINTH_RENDER_DETAILS_DATA_HPP
-#define AMAZING_LABYRINTH_RENDER_DETAILS_DATA_HPP
+#ifndef AMAZING_LABYRINTH_RENDER_DETAILS_HPP
+#define AMAZING_LABYRINTH_RENDER_DETAILS_HPP
 
 #include <memory>
 #include <functional>
@@ -40,6 +40,14 @@ namespace renderDetails {
 
     class CommonObjectData {
     public:
+        CommonObjectData() = default;
+        virtual ~CommonObjectData() = default;
+    protected:
+        virtual void update() = 0;
+    };
+
+    class CommonObjectDataView : public CommonObjectData {
+    public:
         glm::mat4 view() {
             return glm::lookAt(m_viewPoint, m_lookAt, m_up);
         }
@@ -55,24 +63,24 @@ namespace renderDetails {
             update();
         }
 
-        CommonObjectData(
+        ~CommonObjectDataView() override = default;
+    protected:
+        CommonObjectDataView(
                 glm::vec3 viewPoint,
                 glm::vec3 lookAt,
                 glm::vec3 up)
-                : m_viewPoint{viewPoint},
-                m_lookAt{lookAt},
-                m_up{up}
+            : CommonObjectData(),
+            m_viewPoint{std::move(viewPoint)},
+            m_lookAt{std::move(lookAt)},
+            m_up{std::move(up)}
         {}
 
-    protected:
         glm::vec3 m_viewPoint;
         glm::vec3 m_lookAt;
         glm::vec3 m_up;
-
-        virtual void update() = 0;
     };
 
-    class CommonObjectDataPerspective : public CommonObjectData {
+    class CommonObjectDataPerspective : public CommonObjectDataView {
     public:
         virtual glm::mat4 getPerspectiveMatrixForLevel() = 0;
 
@@ -97,7 +105,7 @@ namespace renderDetails {
             glm::vec3 viewPoint,
             glm::vec3 lookAt,
             glm::vec3 up)
-            : CommonObjectData{viewPoint, lookAt, up},
+            : CommonObjectDataView{viewPoint, lookAt, up},
             m_viewAngle{viewAngle},
             m_aspectRatio{aspectRatio},
             m_nearPlane{nearPlane},
@@ -112,7 +120,7 @@ namespace renderDetails {
         float m_farPlane;
     };
 
-    class CommonObjectDataOrtho : public CommonObjectData {
+    class CommonObjectDataOrtho : public CommonObjectDataView {
     public:
         virtual glm::mat4 getPerspectiveMatrixForLevel() = 0;
 
@@ -143,7 +151,7 @@ namespace renderDetails {
                 glm::vec3 viewPoint,
                 glm::vec3 lookAt,
                 glm::vec3 up)
-                : CommonObjectData{viewPoint, lookAt, up},
+                : CommonObjectDataView{viewPoint, lookAt, up},
                   m_minusX{minusX},
                   m_plusX{plusX},
                   m_minusY{minusY},
@@ -152,7 +160,7 @@ namespace renderDetails {
                   m_farPlane{farPlane}
         {}
 
-        virtual ~CommonObjectDataOrtho() = default;
+        ~CommonObjectDataOrtho() override = default;
     protected:
         float m_minusX;
         float m_plusX;
@@ -182,4 +190,4 @@ namespace renderDetails {
         uint32_t m_surfaceHeight;
     };
 }
-#endif
+#endif // AMAZING_LABYRINTH_RENDER_DETAILS_HPP

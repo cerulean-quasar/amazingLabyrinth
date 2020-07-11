@@ -30,11 +30,12 @@
 #include "../renderDetails.hpp"
 #include "config.hpp"
 #include "../../levelDrawer/textureTable/textureLoader.hpp"
+#include "../../renderLoader/renderLoaderGL.hpp"
 
 namespace shadows {
-    class RenderDetailsDataGL;
-    class CommonObjectDataGL : public renderDetails::CommonObjectData {
-        friend RenderDetailsDataGL;
+    class RenderDetailsGL;
+    class CommonObjectDataGL : public renderDetails::CommonObjectDataPerspective {
+        friend RenderDetailsGL;
     public:
         glm::mat4 getPerspectiveMatrixForLevel() override {
             /* perspective matrix: takes the perspective projection, the aspect ratio, near and far
@@ -43,9 +44,11 @@ namespace shadows {
             return getPerspectiveMatrix(m_viewAngle, m_aspectRatio, m_nearPlane, m_farPlane,
                                         false, false);
         }
+
+        ~CommonObjectDataGL() override = default;
     private:
         CommonObjectDataGL(float aspectRatio, Config const &config)
-            : CommonObjectData(config.viewAngle, aspectRatio, config.nearPlane, config.farPlane,
+            : CommonObjectDataPerspective(config.viewAngle, aspectRatio, config.nearPlane, config.farPlane,
                     config.lightingSource, config.lookAt, config.up)
         {}
     };
@@ -65,32 +68,35 @@ namespace shadows {
         glm::mat4 m_modelMatrix;
     };
 
-    class RenderDetailsDataGL : public renderDetails::RenderDetailsData {
+    class RenderDetailsGL : public renderDetails::RenderDetailsGL {
     public:
-        std::shared_ptr<renderDetails::CommonObjectData> createCommonObjectData(
-                Config const &config)
-        {
-            return std::make_shared<CommonObjectDataGL>(
-                    m_surfaceWidth/static_cast<float>(m_surfaceHeight),
-                    config);
-        }
+        static renderDetails::ReferenceGL loadNew(
+                std::shared_ptr<GameRequester> const &gameRequester,
+                std::shared_ptr<RenderLoaderGL> const &renderLoader,
+                renderDetails::ParametersGL const &parameters,
+                Config const &config);
 
-        std::shared_ptr<renderDetails::DrawObjectData> createDrawObjectData(
-                std::shared_ptr<TextureData> const &textureData,
-                glm::mat4 const &modelMatrix) override {
-            return std::make_shared<DrawObjectDataGL>(modelMatrix);
-        }
+        static renderDetails::ReferenceGL loadExisting(
+                std::shared_ptr<GameRequester> const &gameRequester,
+                std::shared_ptr<RenderLoaderGL> const &renderLoader,
+                std::shared_ptr<renderDetails::RenderDetailsGL> rdBase,
+                renderDetails::ParametersGL const &parameters,
+                Config const &config);
 
-        RenderDetailsDataGL(std::shared_ptr<GameRequester> const &inGameRequester,
-                            uint32_t inWidth, uint32_t inHeight);
-
-        ~RenderDetailsDataGL() override = default;
+        ~RenderDetailsGL() override = default;
 
     private:
         static char constexpr const *DEPTH_VERT_FILE = "shaders/depthShaderGL.vert";
         static char constexpr const *SIMPLE_FRAG_FILE = "shaders/simpleGL.frag";
 
         GLuint m_depthProgramID;
+
+        static renderDetails::ReferenceGL createReference(
+                std::shared_ptr<renderDetails::RenderDetailsGL> rd,
+                std::shared_ptr<CommonObjectDataGL> cod);
+
+        RenderDetailsGL(std::shared_ptr<GameRequester> const &inGameRequester,
+                        uint32_t inWidth, uint32_t inHeight);
     };
 }
 #endif // AMAZING_LABYRINTH_SHADOWS_RENDER_DETAILS_DATA_GL_HPP

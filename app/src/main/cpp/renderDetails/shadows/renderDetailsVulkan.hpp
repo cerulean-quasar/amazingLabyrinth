@@ -77,7 +77,7 @@ namespace shadows {
                 glm::mat4 preTransform,
                 float aspectRatio,
                 Config const &config)
-                : renderDetails::CommonObjectData(
+                : renderDetails::CommonObjectDataPerspective(
                 config.viewAngle, aspectRatio, config.nearPlane, config.farPlane,
                 config.lightingSource, config.lookAt, config.up),
                 m_camera{std::move(buffer)},
