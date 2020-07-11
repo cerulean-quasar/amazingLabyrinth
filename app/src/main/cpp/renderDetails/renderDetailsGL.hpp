@@ -68,7 +68,7 @@ namespace renderDetails {
                            std::string const &vertexShaderFile, std::string const &fragmentShaderFile);
     };
 
-    using ReferenceGL = renderDetails::RenderDetailsReference<RenderDetailsGL, renderDetails::CommonObjectData, renderDetails::DrawObjectDataGL>;
+    using ReferenceGL = renderDetails::Reference<RenderDetailsGL, renderDetails::CommonObjectData, renderDetails::DrawObjectDataGL>;
 }
 
 #endif // AMAZING_LABYRINTH_RENDER_DETAILS_COMMON_GL_HPP

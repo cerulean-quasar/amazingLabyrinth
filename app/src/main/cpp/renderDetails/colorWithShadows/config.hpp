@@ -24,7 +24,7 @@
 
 #include "../../levelTracker/levelTracker.hpp"
 
-namespace textureWithShadows {
+namespace colorWithShadows {
     // todo: get these constants from a config file.
     struct Config {
         static float constexpr const viewAngle = 3.1415926f/4.0f;

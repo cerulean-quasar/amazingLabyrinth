@@ -33,8 +33,8 @@
 namespace levelDrawer {
     struct DrawObjectVulkanTraits {
         using RenderDetailsType = renderDetails::RenderDetailsVulkan;
-        using CommonObjectDataType = renderDetails::CommonObjectDataVulkan;
-        using RenderDetailsReferenceType = RenderDetailsReference<RenderDetailsType, CommonObjectDataType>;
+        using CommonObjectDataType = renderDetails::CommonObjectData;
+        using RenderDetailsReferenceType = renderDetails::ReferenceVulkan;
         using ModelDataType = ModelDataVulkan;
         using TextureDataType = TextureDataVulkan;
         using DrawObjectDataType = renderDetails::DrawObjectDataVulkan;
@@ -43,8 +43,8 @@ namespace levelDrawer {
     struct LevelDrawerVulkanTraits {
         using RenderLoaderType = RenderLoaderVulkan;
         using RenderDetailsType = renderDetails::RenderDetailsVulkan;
-        using CommonObjectDataType = renderDetails::CommonObjectDataVulkan;
-        using RenderDetailsReferenceType = RenderDetailsReference<RenderDetailsType, CommonObjectDataType>;
+        using CommonObjectDataType = renderDetails::CommonObjectData;
+        using RenderDetailsReferenceType = renderDetails::ReferenceVulkan;
         using ModelTableType = ModelTableVulkan;
         using TextureTableType = TextureTableVulkan;
         using DrawObjectTableType = DrawObjectTable<DrawObjectVulkanTraits>;

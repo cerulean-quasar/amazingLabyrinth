@@ -28,7 +28,7 @@
 
 namespace renderDetails {
     template <typename RenderDetailsType, typename CommonObjectDataType, typename DrawObjectDataType>
-    struct RenderDetailsReference {
+    struct Reference {
         using CreateDrawObjectData = std::function<std::shared_ptr<DrawObjectDataType>(
                 std::shared_ptr<DrawObjectDataType> const &,
                 std::shared_ptr<levelDrawer::TextureData> const &,

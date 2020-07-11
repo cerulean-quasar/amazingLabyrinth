@@ -25,12 +25,14 @@
 #include "textureTable/textureTableGL.hpp"
 #include "modelTable/modelTableGL.hpp"
 #include "levelDrawerGraphics.hpp"
+#include "../renderDetails/renderDetailsGL.hpp"
+#include "../renderLoader/renderLoaderGL.hpp"
 
-namespace {
+namespace levelDrawer {
     struct DrawObjectGLTraits {
         using RenderDetailsType = renderDetails::RenderDetailsGL;
         using CommonObjectDataType = renderDetails::CommonObjectDataGL;
-        using RenderDetailsReferenceType = RenderDetailsReference<RenderDetailsType, CommonObjectDataType>;
+        using RenderDetailsReferenceType = renderDetails::ReferenceGL;
         using ModelDataType = ModelDataGL;
         using TextureDataType = TextureDataGL;
         using DrawObjectDataType = renderDetails::DrawObjectDataGL;
@@ -40,7 +42,7 @@ namespace {
         using RenderLoaderType = RenderLoaderGL;
         using RenderDetailsType = renderDetails::RenderDetailsGL;
         using CommonObjectDataType = renderDetails::CommonObjectDataGL;
-        using RenderDetailsReferenceType = RenderDetailsReference<RenderDetailsType, CommonObjectDataType>;
+        using RenderDetailsReferenceType = renderDetails::ReferenceGL;
         using ModelTableType = ModelTableGL;
         using TextureTableType = TextureTableGL;
         using DrawObjectTableType = DrawObjectTable<DrawObjectGLTraits>;

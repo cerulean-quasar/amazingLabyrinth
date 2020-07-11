@@ -36,9 +36,17 @@ namespace levelDrawer {
     template<typename traits>
     class LevelDrawerGraphics : public LevelDrawer {
     public:
+        enum ObjectType {
+            STARTER,
+            LEVEL,
+            FINISHER
+        };
+
         size_t addObject(
+                ObjectType type,
                 std::shared_ptr<ModelDescription> const &modelDescription,
-                std::shared_ptr<TextureDescription> const &textureDescription) {
+                std::shared_ptr<TextureDescription> const &textureDescription)
+        {
             std::shared_ptr<traits::ModelDataType> modelData = m_modelTable.addModel(
                     modelDescription);
             std::shared_ptr<traits::TextureDataType> textureData{};
@@ -47,10 +55,21 @@ namespace levelDrawer {
                 textureData = m_textureTable.addTexture(textureDescription);
             }
 
-            m_drawObjectTable.addObject(modelData, textureData);
+            switch (type) {
+            case ObjectType::STARTER:
+                m_drawObjectTableStarter.addObject(modelData, textureData);
+                break;
+            case ObjectType::LEVEL:
+                m_drawObjectTableStarter.addObject(modelData, textureData);
+                break;
+            case ObjectType::FINISHER:
+            default:
+                m_drawObjectTableStarter.addObject(modelData, textureData);
+            }
         }
 
         size_t addObject(
+                ObjectType type,
                 std::shared_ptr<ModelDescription> const &modelDescription,
                 std::shared_ptr<TextureDescription> const &textureDescription,
                 std::string const &renderDetailsName) {
@@ -62,15 +81,42 @@ namespace levelDrawer {
                 textureData = m_textureTable.addTexture(textureDescription);
             }
 
-            m_drawObjectTable.addObject(
-                    m_renderLoader->load(renderDetailsName, m_renderDetailsParameters),
-                    modelData,
-                    textureData);
+            switch (type) {
+            case ObjectType::STARTER:
+                m_drawObjectTableStarter.addObject(
+                        m_renderLoader->load(m_gameRequester, renderDetailsName, m_renderDetailsParameters),
+                        modelData,
+                        textureData);
+                break;
+            case ObjectType::LEVEL:
+                m_drawObjectTableLevel.addObject(
+                        m_renderLoader->load(m_gameRequester, renderDetailsName, m_renderDetailsParameters),
+                        modelData,
+                        textureData);
+                break;
+            case ObjectType::FINISHER:
+            default:
+                m_drawObjectTableFinisher.addObject(
+                        m_renderLoader->load(m_gameRequester, renderDetailsName, m_renderDetailsParameters),
+                        modelData,
+                        textureData);
+            }
         }
 
-        size_t addModelMatrixForObject(size_t objsIndex, glm::mat4 const &modelMatrix) override {
-            std::shared_ptr<typename traits::DrawObjectType> drawObj = m_drawObjectTable.drawObject(
-                    objsIndex);
+        size_t addModelMatrixForObject(ObjectType type, size_t objsIndex, glm::mat4 const &modelMatrix) override {
+            std::shared_ptr<typename traits::DrawObjectType> drawObj;
+
+            switch (type) {
+            case ObjectType::STARTER:
+                drawObj = m_drawObjectTableStarter.drawObject(objsIndex);
+                break;
+            case ObjectType::LEVEL:
+                drawObj = m_drawObjectTableLevel.drawObject(objsIndex);
+                break;
+            case ObjectType::FINISHER:
+                drawObj = m_drawObjectTableFinisher.drawObject(objsIndex);
+                break;
+            }
 
             auto renderDetailsRef = drawObj->renderDetailsReference();
 
@@ -93,9 +139,20 @@ namespace levelDrawer {
             return drawObj->numberObjectsData() - 1;
         }
 
-        void resizeObjectsData(size_t objsIndex, size_t newSize) override {
-            std::shared_ptr<typename traits::DrawObjectType> drawObj = m_drawObjectTable.drawObject(
-                    objsIndex);
+        void resizeObjectsData(ObjectType type, size_t objsIndex, size_t newSize) override {
+            std::shared_ptr<typename traits::DrawObjectType> drawObj;
+
+            switch (type) {
+            case ObjectType::STARTER:
+                drawObj = m_drawObjectTableStarter.drawObject(objsIndex);
+                break;
+            case ObjectType::LEVEL:
+                drawObj = m_drawObjectTableLevel.drawObject(objsIndex);
+                break;
+            case ObjectType::FINISHER:
+                drawObj = m_drawObjectTableFinisher.drawObject(objsIndex);
+                break;
+            }
 
             size_t nbrObjsData = drawObj->numberObjectsData();
             if (nbrObjsData == newSize) {
@@ -124,8 +181,18 @@ namespace levelDrawer {
             }
         }
 
-        size_t numberObjectsDataForObject(size_t objsIndex) override {
-            return m_drawObjectTable.numberObjectsDataForObject(objsIndex);
+        size_t numberObjectsDataForObject(ObjectType type, size_t objsIndex) override {
+            std::shared_ptr<typename traits::DrawObjectType> drawObj;
+
+            switch (type) {
+            case ObjectType::STARTER:
+                return m_drawObjectTableStarter.numberObjectsDataForObject(objsIndex);
+            case ObjectType::LEVEL:
+                return m_drawObjectTableLevel.numberObjectsDataForObject(objsIndex);
+            case ObjectType::FINISHER:
+            default:
+                return m_drawObjectTableFinisher.numberObjectsDataForObject(objsIndex);
+            }
         }
 
         void requestRenderDetails(std::string const &name) override {
@@ -138,9 +205,12 @@ namespace levelDrawer {
         typename traits::RenderDetailsReferenceType m_renderDetailsReference;
         typename traits::ModelTableType m_modelTable;
         typename traits::TextureTableType m_textureTable;
-        typename traits::DrawObjectTableType m_drawObjectTable;
+        typename traits::DrawObjectTableType m_drawObjectTableStarter;
+        typename traits::DrawObjectTableType m_drawObjectTableLevel;
+        typename traits::DrawObjectTableType m_drawObjectTableFinisher;
         typename traits::RenderLoaderType m_renderLoader;
         typename traits::RenderDetailsParameters m_renderDetailsParameters;
+        std::shared_ptr<GameRequester> m_gameRequester;
     };
 }
 #endif // AMAZING_LABYRINTH_LEVEL_DRAWER_GRAPHICS_HPP
