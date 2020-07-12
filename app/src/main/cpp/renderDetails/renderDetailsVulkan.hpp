@@ -43,15 +43,7 @@ namespace renderDetails {
 
     class DrawObjectDataVulkan : public DrawObjectData {
     public:
-        struct PerObjectUBO {
-            glm::mat4 modelMatrix;
-        };
-
-        void update(glm::mat4 const &modelMatrix) override {
-            PerObjectUBO ubo{};
-            ubo.model = modelMatrix;
-            m_uniformBuffer->copyRawTo(&ubo, sizeof (ubo));
-        }
+        virtual bool hasTexture() = 0;
 
         virtual std::shared_ptr<vulkan::Buffer> const &bufferModelMatrix() = 0;
         virtual std::shared_ptr<vulkan::DescriptorSet> const &descriptorSet(uint32_t id) = 0;

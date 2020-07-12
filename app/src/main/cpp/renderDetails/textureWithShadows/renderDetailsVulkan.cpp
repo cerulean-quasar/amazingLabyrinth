@@ -22,9 +22,86 @@
 #include "../../graphicsVulkan.hpp"
 #include "renderDetailsVulkan.hpp"
 
-namespace textureWithShadows {
+namespace objectWithShadows {
     /* descriptor set for the MVP matrix and texture samplers */
-    void DrawObjectDataVulkan::updateDescriptorSet(
+    void DrawObjectDataVulkan::colorUpdateDescriptorSet(
+            std::shared_ptr<vulkan::Device> const &inDevice,
+            std::shared_ptr<CommonObjectDataVulkan> const &cod)
+    {
+        VkDescriptorBufferInfo bufferInfo = {};
+        bufferInfo.buffer = m_uniformBuffer->buffer();
+        bufferInfo.offset = 0;
+        bufferInfo.range = sizeof (PerObjectUBO);
+
+        std::array<VkWriteDescriptorSet, 5> descriptorWrites = {};
+        descriptorWrites[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+        descriptorWrites[0].dstSet = m_descriptorSet->descriptorSet().get();
+
+        /* must be the same as the binding in the vertex shader */
+        descriptorWrites[0].dstBinding = 0;
+
+        /* index into the array of descriptors */
+        descriptorWrites[0].dstArrayElement = 0;
+
+        descriptorWrites[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+
+        /* how many array elements you want to update */
+        descriptorWrites[0].descriptorCount = 1;
+
+        /* which one of these pointers needs to be used depends on which descriptorType we are
+         * using.  pBufferInfo is for buffer based data, pImageInfo is used for image data, and
+         * pTexelBufferView is used for decriptors that refer to buffer views.
+         */
+        descriptorWrites[0].pBufferInfo = &bufferInfo;
+        descriptorWrites[0].pImageInfo = nullptr; // Optional
+        descriptorWrites[0].pTexelBufferView = nullptr; // Optional
+
+        VkDescriptorBufferInfo commonInfo = {};
+        commonInfo.buffer = cod->cameraBuffer()->buffer();
+        commonInfo.offset = 0;
+        commonInfo.range = cod->cameraBufferSize();
+
+        descriptorWrites[1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+        descriptorWrites[1].dstSet = m_descriptorSet->descriptorSet().get();
+        descriptorWrites[1].dstBinding = 1;
+        descriptorWrites[1].dstArrayElement = 0;
+        descriptorWrites[1].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+        descriptorWrites[1].descriptorCount = 1;
+        descriptorWrites[1].pBufferInfo = &commonInfo;
+
+        VkDescriptorBufferInfo bufferLightingSource = {};
+        bufferLightingSource.buffer = cod->lightingBuffer()->buffer();
+        bufferLightingSource.offset = 0;
+        bufferLightingSource.range = cod->lightingBufferSize();
+
+        descriptorWrites[2].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+        descriptorWrites[2].dstSet = m_descriptorSet->descriptorSet().get();
+        descriptorWrites[2].dstBinding = 2;
+        descriptorWrites[2].dstArrayElement = 0;
+        descriptorWrites[2].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+        descriptorWrites[2].descriptorCount = 1;
+        descriptorWrites[2].pBufferInfo = &bufferLightingSource;
+
+        VkDescriptorImageInfo shadowInfo = {};
+        shadowInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+        shadowInfo.imageView = cod->shadowsSampler()->imageView()->imageView().get();
+        shadowInfo.sampler = cod->shadowsSampler()->sampler().get();
+
+        descriptorWrites[3].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+        descriptorWrites[3].dstSet = m_descriptorSet->descriptorSet().get();
+        descriptorWrites[3].dstBinding = 3;
+        descriptorWrites[3].dstArrayElement = 0;
+        descriptorWrites[3].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+        descriptorWrites[3].descriptorCount = 1;
+        descriptorWrites[3].pImageInfo = &shadowInfo;
+
+        vkUpdateDescriptorSets(inDevice->logicalDevice().get(),
+                               static_cast<uint32_t>(descriptorWrites.size()),
+                               descriptorWrites.data(), 0, nullptr);
+    }
+
+    /* descriptor set for the MVP matrix and texture samplers */
+    void DrawObjectDataVulkan::textureUpdateDescriptorSet(
             std::shared_ptr<vulkan::Device> const &inDevice,
             std::shared_ptr<CommonObjectDataVulkan> const &cod,
             std::shared_ptr<levelDrawer::TextureData> const &textureData)
@@ -115,7 +192,7 @@ namespace textureWithShadows {
     }
 
     /* for accessing data other than the vertices from the shaders */
-    void DescriptorSetLayout::createDescriptorSetLayout() {
+    void TextureDescriptorSetLayout::createDescriptorSetLayout() {
         /* model matrix - different for each object */
         VkDescriptorSetLayoutBinding modelMatrixBinding = {};
         modelMatrixBinding.binding = 0;
@@ -180,5 +257,108 @@ namespace textureWithShadows {
         };
 
         m_descriptorSetLayout.reset(descriptorSetLayoutRaw, deleter);
+    }
+
+    /* for accessing data other than the vertices from the shaders */
+    void ColorDescriptorSetLayout::createDescriptorSetLayout() {
+        /* model matrix - different for each object */
+        VkDescriptorSetLayoutBinding modelMatrixBinding = {};
+        modelMatrixBinding.binding = 0;
+        modelMatrixBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+        modelMatrixBinding.descriptorCount = 1;
+
+        /* only accessing the MVP matrix from the vertex shader */
+        modelMatrixBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
+        modelMatrixBinding.pImmutableSamplers = nullptr; // Optional
+
+        /* view and projection matrix - the same for all objects */
+        VkDescriptorSetLayoutBinding commonDataBinding = {};
+        commonDataBinding.binding = 1;
+        commonDataBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+        commonDataBinding.descriptorCount = 1;
+        commonDataBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
+        commonDataBinding.pImmutableSamplers = nullptr; // Optional
+
+        VkDescriptorSetLayoutBinding lightingSourceBinding = {};
+        lightingSourceBinding.binding = 2;
+        lightingSourceBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+        lightingSourceBinding.descriptorCount = 1;
+        lightingSourceBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+        lightingSourceBinding.pImmutableSamplers = nullptr;
+
+        VkDescriptorSetLayoutBinding samplerShadows = {};
+        samplerShadows.binding = 3;
+        samplerShadows.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+        samplerShadows.descriptorCount = 1;
+        samplerShadows.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+        samplerShadows.pImmutableSamplers = nullptr;
+
+        std::array<VkDescriptorSetLayoutBinding, 4> bindings = {modelMatrixBinding,
+                                                                commonDataBinding,
+                                                                lightingSourceBinding,
+                                                                samplerShadows};
+
+        VkDescriptorSetLayoutCreateInfo layoutInfo = {};
+        layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
+        layoutInfo.bindingCount = static_cast<uint32_t>(bindings.size());
+        layoutInfo.pBindings = bindings.data();
+
+        VkDescriptorSetLayout descriptorSetLayoutRaw;
+        if (vkCreateDescriptorSetLayout(m_device->logicalDevice().get(), &layoutInfo, nullptr,
+                                        &descriptorSetLayoutRaw) != VK_SUCCESS) {
+            throw std::runtime_error("failed to create descriptor set layout!");
+        }
+
+        auto const &capDevice = m_device;
+        auto deleter = [capDevice](VkDescriptorSetLayout descriptorSetLayoutRaw) {
+            vkDestroyDescriptorSetLayout(capDevice->logicalDevice().get(), descriptorSetLayoutRaw,
+                                         nullptr);
+        };
+
+        m_descriptorSetLayout.reset(descriptorSetLayoutRaw, deleter);
+    }
+
+    renderDetails::ReferenceVulkan RenderDetailsVulkan::createReference(
+            std::shared_ptr<RenderDetailsVulkan> rd,
+            std::shared_ptr<CommonObjectDataVulkan> cod)
+    {
+        renderDetails::ReferenceVulkan ref;
+        ref.createDrawObjectData = renderDetails::ReferenceVulkan::CreateDrawObjectData(
+                [rd, cod] (std::shared_ptr<renderDetails::DrawObjectDataVulkan> const &sharingDOD,
+                           std::shared_ptr<levelDrawer::TextureData> const &textureData,
+                           glm::mat4 const &modelMatrix) ->
+                        std::shared_ptr<renderDetails::DrawObjectDataVulkan>
+                {
+                    std::shared_ptr<vulkan::Buffer> modelMatrixBuffer{};
+                    if (sharingDOD) {
+                        modelMatrixBuffer = sharingDOD->bufferModelMatrix();
+                    } else {
+                        modelMatrixBuffer = createUniformBuffer(
+                                rd->device(), sizeof (DrawObjectDataVulkan::PerObjectUBO));
+                        DrawObjectDataVulkan::PerObjectUBO perObjectUbo{};
+                        perObjectUbo.model = modelMatrix;
+                        modelMatrixBuffer->copyRawTo(
+                                &perObjectUbo, sizeof(DrawObjectDataVulkan::PerObjectUBO));
+                    }
+
+                    std::shared_ptr<vulkan::DescriptorSet> ds;
+                    if (textureData) {
+                        ds = rd->m_descriptorPoolsTexture->allocateDescriptor();
+                    } else {
+                        ds = rd->m_descriptorPoolsColor->allocateDescriptor();
+                    }
+
+                    return std::make_shared<DrawObjectDataVulkan>(
+                            rd->device(),
+                            cod,
+                            textureData,
+                            rd->descriptorPools()->allocateDescriptor(),
+                            std::move(modelMatrixBuffer));
+                });
+
+        ref.renderDetails = std::move(rd);
+        ref.commonObjectData = std::move(cod);
+
+        return std::move(ref);
     }
 }
