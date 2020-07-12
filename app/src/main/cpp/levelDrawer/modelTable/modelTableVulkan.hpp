@@ -54,7 +54,11 @@ namespace levelDrawer {
 
             copyVerticesToBuffer(inPool, modelData.first);
             copyIndicesToBuffer(inPool, modelData.second);
+
+            m_numberIndices = modelData.second.size();
         }
+
+        inline uint32_t numberIndices() { return m_numberIndices; }
 
         inline std::shared_ptr<vulkan::Buffer> const &vertexBuffer() { return m_vertexBuffer; }
 
@@ -69,6 +73,7 @@ namespace levelDrawer {
          */
         std::shared_ptr<vulkan::Buffer> m_vertexBuffer;
         std::shared_ptr<vulkan::Buffer> m_indexBuffer;
+        uint32_t m_numberIndices;
 
         void copyVerticesToBuffer(std::shared_ptr<vulkan::CommandPool> const &cmdpool,
                                   std::vector<Vertex> const &vertices) {

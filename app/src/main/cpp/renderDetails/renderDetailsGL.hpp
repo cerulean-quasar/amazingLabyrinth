@@ -27,7 +27,6 @@
 #include "../common.hpp"
 #include "renderDetails.hpp"
 #include "../levelDrawer/drawObjectTable/drawObjectTable.hpp"
-#include "../levelDrawer/drawObjectTable/drawObjectTableGL.hpp"
 #include "../graphicsGL.hpp"
 
 namespace renderDetails {

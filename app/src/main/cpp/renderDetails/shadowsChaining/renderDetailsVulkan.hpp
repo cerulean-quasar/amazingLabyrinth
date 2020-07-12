@@ -26,6 +26,7 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 
+#include "../../levelDrawer/levelDrawerVulkan.hpp"
 #include "../textureWithShadows/renderDetailsVulkan.hpp"
 #include "../colorWithShadows/renderDetailsVulkan.hpp"
 #include "../renderDetailsVulkan.hpp"
@@ -91,93 +92,22 @@ namespace shadowsChaining {
             std::shared_ptr<RenderLoaderVulkan> const &renderLoader,
             std::shared_ptr<vulkan::Device> const &inDevice,
             renderDetails::ParametersVulkan const &parameters,
-            Config const &config)
-        {
-            // initialize main render details
-            auto rd = std::make_shared<RenderDetailsVulkan>(parameters.width, parameters.height);
-            rd->m_device = inDevice;
-
-            // shadow resources
-            rd->m_depthImageViewShadows = std::make_shared<vulkan::ImageView>(
-                    vulkan::ImageFactory::createDepthImage(
-                            inDevice,
-                            VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT,
-                            getShadowsFramebufferWidth(parameters.width),
-                            getShadowsFramebufferHeigth(parameters.height)),
-                    VK_IMAGE_ASPECT_DEPTH_BIT);
-            rd->m_shadowsColorAttachment = vulkan::ImageView::createImageViewAndImage(
-                    inDevice,
-                    getShadowsFramebufferWidth(parameters.width),
-                    getShadowsFramebufferHeigth(parameters.height),
-                    VK_FORMAT_R32G32B32A32_SFLOAT,
-                    VK_IMAGE_TILING_OPTIMAL,
-                    VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
-                    VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
-                    VK_IMAGE_ASPECT_COLOR_BIT);
-            rd->m_samplerShadows = std::make_shared<vulkan::ImageSampler>(
-                    inDevice, rd->m_shadowsColorAttachment,
-                    VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER,
-                    VK_BORDER_COLOR_FLOAT_OPAQUE_WHITE);
-
-            auto shadowParameters = createShadowParameters(rd, parameters);
-
-            // shadows render details
-            auto refShadows = renderLoader->load(
-                    gameRequester, shadows::RenderDetailsVulkan::name(), shadowParameters);
-
-            // shadows framebuffer
-            rd->m_framebufferShadows = std::make_shared<vulkan::Framebuffer>(
-                    inDevice, refShadows.renderDetails->renderPass(),
-                    std::vector<std::shared_ptr<vulkan::ImageView>>{rd->m_shadowsColorAttachment,
-                                                                    rd->m_depthImageViewShadows},
-                    shadowParameters.width, shadowParameters.height);
-
-            // texture render details
-            auto refTexture = renderLoader->load(
-                    gameRequester, textureWithShadows::RenderDetailsVulkan::name(), parameters);
-
-            // color render details
-            auto refColor = renderLoader->load(
-                    gameRequester, colorWithShadows::RenderDetailsVulkan::name(), parameters);
-
-            rd->m_textureRenderDetails = refTexture.renderDetails;
-            rd->m_colorRenderDetails = refColor.renderDetails;
-            rd->m_shadowsRenderDetails = refShadows.renderDetails;
-
-            return createReference(std::move(rd), refShadows, refTexture, refColor);
-        }
+            Config const &config);
 
         static renderDetails::ReferenceVulkan loadExisting(
             std::shared_ptr<GameRequester> const &gameRequester,
             std::shared_ptr<RenderLoaderVulkan> const &renderLoader,
             std::shared_ptr<renderDetails::RenderDetailsVulkan> const &rdBase,
             renderDetails::ParametersVulkan const &parameters,
-            Config const &config)
-        {
-            auto rd = dynamic_cast<RenderDetailsVulkan*>(rdBase.get());
-            if (rd == nullptr) {
-                throw std::runtime_error("Invalid render details type.")
-            }
-            auto shadowParameters = createShadowParameters(rd, parameters);
+            Config const &config);
 
-            // shadows render details
-            auto refShadows = renderLoader->load(
-                gameRequester, renderLoader, shadows::RenderDetailsVulkan::name(), shadowParameters);
-
-            // texture render details
-            auto refTexture = renderLoader->load(
-                gameRequester, renderLoader, textureWithShadows::RenderDetailsVulkan::name(), parameters);
-
-            // color render details
-            auto refColor = renderLoader->load(
-                gameRequester, renderLoader, colorWithShadows::RenderDetailsVulkan::name(), parameters);
-
-            rd->m_textureRenderDetails = refTexture.renderDetails;
-            rd->m_colorRenderDetails = refColor.renderDetails;
-            rd->m_shadowsRenderDetails = refShadows.renderDetails;
-
-            return createReference(std::move(rdBase), refShadows, refTexture, refColor);
-        }
+        void addDrawCmdsToCommandBuffer(
+            VkCommandBuffer const &commandBuffer,
+            VkFrameBuffer const &frameBuffer,
+            size_t descriptorSetID,
+            levelDrawer::LevelDrawerVulkan::CommonObjectDataList const &commonObjectDataList,
+            levelDrawer::LevelDrawerVulkan::DrawObjectTables const &drawObjTable,
+            levelDrawer::LevelDrawerVulkan::IndicesForDrawing const &drawObjectsIndicesList) override;
 
     private:
         static char constexpr const *m_name = "shadowsChaining";

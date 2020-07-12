@@ -91,9 +91,12 @@ namespace levelDrawer {
         std::vector<std::shared_ptr<typename traits::DrawObjectDataType>> m_objsData;
     };
 
-    template<typename traits>
+    template <typename traits>
     class DrawObjectTable {
     public:
+        void clear() {
+            m_drawObjects.clear();
+        }
         // returns index of added object.
         size_t addObject(
                 std::shared_ptr<typename traits::ModelData> modelData,
@@ -198,7 +201,14 @@ namespace levelDrawer {
             m_drawObjects[objectIndex]->updateObjectData(objectDataIndex, modelMatrix);
         }
 
+        void setRenderDetails(typename traits::RenderDetailsReferenceType ref) {
+            m_renderDetailsReference = std::move(ref);
+        }
+
     private:
+        typename traits::RenderDetailsParameters m_renderDetailsParameters;
+        typename traits::RenderDetailsReferenceType m_renderDetailsReference;
+
         std::vector<std::shared_ptr<DrawObject<traits>>> m_drawObjects;
         std::vector<size_t> m_objsIndicesWithOverridingRenderDetails;
         std::vector<size_t> m_objsIndicesWithGlobalRenderDetails;

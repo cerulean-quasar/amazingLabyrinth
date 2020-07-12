@@ -22,6 +22,8 @@
 
 #include <memory>
 #include <string>
+#include <array>
+
 #include "levelDrawerGraphics.hpp"
 #include "../graphicsVulkan.hpp"
 #include "modelTable/modelTableVulkan.hpp"
@@ -40,6 +42,7 @@ namespace levelDrawer {
         using DrawObjectDataType = renderDetails::DrawObjectDataVulkan;
     };
 
+    using DrawObjectTableVulkan = DrawObjectTable<DrawObjectVulkanTraits>;
     struct LevelDrawerVulkanTraits {
         using RenderLoaderType = RenderLoaderVulkan;
         using RenderDetailsType = renderDetails::RenderDetailsVulkan;
@@ -47,7 +50,7 @@ namespace levelDrawer {
         using RenderDetailsReferenceType = renderDetails::ReferenceVulkan;
         using ModelTableType = ModelTableVulkan;
         using TextureTableType = TextureTableVulkan;
-        using DrawObjectTableType = DrawObjectTable<DrawObjectVulkanTraits>;
+        using DrawObjectTableType = DrawObjectTableVulkan;
         using DrawArgumentType = VkCommandBuffer;
     };
 

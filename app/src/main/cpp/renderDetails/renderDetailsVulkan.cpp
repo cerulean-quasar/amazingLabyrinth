@@ -68,4 +68,44 @@ namespace renderDetails {
         attributeDescriptions[3].offset = offsetof(Vertex, normal);
         return attributeDescriptions;
     }
+
+    void RenderDetailsVulkan::initializeCommandBufferDrawObjects(
+        size_t descriptorSetID,
+        VkCommandBuffer const &commandBuffer,
+        levelDrawer::DrawObjectTableVulkan const &drawObjectTable,
+        std::vector<size_t> const &drawObjectsIndices)
+    {
+        VkDeviceSize offsets[1] = {0};
+
+        for (auto const &index : drawObjectsIndices) {
+            auto drawObj = drawObjectTable.drawObject(index);
+            auto modelData = drawObj->modelData();
+
+            VkBuffer vertexBuffer = modelData->vertexBuffer().cbuffer();
+            VkBuffer indexBuffer = modelData->indexBuffer().cbuffer();
+            vkCmdBindVertexBuffers(commandBuffer, 0, 1, &vertexBuffer, offsets);
+            vkCmdBindIndexBuffer(commandBuffer, indexBuffer, 0, VK_INDEX_TYPE_UINT32);
+
+            size_t nbrModelMatrices = drawObj->numberObjectsData();
+            for (size_t i = 0; i < nbrModelMatrices; i++) {
+                auto drawObjData = drawObj->objData(i);
+
+                /* The MVP matrix and texture samplers */
+                VkDescriptorSet descriptorSet = drawObjData->descriptorSet(descriptorSetID).get();
+                vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
+                                        pipeline->layout().get(), 0, 1, &descriptorSet, 0, nullptr);
+
+                /* indexed draw command:
+                 * parameter 1 - Command buffer for the draw command
+                 * parameter 2 - the number of indices (the vertex count)
+                 * parameter 3 - the instance count, use 1 because we are not using instanced rendering
+                 * parameter 4 - offset into the index buffer
+                 * parameter 5 - offset to add to the indices in the index buffer
+                 * parameter 6 - offset for instance rendering
+                 */
+                vkCmdDrawIndexed(commandBuffer, modelData->numberIndices(), 1, 0, 0, 0);
+            }
+        }
+    }
+
 }
