@@ -25,7 +25,7 @@
 #include "../shadows/renderDetailsGL.hpp"
 #include "../../graphicsGL.hpp"
 
-namespace textureWithShadows {
+namespace objectWithShadows {
     renderDetails::ReferenceGL RenderDetailsGL::loadNew(
             std::shared_ptr<GameRequester> const &gameRequester,
             std::shared_ptr<RenderLoaderGL> const &renderLoader,
@@ -78,9 +78,11 @@ namespace textureWithShadows {
         return std::move(ref);
     }
 
-    RenderDetailsGL::RenderDetailsGL(std::shared_ptr<GameRequester> const &inGameRequester,
-                                             uint32_t inWidth, uint32_t inHeight)
-            : renderDetails::RenderDetailsGL(inWidth, inHeight),
-            m_mainProgramID{loadShaders(inGameRequester, SHADER_VERT_FILE, SHADER_FRAG_FILE)}
+    RenderDetailsGL::RenderDetailsGL(
+            std::shared_ptr<GameRequester> const &inGameRequester,
+            uint32_t inWidth, uint32_t inHeight)
+        : renderDetails::RenderDetailsGL(inWidth, inHeight),
+        m_textureProgramID{loadShaders(inGameRequester, SHADER_VERT_FILE, TEXTURE_SHADER_FRAG_FILE)},
+        m_colorProgramID{loadShaders(inGameRequester, SHADER_VERT_FILE, COLOR_SHADER_FRAG_FILE)}
     {}
 }

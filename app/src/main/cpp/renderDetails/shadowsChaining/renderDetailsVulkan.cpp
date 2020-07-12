@@ -99,19 +99,14 @@ namespace shadowsChaining {
         auto refShadows = renderLoader->load(
             gameRequester, renderLoader, shadows::RenderDetailsVulkan::name(), shadowParameters);
 
-        // texture render details
-        auto refTexture = renderLoader->load(
-            gameRequester, renderLoader, textureWithShadows::RenderDetailsVulkan::name(), parameters);
+        // object with shadows render details
+        auto refObjectWithShadows = renderLoader->load(
+            gameRequester, renderLoader, objectWithShadows::RenderDetailsVulkan::name(), parameters);
 
-        // color render details
-        auto refColor = renderLoader->load(
-            gameRequester, renderLoader, colorWithShadows::RenderDetailsVulkan::name(), parameters);
-
-        rd->m_textureRenderDetails = refTexture.renderDetails;
-        rd->m_colorRenderDetails = refColor.renderDetails;
+        rd->m_objectWithShadowsRenderDetails = refTexture.renderDetails;
         rd->m_shadowsRenderDetails = refShadows.renderDetails;
 
-        return createReference(std::move(rdBase), refShadows, refTexture, refColor);
+        return createReference(std::move(rdBase), refShadows, refObjectWithShadows);
     }
 
     void RenderDetailsVulkan::addDrawCmdsToCommandBuffer(
@@ -176,4 +171,44 @@ namespace shadowsChaining {
 
         vkCmdEndRenderPass(commandBuffer);
     }
+
+    renderDetails::ReferenceVulkan RenderDetailsVulkan::createReference(
+            std::shared_ptr<RenderDetailsVulkan> rd,
+            renderDetails::ReferenceVulkan const &refShadows,
+            renderDetails::ReferenceVulkan const &refObjectWithShadows,
+            std::shared_ptr<vulkan::ImageSampler> const &shadowsImageSampler)
+    {
+        auto cod = std::make_shared<CommonObjectDataVulkan>();
+        cod->m_objectWithShadowsCOD = refObjectWithShadows.commonObjectData;
+        cod->m_shadowsCOD = refShadows.commonObjectData;
+
+        // set the shadows image sampler
+        auto codObjectWithShadows = dynamic_cast<objectWithShadows::CommonObjectDataVulkan*>(refObjectWithShadows.commonObjectData.get());
+        if (codObjectWithShadows == nullptr) {
+            throw std::runtime_error("Invalid common object data");
+        }
+        codObjectWithShadows->setShadowsImageSampler(shadowsImageSampler);
+
+        renderDetails::ReferenceVulkan ref;
+        ref.renderDetails = rd;
+        ref.commonObjectData = cod;
+        ref.createDrawObjectData = renderDetails::ReferenceVulkan::CreateDrawObjectData(
+                [createDODShadows(refShadows.createDrawObjectData),
+                createDODObjectWithShadow(refObjectWithShadows.createDrawObjectData)] (
+                        std::shared_ptr<renderDetails::DrawObjectDataVulkan> const &sharingDOD,
+                        std::shared_ptr<levelDrawer::TextureData> const &textureData,
+                        glm::mat4 const &modelMatrix) ->
+                        std::shared_ptr<renderDetails::DrawObjectDataVulkan>
+                {
+                    auto dodMain = createDODObjectWithShadow(sharingDOD, textureData, modelMatrix);
+                    auto dodShadows = createDODShadows(dodMain,
+                                                       std::shared_ptr<levelDrawer::TextureData>(), modelMatrix);
+
+                    return std::make_shared<DrawObjectDataVulkan>(dodMain, dodShadows);
+                }
+        )
+
+        return std::move(ref);
+    }
+
 } // namespace shadowsChaining

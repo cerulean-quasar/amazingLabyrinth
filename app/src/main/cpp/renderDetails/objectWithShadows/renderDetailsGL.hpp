@@ -33,7 +33,7 @@
 #include "../../graphicsGL.hpp"
 #include "../../renderLoader/renderLoaderGL.hpp"
 
-namespace textureWithShadows {
+namespace objectWithShadows {
     class RenderDetailsGL;
     class CommonObjectDataGL : public renderDetails::CommonObjectDataPerspective {
         friend RenderDetailsGL;
@@ -95,9 +95,11 @@ namespace textureWithShadows {
 
     private:
         static char constexpr const *SHADER_VERT_FILE = "shaders/shaderGL.vert";
-        static char constexpr const *SHADER_FRAG_FILE = "shaders/shaderGL.frag";
+        static char constexpr const *TEXTURE_SHADER_FRAG_FILE = "shaders/shaderGL.frag";
+        static char constexpr const *COLOR_SHADER_FRAG_FILE = "shaders/shaderGL.frag";
 
-        GLuint m_mainProgramID;
+        GLuint m_textureProgramID;
+        GLuint m_colorProgramID;
 
         static renderDetails::ReferenceGL createReference(
                 std::shared_ptr<renderDetails::RenderDetailsGL> rd,

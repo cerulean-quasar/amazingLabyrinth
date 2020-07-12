@@ -27,8 +27,7 @@
 #include <glm/gtc/matrix_transform.hpp>
 
 #include "../../levelDrawer/levelDrawerVulkan.hpp"
-#include "../textureWithShadows/renderDetailsVulkan.hpp"
-#include "../colorWithShadows/renderDetailsVulkan.hpp"
+#include "../objectWithShadows/renderDetailsVulkan.hpp"
 #include "../renderDetailsVulkan.hpp"
 #include "../../renderLoader/renderLoaderVulkan.hpp"
 #include "config.hpp"
@@ -39,14 +38,13 @@ namespace shadowsChaining {
     class CommonObjectDataVulkan : renderDetails::CommonObjectData {
         friend RenderDetailsVulkan;
     private:
-        std::shared_ptr<textureWithShadows::CommonObjectDataVulkan> m_textureCOD;
-        std::shared_ptr<colorWithShadows::CommonObjectDataVulkan> m_colorCOD;
+        std::shared_ptr<objectWithShadows::CommonObjectDataVulkan> m_objectWithShadowsCOD;
         std::shared_ptr<shadows::CommonObjectDataVulkan> m_shadowsCOD;
     };
 
     class DrawObjectDataVulkan : public renderDetails::DrawObjectDataVulkan {
     public:
-        bool hasTexture() { return m_hasTexture; }
+        bool hasTexture() override { return m_mainDrawObjectData->hasTexture(); }
 
         std::shared_ptr<vulkan::Buffer> const &bufferModelMatrix() override {
             return m_mainDrawObjectData->bufferModelMatrix();
@@ -78,8 +76,7 @@ namespace shadowsChaining {
 
         ~DrawObjectDataVulkan() override = default;
     private:
-        bool m_hasTexture;
-        std::shared_ptr<renderDetails::DrawObjectDataVulkan> m_mainDrawObjectData;
+        std::shared_ptr<objectWithShadows::DrawObjectDataVulkan> m_mainDrawObjectData;
         std::shared_ptr<shadows::DrawObjectDataVulkan> m_shadowsDrawObjectData;
     };
 
@@ -116,8 +113,7 @@ namespace shadowsChaining {
         static float constexpr shadowsSizeMultiplier = 0.5f;
 
         std::shared_ptr<vulkan::Device> m_device;
-        std::shared_ptr<colorWithShadows::RenderDetailsVulkan> m_colorRenderDetails;
-        std::shared_ptr<textureWithShadows::RenderDetailsVulkan> m_textureRenderDetails;
+        std::shared_ptr<objectWithShadows:::RenderDetailsVulkan> m_objectWithShadowsRenderDetails;
 
         std::shared_ptr<vulkan::ImageView> m_depthImageViewShadows;
         std::shared_ptr<vulkan::ImageView> m_shadowsColorAttachment;
@@ -138,54 +134,8 @@ namespace shadowsChaining {
         static renderDetails::ReferenceVulkan createReference(
                 std::shared_ptr<RenderDetailsVulkan> rd,
                 renderDetails::ReferenceVulkan const &refShadows,
-                renderDetails::ReferenceVulkan const &refTexture,
-                renderDetails::ReferenceVulkan const &refColor,
-                std::shared_ptr<vulkan::ImageSampler> const &shadowsImageSampler)
-        {
-            auto cod = std::make_shared<CommonObjectDataVulkan>();
-            cod->m_textureCOD = refTexture.commonObjectData;
-            cod->m_colorCOD = refColor.commonObjectData;
-            cod->m_shadowsCOD = refShadows.commonObjectData;
-
-            // set the shadows image sampler
-            auto codTexture = dynamic_cast<textureWithShadows::CommonObjectDataVulkan*>(refTexture.commonObjectData.get());
-            if (codTexture == nullptr) {
-                throw std::runtime_error("Invalid common object data");
-            }
-            codTexture->setShadowsImageSampler(shadowsImageSampler);
-
-            auto codColor = dynamic_cast<colorWithShadows::CommonObjectDataVulkan*>(refTexture.commonObjectData.get());
-            if (codColor == nullptr) {
-                throw std::runtime_error("Invalid common object data");
-            }
-            codColor->setShadowsImageSampler(rd->m_samplerShadows);
-
-            renderDetails::ReferenceVulkan ref;
-            ref.renderDetails = rd;
-            ref.commonObjectData = cod;
-            ref.createDrawObjectData = renderDetails::ReferenceVulkan::CreateDrawObjectData(
-                    [createDODShadows(refShadows.createDrawObjectData),
-                            createDODTexture(refTexture.createDrawObjectData),
-                            createDODColor(refColor.createDrawObjectData)] (
-                            std::shared_ptr<renderDetails::DrawObjectDataVulkan> const &sharingDOD,
-                            std::shared_ptr<TextureData> const &textureData,
-                            glm::mat4 const &modelMatrix) ->
-                            std::shared_ptr<renderDetails::DrawObjectDataVulkan>
-                    {
-                        std::shared_ptr<renderDetails::DrawObjectDataVulkan> dodMain;
-                        if (textureData) {
-                            dodMain = createDODTexture(sharingDOD, textureData, modelMatrix);
-                        } else {
-                            dodMain = createDODColor(sharingDOD, textureData, modelMatrix);
-                        }
-                        auto dodShadows = createDODShadows(dodMain, std::shared_ptr<levelDrawer::TextureData>(), modelMatrix);
-
-                        return std::make_shared<DrawObjectDataVulkan>(dodMain, dodShadows);
-                    }
-            )
-
-            return std::move(ref);
-        }
+                renderDetails::ReferenceVulkan const &refObjectWithShadows,
+                std::shared_ptr<vulkan::ImageSampler> const &shadowsImageSampler);
 
         static renderDetails::ParametersVulkan createShadowParameters(
                 std::shared_ptr<RenderDetailsVulkan> const &rd,
