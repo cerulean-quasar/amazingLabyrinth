@@ -31,7 +31,7 @@
 namespace levelDrawer {
     struct DrawObjectGLTraits {
         using RenderDetailsType = renderDetails::RenderDetailsGL;
-        using CommonObjectDataType = renderDetails::CommonObjectDataGL;
+        using CommonObjectDataType = renderDetails::CommonObjectData;
         using RenderDetailsReferenceType = renderDetails::ReferenceGL;
         using ModelDataType = ModelDataGL;
         using TextureDataType = TextureDataGL;
@@ -43,15 +43,16 @@ namespace levelDrawer {
     struct LevelDrawerGLTraits {
         using RenderLoaderType = RenderLoaderGL;
         using RenderDetailsType = renderDetails::RenderDetailsGL;
-        using CommonObjectDataType = renderDetails::CommonObjectDataGL;
+        using CommonObjectDataType = renderDetails::CommonObjectData;
         using RenderDetailsReferenceType = renderDetails::ReferenceGL;
         using ModelTableType = ModelTableGL;
+        using TextureDataType = TextureDataGL;
         using TextureTableType = TextureTableGL;
         using DrawObjectTableType = DrawObjectTableGL;
         struct DrawArgumentType {
         };
     };
 
-    using LevelTableGL = LevelDrawerGraphics<LevelDrawerGLTraits>;
+    using LevelDrawerGL = LevelDrawerGraphics<LevelDrawerGLTraits>;
 }
 #endif // AMAZING_LABYRINTH_LEVEL_DRAWER_GL_HPP

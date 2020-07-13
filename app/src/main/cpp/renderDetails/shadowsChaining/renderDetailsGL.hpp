@@ -104,8 +104,8 @@ namespace shadowsChaining {
         static char constexpr const *m_name = "shadowsChaining";
         bool m_useIntTexture;
         std::shared_ptr<graphicsGL::Framebuffer> m_framebufferShadows;
-        std::shared_ptr<shadows::RenderDetailsGL> m_shadowsRenderDetails;
-        std::shared_ptr<objectWithShadows::RenderDetailsGL> m_objectWithShadowsRenderDetails;
+        std::shared_ptr<renderDetails::RenderDetailsGL> m_shadowsRenderDetails;
+        std::shared_ptr<renderDetails::RenderDetailsGL> m_objectWithShadowsRenderDetails;
 
         static renderDetails::ReferenceGL createReference(
                 std::shared_ptr<renderDetails::RenderDetailsGL> rd,
@@ -133,6 +133,9 @@ namespace shadowsChaining {
 
             return std::move(ref);
         }
+
+        // Initialize framebuffer for shadow mapping.
+        static void createFramebuffer(RenderDetailsGL *rd, renderDetails::ParametersGL const &parameters);
 
         RenderDetailsGL(bool useIntTexture, uint32_t inWidth, uint32_t inHeight)
                 : renderDetails::RenderDetailsGL{inWidth, inHeight},

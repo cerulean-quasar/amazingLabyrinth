@@ -151,6 +151,14 @@ namespace levelDrawer {
         std::vector<size_t>
         objsIndicesWithGlobalRenderDetails() { return m_objsIndicesWithGlobalRenderDetails; }
 
+        typename traits::RenderDetailsReferenceType const &renderDetailsReference() {
+            return m_renderDetailsReference;
+        }
+
+        typename traits::RenderDetailsParametersType const &renderDetailsParameters() {
+            return m_renderDetailsParameters;
+        }
+
         size_t numberObjects() { return m_drawObjects.size(); }
 
         size_t numberObjectsDataForObject(size_t drawObjectIndex) {
@@ -200,12 +208,12 @@ namespace levelDrawer {
             m_drawObjects[objectIndex]->updateObjectData(objectDataIndex, modelMatrix);
         }
 
-        void setRenderDetails(typename traits::RenderDetailsReferenceType ref) {
+        void loadRenderDetails(typename traits::RenderDetailsReferenceType ref) {
             m_renderDetailsReference = std::move(ref);
         }
 
     private:
-        typename traits::RenderDetailsParameters m_renderDetailsParameters;
+        typename traits::RenderDetailsParametersType m_renderDetailsParameters;
         typename traits::RenderDetailsReferenceType m_renderDetailsReference;
 
         std::vector<std::shared_ptr<DrawObject<traits>>> m_drawObjects;

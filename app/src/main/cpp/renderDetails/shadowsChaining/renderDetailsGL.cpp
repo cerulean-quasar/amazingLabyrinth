@@ -30,15 +30,7 @@ namespace shadowsChaining {
         auto rd = std::make_shared<RenderDetailsGL>(
                 parameters.useIntTexture, parameters.width, parameters.height);
 
-        std::vector<graphicsGL::Framebuffer::ColorImageFormat> colorImageFormats;
-        // for shadow mapping.
-        if (rd->m_useIntTexture) {
-            colorImageFormats.emplace_back(GL_RGBA32UI, GL_RGBA_INTEGER, GL_UNSIGNED_INT);
-        } else {
-            colorImageFormats.emplace_back(GL_RGBA8, GL_RGBA, GL_UNSIGNED_BYTE);
-        }
-        rd->m_framebufferShadows = std::make_shared<graphicsGL::Framebuffer>(
-                rd->m_surfaceWidth, rd->m_surfaceHeight, colorImageFormats);
+        createFramebuffer(rd.get(), parameters);
 
         auto refShadows = renderLoader->load(
                 gameRequester, shadows::RenderDetailsGL::name(), parameters);
@@ -67,11 +59,16 @@ namespace shadowsChaining {
     {
         auto rd = dynamic_cast<RenderDetailsGL*>(rdBase.get());
         if (rd == nullptr) {
-            throw std::runtime_error("Invalid render details type.")
+            throw std::runtime_error("Invalid render details type.");
+        }
+
+        if (parameters.useIntTexture != rd->m_useIntTexture) {
+            rd->m_useIntTexture = parameters.useIntTexture;
+            createFramebuffer(rd, parameters);
         }
 
         auto refShadows = renderLoader->load(
-                gameRequester, renderLoader, shadows::RenderDetailsGL::name(), parameters);
+                gameRequester, shadows::RenderDetailsGL::name(), parameters);
 
         renderDetails::ParametersWithShadowsGL parametersWithShadows = {};
         parametersWithShadows.width = parameters.width;
@@ -80,12 +77,27 @@ namespace shadowsChaining {
         parametersWithShadows.shadowsFB = rd->m_framebufferShadows;
 
         auto refObjectWithShadows = renderLoader->load(
-                gameRequester, renderLoader, objectWithShadows::RenderDetailsGL::name(),
-                parametersWithShadows);
+                gameRequester, objectWithShadows::RenderDetailsGL::name(), parametersWithShadows);
 
         rd->m_shadowsRenderDetails = refShadows.renderDetails;
         rd->m_objectWithShadowsRenderDetails = refObjectWithShadows.renderDetails;
 
-        return createReference(std::move(rd), refObjectWithShadows, refShadows);
+        return createReference(std::move(rdBase), refObjectWithShadows, refShadows);
+    }
+
+    void RenderDetailsGL::createFramebuffer(
+            RenderDetailsGL *rd,
+            renderDetails::ParametersGL const &parameters)
+    {
+        std::vector<graphicsGL::Framebuffer::ColorImageFormat> colorImageFormats;
+
+        if (rd->m_useIntTexture) {
+            colorImageFormats.emplace_back(GL_RGBA32UI, GL_RGBA_INTEGER, GL_UNSIGNED_INT);
+        } else {
+            colorImageFormats.emplace_back(GL_RGBA8, GL_RGBA, GL_UNSIGNED_BYTE);
+        }
+
+        rd->m_framebufferShadows = std::make_shared<graphicsGL::Framebuffer>(
+                rd->m_surfaceWidth, rd->m_surfaceHeight, colorImageFormats);
     }
 }

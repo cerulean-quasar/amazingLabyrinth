@@ -17,8 +17,8 @@
  *  along with AmazingLabyrinth.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
-#ifndef AMAZING_LABYRINTH_RENDER_DETAILS_COMMON_GL_HPP
-#define AMAZING_LABYRINTH_RENDER_DETAILS_COMMON_GL_HPP
+#ifndef AMAZING_LABYRINTH_RENDER_DETAILS_GL_HPP
+#define AMAZING_LABYRINTH_RENDER_DETAILS_GL_HPP
 #include <memory>
 #include <string>
 
@@ -28,6 +28,7 @@
 #include "renderDetails.hpp"
 #include "../levelDrawer/drawObjectTable/drawObjectTable.hpp"
 #include "../graphicsGL.hpp"
+#include "../levelDrawer/levelDrawerGL.hpp"
 
 namespace renderDetails {
     struct ParametersGL {
@@ -54,7 +55,7 @@ namespace renderDetails {
     class RenderDetailsGL : public RenderDetails {
     public:
         virtual void draw(
-                levelDrawer::DrawObjectTable<levelDrawer::DrawObjectGLTraits> const &drawObjectTable,
+                levelDrawer::LevelDrawerGL::DrawObjectTableList const &drawObjectTable,
                 std::vector<size_t> const &drawObjectsIndexList) = 0;
 
         RenderDetailsGL(uint32_t inWidth, uint32_t inHeight)
@@ -67,7 +68,7 @@ namespace renderDetails {
                            std::string const &vertexShaderFile, std::string const &fragmentShaderFile);
     };
 
-    using ReferenceGL = renderDetails::Reference<RenderDetailsGL, renderDetails::CommonObjectData, renderDetails::DrawObjectDataGL>;
+    using ReferenceGL = Reference<RenderDetailsGL, CommonObjectData, DrawObjectDataGL>;
 }
 
-#endif // AMAZING_LABYRINTH_RENDER_DETAILS_COMMON_GL_HPP
+#endif // AMAZING_LABYRINTH_RENDER_DETAILS_GL_HPP
