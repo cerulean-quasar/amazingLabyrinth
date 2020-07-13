@@ -298,6 +298,14 @@ namespace objectWithShadows {
             return createReference(std::move(rdBase), std::move(cod));
         }
 
+        void addDrawCmdsToCommandBuffer(
+                VkCommandBuffer const &commandBuffer,
+                VkFrameBuffer const &frameBuffer,
+                size_t descriptorSetID,
+                levelDrawer::LevelDrawerVulkan::CommonObjectDataList const &commonObjectDataList,
+                levelDrawer::LevelDrawerVulkan::DrawObjectTables const &drawObjTableList,
+                levelDrawer::LevelDrawerVulkan::IndicesForDrawing const &drawObjectsIndicesList) override;
+
     private:
         static char constexpr const *m_name = "objectWithShadows";
         static char constexpr const *SHADER_VERT_FILE = "shaders/shader.vert.spv";

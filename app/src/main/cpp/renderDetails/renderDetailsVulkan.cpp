@@ -70,16 +70,30 @@ namespace renderDetails {
     }
 
     void RenderDetailsVulkan::initializeCommandBufferDrawObjects(
+        DrawIfHasTexture drawIf,
         size_t descriptorSetID,
+        std::shared_ptr<vulkan::Pipeline> const &pipeline,
         VkCommandBuffer const &commandBuffer,
-        levelDrawer::DrawObjectTableVulkan const &drawObjectTable,
+        std::shared_ptr<levelDrawer::DrawObjectTableVulkan> const &drawObjectTable,
         std::vector<size_t> const &drawObjectsIndices)
     {
+        if (!drawObjectTable || drawObjectsIndices.empty()) {
+            return;
+        }
+
         VkDeviceSize offsets[1] = {0};
 
         for (auto const &index : drawObjectsIndices) {
-            auto drawObj = drawObjectTable.drawObject(index);
-            auto modelData = drawObj->modelData();
+            auto const &drawObj = drawObjectTable->drawObject(index);
+            auto const &modelData = drawObj->modelData();
+            auto const &textureData = drawObj->textureData();
+
+            if (drawIf != DrawIfHasTexture::BOTH &&
+                ((drawIf == DrawIfHasTexture::ONLY_IF_NO_TEXTURE && textureData) ||
+                (drawIf == DrawIfHasTexture::ONLY_IF_TEXTURE && !textureData)))
+            {
+                continue;
+            }
 
             VkBuffer vertexBuffer = modelData->vertexBuffer().cbuffer();
             VkBuffer indexBuffer = modelData->indexBuffer().cbuffer();
@@ -91,9 +105,11 @@ namespace renderDetails {
                 auto drawObjData = drawObj->objData(i);
 
                 /* The MVP matrix and texture samplers */
-                VkDescriptorSet descriptorSet = drawObjData->descriptorSet(descriptorSetID).get();
+                VkDescriptorSet descriptorSet = drawObjData->descriptorSet(
+                        descriptorSetID).get();
                 vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
-                                        pipeline->layout().get(), 0, 1, &descriptorSet, 0, nullptr);
+                                        pipeline->layout().get(), 0, 1, &descriptorSet, 0,
+                                        nullptr);
 
                 /* indexed draw command:
                  * parameter 1 - Command buffer for the draw command

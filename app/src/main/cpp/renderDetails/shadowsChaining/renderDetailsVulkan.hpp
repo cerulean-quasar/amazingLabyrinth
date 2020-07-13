@@ -113,7 +113,7 @@ namespace shadowsChaining {
         static float constexpr shadowsSizeMultiplier = 0.5f;
 
         std::shared_ptr<vulkan::Device> m_device;
-        std::shared_ptr<objectWithShadows:::RenderDetailsVulkan> m_objectWithShadowsRenderDetails;
+        std::shared_ptr<objectWithShadows::RenderDetailsVulkan> m_objectWithShadowsRenderDetails;
 
         std::shared_ptr<vulkan::ImageView> m_depthImageViewShadows;
         std::shared_ptr<vulkan::ImageView> m_shadowsColorAttachment;

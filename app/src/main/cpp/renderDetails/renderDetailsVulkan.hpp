@@ -61,9 +61,16 @@ namespace renderDetails {
             levelDrawer::LevelDrawerVulkan::DrawObjectTables const &drawObjTable,
             levelDrawer::LevelDrawerVulkan::IndicesForDrawing const &drawObjectsIndicesList) = 0;
 
+        enum DrawIfHasTexture {
+            ONLY_IF_NO_TEXTURE,
+            ONLY_IF_TEXTURE,
+            BOTH
+        };
         void initializeCommandBufferDrawObjects(
+            DrawIfHasTexture drawIf,
             size_t descriptorSetID,
-            VkCommandBuffer const &commandBuffer,
+            std::shared_ptr<vulkan::Pipeline> const &pipeline,
+             VkCommandBuffer const &commandBuffer,
             levelDrawer::DrawObjectTableVulkan const &drawObjectTable,
             std::vector<size_t> const &drawObjectsIndices);
 

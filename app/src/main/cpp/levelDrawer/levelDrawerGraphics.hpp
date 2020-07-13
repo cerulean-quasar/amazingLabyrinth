@@ -39,8 +39,8 @@ namespace levelDrawer {
     public:
         static size_t constexpr m_numberDrawObjectTables = 3;
 
-        using DrawObjectTables = std::array<std::shared_ptr<typename traits::DrawObjectTableType>, m_numberDrawObjectTables>;
-        using IndicesForDrawing = std::array<std::vector<size_t>, m_numberDrawObjectTables>;
+        using DrawObjectTableList = std::array<std::shared_ptr<typename traits::DrawObjectTableType>, m_numberDrawObjectTables>;
+        using IndicesForList = std::array<std::vector<size_t>, m_numberDrawObjectTables>;
         using CommonObjectDataList = std::array<std::shared_ptr<renderDetails::CommonObjectData>, m_numberDrawObjectTables>;
 
         enum ObjectType {

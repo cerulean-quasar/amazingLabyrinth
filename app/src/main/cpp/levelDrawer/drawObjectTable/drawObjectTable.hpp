@@ -36,8 +36,7 @@ namespace levelDrawer {
 
         std::shared_ptr<typename traits::ModelDataType> const &modelData() { return m_modelData; }
 
-        std::shared_ptr<typename traits::TextureDataType> const &
-        textureData() { return m_textureData; }
+        std::shared_ptr<typename traits::TextureDataType> const &textureData() { return m_textureData; }
 
         std::shared_ptr<typename traits::DrawObjectDataType> const &objData(size_t index) {
             if (index >= m_objsData.size()) {

@@ -197,6 +197,14 @@ namespace shadows {
             return createReference(std::move(rdBase), std::move(cod));
         }
 
+        void addDrawCmdsToCommandBuffer(
+                VkCommandBuffer const &commandBuffer,
+                VkFrameBuffer const &frameBuffer,
+                size_t descriptorSetID,
+                levelDrawer::LevelDrawerVulkan::CommonObjectDataList const &commonObjectDataList,
+                levelDrawer::LevelDrawerVulkan::DrawObjectTables const &drawObjTableList,
+                levelDrawer::LevelDrawerVulkan::IndicesForDrawing const &drawObjectsIndicesList) override;
+
         std::shared_ptr<vulkan::RenderPass> const &renderPass() { return m_renderPass; }
         std::shared_ptr<vulkan::Device> const &device() override { return m_device; }
         std::shared_ptr<vulkan::DescriptorPools> const &descriptorPools() override {

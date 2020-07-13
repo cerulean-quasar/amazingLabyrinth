@@ -361,4 +361,121 @@ namespace objectWithShadows {
 
         return std::move(ref);
     }
+
+    bool checkForObjects(DrawIfHasTexture condition,
+            std::shared_ptr<levelDrawer::DrawObjectTableVulkan> const &table,
+            std::vector<size_t> objIndices)
+    {
+        for (auto const &objIndex : objIndices) {
+            auto const &drawObj = table[objIndex];
+
+            if (condition == DrawIfHasTexture::BOTH ||
+                    (condition == DrawIfHasTexture::ONLY_IF_TEXTURE && drawObj->textureData()) ||
+                    (condition == DrawIfHasTexture::ONLY_IF_NO_TEXTURE && !drawObj->textureData()))
+            {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    void RenderDetailsVulkan::addDrawCmdsToCommandBuffer(
+            VkCommandBuffer const &commandBuffer,
+            VkFrameBuffer const &frameBuffer,
+            size_t descriptorSetID,
+            levelDrawer::LevelDrawerVulkan::CommonObjectDataList const &commonObjectDataList,
+            levelDrawer::LevelDrawerVulkan::DrawObjectTables const &drawObjTableList,
+            levelDrawer::LevelDrawerVulkan::IndicesForDrawing const &drawObjectsIndicesList)
+    {
+        /* begin the render pass: drawing starts here*/
+        VkRenderPassBeginInfo renderPassInfo = {};
+        renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
+        renderPassInfo.renderPass = m_renderPass->renderPass().get();
+        renderPassInfo.framebuffer = framebuffer;
+        /* size of the render area */
+        renderPassInfo.renderArea.offset = {0, 0};
+        renderPassInfo.renderArea.extent = pipeline->extent();
+
+        /* the color value to use when clearing the image with VK_ATTACHMENT_LOAD_OP_CLEAR,
+         * using black with 0% opacity
+         */
+        renderPassInfo.clearValueCount = static_cast<uint32_t>(clearValues.size());
+        renderPassInfo.pClearValues = clearValues.data();
+
+        /* begin recording commands - start by beginning the render pass.
+         * none of these functions returns an error (they return void).  There will be no error
+         * handling until recording is done.
+         */
+        vkCmdBeginRenderPass(commandBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
+
+        /* bind the graphics pipeline to the command buffer, the second parameter tells Vulkan
+         * that we are binding to a graphics pipeline.
+         */
+        // Draw from back to front in order to allow see through objects to show things under them.
+
+        // Draw the level
+        // Objects with texture
+        if (checkForObjects(DrawIfHasTexture::ONLY_IF_TEXTURE, drawObjTableList[1], drawObjectsIndicesList[1])) {
+            vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
+                              m_pipelineTexture->pipeline().get());
+
+            initializeCommandBufferDrawObjects(
+                    DrawIfHasTexture::ONLY_IF_TEXTURE, descriptorSetID, m_pipelineTexture,
+                    commandBuffer, drawObjTableList[1], drawObjectsIndicesList[1]);
+        }
+
+        // Objects that just use vertex color.
+        if (checkForObjects(DrawIfHasTexture::ONLY_IF_NO_TEXTURE, drawObjTableList[1], drawObjectsIndicesList[1])) {
+            vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
+                              m_pipelineColor->pipeline().get());
+
+            initializeCommandBufferDrawObjects(
+                    DrawIfHasTexture::ONLY_IF_NO_TEXTURE, descriptorSetID, m_pipelineTexture,
+                    commandBuffer, drawObjTableList[1], drawObjectsIndicesList[1]);
+        }
+
+        // Draw the level starter
+        // Objects with texture
+        if (checkForObjects(DrawIfHasTexture::ONLY_IF_TEXTURE, drawObjTableList[0], drawObjectsIndicesList[0])) {
+            vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
+                              m_pipelineTexture->pipeline().get());
+
+            initializeCommandBufferDrawObjects(
+                    DrawIfHasTexture::ONLY_IF_TEXTURE, descriptorSetID, m_pipelineTexture,
+                    commandBuffer, drawObjTableList[0], drawObjectsIndicesList[0]);
+        }
+
+        // Objects that just use vertex color.
+        if (checkForObjects(DrawIfHasTexture::ONLY_IF_NO_TEXTURE, drawObjTableList[0], drawObjectsIndicesList[0])) {
+            vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
+                              m_pipelineColor->pipeline().get());
+
+            initializeCommandBufferDrawObjects(
+                    DrawIfHasTexture::ONLY_IF_NO_TEXTURE, descriptorSetID, m_pipelineTexture,
+                    commandBuffer, drawObjTableList[0], drawObjectsIndicesList[0]);
+        }
+
+        // Draw the level finisher objects.
+        // Objects with texture
+        if (checkForObjects(DrawIfHasTexture::ONLY_IF_TEXTURE, drawObjTableList[2], drawObjectsIndicesList[2])) {
+            vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
+                              m_pipelineTexture->pipeline().get());
+
+            initializeCommandBufferDrawObjects(
+                    DrawIfHasTexture::ONLY_IF_TEXTURE, descriptorSetID, m_pipelineTexture,
+                    commandBuffer, drawObjTableList[2], drawObjectsIndicesList[2]);
+        }
+
+        // Objects that just use vertex color.
+        if (checkForObjects(DrawIfHasTexture::ONLY_IF_NO_TEXTURE, drawObjTableList[2], drawObjectsIndicesList[2])) {
+            vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
+                              m_pipelineColor->pipeline().get());
+
+            initializeCommandBufferDrawObjects(
+                    DrawIfHasTexture::ONLY_IF_NO_TEXTURE, descriptorSetID, m_pipelineTexture,
+                    commandBuffer, drawObjTableList[2], drawObjectsIndicesList[2]);
+        }
+
+        vkCmdEndRenderPass(commandBuffer);
+    }
 }

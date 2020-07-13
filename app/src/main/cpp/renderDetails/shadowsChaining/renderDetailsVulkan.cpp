@@ -17,6 +17,7 @@
  *  along with AmazingLabyrinth.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
+#include <memory>
 
 #include "renderDetailsVulkan.hpp"
 
@@ -110,66 +111,25 @@ namespace shadowsChaining {
     }
 
     void RenderDetailsVulkan::addDrawCmdsToCommandBuffer(
-        VkCommandBuffer const &commandBuffer,
-        VkFrameBuffer const &frameBuffer,
-        size_t descriptorSetID,
-        levelDrawer::LevelDrawerVulkan::CommonObjectDataList const &commonObjectDataList,
-        levelDrawer::LevelDrawerVulkan::DrawObjectTables const &drawObjTableList,
-        levelDrawer::LevelDrawerVulkan::IndicesForDrawing const &drawObjectsIndicesList))
+            VkCommandBuffer const &commandBuffer,
+            VkFrameBuffer const &frameBuffer,
+            size_t /* descriptor set ID, not used */,
+            levelDrawer::LevelDrawerVulkan::CommonObjectDataList const &commonObjectDataList,
+            levelDrawer::LevelDrawerVulkan::DrawObjectTableList const &drawObjTableList,
+            levelDrawer::LevelDrawerVulkan::IndicesList const &drawObjectsIndicesList)
     {
-        /* begin the render pass: drawing starts here*/
-        VkRenderPassBeginInfo renderPassInfo = {};
-        renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-        renderPassInfo.renderPass = pipeline->renderPass()->renderPass().get();
-        renderPassInfo.framebuffer = framebuffer;
-        /* size of the render area */
-        renderPassInfo.renderArea.offset = {0, 0};
-        renderPassInfo.renderArea.extent = pipeline->extent();
-
-        /* the color value to use when clearing the image with VK_ATTACHMENT_LOAD_OP_CLEAR,
-         * using black with 0% opacity
-         */
-        renderPassInfo.clearValueCount = static_cast<uint32_t>(clearValues.size());
-        renderPassInfo.pClearValues = clearValues.data();
-
-        /* begin recording commands - start by beginning the render pass.
-         * none of these functions returns an error (they return void).  There will be no error
-         * handling until recording is done.
-         */
-        vkCmdBeginRenderPass(commandBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
-
-        /* bind the graphics pipeline to the command buffer, the second parameter tells Vulkan
-         * that we are binding to a graphics pipeline.
-         */
-        vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
-                          pipeline->pipeline().get());
-
-        // the objects that stay static.
-        initializeCommandBufferDrawObjects(commandBuffer, m_levelSequence->levelStaticObjsData(),
-                                           pipeline, doShadows);
-
-        // the objects that move.
-        initializeCommandBufferDrawObjects(commandBuffer, m_levelSequence->levelDynObjsData(),
-                                           pipeline, doShadows);
-
         // only do shadows for the level itself
+        levelDrawer::LevelDrawerVulkan::DrawObjectTableList shadowsDrawObjTableList =
+                { nullptr, drawObjTableList[1], nullptr };
+        levelDrawer::LevelDrawerVulkan::IndicesForList shadowsDrawObjectsIndicesList =
+                { std::vector<size_t>{}, drawObjectsIndicesList[1], std::vector<size_t>{} };
+        m_shadowsRenderDetails->addDrawCmdsToCommandBuffer(
+                commandBuffer, m_framebufferShadows, 1 /* shadows ID */, commonObjectDataList,
+                shadowsDrawObjTableList, shadowsDrawObjectsIndicesList);
 
-        // the level starter
-        if (!doShadows) {
-            initializeCommandBufferDrawObjects(commandBuffer,
-                                               m_levelSequence->starterStaticObjsData(), pipeline,
-                                               doShadows);
-            initializeCommandBufferDrawObjects(commandBuffer, m_levelSequence->starterDynObjsData(),
-                                               pipeline, doShadows);
-        }
-
-        // the level finisher objects.
-        if (m_levelSequence->needFinisherObjs() && !doShadows) {
-            initializeCommandBufferDrawObjects(commandBuffer, m_levelSequence->finisherObjsData(),
-                                               pipeline, doShadows);
-        }
-
-        vkCmdEndRenderPass(commandBuffer);
+        m_objectWithShadowsRenderDetails->addDrawCmdsToCommandBuffer(
+                commandBuffer, frameBuffer, 0 /* main render details ID */, commonObjectDataList,
+                drawObjTableList, drawObjectsIndicesList);
     }
 
     renderDetails::ReferenceVulkan RenderDetailsVulkan::createReference(
