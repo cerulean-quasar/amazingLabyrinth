@@ -37,6 +37,8 @@ namespace shadowsChaining {
 
     class CommonObjectDataVulkan : renderDetails::CommonObjectData {
         friend RenderDetailsVulkan;
+    public:
+        ~CommonObjectDataVulkan() override = default;
     private:
         std::shared_ptr<objectWithShadows::CommonObjectDataVulkan> m_objectWithShadowsCOD;
         std::shared_ptr<shadows::CommonObjectDataVulkan> m_shadowsCOD;
@@ -105,6 +107,8 @@ namespace shadowsChaining {
             levelDrawer::LevelDrawerVulkan::CommonObjectDataList const &commonObjectDataList,
             levelDrawer::LevelDrawerVulkan::DrawObjectTables const &drawObjTable,
             levelDrawer::LevelDrawerVulkan::IndicesForDrawing const &drawObjectsIndicesList) override;
+
+        ~RenderDetailsVulkan() override = default;
 
     private:
         static char constexpr const *m_name = "shadowsChaining";

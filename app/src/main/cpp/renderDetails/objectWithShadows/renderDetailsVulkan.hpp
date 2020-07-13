@@ -306,6 +306,8 @@ namespace objectWithShadows {
                 levelDrawer::LevelDrawerVulkan::DrawObjectTables const &drawObjTableList,
                 levelDrawer::LevelDrawerVulkan::IndicesForDrawing const &drawObjectsIndicesList) override;
 
+        ~RenderDetailsVulkan() override = default;
+
     private:
         static char constexpr const *m_name = "objectWithShadows";
         static char constexpr const *SHADER_VERT_FILE = "shaders/shader.vert.spv";

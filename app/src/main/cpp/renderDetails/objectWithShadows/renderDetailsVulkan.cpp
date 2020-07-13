@@ -366,12 +366,15 @@ namespace objectWithShadows {
             std::shared_ptr<levelDrawer::DrawObjectTableVulkan> const &table,
             std::vector<size_t> objIndices)
     {
+        if (objIndices.size() > 0 && condition == DrawIfHasTexture::BOTH) {
+            return true;
+        }
+
         for (auto const &objIndex : objIndices) {
             auto const &drawObj = table[objIndex];
 
-            if (condition == DrawIfHasTexture::BOTH ||
-                    (condition == DrawIfHasTexture::ONLY_IF_TEXTURE && drawObj->textureData()) ||
-                    (condition == DrawIfHasTexture::ONLY_IF_NO_TEXTURE && !drawObj->textureData()))
+            if ((condition == DrawIfHasTexture::ONLY_IF_TEXTURE && drawObj->textureData()) ||
+                (condition == DrawIfHasTexture::ONLY_IF_NO_TEXTURE && !drawObj->textureData()))
             {
                 return true;
             }
@@ -408,72 +411,39 @@ namespace objectWithShadows {
          */
         vkCmdBeginRenderPass(commandBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
 
-        /* bind the graphics pipeline to the command buffer, the second parameter tells Vulkan
-         * that we are binding to a graphics pipeline.
-         */
         // Draw from back to front in order to allow see through objects to show things under them.
 
-        // Draw the level
-        // Objects with texture
-        if (checkForObjects(DrawIfHasTexture::ONLY_IF_TEXTURE, drawObjTableList[1], drawObjectsIndicesList[1])) {
-            vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
-                              m_pipelineTexture->pipeline().get());
+        // Draw the level, then the level starter, then the finisher.
+        for (auto &&index : std::vector<size_t>(levelDrawer::LevelDrawerVulkan::ObjectType::LEVEL,
+                                                levelDrawer::LevelDrawerVulkan::ObjectType::STARTER,
+                                                levelDrawer::LevelDrawerVulkan::ObjectType::FINISHER))
+        {
+            // Objects with texture
+            if (checkForObjects(DrawIfHasTexture::ONLY_IF_TEXTURE, drawObjTableList[index],
+                                drawObjectsIndicesList[index]))
+            {
+                /* bind the graphics pipeline to the command buffer, the second parameter tells Vulkan
+                 * that we are binding to a graphics pipeline.
+                 */
+                vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
+                                  m_pipelineTexture->pipeline().get());
 
-            initializeCommandBufferDrawObjects(
-                    DrawIfHasTexture::ONLY_IF_TEXTURE, descriptorSetID, m_pipelineTexture,
-                    commandBuffer, drawObjTableList[1], drawObjectsIndicesList[1]);
-        }
+                initializeCommandBufferDrawObjects(
+                        DrawIfHasTexture::ONLY_IF_TEXTURE, descriptorSetID, m_pipelineTexture,
+                        commandBuffer, drawObjTableList[index], drawObjectsIndicesList[index]);
+            }
 
-        // Objects that just use vertex color.
-        if (checkForObjects(DrawIfHasTexture::ONLY_IF_NO_TEXTURE, drawObjTableList[1], drawObjectsIndicesList[1])) {
-            vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
-                              m_pipelineColor->pipeline().get());
+            // Objects that just use vertex color.
+            if (checkForObjects(DrawIfHasTexture::ONLY_IF_NO_TEXTURE, drawObjTableList[index],
+                                drawObjectsIndicesList[index]))
+            {
+                vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
+                                  m_pipelineColor->pipeline().get());
 
-            initializeCommandBufferDrawObjects(
-                    DrawIfHasTexture::ONLY_IF_NO_TEXTURE, descriptorSetID, m_pipelineTexture,
-                    commandBuffer, drawObjTableList[1], drawObjectsIndicesList[1]);
-        }
-
-        // Draw the level starter
-        // Objects with texture
-        if (checkForObjects(DrawIfHasTexture::ONLY_IF_TEXTURE, drawObjTableList[0], drawObjectsIndicesList[0])) {
-            vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
-                              m_pipelineTexture->pipeline().get());
-
-            initializeCommandBufferDrawObjects(
-                    DrawIfHasTexture::ONLY_IF_TEXTURE, descriptorSetID, m_pipelineTexture,
-                    commandBuffer, drawObjTableList[0], drawObjectsIndicesList[0]);
-        }
-
-        // Objects that just use vertex color.
-        if (checkForObjects(DrawIfHasTexture::ONLY_IF_NO_TEXTURE, drawObjTableList[0], drawObjectsIndicesList[0])) {
-            vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
-                              m_pipelineColor->pipeline().get());
-
-            initializeCommandBufferDrawObjects(
-                    DrawIfHasTexture::ONLY_IF_NO_TEXTURE, descriptorSetID, m_pipelineTexture,
-                    commandBuffer, drawObjTableList[0], drawObjectsIndicesList[0]);
-        }
-
-        // Draw the level finisher objects.
-        // Objects with texture
-        if (checkForObjects(DrawIfHasTexture::ONLY_IF_TEXTURE, drawObjTableList[2], drawObjectsIndicesList[2])) {
-            vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
-                              m_pipelineTexture->pipeline().get());
-
-            initializeCommandBufferDrawObjects(
-                    DrawIfHasTexture::ONLY_IF_TEXTURE, descriptorSetID, m_pipelineTexture,
-                    commandBuffer, drawObjTableList[2], drawObjectsIndicesList[2]);
-        }
-
-        // Objects that just use vertex color.
-        if (checkForObjects(DrawIfHasTexture::ONLY_IF_NO_TEXTURE, drawObjTableList[2], drawObjectsIndicesList[2])) {
-            vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
-                              m_pipelineColor->pipeline().get());
-
-            initializeCommandBufferDrawObjects(
-                    DrawIfHasTexture::ONLY_IF_NO_TEXTURE, descriptorSetID, m_pipelineTexture,
-                    commandBuffer, drawObjTableList[2], drawObjectsIndicesList[2]);
+                initializeCommandBufferDrawObjects(
+                        DrawIfHasTexture::ONLY_IF_NO_TEXTURE, descriptorSetID, m_pipelineTexture,
+                        commandBuffer, drawObjTableList[index], drawObjectsIndicesList[index]);
+            }
         }
 
         vkCmdEndRenderPass(commandBuffer);

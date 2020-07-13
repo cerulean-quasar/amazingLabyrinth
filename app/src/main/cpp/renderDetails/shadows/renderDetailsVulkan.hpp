@@ -51,6 +51,8 @@ namespace shadows {
         std::shared_ptr<vulkan::Buffer> const &cameraBuffer() { return m_camera; }
         uint32_t cameraufferSize() { return sizeof(CommonUBO); }
 
+        ~CommonObjectDataVulkan() override = default;
+
     protected:
         void update() override {
             CommonUBO commonUbo;
@@ -211,6 +213,7 @@ namespace shadows {
             return m_descriptorPools;
         }
 
+        ~RenderDetailsVulkan() override = default;
     private:
         static char constexpr const *m_name = "shadows";
         static char constexpr const *SHADER_SIMPLE_FRAG_FILE = "shaders/simple.frag.spv";

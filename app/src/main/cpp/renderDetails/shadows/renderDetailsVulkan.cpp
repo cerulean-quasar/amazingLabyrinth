@@ -111,6 +111,7 @@ namespace shadows {
         vkUpdateDescriptorSets(inDevice->logicalDevice().get(), descriptorWrites.size(),
                                descriptorWrites.data(), 0, nullptr);
     }
+
     void RenderDetailsVulkan::addDrawCmdsToCommandBuffer(
             VkCommandBuffer const &commandBuffer,
             VkFrameBuffer const &frameBuffer,
@@ -148,20 +149,14 @@ namespace shadows {
 
         // Draw from back to front in order to allow see through objects to show things under them.
 
-        // Draw the level
-        initializeCommandBufferDrawObjects(
-                DrawIfHasTexture::BOTH, descriptorSetID, m_pipelineTexture,
-                commandBuffer, drawObjTableList[1], drawObjectsIndicesList[1]);
-
-        // Draw the level starter
-        initializeCommandBufferDrawObjects(
-                DrawIfHasTexture::BOTH, descriptorSetID, m_pipelineTexture,
-                commandBuffer, drawObjTableList[0], drawObjectsIndicesList[0]);
-
-        // Draw the level finisher objects.
-        initializeCommandBufferDrawObjects(
-                DrawIfHasTexture::BOTH, descriptorSetID, m_pipelineTexture,
-                commandBuffer, drawObjTableList[2], drawObjectsIndicesList[2]);
+        // Draw the level, then the level starter, then the finisher.
+        for (auto &&index : std::vector<size_t>(levelDrawer::LevelDrawerVulkan::ObjectType::LEVEL,
+                                                levelDrawer::LevelDrawerVulkan::ObjectType::STARTER,
+                                                levelDrawer::LevelDrawerVulkan::ObjectType::FINISHER)) {
+            initializeCommandBufferDrawObjects(
+                    DrawIfHasTexture::BOTH, descriptorSetID, m_pipelineTexture,
+                    commandBuffer, drawObjTableList[index], drawObjectsIndicesList[index]);
+        }
 
         vkCmdEndRenderPass(commandBuffer);
     }
