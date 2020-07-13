@@ -17,8 +17,8 @@
  *  along with AmazingLabyrinth.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
-#ifndef AMAZING_LABYRINTH_TEXTUREWITHSHADOWS_RENDER_DETAILS_DATA_GL_HPP
-#define AMAZING_LABYRINTH_TEXTUREWITHSHADOWS_RENDER_DETAILS_DATA_GL_HPP
+#ifndef AMAZING_LABYRINTH_OBJECTWITHSHADOWS_RENDER_DETAILS_GL_HPP
+#define AMAZING_LABYRINTH_OBJECTWITHSHADOWS_RENDER_DETAILS_GL_HPP
 
 #include <memory>
 #include <vector>
@@ -84,6 +84,7 @@ namespace shadowsChaining {
 
     class RenderDetailsGL : public renderDetails::RenderDetailsGL {
     public:
+        static char const *name() { return m_name; }
         static renderDetails::ReferenceGL loadNew(
                 std::shared_ptr<GameRequester> const &gameRequester,
                 std::shared_ptr<RenderLoaderGL> const &renderLoader,
@@ -100,6 +101,7 @@ namespace shadowsChaining {
         ~RenderDetailsGL() override = default;
 
     private:
+        static char constexpr const *m_name = "shadowsChaining";
         bool m_useIntTexture;
         std::shared_ptr<graphicsGL::Framebuffer> m_framebufferShadows;
         std::shared_ptr<shadows::RenderDetailsGL> m_shadowsRenderDetails;
@@ -138,4 +140,4 @@ namespace shadowsChaining {
         {}
     };
 }
-#endif // AMAZING_LABYRINTH_TEXTUREWITHSHADOWS_RENDER_DETAILS_DATA_GL_HPP
+#endif // AMAZING_LABYRINTH_OBJECTWITHSHADOWS_RENDER_DETAILS_GL_HPP

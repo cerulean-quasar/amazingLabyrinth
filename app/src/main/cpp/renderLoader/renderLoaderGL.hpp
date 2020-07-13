@@ -31,13 +31,15 @@
 #include "registerGL.hpp"
 
 struct RenderLoaderGLTraits {
-    using RenderDetailsParametersType = renderDetails::RenderDetailsParametersGL;
+    using RenderDetailsParametersType = renderDetails::ParametersGL;
     using RenderDetailsType = renderDetails::RenderDetailsGL;
     using CommonObjectDataType = renderDetails::CommonObjectData;
-    using RenderDetailsReferenceType = renderDetails::RenderDetailsReference<RenderDetailsType, CommonObjectDataType>;
-    using RenderDetailsParameterType = renderDetails::RenderDetailsParametersGL;
+    using RenderDetailsReferenceType = renderDetails::ReferenceGL;
+    using RenderDetailsParameterType = renderDetails::ParametersGL;
     using RetrieveFcns = RenderDetailsGLRetrieveFcns;
-    static RenderDetailsGLRetrieveMap &(*getRenderDetailsMap)() = getRenderDetailsGLMap;
+    static RenderDetailsGLRetrieveMap &getRenderDetailsMap() {
+        return getRenderDetailsGLMap();
+    }
 };
 
 class RenderLoaderGL :  public std::enable_shared_from_this<RenderLoaderGL>, public RenderLoader<RenderLoaderGLTraits> {
@@ -50,7 +52,7 @@ protected:
             std::shared_ptr<GameRequester> const &gameRequester,
             RenderLoaderGLTraits::RenderDetailsParameterType const &parameters) override
     {
-        auto renderDetails = fcns.renderDetailsLoadFcn(gameRequester, shared_from_this(), parameters);
+        return fcns.renderDetailsLoadNewFcn(gameRequester, shared_from_this(), parameters);
     }
 
     void reload(
@@ -63,10 +65,11 @@ protected:
 
     RenderLoaderGLTraits::RenderDetailsReferenceType loadExisting(
             RenderLoaderGLTraits::RetrieveFcns const &fcns,
+            std::shared_ptr<GameRequester> const &gameRequester,
             std::shared_ptr<RenderLoaderGLTraits::RenderDetailsType> const &renderDetails,
             RenderLoaderGLTraits::RenderDetailsParameterType const &parameters) override
     {
-        return fcns.commonObjectDataCreateFcn(renderDetails, shared_from_this(), parameters);
+        return fcns.renderDetailsLoadExistingFcn(gameRequester, shared_from_this(), renderDetails, parameters);
     }
 private:
 };

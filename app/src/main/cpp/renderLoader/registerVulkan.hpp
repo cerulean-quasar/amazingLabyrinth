@@ -30,14 +30,14 @@
 
 // Register RenderDetailsVulkan types
 struct RenderDetailsVulkanRetrieveFcns {
-    using RenderDetailsReferenceVulkan = renderDetails::RenderDetailsReference<renderDetails::RenderDetailsVulkan, renderDetails::CommonObjectData>;
-    using RenderDetailsLoadNewFcn = std::function<std::shared_ptr<RenderDetailsReferenceVulkan>(
+    using RenderDetailsReferenceVulkan = renderDetails::ReferenceVulkan;
+    using RenderDetailsLoadNewFcn = std::function<renderDetails::ReferenceVulkan(
         std::shared_ptr<GameRequester> const &,
         std::shared_ptr<RenderLoaderVulkan> const &,
         std::shared_ptr<vulkan::Device>,
         renderDetails::ParametersVulkan const &)>;
 
-    using RenderDetailsLoadExistingFcn = std::function<std::shared_ptr<RenderDetailsReferenceVulkan>(
+    using RenderDetailsLoadExistingFcn = std::function<renderDetails::ReferenceVulkan(
         std::shared_ptr<GameRequester> const &,
         std::shared_ptr<RenderLoaderVulkan> const &,
         std::shared_ptr<renderDetails::RenderDetailsVulkan> const &,
@@ -48,7 +48,7 @@ struct RenderDetailsVulkanRetrieveFcns {
 };
 
 using RenderDetailsVulkanRetrieveMap =
-    std::map<std::string, RenderDetailsRetrieveFcns<RenderDetailsLoadFcn, CommonObjectDataCreateFcn>>;
+    std::map<std::string, std::function<RenderDetailsVulkanRetrieveFcns()>>;
 
 RenderDetailsVulkanRetrieveMap &getRenderDetailsVulkanMap() {
     static RenderDetailsVulkanRetrieveMap map{};

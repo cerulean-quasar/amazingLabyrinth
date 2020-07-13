@@ -41,7 +41,7 @@ namespace shadowsChaining {
                 rd->m_surfaceWidth, rd->m_surfaceHeight, colorImageFormats);
 
         auto refShadows = renderLoader->load(
-                gameRequester, renderLoader, shadows::RenderDetailsGL::name(), parameters);
+                gameRequester, shadows::RenderDetailsGL::name(), parameters);
 
         renderDetails::ParametersWithShadowsGL parametersWithShadows = {};
         parametersWithShadows.width = parameters.width;
@@ -50,8 +50,7 @@ namespace shadowsChaining {
         parametersWithShadows.shadowsFB = rd->m_framebufferShadows;
 
         auto refObjectWithShadows = renderLoader->load(
-                gameRequester, renderLoader,
-                objectWithShadows::RenderDetailsGL::name(), parametersWithShadows);
+                gameRequester, objectWithShadows::RenderDetailsGL::name(), parametersWithShadows);
 
         rd->m_shadowsRenderDetails = refShadows.renderDetails;
         rd->m_objectWithShadowsRenderDetails = refObjectWithShadows.renderDetails;

@@ -53,8 +53,10 @@ namespace shadows {
         {}
     };
 
-    class DrawObjectDataGL : public renderDetails::DrawObjectData {
+    class DrawObjectDataGL : public renderDetails::DrawObjectDataGL {
     public:
+        glm::mat4 modelMatrix(uint32_t) override { return m_modelMatrix; }
+
         void update(glm::mat4 const &modelMatrix) override {
             m_modelMatrix = modelMatrix;
         }
@@ -70,6 +72,8 @@ namespace shadows {
 
     class RenderDetailsGL : public renderDetails::RenderDetailsGL {
     public:
+        static char const *name() { return m_name; }
+
         static renderDetails::ReferenceGL loadNew(
                 std::shared_ptr<GameRequester> const &gameRequester,
                 std::shared_ptr<RenderLoaderGL> const &renderLoader,
@@ -86,6 +90,7 @@ namespace shadows {
         ~RenderDetailsGL() override = default;
 
     private:
+        static char constexpr const *m_name = "shadows";
         static char constexpr const *DEPTH_VERT_FILE = "shaders/depthShaderGL.vert";
         static char constexpr const *SIMPLE_FRAG_FILE = "shaders/simpleGL.frag";
 

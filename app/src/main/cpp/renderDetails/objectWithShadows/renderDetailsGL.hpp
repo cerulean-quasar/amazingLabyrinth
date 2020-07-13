@@ -78,6 +78,7 @@ namespace objectWithShadows {
 
     class RenderDetailsGL : public renderDetails::RenderDetailsGL {
     public:
+        static char const *name() { return m_name; }
         static renderDetails::ReferenceGL loadNew(
                 std::shared_ptr<GameRequester> const &gameRequester,
                 std::shared_ptr<RenderLoaderGL> const &renderLoader,
@@ -94,6 +95,7 @@ namespace objectWithShadows {
         ~RenderDetailsGL() override = default;
 
     private:
+        static char constexpr const *m_name = "objectWithShadows";
         static char constexpr const *SHADER_VERT_FILE = "shaders/shaderGL.vert";
         static char constexpr const *TEXTURE_SHADER_FRAG_FILE = "shaders/shaderGL.frag";
         static char constexpr const *COLOR_SHADER_FRAG_FILE = "shaders/shaderGL.frag";

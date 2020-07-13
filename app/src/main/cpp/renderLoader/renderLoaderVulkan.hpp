@@ -36,7 +36,9 @@ struct RenderLoaderVulkanTraits {
     using RenderDetailsReferenceType = renderDetails::RenderDetailsReference<RenderDetailsType, CommonObjectDataType>;
     using RenderDetailsParameterType = renderDetails::ParametersVulkan;
     using RetrieveFcns = RenderDetailsVulkanRetrieveFcns;
-    static RenderDetailsVulkanRetrieveMap &(*getRenderDetailsMap)() = getRenderDetailsVulkanMap;
+    static RenderDetailsVulkanRetrieveMap &getRenderDetailsMap() {
+        return getRenderDetailsVulkanMap();
+    }
 };
 
 class RenderLoaderVulkan : public std::enable_shared_from_this<RenderLoaderVulkan>, public RenderLoader<RenderLoaderVulkanTraits> {
