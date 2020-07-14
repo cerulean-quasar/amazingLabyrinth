@@ -87,10 +87,9 @@ namespace openArea {
                 std::shared_ptr <GameRequester> inGameRequester,
                 std::shared_ptr<LevelConfigData> const &lcd,
                 std::shared_ptr <LevelSaveData> const &levelRestoreData,
-                glm::mat4 const &proj,
-                glm::mat4 const &view,
+                levelDrawer::Adaptor inLevelDrawer,
                 float maxZ)
-                : basic::Level(std::move(inGameRequester), lcd, proj, view, maxZ, true),
+                : basic::Level(std::move(inGameRequester), lcd, std::move(inLevelDrawer), maxZ, true),
                   holeTexture{lcd->holeTexture},
                   prevTime(std::chrono::high_resolution_clock::now()) {
             loadModels();
@@ -107,10 +106,7 @@ namespace openArea {
 
         bool updateData() override;
 
-        bool updateStaticDrawObjects(DrawObjectTable &objs, TextureMap &textures) override;
-
-        bool updateDynamicDrawObjects(DrawObjectTable &objs, TextureMap &textures,
-                                      bool &texturesChanged) override;
+        bool updateDrawObjects() override;
 
         void start() override {
             prevTime = std::chrono::high_resolution_clock::now();

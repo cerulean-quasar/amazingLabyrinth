@@ -27,15 +27,13 @@
 #include "../levelDrawer/textureTable/textureLoader.hpp"
 
 namespace renderDetails {
-    using ProjectionView = std::pair<glm::mat4, glm::mat4>;
-
     template <typename RenderDetailsType, typename CommonObjectDataType, typename DrawObjectDataType>
     struct Reference {
         using CreateDrawObjectData = std::function<std::shared_ptr<DrawObjectDataType>(
                 std::shared_ptr<DrawObjectDataType> const &,
                 std::shared_ptr<levelDrawer::TextureData> const &,
                 glm::mat4 const &)>;
-        using GetProjViewForLevel = std::function<ProjectionView()>;
+        using GetProjViewForLevel = std::function<std::pair<glm::mat4, glm::mat4>()>;
         std::shared_ptr<RenderDetailsType> renderDetails;
         std::shared_ptr<CommonObjectDataType> commonObjectData;
         CreateDrawObjectData createDrawObjectData;
@@ -44,7 +42,7 @@ namespace renderDetails {
 
     class CommonObjectData {
     public:
-        virtual ProjectionView getProjViewForLevel() = 0;
+        virtual std::pair<glm::mat4, glm::mat4> getProjViewForLevel() = 0;
         CommonObjectData() = default;
         virtual ~CommonObjectData() = default;
     protected:

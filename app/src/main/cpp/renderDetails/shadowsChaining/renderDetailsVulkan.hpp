@@ -38,7 +38,7 @@ namespace shadowsChaining {
     class CommonObjectDataVulkan : renderDetails::CommonObjectData {
         friend RenderDetailsVulkan;
     public:
-        renderDetails::ProjectionView getProjViewForLevel() override {
+        std::pair<glm::mat4, glm::mat4> getProjViewForLevel() override {
             return m_objectWithShadowsCOD->getProjViewForLevel();
         }
 

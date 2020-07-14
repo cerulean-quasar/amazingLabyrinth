@@ -31,6 +31,7 @@
 #include "loadData.hpp"
 #include "../../levelTracker/types.hpp"
 #include "../../mathGraphics.hpp"
+#include "../../levelDrawer/levelDrawer.hpp"
 
 namespace basic {
     class Level {
@@ -51,6 +52,7 @@ namespace basic {
         static float constexpr m_modelSize = 2.0f;
 
         std::shared_ptr<GameRequester> m_gameRequester;
+        levelDrawer::Adaptor m_levelDrawer;
         bool m_finished;
         float m_width;
         float m_height;
@@ -127,10 +129,7 @@ namespace basic {
 
         virtual bool updateData() = 0;
 
-        virtual bool updateStaticDrawObjects(DrawObjectTable &objs, TextureMap &textures) = 0;
-
-        virtual bool updateDynamicDrawObjects(DrawObjectTable &objs, TextureMap &textures,
-                                              bool &texturesChanged) = 0;
+        virtual bool updateDrawObjects() = 0;
 
         virtual void start() = 0;
 
@@ -153,11 +152,11 @@ namespace basic {
         Level(
                 std::shared_ptr<GameRequester> inGameRequester,
                 std::shared_ptr<LevelConfigData> const &lcd,
-                glm::mat4 const &proj,
-                glm::mat4 const &view,
+                levelDrawer::Adaptor inLevelDrawer,
                 float mazeFloorZ,
                 bool ignoreZMovement)
                 : m_gameRequester{std::move(inGameRequester)},
+                  m_levelDrawer{std::move(inLevelDrawer)},
                   m_finished(false),
                   m_mazeFloorZ{mazeFloorZ},
                   m_ignoreZMovement{ignoreZMovement},
@@ -169,7 +168,8 @@ namespace basic {
                 throw (std::runtime_error("Level Configuration missing"));
             }
 
-            auto wh = getWidthHeight(mazeFloorZ, proj, view);
+            auto projView = m_levelDrawer.getProjectionView();
+            auto wh = getWidthHeight(mazeFloorZ, projView.first, projView.second);
             m_width = wh.first;
             m_height = wh.second;
             m_diagonal = glm::length(glm::vec2{m_width, m_height});

@@ -100,4 +100,40 @@ namespace shadowsChaining {
         rd->m_framebufferShadows = std::make_shared<graphicsGL::Framebuffer>(
                 rd->m_surfaceWidth, rd->m_surfaceHeight, colorImageFormats);
     }
+
+    static renderDetails::ReferenceGL RenderDetailsGL::createReference(
+            std::shared_ptr<renderDetails::RenderDetailsGL> rd,
+            renderDetails::ReferenceGL const &refObjectWithShadows,
+            renderDetails::ReferenceGL const &refShadows)
+    {
+        renderDetails::ReferenceGL ref = {};
+        auto cod = std::make_shared<CommonObjectDataGL>(refObjectWithShadows.commonObjectData,
+                                                        refShadows.commonObjectData);
+        ref.createDrawObjectData = renderDetails::ReferenceGL::CreateDrawObjectData{
+                [createDODObjectWithShadows(refObjectWithShadows.createDrawObjectData),
+                        createDODShadows(refShadows.createDrawObjectData)] (
+                        std::shared_ptr<renderDetails::DrawObjectDataGL> sharingDOD,
+                        std::shared_ptr<levelDrawer::TextureData> textureData,
+                        glm::mat4 modelMatrix) ->
+                        std::shared_ptr<renderDetails::DrawObjectData>
+                {
+                    auto dodMain = createDODObjectWithShadows(sharingDOD, std::move(textureData),
+                                                              std::move(modelMatrix));
+                    auto dodShadows = createDODShadows(sharingDOD, nullptr, modelMatrix);
+
+                    return std::make_shared<DrawObjectDataGL>(std::move(dodMain), std::move(dodShadows));
+                }
+        };
+
+        ref.getProjViewForLevel = renderDetails::ReferenceGL::GetProjViewForLevel(
+                [getPVObjectWithShadows(refObjectWithShadows.getProjViewForLevel)]() ->
+                        std::pair<glm::mat4, glm::mat4>
+                {
+                    return getPVObjectWithShadows();
+                });
+
+
+        return std::move(ref);
+    }
+
 }

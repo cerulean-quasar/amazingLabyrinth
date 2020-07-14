@@ -40,7 +40,7 @@ namespace shadowsChaining {
     class CommonObjectDataGL : public renderDetails::CommonObjectData {
         friend RenderDetailsGL;
     public:
-        renderDetails::ProjectionView getProjViewForLevel() override {
+        std::pair<glm::mat4, glm::mat4> getProjViewForLevel() override {
             return m_objectWithShadowsCOD->getProjViewForLevel();
         }
 
@@ -116,37 +116,7 @@ namespace shadowsChaining {
         static renderDetails::ReferenceGL createReference(
                 std::shared_ptr<renderDetails::RenderDetailsGL> rd,
                 renderDetails::ReferenceGL const &refObjectWithShadows,
-                renderDetails::ReferenceGL const &refShadows)
-        {
-            renderDetails::ReferenceGL ref = {};
-            auto cod = std::make_shared<CommonObjectDataGL>(refObjectWithShadows.commonObjectData,
-                    refShadows.commonObjectData);
-            ref.createDrawObjectData = renderDetails::ReferenceGL::CreateDrawObjectData{
-                [createDODObjectWithShadows(refObjectWithShadows.createDrawObjectData),
-                 createDODShadows(refShadows.createDrawObjectData)] (
-                         std::shared_ptr<renderDetails::DrawObjectDataGL> sharingDOD,
-                         std::shared_ptr<levelDrawer::TextureData> textureData,
-                         glm::mat4 modelMatrix) ->
-                         std::shared_ptr<renderDetails::DrawObjectData>
-                {
-                    auto dodMain = createDODObjectWithShadows(sharingDOD, std::move(textureData),
-                            std::move(modelMatrix));
-                    auto dodShadows = createDODShadows(sharingDOD, nullptr, modelMatrix);
-
-                    return std::make_shared<DrawObjectDataGL>(std::move(dodMain), std::move(dodShadows));
-                }
-            };
-
-            ref.getProjViewForLevel = renderDetails::ReferenceGL::GetProjViewForLevel(
-                    [getPVObjectWithShadows(refObjectWithShadows.getProjViewForLevel)]() ->
-                            renderDetails::ProjectionView
-                    {
-                        return getPVObjectWithShadows();
-                    });
-
-
-            return std::move(ref);
-        }
+                renderDetails::ReferenceGL const &refShadows);
 
         // Initialize framebuffer for shadow mapping.
         static void createFramebuffer(RenderDetailsGL *rd, renderDetails::ParametersGL const &parameters);

@@ -170,7 +170,7 @@ namespace shadowsChaining {
 
         ref.getProjViewForLevel = renderDetails::ReferenceVulkan::GetProjViewForLevel(
                 [getPVObjectWithShadows(refObjectWithShadows.getProjViewForLevel)]() ->
-                    renderDetails::ProjectionView
+                        std::pair<glm::mat4, glm::mat4>
                 {
                     return getPVObjectWithShadows();
                 });

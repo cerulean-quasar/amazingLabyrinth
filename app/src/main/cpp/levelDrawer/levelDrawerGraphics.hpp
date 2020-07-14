@@ -44,7 +44,7 @@ namespace levelDrawer {
         using CommonObjectDataList = std::array<std::shared_ptr<renderDetails::CommonObjectData>, m_numberDrawObjectTables>;
 
         void clearDrawObjectTable(ObjectType type) {
-            m_drawObjectTable[type].clear();
+            m_drawObjectTable[type]->clear();
         }
 
         size_t addObject(
@@ -76,7 +76,7 @@ namespace levelDrawer {
                 textureData = m_textureTable.addTexture(textureDescription);
             }
 
-            m_drawObjectTable[type].addObject(
+            m_drawObjectTable[type]->addObject(
                 m_renderLoader->load(
                         m_gameRequester,
                         renderDetailsName,
@@ -87,7 +87,7 @@ namespace levelDrawer {
 
         size_t addModelMatrixForObject(ObjectType type, size_t objsIndex, glm::mat4 const &modelMatrix) override {
             std::shared_ptr<typename traits::DrawObjectType> drawObj =
-                    m_drawObjectTable[type].drawObject(objsIndex);
+                    m_drawObjectTable[type]->drawObject(objsIndex);
 
             auto renderDetailsRef = drawObj->renderDetailsReference();
 
@@ -114,7 +114,7 @@ namespace levelDrawer {
 
         void resizeObjectsData(ObjectType type, size_t objsIndex, size_t newSize) override {
             std::shared_ptr<typename traits::DrawObjectType> drawObj =
-                    m_drawObjectTable[type].drawObject(objsIndex);
+                    m_drawObjectTable[type]->drawObject(objsIndex);
 
             size_t nbrObjsData = drawObj->numberObjectsData();
             if (nbrObjsData == newSize) {
@@ -125,7 +125,7 @@ namespace levelDrawer {
             }
 
             auto overridingRef = drawObj->renderDetailsReference();
-            auto globalRef = m_drawObjectTable[type].renderDetailsReference();
+            auto globalRef = m_drawObjectTable[type]->renderDetailsReference();
 
             std::shared_ptr<typename traits::TextureDataType> textureData = drawObj->textureData();
             // we need to add new objects data.
@@ -142,12 +142,21 @@ namespace levelDrawer {
         }
 
         size_t numberObjectsDataForObject(ObjectType type, size_t objsIndex) override {
-            return m_drawObjectTable[type].numberObjectsDataForObject(objsIndex);
+            return m_drawObjectTable[type]->numberObjectsDataForObject(objsIndex);
         }
 
         void requestRenderDetails(ObjectType type, std::string const &name) override {
-            m_drawObjectTable[type].loadRenderDetails(m_renderLoader.load(m_gameRequester, name,
+            m_drawObjectTable[type]->loadRenderDetails(m_renderLoader.load(m_gameRequester, name,
                     m_gameRequester->getParametersForRenderDetailsName(name)));
+        }
+
+        std::pair<glm::mat4, glm::mat4> getProjectionView(ObjectType type) override {
+            auto globalRef = m_drawObjectTable[type]->renderDetailsReference();
+            if (globalRef.renderDetails == nullptr) {
+                throw std::runtime_error("Render details reference not set for level type");
+            }
+
+            return globalRef.getProjViewForLevel();
         }
 
         virtual void draw(typename traits::DrawArgumentType info) = 0;

@@ -37,7 +37,7 @@ namespace shadows {
     class CommonObjectDataGL : public renderDetails::CommonObjectDataPerspective {
         friend RenderDetailsGL;
     public:
-        renderDetails::ProjectionView getProjViewForLevel() override {
+        std::pair<glm::mat4, glm::mat4> getProjViewForLevel() override {
             /* perspective matrix: takes the perspective projection, the aspect ratio, near and far
              * view planes.
              */

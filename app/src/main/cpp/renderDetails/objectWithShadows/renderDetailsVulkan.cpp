@@ -357,7 +357,7 @@ namespace objectWithShadows {
                 });
 
         ref.getProjViewForLevel = renderDetails::ReferenceVulkan::GetProjViewForLevel(
-                [cod] () -> renderDetails::ProjectionView {
+                [cod] () -> std::pair<glm::mat4, glm::mat4> {
                     return cod->getProjViewForLevel();
                 });
 

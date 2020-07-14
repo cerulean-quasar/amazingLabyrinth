@@ -160,4 +160,43 @@ namespace shadows {
 
         vkCmdEndRenderPass(commandBuffer);
     }
+
+    static renderDetails::ReferenceVulkan RenderDetailsVulkan::createReference(
+            std::shared_ptr<renderDetails::RenderDetailsVulkan> rd,
+            std::shared_ptr<CommonObjectDataVulkan> cod)
+    {
+        renderDetails::ReferenceVulkan ref;
+        ref.createDrawObjectData = renderDetails::ReferenceVulkan::CreateDrawObjectData(
+                [rd, cod] (std::shared_ptr<renderDetails::DrawObjectDataVulkan> const &sharingDOD,
+                           std::shared_ptr<TextureData> const &textureData,
+                           glm::mat4 const &modelMatrix) ->
+                        std::shared_ptr<renderDetails::DrawObjectDataVulkan>
+                {
+                    std::shared_ptr<vulkan::Buffer> modelMatrixBuffer{};
+                    if (sharingDOD) {
+                        modelMatrixBuffer = sharingDOD->bufferModelMatrix();
+                    } else {
+                        modelMatrixBuffer = createUniformBuffer(rd->device(),
+                                                                sizeof (DrawObjectDataVulkan::PerObjectUBO));
+                        DrawObjectDataVulkan::PerObjectUBO perObjectUbo{};
+                        perObjectUbo.model = modelMatrix;
+                        modelMatrixBuffer->copyRawTo(&perObjectUbo,
+                                                     sizeof(DrawObjectDataVulkan::PerObjectUBO));
+                    }
+
+                    auto descriptorSet = rd->descriptorPools()->allocateDescriptor();
+                    return std::make_shared<DrawObjectDataVulkan>(
+                            rd->device(), cod, std::move(descriptorSet), std::move(modelMatrixBuffer));
+                });
+
+        ref.getProjViewForLevel = renderDetails::ReferenceVulkan::GetProjViewForLevel(
+                [cod] () -> std::pair<glm::mat4, glm::mat4> {
+                    return cod->getProjViewForLevel();
+                });
+
+        ref.renderDetails = std::move(rd);
+        ref.commonObjectData = std::move(cod);
+
+        return std::move(ref);
+    }
 }
