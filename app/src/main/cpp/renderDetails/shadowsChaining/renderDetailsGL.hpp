@@ -39,6 +39,12 @@ namespace shadowsChaining {
     class RenderDetailsGL;
     class CommonObjectDataGL : public renderDetails::CommonObjectData {
         friend RenderDetailsGL;
+    public:
+        renderDetails::ProjectionView getProjViewForLevel() override {
+            return m_objectWithShadowsCOD->getProjViewForLevel();
+        }
+
+        ~CommonObjectDataGL() override = default;
     private:
         std::shared_ptr<objectWithShadows::CommonObjectDataGL> m_objectWithShadowsCOD;
         std::shared_ptr<shadows::CommonObjectDataGL> m_shadowsCOD;
@@ -130,6 +136,14 @@ namespace shadowsChaining {
                     return std::make_shared<DrawObjectDataGL>(std::move(dodMain), std::move(dodShadows));
                 }
             };
+
+            ref.getProjViewForLevel = renderDetails::ReferenceGL::GetProjViewForLevel(
+                    [getPVObjectWithShadows(refObjectWithShadows.getProjViewForLevel)]() ->
+                            renderDetails::ProjectionView
+                    {
+                        return getPVObjectWithShadows();
+                    });
+
 
             return std::move(ref);
         }

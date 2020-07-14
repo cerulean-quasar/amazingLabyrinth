@@ -53,12 +53,14 @@ namespace objectWithShadows {
         uint32_t lightingBufferSize() { return sizeof (CommonFragmentUBO); }
         std::shared_ptr<vulkan::ImageSampler> const &shadowsSampler() { return m_shadowsSampler; }
 
-        glm::mat4 getPerspectiveMatrixForLevel() override {
+        renderDetails::ProjectionView getProjViewForLevel() override {
             /* perspective matrix: takes the perspective projection, the aspect ratio, near and far
              * view planes.
              */
-            return getPerspectiveMatrix(m_viewAngle, m_aspectRatio, m_nearPlane, m_farPlane,
-                                        false, true);
+            return std::make_pair<glm::mat4, glm::mat4>(
+                    getPerspectiveMatrix(m_viewAngle, m_aspectRatio, m_nearPlane, m_farPlane,
+                                         false, true),
+                    view());
         }
 
         ~CommonObjectDataVulkan() override = default;

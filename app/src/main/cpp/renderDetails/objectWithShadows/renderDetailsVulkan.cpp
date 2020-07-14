@@ -356,6 +356,11 @@ namespace objectWithShadows {
                             std::move(modelMatrixBuffer));
                 });
 
+        ref.getProjViewForLevel = renderDetails::ReferenceVulkan::GetProjViewForLevel(
+                [cod] () -> renderDetails::ProjectionView {
+                    return cod->getProjViewForLevel();
+                });
+
         ref.renderDetails = std::move(rd);
         ref.commonObjectData = std::move(cod);
 

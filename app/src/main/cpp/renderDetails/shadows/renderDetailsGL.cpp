@@ -70,6 +70,11 @@ namespace shadows {
                 {
                     return std::make_shared<DrawObjectDataGL>(std::move(modelMatrix));
                 });
+        ref.getProjViewForLevel = renderDetails::ReferenceGL::GetProjViewForLevel(
+                [cod] () -> renderDetails::ProjectionView {
+                    return cod->getProjViewForLevel();
+                });
+
         ref.renderDetails = std::move(rd);
         ref.commonObjectData = std::move(cod);
         return std::move(ref);

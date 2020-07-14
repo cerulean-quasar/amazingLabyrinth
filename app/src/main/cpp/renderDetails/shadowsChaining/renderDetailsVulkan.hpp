@@ -38,6 +38,10 @@ namespace shadowsChaining {
     class CommonObjectDataVulkan : renderDetails::CommonObjectData {
         friend RenderDetailsVulkan;
     public:
+        renderDetails::ProjectionView getProjViewForLevel() override {
+            return m_objectWithShadowsCOD->getProjViewForLevel();
+        }
+
         ~CommonObjectDataVulkan() override = default;
     private:
         std::shared_ptr<objectWithShadows::CommonObjectDataVulkan> m_objectWithShadowsCOD;

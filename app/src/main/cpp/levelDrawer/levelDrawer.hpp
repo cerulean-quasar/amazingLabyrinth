@@ -25,7 +25,6 @@
 
 #include "modelTable/modelLoader.hpp"
 #include "textureTable/textureLoader.hpp"
-#include "../renderDetails/renderDetails.hpp"
 
 namespace levelDrawer {
     class LevelDrawer {
@@ -57,6 +56,10 @@ namespace levelDrawer {
         virtual size_t numberObjectsDataForObject(ObjectType type, size_t objsIndex) = 0;
 
         virtual void requestRenderDetails(ObjectType type, std::string const &name) = 0;
+
+        virtual std::pair<glm::mat4, glm::mat4> getProjectionView() = 0;
+
+        virtual ~LevelDrawer() = default;
     };
 }
 

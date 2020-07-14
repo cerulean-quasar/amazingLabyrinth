@@ -38,18 +38,21 @@ namespace shadows {
     class CommonObjectDataVulkan : public renderDetails::CommonObjectDataPerspective {
         friend RenderDetailsVulkan;
     public:
-        glm::mat4 getPerspectiveMatrixForLevel() override {
+        renderDetails::ProjectionView getProjViewForLevel() override {
             /* perspective matrix: takes the perspective projection, the aspect ratio, near and far
              * view planes.
              */
-            return getPerspectiveMatrix(m_viewAngle, m_aspectRatio, m_nearPlane, m_farPlane,
-                                        false, true);
+            return std::make_pair<glm::mat4, glm::mat4>(
+                    getPerspectiveMatrix(m_viewAngle, m_aspectRatio, m_nearPlane, m_farPlane,
+                                         false, true),
+                    view());
         }
 
         glm::vec3 lightSource() { return m_viewPoint; }
 
         std::shared_ptr<vulkan::Buffer> const &cameraBuffer() { return m_camera; }
-        uint32_t cameraufferSize() { return sizeof(CommonUBO); }
+
+        uint32_t cameraBufferSize() { return sizeof(CommonUBO); }
 
         ~CommonObjectDataVulkan() override = default;
 
@@ -60,7 +63,7 @@ namespace shadows {
                              getPerspectiveMatrix(m_viewAngle, m_aspectRatio, m_nearPlane, m_farPlane, true, true);
 
             // eye at the m_viewPoint, looking at the m_lookAt position, pointing up is m_up.
-            commonUbo.view = glm::lookAt(m_viewPoint, m_lookAt, m_up);
+            commonUbo.view = view();
 
             m_camera->copyRawTo(&commonUbo, sizeof(commonUbo));
         }
@@ -272,6 +275,11 @@ namespace shadows {
                         auto descriptorSet = rd->descriptorPools()->allocateDescriptor();
                         return std::make_shared<DrawObjectDataVulkan>(
                             rd->device(), cod, std::move(descriptorSet), std::move(modelMatrixBuffer));
+                    });
+
+            ref.getProjViewForLevel = renderDetails::ReferenceVulkan::GetProjViewForLevel(
+                    [cod] () -> renderDetails::ProjectionView {
+                        return cod->getProjViewForLevel();
                     });
 
             ref.renderDetails = std::move(rd);

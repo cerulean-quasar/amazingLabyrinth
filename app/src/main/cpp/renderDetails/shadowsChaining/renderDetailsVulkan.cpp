@@ -166,7 +166,14 @@ namespace shadowsChaining {
 
                     return std::make_shared<DrawObjectDataVulkan>(dodMain, dodShadows);
                 }
-        )
+        );
+
+        ref.getProjViewForLevel = renderDetails::ReferenceVulkan::GetProjViewForLevel(
+                [getPVObjectWithShadows(refObjectWithShadows.getProjViewForLevel)]() ->
+                    renderDetails::ProjectionView
+                {
+                    return getPVObjectWithShadows();
+                });
 
         return std::move(ref);
     }
