@@ -112,6 +112,15 @@ namespace levelDrawer {
             return drawObj->numberObjectsData() - 1;
         }
 
+        void updateModelMatrixForObject(
+                ObjectType type,
+                size_t objIndex,
+                size_t objDataIndex,
+                glm::mat4 const &modelMatrix) override
+        {
+            m_drawObjectTable[type]->updateObjectData(objIndex, objDataIndex, modelMatrix);
+        }
+
         void resizeObjectsData(ObjectType type, size_t objsIndex, size_t newSize) override {
             std::shared_ptr<typename traits::DrawObjectType> drawObj =
                     m_drawObjectTable[type]->drawObject(objsIndex);

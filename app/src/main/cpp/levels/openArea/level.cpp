@@ -21,13 +21,6 @@
 
 namespace openArea {
     char constexpr const *Level::m_name;
-    void Level::loadModels() {
-        std::pair<std::vector<Vertex>, std::vector<uint32_t>> v;
-        loadModel(m_gameRequester->getAssetStream(m_ballModel), v);
-        std::swap(v.first, ballVertices);
-        std::swap(v.second, ballIndices);
-        getQuad(holeVertices, holeIndices);
-    }
 
     bool Level::updateData() {
         if (m_finished) {
@@ -70,42 +63,8 @@ namespace openArea {
         modelMatrixHole = trans * scale;
     }
 
-    bool Level::updateStaticDrawObjects(DrawObjectTable &objs, TextureMap &textures) {
-        if (!objs.empty()) {
-            return false;
-        }
-        std::shared_ptr<DrawObject> holeObj(new DrawObject());
-
-        holeObj->vertices = holeVertices;
-        holeObj->indices = holeIndices;
-        holeObj->texture = std::make_shared<TextureDescriptionPath>(m_gameRequester, holeTexture);
-        textures.insert(std::make_pair(holeObj->texture, std::shared_ptr<TextureData>()));
-        holeObj->modelMatrices.push_back(modelMatrixHole);
-        objs.push_back(std::make_pair(holeObj, std::shared_ptr<DrawObjectData>()));
-
-        return true;
-    }
-
-    bool Level::updateDynamicDrawObjects(DrawObjectTable &objs, TextureMap &textures,
-                                                 bool &texturesUpdated) {
-        texturesUpdated = false;
-        std::vector<glm::mat4> ballModelMatrices;
-        ballModelMatrices.push_back(modelMatrixBall);
-        if (objs.empty()) {
-            objs.push_back(std::make_pair(std::shared_ptr<DrawObject>(new DrawObject()),
-                                          std::shared_ptr<DrawObjectData>()));
-            DrawObject *ballObj = objs[0].first.get();
-            ballObj->vertices = ballVertices;
-            ballObj->indices = ballIndices;
-            ballObj->texture = std::make_shared<TextureDescriptionPath>(m_gameRequester,
-                                                                        m_ballTexture);
-            textures.insert(std::make_pair(ballObj->texture, std::shared_ptr<TextureData>()));
-            ballObj->modelMatrices.push_back(modelMatrixBall);
-            texturesUpdated = true;
-        } else {
-            DrawObject *ballObj = objs[0].first.get();
-            ballObj->modelMatrices[0] = modelMatrixBall;
-        }
+    bool Level::updateDrawObjects() {
+        m_levelDrawer.updateModelMatrixForObject(m_objIndexBall, m_objDataIndexBall, modelMatrixBall);
         return true;
     }
 } // namespace openArea

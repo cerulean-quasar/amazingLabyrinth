@@ -49,7 +49,16 @@ namespace levelDrawer {
                 std::string const &renderDetailsName) = 0;
 
         // returns index of new object data.
-        virtual size_t addModelMatrixForObject(ObjectType type, size_t objsIndex, glm::mat4 const &modelMatrix) = 0;
+        virtual size_t addModelMatrixForObject(
+                ObjectType type,
+                size_t objsIndex,
+                glm::mat4 const &modelMatrix) = 0;
+
+        virtual void updateModelMatrixForObject(
+                ObjectType type,
+                size_t objsIndex,
+                size_t objDataIndex,
+                glm::mat4 const &modelMatrix) = 0;
 
         virtual void resizeObjectsData(ObjectType type, size_t objsIndex, size_t newSize) = 0;
 
@@ -85,8 +94,12 @@ namespace levelDrawer {
         }
 
         // returns index of new object data.
-        size_t addModelMatrixForObject(size_t objsIndex, glm::mat4 const &modelMatrix) {
-            return m_levelDrawer->addModelMatrixForObject(m_type, objsIndex, modelMatrix);
+        size_t addModelMatrixForObject(size_t objIndex, glm::mat4 const &modelMatrix) {
+            return m_levelDrawer->addModelMatrixForObject(m_type, objIndex, modelMatrix);
+        }
+
+        void updateModelMatrixForObject(size_t objIndex, size_t objDataIndex, glm::mat4 const &modelMatrix) {
+            m_levelDrawer->updateModelMatrixForObject(m_type, objIndex, objDataIndex, modelMatrix);
         }
 
         // resize:  trim off back if newSize is smaller than current size,

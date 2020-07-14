@@ -33,27 +33,19 @@
 namespace openArea {
     class Level : public basic::Level {
     private:
-        std::string holeTexture;
-
         Random random;
         std::chrono::high_resolution_clock::time_point prevTime;
 
         glm::vec3 holePosition;
 
-        /* vertex and index data for drawing the ball. */
-        std::vector <Vertex> ballVertices;
-        std::vector <uint32_t> ballIndices;
-
-        /* vertex and index data for drawing the hole. */
-        std::vector <Vertex> holeVertices;
-        std::vector <uint32_t> holeIndices;
+        /* The object index for drawing the ball - needed to update the ball's location. */
+        size_t m_objIndexBall;
+        size_t m_objDataIndexBall;
 
         glm::mat4 modelMatrixHole;
         glm::mat4 modelMatrixBall;
 
         glm::mat4 scale;
-
-        void loadModels();
 
         void generate(glm::vec2 ballPos, glm::vec2 holePos) {
             scale = ballScaleMatrix();
@@ -90,16 +82,29 @@ namespace openArea {
                 levelDrawer::Adaptor inLevelDrawer,
                 float maxZ)
                 : basic::Level(std::move(inGameRequester), lcd, std::move(inLevelDrawer), maxZ, true),
-                  holeTexture{lcd->holeTexture},
-                  prevTime(std::chrono::high_resolution_clock::now()) {
-            loadModels();
+                  prevTime(std::chrono::high_resolution_clock::now())
+        {
+            m_levelDrawer.requestRenderDetails("chainingShadows");
             if (levelRestoreData == nullptr) {
                 generate();
             } else {
                 generate({levelRestoreData->ball.x, levelRestoreData->ball.y},
                          {levelRestoreData->hole.x, levelRestoreData->hole.y});
             }
-            generateModelMatrices();
+
+            m_objIndexBall = m_levelDrawer.addObject(
+                    std::make_shared<levelDrawer::ModelDescriptionPath>(m_ballModel),
+                    std::make_shared<levelDrawer::TextureDescriptionPath>(m_ballTexture));
+
+            size_t objIndexHole = m_levelDrawer.addObject(
+                    std::make_shared<levelDrawer::ModelDescriptionQuad>(),
+                    std::make_shared<levelDrawer::TextureDescriptionPath>(lcd->holeTexture));
+
+            // the ball
+            m_objDataIndexBall = m_levelDrawer.addModelMatrixForObject(m_objIndexBall, modelMatrixBall);
+
+            // the hole
+            m_levelDrawer.addModelMatrixForObject(objIndexHole, modelMatrixHole);
         }
 
         glm::vec4 getBackgroundColor() override { return {0.0f, 0.0f, 0.0f, 1.0f}; }
