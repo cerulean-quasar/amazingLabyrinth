@@ -101,7 +101,7 @@ namespace shadowsChaining {
                 rd->m_surfaceWidth, rd->m_surfaceHeight, colorImageFormats);
     }
 
-    static renderDetails::ReferenceGL RenderDetailsGL::createReference(
+    renderDetails::ReferenceGL RenderDetailsGL::createReference(
             std::shared_ptr<renderDetails::RenderDetailsGL> rd,
             renderDetails::ReferenceGL const &refObjectWithShadows,
             renderDetails::ReferenceGL const &refShadows)

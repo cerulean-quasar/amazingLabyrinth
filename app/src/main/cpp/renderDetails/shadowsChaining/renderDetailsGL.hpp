@@ -90,7 +90,7 @@ namespace shadowsChaining {
 
     class RenderDetailsGL : public renderDetails::RenderDetailsGL {
     public:
-        static char const *name() { return m_name; }
+        static char const *name() { return shadowsChainingRenderDetailsName; }
         static renderDetails::ReferenceGL loadNew(
                 std::shared_ptr<GameRequester> const &gameRequester,
                 std::shared_ptr<RenderLoaderGL> const &renderLoader,
@@ -107,7 +107,6 @@ namespace shadowsChaining {
         ~RenderDetailsGL() override = default;
 
     private:
-        static char constexpr const *m_name = "shadowsChaining";
         bool m_useIntTexture;
         std::shared_ptr<graphicsGL::Framebuffer> m_framebufferShadows;
         std::shared_ptr<renderDetails::RenderDetailsGL> m_shadowsRenderDetails;

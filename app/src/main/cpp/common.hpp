@@ -26,6 +26,10 @@
 
 class Graphics;
 
+char constexpr const *shadowsChainingRenderDetailsName = "shadowsChaining";
+char constexpr const *shadowsRenderDetailsName = "shadows";
+char constexpr const *objectWithShadowsRenderDetailsName = "objectWithShadows";
+
 struct GraphicsDescription {
 public:
     std::string m_graphicsName;

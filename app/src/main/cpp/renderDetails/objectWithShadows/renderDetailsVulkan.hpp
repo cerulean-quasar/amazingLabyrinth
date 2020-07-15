@@ -268,7 +268,7 @@ namespace objectWithShadows {
 
     class RenderDetailsVulkan : public renderDetails::RenderDetailsVulkan {
     public:
-        static char const *name() { return m_name; }
+        static char const *name() { return objectWithShadowsRenderDetailsName; }
 
         static renderDetails::ReferenceVulkan loadNew(
                 std::shared_ptr<GameRequester> const &gameRequester,
@@ -311,7 +311,6 @@ namespace objectWithShadows {
         ~RenderDetailsVulkan() override = default;
 
     private:
-        static char constexpr const *m_name = "objectWithShadows";
         static char constexpr const *SHADER_VERT_FILE = "shaders/shader.vert.spv";
         static char constexpr const *TEXTURE_SHADER_FRAG_FILE = "shaders/shader.frag.spv";
         static char constexpr const *COLOR_SHADER_FRAG_FILE = "shaders/colorShader.frag.spv";

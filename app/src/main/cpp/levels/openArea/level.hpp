@@ -84,7 +84,6 @@ namespace openArea {
                 : basic::Level(std::move(inGameRequester), lcd, std::move(inLevelDrawer), maxZ, true),
                   prevTime(std::chrono::high_resolution_clock::now())
         {
-            m_levelDrawer.requestRenderDetails("chainingShadows");
             if (levelRestoreData == nullptr) {
                 generate();
             } else {

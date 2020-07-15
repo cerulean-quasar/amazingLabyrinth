@@ -74,7 +74,7 @@ namespace shadows {
 
     class RenderDetailsGL : public renderDetails::RenderDetailsGL {
     public:
-        static char const *name() { return m_name; }
+        static char const *name() { return shadowsRenderDetailsName; }
 
         static renderDetails::ReferenceGL loadNew(
                 std::shared_ptr<GameRequester> const &gameRequester,
@@ -92,7 +92,6 @@ namespace shadows {
         ~RenderDetailsGL() override = default;
 
     private:
-        static char constexpr const *m_name = "shadows";
         static char constexpr const *DEPTH_VERT_FILE = "shaders/depthShaderGL.vert";
         static char constexpr const *SIMPLE_FRAG_FILE = "shaders/simpleGL.frag";
 

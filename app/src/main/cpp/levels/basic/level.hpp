@@ -168,6 +168,8 @@ namespace basic {
                 throw (std::runtime_error("Level Configuration missing"));
             }
 
+            m_levelDrawer.requestRenderDetails(shadowsChainingRenderDetailsName);
+
             auto projView = m_levelDrawer.getProjectionView();
             auto wh = getWidthHeight(mazeFloorZ, projView.first, projView.second);
             m_width = wh.first;

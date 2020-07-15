@@ -88,7 +88,7 @@ namespace shadowsChaining {
 
     class RenderDetailsVulkan : public renderDetails::RenderDetailsVulkan {
     public:
-        static char const *name() { return m_name; }
+        static char const *name() { return shadowsChainingRenderDetailsName; }
 
         static renderDetails::ReferenceVulkan loadNew(
             std::shared_ptr<GameRequester> const &gameRequester,
@@ -115,8 +115,6 @@ namespace shadowsChaining {
         ~RenderDetailsVulkan() override = default;
 
     private:
-        static char constexpr const *m_name = "shadowsChaining";
-
         // use less precision for the shadow buffer
         static float constexpr shadowsSizeMultiplier = 0.5f;
 
