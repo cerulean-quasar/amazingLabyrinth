@@ -26,7 +26,6 @@
 
 #include "../common.hpp"
 #include "renderDetails.hpp"
-#include "../levelDrawer/drawObjectTable/drawObjectTable.hpp"
 #include "../graphicsGL.hpp"
 #include "../levelDrawer/levelDrawerGL.hpp"
 
@@ -55,8 +54,10 @@ namespace renderDetails {
     class RenderDetailsGL : public RenderDetails {
     public:
         virtual void draw(
-                levelDrawer::LevelDrawerGL::DrawObjectTableList const &drawObjectTable,
-                std::vector<size_t> const &drawObjectsIndexList) = 0;
+                uint32_t modelMatrixID,
+                renderDetails::DrawTypes<levelDrawer::DrawObjectTableGL>::CommonObjectDataList const &commonObjectDataList,
+                renderDetails::DrawTypes<levelDrawer::DrawObjectTableGL>::DrawObjectTableList const &drawObjTableList,
+                renderDetails::DrawTypes<levelDrawer::DrawObjectTableGL>::IndicesForDrawList const &drawObjectsIndicesList) = 0;
 
         RenderDetailsGL(uint32_t inWidth, uint32_t inHeight)
         : RenderDetails{inWidth, inHeight}
@@ -64,6 +65,10 @@ namespace renderDetails {
 
         ~RenderDetailsGL() override  = default;
     protected:
+        static void drawVertices(
+                GLuint programID,
+                std::shared_ptr<levelDrawer::ModelDataGL> const &modelData);
+
         static GLuint loadShaders(std::shared_ptr<GameRequester> const &gameRequester,
                            std::string const &vertexShaderFile, std::string const &fragmentShaderFile);
     };

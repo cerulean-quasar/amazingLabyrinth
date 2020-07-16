@@ -58,8 +58,8 @@ namespace renderDetails {
             VkFrameBuffer const &frameBuffer,
             size_t descriptorSetID,
             levelDrawer::LevelDrawerVulkan::CommonObjectDataList const &commonObjectDataList,
-            levelDrawer::LevelDrawerVulkan::DrawObjectTables const &drawObjTable,
-            levelDrawer::LevelDrawerVulkan::IndicesForDrawing const &drawObjectsIndicesList) = 0;
+            levelDrawer::LevelDrawerVulkan::DrawObjectTableList const &drawObjTable,
+            levelDrawer::LevelDrawerVulkan::IndicesForDrawList const &drawObjectsIndicesList) = 0;
 
         enum DrawIfHasTexture {
             ONLY_IF_NO_TEXTURE,

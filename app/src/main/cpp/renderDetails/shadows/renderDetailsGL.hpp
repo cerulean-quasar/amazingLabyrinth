@@ -89,6 +89,12 @@ namespace shadows {
                 renderDetails::ParametersGL const &parameters,
                 Config const &config);
 
+        void draw(
+                uint32_t modelMatrixID,
+                renderDetails::DrawTypes<levelDrawer::DrawObjectTableGL>::CommonObjectDataList const &commonObjectDataList,
+                renderDetails::DrawTypes<levelDrawer::DrawObjectTableGL>::DrawObjectTableList const &drawObjTableList,
+                renderDetails::DrawTypes<levelDrawer::DrawObjectTableGL>::IndicesForDrawList const &drawObjectsIndicesList) override;
+
         ~RenderDetailsGL() override = default;
 
     private:

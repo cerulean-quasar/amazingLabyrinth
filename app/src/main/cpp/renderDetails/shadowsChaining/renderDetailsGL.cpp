@@ -136,4 +136,40 @@ namespace shadowsChaining {
         return std::move(ref);
     }
 
+    void RenderDetailsGL::draw(
+            uint32_t modelMatrixID,
+            renderDetails::DrawTypes<levelDrawer::DrawObjectTableGL>::CommonObjectDataList const &commonObjectDataList,
+            renderDetails::DrawTypes<levelDrawer::DrawObjectTableGL>::DrawObjectTableList const &drawObjTableList,
+            renderDetails::DrawTypes<levelDrawer::DrawObjectTableGL>::IndicesForDrawList const &drawObjectsIndicesList)
+    {
+        // only do shadows for the level itself
+        renderDetails::DrawTypes<levelDrawer::DrawObjectTableGL>::DrawObjectTableList shadowsDrawObjTableList =
+                { nullptr, drawObjTableList[levelDrawer::LevelDrawer::ObjectType::LEVEL], nullptr };
+        renderDetails::DrawTypes<levelDrawer::DrawObjectTableGL>::IndicesForDrawList shadowsDrawObjectsIndicesList =
+                { std::vector<size_t>{},
+                  drawObjectsIndicesList[levelDrawer::LevelDrawer::ObjectType::LEVEL],
+                  std::vector<size_t>{} };
+
+        // get the shadows common object data
+        auto codLevel = dynamic_cast<CommonObjectDataGL*>(
+                commonObjectDataList[levelDrawer::LevelDrawer::ObjectType::LEVEL].get());
+        renderDetails::DrawTypes<levelDrawer::DrawObjectTableGL>::CommonObjectDataList shadowsCODList = {
+                nullptr, codLevel->m_objectWithShadowsCOD, nullptr };
+
+        glBindFramebuffer(GL_FRAMEBUFFER, m_framebufferShadows->fbo());
+        checkGraphicsError();
+
+        glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+        checkGraphicsError();
+
+        m_shadowsRenderDetails->draw(MODEL_MATRIX_ID_SHADOWS,
+                shadowsCODList, shadowsDrawObjTableList, shadowsDrawObjectsIndicesList);
+
+        glBindFramebuffer(GL_FRAMEBUFFER, 0);
+        checkGraphicsError();
+
+        m_objectWithShadowsRenderDetails->draw(MODEL_MATRIX_ID_MAIN,
+                commonObjectDataList, drawObjTableList, drawObjectsIndicesList);
+    }
 }

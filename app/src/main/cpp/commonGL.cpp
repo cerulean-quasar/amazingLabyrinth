@@ -17,6 +17,11 @@
  *  along with AmazingLabyrinth.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
+#include <stdexcept>
+#include <string>
+
+#include <GLES3/gl3.h>
+#include <GLES3/gl3ext.h>
 
 void checkGraphicsError() {
     GLenum rc = glGetError();

@@ -37,6 +37,12 @@
 
 namespace shadowsChaining {
     class RenderDetailsGL;
+
+    enum {
+        MODEL_MATRIX_ID_MAIN,
+        MODEL_MATRIX_ID_SHADOWS
+    };
+
     class CommonObjectDataGL : public renderDetails::CommonObjectData {
         friend RenderDetailsGL;
     public:
@@ -62,7 +68,7 @@ namespace shadowsChaining {
         friend RenderDetailsGL;
     public:
         glm::mat4 modelMatrix(uint32_t id) override {
-            if (id == 0) {
+            if (id == MODEL_MATRIX_ID_MAIN) {
                 return m_mainDOD->modelMatrix(id);
             } else {
                 return m_shadowsDOD->modelMatrix(id);
@@ -103,6 +109,12 @@ namespace shadowsChaining {
                 std::shared_ptr<renderDetails::RenderDetailsGL> rdBase,
                 renderDetails::ParametersGL const &parameters,
                 Config const &config);
+
+        void draw(
+                uint32_t modelMatrixID,
+                renderDetails::DrawTypes<levelDrawer::DrawObjectTableGL>::CommonObjectDataList const &commonObjectDataList,
+                renderDetails::DrawTypes<levelDrawer::DrawObjectTableGL>::DrawObjectTableList const &drawObjTableList,
+                renderDetails::DrawTypes<levelDrawer::DrawObjectTableGL>::IndicesForDrawList const &drawObjectsIndicesList) override;
 
         ~RenderDetailsGL() override = default;
 

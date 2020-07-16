@@ -28,9 +28,16 @@
 #include "../graphicsVulkan.hpp"
 #include "modelTable/modelTableVulkan.hpp"
 #include "textureTable/textureTableVulkan.hpp"
-#include "../renderDetails/renderDetailsVulkan.hpp"
 #include "drawObjectTable/drawObjectTable.hpp"
 #include "../renderLoader/renderLoaderVulkan.hpp"
+
+namespace renderDetails {
+    class RenderDetailsVulkan;
+    class CommonObjectData;
+    class DrawObjectDataVulkan;
+    class ParametersVulkan;
+    using ReferenceVulkan = Reference<RenderDetailsVulkan, CommonObjectData, DrawObjectDataVulkan>;
+}
 
 namespace levelDrawer {
     struct DrawObjectVulkanTraits {

@@ -116,4 +116,100 @@ namespace renderDetails {
 
         return ProgramID;
     }
+
+    void RenderDetailsGL::drawVertices(
+            GLuint programID,
+            std::shared_ptr<levelDrawer::ModelDataGL> const &modelData)
+    {
+        glBindBuffer(GL_ARRAY_BUFFER, modelData->vertexBuffer());
+        checkGraphicsError();
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, modelData->indexBuffer());
+        checkGraphicsError();
+
+        // 1st attribute buffer : colors
+        // color is only needed when doing the final render, not the depth texture render
+        GLint colorID = glGetAttribLocation(programID, "inColor");
+        if (colorID != -1) {
+            glVertexAttribPointer(
+                    colorID,                          // The position of the attribute in the shader.
+                    3,                                // size
+                    GL_FLOAT,                         // type
+                    GL_FALSE,                         // normalized?
+                    sizeof(levelDrawer::Vertex),                   // stride
+                    (void *) (offsetof(levelDrawer::Vertex, color))// array buffer offset
+            );
+            checkGraphicsError();
+            glEnableVertexAttribArray(colorID);
+            checkGraphicsError();
+        }
+
+        // attribute: position
+        GLint position = glGetAttribLocation(programID, "inPosition");
+        glVertexAttribPointer(
+                position,                        // The position of the attribute in the shader.
+                3,                               // size
+                GL_FLOAT,                        // type
+                GL_FALSE,                        // normalized?
+                sizeof(levelDrawer::Vertex),                  // stride
+                (void *) (offsetof(levelDrawer::Vertex, pos)) // array buffer offset
+        );
+        checkGraphicsError();
+        glEnableVertexAttribArray(position);
+        checkGraphicsError();
+
+        // Send in the texture coordinates
+        // only required for the final rendering.
+        GLint texCoordID = glGetAttribLocation(programID, "inTexCoord");
+        if (texCoordID != -1) {
+            glVertexAttribPointer(
+                    texCoordID,                       // The position of the attribute in the shader
+                    2,                                // size
+                    GL_FLOAT,                         // type
+                    GL_FALSE,                         // normalized?
+                    sizeof(levelDrawer::Vertex),                  // stride
+                    (void *) offsetof (levelDrawer::Vertex, texCoord)  // array buffer offset
+            );
+            checkGraphicsError();
+            glEnableVertexAttribArray(texCoordID);
+            checkGraphicsError();
+        }
+
+        GLint normCoordID = glGetAttribLocation(programID, "inNormal");
+        if (normCoordID != -1) {
+            checkGraphicsError();
+            glVertexAttribPointer(
+                    normCoordID,                      // The position of the attribute in the shader
+                    3,                                // size
+                    GL_FLOAT,                         // type
+                    GL_FALSE,                         // normalized?
+                    sizeof(levelDrawer::Vertex),                  // stride
+                    (void *) offsetof (levelDrawer::Vertex, normal)  // array buffer offset
+            );
+            checkGraphicsError();
+            glEnableVertexAttribArray(normCoordID);
+            checkGraphicsError();
+        }
+
+        // Draw the triangles !
+        glDrawElements(GL_TRIANGLES, modelData->numberIndices(), GL_UNSIGNED_INT, 0);
+        checkGraphicsError();
+
+        glDisableVertexAttribArray(position);
+        checkGraphicsError();
+
+        if (colorID != -1) {
+            glDisableVertexAttribArray(colorID);
+            checkGraphicsError();
+        }
+
+        if (texCoordID != -1) {
+            glDisableVertexAttribArray(texCoordID);
+            checkGraphicsError();
+        }
+
+        if (normCoordID != -1) {
+            glDisableVertexAttribArray(normCoordID);
+            checkGraphicsError();
+        }
+    }
 }

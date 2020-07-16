@@ -116,13 +116,15 @@ namespace shadowsChaining {
             size_t /* descriptor set ID, not used */,
             levelDrawer::LevelDrawerVulkan::CommonObjectDataList const &commonObjectDataList,
             levelDrawer::LevelDrawerVulkan::DrawObjectTableList const &drawObjTableList,
-            levelDrawer::LevelDrawerVulkan::IndicesList const &drawObjectsIndicesList)
+            levelDrawer::LevelDrawerVulkan::IndicesForDrawList const &drawObjectsIndicesList)
     {
         // only do shadows for the level itself
         levelDrawer::LevelDrawerVulkan::DrawObjectTableList shadowsDrawObjTableList =
-                { nullptr, drawObjTableList[1], nullptr };
-        levelDrawer::LevelDrawerVulkan::IndicesForList shadowsDrawObjectsIndicesList =
-                { std::vector<size_t>{}, drawObjectsIndicesList[1], std::vector<size_t>{} };
+                { nullptr, drawObjTableList[levelDrawer::LevelDrawer::ObjectType::LEVEL], nullptr };
+        levelDrawer::LevelDrawerVulkan::IndicesForDrawList shadowsDrawObjectsIndicesList =
+                { std::vector<size_t>{},
+                  drawObjectsIndicesList[levelDrawer::LevelDrawer::ObjectType::LEVEL],
+                  std::vector<size_t>{} };
         m_shadowsRenderDetails->addDrawCmdsToCommandBuffer(
                 commandBuffer, m_framebufferShadows, 1 /* shadows ID */, commonObjectDataList,
                 shadowsDrawObjTableList, shadowsDrawObjectsIndicesList);

@@ -58,6 +58,7 @@ add_library( # Sets the name of the library.
         src/main/cpp/drawer.cpp
         src/main/cpp/mathGraphics.cpp
         src/main/cpp/common.cpp
+        src/main/cpp/commonGL.cpp
         src/main/cpp/renderDetails/renderDetailsGL.cpp
         src/main/cpp/renderDetails/shadows/renderDetailsGL.cpp
         src/main/cpp/renderDetails/objectWithShadows/renderDetailsGL.cpp

@@ -80,4 +80,67 @@ namespace shadows {
         ref.commonObjectData = std::move(cod);
         return std::move(ref);
     }
+
+    void RenderDetailsGL::draw(
+            uint32_t modelMatrixID,
+            renderDetails::DrawTypes<levelDrawer::DrawObjectTableGL>::CommonObjectDataList const &commonObjectDataList,
+            renderDetails::DrawTypes<levelDrawer::DrawObjectTableGL>::DrawObjectTableList const &drawObjTableList,
+            renderDetails::DrawTypes<levelDrawer::DrawObjectTableGL>::IndicesForDrawList const &drawObjectsIndicesList)
+    {
+        // set the shader to use
+        glUseProgram(m_depthProgramID);
+        checkGraphicsError();
+        glCullFace(GL_FRONT);
+        checkGraphicsError();
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+        checkGraphicsError();
+
+        for (auto &&index : std::vector<levelDrawer::LevelDrawer::ObjectType>{
+            levelDrawer::LevelDrawer::ObjectType::LEVEL,
+            levelDrawer::LevelDrawer::ObjectType::STARTER,
+            levelDrawer::LevelDrawer::ObjectType::FINISHER})
+        {
+            if (drawObjectsIndicesList[index].empty() ||
+                drawObjTableList[index] == nullptr ||
+                commonObjectDataList[index] == nullptr)
+            {
+                continue;
+            }
+
+            auto projView = commonObjectDataList[index]->getProjViewForLevel();
+
+            GLint MatrixID;
+
+            // the projection matrix
+            MatrixID = glGetUniformLocation(m_depthProgramID, "proj");
+            checkGraphicsError();
+            glUniformMatrix4fv(MatrixID, 1, GL_FALSE, &(projView.first)[0][0]);
+            checkGraphicsError();
+
+            // the view matrix
+            MatrixID = glGetUniformLocation(m_depthProgramID, "view");
+            checkGraphicsError();
+            glUniformMatrix4fv(MatrixID, 1, GL_FALSE, &(projView.second)[0][0]);
+            checkGraphicsError();
+
+            MatrixID = glGetUniformLocation(m_depthProgramID, "model");
+            checkGraphicsError();
+
+            for (auto drawObjIndex : drawObjectsIndicesList[index]) {
+                auto drawObj = drawObjTableList[index]->drawObject(drawObjIndex);
+                auto modelData = drawObj->modelData();
+
+                size_t nbrObjData = drawObj->numberObjectsData();
+                for (size_t i = 0; i < nbrObjData; i++) {
+                    auto objData = drawObj->objData(i);
+                    auto modelMatrix = objData->modelMatrix(modelMatrixID);
+
+                    glUniformMatrix4fv(MatrixID, 1, GL_FALSE, &modelMatrix[0][0]);
+                    checkGraphicsError();
+
+                    drawVertices(m_depthProgramID, modelData);
+                }
+            }
+        }
+    }
 } // namespace shadows

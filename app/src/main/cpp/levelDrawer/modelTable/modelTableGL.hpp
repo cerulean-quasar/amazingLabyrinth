@@ -65,9 +65,11 @@ namespace levelDrawer {
 
         inline GLuint indexBuffer() const { return m_indexBuffer; }
 
+        inline uint32_t numberIndices() const { return m_numberIndices; }
     private:
         GLuint m_vertexBuffer;
         GLuint m_indexBuffer;
+        uint32_t m_numberIndices;
     };
 
     class ModelTableGL : public ModelTable<ModelDataGL> {

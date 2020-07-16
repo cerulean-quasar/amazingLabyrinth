@@ -37,11 +37,8 @@ namespace levelDrawer {
     template<typename traits>
     class LevelDrawerGraphics : public LevelDrawer {
     public:
-        static size_t constexpr m_numberDrawObjectTables = 3;
-
-        using DrawObjectTableList = std::array<std::shared_ptr<typename traits::DrawObjectTableType>, m_numberDrawObjectTables>;
-        using IndicesForList = std::array<std::vector<size_t>, m_numberDrawObjectTables>;
-        using CommonObjectDataList = std::array<std::shared_ptr<renderDetails::CommonObjectData>, m_numberDrawObjectTables>;
+        using DrawObjectTableListType =
+                typename renderDetails::DrawTypes<typename traits::DrawObjectTableType>::DrawObjectTableList;
 
         void clearDrawObjectTable(ObjectType type) {
             m_drawObjectTable[type]->clear();
@@ -173,7 +170,7 @@ namespace levelDrawer {
     private:
         typename traits::ModelTableType m_modelTable;
         typename traits::TextureTableType m_textureTable;
-        DrawObjectTableList m_drawObjectTable;
+        DrawObjectTableListType m_drawObjectTable;
         std::shared_ptr<typename traits::RenderLoaderType> m_renderLoader;
         std::shared_ptr<GameRequester> m_gameRequester;
     };

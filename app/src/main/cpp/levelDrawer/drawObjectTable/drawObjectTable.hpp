@@ -98,8 +98,8 @@ namespace levelDrawer {
         }
         // returns index of added object.
         size_t addObject(
-                std::shared_ptr<typename traits::ModelData> modelData,
-                std::shared_ptr<typename traits::TextureData> textureData) {
+                std::shared_ptr<typename traits::ModelDataType> modelData,
+                std::shared_ptr<typename traits::TextureDataType> textureData) {
             m_drawObjects.emplace_back(std::make_shared<traits::DrawObjectDataType>(
                     std::move(modelData), std::move(textureData)));
 
@@ -111,8 +111,8 @@ namespace levelDrawer {
         // returns index of added object.
         size_t addObject(
                 typename traits::RenderDetailsReferenceType renderDetailsReference,
-                std::shared_ptr<typename traits::ModelData> modelData,
-                std::shared_ptr<typename traits::TextureData> textureData) {
+                std::shared_ptr<typename traits::ModelDataType> modelData,
+                std::shared_ptr<typename traits::TextureDataType> textureData) {
             m_drawObjects.emplace_back(std::make_shared<traits::DrawObjectDataType>(
                     std::move(renderDetailsReference), std::move(modelData),
                     std::move(textureData)));
@@ -129,8 +129,8 @@ namespace levelDrawer {
         // returns index of added object.
         size_t addObject(
                 std::shared_ptr<typename traits::RenderDetailsReferenceType> renderDetailsReference,
-                std::shared_ptr<typename traits::ModelData> modelData,
-                std::shared_ptr<typename traits::TextureData> textureData,
+                std::shared_ptr<typename traits::ModelDataType> modelData,
+                std::shared_ptr<typename traits::TextureDataType> textureData,
                 std::vector<std::shared_ptr<typename traits::DrawObjectDataType> objsData) {
             m_drawObjects.emplace_back(std::make_shared<traits::DrawObjectDataType>(
                     std::move(renderDetailsReference), modelData, textureData,
@@ -169,7 +169,7 @@ namespace levelDrawer {
             return m_drawObjects[drawObjectIndex]->numberObjectsData();
         }
 
-        std::shared_ptr<typename traits::DrawObjectDataType> const &drawObject(
+        std::shared_ptr<DrawObject<traits>> const &drawObject(
                 size_t drawObjectIndex) {
             if (drawObjectIndex >= m_drawObjects.size()) {
                 throw std::runtime_error("Invalid draw object index.");
