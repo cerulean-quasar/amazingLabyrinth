@@ -93,11 +93,6 @@ namespace shadows {
         glCullFace(GL_FRONT);
         checkGraphicsError();
 
-        glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
-        checkGraphicsError();
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-        checkGraphicsError();
-
         for (auto &&index : std::vector<levelDrawer::LevelDrawer::ObjectType>{
             levelDrawer::LevelDrawer::ObjectType::LEVEL,
             levelDrawer::LevelDrawer::ObjectType::STARTER,

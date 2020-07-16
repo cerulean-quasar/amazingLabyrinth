@@ -90,12 +90,7 @@ namespace objectWithShadows {
             renderDetails::DrawTypes<levelDrawer::DrawObjectTableGL>::DrawObjectTableList const &drawObjTableList,
             renderDetails::DrawTypes<levelDrawer::DrawObjectTableGL>::IndicesForDrawList const &drawObjectsIndicesList)
     {
-        // set the shader to use
         glCullFace(GL_BACK);
-        checkGraphicsError();
-        glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
-        checkGraphicsError();
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         checkGraphicsError();
 
         for (auto &&index : std::vector<levelDrawer::LevelDrawer::ObjectType>{

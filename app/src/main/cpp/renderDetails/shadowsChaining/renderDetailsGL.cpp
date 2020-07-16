@@ -159,6 +159,12 @@ namespace shadowsChaining {
         glBindFramebuffer(GL_FRAMEBUFFER, m_framebufferShadows->fbo());
         checkGraphicsError();
 
+        glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+        glClearDepthf(1.0f);
+        checkGraphicsError();
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+        checkGraphicsError();
+
         m_shadowsRenderDetails->draw(MODEL_MATRIX_ID_SHADOWS,
                 shadowsCODList, shadowsDrawObjTableList, shadowsDrawObjectsIndicesList);
 
