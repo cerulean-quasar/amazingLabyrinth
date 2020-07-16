@@ -50,6 +50,14 @@ namespace shadowsChaining {
             return m_objectWithShadowsCOD->getProjViewForLevel();
         }
 
+        glm::vec3 getLightSource() override {
+            return m_shadowsCOD->viewPoint();
+        }
+
+        glm::mat4 getViewLightSource() override {
+            return m_shadowsCOD->view();
+        }
+
         ~CommonObjectDataGL() override = default;
     private:
         std::shared_ptr<objectWithShadows::CommonObjectDataGL> m_objectWithShadowsCOD;

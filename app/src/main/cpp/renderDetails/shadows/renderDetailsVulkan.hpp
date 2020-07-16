@@ -48,7 +48,11 @@ namespace shadows {
                     view());
         }
 
-        glm::vec3 lightSource() { return m_viewPoint; }
+        glm::mat4 getViewLightSource() override {
+            return view();
+        }
+
+        glm::vec3 lightSource() { return viewPoint(); }
 
         std::shared_ptr<vulkan::Buffer> const &cameraBuffer() { return m_camera; }
 

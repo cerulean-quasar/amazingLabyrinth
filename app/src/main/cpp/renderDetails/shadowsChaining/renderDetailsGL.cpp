@@ -137,7 +137,7 @@ namespace shadowsChaining {
     }
 
     void RenderDetailsGL::draw(
-            uint32_t modelMatrixID,
+            uint32_t /* unused model matrix ID */,
             renderDetails::DrawTypes<levelDrawer::DrawObjectTableGL>::CommonObjectDataList const &commonObjectDataList,
             renderDetails::DrawTypes<levelDrawer::DrawObjectTableGL>::DrawObjectTableList const &drawObjTableList,
             renderDetails::DrawTypes<levelDrawer::DrawObjectTableGL>::IndicesForDrawList const &drawObjectsIndicesList)
@@ -154,13 +154,9 @@ namespace shadowsChaining {
         auto codLevel = dynamic_cast<CommonObjectDataGL*>(
                 commonObjectDataList[levelDrawer::LevelDrawer::ObjectType::LEVEL].get());
         renderDetails::DrawTypes<levelDrawer::DrawObjectTableGL>::CommonObjectDataList shadowsCODList = {
-                nullptr, codLevel->m_objectWithShadowsCOD, nullptr };
+                nullptr, codLevel->m_shadowsCOD, nullptr };
 
         glBindFramebuffer(GL_FRAMEBUFFER, m_framebufferShadows->fbo());
-        checkGraphicsError();
-
-        glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         checkGraphicsError();
 
         m_shadowsRenderDetails->draw(MODEL_MATRIX_ID_SHADOWS,
@@ -169,7 +165,15 @@ namespace shadowsChaining {
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
         checkGraphicsError();
 
+        // get the shadows common object data
+        auto codStarter = dynamic_cast<CommonObjectDataGL*>(
+                commonObjectDataList[levelDrawer::LevelDrawer::ObjectType::STARTER].get());
+        auto codFinisher = dynamic_cast<CommonObjectDataGL*>(
+                commonObjectDataList[levelDrawer::LevelDrawer::ObjectType::FINISHER].get());
+        renderDetails::DrawTypes<levelDrawer::DrawObjectTableGL>::CommonObjectDataList mainCODList = {
+                codStarter->m_objectWithShadowsCOD, codLevel->m_objectWithShadowsCOD, codFinisher->m_objectWithShadowsCOD };
+
         m_objectWithShadowsRenderDetails->draw(MODEL_MATRIX_ID_MAIN,
-                commonObjectDataList, drawObjTableList, drawObjectsIndicesList);
+                mainCODList, drawObjTableList, drawObjectsIndicesList);
     }
 }

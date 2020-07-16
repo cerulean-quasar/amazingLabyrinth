@@ -42,6 +42,14 @@ namespace shadowsChaining {
             return m_objectWithShadowsCOD->getProjViewForLevel();
         }
 
+        glm::mat4 getViewLightSource() override {
+            return m_shadowsCOD->view();
+        }
+
+        glm::vec3 getLightSource() override {
+            return m_shadowsCOD->viewPoint();
+        }
+
         ~CommonObjectDataVulkan() override = default;
     private:
         std::shared_ptr<objectWithShadows::CommonObjectDataVulkan> m_objectWithShadowsCOD;

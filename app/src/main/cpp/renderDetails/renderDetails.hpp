@@ -43,6 +43,8 @@ namespace renderDetails {
     class CommonObjectData {
     public:
         virtual std::pair<glm::mat4, glm::mat4> getProjViewForLevel() = 0;
+        virtual glm::vec3 getLightSource() = 0;
+        virtual glm::mat4 getViewLightSource() = 0;
         CommonObjectData() = default;
         virtual ~CommonObjectData() = default;
     protected:
@@ -53,6 +55,10 @@ namespace renderDetails {
     public:
         glm::mat4 view() {
             return glm::lookAt(m_viewPoint, m_lookAt, m_up);
+        }
+
+        glm::vec3 viewPoint() {
+            return m_viewPoint;
         }
 
         void setView(

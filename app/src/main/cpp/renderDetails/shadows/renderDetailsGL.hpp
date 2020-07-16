@@ -47,6 +47,10 @@ namespace shadows {
                     view());
         }
 
+        glm::vec3 getLightSource() override {
+            return viewPoint();
+        }
+
         ~CommonObjectDataGL() override = default;
     private:
         CommonObjectDataGL(float aspectRatio, Config const &config)

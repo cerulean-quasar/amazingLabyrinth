@@ -48,8 +48,15 @@ namespace objectWithShadows {
                     view());
         }
 
+        glm::vec3 getLightSource() override { return m_lightingSource;}
+
+        glm::mat4 getViewLightSource() override {
+            return glm::lookAt(m_lightingSource, m_lookAt, m_up);
+        }
+
     private:
         std::shared_ptr<graphicsGL::Framebuffer> m_shadowsFramebuffer;
+        glm::vec3 m_lightingSource;
 
         CommonObjectDataGL(
                 std::shared_ptr<graphicsGL::Framebuffer> shadowsFramebuffer,
@@ -57,7 +64,8 @@ namespace objectWithShadows {
                 Config const &config)
             : CommonObjectDataPerspective(config.viewAngle, aspectRatio, config.nearPlane, config.farPlane,
                     config.viewPoint, config.lookAt, config.up),
-            m_shadowsFramebuffer(std::move(shadowsFramebuffer))
+            m_shadowsFramebuffer(std::move(shadowsFramebuffer)),
+            m_lightingSource{config.lightingSource}
         {}
     };
 
@@ -95,6 +103,12 @@ namespace objectWithShadows {
                 renderDetails::ParametersGL const &parameters,
                 Config const &config);
 
+        void draw(
+                uint32_t modelMatrixID,
+                renderDetails::DrawTypes<levelDrawer::DrawObjectTableGL>::CommonObjectDataList const &commonObjectDataList,
+                renderDetails::DrawTypes<levelDrawer::DrawObjectTableGL>::DrawObjectTableList const &drawObjTableList,
+                renderDetails::DrawTypes<levelDrawer::DrawObjectTableGL>::IndicesForDrawList const &drawObjectsIndicesList) override;
+
         ~RenderDetailsGL() override = default;
 
     private:
@@ -108,6 +122,15 @@ namespace objectWithShadows {
         static renderDetails::ReferenceGL createReference(
                 std::shared_ptr<renderDetails::RenderDetailsGL> rd,
                 std::shared_ptr<CommonObjectDataGL> cod);
+
+        static void drawLevelType(
+                GLuint programID,
+                bool drawObjsWithTexture,
+                size_t index,
+                uint32_t modelMatrixID,
+                renderDetails::DrawTypes<levelDrawer::DrawObjectTableGL>::CommonObjectDataList const &commonObjectDataList,
+                renderDetails::DrawTypes<levelDrawer::DrawObjectTableGL>::DrawObjectTableList const &drawObjTableList,
+                renderDetails::DrawTypes<levelDrawer::DrawObjectTableGL>::IndicesForDrawList const &drawObjectsIndicesList);
 
         RenderDetailsGL(std::shared_ptr<GameRequester> const &inGameRequester,
                         uint32_t inWidth, uint32_t inHeight);

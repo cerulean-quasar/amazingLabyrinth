@@ -63,6 +63,12 @@ namespace objectWithShadows {
                     view());
         }
 
+        glm::mat4 getViewLightSource() override {
+            return glm::lookAt(m_lightingSource, m_lookAt, m_up);
+        }
+
+        glm::vec3 getLightSource() override { return m_lightingSource;}
+
         ~CommonObjectDataVulkan() override = default;
     protected:
         void update() override {
