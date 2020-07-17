@@ -86,45 +86,39 @@ namespace objectWithShadows {
 
     void RenderDetailsGL::draw(
             uint32_t modelMatrixID,
-            renderDetails::DrawTypes<levelDrawer::DrawObjectTableGL>::CommonObjectDataList const &commonObjectDataList,
-            renderDetails::DrawTypes<levelDrawer::DrawObjectTableGL>::DrawObjectTableList const &drawObjTableList,
-            renderDetails::DrawTypes<levelDrawer::DrawObjectTableGL>::IndicesForDrawList const &drawObjectsIndicesList)
+            std::shared_ptr<renderDetails::CommonObjectData> const &commonObjectData,
+            std::shared_ptr<levelDrawer::DrawObjectTableGL> const &drawObjTable,
+            std::vector<size_t> const &drawObjectsIndices)
     {
+        if (drawObjectsIndices.empty() ||
+            drawObjTable == nullptr ||
+            commonObjectData == nullptr) {
+            return;
+        }
+
         glCullFace(GL_BACK);
         checkGraphicsError();
 
-        for (auto &&index : std::vector<levelDrawer::LevelDrawer::ObjectType>{
-                levelDrawer::LevelDrawer::ObjectType::LEVEL,
-                levelDrawer::LevelDrawer::ObjectType::STARTER,
-                levelDrawer::LevelDrawer::ObjectType::FINISHER}) {
-            if (drawObjectsIndicesList[index].empty() ||
-                drawObjTableList[index] == nullptr ||
-                commonObjectDataList[index] == nullptr) {
-                continue;
-            }
+        drawLevelType(m_textureProgramID, true, modelMatrixID,
+            commonObjectData, drawObjTable, drawObjectsIndices);
 
-            drawLevelType(m_textureProgramID, true, index, modelMatrixID,
-                commonObjectDataList, drawObjTableList, drawObjectsIndicesList);
-
-            drawLevelType(m_colorProgramID, false, index, modelMatrixID,
-                commonObjectDataList, drawObjTableList, drawObjectsIndicesList);
-        }
+        drawLevelType(m_colorProgramID, false, modelMatrixID,
+            commonObjectData, drawObjTable, drawObjectsIndices);
     }
 
     void RenderDetailsGL::drawLevelType(
             GLuint programID,
             bool drawObjsWithTexture,
-            size_t index,
             uint32_t modelMatrixID,
-            renderDetails::DrawTypes<levelDrawer::DrawObjectTableGL>::CommonObjectDataList const &commonObjectDataList,
-            renderDetails::DrawTypes<levelDrawer::DrawObjectTableGL>::DrawObjectTableList const &drawObjTableList,
-            renderDetails::DrawTypes<levelDrawer::DrawObjectTableGL>::IndicesForDrawList const &drawObjectsIndicesList)
+            std::shared_ptr<renderDetails::CommonObjectData> const &commonObjectData,
+            std::shared_ptr<levelDrawer::DrawObjectTableGL> const &drawObjTable,
+            std::vector<size_t> const &drawObjectsIndices)
     {
         glUseProgram(programID);
         checkGraphicsError();
 
         GLint MatrixID;
-        auto projView = commonObjectDataList[index]->getProjViewForLevel();
+        auto projView = commonObjectData->getProjViewForLevel();
 
         // the projection matrix
         MatrixID = glGetUniformLocation(programID, "proj");
@@ -139,7 +133,7 @@ namespace objectWithShadows {
         checkGraphicsError();
 
         // the view matrix from the light source point of view
-        auto lightSpaceMatrix = commonObjectDataList[index]->getViewLightSource();
+        auto lightSpaceMatrix = commonObjectData->getViewLightSource();
         MatrixID = glGetUniformLocation(programID, "lightSpaceMatrix");
         checkGraphicsError();
         glUniformMatrix4fv(MatrixID, 1, GL_FALSE, &lightSpaceMatrix[0][0]);
@@ -147,11 +141,11 @@ namespace objectWithShadows {
 
         GLint lightPosID = glGetUniformLocation(programID, "lightPos");
         checkGraphicsError();
-        glm::vec3 lightPos = commonObjectDataList[index]->getLightSource();
+        glm::vec3 lightPos = commonObjectData->getLightSource();
         glUniform3fv(lightPosID, 1, &lightPos[0]);
         checkGraphicsError();
 
-        auto cod = dynamic_cast<CommonObjectDataGL*>(commonObjectDataList[index].get());
+        auto cod = dynamic_cast<CommonObjectDataGL*>(commonObjectData.get());
         if (!cod) {
             throw std::runtime_error("Invalid common object data type");
         }
@@ -177,8 +171,8 @@ namespace objectWithShadows {
             checkGraphicsError();
         }
 
-        for (auto drawObjIndex : drawObjectsIndicesList[index]) {
-            auto drawObj = drawObjTableList[index]->drawObject(drawObjIndex);
+        for (auto drawObjIndex : drawObjectsIndices) {
+            auto drawObj = drawObjTable->drawObject(drawObjIndex);
             auto modelData = drawObj->modelData();
             auto textureData = drawObj->textureData();
 

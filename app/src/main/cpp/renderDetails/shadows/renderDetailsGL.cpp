@@ -83,9 +83,9 @@ namespace shadows {
 
     void RenderDetailsGL::draw(
             uint32_t modelMatrixID,
-            renderDetails::DrawTypes<levelDrawer::DrawObjectTableGL>::CommonObjectDataList const &commonObjectDataList,
-            renderDetails::DrawTypes<levelDrawer::DrawObjectTableGL>::DrawObjectTableList const &drawObjTableList,
-            renderDetails::DrawTypes<levelDrawer::DrawObjectTableGL>::IndicesForDrawList const &drawObjectsIndicesList)
+            std::shared_ptr<renderDetails::CommonObjectData> const &commonObjectData,
+            std::shared_ptr<levelDrawer::DrawObjectTableGL> const &drawObjTable,
+            std::vector<size_t> const &drawObjectsIndices)
     {
         // set the shader to use
         glUseProgram(m_depthProgramID);
@@ -93,51 +93,45 @@ namespace shadows {
         glCullFace(GL_FRONT);
         checkGraphicsError();
 
-        for (auto &&index : std::vector<levelDrawer::LevelDrawer::ObjectType>{
-            levelDrawer::LevelDrawer::ObjectType::LEVEL,
-            levelDrawer::LevelDrawer::ObjectType::STARTER,
-            levelDrawer::LevelDrawer::ObjectType::FINISHER})
+        if (drawObjectsIndices.empty() ||
+            drawObjTable == nullptr ||
+            commonObjectData == nullptr)
         {
-            if (drawObjectsIndicesList[index].empty() ||
-                drawObjTableList[index] == nullptr ||
-                commonObjectDataList[index] == nullptr)
-            {
-                continue;
-            }
+            return;
+        }
 
-            auto projView = commonObjectDataList[index]->getProjViewForLevel();
+        auto projView = commonObjectData->getProjViewForLevel();
 
-            GLint MatrixID;
+        GLint MatrixID;
 
-            // the projection matrix
-            MatrixID = glGetUniformLocation(m_depthProgramID, "proj");
-            checkGraphicsError();
-            glUniformMatrix4fv(MatrixID, 1, GL_FALSE, &(projView.first)[0][0]);
-            checkGraphicsError();
+        // the projection matrix
+        MatrixID = glGetUniformLocation(m_depthProgramID, "proj");
+        checkGraphicsError();
+        glUniformMatrix4fv(MatrixID, 1, GL_FALSE, &(projView.first)[0][0]);
+        checkGraphicsError();
 
-            // the view matrix
-            MatrixID = glGetUniformLocation(m_depthProgramID, "view");
-            checkGraphicsError();
-            glUniformMatrix4fv(MatrixID, 1, GL_FALSE, &(projView.second)[0][0]);
-            checkGraphicsError();
+        // the view matrix
+        MatrixID = glGetUniformLocation(m_depthProgramID, "view");
+        checkGraphicsError();
+        glUniformMatrix4fv(MatrixID, 1, GL_FALSE, &(projView.second)[0][0]);
+        checkGraphicsError();
 
-            MatrixID = glGetUniformLocation(m_depthProgramID, "model");
-            checkGraphicsError();
+        MatrixID = glGetUniformLocation(m_depthProgramID, "model");
+        checkGraphicsError();
 
-            for (auto drawObjIndex : drawObjectsIndicesList[index]) {
-                auto drawObj = drawObjTableList[index]->drawObject(drawObjIndex);
-                auto modelData = drawObj->modelData();
+        for (auto drawObjIndex : drawObjectsIndices) {
+            auto drawObj = drawObjTable->drawObject(drawObjIndex);
+            auto modelData = drawObj->modelData();
 
-                size_t nbrObjData = drawObj->numberObjectsData();
-                for (size_t i = 0; i < nbrObjData; i++) {
-                    auto objData = drawObj->objData(i);
-                    auto modelMatrix = objData->modelMatrix(modelMatrixID);
+            size_t nbrObjData = drawObj->numberObjectsData();
+            for (size_t i = 0; i < nbrObjData; i++) {
+                auto objData = drawObj->objData(i);
+                auto modelMatrix = objData->modelMatrix(modelMatrixID);
 
-                    glUniformMatrix4fv(MatrixID, 1, GL_FALSE, &modelMatrix[0][0]);
-                    checkGraphicsError();
+                glUniformMatrix4fv(MatrixID, 1, GL_FALSE, &modelMatrix[0][0]);
+                checkGraphicsError();
 
-                    drawVertices(m_depthProgramID, modelData);
-                }
+                drawVertices(m_depthProgramID, modelData);
             }
         }
     }

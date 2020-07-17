@@ -136,25 +136,15 @@ namespace shadowsChaining {
         return std::move(ref);
     }
 
-    void RenderDetailsGL::draw(
-            uint32_t /* unused model matrix ID */,
+    void RenderDetailsGL::preMainDraw(
+            uint32_t modelMatrixID,
             renderDetails::DrawTypes<levelDrawer::DrawObjectTableGL>::CommonObjectDataList const &commonObjectDataList,
             renderDetails::DrawTypes<levelDrawer::DrawObjectTableGL>::DrawObjectTableList const &drawObjTableList,
             renderDetails::DrawTypes<levelDrawer::DrawObjectTableGL>::IndicesForDrawList const &drawObjectsIndicesList)
     {
-        // only do shadows for the level itself
-        renderDetails::DrawTypes<levelDrawer::DrawObjectTableGL>::DrawObjectTableList shadowsDrawObjTableList =
-                { nullptr, drawObjTableList[levelDrawer::LevelDrawer::ObjectType::LEVEL], nullptr };
-        renderDetails::DrawTypes<levelDrawer::DrawObjectTableGL>::IndicesForDrawList shadowsDrawObjectsIndicesList =
-                { std::vector<size_t>{},
-                  drawObjectsIndicesList[levelDrawer::LevelDrawer::ObjectType::LEVEL],
-                  std::vector<size_t>{} };
-
         // get the shadows common object data
         auto codLevel = dynamic_cast<CommonObjectDataGL*>(
                 commonObjectDataList[levelDrawer::LevelDrawer::ObjectType::LEVEL].get());
-        renderDetails::DrawTypes<levelDrawer::DrawObjectTableGL>::CommonObjectDataList shadowsCODList = {
-                nullptr, codLevel->m_shadowsCOD, nullptr };
 
         glBindFramebuffer(GL_FRAMEBUFFER, m_framebufferShadows->fbo());
         checkGraphicsError();
@@ -165,21 +155,26 @@ namespace shadowsChaining {
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         checkGraphicsError();
 
-        m_shadowsRenderDetails->draw(MODEL_MATRIX_ID_SHADOWS,
-                shadowsCODList, shadowsDrawObjTableList, shadowsDrawObjectsIndicesList);
+        m_shadowsRenderDetails->draw(
+                MODEL_MATRIX_ID_SHADOWS,
+                codLevel->m_shadowsCOD,
+                drawObjTableList[levelDrawer::LevelDrawer::ObjectType::LEVEL],
+                drawObjectsIndicesList[levelDrawer::LevelDrawer::ObjectType::LEVEL]);
 
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
         checkGraphicsError();
+    }
 
+    void RenderDetailsGL::draw(
+            uint32_t /* unused model matrix ID */,
+            std::shared_ptr<renderDetails::CommonObjectData> const &commonObjectData,
+            std::shared_ptr<levelDrawer::DrawObjectTableGL> const &drawObjTable,
+            std::vector<size_t> const &drawObjectsIndices)
+    {
         // get the shadows common object data
-        auto codStarter = dynamic_cast<CommonObjectDataGL*>(
-                commonObjectDataList[levelDrawer::LevelDrawer::ObjectType::STARTER].get());
-        auto codFinisher = dynamic_cast<CommonObjectDataGL*>(
-                commonObjectDataList[levelDrawer::LevelDrawer::ObjectType::FINISHER].get());
-        renderDetails::DrawTypes<levelDrawer::DrawObjectTableGL>::CommonObjectDataList mainCODList = {
-                codStarter->m_objectWithShadowsCOD, codLevel->m_objectWithShadowsCOD, codFinisher->m_objectWithShadowsCOD };
+        auto cod = dynamic_cast<CommonObjectDataGL*>(commonObjectData.get());
 
         m_objectWithShadowsRenderDetails->draw(MODEL_MATRIX_ID_MAIN,
-                mainCODList, drawObjTableList, drawObjectsIndicesList);
+                cod->m_objectWithShadowsCOD, drawObjTable, drawObjectsIndices);
     }
 }

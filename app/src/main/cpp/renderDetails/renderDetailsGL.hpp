@@ -53,11 +53,22 @@ namespace renderDetails {
 
     class RenderDetailsGL : public RenderDetails {
     public:
-        virtual void draw(
+
+        // GL commands that need to occur before the main draw.  They can be things like generating
+        // a shadow map or other draws to a framebuffer.  Most shaders don't need these commands so
+        // the default does nothing.
+        virtual void preMainDraw(
                 uint32_t modelMatrixID,
                 renderDetails::DrawTypes<levelDrawer::DrawObjectTableGL>::CommonObjectDataList const &commonObjectDataList,
                 renderDetails::DrawTypes<levelDrawer::DrawObjectTableGL>::DrawObjectTableList const &drawObjTableList,
-                renderDetails::DrawTypes<levelDrawer::DrawObjectTableGL>::IndicesForDrawList const &drawObjectsIndicesList) = 0;
+                renderDetails::DrawTypes<levelDrawer::DrawObjectTableGL>::IndicesForDrawList const &drawObjectsIndicesList)
+        {}
+
+        virtual void draw(
+                uint32_t modelMatrixID,
+                std::shared_ptr<renderDetails::CommonObjectData> const &commonObjectData,
+                std::shared_ptr<levelDrawer::DrawObjectTableGL> const &drawObjTable,
+                std::vector<size_t> const &drawObjectsIndices) = 0;
 
         RenderDetailsGL(uint32_t inWidth, uint32_t inHeight)
         : RenderDetails{inWidth, inHeight}

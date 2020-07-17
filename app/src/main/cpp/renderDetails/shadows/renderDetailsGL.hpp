@@ -95,9 +95,9 @@ namespace shadows {
 
         void draw(
                 uint32_t modelMatrixID,
-                renderDetails::DrawTypes<levelDrawer::DrawObjectTableGL>::CommonObjectDataList const &commonObjectDataList,
-                renderDetails::DrawTypes<levelDrawer::DrawObjectTableGL>::DrawObjectTableList const &drawObjTableList,
-                renderDetails::DrawTypes<levelDrawer::DrawObjectTableGL>::IndicesForDrawList const &drawObjectsIndicesList) override;
+                std::shared_ptr<renderDetails::CommonObjectData> const &commonObjectData,
+                std::shared_ptr<levelDrawer::DrawObjectTableGL> const &drawObjTable,
+                std::vector<size_t> const &drawObjectsIndices) override;
 
         ~RenderDetailsGL() override = default;
 
