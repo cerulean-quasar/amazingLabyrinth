@@ -112,13 +112,19 @@ namespace shadowsChaining {
             renderDetails::ParametersVulkan const &parameters,
             Config const &config);
 
+        void addPreRenderPassCmdsToCommandBuffer(
+                VkCommandBuffer const &commandBuffer,
+                size_t /* descriptor set ID, not used */,
+                levelDrawer::LevelDrawerVulkan::CommonObjectDataList const &commonObjectDataList,
+                levelDrawer::LevelDrawerVulkan::DrawObjectTableList const &drawObjTableList,
+                levelDrawer::LevelDrawerVulkan::IndicesForDrawList const &drawObjectsIndicesList) override;
+
         void addDrawCmdsToCommandBuffer(
-            VkCommandBuffer const &commandBuffer,
-            VkFrameBuffer const &frameBuffer,
-            size_t descriptorSetID,
-            levelDrawer::LevelDrawerVulkan::CommonObjectDataList const &commonObjectDataList,
-            levelDrawer::LevelDrawerVulkan::DrawObjectTables const &drawObjTable,
-            levelDrawer::LevelDrawerVulkan::IndicesForDrawing const &drawObjectsIndicesList) override;
+                VkCommandBuffer const &commandBuffer,
+                size_t descriptorSetID,
+                std::shared_ptr<renderDetails::CommonObjectData> const &commonObjectData,
+                std::shared_ptr<levelDrawer::DrawObjectTableVulkan> const &drawObjTable,
+                std::vector<size_t> const &drawObjectsIndices) override;
 
         ~RenderDetailsVulkan() override = default;
 
@@ -132,6 +138,7 @@ namespace shadowsChaining {
         std::shared_ptr<vulkan::ImageView> m_depthImageViewShadows;
         std::shared_ptr<vulkan::ImageView> m_shadowsColorAttachment;
         std::shared_ptr<vulkan::ImageSampler> m_samplerShadows;
+        std::shared_ptr<vulkan::RenderPass> m_renderPassShadows;
         std::shared_ptr<shadows::RenderDetailsVulkan> m_shadowsRenderDetails;
         std::shared_ptr<vulkan::Framebuffer> m_framebufferShadows;
 
@@ -159,16 +166,7 @@ namespace shadowsChaining {
             shadowParameters.width = getShadowsFramebufferDimension(parameters.width);
             shadowParameters.height = getShadowsFramebufferDimension(parameters.height);
             shadowParameters.preTransform = parameters.preTransform;
-            shadowParameters.colorImageInfo =
-                    std::vector<vulkan::RenderPass::ImageAttachmentInfo>{vulkan::RenderPass::ImageAttachmentInfo{
-                            VK_ATTACHMENT_LOAD_OP_CLEAR, VK_ATTACHMENT_STORE_OP_STORE,
-                            rd->m_shadowsColorAttachment->image()->format(),
-                            VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL}};
-            shadowParameters.depthImageInfo =
-                    std::make_shared<vulkan::RenderPass::ImageAttachmentInfo>(
-                            VK_ATTACHMENT_LOAD_OP_CLEAR, VK_ATTACHMENT_STORE_OP_STORE,
-                            rd->m_depthImageViewShadows->image()->format(),
-                            VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL);
+            shadowParameters.renderPass = rd->m_renderPassShadows;
             return std::move(shadowParameters);
         }
     };

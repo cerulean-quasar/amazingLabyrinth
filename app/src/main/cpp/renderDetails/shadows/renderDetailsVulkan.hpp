@@ -208,11 +208,10 @@ namespace shadows {
 
         void addDrawCmdsToCommandBuffer(
                 VkCommandBuffer const &commandBuffer,
-                VkFrameBuffer const &frameBuffer,
                 size_t descriptorSetID,
-                levelDrawer::LevelDrawerVulkan::CommonObjectDataList const &commonObjectDataList,
-                levelDrawer::LevelDrawerVulkan::DrawObjectTables const &drawObjTableList,
-                levelDrawer::LevelDrawerVulkan::IndicesForDrawing const &drawObjectsIndicesList) override;
+                std::shared_ptr<renderDetails::CommonObjectData> const &commonObjectData,
+                std::shared_ptr<levelDrawer::DrawObjectTableVulkan> const &drawObjTable,
+                std::vector<size_t> const &drawObjectsIndices) override;
 
         std::shared_ptr<vulkan::RenderPass> const &renderPass() { return m_renderPass; }
         std::shared_ptr<vulkan::Device> const &device() override { return m_device; }
@@ -227,7 +226,6 @@ namespace shadows {
 
         std::shared_ptr<vulkan::Device> m_device;
 
-        std::shared_ptr<vulkan::RenderPass> m_renderPass;
         std::shared_ptr<vulkan::DescriptorPools> m_descriptorPools;
         std::shared_ptr<DescriptorSetLayout> m_descriptorSetLayout;
         std::shared_ptr<vulkan::Pipeline> m_pipeline;
@@ -241,12 +239,10 @@ namespace shadows {
             m_device{inDevice},
             m_descriptorSetLayout{std::make_shared<DescriptorSetLayout>(m_device)},
             m_descriptorPools{std::make_shared<vulkan::DescriptorPools>(m_device, m_descriptorSetLayout)},
-            m_renderPass{vulkan::RenderPass::createDepthTextureRenderPass(
-                        m_device, parameters.colorImageInfo, parameters.depthImageInfo)},
             m_pipeline{std::make_shared<vulkan::Pipeline>(
                         gameRequester, m_device,
                         VkExtent2D{m_width, m_height},
-                        m_renderPass, m_descriptorPools, getBindingDescription(),
+                        parameters.renderPass, m_descriptorPools, getBindingDescription(),
                         getAttributeDescriptions(),
                         SHADOW_VERT_FILE, SHADER_SIMPLE_FRAG_FILE, basePipeline,
                         VK_CULL_MODE_FRONT_BIT)}

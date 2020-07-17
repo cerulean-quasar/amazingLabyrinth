@@ -54,6 +54,18 @@ namespace shadowsChaining {
                     inDevice, rd->m_shadowsColorAttachment,
                     VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER,
                     VK_BORDER_COLOR_FLOAT_OPAQUE_WHITE);
+            auto colorImageInfo =
+                    std::vector<vulkan::RenderPass::ImageAttachmentInfo>{vulkan::RenderPass::ImageAttachmentInfo{
+                            VK_ATTACHMENT_LOAD_OP_CLEAR, VK_ATTACHMENT_STORE_OP_STORE,
+                            rd->m_shadowsColorAttachment->image()->format(),
+                            VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL}};
+            auto depthImageInfo =
+                    std::make_shared<vulkan::RenderPass::ImageAttachmentInfo>(
+                            VK_ATTACHMENT_LOAD_OP_CLEAR, VK_ATTACHMENT_STORE_OP_STORE,
+                            rd->m_depthImageViewShadows->image()->format(),
+                            VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL);
+            rd->m_renderPassShadows = vulkan::RenderPass::createDepthTextureRenderPass(
+                    inDevice, colorImageInfo, depthImageInfo);
 
             auto shadowParameters = createShadowParameters(rd, parameters);
 
@@ -63,7 +75,7 @@ namespace shadowsChaining {
 
             // shadows framebuffer
             rd->m_framebufferShadows = std::make_shared<vulkan::Framebuffer>(
-                    inDevice, refShadows.renderDetails->renderPass(),
+                    inDevice, rd->m_renderPassShadows,
                     std::vector<std::shared_ptr<vulkan::ImageView>>{rd->m_shadowsColorAttachment,
                                                                     rd->m_depthImageViewShadows},
                     shadowParameters.width, shadowParameters.height);
@@ -110,28 +122,62 @@ namespace shadowsChaining {
         return createReference(std::move(rdBase), refShadows, refObjectWithShadows);
     }
 
-    void RenderDetailsVulkan::addDrawCmdsToCommandBuffer(
+    void RenderDetailsVulkan::addPreRenderPassCmdsToCommandBuffer(
             VkCommandBuffer const &commandBuffer,
-            VkFrameBuffer const &frameBuffer,
             size_t /* descriptor set ID, not used */,
             levelDrawer::LevelDrawerVulkan::CommonObjectDataList const &commonObjectDataList,
             levelDrawer::LevelDrawerVulkan::DrawObjectTableList const &drawObjTableList,
             levelDrawer::LevelDrawerVulkan::IndicesForDrawList const &drawObjectsIndicesList)
     {
-        // only do shadows for the level itself
-        levelDrawer::LevelDrawerVulkan::DrawObjectTableList shadowsDrawObjTableList =
-                { nullptr, drawObjTableList[levelDrawer::LevelDrawer::ObjectType::LEVEL], nullptr };
-        levelDrawer::LevelDrawerVulkan::IndicesForDrawList shadowsDrawObjectsIndicesList =
-                { std::vector<size_t>{},
-                  drawObjectsIndicesList[levelDrawer::LevelDrawer::ObjectType::LEVEL],
-                  std::vector<size_t>{} };
-        m_shadowsRenderDetails->addDrawCmdsToCommandBuffer(
-                commandBuffer, m_framebufferShadows, 1 /* shadows ID */, commonObjectDataList,
-                shadowsDrawObjTableList, shadowsDrawObjectsIndicesList);
+        // The shadows rendering needs to occur before the main render pass.
 
+        /* begin the shadows render pass */
+        VkRenderPassBeginInfo renderPassInfo = {};
+        renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
+        renderPassInfo.renderPass = m_renderPassShadows->renderPass().get();
+        renderPassInfo.framebuffer = m_framebufferShadows;
+        /* size of the render area */
+        renderPassInfo.renderArea.offset = {0, 0};
+        renderPassInfo.renderArea.extent = VkExtent2D{getShadowsFramebufferDimension(m_surfaceWidth),
+                                                      getShadowsFramebufferDimension(m_surfaceHeight)};
+
+        /* the color value to use when clearing the image with VK_ATTACHMENT_LOAD_OP_CLEAR,
+         * using black with 0% opacity
+         */
+        std::vector<VkClearValue> clearValues{};
+        clearValues.resize(2);
+        clearValues[0].color = {1.0f, 0.0f, 0.0f, 1.0f};
+        clearValues[1].depthStencil = {1.0, 0};
+        renderPassInfo.clearValueCount = static_cast<uint32_t>(clearValues.size());
+        renderPassInfo.pClearValues = clearValues.data();
+
+        /* begin recording commands - start by beginning the render pass.
+         * none of these functions returns an error (they return void).  There will be no error
+         * handling until recording is done.
+         */
+        vkCmdBeginRenderPass(commandBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
+
+        // only do shadows for the level itself
+        m_shadowsRenderDetails->addDrawCmdsToCommandBuffer(
+                commandBuffer,
+                1 /* shadows ID */,
+                commonObjectDataList[levelDrawer::LevelDrawer::ObjectType::LEVEL],
+                drawObjTableList[levelDrawer::LevelDrawer::ObjectType::LEVEL],
+                drawObjectsIndicesList[levelDrawer::LevelDrawer::ObjectType::LEVEL]);
+
+        vkCmdEndRenderPass(commandBuffer);
+    }
+
+    void RenderDetailsVulkan::addDrawCmdsToCommandBuffer(
+            VkCommandBuffer const &commandBuffer,
+            size_t /* unused descriptor set ID */,
+            std::shared_ptr<renderDetails::CommonObjectData> const &commonObjectData,
+            std::shared_ptr<levelDrawer::DrawObjectTableVulkan> const &drawObjTable,
+            std::vector<size_t> const &drawObjectsIndices)
+    {
         m_objectWithShadowsRenderDetails->addDrawCmdsToCommandBuffer(
-                commandBuffer, frameBuffer, 0 /* main render details ID */, commonObjectDataList,
-                drawObjTableList, drawObjectsIndicesList);
+                commandBuffer, 0 /* main render details ID */, commonObjectData,
+                drawObjTable, drawObjectsIndices);
     }
 
     renderDetails::ReferenceVulkan RenderDetailsVulkan::createReference(

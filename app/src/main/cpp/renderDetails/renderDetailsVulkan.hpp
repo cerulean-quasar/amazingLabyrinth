@@ -32,6 +32,7 @@
 
 namespace renderDetails {
     struct ParametersVulkan {
+        std::shared_ptr<vulkan::RenderPass> renderPass;
         std::vector<vulkan::RenderPass::ImageAttachmentInfo> colorImageInfo;
         vulkan::RenderPass::ImageAttachmentInfo depthImageInfo;
         glm::mat4 preTransform;
@@ -53,19 +54,31 @@ namespace renderDetails {
 
     class RenderDetailsVulkan : public RenderDetails {
     public:
+        // This function is called to add commands to the command buffer that occur before
+        // the main render pass.  Most Render Details don't don't do anything for this function.
+        virtual void addPreRenderPassCmdsToCommandBuffer(
+                VkCommandBuffer const &commandBuffer,
+                size_t /* descriptor set ID, not used */,
+                levelDrawer::LevelDrawerVulkan::CommonObjectDataList const &commonObjectDataList,
+                levelDrawer::LevelDrawerVulkan::DrawObjectTableList const &drawObjTableList,
+                levelDrawer::LevelDrawerVulkan::IndicesForDrawList const &drawObjectsIndicesList)
+        {}
+
+        // This function is called to add draw commands to the command buffer after the main render
+        // pass has started.
         virtual void addDrawCmdsToCommandBuffer(
-            VkCommandBuffer const &commandBuffer,
-            VkFrameBuffer const &frameBuffer,
-            size_t descriptorSetID,
-            levelDrawer::LevelDrawerVulkan::CommonObjectDataList const &commonObjectDataList,
-            levelDrawer::LevelDrawerVulkan::DrawObjectTableList const &drawObjTable,
-            levelDrawer::LevelDrawerVulkan::IndicesForDrawList const &drawObjectsIndicesList) = 0;
+                VkCommandBuffer const &commandBuffer,
+                size_t descriptorSetID,
+                std::shared_ptr<renderDetails::CommonObjectData> const &commonObjectData,
+                std::shared_ptr<levelDrawer::DrawObjectTableVulkan> const &drawObjTable,
+                std::vector<size_t> const &drawObjectsIndices) = 0;
 
         enum DrawIfHasTexture {
             ONLY_IF_NO_TEXTURE,
             ONLY_IF_TEXTURE,
             BOTH
         };
+
         void initializeCommandBufferDrawObjects(
             DrawIfHasTexture drawIf,
             size_t descriptorSetID,

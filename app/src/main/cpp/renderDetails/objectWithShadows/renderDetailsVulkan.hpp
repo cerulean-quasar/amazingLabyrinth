@@ -308,11 +308,10 @@ namespace objectWithShadows {
 
         void addDrawCmdsToCommandBuffer(
                 VkCommandBuffer const &commandBuffer,
-                VkFrameBuffer const &frameBuffer,
                 size_t descriptorSetID,
-                levelDrawer::LevelDrawerVulkan::CommonObjectDataList const &commonObjectDataList,
-                levelDrawer::LevelDrawerVulkan::DrawObjectTables const &drawObjTableList,
-                levelDrawer::LevelDrawerVulkan::IndicesForDrawing const &drawObjectsIndicesList) override;
+                std::shared_ptr<renderDetails::CommonObjectData> const &commonObjectData,
+                std::shared_ptr<levelDrawer::DrawObjectTableVulkan> const &drawObjTable,
+                std::vector<size_t> const &drawObjectsIndices) override;
 
         ~RenderDetailsVulkan() override = default;
 
@@ -322,9 +321,6 @@ namespace objectWithShadows {
         static char constexpr const *COLOR_SHADER_FRAG_FILE = "shaders/colorShader.frag.spv";
 
         std::shared_ptr<vulkan::Device> m_device;
-
-        /* main draw resources */
-        std::shared_ptr<vulkan::RenderPass> m_renderPass;
 
         /* object with texture resources */
         std::shared_ptr<TextureDescriptorSetLayout> m_descriptorSetLayoutTexture;
@@ -343,13 +339,11 @@ namespace objectWithShadows {
                 renderDetails::ParametersVulkan const &parameters)
                 : renderDetails::RenderDetailsVulkan{parameters.width, parameters.height},
                 m_device{inDevice},
-                m_renderPass{vulkan::RenderPass::createDepthTextureRenderPass(
-                      m_device, parameters.colorImageInfo, parameters.depthImageInfo)},
                 m_descriptorSetLayoutTexture{std::make_shared<TextureDescriptorSetLayout>(m_device)},
                 m_descriptorPoolsTexture{std::make_shared<vulkan::DescriptorPools>(m_device, m_descriptorSetLayoutTexture)},
                 m_pipelineTexture{std::make_shared<vulkan::Pipeline>(
                       gameRequester, m_device, VkExtent2D{m_surfaceWidth, m_surfaceHeight},
-                      m_renderPass, m_descriptorPoolsTexture,
+                      parameters.renderPass, m_descriptorPoolsTexture,
                       getBindingDescription(),
                       getAttributeDescriptions(),
                       SHADER_VERT_FILE, TEXTURE_SHADER_FRAG_FILE, nullptr)},
@@ -357,7 +351,7 @@ namespace objectWithShadows {
                 m_descriptorPoolsColor{std::make_shared<vulkan::DescriptorPools>(m_device, m_descriptorSetLayoutColor)},
                 m_pipelineColor{std::make_shared<vulkan::Pipeline>(
                             gameRequester, m_device, VkExtent2D{m_surfaceWidth, m_surfaceHeight},
-                            m_renderPass, m_descriptorPoolsColor,
+                            parameters.renderPass, m_descriptorPoolsColor,
                             getBindingDescription(),
                             getAttributeDescriptions(),
                             SHADER_VERT_FILE, COLOR_SHADER_FRAG_FILE, m_pipelineTexture)}
