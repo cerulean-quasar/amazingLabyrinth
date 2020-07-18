@@ -93,9 +93,16 @@ namespace levelDrawer {
     template <typename traits>
     class DrawObjectTable {
     public:
+        struct DrawRule {
+            std::shared_ptr<typename traits::RenderDetailsType> renderDetails;
+            std::shared_ptr<typename traits::CommonObjectDataType> commonObjectData;
+            std::vector<size_t> drawObjectIndices;
+        };
+
         void clear() {
             m_drawObjects.clear();
         }
+
         // returns index of added object.
         size_t addObject(
                 std::shared_ptr<typename traits::ModelDataType> modelData,
@@ -212,6 +219,26 @@ namespace levelDrawer {
             m_renderDetailsReference = std::move(ref);
         }
 
+        std::vector<DrawRule> getDrawRules() {
+            std::vector<DrawRule> rules;
+            rules.emplace_back(m_renderDetailsReference.renderDetails,
+                    m_renderDetailsReference.commonObjectData,
+                    m_objsIndicesWithGlobalRenderDetails);
+
+            std::map<std::string, DrawRule> alreadyAdded;
+            for (auto index : m_objsIndicesWithOverridingRenderDetails) {
+                auto const &ref = m_drawObjects[index].renderDetailsReference();
+                auto ret = alreadyAdded.emplace(ref.renderDetails.name(),
+                        DrawRule{ref.renderDetails, ref.commonObjectData, std::vector<size_t>{}});
+                ret.first->second.push_back(index);
+            }
+
+            for (auto item : alreadyAdded) {
+                rules.push_back(item.second);
+            }
+
+            return std::move(rules);
+        }
     private:
         typename traits::RenderDetailsParametersType m_renderDetailsParameters;
         typename traits::RenderDetailsReferenceType m_renderDetailsReference;

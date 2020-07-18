@@ -40,7 +40,20 @@ namespace renderDetails {
 }
 
 namespace levelDrawer {
+    struct NeededForDrawing {
+        std::shared_ptr<vulkan::Device> device;
+        std::shared_ptr<vulkan::CommandPool> commandPool;
+        std::shared_ptr<vulkan::RenderPass> renderPass;
+    };
+
+    struct DrawArgument {
+        VkCommandBuffer cmdBuffer;
+        VkFramebuffer frameBuffer;
+        VkExtent2D extent;
+    };
+
     struct DrawObjectVulkanTraits {
+        using RenderDetailsParametersType = renderDetails::ParametersVulkan;
         using RenderDetailsType = renderDetails::RenderDetailsVulkan;
         using CommonObjectDataType = renderDetails::CommonObjectData;
         using RenderDetailsReferenceType = renderDetails::ReferenceVulkan;
@@ -51,6 +64,7 @@ namespace levelDrawer {
 
     using DrawObjectTableVulkan = DrawObjectTable<DrawObjectVulkanTraits>;
     struct LevelDrawerVulkanTraits {
+        using DrawRuleType = DrawObjectTableVulkan::DrawRule;
         using RenderLoaderType = RenderLoaderVulkan;
         using RenderDetailsType = renderDetails::RenderDetailsVulkan;
         using CommonObjectDataType = renderDetails::CommonObjectData;
@@ -58,7 +72,8 @@ namespace levelDrawer {
         using ModelTableType = ModelTableVulkan;
         using TextureTableType = TextureTableVulkan;
         using DrawObjectTableType = DrawObjectTableVulkan;
-        using DrawArgumentType = VkCommandBuffer;
+        using DrawArgumentType = DrawArgument;
+        using NeededForDrawingType = NeededForDrawing;
     };
 
     using LevelDrawerVulkan = LevelDrawerGraphics<LevelDrawerVulkanTraits>;

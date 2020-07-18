@@ -57,11 +57,11 @@ namespace renderDetails {
         // This function is called to add commands to the command buffer that occur before
         // the main render pass.  Most Render Details don't don't do anything for this function.
         virtual void addPreRenderPassCmdsToCommandBuffer(
-                VkCommandBuffer const &commandBuffer,
+                VkCommandBuffer const &/* unused command buffer */,
                 size_t /* descriptor set ID, not used */,
-                levelDrawer::LevelDrawerVulkan::CommonObjectDataList const &commonObjectDataList,
-                levelDrawer::LevelDrawerVulkan::DrawObjectTableList const &drawObjTableList,
-                levelDrawer::LevelDrawerVulkan::IndicesForDrawList const &drawObjectsIndicesList)
+                levelDrawer::LevelDrawerVulkan::CommonObjectDataList const &/* common object data */,
+                levelDrawer::LevelDrawerVulkan::DrawObjectTableList const &/* draw object table */,
+                levelDrawer::LevelDrawerVulkan::IndicesForDrawList const &/* draw indices */)
         {}
 
         // This function is called to add draw commands to the command buffer after the main render

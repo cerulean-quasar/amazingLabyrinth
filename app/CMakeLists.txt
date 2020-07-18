@@ -28,6 +28,7 @@ if ((NOT ${CMAKE_ANDROID_ARCH_ABI} STREQUAL x86) AND (NOT ${CMAKE_ANDROID_ARCH_A
             src/main/cpp/graphicsVulkan.cpp
             src/main/cpp/mazeVulkan.cpp
             src/main/cpp/vk_mem_alloc.cpp
+            src/main/cpp/levelDrawer/levelDrawerVulkan.cpp
             src/main/cpp/renderDetails/shadowsChaining/renderDetailsVulkan.cpp
             src/main/cpp/renderDetails/shadows/renderDetailsVulkan.cpp
             src/main/cpp/renderDetails/objectWithShadows/renderDetailsVulkan.cpp)
@@ -66,6 +67,7 @@ add_library( # Sets the name of the library.
         src/main/cpp/levelDrawer/modelTable/modelLoader.cpp
         src/main/cpp/levelDrawer/textureTable/textureTableGL.cpp
         src/main/cpp/levelDrawer/textureTable/textureLoader.cpp
+        src/main/cpp/levelDrawer/levelDrawerGL.cpp
         src/main/cpp/levels/finisher/types.cpp
         src/main/cpp/levels/finisher/serializer.cpp
         src/main/cpp/levels/generatedMazeAlgorithms.cpp

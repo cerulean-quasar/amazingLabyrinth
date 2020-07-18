@@ -50,6 +50,7 @@ namespace levelDrawer {
     using DrawObjectTableGL = DrawObjectTable<DrawObjectGLTraits>;
 
     struct LevelDrawerGLTraits {
+        using DrawRuleType = DrawObjectTableGL::DrawRule;
         using RenderLoaderType = RenderLoaderGL;
         using RenderDetailsType = renderDetails::RenderDetailsGL;
         using CommonObjectDataType = renderDetails::CommonObjectData;
@@ -59,6 +60,8 @@ namespace levelDrawer {
         using TextureTableType = TextureTableGL;
         using DrawObjectTableType = DrawObjectTableGL;
         struct DrawArgumentType {
+        };
+        struct NeededForDrawingType {
         };
     };
 

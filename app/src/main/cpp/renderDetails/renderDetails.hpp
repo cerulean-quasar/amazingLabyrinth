@@ -194,14 +194,5 @@ namespace renderDetails {
         uint32_t m_surfaceWidth;
         uint32_t m_surfaceHeight;
     };
-
-    template <typename DrawObjectTableType>
-    struct DrawTypes {
-        static size_t constexpr m_numberDrawObjectTables = 3;
-
-        using DrawObjectTableList = std::array<std::shared_ptr<DrawObjectTableType>, m_numberDrawObjectTables>;
-        using IndicesForDrawList = std::array<std::vector<size_t>, m_numberDrawObjectTables>;
-        using CommonObjectDataList = std::array<std::shared_ptr<renderDetails::CommonObjectData>, m_numberDrawObjectTables>;
-    };
 }
 #endif // AMAZING_LABYRINTH_RENDER_DETAILS_HPP

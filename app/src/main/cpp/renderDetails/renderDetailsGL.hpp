@@ -59,9 +59,9 @@ namespace renderDetails {
         // the default does nothing.
         virtual void preMainDraw(
                 uint32_t modelMatrixID,
-                renderDetails::DrawTypes<levelDrawer::DrawObjectTableGL>::CommonObjectDataList const &commonObjectDataList,
-                renderDetails::DrawTypes<levelDrawer::DrawObjectTableGL>::DrawObjectTableList const &drawObjTableList,
-                renderDetails::DrawTypes<levelDrawer::DrawObjectTableGL>::IndicesForDrawList const &drawObjectsIndicesList)
+                levelDrawer::LevelDrawerGL::CommonObjectDataList const &commonObjectDataList,
+                levelDrawer::LevelDrawerGL::DrawObjectTableList const &drawObjTableList,
+                levelDrawer::LevelDrawerGL::IndicesForDrawList const &drawObjectsIndicesList)
         {}
 
         virtual void draw(
