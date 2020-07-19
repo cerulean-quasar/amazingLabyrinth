@@ -86,17 +86,11 @@ namespace graphicsGL {
                 type = type_;
             }
 
-            ColorImageFormat(ColorImageFormat const &other) {
-                internalFormat = other.internalFormat;
-                format = other.format;
-                type = other.type;
-            }
+            ColorImageFormat(ColorImageFormat const &other) = default;
 
-            ColorImageFormat(ColorImageFormat &&other) {
-                internalFormat = other.internalFormat;
-                format = other.format;
-                type = other.type;
-            }
+            ColorImageFormat(ColorImageFormat &&other) = default;
+
+            ColorImageFormat &operator=(ColorImageFormat const &other) = default;
         };
         Framebuffer(uint32_t width, uint32_t height, std::vector<ColorImageFormat> colorImageFormats);
         ~Framebuffer() {

@@ -37,6 +37,15 @@ namespace renderDetails {
 }
 
 namespace levelDrawer {
+    struct NeededForDrawingGL {
+        bool useIntegerSurface;
+    };
+
+    struct DrawArgumentGL {
+        uint32_t width;
+        uiuint32_t height;
+    };
+
     struct DrawObjectGLTraits {
         using RenderDetailsParametersType = renderDetails::ParametersGL;
         using RenderDetailsType = renderDetails::RenderDetailsGL;
@@ -59,12 +68,32 @@ namespace levelDrawer {
         using TextureDataType = TextureDataGL;
         using TextureTableType = TextureTableGL;
         using DrawObjectTableType = DrawObjectTableGL;
-        struct DrawArgumentType {
-        };
-        struct NeededForDrawingType {
-        };
+        using NeededForDrawingType = NeededForDrawingGL;
+        using DrawArgumentType = DrawArgumentGL;
     };
 
     using LevelDrawerGL = LevelDrawerGraphics<LevelDrawerGLTraits>;
 }
+
+template <>
+void LevelDrawerGraphics<LevelDrawerGLTraits>::draw(
+        LevelDrawerGLTraits::DrawArgumentType info);
+
+template <>
+void LevelDrawerGraphics<LevelDrawerGLTraits>::drawToBuffer(
+        std::string const &renderDetailsName,
+        std::vector<std::pair<std::shared_ptr<ModelDescription>, std::shared_ptr<TextureDescription>>> modelsTextures,
+        float width,
+        float height,
+        uint32_t nbrSamplesForWidth,
+        float farthestDepth,
+        float nearestDepth,
+        std::vector<float> &results);
+
+template <>
+LevelDrawerGraphics<LevelDrawerGLTraits>::LevelDrawerGraphics(
+        LevelDrawerGLTraits::NeededForDrawingType neededForDrawing,
+        std::shared_ptr<LevelDrawerGLTraits::RenderLoaderType> inRenderLoader,
+        std::shared_ptr<GameRequester> inGameRequester);
+
 #endif // AMAZING_LABYRINTH_LEVEL_DRAWER_GL_HPP

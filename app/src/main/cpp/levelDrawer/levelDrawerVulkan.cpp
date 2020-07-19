@@ -101,22 +101,22 @@ namespace levelDrawer {
             uint32_t nbrSamplesForWidth,
             float farthestDepth,
             float nearestDepth,
-            std::vector<glm::vec4> &results)
+            std::vector<float> &results)
     {
         auto drawObjTable = std::make_shared<DrawObjectTableVulkan>();
         for (auto const &modelTexture : modelsTextures) {
-            auto modelData = m_modelTable.addModel(m_gameRequester, modelsTextures.first);
+            auto modelData = m_modelTable.addModel(m_gameRequester, modelTexture.first);
             std::shared_ptr<LevelDrawerVulkanTraits::TextureDataType> textureData{};
             if (modelTexture.second) {
                 textureData = m_textureTable.addTexture(m_gameRequester, modelTexture.second);
             }
-            drawObjTable.addObject(modelData, textureData);
+            drawObjTable->addObject(modelData, textureData);
         }
 
         uint32_t imageWidth = nbrSamplesForWidth;
         uint32_t imageHeight = static_cast<uint32_t>(std::floor((imageWidth * height)/width));
         auto depthView = std::make_shared<vulkan::ImageView>(
-                vulkan::ImageFactory::createDepthImage(m_device, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT,
+                vulkan::ImageFactory::createDepthImage(m_neededForDrawing.device, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT,
                                                        imageWidth, imageHeight),
                 VK_IMAGE_ASPECT_DEPTH_BIT);
         depthView->image()->transitionImageLayout(VK_IMAGE_LAYOUT_UNDEFINED,
@@ -124,7 +124,7 @@ namespace levelDrawer {
                                                   m_neededForDrawing.commandPool);
 
         auto colorImage = vulkan::ImageView::createImageViewAndImage(
-                m_device,
+                m_neededForDrawing.device,
                 imageWidth,
                 imageHeight,
                 VK_FORMAT_R32G32B32A32_SFLOAT,
@@ -134,8 +134,8 @@ namespace levelDrawer {
                 VK_IMAGE_ASPECT_COLOR_BIT);
 
         std::vector<std::shared_ptr<vulkan::ImageView>> attachments = {colorImage, depthView};
-        auto frameBuffer = std::make_shared<vulkan::Framebuffer>(m_device, renderPass, attachments,
-                                                                 imageWidth, imageHeight);
+        auto frameBuffer = std::make_shared<vulkan::Framebuffer>(
+                m_neededForDrawing.device, renderPass, attachments, imageWidth, imageHeight);
 
         std::vector<vulkan::RenderPass::ImageAttachmentInfo> infos{};
         infos.emplace_back(VK_ATTACHMENT_LOAD_OP_CLEAR, VK_ATTACHMENT_STORE_OP_STORE,
@@ -145,11 +145,12 @@ namespace levelDrawer {
                 VK_ATTACHMENT_LOAD_OP_CLEAR, VK_ATTACHMENT_STORE_OP_DONT_CARE,
                 depthView->image()->format(),
                 VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL);
-        auto renderPass = vulkan::RenderPass::createDepthTextureRenderPass(m_device, infos, depthInfo);
+        auto renderPass = vulkan::RenderPass::createDepthTextureRenderPass(
+                m_neededForDrawing.device, infos, depthInfo);
 
         std::vector<std::shared_ptr<vulkan::ImageView>> attachments = {colorImage, depthView};
-        auto frameBuffer = std::make_shared<vulkan::Framebuffer>(m_device, renderPass, attachments,
-                                                                 imageWidth, imageHeight);
+        auto frameBuffer = std::make_shared<vulkan::Framebuffer>(
+                m_neededForDrawing.device, renderPass, attachments, imageWidth, imageHeight);
 
         // parameters
         renderDetails::ParametersWithSurfaceWidthHeightAtDepthVulkan parameters{};
@@ -162,18 +163,18 @@ namespace levelDrawer {
         parameters.nearestDepth = nearestDepth;
         parameters.farthestDepth = farthestDepth;
 
-        drawObjTable->loadRenderDetails(m_renderLoader.load(m_gameRequester, name, parameters));
+        drawObjTable->loadRenderDetails(m_renderLoader.load(m_gameRequester, renderDetailsName, parameters));
 
         // start recording commands
-        vulkan::CommandBuffer cmds{m_device, m_commandPool};
+        vulkan::CommandBuffer cmds{m_neededForDrawing.device, m_neededForDrawing.commandPool};
         cmds.begin();
 
         // add any pre main render pass commands
         auto rules = drawObjTable->getDrawRules();
         DrawObjectTableList drawObjTableList = {nullptr, drawObjTable, nullptr};
-        CommonObjectDataList commonObjectDataList = {nullptr, rules.commonObjectData, nullptr};
-        IndicesForDrawList indicesForDrawList = {nullptr, rules.drawObjectIndices, nullptr};
-        rules.renderDetails->addPreRenderPassCmdsToCommandBuffer(
+        CommonObjectDataList commonObjectDataList = {nullptr, rules[0].commonObjectData, nullptr};
+        IndicesForDrawList indicesForDrawList = {nullptr, rules[0].drawObjectIndices, nullptr};
+        rules[0].renderDetails->addPreRenderPassCmdsToCommandBuffer(
                 cmds.commandBuffer().get(), 0, commonObjectDataList, drawObjTableList,
                 indicesForDrawList);
 
@@ -189,9 +190,11 @@ namespace levelDrawer {
         /* the color value to use when clearing the image with VK_ATTACHMENT_LOAD_OP_CLEAR,
          * using black with 0% opacity
          */
+        glm::vec4 clearColorValue = m_bgColor;
+        rules[0].renderDetails->overrideClearColor(clearColorValue);
         std::array<VkClearValue, 2> clearValues = {};
         // matching what OpenGL is doing with the clear buffers.
-        clearValues[0].color = clearColorValue;
+        clearValues[0].color = {clearColorValue.r, clearColorValue.g, clearColorValue.b, clearColorValue.a};
         clearValues[1].depthStencil = {1.0f, 0};
         renderPassInfo.clearValueCount = clearValues.size();
         renderPassInfo.pClearValues = clearValues.data();
@@ -215,7 +218,7 @@ namespace levelDrawer {
         std::vector<float> imageData{};
         imageData.resize(imageWidth * imageHeight * 4);
 
-        vulkan::Buffer buffer{m_device,
+        vulkan::Buffer buffer{m_neededForDrawing.device,
                               imageWidth * imageHeight * sizeof (float) * 4,
                               VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,
                               VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT};
@@ -230,8 +233,8 @@ namespace levelDrawer {
             LevelDrawerVulkanTraits::NeededForDrawingType neededForDrawing,
             std::shared_ptr<LevelDrawerVulkanTraits::RenderLoaderType> inRenderLoader,
             std::shared_ptr<GameRequester> inGameRequester)
-            : m_modelTable(neededForDrawing.m_device, neededForDrawing.m_commandPool),
-            m_textureTable(neededForDrawing.m_device, neededForDrawing.m_commandPool),
+            : m_modelTable(neededForDrawing.device, neededForDrawing.m_commandPool),
+            m_textureTable(neededForDrawing.device, neededForDrawing.m_commandPool),
             m_drawObjectTableList{
                 std::make_shared<LevelDrawerVulkanTraits::DrawObjectTableType>(),
                 std::make_shared<LevelDrawerVulkanTraits::DrawObjectTableType>(),

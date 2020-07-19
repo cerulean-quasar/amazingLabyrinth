@@ -44,6 +44,15 @@ namespace renderDetails {
         ~ParametersWithShadowsGL() override = default;
     };
 
+    struct ParametersWithWidthHeightAtDepthGL : public ParametersGL {
+        float widthAtDepth;
+        float heightAtDepth;
+        float nearestDepth;
+        float farthestDepth;
+
+        ~ParametersWithSurfaceWidthHeightAtDepthGL() override = default;
+    };
+
     class DrawObjectDataGL : public DrawObjectData {
     public:
         virtual glm::mat4 modelMatrix(uint32_t) = 0;
@@ -53,6 +62,17 @@ namespace renderDetails {
 
     class RenderDetailsGL : public RenderDetails {
     public:
+        // For postprocessing results written to an image buffer whose contents are put in input.
+        // This function is for render details that produce results to be used by the CPU.  Most
+        // render details don't need this.
+        virtual void postProcessImageBuffer(
+                std::shared_ptr<renderDetails::CommonObjectData> const &,
+                std::vector<float> const &input,
+                std::vector<float> &results)
+        {
+            output.resize(input.size());
+            std::copy(input.begin(), input.end(), output.begin());
+        }
 
         // GL commands that need to occur before the main draw.  They can be things like generating
         // a shadow map or other draws to a framebuffer.  Most shaders don't need these commands so
@@ -70,8 +90,12 @@ namespace renderDetails {
                 std::shared_ptr<levelDrawer::DrawObjectTableGL> const &drawObjTable,
                 std::vector<size_t> const &drawObjectsIndices) = 0;
 
+        virtual bool overrideClearColor(glm::vec4 &clearColor) {
+            return false;
+        }
+
         RenderDetailsGL(uint32_t inWidth, uint32_t inHeight)
-        : RenderDetails{inWidth, inHeight}
+            : RenderDetails{inWidth, inHeight}
         {}
 
         ~RenderDetailsGL() override  = default;

@@ -62,8 +62,9 @@ add_library( # Sets the name of the library.
         src/main/cpp/common.cpp
         src/main/cpp/commonGL.cpp
         src/main/cpp/renderDetails/renderDetailsGL.cpp
-        src/main/cpp/renderDetails/shadows/renderDetailsGL.cpp
+        src/main/cpp/renderDetails/depthMap/renderDetailsGL.cpp
         src/main/cpp/renderDetails/objectWithShadows/renderDetailsGL.cpp
+        src/main/cpp/renderDetails/shadows/renderDetailsGL.cpp
         src/main/cpp/renderDetails/shadowsChaining/renderDetailsGL.cpp
         src/main/cpp/levelDrawer/modelTable/modelLoader.cpp
         src/main/cpp/levelDrawer/textureTable/textureTableGL.cpp

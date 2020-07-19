@@ -53,6 +53,10 @@ namespace depthMap {
                     view());
         }
 
+        glm::vec3 getLightSource() override {
+            return viewPoint();
+        }
+
         glm::mat4 getViewLightSource() override {
             return view();
         }
@@ -252,6 +256,11 @@ namespace depthMap {
         std::shared_ptr<vulkan::Device> const &device() override { return m_device; }
         std::shared_ptr<vulkan::DescriptorPools> const &descriptorPools() override {
             return m_descriptorPools;
+        }
+
+        bool overrideClearColor(glm::vec4 &clearColor) override {
+            clearColor = {0.0f, 0.0f, 0.0f, 1.0f};
+            return true;
         }
 
         ~RenderDetailsVulkan() override = default;

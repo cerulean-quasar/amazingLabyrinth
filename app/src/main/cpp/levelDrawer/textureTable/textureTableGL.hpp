@@ -48,7 +48,7 @@ namespace levelDrawer {
                            std::shared_ptr<TextureDescription> const &textureDescription);
     };
 
-    class TextureTableGL : public TextureTableGeneric<TextureDataGL> {
+    class TextureTableGL : public TextureTable<TextureDataGL> {
     public:
         ~TextureTableGL() override = default;
 

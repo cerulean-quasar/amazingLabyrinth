@@ -44,7 +44,7 @@ namespace levelDrawer {
 
         TextureTable() = default;
 
-        ~TextureTable() = default;
+        virtual ~TextureTable() = default;
 
     protected:
         virtual std::shared_ptr<TextureDataType>

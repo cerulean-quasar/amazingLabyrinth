@@ -40,13 +40,13 @@ namespace renderDetails {
 }
 
 namespace levelDrawer {
-    struct NeededForDrawing {
+    struct NeededForDrawingVulkan {
         std::shared_ptr<vulkan::Device> device;
         std::shared_ptr<vulkan::CommandPool> commandPool;
         std::shared_ptr<vulkan::RenderPass> renderPass;
     };
 
-    struct DrawArgument {
+    struct DrawArgumentVulkan {
         VkCommandBuffer cmdBuffer;
         VkFramebuffer frameBuffer;
         VkExtent2D extent;
@@ -72,10 +72,31 @@ namespace levelDrawer {
         using ModelTableType = ModelTableVulkan;
         using TextureTableType = TextureTableVulkan;
         using DrawObjectTableType = DrawObjectTableVulkan;
-        using DrawArgumentType = DrawArgument;
-        using NeededForDrawingType = NeededForDrawing;
+        using DrawArgumentType = DrawArgumentVulkan;
+        using NeededForDrawingType = NeededForDrawingVulkan;
     };
 
     using LevelDrawerVulkan = LevelDrawerGraphics<LevelDrawerVulkanTraits>;
+
+    template <>
+    void LevelDrawerGraphics<LevelDrawerVulkanTraits>::draw(
+            LevelDrawerVulkanTraits::DrawArgumentType info);
+
+    template <>
+    void LevelDrawerGraphics<LevelDrawerVulkanTraits>::drawToBuffer(
+            std::string const &renderDetailsName,
+            std::vector<std::pair<std::shared_ptr<ModelDescription>, std::shared_ptr<TextureDescription>>> modelsTextures,
+            float width,
+            float height,
+            uint32_t nbrSamplesForWidth,
+            float farthestDepth,
+            float nearestDepth,
+            std::vector<float> &results);
+
+    template <>
+    LevelDrawerGraphics<LevelDrawerVulkanTraits>::LevelDrawerGraphics(
+            LevelDrawerVulkanTraits::NeededForDrawingType neededForDrawing,
+            std::shared_ptr<LevelDrawerVulkanTraits::RenderLoaderType> inRenderLoader,
+            std::shared_ptr<GameRequester> inGameRequester);
 }
 #endif // AMAZING_LABYRINTH_LEVEL_DRAWER_VULKAN_HPP

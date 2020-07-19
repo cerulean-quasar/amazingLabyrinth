@@ -106,6 +106,10 @@ namespace renderDetails {
             levelDrawer::DrawObjectTableVulkan const &drawObjectTable,
             std::vector<size_t> const &drawObjectsIndices);
 
+        virtual bool overrideClearColor(glm::vec4 &clearColor) {
+            return false;
+        }
+
         RenderDetailsVulkan(uint32_t width, uint32_t height)
             : RenderDetails(width, height)
         {}

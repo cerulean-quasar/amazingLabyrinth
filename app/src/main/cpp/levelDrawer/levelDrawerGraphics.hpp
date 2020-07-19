@@ -177,6 +177,8 @@ namespace levelDrawer {
             float width,
             float height,
             uint32_t nbrSamplesForWidth,
+            float farthestDepth,
+            float nearestDepth,
             std::vector<float> &results);
 
         LevelDrawerGraphics(typename traits::NeededForDrawingType neededForDrawing,
