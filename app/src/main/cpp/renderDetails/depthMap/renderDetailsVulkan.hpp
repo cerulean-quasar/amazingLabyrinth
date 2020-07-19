@@ -17,14 +17,15 @@
  *  along with AmazingLabyrinth.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
-#ifndef AMAZING_LABYRINTH_SHADOWS_RENDER_DETAILS_VULKAN_HPP
-#define AMAZING_LABYRINTH_SHADOWS_RENDER_DETAILS_VULKAN_HPP
+#ifndef AMAZING_LABYRINTH_DEPTHMAP_RENDER_DETAILS_VULKAN_HPP
+#define AMAZING_LABYRINTH_DEPTHMAP_RENDER_DETAILS_VULKAN_HPP
 
 #include <memory>
 #include <glm/glm.h>
 #include <glm/gtc/matrix_transform.hpp>
 
 #include "../../graphicsVulkan.hpp"
+#include "../../mathGraphics.hpp"
 #include "../../levelDrawer/drawObjectTable/drawObjectTable.hpp"
 #include "../renderDetails.hpp"
 #include "../../renderLoader/renderLoaderVulkan.hpp"
@@ -32,19 +33,23 @@
 
 #include "config.hpp"
 
-namespace shadows {
+namespace depthMap {
     class RenderDetailsVulkan;
 
-    class CommonObjectDataVulkan : public renderDetails::CommonObjectDataPerspective {
+    class CommonObjectDataVulkan : public renderDetails::CommonObjectDataOrtho {
         friend RenderDetailsVulkan;
     public:
         std::pair<glm::mat4, glm::mat4> getProjViewForLevel() override {
-            /* perspective matrix: takes the perspective projection, the aspect ratio, near and far
-             * view planes.
-             */
             return std::make_pair<glm::mat4, glm::mat4>(
-                    getPerspectiveMatrix(m_viewAngle, m_aspectRatio, m_nearPlane, m_farPlane,
-                                         false, true),
+                    getOrthoMatrix(m_minusX, m_plusX, m_minusY, m_plusY,
+                                    m_nearPlane, m_farPlane, false, true),
+                    view());
+        }
+
+        std::pair<glm::mat4, glm::mat4> getProjViewForRender() {
+            return std::make_pair<glm::mat4, glm::mat4>(
+                    getOrthoMatrix(m_minusX, m_plusX, m_minusY, m_plusY,
+                                   m_nearPlane, m_farPlane, true, true),
                     view());
         }
 
@@ -52,16 +57,20 @@ namespace shadows {
             return view();
         }
 
-        glm::vec3 lightSource() { return viewPoint(); }
+        float nearestDepth() { return m_nearestDepth; }
+        float farthestDepth() { return m_farthestDepth; }
 
+        /*
         std::shared_ptr<vulkan::Buffer> const &cameraBuffer() { return m_camera; }
 
         uint32_t cameraBufferSize() { return sizeof(CommonUBO); }
+        */
 
         ~CommonObjectDataVulkan() override = default;
 
     protected:
         void update() override {
+            /*
             CommonUBO commonUbo;
             commonUbo.proj = m_preTransform *
                              getPerspectiveMatrix(m_viewAngle, m_aspectRatio, m_nearPlane, m_farPlane, true, true);
@@ -70,27 +79,37 @@ namespace shadows {
             commonUbo.view = view();
 
             m_camera->copyRawTo(&commonUbo, sizeof(commonUbo));
+            */
         }
 
     private:
+        /*
         struct CommonUBO {
             glm::mat4 proj;
             glm::mat4 view;
         };
 
         std::shared_ptr<vulkan::Buffer> m_camera;
+        */
         glm::mat4 m_preTransform;
+        float m_nearestDepth;
+        float m_farthestDepth;
 
         CommonObjectDataVulkan(
-                std::shared_ptr<vulkan::Buffer> buffer,
+                //std::shared_ptr<vulkan::Buffer> buffer,
                 glm::mat4 preTransform,
-                float aspectRatio,
-                Config const &config)
-                : renderDetails::CommonObjectDataPerspective(
-                config.viewAngle, aspectRatio, config.nearPlane, config.farPlane,
-                config.lightingSource, config.lookAt, config.up),
-                m_camera{std::move(buffer)},
-                m_preTransform{preTransform}
+                float inNearestDepth,
+                float inFarthestDepth,
+                Config config,
+                float width,
+                float height)
+                : renderDetails::CommonObjectDataOrtho(-width/2, width/2, -height/2, height/2,
+                        config.nearPlane, config.farPlane, config.viewPoint, config.lookAt, config.up),
+                /*m_camera{std::move(buffer)},
+                  */
+                  m_preTransform{preTransform},
+                  m_nearestDepth{inNearestDepth},
+                  m_farthestDepth{inFarthestDepth}
         {}
     };
 
@@ -98,6 +117,9 @@ namespace shadows {
     class DrawObjectDataVulkan : public renderDetails::DrawObjectDataVulkan {
         friend RenderDetailsVulkan;
     public:
+        // todo: fix this.  This function should not be called, but if it were it would do the wrong thing.
+        // the correct thing to do is to separate the data that comes from the CommonObjectData into
+        // a separate buffer.
         void update(glm::mat4 const &modelMatrix) override {
             PerObjectUBO ubo{};
             ubo.modelMatrix = modelMatrix;
@@ -111,7 +133,10 @@ namespace shadows {
 
     private:
         struct PerObjectUBO {
+            glm::mat4 mvp;
             glm::mat4 modelMatrix;
+            float farthestDepth;
+            float nearestDepth;
         };
 
         std::shared_ptr<vulkan::DescriptorSet> m_descriptorSet;
@@ -128,17 +153,16 @@ namespace shadows {
         }
 
         void updateDescriptorSet(std::shared_ptr<vulkan::Device> const &inDevice,
-                std::shared_ptr<CommonObjectDataVulkan> const &inCommonObjectData);
+                                 std::shared_ptr<CommonObjectDataVulkan> const &inCommonObjectData);
     };
 
     class DescriptorSetLayout : public vulkan::DescriptorSetLayout {
     public:
         DescriptorSetLayout(std::shared_ptr<vulkan::Device> inDevice)
-                : m_device(inDevice) {
+                : m_device(inDevice)
+        {
             m_poolSizes[0].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-            m_poolSizes[0].descriptorCount = m_numberOfDescriptorSetsInPool;
-            m_poolSizes[1].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-            m_poolSizes[1].descriptorCount = m_numberOfDescriptorSetsInPool;
+            m_poolSizes[0].descriptorCount = 1;
             m_poolInfo = {};
             m_poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
             m_poolInfo.poolSizeCount = static_cast<uint32_t>(m_poolSizes.size());
@@ -148,18 +172,14 @@ namespace shadows {
 
             createDescriptorSetLayout();
         }
-
         std::shared_ptr<VkDescriptorSetLayout_T> const &descriptorSetLayout() override {
             return m_descriptorSetLayout;
         }
-
         uint32_t numberOfDescriptors() override { return m_numberOfDescriptorSetsInPool; }
-
         VkDescriptorPoolCreateInfo const &poolCreateInfo() override {
             return m_poolInfo;
         }
-
-        ~DescriptorSetLayout() override = default;
+        virtual ~DescriptorSetLayout() {}
 
     private:
         static uint32_t constexpr m_numberOfDescriptorSetsInPool = 1024;
@@ -167,18 +187,18 @@ namespace shadows {
         std::shared_ptr<vulkan::Device> m_device;
         std::shared_ptr<VkDescriptorSetLayout_T> m_descriptorSetLayout;
         VkDescriptorPoolCreateInfo m_poolInfo;
-        std::array<VkDescriptorPoolSize, 2> m_poolSizes;
+        std::array<VkDescriptorPoolSize, 1> m_poolSizes;
 
         void createDescriptorSetLayout();
     };
 
-    class RenderDetailsVulkan : public renderDetails::RenderDetails {
+    class RenderDetailsVulkan : public renderDetails::RenderDetailsVulkan {
     public:
-        static char const *name() { return shadowsRenderDetailsName; }
+        static char const *name() { return depthMapRenderDetailsName; }
 
         static renderDetails::ReferenceVulkan loadNew(
                 std::shared_ptr<GameRequester> const &gameRequester,
-                std::shared_ptr<RenderLoaderVulkan> const &renderLoader,
+                std::shared_ptr<RenderLoaderVulkan> const &,
                 std::shared_ptr<vulkan::Device> const &inDevice,
                 renderDetails::ParametersVulkan const &parameters,
                 Config const &config)
@@ -186,7 +206,9 @@ namespace shadows {
             auto rd = std::make_shared<RenderDetailsVulkan>(
                     gameRequester, inDevice, nullptr, parameters);
 
-            auto cod = rd->createCommonObjectData(parameters.preTransform, config);
+            auto parametersWithWidthHeightAtDepth =
+                    dynamic_cast<renderDetails::ParametersWithSurfaceWidthHeightAtDepthVulkan const &>(parameters);
+            auto cod = rd->createCommonObjectData(parametersWithWidthHeightAtDepth, config);
 
             return createReference(std::move(rd), std::move(cod));
         }
@@ -194,7 +216,7 @@ namespace shadows {
         static renderDetails::ReferenceVulkan loadExisting(
                 std::shared_ptr<GameRequester> const &,
                 std::shared_ptr<RenderLoaderVulkan> const &,
-                std::shared_ptr<renderDetails::RenderDetailsVulkan> rdBase,
+                std::shared_ptr<renderDetails::RenderDetailsVulkan> const &rdBase,
                 renderDetails::ParametersVulkan const &parameters,
                 Config const &config)
         {
@@ -203,9 +225,21 @@ namespace shadows {
                 throw std::runtime_error("Invalid render details type.")
             }
 
-            auto cod = rd->createCommonObjectData(parameters.preTransform, config);
+            auto parametersWithWidthHeightAtDepth =
+                    dynamic_cast<renderDetails::ParametersWithSurfaceWidthHeightAtDepthVulkan const &>(parameters);
+            auto cod = rd->createCommonObjectData(parametersWithWidthHeightAtDepth, config);
 
             return createReference(std::move(rdBase), std::move(cod));
+        }
+
+        void postProcessImageBuffer(
+                std::shared_ptr<renderDetails::CommonObjectData> const &commonObjectData,
+                std::vector<float> const &input,
+                std::vector<float> &results) override
+        {
+            auto cod = dynamic_cast<CommonObjectDataVulkan*>(commonObjectData.get());
+            bitmapToDepthMap(input, cod->farthestDepth(), cod->nearestDepth(),
+                    m_surfaceWidth, m_surfaceHeight, 4, true, results);
         }
 
         void addDrawCmdsToCommandBuffer(
@@ -215,16 +249,16 @@ namespace shadows {
                 std::shared_ptr<levelDrawer::DrawObjectTableVulkan> const &drawObjTable,
                 std::vector<size_t> const &drawObjectsIndices) override;
 
-        std::shared_ptr<vulkan::RenderPass> const &renderPass() { return m_renderPass; }
         std::shared_ptr<vulkan::Device> const &device() override { return m_device; }
         std::shared_ptr<vulkan::DescriptorPools> const &descriptorPools() override {
             return m_descriptorPools;
         }
 
         ~RenderDetailsVulkan() override = default;
+
     private:
         static char constexpr const *SHADER_SIMPLE_FRAG_FILE = "shaders/simple.frag.spv";
-        static char constexpr const *SHADOW_VERT_FILE = "shaders/depthShader.vert.spv";
+        static char constexpr const *SHADER_LINEAR_DEPTH_VERT_FILE ="shaders/linearDepth.vert.spv";
 
         std::shared_ptr<vulkan::Device> m_device;
 
@@ -233,35 +267,39 @@ namespace shadows {
         std::shared_ptr<vulkan::Pipeline> m_pipeline;
 
         RenderDetailsVulkan(
-            std::shared_ptr<GameRequester> const &gameRequester,
-            std::shared_ptr<vulkan::Device> const &inDevice,
-            std::shared_ptr<vulkan::Pipeline> const &basePipeline,
-            renderDetails::ParametersVulkan const &parameters)
-            : RenderDetails{parameters.width, parameters.height},
-            m_device{inDevice},
-            m_descriptorSetLayout{std::make_shared<DescriptorSetLayout>(m_device)},
-            m_descriptorPools{std::make_shared<vulkan::DescriptorPools>(m_device, m_descriptorSetLayout)},
-            m_pipeline{std::make_shared<vulkan::Pipeline>(
-                        gameRequester, m_device,
-                        VkExtent2D{m_width, m_height},
-                        parameters.renderPass, m_descriptorPools, getBindingDescription(),
-                        getAttributeDescriptions(),
-                        SHADOW_VERT_FILE, SHADER_SIMPLE_FRAG_FILE, basePipeline,
-                        VK_CULL_MODE_FRONT_BIT)}
+                std::shared_ptr<GameRequester> const &gameRequester,
+                std::shared_ptr<vulkan::Device> const &inDevice,
+                std::shared_ptr<vulkan::Pipeline> const &basePipeline,
+                renderDetails::ParametersVulkan const &parameters)
+        : RenderDetailsVulkan{parameters.width, parameters.height},
+        m_device{inDevice},
+        m_descriptorSetLayout{std::make_shared<DescriptorSetLayout>(m_device)},
+        m_descriptorPools{std::make_shared<vulkan::DescriptorPools>(m_device, m_descriptorSetLayout)},
+        m_pipeline{std::make_shared<vulkan::Pipeline>(
+                    gameRequester, m_device,
+                    VkExtent2D{m_width, m_height},
+                    parameters.renderPass, m_descriptorPools, getBindingDescription(),
+                    getAttributeDescriptions(),
+                    SHADER_LINEAR_DEPTH_VERT_FILE, SHADER_SIMPLE_FRAG_FILE, basePipeline,
+                    VK_CULL_MODE_FRONT_BIT)}
         {}
 
         static renderDetails::ReferenceVulkan createReference(
                 std::shared_ptr<renderDetails::RenderDetailsVulkan> rd,
                 std::shared_ptr<CommonObjectDataVulkan> cod);
 
-        std::shared_ptr<CommonObjectDataVulkan> createCommonObjectData(
-                glm::mat4 const &preTransform,
+        static std::shared_ptr<CommonObjectDataVulkan> createCommonObjectData(
+                renderDetails::ParametersWithSurfaceWidthHeightAtDepthVulkan const &parameters,
                 Config const &config)
         {
-            auto buffer = createUniformBuffer(m_device, sizeof (CommonObjectDataVulkan::CommonUBO));
-            return std::make_shared<CommonObjectDataVulkan>(buffer, preTransform,
-                                                            m_surfaceWidth/ static_cast<float>(m_surfaceHeight), config);
+            return std::make_shared<CommonObjectDataVulkan>(
+                    parameters.preTransform,
+                    parameters.nearestDepth,
+                    parameters.farthestDepth,
+                    config,
+                    parameters.widthAtDepth,
+                    parameters.heightAtDepth);
         }
     };
 }
-#endif // AMAZING_LABYRINTH_SHADOWS_RENDER_DETAILS_VULKAN_HPP
+#endif // AMAZING_LABYRINTH_DEPTHMAP_RENDER_DETAILS_VULKAN_HPP

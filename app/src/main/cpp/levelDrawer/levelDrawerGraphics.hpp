@@ -177,14 +177,6 @@ namespace levelDrawer {
             float width,
             float height,
             uint32_t nbrSamplesForWidth,
-            std::vector<glm::vec3> &results);
-
-        void drawToBuffer(
-            std::string const &renderDetailsName,
-            std::vector<std::pair<std::shared_ptr<ModelDescription>, std::shared_ptr<TextureDescription>>> modelTexture,
-            float width,
-            float height,
-            uint32_t nbrSamplesForWidth,
             std::vector<float> &results);
 
         LevelDrawerGraphics(typename traits::NeededForDrawingType neededForDrawing,
@@ -195,7 +187,7 @@ namespace levelDrawer {
     private:
         struct DrawRules {
             std::shared_ptr<typename traits::RenderDetailsType> renderDetails;
-            std::shared_ptr<typename traits::CommonObjectData> commonObjectData;
+            std::array<std::shared_ptr<typename traits::CommonObjectDataType>, m_numberDrawObjectTables> commonObjectDataList;
             std::array<std::vector<size_t>, m_numberDrawObjectTables> indicesPerLevelType;
         };
 
@@ -213,10 +205,11 @@ namespace levelDrawer {
                 auto rules = m_drawObjectTableList[i].getDrawRules();
 
                 for (auto const &rule : rules) {
-                    auto insertResult = rulesGroup.emplace(rule.renderDetails, rule.commonObjectData,
-                            std::array<std::vector<size_t>, m_numberDrawObjectTables>{});
+                    std::array<std::pair<std::shared_ptr<typename traits::CommonObjectData>, std::vector<size_t>>, m_numberDrawObjectTables> drawRulesLevelList{};
+                    auto insertResult = rulesGroup.emplace(rule.renderDetails, drawRulesLevelList);
 
-                    insertResult.first->second.indicesPerLevelType[i] = rules.drawObjectIndices;
+                    insertResult.first->second.commonObjectDataList[i] = rule.commonObjectData;
+                    insertResult.first->second.indicesPerLevelType[i] = rule.drawObjectIndices;
                 }
             }
 

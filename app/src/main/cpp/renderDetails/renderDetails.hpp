@@ -146,6 +146,9 @@ namespace renderDetails {
             update();
         }
 
+        float nearPlane() { return m_nearPlane; }
+        float farPlane() { return m_farPlane; }
+
         CommonObjectDataOrtho(
                 float minusX,
                 float plusX,

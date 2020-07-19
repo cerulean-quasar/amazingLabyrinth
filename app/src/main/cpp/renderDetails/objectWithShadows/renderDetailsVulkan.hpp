@@ -292,7 +292,9 @@ namespace objectWithShadows {
         }
 
         static renderDetails::ReferenceVulkan loadExisting(
-                std::shared_ptr<renderDetails::RenderDetailsVulkan> const &rdBase,
+                std::shared_ptr<GameRequester> const &,
+                std::shared_ptr<RenderLoaderVulkan> const &,
+                std::shared_ptr<renderDetails::RenderDetailsVulkan> rdBase,
                 renderDetails::ParametersVulkan const &parameters,
                 Config const &config)
         {

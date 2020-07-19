@@ -33,13 +33,20 @@
 namespace renderDetails {
     struct ParametersVulkan {
         std::shared_ptr<vulkan::RenderPass> renderPass;
-        std::vector<vulkan::RenderPass::ImageAttachmentInfo> colorImageInfo;
-        vulkan::RenderPass::ImageAttachmentInfo depthImageInfo;
         glm::mat4 preTransform;
         uint32_t width;
         uint32_t height;
 
         virtual ~ParametersVulkan() = default;
+    };
+
+    struct ParametersWithSurfaceWidthHeightAtDepthVulkan : public ParametersVulkan {
+        float widthAtDepth;
+        float heightAtDepth;
+        float nearestDepth;
+        float farthestDepth;
+
+        ~ParametersWithSurfaceWidthHeightAtDepthVulkan() override = default;
     };
 
     class DrawObjectDataVulkan : public DrawObjectData {
@@ -63,6 +70,18 @@ namespace renderDetails {
                 levelDrawer::LevelDrawerVulkan::DrawObjectTableList const &/* draw object table */,
                 levelDrawer::LevelDrawerVulkan::IndicesForDrawList const &/* draw indices */)
         {}
+
+        // For postprocessing results written to an image buffer whose contents are put in input.
+        // This function is for render details that produce results to be used by the CPU.  Most
+        // render details don't need this.
+        virtual void postProcessImageBuffer(
+                std::shared_ptr<renderDetails::CommonObjectData> const &,
+                std::vector<float> const &input,
+                std::vector<float> &results)
+        {
+            output.resize(input.size());
+            std::copy(input.begin(), input.end(), output.begin());
+        }
 
         // This function is called to add draw commands to the command buffer after the main render
         // pass has started.
@@ -91,10 +110,11 @@ namespace renderDetails {
             : RenderDetails(width, height)
         {}
 
+        virtual std::shared_ptr<vulkan::Device> const &device() = 0;
+        virtual std::shared_ptr<vulkan::DescriptorPools> const &descriptorPools() = 0;
+
         ~RenderDetailsVulkan() override  = default;
     protected:
-        virtual std::shared_ptr<vulkan::Pipeline> const &pipeline() = 0;
-
         VkVertexInputBindingDescription getBindingDescription();
 
         std::vector<VkVertexInputAttributeDescription> getAttributeDescriptions();

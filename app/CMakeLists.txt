@@ -29,6 +29,7 @@ if ((NOT ${CMAKE_ANDROID_ARCH_ABI} STREQUAL x86) AND (NOT ${CMAKE_ANDROID_ARCH_A
             src/main/cpp/mazeVulkan.cpp
             src/main/cpp/vk_mem_alloc.cpp
             src/main/cpp/levelDrawer/levelDrawerVulkan.cpp
+            src/main/cpp/renderDetails/depthMap/renderDetailsVulkan.cpp
             src/main/cpp/renderDetails/shadowsChaining/renderDetailsVulkan.cpp
             src/main/cpp/renderDetails/shadows/renderDetailsVulkan.cpp
             src/main/cpp/renderDetails/objectWithShadows/renderDetailsVulkan.cpp)

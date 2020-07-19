@@ -29,6 +29,7 @@ class Graphics;
 char constexpr const *shadowsChainingRenderDetailsName = "shadowsChaining";
 char constexpr const *shadowsRenderDetailsName = "shadows";
 char constexpr const *objectWithShadowsRenderDetailsName = "objectWithShadows";
+char constexpr const *depthMapRenderDetailsName = "depthMap";
 
 struct GraphicsDescription {
 public:

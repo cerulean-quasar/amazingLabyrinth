@@ -28,13 +28,6 @@ namespace levelDrawer {
     void LevelDrawerGraphics<LevelDrawerVulkanTraits>::draw(
             LevelDrawerVulkanTraits::DrawArgumentType info)
     {
-        auto rulesList = getDrawRules();
-        for (auto const &rulesIndex : std::vector<size_t>{LEVEL, STARTER, FINISHER}) {
-            for (auto const &rule : rulesList[rulesIndex]) {
-                rule.renderDetails->addPreRenderPassCmdsToCommandBuffer(
-                        info.cmdBuffer, 0, )
-            }
-        }
         VkCommandBufferBeginInfo beginInfo = {};
         beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
         beginInfo.flags = VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT;
@@ -50,11 +43,16 @@ namespace levelDrawer {
          */
         vkBeginCommandBuffer(info.cmdBuffer, &beginInfo);
 
-        std::array<VkClearValue, 2> clearValues{};
-        clearValues[0].color = {m_bgColor.r, m_bgColor.g, m_bgColor.b, m_bgColor.a};
-        clearValues[1].depthStencil = {1.0f, 0};
+        auto rulesList = getDrawRules();
 
-        /* begin the render pass: drawing starts here*/
+        // add the pre main draw commands to the command buffer.
+        for (auto const &rule : rulesList) {
+            rule.renderDetails->addPreRenderPassCmdsToCommandBuffer(
+                    info.cmdBuffer, 0, rule.commonObjectDataList, m_drawObjectTableList,
+                    rule.indicesPerLevelType);
+        }
+
+        // begin the main render pass
         VkRenderPassBeginInfo renderPassInfo = {};
         renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
         renderPassInfo.renderPass = m_neededForDrawing.renderPass->renderPass().get();
@@ -63,9 +61,10 @@ namespace levelDrawer {
         renderPassInfo.renderArea.offset = {0, 0};
         renderPassInfo.renderArea.extent = info.extent;
 
-        /* the color value to use when clearing the image with VK_ATTACHMENT_LOAD_OP_CLEAR,
-         * using black with 0% opacity
-         */
+        // the color value to use when clearing the image with VK_ATTACHMENT_LOAD_OP_CLEAR
+        std::array<VkClearValue, 2> clearValues{};
+        clearValues[0].color = {m_bgColor.r, m_bgColor.g, m_bgColor.b, m_bgColor.a};
+        clearValues[1].depthStencil = {1.0f, 0};
         renderPassInfo.clearValueCount = static_cast<uint32_t>(clearValues.size());
         renderPassInfo.pClearValues = clearValues.data();
 
@@ -75,7 +74,155 @@ namespace levelDrawer {
          */
         vkCmdBeginRenderPass(info.cmdBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
 
+        // add the commands to the command buffer for the main draw.
+        for (auto index : std::vector<ObjectType>{LEVEL, STARTER, FINISHER}) {
+            for (auto const &rule : rulesList) {
+                rule.renderDetails->addPreRenderPassCmdsToCommandBuffer(
+                        info.cmdBuffer, 0, rule.commonObjectDataList[i], m_drawObjectTableList[i],
+                        rule.indicesPerLevelType[i]);
+            }
+        }
 
+        // end the main render pass
+        vkCmdEndRenderPass(info.cmdBuffer);
+
+        // end the command buffer
+        if (vkEndCommandBuffer(info.cmdBuffer) != VK_SUCCESS) {
+            throw std::runtime_error("failed to record command buffer!");
+        }
+    }
+
+    template <>
+    void LevelDrawerGraphics<LevelDrawerVulkanTraits>::drawToBuffer(
+            std::string const &renderDetailsName,
+            std::vector<std::pair<std::shared_ptr<ModelDescription>, std::shared_ptr<TextureDescription>>> modelsTextures,
+            float width,
+            float height,
+            uint32_t nbrSamplesForWidth,
+            float farthestDepth,
+            float nearestDepth,
+            std::vector<glm::vec4> &results)
+    {
+        auto drawObjTable = std::make_shared<DrawObjectTableVulkan>();
+        for (auto const &modelTexture : modelsTextures) {
+            auto modelData = m_modelTable.addModel(m_gameRequester, modelsTextures.first);
+            std::shared_ptr<LevelDrawerVulkanTraits::TextureDataType> textureData{};
+            if (modelTexture.second) {
+                textureData = m_textureTable.addTexture(m_gameRequester, modelTexture.second);
+            }
+            drawObjTable.addObject(modelData, textureData);
+        }
+
+        uint32_t imageWidth = nbrSamplesForWidth;
+        uint32_t imageHeight = static_cast<uint32_t>(std::floor((imageWidth * height)/width));
+        auto depthView = std::make_shared<vulkan::ImageView>(
+                vulkan::ImageFactory::createDepthImage(m_device, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT,
+                                                       imageWidth, imageHeight),
+                VK_IMAGE_ASPECT_DEPTH_BIT);
+        depthView->image()->transitionImageLayout(VK_IMAGE_LAYOUT_UNDEFINED,
+                                                  VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL,
+                                                  m_neededForDrawing.commandPool);
+
+        auto colorImage = vulkan::ImageView::createImageViewAndImage(
+                m_device,
+                imageWidth,
+                imageHeight,
+                VK_FORMAT_R32G32B32A32_SFLOAT,
+                VK_IMAGE_TILING_OPTIMAL,
+                VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT,
+                VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+                VK_IMAGE_ASPECT_COLOR_BIT);
+
+        std::vector<std::shared_ptr<vulkan::ImageView>> attachments = {colorImage, depthView};
+        auto frameBuffer = std::make_shared<vulkan::Framebuffer>(m_device, renderPass, attachments,
+                                                                 imageWidth, imageHeight);
+
+        std::vector<vulkan::RenderPass::ImageAttachmentInfo> infos{};
+        infos.emplace_back(VK_ATTACHMENT_LOAD_OP_CLEAR, VK_ATTACHMENT_STORE_OP_STORE,
+                           colorImage->image()->format(),
+                           VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL);
+        auto depthInfo = std::make_shared<vulkan::RenderPass::ImageAttachmentInfo>(
+                VK_ATTACHMENT_LOAD_OP_CLEAR, VK_ATTACHMENT_STORE_OP_DONT_CARE,
+                depthView->image()->format(),
+                VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL);
+        auto renderPass = vulkan::RenderPass::createDepthTextureRenderPass(m_device, infos, depthInfo);
+
+        std::vector<std::shared_ptr<vulkan::ImageView>> attachments = {colorImage, depthView};
+        auto frameBuffer = std::make_shared<vulkan::Framebuffer>(m_device, renderPass, attachments,
+                                                                 imageWidth, imageHeight);
+
+        // parameters
+        renderDetails::ParametersWithSurfaceWidthHeightAtDepthVulkan parameters{};
+        parameters.renderPass = renderPass;
+        parameters.width = imageWidth;
+        parameters.height = imageHeight;
+        parameters.preTransform = glm::mat4(1.0f);
+        parameters.widthAtDepth = width;
+        parameters.heightAtDepth = height;
+        parameters.nearestDepth = nearestDepth;
+        parameters.farthestDepth = farthestDepth;
+
+        drawObjTable->loadRenderDetails(m_renderLoader.load(m_gameRequester, name, parameters));
+
+        // start recording commands
+        vulkan::CommandBuffer cmds{m_device, m_commandPool};
+        cmds.begin();
+
+        // add any pre main render pass commands
+        auto rules = drawObjTable->getDrawRules();
+        DrawObjectTableList drawObjTableList = {nullptr, drawObjTable, nullptr};
+        CommonObjectDataList commonObjectDataList = {nullptr, rules.commonObjectData, nullptr};
+        IndicesForDrawList indicesForDrawList = {nullptr, rules.drawObjectIndices, nullptr};
+        rules.renderDetails->addPreRenderPassCmdsToCommandBuffer(
+                cmds.commandBuffer().get(), 0, commonObjectDataList, drawObjTableList,
+                indicesForDrawList);
+
+        /* begin the render pass: drawing starts here*/
+        VkRenderPassBeginInfo renderPassInfo = {};
+        renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
+        renderPassInfo.renderPass = renderPass->renderPass().get();
+        renderPassInfo.framebuffer = frameBuffer->framebuffer().get();
+        /* size of the render area */
+        renderPassInfo.renderArea.offset = {0, 0};
+        renderPassInfo.renderArea.extent = {imageWidth, imageHeight};
+
+        /* the color value to use when clearing the image with VK_ATTACHMENT_LOAD_OP_CLEAR,
+         * using black with 0% opacity
+         */
+        std::array<VkClearValue, 2> clearValues = {};
+        // matching what OpenGL is doing with the clear buffers.
+        clearValues[0].color = clearColorValue;
+        clearValues[1].depthStencil = {1.0f, 0};
+        renderPassInfo.clearValueCount = clearValues.size();
+        renderPassInfo.pClearValues = clearValues.data();
+
+        /* begin recording commands - start by beginning the render pass.
+         * none of these functions returns an error (they return void).  There will be no error
+         * handling until recording is done.
+         */
+        vkCmdBeginRenderPass(cmds.commandBuffer().get(), &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
+
+        rules.renderDetails->addDrawCmdsToCommandBuffer(cmds.commandBuffer().get(),
+                0, rules.commonObjectData, drawObjTable, rules.drawObjectIndices);
+
+        // end the main render pass
+        vkCmdEndRenderPass(cmds.commandBuffer());
+
+        // end the command buffer
+        cmds.end();
+
+        // copy the image data into a buffer accessible to the CPU
+        std::vector<float> imageData{};
+        imageData.resize(imageWidth * imageHeight * 4);
+
+        vulkan::Buffer buffer{m_device,
+                              imageWidth * imageHeight * sizeof (float) * 4,
+                              VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,
+                              VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT};
+        colorDepthImage->image()->copyImageToBuffer(buffer, m_commandPool);
+        buffer.copyRawFrom(imageData.data(), imageData.size() * sizeof (float) * 4);
+
+        rules->renderDetails->postProcessImageBuffer(rules.commonObjectData, imageData, results);
     }
 
     template <>

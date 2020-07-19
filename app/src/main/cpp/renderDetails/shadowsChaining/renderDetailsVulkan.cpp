@@ -98,7 +98,7 @@ namespace shadowsChaining {
     renderDetails::ReferenceVulkan RenderDetailsVulkan::loadExisting(
             std::shared_ptr<GameRequester> const &gameRequester,
             std::shared_ptr<RenderLoaderVulkan> const &renderLoader,
-            std::shared_ptr<renderDetails::RenderDetailsVulkan> const &rdBase,
+            std::shared_ptr<renderDetails::RenderDetailsVulkan> rdBase,
             renderDetails::ParametersVulkan const &parameters,
             Config const &config)
     {
