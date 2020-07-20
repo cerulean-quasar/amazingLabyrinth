@@ -169,17 +169,24 @@ namespace levelDrawer {
             return globalRef.getProjViewForLevel();
         }
 
-        void draw(typename traits::DrawArgumentType info);
+        void setClearColor(ObjectType type, glm::vec4 const &clearColor) override {
+            // only allow setting of the clear color if we are a level, ignore other requests.
+            if (type == LEVEL) {
+                m_bgColor = clearColor;
+            }
+        }
+
+        void draw(typename traits::DrawArgumentType const &info);
 
         void drawToBuffer(
             std::string const &renderDetailsName,
-            std::vector<std::pair<std::shared_ptr<ModelDescription>, std::shared_ptr<TextureDescription>>> modelTexture,
+            std::vector<std::pair<std::shared_ptr<ModelDescription>, std::shared_ptr<TextureDescription>>> const &modelTexture,
             float width,
             float height,
             uint32_t nbrSamplesForWidth,
             float farthestDepth,
             float nearestDepth,
-            std::vector<float> &results);
+            std::vector<float> &results) override;
 
         LevelDrawerGraphics(typename traits::NeededForDrawingType neededForDrawing,
                             std::shared_ptr<typename traits::RenderLoaderType> inRenderLoader,

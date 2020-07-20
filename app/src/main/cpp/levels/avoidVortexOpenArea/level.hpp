@@ -29,7 +29,6 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/quaternion.hpp>
 
-#include "../../graphics.hpp"
 #include "../../random.hpp"
 #include "../basic/level.hpp"
 #include "loadData.hpp"
@@ -59,13 +58,9 @@ namespace avoidVortexOpenArea {
         // if the ball touches these vortexes, it goes back to startPosition.
         std::vector<glm::vec3> vortexPositions;
 
-        /* vertex and index data for drawing the ball. */
-        std::vector<Vertex> ballVertices;
-        std::vector<uint32_t> ballIndices;
-
-        /* vertex and index data for drawing the hole. */
-        std::vector<Vertex> quadVertices;
-        std::vector<uint32_t> quadIndices;
+        /* The object index for drawing the ball - needed to update the ball's location. */
+        size_t m_objIndexBall;
+        size_t m_objDataIndexBall;
 
         glm::mat4 modelMatrixHole;
         glm::mat4 modelMatrixBall;
@@ -94,10 +89,7 @@ namespace avoidVortexOpenArea {
 
         bool updateData() override;
 
-        bool updateStaticDrawObjects(DrawObjectTable &objs, TextureMap &textures) override;
-
-        bool updateDynamicDrawObjects(DrawObjectTable &objs, TextureMap &textures,
-                                      bool &texturesChanged) override;
+        bool updateDrawObjects() override;
 
         void start() override {
             prevTime = std::chrono::high_resolution_clock::now();
@@ -117,10 +109,9 @@ namespace avoidVortexOpenArea {
         Level(std::shared_ptr<GameRequester> inGameRequester,
                          std::shared_ptr<LevelConfigData> const &lcd,
                          std::shared_ptr<LevelSaveData> const &sd,
-                         glm::mat4 const &proj,
-                         glm::mat4 const &view,
+                         levelDrawer::Adaptor inLevelDrawer,
                          float floorZ)
-                : basic::Level(std::move(inGameRequester), lcd, proj, view, floorZ, true),
+                : basic::Level(std::move(inGameRequester), lcd, std::move(inLevelDrawer), floorZ, true),
                   holeTexture{lcd->holeTexture},
                   vortexTexture{lcd->vortexTexture},
                   startVortexTexture{lcd->startVortexTexture},
@@ -146,6 +137,22 @@ namespace avoidVortexOpenArea {
             }
             postGenerate();
             generateModelMatrices();
+
+            auto objIndexHole = m_levelDrawer.addObject(
+                    std::make_shared<levelDrawer::ModelDescriptionQuad>(),
+                    std::make_shared<levelDrawer::TextureDescriptionPath>(lcd->holeTexture));
+
+            auto objIndexVortex = m_levelDrawer.addObject(
+                    std::make_shared<levelDrawer::ModelDescriptionQuad>(),
+                    std::make_shared<levelDrawer::TextureDescriptionPath>(lcd->vortexTexture));
+
+            auto objIndexStartVortex = m_levelDrawer.addObject(
+                    std::make_shared<levelDrawer::ModelDescriptionQuad>(),
+                    std::make_shared<levelDrawer::TextureDescriptionPath>(lcd->startVortexTexture));
+
+            m_objIndexBall = m_levelDrawer.addObject(
+                    std::make_shared<levelDrawer::ModelDescriptionPath>(m_ballModel),
+                    std::make_shared<levelDrawer::TextureDescriptionPath>(m_ballTexture));
         }
 
         ~Level() override = default;

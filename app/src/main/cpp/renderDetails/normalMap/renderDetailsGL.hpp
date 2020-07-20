@@ -17,8 +17,8 @@
  *  along with AmazingLabyrinth.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
-#ifndef AMAZING_LABYRINTH_SHADOWS_RENDER_DETAILS_GL_HPP
-#define AMAZING_LABYRINTH_SHADOWS_RENDER_DETAILS_GL_HPP
+#ifndef AMAZING_LABYRINTH_NORMALMAP_RENDER_DETAILS_GL_HPP
+#define AMAZING_LABYRINTH_NORMALMAP_RENDER_DETAILS_GL_HPP
 
 #include <memory>
 
@@ -32,18 +32,15 @@
 #include "../../levelDrawer/textureTable/textureLoader.hpp"
 #include "../../renderLoader/renderLoaderGL.hpp"
 
-namespace shadows {
+namespace normalMap {
     class RenderDetailsGL;
-    class CommonObjectDataGL : public renderDetails::CommonObjectDataPerspective {
+    class CommonObjectDataGL : public renderDetails::CommonObjectDataOrtho {
         friend RenderDetailsGL;
     public:
         std::pair<glm::mat4, glm::mat4> getProjViewForLevel() override {
-            /* perspective matrix: takes the perspective projection, the aspect ratio, near and far
-             * view planes.
-             */
             return std::make_pair<glm::mat4, glm::mat4>(
-                    getPerspectiveMatrix(m_viewAngle, m_aspectRatio, m_nearPlane, m_farPlane,
-                                        false, false),
+                    getOrthoMatrix(m_minusX, m_plusX, m_minusY, m_plusY,
+                                   m_nearPlane, m_farPlane, false, false),
                     view());
         }
 
@@ -51,11 +48,27 @@ namespace shadows {
             return viewPoint();
         }
 
+        glm::mat4 getViewLightSource() override {
+            return view();
+        }
+
+        float nearestDepth() { return m_nearestDepth; }
+        float farthestDepth() { return m_farthestDepth; }
+
         ~CommonObjectDataGL() override = default;
     private:
-        CommonObjectDataGL(float aspectRatio, Config const &config)
-            : CommonObjectDataPerspective(config.viewAngle, aspectRatio, config.nearPlane, config.farPlane,
-                    config.lightingSource, config.lookAt, config.up)
+        float m_nearestDepth;
+        float m_farthestDepth;
+
+        CommonObjectDataGL(
+                float inNearestDepth,
+                float inFarthestDepth,
+                Config config,
+                float width,
+                float height)
+                : CommonObjectDataOrtho(
+                    -width/2, width/2, -height/2, height/2,
+                    config.nearPlane, config.farPlane, config.viewPoint, config.lookAt, config.up)
         {}
     };
 
@@ -99,10 +112,23 @@ namespace shadows {
                 std::shared_ptr<levelDrawer::DrawObjectTableGL> const &drawObjTable,
                 std::vector<size_t> const &drawObjectsIndices) override;
 
+        bool overrideClearColor(glm::vec4 &clearColor) override {
+            clearColor = {0.5f, 0.5f, 1.0f, 1.0f};
+            return true;
+        }
+
+        void postProcessImageBuffer(
+                std::shared_ptr<renderDetails::CommonObjectData> const &,
+                std::vector<float> const &input,
+                std::vector<float> &results) override
+        {
+            bitmapToNormals(input, m_surfaceWidth, m_surfaceHeight, 4, false, results);
+        }
+
         ~RenderDetailsGL() override = default;
 
     private:
-        static char constexpr const *DEPTH_VERT_FILE = "shaders/depthShaderGL.vert";
+        static char constexpr const *LINEAR_DEPTH_VERT_FILE ="shaders/linearDepthGL.vert";
         static char constexpr const *SIMPLE_FRAG_FILE = "shaders/simpleGL.frag";
 
         GLuint m_depthProgramID;
@@ -115,4 +141,4 @@ namespace shadows {
                         uint32_t inWidth, uint32_t inHeight);
     };
 }
-#endif // AMAZING_LABYRINTH_SHADOWS_RENDER_DETAILS_GL_HPP
+#endif // AMAZING_LABYRINTH_NORMALMAP_RENDER_DETAILS_GL_HPP

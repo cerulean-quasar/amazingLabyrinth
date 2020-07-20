@@ -23,7 +23,7 @@
 #include "renderDetailsGL.hpp"
 #include "config.hpp"
 
-namespace depthMap {
+namespace normalMap {
     RenderDetailsGL::RenderDetailsGL(std::shared_ptr<GameRequester> const &inGameRequester,
                                              uint32_t inWidth, uint32_t inHeight)
             : renderDetails::RenderDetailsGL(inWidth, inHeight),

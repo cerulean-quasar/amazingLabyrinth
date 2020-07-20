@@ -17,8 +17,8 @@
  *  along with AmazingLabyrinth.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
-#ifndef AMAZING_LABYRINTH_SHADOWS_RENDER_DETAILS_DATA_GL_HPP
-#define AMAZING_LABYRINTH_SHADOWS_RENDER_DETAILS_DATA_GL_HPP
+#ifndef AMAZING_LABYRINTH_DEPTHMAP_RENDER_DETAILS_GL_HPP
+#define AMAZING_LABYRINTH_DEPTHMAP_RENDER_DETAILS_GL_HPP
 
 #include <memory>
 
@@ -112,6 +112,16 @@ namespace depthMap {
                 std::shared_ptr<levelDrawer::DrawObjectTableGL> const &drawObjTable,
                 std::vector<size_t> const &drawObjectsIndices) override;
 
+        void postProcessImageBuffer(
+                std::shared_ptr<renderDetails::CommonObjectData> const &commonObjectData,
+                std::vector<float> const &input,
+                std::vector<float> &results) override
+        {
+            auto cod = dynamic_cast<CommonObjectDataGL*>(commonObjectData.get());
+            bitmapToDepthMap(input, cod->farthestDepth(), cod->nearestDepth(),
+                             m_surfaceWidth, m_surfaceHeight, 4, false, results);
+        }
+
         bool overrideClearColor(glm::vec4 &clearColor) override {
             clearColor = {0.0f, 0.0f, 0.0f, 1.0f};
             return true;
@@ -133,4 +143,4 @@ namespace depthMap {
                         uint32_t inWidth, uint32_t inHeight);
     };
 }
-#endif // AMAZING_LABYRINTH_SHADOWS_RENDER_DETAILS_DATA_GL_HPP
+#endif // AMAZING_LABYRINTH_DEPTHMAP_RENDER_DETAILS_GL_HPP

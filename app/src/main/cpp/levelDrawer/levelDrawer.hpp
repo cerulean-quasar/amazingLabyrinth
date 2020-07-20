@@ -35,6 +35,8 @@ namespace levelDrawer {
             FINISHER
         };
 
+        virtual void setClearColor(ObjectType type, glm::vec4 const &clearColor) = 0;
+
         // returns index of new object
         virtual size_t addObject(
                 ObjectType type,
@@ -68,6 +70,16 @@ namespace levelDrawer {
 
         virtual std::pair<glm::mat4, glm::mat4> getProjectionView(ObjectType type) = 0;
 
+        virtual void drawToBuffer(
+                std::string const &renderDetailsName,
+                std::vector<std::pair<std::shared_ptr<ModelDescription>, std::shared_ptr<TextureDescription>>> const &modelTexture,
+                float width,
+                float height,
+                uint32_t nbrSamplesForWidth,
+                float farthestDepth,
+                float nearestDepth,
+                std::vector<float> &results) = 0;
+
         virtual ~LevelDrawer() = default;
     };
 
@@ -77,6 +89,10 @@ namespace levelDrawer {
             : m_type{type},
             m_levelDrawer{std::move(ld)}
         {}
+
+        void setClearColor(glm::vec4 const &clearColor) {
+            m_levelDrawer->setClearColor(m_type, clearColor);
+        }
 
         // returns index of new object
         size_t addObject(
@@ -124,6 +140,21 @@ namespace levelDrawer {
         std::pair<glm::mat4, glm::mat4> getProjectionView() {
             return m_levelDrawer->getProjectionView(m_type);
         }
+
+        void drawToBuffer(
+                std::string const &renderDetailsName,
+                std::vector<std::pair<std::shared_ptr<ModelDescription>, std::shared_ptr<TextureDescription>>> const &modelsTextures,
+                float width,
+                float height,
+                uint32_t nbrSamplesForWidth,
+                float farthestDepth,
+                float nearestDepth,
+                std::vector<float> &results)
+        {
+            m_levelDrawer->drawToBuffer(renderDetailsName, modelsTextures, width, height,
+                    nbrSamplesForWidth, farthestDepth, nearestDepth, results);
+        }
+
     private:
         LevelDrawer::ObjectType m_type;
         std::shared_ptr<LevelDrawer> m_levelDrawer;

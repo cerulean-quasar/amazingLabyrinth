@@ -129,12 +129,13 @@ void bitmapToNormals(
         uint32_t surfaceHeight,
         uint32_t step,  /* how many colors per data point */
         bool invertY,
-        std::vector<glm::vec3> &normalMap)
+        std::vector<float> &normalMap)
 {
-    if (step < 3) {
+    uint32_t resultsStep = 3;
+    if (step < resultsStep) {
         throw std::runtime_error("there must be at least three components in the normal map");
     }
-    normalMap.resize(surfaceWidth * surfaceHeight);
+    normalMap.resize(surfaceWidth * surfaceHeight * resultsStep);
     if (invertY) {
         for (size_t i = 0; i < surfaceWidth; i++) {
             for (size_t j = 0; j < surfaceHeight; j++) {
@@ -144,7 +145,9 @@ void bitmapToNormals(
                         texture[((surfaceHeight - 1 - j) * surfaceWidth + i) * step + 1], true, -1.0f, 1.0f);
                 float z = convertColor<inputDataType>(
                         texture[((surfaceHeight - 1 - j) * surfaceWidth + i) * step + 2], true, -1.0f, 1.0f);
-                normalMap[j * surfaceWidth + i] = glm::vec3{x, y, z};
+                normalMap[(j * surfaceWidth + i) * resultsStep] = x;
+                normalMap[(j * surfaceWidth + i) * resultsStep + 1] = y;
+                normalMap[(j * surfaceWidth + i) * resultsStep + 2] = z;
             }
         }
     } else {
@@ -152,7 +155,9 @@ void bitmapToNormals(
             float x = convertColor<inputDataType>(texture[i * step], true, -1.0f, 1.0f);
             float y = convertColor<inputDataType>(texture[i * step + 1], true, -1.0f, 1.0f);
             float z = convertColor<inputDataType>(texture[i * step + 2], true, -1.0f, 1.0f);
-            normalMap[i] = glm::vec3{x, y, z};
+            normalMap[i * resultsStep] = x;
+            normalMap[i * resultsStep + 1] = y;
+            normalMap[i * resultsStep + 2] = z;
         }
     }
 }

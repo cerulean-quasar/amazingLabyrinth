@@ -17,8 +17,8 @@
  *  along with AmazingLabyrinth.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
-#ifndef AMAZING_LABYRINTH_DEPTHMAP_RENDER_DETAILS_VULKAN_HPP
-#define AMAZING_LABYRINTH_DEPTHMAP_RENDER_DETAILS_VULKAN_HPP
+#ifndef AMAZING_LABYRINTH_NORMALMAP_RENDER_DETAILS_VULKAN_HPP
+#define AMAZING_LABYRINTH_NORMALMAP_RENDER_DETAILS_VULKAN_HPP
 
 #include <memory>
 #include <glm/glm.h>
@@ -33,7 +33,7 @@
 
 #include "config.hpp"
 
-namespace depthMap {
+namespace normalMap {
     class RenderDetailsVulkan;
 
     class CommonObjectDataVulkan : public renderDetails::CommonObjectDataOrtho {
@@ -237,13 +237,11 @@ namespace depthMap {
         }
 
         void postProcessImageBuffer(
-                std::shared_ptr<renderDetails::CommonObjectData> const &commonObjectData,
+                std::shared_ptr<renderDetails::CommonObjectData> const &,
                 std::vector<float> const &input,
                 std::vector<float> &results) override
         {
-            auto cod = dynamic_cast<CommonObjectDataVulkan*>(commonObjectData.get());
-            bitmapToDepthMap(input, cod->farthestDepth(), cod->nearestDepth(),
-                    m_surfaceWidth, m_surfaceHeight, 4, true, results);
+            bitmapToNormals(input, m_surfaceWidth, m_surfaceHeight, 4, true, results);
         }
 
         void addDrawCmdsToCommandBuffer(
@@ -259,7 +257,7 @@ namespace depthMap {
         }
 
         bool overrideClearColor(glm::vec4 &clearColor) override {
-            clearColor = {0.0f, 0.0f, 0.0f, 1.0f};
+            clearColor = {0.5f, 0.5f, 1.0f, 1.0f};
             return true;
         }
 
@@ -267,7 +265,7 @@ namespace depthMap {
 
     private:
         static char constexpr const *SHADER_SIMPLE_FRAG_FILE = "shaders/simple.frag.spv";
-        static char constexpr const *SHADER_LINEAR_DEPTH_VERT_FILE ="shaders/linearDepth.vert.spv";
+        static char constexpr const *SHADER_NORMAL_VERT_FILE ="shaders/normal.vert.spv";
 
         std::shared_ptr<vulkan::Device> m_device;
 
@@ -289,7 +287,7 @@ namespace depthMap {
                     VkExtent2D{m_width, m_height},
                     parameters.renderPass, m_descriptorPools, getBindingDescription(),
                     getAttributeDescriptions(),
-                    SHADER_LINEAR_DEPTH_VERT_FILE, SHADER_SIMPLE_FRAG_FILE, basePipeline,
+                    SHADER_NORMAL_VERT_FILE, SHADER_SIMPLE_FRAG_FILE, basePipeline,
                     VK_CULL_MODE_FRONT_BIT)}
         {}
 
@@ -311,4 +309,4 @@ namespace depthMap {
         }
     };
 }
-#endif // AMAZING_LABYRINTH_DEPTHMAP_RENDER_DETAILS_VULKAN_HPP
+#endif // AMAZING_LABYRINTH_NORMALMAP_RENDER_DETAILS_VULKAN_HPP

@@ -24,14 +24,6 @@
 namespace avoidVortexOpenArea {
     char constexpr const *Level::m_name;
 
-    void Level::loadModels() {
-        std::pair<std::vector<Vertex>, std::vector<uint32_t>> v;
-        loadModel(m_gameRequester->getAssetStream(m_ballModel), v);
-        std::swap(v.first, ballVertices);
-        std::swap(v.second, ballIndices);
-        getQuad(quadVertices, quadIndices);
-    }
-
     void Level::preGenerate() {
         m_ball.position.z = m_mazeFloorZ + ballRadius();
         holePosition.z = m_mazeFloorZ;

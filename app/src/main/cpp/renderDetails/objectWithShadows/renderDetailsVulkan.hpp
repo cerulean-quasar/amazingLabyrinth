@@ -300,7 +300,7 @@ namespace objectWithShadows {
         {
             auto rd = dynamic_cast<RenderDetailsVulkan*>(rdBase.get());
             if (rd == nullptr) {
-                throw std::runtime_error("Invalid render details type.")
+                throw std::runtime_error("Invalid render details type.");
             }
 
             auto cod = rd->createCommonObjectData(parameters.preTransform, config);
