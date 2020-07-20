@@ -76,12 +76,11 @@ namespace openArea {
     public:
         static char constexpr const *m_name = "openArea";
         Level(
-                std::shared_ptr <GameRequester> inGameRequester,
-                std::shared_ptr<LevelConfigData> const &lcd,
                 std::shared_ptr <LevelSaveData> const &levelRestoreData,
+                std::shared_ptr<LevelConfigData> const &lcd,
                 levelDrawer::Adaptor inLevelDrawer,
                 float maxZ)
-                : basic::Level(std::move(inGameRequester), lcd, std::move(inLevelDrawer), maxZ, true),
+                : basic::Level(std::move(inLevelDrawer), lcd, maxZ, true),
                   prevTime(std::chrono::high_resolution_clock::now())
         {
             if (levelRestoreData == nullptr) {
@@ -91,20 +90,22 @@ namespace openArea {
                          {levelRestoreData->hole.x, levelRestoreData->hole.y});
             }
 
+            generateModelMatrices();
+
             m_levelDrawer.setClearColor(glm::vec4{0.0f, 0.0f, 0.0f, 1.0f});
 
+            // the ball
             m_objIndexBall = m_levelDrawer.addObject(
                     std::make_shared<levelDrawer::ModelDescriptionPath>(m_ballModel),
                     std::make_shared<levelDrawer::TextureDescriptionPath>(m_ballTexture));
 
+            m_objDataIndexBall = m_levelDrawer.addModelMatrixForObject(m_objIndexBall, modelMatrixBall);
+
+            // the hole
             size_t objIndexHole = m_levelDrawer.addObject(
                     std::make_shared<levelDrawer::ModelDescriptionQuad>(),
                     std::make_shared<levelDrawer::TextureDescriptionPath>(lcd->holeTexture));
 
-            // the ball
-            m_objDataIndexBall = m_levelDrawer.addModelMatrixForObject(m_objIndexBall, modelMatrixBall);
-
-            // the hole
             m_levelDrawer.addModelMatrixForObject(objIndexHole, modelMatrixHole);
         }
 

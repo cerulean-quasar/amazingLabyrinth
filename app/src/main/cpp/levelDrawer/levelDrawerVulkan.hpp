@@ -85,7 +85,8 @@ namespace levelDrawer {
     template <>
     void LevelDrawerGraphics<LevelDrawerVulkanTraits>::drawToBuffer(
             std::string const &renderDetailsName,
-            std::vector<std::pair<std::shared_ptr<ModelDescription>, std::shared_ptr<TextureDescription>>> const &modelsTextures,
+            ModelsTextures const &modelsTextures,
+            std::vector<glm::mat4> const &modelMatrix,
             float width,
             float height,
             uint32_t nbrSamplesForWidth,

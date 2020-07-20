@@ -49,12 +49,11 @@ namespace avoidVortexMaze {
         char const *name() override { return m_name; }
 
         // lcd should never be null, sd may be null.
-        Level(std::shared_ptr<GameRequester> inGameRequester,
-                  std::shared_ptr<LevelConfigData> const &lcd,
-                  std::shared_ptr<LevelSaveData> const &sd,
-                  levelDrawer::Adaptor inLevelDrawer,
-                  float maxZ)
-                : openAreaMaze::Level(std::move(inGameRequester), lcd, sd, std::move(inLevelDrawer), maxZ),
+        Level(levelDrawer::Adaptor inLevelDrawer,
+                std::shared_ptr<LevelConfigData> const &lcd,
+                std::shared_ptr<LevelSaveData> const &sd,
+                float maxZ)
+                : openAreaMaze::Level(std::move(inLevelDrawer), lcd, sd, maxZ),
                 m_avoidObjTexture(lcd->avoidTexture)
         {
             if (sd) {

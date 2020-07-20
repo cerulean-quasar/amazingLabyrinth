@@ -66,6 +66,10 @@ std::pair<float, float> getXYAtZ(
         glm::mat4 const &proj,
         glm::mat4 const &view);
 
+void unFlattenMap(
+        std::vector<float> input,
+        std::vector<glm::vec3> output);
+
 float transformRange(
         float colorValue,
         float fromLowest,

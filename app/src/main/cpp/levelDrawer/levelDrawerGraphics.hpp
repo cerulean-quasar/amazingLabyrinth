@@ -102,30 +102,8 @@ namespace levelDrawer {
         }
 
         size_t addModelMatrixForObject(ObjectType type, size_t objsIndex, glm::mat4 const &modelMatrix) override {
-            std::shared_ptr<typename traits::DrawObjectType> drawObj =
-                    m_drawObjectTableList[type]->drawObject(objsIndex);
-
-            auto renderDetailsRef = drawObj->renderDetailsReference();
-
-            std::shared_ptr<typename traits::TextureDataType> textureData = drawObj->textureData();
-
-            std::shared_ptr<typename traits::DrawObjectDataType> objData;
-            if (renderDetailsRef.renderDetails != nullptr) {
-                // we need to add new objects data.
-                 objData = renderDetailsRef.createDrawObjectData(textureData, modelMatrix);
-            } else {
-                auto ref = m_drawObjectTableList[type]->renderDetailsReference();
-
-                if (ref.renderDetails == nullptr) {
-                    throw std::runtime_error("Render details not initialized!");
-                }
-
-                objData = ref.createDrawObjectData(textureData, modelMatrix);
-            }
-
-            drawObj->addObjectData(objData);
-
-            return drawObj->numberObjectsData() - 1;
+            auto const &drawObjTable = m_drawObjectTableList[type];
+            return addModelMatrixToDrawObjTable(drawObjTable, objsIndex, modelMatrix);
         }
 
         void updateModelMatrixForObject(
@@ -195,7 +173,8 @@ namespace levelDrawer {
 
         void drawToBuffer(
             std::string const &renderDetailsName,
-            std::vector<std::pair<std::shared_ptr<ModelDescription>, std::shared_ptr<TextureDescription>>> const &modelTexture,
+            ModelsTextures const &modelsTextures,
+            std::vector<glm::mat4> const &modelMatrix,
             float width,
             float height,
             uint32_t nbrSamplesForWidth,
@@ -222,6 +201,37 @@ namespace levelDrawer {
         std::shared_ptr<GameRequester> m_gameRequester;
         typename traits::NeededForDrawingType m_neededForDrawing;
         glm::vec4 m_bgColor;
+
+        size_t addModelMatrixToDrawObjTable(
+                std::shared_ptr<DrawObjectTableList> const &drawObjTable,
+                size_t objsIndex,
+                glm::mat4 const &modelMatrix)
+        {
+            std::shared_ptr<typename traits::DrawObjectType> drawObj =
+                    drawObjTable->drawObject(objsIndex);
+
+            auto renderDetailsRef = drawObj->renderDetailsReference();
+
+            std::shared_ptr<typename traits::TextureDataType> textureData = drawObj->textureData();
+
+            std::shared_ptr<typename traits::DrawObjectDataType> objData;
+            if (renderDetailsRef.renderDetails != nullptr) {
+                // we need to add new objects data.
+                objData = renderDetailsRef.createDrawObjectData(textureData, modelMatrix);
+            } else {
+                auto ref = drawObjTable->renderDetailsReference();
+
+                if (ref.renderDetails == nullptr) {
+                    throw std::runtime_error("Render details not initialized!");
+                }
+
+                objData = ref.createDrawObjectData(textureData, modelMatrix);
+            }
+
+            drawObj->addObjectData(objData);
+
+            return drawObj->numberObjectsData() - 1;
+        }
 
         std::vector<DrawRules> getDrawRules() {
             std::map<std::string, DrawRules> rulesGroup{};

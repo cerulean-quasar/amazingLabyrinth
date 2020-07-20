@@ -48,13 +48,12 @@ namespace openAreaMaze {
         }
 
     public:
-        Level(std::shared_ptr<GameRequester> inGameRequester,
-                     std::shared_ptr<generatedMaze::LevelConfigData> const &lcd,
-                     std::shared_ptr<generatedMaze::LevelSaveData> const &sd,
-                     levelDrawer::Adaptor inLevelDrawer,
-                     float maxZ)
+        Level(levelDrawer::Adaptor inLevelDrawer,
+                std::shared_ptr<generatedMaze::LevelConfigData> const &lcd,
+                std::shared_ptr<generatedMaze::LevelSaveData> const &sd,
+                float maxZ)
                 : generatedMaze::Level(
-                        std::move(inGameRequester), lcd, sd, std::move(inLevelDrawer), maxZ,
+                        std::move(inLevelDrawer), lcd, sd, maxZ,
                         getMazeWallModelMatricesGenerator())
                 {}
 

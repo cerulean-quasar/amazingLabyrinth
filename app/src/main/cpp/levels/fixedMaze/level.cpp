@@ -429,47 +429,15 @@ namespace fixedMaze {
         return drawingNecessary();
     }
 
-    bool Level::updateStaticDrawObjects(DrawObjectTable &objs, TextureMap &textures) {
-        if (objs.empty() && textures.empty()) {
-            /* floor */
-            objs.emplace_back(m_floor, nullptr);
-            textures.insert(std::make_pair(m_floor->texture, nullptr));
-            return true;
-        }
+    bool Level::updateDrawObjects() {
+        /* ball */
+        m_levelDrawer.updateModelMatrixForObject(
+                m_objIndexBall,
+                m_objDataIndexBall,
+                glm::translate(glm::mat4(1.0f), m_ball.position) *
+                glm::mat4_cast(m_ball.totalRotated) *
+                glm::scale(glm::mat4(1.0f), glm::vec3{m_scaleBall, m_scaleBall, m_scaleBall});
 
-        return false;
-    }
-
-    bool Level::updateDynamicDrawObjects(DrawObjectTable &objs, TextureMap &textures,
-                                             bool &texturesChanged) {
-        texturesChanged = false;
-        if (objs.empty()) {
-            /* ball */
-            std::shared_ptr<DrawObject> ballObj = std::make_shared<DrawObject>();
-            ballObj->vertices = m_ballVertices;
-            ballObj->indices = m_ballIndices;
-            ballObj->texture = std::make_shared<TextureDescriptionPath>(m_gameRequester,
-                                                                        m_ballTexture);
-            textures.insert(std::make_pair(ballObj->texture, std::shared_ptr<TextureData>()));
-            glm::mat4 modelMatrixBall = glm::translate(glm::mat4(1.0f), m_ball.position) *
-                                        glm::mat4_cast(m_ball.totalRotated) *
-                                        glm::scale(glm::mat4(1.0f),
-                                                   glm::vec3{m_scaleBall, m_scaleBall,
-                                                             m_scaleBall});
-            ballObj->modelMatrices.push_back(modelMatrixBall);
-            objs.emplace_back(ballObj, nullptr);
-            texturesChanged = true;
-        } else {
-            /* ball */
-            glm::mat4 modelMatrixBall = glm::translate(glm::mat4(1.0f), m_ball.position) *
-                                        glm::mat4_cast(m_ball.totalRotated) *
-                                        glm::scale(glm::mat4(1.0f),
-                                                   glm::vec3{m_scaleBall, m_scaleBall,
-                                                             m_scaleBall});
-            std::shared_ptr<DrawObject> ballObj = objs[0].first;
-            ballObj->modelMatrices[0] = modelMatrixBall;
-
-        }
         return true;
     }
 
@@ -484,11 +452,11 @@ namespace fixedMaze {
         z = m_mazeFloorZ;
     }
 
-    Level::Level(std::shared_ptr<GameRequester> inGameRequester,
-                         std::shared_ptr<LevelConfigData> const &lcd,
-                         std::shared_ptr<LevelSaveData> const &,
-                         glm::mat4 const &proj, glm::mat4 const &view, float mazeFloorZ)
-            : basic::Level{inGameRequester, lcd, proj, view, mazeFloorZ, false},
+    Level::Level(levelDrawer::Adaptor inLevelDrawer
+            std::shared_ptr<LevelConfigData> const &lcd,
+            std::shared_ptr<LevelSaveData> const &,
+            float mazeFloorZ)
+            : basic::Level{std::move(inLevelDrawer), lcd, mazeFloorZ, false},
               m_floorModel{lcd->mazeFloorModel},
               m_floorTexture{lcd->mazeFloorTexture},
               m_extraBounce{1.0f + lcd->extraBounce * m_diagonal},
@@ -559,54 +527,41 @@ namespace fixedMaze {
     void Level::init() {
         m_prevTime = std::chrono::high_resolution_clock::now();
 
-        std::pair<std::vector<Vertex>, std::vector<uint32_t>> v;
-        loadModel(m_gameRequester->getAssetStream(m_ballModel), v);
-        std::swap(v.first, m_ballVertices);
-        std::swap(v.second, m_ballIndices);
-
-        m_floor = std::make_shared<DrawObject>();
-        std::pair<std::vector<Vertex>, std::vector<uint32_t>> verticesWithVertexNormals;
-        loadModel(m_gameRequester->getAssetStream(m_floorModel), v, &verticesWithVertexNormals);
-        std::swap(v.first, m_floor->vertices);
-        std::swap(v.second, m_floor->indices);
-
-        // For getting the depth map and normal map
-        auto worldObj = std::make_shared<DrawObject>();
-        std::swap(worldObj->vertices, verticesWithVertexNormals.first);
-        std::swap(worldObj->indices, verticesWithVertexNormals.second);
-        worldObj->modelMatrices.push_back(
-                glm::translate(glm::mat4(1.0f), glm::vec3{0.0f, 0.0f, m_mazeFloorZ}) *
-                glm::scale(glm::mat4(1.0f),
-                           glm::vec3{m_height / m_modelSize, m_height / m_modelSize, 1.0f}) *
-                glm::mat4_cast(glm::angleAxis(3.1415926f / 2.0f, glm::vec3(1.0f, 0.0f, 0.0f))));
-        worldObj->texture = nullptr;
-        DrawObjectTable worldMap;
-        worldMap.emplace_back(worldObj, nullptr);
-
+        // Get the depth map and normal map
         std::vector<float> depthMap;
         std::vector<glm::vec3> normalMap;
-        m_rowHeight = static_cast<uint32_t>(std::floor(10.0f / m_scaleBall * m_width));
+
+        glm::mat4 floorModelMatrix = glm::translate(glm::mat4(1.0f), glm::vec3{0.0f, 0.0f, m_mazeFloorZ}) *
+            glm::scale(glm::mat4(1.0f),glm::vec3{m_height / m_modelSize, m_height / m_modelSize, 1.0f}) *
+            glm::mat4_cast(glm::angleAxis(3.1415926f / 2.0f, glm::vec3(1.0f, 0.0f, 0.0f)));
 
         // The model is a square.  Get the whole depth and normal maps (without stretching.  Then
         // find the hole and cut the model so that the hole appears in the center if possible, otherwise
         // on the side.  So we pass in m_height for the width and height.
-        m_gameRequester->getDepthTexture(worldMap, m_height, m_height,
-                                         m_rowHeight /* height is the same as width */,
-                                         m_mazeFloorZ - MODEL_MAXZ, m_mazeFloorZ + MODEL_MAXZ,
-                                         depthMap, normalMap);
+        m_levelDrawer.drawToBuffer(
+                depthMapRenderDetailsName,
+                levelDrawer::ModelsTextures{std::make_pair(
+                        std::make_shared<levelDrawer::ModelDescriptionPath>(m_floorModel),
+                        std::shared_ptr<levelDrawer::TextureDescription>())},
+                std::vector<glm::mat4>{floorModelMatrix},
+                m_height, m_height, m_rowHeight, m_mazeFloorZ - MODEL_MAXZ, m_mazeFloorZ + MODEL_MAXZ,
+                depthMap);
+
+        std::vector<float> normalMapFlat;
+        m_levelDrawer.drawToBuffer(
+                normalMapRenderDetailsName,
+                levelDrawer::ModelsTextures{std::make_pair(
+                        std::make_shared<levelDrawer::ModelDescriptionPath>(m_floorModel),
+                        std::shared_ptr<levelDrawer::TextureDescription>())},
+                std::vector<glm::mat4>{floorModelMatrix},
+                m_height, m_height, m_rowHeight, m_mazeFloorZ - MODEL_MAXZ, m_mazeFloorZ + MODEL_MAXZ,
+                normalMapFlat);
+        unFlattenMap(normalMapFlat, normalMap);
 
         // cut the model so that the hole appears in the center if possible.
         glm::mat4 trans;
         findModelViewPort(depthMap, normalMap, m_rowHeight, trans, m_depthMap, m_normalMap,
                           m_rowWidth);
-
-        m_floor->modelMatrices.push_back(
-                trans *
-                glm::scale(glm::mat4(1.0f),
-                           glm::vec3{m_height / m_modelSize, m_height / m_modelSize, 1.0f}) *
-                glm::mat4_cast(glm::angleAxis(3.1415926f / 2.0f, glm::vec3(1.0f, 0.0f, 0.0f))));
-        m_floor->texture = std::make_shared<TextureDescriptionPath>(m_gameRequester,
-                                                                    m_floorTexture);
 
         // search for a starting point in a row on the model floor (not a high up point).
         float x = -m_width / 2.0f + ballRadius();
@@ -622,6 +577,25 @@ namespace fixedMaze {
         } while (m_ball.position.z > m_mazeFloorZ + m_floatErrorAmount ||
                  m_ball.position.z < m_mazeFloorZ - m_floatErrorAmount);
         m_ball.position.z += ballRadius();
+
+        // add the ball object
+        m_objIndexBall = m_levelDrawer.addObject(
+                std::make_shared<levelDrawer::ModelDescriptionPath>(m_ballModel),
+                std::make_shared<levelDrawer::TextureDescriptionPath>(m_ballTexture));
+
+        m_objDataIndexBall = m_levelDrawer.addModelMatrixForObject(
+                m_objIndexBall,
+                glm::translate(glm::mat4(1.0f), m_ball.position) *
+                glm::mat4_cast(m_ball.totalRotated) *
+                glm::scale(glm::mat4(1.0f),
+                        glm::vec3{m_scaleBall, m_scaleBall, m_scaleBall}));
+
+        // the maze floor
+        auto objIndex = m_levelDrawer.addObject(
+                std::make_shared<levelDrawer::ModelDescriptionPath>(m_floorModel),
+                std::make_shared<levelDrawer::TextureDescriptionPath>(m_floorTexture));
+
+        m_levelDrawer.addModelMatrixForObject(objIndex, floorModelMatrix);
     }
 
 } // namespace fixedMaze

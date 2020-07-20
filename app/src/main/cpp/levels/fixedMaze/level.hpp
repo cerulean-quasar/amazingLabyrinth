@@ -45,10 +45,7 @@ namespace fixedMaze {
 
         bool updateData() override;
 
-        bool updateStaticDrawObjects(DrawObjectTable &objs, TextureMap &textures) override;
-
-        bool updateDynamicDrawObjects(DrawObjectTable &objs, TextureMap &textures,
-                                      bool &texturesChanged) override;
+        bool updateDrawObjects() override;
 
         void start() override;
 
@@ -59,10 +56,10 @@ namespace fixedMaze {
         std::vector<uint8_t> saveData(levelTracker::GameSaveData const &gsd,
                                       char const *saveLevelDataKey) override;
 
-        Level(std::shared_ptr<GameRequester> inGameRequester,
-                  std::shared_ptr<LevelConfigData> const &lcd,
-                  std::shared_ptr<LevelSaveData> const &sd,
-                  glm::mat4 const &proj, glm::mat4 const &view, float maxZ);
+        Level(levelDrawer::Adaptor inLevelDrawer,
+                std::shared_ptr<LevelConfigData> const &lcd,
+                std::shared_ptr<LevelSaveData> const &sd,
+                float maxZ);
 
         void init();
 
@@ -72,8 +69,6 @@ namespace fixedMaze {
         float const m_speedLimit;
 
         std::chrono::high_resolution_clock::time_point m_prevTime;
-        std::vector<Vertex> m_ballVertices;
-        std::vector<uint32_t> m_ballIndices;
         std::string m_floorModel;
         std::string m_floorTexture;
 
@@ -81,10 +76,12 @@ namespace fixedMaze {
         size_t m_rowHeight;
         std::vector<float> m_depthMap;
         std::vector<glm::vec3> m_normalMap;
-        std::shared_ptr<DrawObject> m_floor;
         float m_extraBounce;
         float m_minSpeedOnObjBounce;
         Random m_randomNbrs;
+
+        size_t m_objIndexBall;
+        size_t m_objDataIndexBall;
 
         size_t getXCell(float x);
 

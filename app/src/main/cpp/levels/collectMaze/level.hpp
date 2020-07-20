@@ -42,12 +42,11 @@ namespace collectMaze {
     public:
         static char constexpr const *m_name = "collectMaze";
 
-        Level(std::shared_ptr<GameRequester> inGameRequester,
-                    std::shared_ptr<LevelConfigData> const &lcd,
-                    std::shared_ptr<LevelSaveData> const &sd,
-                    levelDrawer::Adaptor inLevelDrawer,
-                    float floorZ)
-                : openAreaMaze::Level(std::move(inGameRequester), lcd, sd, std::move(inLevelDrawer), floorZ),
+        Level(levelDrawer::Adaptor inLevelDrawer,
+                std::shared_ptr<LevelConfigData> const &lcd,
+                std::shared_ptr<LevelSaveData> const &sd,
+                float floorZ)
+                : openAreaMaze::Level(std::move(inLevelDrawer), lcd, sd, floorZ),
                   m_numberCollectObjects{lcd->numberCollectObjects},
                   collectBallScaleFactor{2.0f * m_scaleBall / 3.0f},
                   m_collectModel{lcd->collectModel},

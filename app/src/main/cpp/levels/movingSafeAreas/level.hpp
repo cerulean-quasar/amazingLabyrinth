@@ -128,13 +128,11 @@ namespace movingSafeAreas {
         std::vector<uint8_t> saveData(levelTracker::GameSaveData const &gsd,
                                       char const *saveLevelDataKey) override;
 
-        Level(
-            std::shared_ptr<GameRequester> inGameRequester,
-            std::shared_ptr<LevelConfigData> const &lcd,
-            std::shared_ptr<LevelSaveData> const &saveData,
-            levelDrawer::Adaptor inLevelDrawer,
-            float maxZ)
-            : basic::Level(std::move(inGameRequester), lcd, std::move(inLevelDrawer), maxZ, true),
+        Level(levelDrawer::Adaptor inLevelDrawer,
+                std::shared_ptr<LevelConfigData> const &lcd,
+                std::shared_ptr<LevelSaveData> const &saveData,
+                float maxZ)
+            : basic::Level(std::move(inLevelDrawer), lcd, maxZ, true),
               spaceBetweenQuadsX{m_width / 10.0f},
               maxX(m_width / 2),
               maxY(m_height / 2),

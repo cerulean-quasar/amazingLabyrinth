@@ -114,13 +114,12 @@ namespace generatedMaze {
         // lcd must never be null
         // sd can be null if there is no save data.  If it is not null, the maze will be restored
         // from the save data, otherwise the maze will be generated.
-        Level(std::shared_ptr<GameRequester> inGameRequester,
+        Level(levelDrawer::Adaptor inLevelDrawer,
              std::shared_ptr<LevelConfigData> const &lcd,
              std::shared_ptr<LevelSaveData> const &sd,
-             levelDrawer::Adaptor inLevelDrawer,
              float floorZ,
              MazeWallModelMatrixGeneratorFcn wallModelMatrixGeneratorFcn = getMazeWallModelMatricesGenerator())
-                : basic::Level(std::move(inGameRequester), lcd, std::move(inLevelDrawer), floorZ, true),
+                : basic::Level(std::move(inLevelDrawer), lcd, floorZ, true),
                   wallTextures{lcd->wallTextureNames},
                   floorTexture{lcd->mazeFloorTexture},
                   holeTexture{lcd->holeTexture},

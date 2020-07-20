@@ -27,6 +27,7 @@
 #include "textureTable/textureLoader.hpp"
 
 namespace levelDrawer {
+    using ModelsTextures = std::vector<std::pair<std::shared_ptr<ModelDescription>, std::shared_ptr<TextureDescription>>>;
     class LevelDrawer {
     public:
         enum ObjectType {
@@ -80,7 +81,8 @@ namespace levelDrawer {
 
         virtual void drawToBuffer(
                 std::string const &renderDetailsName,
-                std::vector<std::pair<std::shared_ptr<ModelDescription>, std::shared_ptr<TextureDescription>>> const &modelTexture,
+                ModelsTextures const &modelsTextures,
+                std::vector<glm::mat4> const &modelMatrix,
                 float width,
                 float height,
                 uint32_t nbrSamplesForWidth,
@@ -163,7 +165,8 @@ namespace levelDrawer {
 
         void drawToBuffer(
                 std::string const &renderDetailsName,
-                std::vector<std::pair<std::shared_ptr<ModelDescription>, std::shared_ptr<TextureDescription>>> const &modelsTextures,
+                ModelsTextures const &modelsTextures,
+                std::vector<glm::mat4> const &modelMatrix,
                 float width,
                 float height,
                 uint32_t nbrSamplesForWidth,
@@ -171,7 +174,7 @@ namespace levelDrawer {
                 float nearestDepth,
                 std::vector<float> &results)
         {
-            m_levelDrawer->drawToBuffer(renderDetailsName, modelsTextures, width, height,
+            m_levelDrawer->drawToBuffer(renderDetailsName, modelsTextures, modelMatrix, width, height,
                     nbrSamplesForWidth, farthestDepth, nearestDepth, results);
         }
 

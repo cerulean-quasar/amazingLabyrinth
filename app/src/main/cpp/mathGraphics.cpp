@@ -111,6 +111,23 @@ std::pair<float, float> getXYAtZ(
     return std::make_pair<float, float>(worldPlus.x/worldPlus.w, worldPlus.y/worldPlus.w);
 }
 
+void unFlattenMap(
+        std::vector<float> input,
+        std::vector<glm::vec3> output)
+{
+    if (input.size() % 3 != 0) {
+        throw std::runtime_error("Improper size for input to be un-flattened");
+    }
+
+    output.clear();
+    for (int i = 0; i < input.size() / 3; i++) {
+        float x = input[i * 3];
+        float y = input[i * 3 + 1];
+        float z = input[i * 3 + 2];
+        output.push_back(glm::vec3{x,y,z});
+    }
+}
+
 float transformRange(
         float colorValue,
         float fromLowest,

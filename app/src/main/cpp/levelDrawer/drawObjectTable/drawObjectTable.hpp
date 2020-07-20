@@ -107,10 +107,6 @@ namespace levelDrawer {
             return m_drawObjects.empty();
         }
 
-        size_t numberObjects() {
-            return m_drawObjects.size();
-        }
-
         void clear() {
             m_drawObjects.clear();
             m_objsIndicesWithOverridingRenderDetails.clear();
@@ -194,10 +190,6 @@ namespace levelDrawer {
             return m_renderDetailsReference;
         }
 
-        typename traits::RenderDetailsParametersType const &renderDetailsParameters() {
-            return m_renderDetailsParameters;
-        }
-
         size_t numberObjects() { return m_drawObjects.size(); }
 
         size_t numberObjectsDataForObject(size_t drawObjectIndex) {
@@ -272,7 +264,6 @@ namespace levelDrawer {
             return std::move(rules);
         }
     private:
-        typename traits::RenderDetailsParametersType m_renderDetailsParameters;
         typename traits::RenderDetailsReferenceType m_renderDetailsReference;
 
         std::vector<std::shared_ptr<DrawObject<traits>>> m_drawObjects;

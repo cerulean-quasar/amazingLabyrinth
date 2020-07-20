@@ -95,7 +95,8 @@ namespace levelDrawer {
     template <>
     void LevelDrawerGraphics<LevelDrawerVulkanTraits>::drawToBuffer(
             std::string const &renderDetailsName,
-            std::vector<std::pair<std::shared_ptr<ModelDescription>, std::shared_ptr<TextureDescription>>> const &modelsTextures,
+            ModelsTextures const &modelsTextures,
+            std::vector<glm::mat4> const &modelMatrix,
             float width,
             float height,
             uint32_t nbrSamplesForWidth,
@@ -104,13 +105,16 @@ namespace levelDrawer {
             std::vector<float> &results)
     {
         auto drawObjTable = std::make_shared<DrawObjectTableVulkan>();
+
+        size_t i = 0;
         for (auto const &modelTexture : modelsTextures) {
             auto modelData = m_modelTable.addModel(m_gameRequester, modelTexture.first);
             std::shared_ptr<LevelDrawerVulkanTraits::TextureDataType> textureData{};
             if (modelTexture.second) {
                 textureData = m_textureTable.addTexture(m_gameRequester, modelTexture.second);
             }
-            drawObjTable->addObject(modelData, textureData);
+            auto objIndex = drawObjTable->addObject(modelData, textureData);
+            addModelMatrixToDrawObjTable(drawObjTable, objIndex, modelMatrix[i++]);
         }
 
         uint32_t imageWidth = nbrSamplesForWidth;

@@ -150,13 +150,11 @@ namespace basic {
         virtual std::vector<uint8_t> saveData(levelTracker::GameSaveData const &gsd, char const *saveLevelDataKey) = 0;
 
         Level(
-                std::shared_ptr<GameRequester> inGameRequester,
-                std::shared_ptr<LevelConfigData> const &lcd,
                 levelDrawer::Adaptor inLevelDrawer,
+                std::shared_ptr<LevelConfigData> const &lcd,
                 float mazeFloorZ,
                 bool ignoreZMovement)
-                : m_gameRequester{std::move(inGameRequester)},
-                  m_levelDrawer{std::move(inLevelDrawer)},
+                : m_levelDrawer{std::move(inLevelDrawer)},
                   m_finished(false),
                   m_mazeFloorZ{mazeFloorZ},
                   m_ignoreZMovement{ignoreZMovement},
