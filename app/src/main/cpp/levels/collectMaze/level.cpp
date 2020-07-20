@@ -105,74 +105,24 @@ namespace collectMaze {
         }
     }
 
-    bool Level::updateDynamicDrawObjects(DrawObjectTable &objs, TextureMap &textures,
-                                               bool &texturesChanged) {
-        bool isEmpty = objs.empty();
-        bool isUpdated = openAreaMaze::Level::updateDynamicDrawObjects(objs, textures, texturesChanged);
+    bool Level::updateDrawObjects() {
+        generatedMaze::Level::updateDrawObjects();
 
         glm::mat4 scaleMatrix = glm::scale(glm::mat4(1.0f),
                                            glm::vec3{collectBallScaleFactor, collectBallScaleFactor,
                                                      collectBallScaleFactor});
-        if (isEmpty) {
-            std::shared_ptr<DrawObject> collectObj;
-            if (m_collectObjsSameAsBall) {
-                // the objects to collect - they are just smaller versions of the ball.  Just add them to
-                // the ball model matrices.  The ball is always first in the table of draw objects.
-                collectObj = objs[0].first;
-            } else {
-                collectObj = std::make_shared<DrawObject>();
-                std::pair<std::vector<Vertex>, std::vector<uint32_t>> v;
-                loadModel(m_gameRequester->getAssetStream(m_collectModel), v);
-                collectObj->vertices = std::move(v.first);
-                collectObj->indices = std::move(v.second);
-                collectObj->texture = std::make_shared<TextureDescriptionPath>(m_gameRequester, m_collectTexture);
-                textures.emplace(collectObj->texture, std::make_shared<TextureData>());
-                objs.emplace_back(collectObj, std::shared_ptr<DrawObjectData>());
-            }
-            for (auto const &item : m_collectionObjectLocations) {
-                collectObj->modelMatrices.push_back(glm::translate(glm::mat4(1.0f), item.second) *
-                                                 glm::mat4_cast(m_ball.totalRotated) *
-                                                 scaleMatrix);
-            }
-            isUpdated = true;
-        } else {
-            if (m_collectObjsSameAsBall) {
-                DrawObjectEntry &obj = objs[0];
 
-                // ignore the first model matrix.  It is for the main ball that the user is rolling
-                // not the following balls.
-                uint32_t i = 1;
-                for (auto const &item : m_collectionObjectLocations) {
-                    if (item.first) {
-                        obj.first->modelMatrices[i++] =
-                                glm::translate(glm::mat4(1.0f), item.second) *
-                                glm::mat4_cast(m_ball.totalRotated) *
-                                scaleMatrix;
-                        isUpdated = true;
-                    } else {
-                        i++;
-                    }
-                }
-            } else {
-                DrawObjectEntry &obj = objs[1];
-
-                // ignore the first model matrix.  It is for the main ball that the user is rolling
-                // not the following balls.
-                uint32_t i = 0;
-                for (auto const &item : m_collectionObjectLocations) {
-                    if (item.first) {
-                        obj.first->modelMatrices[i++] =
-                                glm::translate(glm::mat4(1.0f), item.second) *
-                                glm::mat4_cast(m_ball.totalRotated) *
-                                scaleMatrix;
-                        isUpdated = true;
-                    } else {
-                        i++;
-                    }
-                }
-            }
+        if (m_collectionObjectLocations.size() != m_objDataIndicesCollect.size()) {
+            throw std::runtime_error("Invalid number of collection objects");
         }
 
-        return isUpdated;
+        for (size_t i = 0; i < m_collectionObjectLocations.size(); i++) {
+            m_levelDrawer.updateModelMatrixForObject(m_objIndexCollect, m_objDataIndicesCollect[i],
+                    glm::translate(glm::mat4(1.0f), m_collectionObjectLocations[i].second) *
+                    glm::mat4_cast(m_ball.totalRotated) *
+                    scaleMatrix);
+        }
+
+        return true;
     }
 } // namespace collectMaze

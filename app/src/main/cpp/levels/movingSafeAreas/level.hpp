@@ -29,7 +29,6 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/quaternion.hpp>
 
-#include "../../graphics.hpp"
 #include "../../random.hpp"
 #include "../basic/level.hpp"
 
@@ -87,13 +86,13 @@ namespace movingSafeAreas {
 
         std::vector<MovingQuadRow> m_movingQuads;
 
-        /* vertex and index data for drawing the ball. */
-        std::vector<Vertex> m_ballVertices;
-        std::vector<uint32_t> m_ballIndices;
+        // indices to identify the ball for moving
+        size_t m_objIndexBall;
+        size_t m_objDataIndexBall;
 
-        /* vertex and index data for drawing the hole. */
-        std::vector<Vertex> m_quadVertices;
-        std::vector<uint32_t> m_quadIndices;
+        // indices to identify the moving quads
+        std::vector<size_t> m_objIndicesQuad;
+        std::vector<std::vector<size_t>> m_objDataIndicesQuad;
 
         bool ballOnQuad(glm::vec3 const &centerPos, float xSize);
 
@@ -110,14 +109,9 @@ namespace movingSafeAreas {
     public:
         static char constexpr const *m_name = "movingSafeAreas";
 
-        glm::vec4 getBackgroundColor() override { return glm::vec4(0.2, 0.2, 1.0, 1.0); }
-
         bool updateData() override;
 
-        bool updateStaticDrawObjects(DrawObjectTable &objs, TextureMap &textures) override;
-
-        bool updateDynamicDrawObjects(DrawObjectTable &objs, TextureMap &textures,
-                                      bool &texturesChanged) override;
+        bool updateDrawObjects() override;
 
         void start() override {
             m_prevTime = std::chrono::high_resolution_clock::now();
@@ -138,10 +132,9 @@ namespace movingSafeAreas {
             std::shared_ptr<GameRequester> inGameRequester,
             std::shared_ptr<LevelConfigData> const &lcd,
             std::shared_ptr<LevelSaveData> const &saveData,
-            glm::mat4 const &proj,
-            glm::mat4 const &view,
+            levelDrawer::Adaptor inLevelDrawer,
             float maxZ)
-            : basic::Level(std::move(inGameRequester), lcd, proj, view, maxZ, true),
+            : basic::Level(std::move(inGameRequester), lcd, std::move(inLevelDrawer), maxZ, true),
               spaceBetweenQuadsX{m_width / 10.0f},
               maxX(m_width / 2),
               maxY(m_height / 2),
@@ -151,7 +144,7 @@ namespace movingSafeAreas {
               m_endQuadTexture{lcd->endQuadTexture},
               m_middleQuadTextures{lcd->middleQuadTextures}
         {
-            loadModels();
+            m_levelDrawer.setClearColor(glm::vec4(0.2, 0.2, 1.0, 1.0));
             preGenerate();
             if (saveData == nullptr) {
                 generate();
@@ -168,6 +161,67 @@ namespace movingSafeAreas {
                     m_movingQuads.emplace_back(std::move(positions), quadRow.speed,
                                                glm::vec3{quadRow.scale.x, quadRow.scale.y, 1.0f});
                 }
+            }
+
+            // the ball
+            m_objIndexBall = m_levelDrawer.addObject(std::make_shared<levelDrawer::ModelDescriptionPath>(m_ballModel),
+                    std::make_shared<levelDrawer::TextureDescriptionPath>(m_ballTexture));
+
+            m_objDataIndexBall = m_levelDrawer.addModelMatrixForObject(
+                    m_objIndexBall,
+                   glm::translate(glm::mat4(1.0f), m_ball.position) *
+                        glm::mat4_cast(m_ball.totalRotated) *
+                        ballScaleMatrix());
+
+            // the starting quad
+            auto objIndex = m_levelDrawer.addObject(
+                    std::make_shared<levelDrawer::ModelDescriptionQuad>(),
+                    std::make_shared<levelDrawer::TextureDescriptionPath>(m_startQuadTexture));
+
+            glm::mat4 scale = glm::scale(glm::mat4(1.0f), glm::vec3{2 * maxX, m_quadScaleY, 1.0f});
+            m_levelDrawer.addModelMatrixForObject(
+                    objIndex,
+                    glm::translate(glm::mat4(1.0f), m_startQuadPosition) * scale);
+
+            // the ending quad
+            objIndex = m_levelDrawer.addObject(
+                    std::make_shared<levelDrawer::ModelDescriptionQuad>(),
+                    std::make_shared<levelDrawer::TextureDescriptionPath>(m_endQuadTexture));
+
+            m_levelDrawer.addModelMatrixForObject(
+                    objIndex,
+                    glm::translate(glm::mat4(1.0f), m_endQuadPosition) * scale);
+
+            // next we have the moving quads
+            for (auto const &texture : m_middleQuadTextures) {
+                objIndex = m_levelDrawer.addObject(
+                        std::make_shared<levelDrawer::ModelDescriptionQuad>(),
+                        std::make_shared<levelDrawer::TextureDescriptionPath>(texture));
+                m_objIndicesQuad.push_back(objIndex);
+            }
+            m_objDataIndicesQuad.resize(m_middleQuadTextures.size());
+
+            size_t nbrRowsForTexture = m_movingQuads.size() / m_middleQuadTextures.size();
+            size_t leftover = m_movingQuads.size() % m_middleQuadTextures.size();
+            size_t i = 0;
+            for (auto const &movingQuadRow : m_movingQuads) {
+                size_t textureNumber = 0;
+                if (nbrRowsForTexture == 0) {
+                    textureNumber = i;
+                } else if (i <= leftover * nbrRowsForTexture) {
+                    textureNumber = i / (nbrRowsForTexture + 1);
+                } else {
+                    textureNumber = i / nbrRowsForTexture;
+                }
+
+                for (auto const &movingQuadPos : movingQuadRow.positions) {
+                    auto objDataIndex = m_levelDrawer.addModelMatrixForObject(
+                            m_objIndicesQuad[i],
+                            glm::translate(glm::mat4(1.0f), movingQuadPos) *
+                            glm::scale(glm::mat4(1.0f), movingQuadRow.scale));
+                    m_objDataIndicesQuad[i].push_back(objDataIndex);
+                }
+                i++;
             }
         }
 

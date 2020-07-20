@@ -45,7 +45,6 @@ namespace avoidVortexMaze {
         static char constexpr const *m_name = "avoidVortexMaze";
 
         std::vector<uint8_t> saveData(levelTracker::GameSaveData const &gsd, char const *saveLevelDataKey) override;
-        bool updateStaticDrawObjects(DrawObjectTable &objs, TextureMap &textures) override;
 
         char const *name() override { return m_name; }
 
@@ -53,8 +52,9 @@ namespace avoidVortexMaze {
         Level(std::shared_ptr<GameRequester> inGameRequester,
                   std::shared_ptr<LevelConfigData> const &lcd,
                   std::shared_ptr<LevelSaveData> const &sd,
-                  glm::mat4 const &proj, glm::mat4 const &view, float maxZ)
-                : openAreaMaze::Level(std::move(inGameRequester), lcd, sd, proj, view, maxZ),
+                  levelDrawer::Adaptor inLevelDrawer,
+                  float maxZ)
+                : openAreaMaze::Level(std::move(inGameRequester), lcd, sd, std::move(inLevelDrawer), maxZ),
                 m_avoidObjTexture(lcd->avoidTexture)
         {
             if (sd) {
@@ -65,6 +65,14 @@ namespace avoidVortexMaze {
                 }
             } else {
                 generateAvoidModelMatrices(lcd->numberAvoidObjects);
+            }
+
+            auto objIndex = m_levelDrawer.addObject(std::make_shared<levelDrawer::ModelDescriptionQuad>(),
+                    std::make_shared<levelDrawer::TextureDescriptionPath>(m_avoidObjTexture));
+
+            for (auto const &item : m_avoidObjectLocations) {
+                m_levelDrawer.addModelMatrixForObject(objIndex,
+                        glm::translate(glm::mat4(1.0f), item) * scaleBall);
             }
         }
     private:

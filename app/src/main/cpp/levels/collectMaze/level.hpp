@@ -36,14 +36,18 @@ namespace collectMaze {
         std::string m_collectModel;
         std::string m_collectTexture;
         bool m_collectObjsSameAsBall;
+
+        size_t m_objIndexCollect;
+        std::vector<size_t> m_objDataIndicesCollect;
     public:
         static char constexpr const *m_name = "collectMaze";
 
         Level(std::shared_ptr<GameRequester> inGameRequester,
                     std::shared_ptr<LevelConfigData> const &lcd,
                     std::shared_ptr<LevelSaveData> const &sd,
-                    glm::mat4 proj, glm::mat4 view, float floorZ)
-                : openAreaMaze::Level(std::move(inGameRequester), lcd, sd, proj, view, floorZ),
+                    levelDrawer::Adaptor inLevelDrawer,
+                    float floorZ)
+                : openAreaMaze::Level(std::move(inGameRequester), lcd, sd, std::move(inLevelDrawer), floorZ),
                   m_numberCollectObjects{lcd->numberCollectObjects},
                   collectBallScaleFactor{2.0f * m_scaleBall / 3.0f},
                   m_collectModel{lcd->collectModel},
@@ -65,10 +69,30 @@ namespace collectMaze {
             } else {
                 generateCollectBallModelMatrices();
             }
+
+            if (m_collectObjsSameAsBall) {
+                m_objIndexCollect = m_objIndexBall;
+            } else {
+                m_objIndexCollect = m_levelDrawer.addObject(
+                        std::make_shared<levelDrawer::ModelDescriptionPath>(m_collectModel),
+                        std::make_shared<levelDrawer::TextureDescriptionPath>(m_collectTexture));
+            }
+
+            glm::mat4 scaleMatrix = glm::scale(glm::mat4(1.0f),
+                                               glm::vec3{collectBallScaleFactor, collectBallScaleFactor,
+                                                         collectBallScaleFactor});
+
+            for (auto const &item : m_collectionObjectLocations) {
+                auto index = m_levelDrawer.addModelMatrixForObject(
+                        m_objIndexCollect,
+                        glm::translate(glm::mat4(1.0f), item.second) *
+                                                    glm::mat4_cast(m_ball.totalRotated) *
+                                                    scaleMatrix);
+                m_objDataIndicesCollect.push_back(index);
+            }
         }
 
-        bool updateDynamicDrawObjects(DrawObjectTable &objs, TextureMap &textures,
-                                      bool &texturesChanged) override;
+        bool updateDrawObjects() override;
 
         char const *name() override { return m_name; }
 

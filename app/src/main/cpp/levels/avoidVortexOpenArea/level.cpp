@@ -152,66 +152,8 @@ namespace avoidVortexOpenArea {
         }
     }
 
-    bool Level::updateStaticDrawObjects(DrawObjectTable &objs, TextureMap &textures) {
-        if (objs.size() > 0) {
-            return false;
-        }
-
-        // the hole
-        std::shared_ptr<DrawObject> holeObj(new DrawObject());
-        holeObj->vertices = quadVertices;
-        holeObj->indices = quadIndices;
-        holeObj->texture = std::make_shared<TextureDescriptionPath>(m_gameRequester, holeTexture);
-        textures.insert(std::make_pair(holeObj->texture, std::shared_ptr<TextureData>()));
-        holeObj->modelMatrices.push_back(modelMatrixHole);
-        objs.push_back(std::make_pair(holeObj, std::shared_ptr<DrawObjectData>()));
-
-        // the vortexes
-        std::shared_ptr<DrawObject> vortexObj(new DrawObject());
-        vortexObj->vertices = quadVertices;
-        vortexObj->indices = quadIndices;
-        vortexObj->texture = std::make_shared<TextureDescriptionPath>(m_gameRequester,
-                                                                      vortexTexture);
-        textures.insert(std::make_pair(vortexObj->texture, std::shared_ptr<TextureData>()));
-        for (auto &&modelMatrixVortex : modelMatrixVortexes) {
-            vortexObj->modelMatrices.push_back(modelMatrixVortex);
-        }
-        objs.push_back(std::make_pair(vortexObj, std::shared_ptr<DrawObjectData>()));
-
-        // the start position vortex
-        std::shared_ptr<DrawObject> startVortexObj(new DrawObject());
-        startVortexObj->vertices = quadVertices;
-        startVortexObj->indices = quadIndices;
-        startVortexObj->texture = std::make_shared<TextureDescriptionPath>(m_gameRequester,
-                                                                           startVortexTexture);
-        textures.insert(std::make_pair(startVortexObj->texture, std::shared_ptr<TextureData>()));
-        startVortexObj->modelMatrices.push_back(modelMatrixStartVortex);
-        objs.push_back(std::make_pair(startVortexObj, std::shared_ptr<DrawObjectData>()));
-
-        return true;
-    }
-
-    bool Level::updateDynamicDrawObjects(DrawObjectTable &objs, TextureMap &textures,
-                                                    bool &texturesUpdated) {
-        texturesUpdated = false;
-        std::vector<glm::mat4> ballModelMatrices;
-        ballModelMatrices.push_back(modelMatrixBall);
-        if (objs.empty()) {
-            objs.push_back(std::make_pair(std::shared_ptr<DrawObject>(new DrawObject()),
-                                          std::shared_ptr<DrawObjectData>()));
-            DrawObject *ballObj = objs[0].first.get();
-            ballObj->vertices = ballVertices;
-            ballObj->indices = ballIndices;
-            ballObj->texture = std::make_shared<TextureDescriptionPath>(m_gameRequester,
-                                                                        m_ballTexture);
-            textures.insert(std::make_pair(ballObj->texture, std::shared_ptr<TextureData>()));
-            ballObj->modelMatrices.push_back(modelMatrixBall);
-            texturesUpdated = true;
-        } else {
-            DrawObject *ballObj = objs[0].first.get();
-            ballObj->modelMatrices[0] = modelMatrixBall;
-        }
-        return true;
+    bool Level::updateDrawObjects() {
+        m_levelDrawer.updateModelMatrixForObject(m_objIndexBall, m_objDataIndexBall, modelMatrixBall);
     }
 
 } // namespace avoidVortexOpenArea

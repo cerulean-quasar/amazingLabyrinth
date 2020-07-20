@@ -37,9 +37,7 @@
 #include <glm/gtc/matrix_transform.hpp>
 
 #include "level.hpp"
-#include "../../graphics.hpp"
 #include "../basic/level.hpp"
-#include "../../modelLoader.hpp"
 
 namespace generatedMaze {
     char constexpr const *Level::m_name;
@@ -137,22 +135,6 @@ namespace generatedMaze {
                           glm::mat4_cast(m_ball.totalRotated) * scaleBall;
 
         return drawingNecessary();
-    }
-
-    void Level::loadModels() {
-        std::pair<std::vector<Vertex>, std::vector<uint32_t>> v;
-        loadModel(m_gameRequester->getAssetStream(MODEL_WALL), v);
-        std::swap(v.first, vertices);
-        std::swap(v.second, indices);
-        loadModel(m_gameRequester->getAssetStream(m_ballModel), v);
-        std::swap(v.first, ballVertices);
-        std::swap(v.second, ballIndices);
-        getQuad(holeVertices, holeIndices);
-        loadModelFloor();
-    }
-
-    void Level::loadModelFloor() {
-        getQuad(floorVertices, floorIndices);
     }
 
     float Level::getRowCenterPosition(unsigned int row) {
@@ -293,87 +275,8 @@ namespace generatedMaze {
                                            m_height / 2 + m_height / 2 / (numberRows * numberBlocksPerCell), 1.0f));
     }
 
-    bool Level::updateStaticDrawObjects(DrawObjectTable &objs, TextureMap &textures) {
-        if (!objs.empty()) {
-            // The objects were already updated, add nothing, update nothing.
-            // These objects do not change or move.
-            return false;
-        }
-
-        // the floor
-        std::shared_ptr<DrawObject> floor(new DrawObject());
-        floor->indices = floorIndices;
-        floor->vertices = floorVertices;
-        floor->texture = std::make_shared<TextureDescriptionPath>(m_gameRequester, floorTexture);
-        textures.insert(std::make_pair(floor->texture, std::shared_ptr<TextureData>()));
-        floor->modelMatrices.push_back(floorModelMatrix);
-        objs.push_back(std::make_pair(floor, std::shared_ptr<DrawObjectData>()));
-
-        if (drawHole) {
-            // the hole
-            std::shared_ptr<DrawObject> hole(new DrawObject());
-            hole->indices = holeIndices;
-            hole->vertices = holeVertices;
-            hole->texture = std::make_shared<TextureDescriptionPath>(m_gameRequester, holeTexture);
-            textures.insert(std::make_pair(hole->texture, std::shared_ptr<TextureData>()));
-            hole->modelMatrices.push_back(modelMatrixHole);
-            objs.push_back(std::make_pair(hole, std::shared_ptr<DrawObjectData>()));
-        }
-
-        if (wallTextures.empty()) {
-            throw std::runtime_error("Maze wall textures not initialized.");
-        }
-
-        // the walls
-        std::vector<std::shared_ptr<DrawObject> > wallObjs;
-
-        for (size_t i = 0; i < wallTextures.size(); i++) {
-            std::shared_ptr<DrawObject> wall(new DrawObject());
-            wallObjs.push_back(wall);
-        }
-
-        for (size_t i = 0; i < m_wallTextureIndices.size(); i++) {
-            wallObjs[m_wallTextureIndices[i]]->modelMatrices.push_back(modelMatricesMaze[i]);
-        }
-
-        for (size_t i = 0; i < wallObjs.size(); i++) {
-            if (!wallObjs[i]->modelMatrices.empty()) {
-                wallObjs[i]->indices = indices;
-                wallObjs[i]->vertices = vertices;
-                wallObjs[i]->texture = std::make_shared<TextureDescriptionPath>(m_gameRequester,
-                                                                                wallTextures[i]);
-                textures.insert(
-                        std::make_pair(wallObjs[i]->texture, std::shared_ptr<TextureData>()));
-                objs.push_back(std::make_pair(wallObjs[i], std::shared_ptr<DrawObjectData>()));
-            }
-        }
-
-        return true;
-    }
-
-    bool Level::updateDynamicDrawObjects(DrawObjectTable &objs, TextureMap &textures,
-                                        bool &texturesChanged) {
-        if (objs.empty()) {
-            texturesChanged = true;
-            objs.push_back(std::make_pair(std::shared_ptr<DrawObject>(new DrawObject()),
-                                          std::shared_ptr<DrawObjectData>()));
-            DrawObject *ballObj = objs[0].first.get();
-            ballObj->indices = ballIndices;
-            ballObj->vertices = ballVertices;
-            ballObj->texture = std::make_shared<TextureDescriptionPath>(m_gameRequester, m_ballTexture);
-            textures.insert(std::make_pair(ballObj->texture, std::shared_ptr<TextureData>()));
-        } else {
-            texturesChanged = false;
-        }
-
-        // the ball
-        DrawObject *ballObj = objs[0].first.get();
-        if (ballObj->modelMatrices.empty()) {
-            ballObj->modelMatrices.push_back(modelMatrixBall);
-        } else {
-            ballObj->modelMatrices[0] = modelMatrixBall;
-        }
-
+    bool Level::updateDrawObjects() {
+        m_levelDrawer.updateModelMatrixForObject(m_objIndexBall, m_objDataIndexBall, modelMatrixBall);
         return true;
     }
 } // namespace generatedMaze

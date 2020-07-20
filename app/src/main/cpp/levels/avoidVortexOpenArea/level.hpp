@@ -38,10 +38,6 @@ namespace avoidVortexOpenArea {
     private:
         static uint32_t constexpr numberOfVortexes = 8;
 
-        std::string holeTexture;
-        std::string vortexTexture;
-        std::string startVortexTexture;
-
         float const maxX;
         float const maxY;
         Random random;
@@ -72,8 +68,6 @@ namespace avoidVortexOpenArea {
 
         bool ballProximity(glm::vec3 const &objPosition);
 
-        void loadModels();
-
         void preGenerate();
 
         void generate();
@@ -84,8 +78,6 @@ namespace avoidVortexOpenArea {
 
     public:
         static char constexpr const *m_name = "avoidVortexOpenArea";
-
-        glm::vec4 getBackgroundColor() override { return glm::vec4(0.0, 0.0, 0.0, 1.0); }
 
         bool updateData() override;
 
@@ -112,14 +104,11 @@ namespace avoidVortexOpenArea {
                          levelDrawer::Adaptor inLevelDrawer,
                          float floorZ)
                 : basic::Level(std::move(inGameRequester), lcd, std::move(inLevelDrawer), floorZ, true),
-                  holeTexture{lcd->holeTexture},
-                  vortexTexture{lcd->vortexTexture},
-                  startVortexTexture{lcd->startVortexTexture},
                   maxX(m_width / 2),
                   maxY(m_height / 2),
                   prevTime(std::chrono::high_resolution_clock::now())
         {
-            loadModels();
+            m_levelDrawer.setClearColor(glm::vec4{0.0f, 0.0f, 0.0f, 1.0f});
             preGenerate();
             if (sd == nullptr) {
                 generate();
@@ -142,17 +131,27 @@ namespace avoidVortexOpenArea {
                     std::make_shared<levelDrawer::ModelDescriptionQuad>(),
                     std::make_shared<levelDrawer::TextureDescriptionPath>(lcd->holeTexture));
 
+            m_levelDrawer.addModelMatrixForObject(objIndexHole, modelMatrixHole);
+
             auto objIndexVortex = m_levelDrawer.addObject(
                     std::make_shared<levelDrawer::ModelDescriptionQuad>(),
                     std::make_shared<levelDrawer::TextureDescriptionPath>(lcd->vortexTexture));
+
+            for (auto const &modelMatrixVortex : modelMatrixVortexes) {
+                m_levelDrawer.addModelMatrixForObject(objIndexVortex, modelMatrixVortex);
+            }
 
             auto objIndexStartVortex = m_levelDrawer.addObject(
                     std::make_shared<levelDrawer::ModelDescriptionQuad>(),
                     std::make_shared<levelDrawer::TextureDescriptionPath>(lcd->startVortexTexture));
 
+            m_levelDrawer.addModelMatrixForObject(objIndexStartVortex, modelMatrixStartVortex);
+
             m_objIndexBall = m_levelDrawer.addObject(
                     std::make_shared<levelDrawer::ModelDescriptionPath>(m_ballModel),
                     std::make_shared<levelDrawer::TextureDescriptionPath>(m_ballTexture));
+
+            m_objDataIndexBall = m_levelDrawer.addModelMatrixForObject(m_objIndexBall, modelMatrixBall);
         }
 
         ~Level() override = default;

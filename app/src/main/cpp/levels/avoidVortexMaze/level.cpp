@@ -105,29 +105,4 @@ namespace avoidVortexMaze {
             }
         }
     }
-
-    bool Level::updateStaticDrawObjects(DrawObjectTable &objs, TextureMap &textures) {
-        if (objs.empty()) {
-            // the maze static objects.
-            bool isUpdated = generatedMaze::Level::updateStaticDrawObjects(objs, textures);
-
-            // the objects to avoid
-            std::shared_ptr<DrawObject> aviodObj(new DrawObject());
-            aviodObj->indices = holeIndices;
-            aviodObj->vertices = holeVertices;
-            aviodObj->texture = std::make_shared<TextureDescriptionPath>(m_gameRequester,
-                                                                         m_avoidObjTexture);
-            textures.insert(std::make_pair(aviodObj->texture, std::shared_ptr<TextureData>()));
-
-            for (auto const &item : m_avoidObjectLocations) {
-                aviodObj->modelMatrices.push_back(
-                        glm::translate(glm::mat4(1.0f), item) * scaleBall);
-            }
-            objs.push_back(std::make_pair(aviodObj, std::shared_ptr<DrawObjectData>()));
-
-            return true;
-        } else {
-            return false;
-        }
-    }
 } // namespace avoidVortexMaze

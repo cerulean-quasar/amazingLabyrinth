@@ -28,7 +28,7 @@
 #include <string>
 #include <array>
 
-#include "../../graphics.hpp"
+#include "../../levelDrawer/levelDrawer.hpp"
 #include "../basic/level.hpp"
 #include "../generatedMazeAlgorithms.hpp"
 #include "loadData.hpp"
@@ -67,25 +67,11 @@ namespace generatedMaze {
         glm::mat4 modelMatrixHole;
         glm::mat4 modelMatrixBall;
 
-        /* vertex and index data for drawing the floor. */
-        std::vector<Vertex> floorVertices;
-        std::vector<uint32_t> floorIndices;
-
-        /* vertex and index data for drawing the walls. */
-        std::vector<Vertex> vertices;
-        std::vector<uint32_t> indices;
-
-        /* vertex and index data for drawing the hole. */
-        std::vector<Vertex> holeVertices;
-        std::vector<uint32_t> holeIndices;
-
-        /* vertex and index data for drawing the ball. */
-        std::vector<Vertex> ballVertices;
-        std::vector<uint32_t> ballIndices;
+        // the indices stating how to identify the ball object
+        size_t m_objIndexBall;
+        size_t m_objDataIndexBall;
 
         std::vector<uint32_t> m_wallTextureIndices;
-
-        void loadModelFloor();
 
         float getRowCenterPosition(unsigned int row);
 
@@ -96,8 +82,6 @@ namespace generatedMaze {
         glm::vec3 getCellCenterPosition(unsigned int row, unsigned int col);
 
         bool ballInProximity(float x, float y);
-
-        void loadModels();
 
         void generateModelMatrices(MazeWallModelMatrixGeneratorFcn &wallModelMatrixGeneratorFcn);
 
@@ -133,11 +117,10 @@ namespace generatedMaze {
         Level(std::shared_ptr<GameRequester> inGameRequester,
              std::shared_ptr<LevelConfigData> const &lcd,
              std::shared_ptr<LevelSaveData> const &sd,
-             glm::mat4 const &proj,
-             glm::mat4 const &view,
+             levelDrawer::Adaptor inLevelDrawer,
              float floorZ,
              MazeWallModelMatrixGeneratorFcn wallModelMatrixGeneratorFcn = getMazeWallModelMatricesGenerator())
-                : basic::Level(std::move(inGameRequester), lcd, proj, view, floorZ, true),
+                : basic::Level(std::move(inGameRequester), lcd, std::move(inLevelDrawer), floorZ, true),
                   wallTextures{lcd->wallTextureNames},
                   floorTexture{lcd->mazeFloorTexture},
                   holeTexture{lcd->holeTexture},
@@ -146,10 +129,10 @@ namespace generatedMaze {
                               static_cast<uint32_t>(std::floor((lcd->numberRows) * m_width / m_height)),
                               getGeneratorType(lcd, sd)}
         {
+            m_levelDrawer.setClearColor(glm::vec4{0.0f, 0.0f, 0.0f, 1.0f});
+
             m_scaleBall = m_height / (lcd->numberRows * numberBlocksPerCell + 1) / m_originalBallDiameter;
             preGenerate();
-
-            loadModels();
 
             if (sd) {
                 m_mazeBoard.setEnd(sd->rowEnd, sd->colEnd);
@@ -178,6 +161,46 @@ namespace generatedMaze {
                     }
                 }
             }
+
+            // the floor
+            auto objIndex = m_levelDrawer.addObject(std::make_shared<levelDrawer::ModelDescriptionQuad>(),
+                                                    std::make_shared<levelDrawer::TextureDescriptionPath>(floorTexture));
+
+            m_levelDrawer.addModelMatrixForObject(objIndex, floorModelMatrix);
+
+            // the hole
+            if (drawHole) {
+                objIndex = m_levelDrawer.addObject(
+                        std::make_shared<levelDrawer::ModelDescriptionQuad>(),
+                        std::make_shared<levelDrawer::TextureDescriptionPath>(holeTexture));
+            }
+
+            m_levelDrawer.addModelMatrixForObject(objIndex, modelMatrixHole);
+
+            // the walls
+            if (wallTextures.empty()) {
+                throw std::runtime_error("Maze wall textures not initialized.");
+            }
+
+            std::vector<size_t> objIndices;
+            for (auto wallTexture : wallTextures) {
+                objIndex = m_levelDrawer.addObject(
+                        std::make_shared<levelDrawer::ModelDescriptionCube>(),
+                        std::make_shared<levelDrawer::TextureDescriptionPath>(wallTexture));
+                objIndices.push_back(objIndex);
+            }
+
+            for (size_t i = 0; i < m_wallTextureIndices.size(); i++) {
+                m_levelDrawer.addModelMatrixForObject(objIndices[m_wallTextureIndices[i]],
+                                                      modelMatricesMaze[i]);
+            }
+
+            // the ball
+            m_objIndexBall = m_levelDrawer.addObject(
+                    std::make_shared<levelDrawer::ModelDescriptionPath>(m_ballModel),
+                    std::make_shared<levelDrawer::TextureDescriptionPath>(m_ballTexture));
+
+            m_objDataIndexBall = m_levelDrawer.addModelMatrixForObject(m_objIndexBall, modelMatrixBall);
         }
 
         void preGenerate() {
@@ -195,10 +218,7 @@ namespace generatedMaze {
 
         bool updateData() override;
 
-        bool updateStaticDrawObjects(DrawObjectTable &objs, TextureMap &textures) override;
-
-        bool updateDynamicDrawObjects(DrawObjectTable &objs, TextureMap &textures,
-                                      bool &texturesChanged) override;
+        bool updateDrawObjects() override;
 
         void getLevelFinisherCenter(float &x, float &y, float &z) override {
             auto center = getCellCenterPosition(m_mazeBoard.rowEnd(), m_mazeBoard.colEnd());
