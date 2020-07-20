@@ -44,7 +44,15 @@ namespace levelDrawer {
         using CommonObjectDataList =
             std::array<std::shared_ptr<typename traits::CommonObjectDataType>, m_numberDrawObjectTables>;
 
-        void clearDrawObjectTable(ObjectType type) {
+        bool emptyOfDrawObjects(ObjectType type) override {
+            return m_drawObjectTableList[type].emptyOfDrawObjects();
+        }
+
+        size_t numberObjects(ObjectType type) override {
+            return m_drawObjectTableList[type].numberObjects();
+        }
+
+        void clearDrawObjectTable(ObjectType type) override {
             m_drawObjectTableList[type]->clear();
         }
 
@@ -84,6 +92,13 @@ namespace levelDrawer {
                         m_gameRequester->getParametersForRenderDetailsName(renderDetailsName)),
                 modelData,
                 textureData);
+        }
+
+        void removeObject(
+                ObjectType type,
+                size_t objIndex) override
+        {
+            m_drawObjectTableList[type]->removeObject(objIndex);
         }
 
         size_t addModelMatrixForObject(ObjectType type, size_t objsIndex, glm::mat4 const &modelMatrix) override {

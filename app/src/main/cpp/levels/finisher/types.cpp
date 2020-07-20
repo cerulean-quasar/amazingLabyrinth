@@ -27,9 +27,9 @@ namespace manyQuadsCoverUp {
     char constexpr const *LevelFinisher::m_name;
 
     LevelFinisher::LevelFinisher(
-            std::shared_ptr<GameRequester> inGameRequester, std::shared_ptr<LevelConfigData> const &lcd,
-            glm::mat4 const &proj, glm::mat4 const &view, float centerX, float centerY, float centerZ, float maxZ)
-            : finisher::LevelFinisher(std::move(inGameRequester), proj, view, centerX, centerY, centerZ, maxZ),
+            levelDrawer::Adaptor inLevelDrawer, std::shared_ptr<LevelConfigData> const &lcd,
+            float centerX, float centerY, float centerZ, float maxZ)
+            : finisher::LevelFinisher(std::move(inLevelDrawer), centerX, centerY, centerZ, maxZ),
               totalNumberReturned(0),
               imagePaths{lcd->textures}
     {
@@ -57,8 +57,7 @@ namespace manyQuadsCoverUp {
         }
     }
 
-    bool LevelFinisher::updateDrawObjects(DrawObjectTable &drawObjects, TextureMap &textures, bool &texturesUpdated) {
-        texturesUpdated = false;
+    bool LevelFinisher::updateDrawObjects() {
         auto currentTime = std::chrono::high_resolution_clock::now();
         float time = std::chrono::duration<float, std::chrono::seconds::period>(
                 currentTime - prevTime).count();
@@ -74,11 +73,14 @@ namespace manyQuadsCoverUp {
                 return false;
             }
 
-            uint32_t i = random.getUInt(0, drawObjects.size() - 1);
-            drawObjects[i].first->modelMatrices.pop_back();
-            if (drawObjects[i].first->modelMatrices.empty()) {
-                drawObjects.erase(drawObjects.begin()+i);
+            uint32_t i = random.getUInt(0, objIndices.size() - 1);
+            size_t nbrObjsData = m_levelDrawer.numberObjectsDataForObject(objIndices[i]);
+            m_levelDrawer.resizeObjectsData(objIndices[i], nbrObjsData -1);
+            if (--nbrObjsData == 0) {
+                m_levelDrawer.removeObject(objIndices[i]);
+                objIndices.erase(objIndices.begin() + i);
             }
+
             totalNumberReturned --;
         } else {
             if (totalNumberReturned >= totalNumberObjects) {
@@ -99,19 +101,14 @@ namespace manyQuadsCoverUp {
             // then a texture image is selected at random.
             size_t index;
             if (totalNumberReturned < imagePaths.size()) {
-                index = drawObjects.size();
-                std::shared_ptr<DrawObject> obj(new DrawObject());
-                obj->modelMatrices.push_back(trans * scale);
-                obj->texture = std::make_shared<TextureDescriptionPath>(m_gameRequester, imagePaths[index]);
-                textures.insert(std::make_pair(obj->texture, std::shared_ptr<TextureData>()));
-                getQuad(obj->vertices, obj->indices);
-                obj->modelMatrices.push_back(trans * scale);
-
-                drawObjects.push_back(std::make_pair(obj, std::shared_ptr<DrawObjectData>()));
-                texturesUpdated = true;
+                auto objIndex = m_levelDrawer.addObject(
+                        std::make_shared<levelDrawer::ModelDescriptionQuad>(),
+                        std::make_shared<levelDrawer::TextureDescriptionPath>(imagePaths[totalNumberReturned]));
+                objIndices.push_back(objIndex);
+                m_levelDrawer.addModelMatrixForObject(objIndex, trans * scale);
             } else {
                 index = random.getUInt(0, imagePaths.size() - 1);
-                drawObjects[index].first->modelMatrices.push_back(trans * scale);
+                m_levelDrawer.addModelMatrixForObject(objIndices[index], trans * scale);
             }
 
             totalNumberReturned++;
@@ -125,24 +122,31 @@ namespace growingQuad {
     char constexpr const *LevelFinisher::m_name;
 
     LevelFinisher::LevelFinisher(
-            std::shared_ptr<GameRequester> inGameRequester, std::shared_ptr<LevelConfigData> const &lcd,
-            glm::mat4 const &proj, glm::mat4 const &view,
+            levelDrawer::Adaptor inLevelDrawer, std::shared_ptr<LevelConfigData> const &lcd,
             float centerX, float centerY, float centerZ, float maxZ)
-            : finisher::LevelFinisher(std::move(inGameRequester), proj, view, centerX, centerY, centerZ, maxZ),
+            : finisher::LevelFinisher(std::move(inLevelDrawer), centerX, centerY, centerZ, maxZ),
               finalSize{1.5f * std::max(m_width, m_height)},
               minSize{0.005f * std::min(m_width, m_height)},
-              imagePath{lcd->texture}
+              imagePath{lcd->texture},
+              m_objIndex{0},
+              m_objDataIndex{0}
     {
         transVector = {m_centerX, m_centerY, maxZ};
         prevTime = std::chrono::high_resolution_clock::now();
         timeSoFar = 0.0f;
+        scaleVector = {minSize, minSize, minSize};
+        m_objIndex = m_levelDrawer.addObject(
+                std::make_shared<levelDrawer::ModelDescriptionQuad>(),
+                std::make_shared<levelDrawer::TextureDescriptionPath>(imagePath));
+        m_objDataIndex = m_levelDrawer.addModelMatrixForObject(
+                m_objIndex,
+                glm::translate(glm::mat4(1.0f), transVector) *
+                glm::scale(glm::mat4(1.0f), scaleVector))
     }
 
     bool
-    LevelFinisher::updateDrawObjects(DrawObjectTable &drawObjects, TextureMap &textures,
-                                     bool &texturesUpdated)
+    LevelFinisher::updateDrawObjects()
     {
-        texturesUpdated = false;
         if (finished) {
             return false;
         }
@@ -164,32 +168,23 @@ namespace growingQuad {
             multiplier = -1;
         }
 
-        if (drawObjects.empty()) {
-            timeSoFar = 0;
-            scaleVector = {minSize, minSize, minSize};
-            std::shared_ptr<DrawObject> obj(new DrawObject());
-
-            getQuad(obj->vertices, obj->indices);
-            obj->texture = std::make_shared<TextureDescriptionPath>(m_gameRequester, imagePath);
-            textures.insert(std::make_pair(obj->texture, std::shared_ptr<TextureData>()));
-            obj->modelMatrices.push_back(glm::translate(glm::mat4(1.0f), transVector) *
-                                         glm::scale(glm::mat4(1.0f), scaleVector));
-            drawObjects.push_back(std::make_pair(obj, std::shared_ptr<DrawObjectData>()));
-            texturesUpdated = true;
-        } else {
             timeSoFar += time;
             size = size + multiplier * timeSoFar / totalTime * (finalSize - minSize);
             scaleVector = {size, size, size};
-            drawObjects[0].first->modelMatrices[0] = glm::translate(glm::mat4(1.0f), transVector) *
-                                                     glm::scale(glm::mat4(1.0f), scaleVector);
+            m_levelDrawer.updateModelMatrixForObject(
+                    m_objIndex,
+                    m_objDataIndex,
+                    glm::translate(glm::mat4(1.0f), transVector) *
+                    glm::scale(glm::mat4(1.0f), scaleVector));
+
             if (size >= finalSize && !shouldUnveil) {
                 timeSoFar = 0.0f;
                 finished = true;
             }
+
             if (size <= minSize && shouldUnveil) {
                 finished = true;
             }
-        }
 
         return true;
     }

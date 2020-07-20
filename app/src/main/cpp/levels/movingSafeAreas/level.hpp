@@ -216,13 +216,24 @@ namespace movingSafeAreas {
 
                 for (auto const &movingQuadPos : movingQuadRow.positions) {
                     auto objDataIndex = m_levelDrawer.addModelMatrixForObject(
-                            m_objIndicesQuad[i],
+                            m_objIndicesQuad[textureNumber],
                             glm::translate(glm::mat4(1.0f), movingQuadPos) *
                             glm::scale(glm::mat4(1.0f), movingQuadRow.scale));
-                    m_objDataIndicesQuad[i].push_back(objDataIndex);
+                    m_objDataIndicesQuad[textureNumber].push_back(objDataIndex);
                 }
                 i++;
             }
+
+            // the ball
+            m_objIndexBall = m_levelDrawer.addObject(
+                    std::make_shared<levelDrawer::ModelDescriptionPath>(m_ballModel),
+                    std::make_shared<levelDrawer::TextureDescriptionPath>(m_ballTexture));
+
+            m_objDataIndexBall = m_levelDrawer.addModelMatrixForObject(
+                    m_objIndexBall,
+                    glm::translate(glm::mat4(1.0f), m_ball.position) *
+                    glm::mat4_cast(m_ball.totalRotated) *
+                    ballScaleMatrix());
         }
 
         ~Level() override = default;

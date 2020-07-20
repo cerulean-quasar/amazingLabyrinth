@@ -107,159 +107,33 @@ namespace starter {
         return false;
     }
 
-    bool Level::updateDynamicDrawObjects(DrawObjectTable &drawObjsData, TextureMap &textures,
-                                                bool &texturesChanged) {
-        texturesChanged = false;
-
+    bool Level::updateDrawObjects() {
         if (m_finished) {
             return false;
         }
 
-        if (drawObjsData.empty()) {
-            // ball
-            std::shared_ptr<DrawObject> obj = std::make_shared<DrawObject>();
-            obj->vertices = ballVertices;
-            obj->indices = ballIndices;
-            obj->texture = std::make_shared<TextureDescriptionPath>(m_gameRequester, m_ballTexture);
-            textures.insert(std::make_pair(obj->texture, std::shared_ptr<TextureData>()));
-            obj->modelMatrices.push_back(
-                    glm::translate(glm::mat4(1.0f), m_ball.position) *
-                    glm::mat4_cast(m_ball.totalRotated) *
-                    ballScaleMatrix());
-            drawObjsData.push_back(std::make_pair(obj, std::shared_ptr<DrawObjectData>()));
+        // the ball
+        m_levelDrawer.updateModelMatrixForObject(
+                m_objIndexBall,
+                m_objDataIndexBall,
+                glm::translate(glm::mat4(1.0f), m_ball.position) *
+                glm::mat4_cast(m_ball.totalRotated) * ballScaleMatrix());
 
-            // Text box
-            std::shared_ptr<DrawObject> obj1 = std::make_shared<DrawObject>();
-            getQuad(obj1->vertices, obj1->indices);
-            obj1->texture = std::make_shared<TextureDescriptionText>(m_gameRequester,
-                                                                     text[textIndex]);
-            textures.insert(std::make_pair(obj1->texture, std::shared_ptr<TextureData>()));
-            obj1->modelMatrices.push_back(
+        if (transitionText && !m_finished) {
+            textIndex++;
+
+            m_levelDrawer.removeObject(m_objIndexTextBox);
+            m_objIndexTextBox = m_levelDrawer.addObject(
+                    std::make_shared<levelDrawer::ModelDescriptionQuad>(),
+                    std::make_shared<levelDrawer::TextureDescriptionText>(text[textIndex]));
+
+            m_objDataIndexTextBox = m_levelDrawer.addModelMatrixForObject(
+                    m_objIndexBall,
                     glm::translate(glm::mat4(1.0f), glm::vec3(-ballRadius(), 0.0f, m_mazeFloorZ)) *
                     glm::scale(glm::mat4(1.0f), textScale));
-            drawObjsData.push_back(std::make_pair(obj1, std::shared_ptr<DrawObjectData>()));
-            texturesChanged = true;
-        } else {
-            drawObjsData[0].first->modelMatrices[0] =
-                    glm::translate(glm::mat4(1.0f), m_ball.position) *
-                    glm::mat4_cast(m_ball.totalRotated) * ballScaleMatrix();
 
-            if (transitionText && !m_finished) {
-                textIndex++;
-                textures.erase(drawObjsData[1].first->texture);
-                drawObjsData[1].first->texture = std::make_shared<TextureDescriptionText>(
-                        m_gameRequester,
-                        text[textIndex]);
-                textures.insert(std::make_pair(drawObjsData[1].first->texture,
-                                               std::shared_ptr<TextureData>()));
-                transitionText = false;
-                texturesChanged = true;
-            }
+            transitionText = false;
         }
-
-        return true;
-    }
-
-    bool
-    Level::updateStaticDrawObjects(DrawObjectTable &drawObjsData, TextureMap &textures) {
-        // Static Draw Objects are in the order: hole, then corridors (3 of them)
-        if (!drawObjsData.empty()) {
-            // these are static draw objects if they are already initialized just return false (no
-            // need to update their draw data).
-            return false;
-        }
-
-        float xpos = maxPosX;
-        float ypos = maxPosY;
-        float size = ballDiameter() * (1.0f + m_wallThickness) / m_modelSize;
-
-        glm::vec3 cornerScale{size, size, size};
-        glm::vec3 corridorHScale = glm::vec3{2 * (xpos - ballRadius()) / m_modelSize, size, size};
-        glm::vec3 corridorVScale = glm::vec3{size, 2 * (ypos - ballRadius()) / m_modelSize, size};
-        glm::vec3 zaxis = glm::vec3{0.0f, 0.0f, 1.0f};
-
-        std::pair<std::vector<Vertex>, std::vector<uint32_t>> v;
-
-        // the start of maze
-        auto obj = std::make_shared<DrawObject>();
-        loadModel(m_gameRequester->getAssetStream(corridorBeginModel), v);
-        std::swap(v.first, obj->vertices);
-        std::swap(v.second, obj->indices);
-        obj->texture = std::make_shared<TextureDescriptionPath>(m_gameRequester,
-                                                                corridorBeginImage);
-        textures.insert(std::make_pair(obj->texture, std::shared_ptr<TextureData>()));
-        obj->modelMatrices.push_back(
-                glm::translate(glm::mat4(1.0f),
-                               glm::vec3(-xpos, -ypos, m_mazeFloorZ - ballRadius())) *
-                glm::scale(glm::mat4(1.0f), cornerScale));
-        drawObjsData.push_back(std::make_pair(obj, std::shared_ptr<DrawObjectData>()));
-
-        // the end of maze
-        obj = std::make_shared<DrawObject>();
-        loadModel(m_gameRequester->getAssetStream(corridorEndModel), v);
-        std::swap(v.first, obj->vertices);
-        std::swap(v.second, obj->indices);
-        obj->texture = std::make_shared<TextureDescriptionPath>(m_gameRequester, corridorEndImage);
-        textures.insert(std::make_pair(obj->texture, std::shared_ptr<TextureData>()));
-        obj->modelMatrices.push_back(
-                glm::translate(glm::mat4(1.0f),
-                               glm::vec3(-xpos, ypos, m_mazeFloorZ - ballRadius())) *
-                glm::scale(glm::mat4(1.0f), cornerScale));
-        drawObjsData.push_back(std::make_pair(obj, std::shared_ptr<DrawObjectData>()));
-
-        // the corners of the maze
-        obj = std::make_shared<DrawObject>();
-        loadModel(m_gameRequester->getAssetStream(corridorCornerModel), v);
-        std::swap(v.first, obj->vertices);
-        std::swap(v.second, obj->indices);
-        obj->texture = std::make_shared<TextureDescriptionPath>(m_gameRequester,
-                                                                corridorCornerImage);
-        textures.insert(std::make_pair(obj->texture, std::shared_ptr<TextureData>()));
-
-        // bottom
-        obj->modelMatrices.push_back(
-                glm::translate(glm::mat4(1.0f),
-                               glm::vec3(xpos, -ypos, m_mazeFloorZ - ballRadius())) *
-                glm::scale(glm::mat4(1.0f), cornerScale) *
-                glm::rotate(glm::mat4(1.0f), glm::radians(-90.0f), zaxis));
-
-        // top
-        obj->modelMatrices.push_back(
-                glm::translate(glm::mat4(1.0f),
-                               glm::vec3(xpos, ypos, m_mazeFloorZ - ballRadius())) *
-                glm::scale(glm::mat4(1.0f), cornerScale));
-        drawObjsData.push_back(std::make_pair(obj, std::shared_ptr<DrawObjectData>()));
-
-        // corridors
-        obj = std::make_shared<DrawObject>();
-        loadModel(m_gameRequester->getAssetStream(corridorModel), v);
-        std::swap(v.first, obj->vertices);
-        std::swap(v.second, obj->indices);
-        std::shared_ptr<TextureDescription> textureCorridor = std::make_shared<TextureDescriptionPath>(
-                m_gameRequester, corridorImage);
-        textures.insert(std::make_pair(textureCorridor, std::shared_ptr<TextureData>()));
-        obj->texture = textureCorridor;
-
-        // bottom
-        obj->modelMatrices.push_back(
-                glm::translate(glm::mat4(1.0f),
-                               glm::vec3(0.0f, -ypos, m_mazeFloorZ - ballRadius())) *
-                glm::scale(glm::mat4(1.0f), corridorHScale) *
-                glm::rotate(glm::mat4(1.0), glm::radians(90.0f), zaxis));
-
-        // side
-        obj->modelMatrices.push_back(
-                glm::translate(glm::mat4(1.0f),
-                               glm::vec3(xpos, 0.0f, m_mazeFloorZ - ballRadius())) *
-                glm::scale(glm::mat4(1.0f), corridorVScale));
-
-        // Top
-        obj->modelMatrices.push_back(
-                glm::translate(glm::mat4(1.0f),
-                               glm::vec3(0.0f, ypos, m_mazeFloorZ - ballRadius())) *
-                glm::scale(glm::mat4(1.0f), corridorHScale) *
-                glm::rotate(glm::mat4(1.0), glm::radians(90.0f), zaxis));
-        drawObjsData.push_back(std::make_pair(obj, std::shared_ptr<DrawObjectData>()));
 
         return true;
     }

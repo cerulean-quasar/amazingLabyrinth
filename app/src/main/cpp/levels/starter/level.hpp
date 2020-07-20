@@ -27,12 +27,12 @@
 #include <glm/gtc/quaternion.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 
-#include "../../graphics.hpp"
 #include "../../common.hpp"
 #include <boost/optional.hpp>
 #include "level.hpp"
 #include "../basic/level.hpp"
 #include "loadData.hpp"
+#include "../../levelDrawer/levelDrawer.hpp"
 
 namespace starter {
     class Level : public basic::Level {
@@ -62,17 +62,19 @@ namespace starter {
 
         glm::vec3 textScale;
 
-        std::vector<Vertex> ballVertices;
-        std::vector<uint32_t> ballIndices;
+        size_t m_objIndexBall;
+        size_t m_objDataIndexBall;
 
+        size_t m_objIndexTextBox;
+        size_t m_objDataIndexTextBox;
     public:
         static char constexpr const *m_name = "starter";
 
-        Level(std::shared_ptr<GameRequester> inGameRequester,
+        Level(levelDrawer::Adaptor inLevelDrawer,
                      std::shared_ptr<LevelConfigData> const &lcd,
                      std::shared_ptr<LevelSaveData> const & /*sd*/,
-                     glm::mat4 const &proj, glm::mat4 const &view, float maxZ)
-                : basic::Level(std::move(inGameRequester), lcd, proj, view, maxZ, true),
+                     float maxZ)
+                : basic::Level(std::move(inLevelDrawer), lcd, maxZ, true),
                   maxPosX(m_width / 2 - ballRadius() -
                           m_wallThickness * ballDiameter() / m_modelSize),
                   maxPosY(m_height / 2 - ballRadius() -
@@ -97,6 +99,104 @@ namespace starter {
             m_ball.velocity = {0.0f, 0.0f, 0.0f};
             m_ball.acceleration = {0.0f, 0.0f, 0.0f};
             m_ball.totalRotated = glm::quat();
+
+            float xpos = maxPosX;
+            float ypos = maxPosY;
+            float size = ballDiameter() * (1.0f + m_wallThickness) / m_modelSize;
+
+            glm::vec3 cornerScale{size, size, size};
+            glm::vec3 corridorHScale = glm::vec3{2 * (xpos - ballRadius()) / m_modelSize, size, size};
+            glm::vec3 corridorVScale = glm::vec3{size, 2 * (ypos - ballRadius()) / m_modelSize, size};
+            glm::vec3 zaxis = glm::vec3{0.0f, 0.0f, 1.0f};
+
+            // the start of maze
+            auto objIndex = m_levelDrawer.addObject(
+                    std::make_shared<levelDrawer::ModelDescriptionPath>(corridorBeginModel),
+                    std::make_shared<levelDrawer::TextureDescriptionPath>(corridorBeginImage));
+            m_levelDrawer.addModelMatrixForObject(
+                    objIndex,
+                    glm::translate(glm::mat4(1.0f),
+                                   glm::vec3(-xpos, -ypos, m_mazeFloorZ - ballRadius())) *
+                    glm::scale(glm::mat4(1.0f), cornerScale));
+
+            // the end of maze
+            objIndex = m_levelDrawer.addObject(
+                    std::make_shared<levelDrawer::ModelDescriptionPath>(corridorEndModel),
+                    std::make_shared<levelDrawer::TextureDescriptionPath>(corridorEndImage));
+            m_levelDrawer.addModelMatrixForObject(
+                    objIndex,
+                    glm::translate(glm::mat4(1.0f),
+                                   glm::vec3(-xpos, -ypos, m_mazeFloorZ - ballRadius())) *
+                    glm::scale(glm::mat4(1.0f), cornerScale));
+
+            // the corners of the maze
+            objIndex = m_levelDrawer.addObject(
+                    std::make_shared<levelDrawer::ModelDescriptionPath>(corridorCornerModel),
+                    std::make_shared<levelDrawer::TextureDescriptionPath>(corridorCornerImage));
+
+            // bottom corner
+            m_levelDrawer.addModelMatrixForObject(
+                    objIndex,
+                    glm::translate(glm::mat4(1.0f),
+                                   glm::vec3(xpos, -ypos, m_mazeFloorZ - ballRadius())) *
+                    glm::scale(glm::mat4(1.0f), cornerScale) *
+                    glm::rotate(glm::mat4(1.0f), glm::radians(-90.0f), zaxis));
+
+            // top corner
+            m_levelDrawer.addModelMatrixForObject(
+                    objIndex,
+                    glm::translate(glm::mat4(1.0f),
+                                   glm::vec3(xpos, ypos, m_mazeFloorZ - ballRadius())) *
+                    glm::scale(glm::mat4(1.0f), cornerScale));
+
+            // the corridors of the maze
+            objIndex = m_levelDrawer.addObject(
+                    std::make_shared<levelDrawer::ModelDescriptionPath>(corridorModel),
+                    std::make_shared<levelDrawer::TextureDescriptionPath>(corridorImage));
+
+            // bottom
+            m_levelDrawer.addModelMatrixForObject(
+                    objIndex,
+                    glm::translate(glm::mat4(1.0f),
+                                   glm::vec3(0.0f, -ypos, m_mazeFloorZ - ballRadius())) *
+                    glm::scale(glm::mat4(1.0f), corridorHScale) *
+                    glm::rotate(glm::mat4(1.0), glm::radians(90.0f), zaxis));
+
+            // side
+            m_levelDrawer.addModelMatrixForObject(
+                    objIndex,
+                    glm::translate(glm::mat4(1.0f),
+                                   glm::vec3(xpos, 0.0f, m_mazeFloorZ - ballRadius())) *
+                    glm::scale(glm::mat4(1.0f), corridorVScale));
+
+            // top
+            m_levelDrawer.addModelMatrixForObject(
+                    objIndex,
+                    glm::translate(glm::mat4(1.0f),
+                                   glm::vec3(0.0f, ypos, m_mazeFloorZ - ballRadius())) *
+                    glm::scale(glm::mat4(1.0f), corridorHScale) *
+                    glm::rotate(glm::mat4(1.0), glm::radians(90.0f), zaxis));
+
+            // ball
+            m_objIndexBall = m_levelDrawer.addObject(
+                    std::make_shared<levelDrawer::ModelDescriptionPath>(m_ballModel),
+                    std::make_shared<levelDrawer::TextureDescriptionPath>(m_ballTexture));
+
+            m_objDataIndexBall = m_levelDrawer.addModelMatrixForObject(
+                    m_objIndexBall,
+                    glm::translate(glm::mat4(1.0f), m_ball.position) *
+                    glm::mat4_cast(m_ball.totalRotated) *
+                    ballScaleMatrix());
+
+            // the text box
+            m_objIndexTextBox = m_levelDrawer.addObject(
+                    std::make_shared<levelDrawer::ModelDescriptionQuad>(),
+                    std::make_shared<levelDrawer::TextureDescriptionText>(text[textIndex]));
+
+            m_objDataIndexTextBox = m_levelDrawer.addModelMatrixForObject(
+                    m_objIndexBall,
+                    glm::translate(glm::mat4(1.0f), glm::vec3(-ballRadius(), 0.0f, m_mazeFloorZ)) *
+                    glm::scale(glm::mat4(1.0f), textScale));
         }
 
         void clearText();
@@ -105,14 +205,9 @@ namespace starter {
 
         bool isInSideCorridor();
 
-        glm::vec4 getBackgroundColor() override { return glm::vec4(0.0f, 0.0f, 0.0f, 0.0f); }
-
         bool updateData() override;
 
-        bool updateStaticDrawObjects(DrawObjectTable &objs, TextureMap &textures) override;
-
-        bool updateDynamicDrawObjects(DrawObjectTable &objs, TextureMap &textures,
-                                      bool &texturesChanged) override;
+        bool updateDrawObjects() override;
 
         char const *name() override { return m_name; }
 

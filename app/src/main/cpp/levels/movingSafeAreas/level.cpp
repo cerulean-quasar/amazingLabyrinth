@@ -157,95 +157,23 @@ namespace movingSafeAreas {
         return false;
     }
 
-    bool Level::updateStaticDrawObjects(DrawObjectTable &objs, TextureMap &textures) {
-        if (!objs.empty()) {
-            return false;
-        }
+    bool Level::updateDrawObjects() {
+        // the ball
+        m_levelDrawer.updateModelMatrixForObject(
+                m_objIndexBall,
+                m_objDataIndexBall,
+                glm::translate(glm::mat4(1.0f), m_ball.position) *
+                                          glm::mat4_cast(m_ball.totalRotated) *
+                                          ballScaleMatrix());
 
-        glm::mat4 scale = glm::scale(glm::mat4(1.0f), glm::vec3{2 * maxX, m_quadScaleY, 1.0f});
-
-        // the end quad
-        std::shared_ptr<DrawObject> endObj = std::make_shared<DrawObject>();
-        endObj->vertices = m_quadVertices;
-        endObj->indices = m_quadIndices;
-        endObj->texture = std::make_shared<TextureDescriptionPath>(m_gameRequester,
-                                                                   m_endQuadTexture);
-        textures.insert(std::make_pair(endObj->texture, std::shared_ptr<TextureData>()));
-        endObj->modelMatrices.push_back(glm::translate(glm::mat4(1.0f), m_endQuadPosition) * scale);
-        objs.push_back(std::make_pair(endObj, std::shared_ptr<DrawObjectData>()));
-
-        // the start quad
-        std::shared_ptr<DrawObject> startVortexObj = std::make_shared<DrawObject>();
-        startVortexObj->vertices = m_quadVertices;
-        startVortexObj->indices = m_quadIndices;
-        startVortexObj->texture = std::make_shared<TextureDescriptionPath>(m_gameRequester,
-                                                                           m_startQuadTexture);
-        textures.insert(std::make_pair(startVortexObj->texture, std::shared_ptr<TextureData>()));
-        startVortexObj->modelMatrices.push_back(
-                glm::translate(glm::mat4(1.0f), m_startQuadPosition) * scale);
-        objs.push_back(std::make_pair(startVortexObj, std::shared_ptr<DrawObjectData>()));
-
-        return true;
-    }
-
-    bool Level::updateDynamicDrawObjects(DrawObjectTable &objs, TextureMap &textures,
-                                                    bool &texturesUpdated) {
-        texturesUpdated = false;
-        if (objs.empty()) {
-            // the ball is first...
-            std::shared_ptr<DrawObject> ballObj{new DrawObject{}};
-            ballObj->vertices = m_ballVertices;
-            ballObj->indices = m_ballIndices;
-            ballObj->texture = std::make_shared<TextureDescriptionPath>(m_gameRequester,
-                                                                        m_ballTexture);
-            textures.insert(std::make_pair(ballObj->texture, std::shared_ptr<TextureData>()));
-            ballObj->modelMatrices.push_back(glm::translate(glm::mat4(1.0f), m_ball.position) *
-                                             glm::mat4_cast(m_ball.totalRotated) *
-                                             ballScaleMatrix());
-            objs.push_back(std::make_pair(ballObj, std::shared_ptr<DrawObjectData>()));
-
-            // next we have the moving quads
-            size_t nbrRowsForTexture = m_movingQuads.size() / m_middleQuadTextures.size();
-            size_t leftover = m_movingQuads.size() % m_middleQuadTextures.size();
-            size_t i = 0;
-            for (auto const &movingQuadRow : m_movingQuads) {
-                std::shared_ptr<DrawObject> quadObj{new DrawObject{}};
-                quadObj->vertices = m_quadVertices;
-                quadObj->indices = m_quadIndices;
-                size_t textureNumber = 0;
-                if (nbrRowsForTexture == 0) {
-                    textureNumber = i;
-                } else if (i <= leftover * nbrRowsForTexture) {
-                    textureNumber = i / (nbrRowsForTexture + 1);
-                } else {
-                    textureNumber = i / nbrRowsForTexture;
-                }
-                quadObj->texture = std::make_shared<TextureDescriptionPath>(m_gameRequester,
-                                                                            m_middleQuadTextures[textureNumber]);
-                textures.insert(std::make_pair(quadObj->texture, std::shared_ptr<TextureData>()));
-                for (auto const &movingQuadPos : movingQuadRow.positions) {
-                    quadObj->modelMatrices.push_back(
-                            glm::translate(glm::mat4(1.0f), movingQuadPos) *
-                            glm::scale(glm::mat4(1.0f), movingQuadRow.scale));
-                }
-                objs.push_back(std::make_pair(quadObj, std::shared_ptr<DrawObjectData>()));
-                i++;
-            }
-
-            texturesUpdated = true;
-        } else {
-            // the ball is first...
-            objs[0].first->modelMatrices[0] = glm::translate(glm::mat4(1.0f), m_ball.position) *
-                                              glm::mat4_cast(m_ball.totalRotated) *
-                                              ballScaleMatrix();
-
-            // next, the moving quads
-            for (size_t i = 1; i < objs.size(); i++) {
-                for (size_t j = 0; j < objs[i].first->modelMatrices.size(); j++) {
-                    objs[i].first->modelMatrices[j] =
-                            glm::translate(glm::mat4(1.0f), m_movingQuads[i - 1].positions[j]) *
-                            glm::scale(glm::mat4(1.0f), m_movingQuads[i - 1].scale);
-                }
+        // the moving quads
+        for (size_t i = 1; i < m_objDataIndicesQuad.size(); i++) {
+            for (size_t j = 0; j < m_objDataIndicesQuad[i].size(); j++) {
+                m_levelDrawer.updateModelMatrixForObject(
+                        m_objIndicesQuad[i],
+                        m_objDataIndicesQuad[i][j],
+                        glm::translate(glm::mat4(1.0f), m_movingQuads[i - 1].positions[j]) *
+                        glm::scale(glm::mat4(1.0f), m_movingQuads[i - 1].scale));
             }
         }
         return true;

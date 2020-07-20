@@ -25,16 +25,16 @@
 #include <vector>
 #include <list>
 #include <chrono>
-#include "../../graphics.hpp"
 #include "../../mathGraphics.hpp"
 #include "../../random.hpp"
 #include "../../common.hpp"
 #include "loadData.hpp"
+#include "../../levelDrawer/levelDrawer.hpp"
 
 namespace finisher {
     class LevelFinisher {
     protected:
-        std::shared_ptr<GameRequester> m_gameRequester;
+        levelDrawer::Adaptor m_levelDrawer;
         float m_maxZ;
         float m_width;
         float m_height;
@@ -43,20 +43,23 @@ namespace finisher {
         bool shouldUnveil;
         bool finished;
     public:
-        LevelFinisher(std::shared_ptr<GameRequester> inGameRequester, glm::mat4 const &proj,
-                    glm::mat4 const &view, float centerX, float centerY, float centerZ, float maxZ)
-                : m_gameRequester{std::move(inGameRequester)},
+        LevelFinisher(levelDrawer::Adaptor inLevelDrawer,
+                float centerX, float centerY, float centerZ, float maxZ)
+                : m_levelDrawer{std::move(inLevelDrawer)},
                   m_maxZ(maxZ),
                   m_centerX(centerX),
                   m_centerY(centerY),
                   shouldUnveil(false),
                   finished(false)
         {
-            auto wh = getWidthHeight(maxZ, proj, view);
+            m_levelDrawer.requestRenderDetails(objectWithShadowsRenderDetailsName);
+
+            auto projView = m_levelDrawer.getProjectionView();
+            auto wh = getWidthHeight(maxZ, projView.first, projView.second);
             m_width = wh.first;
             m_height = wh.second;
 
-            auto center = getCenter(proj, view, centerX, centerY, centerZ, maxZ);
+            auto center = getCenter(projView.first, projView.second, centerX, centerY, centerZ, maxZ);
             m_centerX = center.first;
             m_centerY = center.second;
         }
@@ -66,7 +69,14 @@ namespace finisher {
             finished = false;
         }
 
-        std::pair<float, float> getCenter(glm::mat4 const &proj, glm::mat4 const &view, float x, float y, float z, float atZ) {
+        static std::pair<float, float> getCenter(
+                glm::mat4 const &proj,
+                glm::mat4 const &view,
+                float x,
+                float y,
+                float z,
+                float atZ)
+        {
             glm::vec4 locationScreen = proj * view * glm::vec4{x, y, z, 1.0f};
             glm::vec4 zVec = proj * view * glm::vec4{0.0f, 0.0f, atZ, 1.0f};
             locationScreen = glm::vec4{locationScreen.x * zVec.w, locationScreen.y * zVec.w,
@@ -80,8 +90,7 @@ namespace finisher {
 
         bool isDone() { return finished; }
 
-        virtual bool updateDrawObjects(DrawObjectTable &drawObjects, TextureMap &textures,
-                                       bool &texturesUpdated) = 0;
+        virtual bool updateDrawObjects() = 0;
 
         virtual ~LevelFinisher() = default;
     };
@@ -95,6 +104,7 @@ namespace manyQuadsCoverUp {
         static uint32_t constexpr totalNumberObjects =
                 totalNumberObjectsForSide * totalNumberObjectsForSide;
         std::list<glm::vec3> translateVectors;
+        std::vector<size_t> objIndices;
 
         // every timeThreshold, a new image appears, covering up the maze.
         static float constexpr timeThreshold = 0.05f;
@@ -106,11 +116,11 @@ namespace manyQuadsCoverUp {
         std::vector<std::string> imagePaths;
     public:
         static char constexpr const *m_name = "manyQuadsCoverUp";
-        bool updateDrawObjects(DrawObjectTable &drawObjects, TextureMap &textures,
-                                       bool &texturesUpdated) override;
+        bool updateDrawObjects() override;
 
-        LevelFinisher(std::shared_ptr<GameRequester> inGameRequester, std::shared_ptr<LevelConfigData> const &lcd,
-                glm::mat4 const &proj, glm::mat4 const &view, float centerX, float centerY, float centerZ, float maxZ);
+        LevelFinisher(levelDrawer::Adaptor inLeveDrawer,
+                std::shared_ptr<LevelConfigData> const &lcd,
+                float centerX, float centerY, float centerZ, float maxZ);
 
         ~LevelFinisher() override = default;
     };
@@ -130,20 +140,16 @@ namespace growingQuad {
         glm::vec3 scaleVector;
 
         glm::vec3 transVector;
+
+        size_t m_objIndex;
+        size_t m_objDataIndex;
     public:
         static char constexpr const *m_name = "growingQuad";
-        bool updateDrawObjects(DrawObjectTable &drawObjects, TextureMap &textures,
-                               bool &texturesUpdated) override;
+        bool updateDrawObjects() override;
 
-        LevelFinisher(
-            std::shared_ptr<GameRequester> inGameRequester,
-            std::shared_ptr<LevelConfigData> const &lcd,
-            glm::mat4 const &proj,
-            glm::mat4 const &view,
-            float centerX,
-            float centerY,
-            float centerZ,
-            float maxZ);
+        LevelFinisher(levelDrawer::Adaptor inLeveDrawer,
+                      std::shared_ptr<LevelConfigData> const &lcd,
+                      float centerX, float centerY, float centerZ, float maxZ);
 
         ~LevelFinisher() override = default;
     };

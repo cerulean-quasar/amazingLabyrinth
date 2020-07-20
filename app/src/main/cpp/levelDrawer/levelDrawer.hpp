@@ -37,6 +37,10 @@ namespace levelDrawer {
 
         virtual void setClearColor(ObjectType type, glm::vec4 const &clearColor) = 0;
 
+        virtual bool emptyOfDrawObjects(ObjectType type) = 0;
+
+        virtual size_t numberObjects(ObjectType type) = 0;
+
         // returns index of new object
         virtual size_t addObject(
                 ObjectType type,
@@ -49,6 +53,10 @@ namespace levelDrawer {
                 std::shared_ptr <ModelDescription> const &modelDescription,
                 std::shared_ptr <TextureDescription> const &textureDescription,
                 std::string const &renderDetailsName) = 0;
+
+        virtual void removeObject(
+                ObjectType type,
+                size_t objIndex) = 0;
 
         // returns index of new object data.
         virtual size_t addModelMatrixForObject(
@@ -94,6 +102,14 @@ namespace levelDrawer {
             m_levelDrawer->setClearColor(m_type, clearColor);
         }
 
+        bool emptyOfDrawObjects() {
+            return m_levelDrawer->emptyOfDrawObjects(m_type);
+        }
+
+        size_t numberObjects() {
+            return m_levelDrawer->numberObjects(m_type);
+        }
+
         // returns index of new object
         size_t addObject(
                 std::shared_ptr <ModelDescription> const &modelDescription,
@@ -107,6 +123,10 @@ namespace levelDrawer {
                 std::shared_ptr <TextureDescription> const &textureDescription,
                 std::string const &renderDetailsName) {
             return m_levelDrawer->addObject(m_type, modelDescription, textureDescription, renderDetailsName);
+        }
+
+        void removeObject(size_t objIndex) {
+            m_levelDrawer->removeObject(m_type, objIndex);
         }
 
         // returns index of new object data.

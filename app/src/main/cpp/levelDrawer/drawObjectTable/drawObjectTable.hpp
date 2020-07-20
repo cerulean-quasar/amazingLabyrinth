@@ -30,6 +30,10 @@ namespace levelDrawer {
     template<typename traits>
     class DrawObject {
     public:
+        bool hasOverridingRenderDetailsReference() {
+            return m_renderDetailsReference.renderDetails != nullptr;
+        }
+
         typename traits::RenderDetailsReferenceType const &renderDetailsReference() {
             return m_renderDetailsReference;
         }
@@ -99,8 +103,18 @@ namespace levelDrawer {
             std::vector<size_t> drawObjectIndices;
         };
 
+        bool emptyOfDrawObjects() {
+            return m_drawObjects.empty();
+        }
+
+        size_t numberObjects() {
+            return m_drawObjects.size();
+        }
+
         void clear() {
             m_drawObjects.clear();
+            m_objsIndicesWithOverridingRenderDetails.clear();
+            m_objsIndicesWithGlobalRenderDetails.clear();
         }
 
         // returns index of added object.
@@ -150,6 +164,24 @@ namespace levelDrawer {
                 m_objsIndicesWithGlobalRenderDetails.push_back(newObjectIndex);
             }
             return newObjectIndex;
+        }
+
+        void removeObject(size_t objIndex) {
+            if (m_drawObjects[objIndex].hasOverridingRenderDetailsReference()) {
+                for (auto it = m_objsIndicesWithOverridingRenderDetails; it != m_objsIndicesWithOverridingRenderDetails.end(); it++) {
+                    if (*it == objIndex) {
+                        m_objsIndicesWithOverridingRenderDetails.erase(objIndex);
+                    }
+                }
+            } else {
+                for (auto it = m_objsIndicesWithGlobalRenderDetails; it != m_objsIndicesWithGlobalRenderDetails.end(); it++) {
+                    if (*it == objIndex) {
+                        m_objsIndicesWithGlobalRenderDetails.erase(objIndex);
+                    }
+                }
+            }
+
+            m_drawObjects.erase(m_drawObjects.begin() + objIndex);
         }
 
         std::vector<size_t>
