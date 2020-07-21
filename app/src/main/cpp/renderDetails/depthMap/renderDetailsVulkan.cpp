@@ -140,6 +140,24 @@ namespace depthMap {
         return std::move(ref);
     }
 
+    void RenderDetailsVulkan::reload(
+            std::shared_ptr<GameRequester> const &gameRequester,
+            std::shared_ptr<RenderLoaderVulkan> const &renderLoader,
+            ParametersVulkan const &parameters)
+    {
+        m_pipeline.reset();
+
+        m_surfaceWidth = parameters.width;
+        m_surfaceHeight = parameters.height;
+
+        m_pipeline = std::make_shared<vulkan::Pipeline>(
+                gameRequester, m_device,
+                VkExtent2D{m_width, m_height},
+                parameters.renderPass, m_descriptorPools, getBindingDescription(),
+                getAttributeDescriptions(),
+                SHADER_LINEAR_DEPTH_VERT_FILE, SHADER_SIMPLE_FRAG_FILE, nullptr);
+    }
+
     RegisterVulkan<renderDetails::RenderDetailsVulkan, RenderDetailsVulkan, Config, renderDetails::ParametersVulkan> registerVulkan();
 
 }

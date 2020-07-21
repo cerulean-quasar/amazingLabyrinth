@@ -112,6 +112,11 @@ namespace shadowsChaining {
             renderDetails::ParametersVulkan const &parameters,
             Config const &config);
 
+        virtual void reload(
+                std::shared_ptr<GameRequester> const &gameRequester,
+                std::shared_ptr<RenderLoaderVulkan> const &renderLoader,
+                ParametersVulkan const &parameters);
+
         void addPreRenderPassCmdsToCommandBuffer(
                 VkCommandBuffer const &commandBuffer,
                 size_t /* descriptor set ID, not used */,
@@ -142,12 +147,6 @@ namespace shadowsChaining {
         std::shared_ptr<shadows::RenderDetailsVulkan> m_shadowsRenderDetails;
         std::shared_ptr<vulkan::Framebuffer> m_framebufferShadows;
 
-        RenderDetailsVulkan(
-            uint32_t inWidth,
-            uint32_t inHeight)
-            : renderDetails::RenderDetailsVulkan{inWidth, inHeight}
-        {}
-
         static uint32_t getShadowsFramebufferDimension(uint32_t dimension) {
             return static_cast<uint32_t>(std::floor(dimension * shadowsSizeMultiplier));
         }
@@ -169,6 +168,15 @@ namespace shadowsChaining {
             shadowParameters.renderPass = rd->m_renderPassShadows;
             return std::move(shadowParameters);
         }
+
+        void createShadowResources(ParametersVulkan const &parameters);
+
+        RenderDetailsVulkan(
+                uint32_t inWidth,
+                uint32_t inHeight)
+                : renderDetails::RenderDetailsVulkan{inWidth, inHeight}
+        {}
+
     };
 }
 

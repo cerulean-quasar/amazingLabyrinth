@@ -253,6 +253,11 @@ namespace depthMap {
                 std::shared_ptr<levelDrawer::DrawObjectTableVulkan> const &drawObjTable,
                 std::vector<size_t> const &drawObjectsIndices) override;
 
+        void reload(
+                std::shared_ptr<GameRequester> const &gameRequester,
+                std::shared_ptr<RenderLoaderVulkan> const &renderLoader,
+                ParametersVulkan const &parameters) override;
+
         std::shared_ptr<vulkan::Device> const &device() override { return m_device; }
         std::shared_ptr<vulkan::DescriptorPools> const &descriptorPools() override {
             return m_descriptorPools;
@@ -289,8 +294,7 @@ namespace depthMap {
                     VkExtent2D{m_width, m_height},
                     parameters.renderPass, m_descriptorPools, getBindingDescription(),
                     getAttributeDescriptions(),
-                    SHADER_LINEAR_DEPTH_VERT_FILE, SHADER_SIMPLE_FRAG_FILE, basePipeline,
-                    VK_CULL_MODE_FRONT_BIT)}
+                    SHADER_LINEAR_DEPTH_VERT_FILE, SHADER_SIMPLE_FRAG_FILE, basePipeline)}
         {}
 
         static renderDetails::ReferenceVulkan createReference(

@@ -84,6 +84,13 @@ namespace renderDetails {
                 levelDrawer::LevelDrawerGL::IndicesForDrawList const &drawObjectsIndicesList)
         {}
 
+        virtual void reload(std::shared_ptr<GameRequester> const &gameRequester,
+                            std::shared_ptr<RenderLoaderGL> const &renderLoader,
+                            ParametersGL const &parameters)
+        {
+            // do nothing.  For GL, we need to dump all render details and reload everything.
+        }
+
         virtual void draw(
                 uint32_t modelMatrixID,
                 std::shared_ptr<renderDetails::CommonObjectData> const &commonObjectData,

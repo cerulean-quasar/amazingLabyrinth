@@ -215,7 +215,11 @@ namespace shadows {
                 std::shared_ptr<levelDrawer::DrawObjectTableVulkan> const &drawObjTable,
                 std::vector<size_t> const &drawObjectsIndices) override;
 
-        std::shared_ptr<vulkan::RenderPass> const &renderPass() { return m_renderPass; }
+        void reload(
+                std::shared_ptr<GameRequester> const &gameRequester,
+                std::shared_ptr<RenderLoaderVulkan> const &renderLoader,
+                ParametersVulkan const &parameters) override;
+
         std::shared_ptr<vulkan::Device> const &device() override { return m_device; }
         std::shared_ptr<vulkan::DescriptorPools> const &descriptorPools() override {
             return m_descriptorPools;
@@ -243,7 +247,7 @@ namespace shadows {
             m_descriptorPools{std::make_shared<vulkan::DescriptorPools>(m_device, m_descriptorSetLayout)},
             m_pipeline{std::make_shared<vulkan::Pipeline>(
                         gameRequester, m_device,
-                        VkExtent2D{m_width, m_height},
+                        VkExtent2D{m_surfaceWidth, m_surfaceHeight},
                         parameters.renderPass, m_descriptorPools, getBindingDescription(),
                         getAttributeDescriptions(),
                         SHADOW_VERT_FILE, SHADER_SIMPLE_FRAG_FILE, basePipeline,

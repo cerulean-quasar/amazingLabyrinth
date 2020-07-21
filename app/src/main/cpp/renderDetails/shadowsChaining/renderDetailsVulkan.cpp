@@ -33,39 +33,7 @@ namespace shadowsChaining {
             auto rd = std::make_shared<RenderDetailsVulkan>(parameters.width, parameters.height);
             rd->m_device = inDevice;
 
-            // shadow resources
-            rd->m_depthImageViewShadows = std::make_shared<vulkan::ImageView>(
-                    vulkan::ImageFactory::createDepthImage(
-                            inDevice,
-                            VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT,
-                            getShadowsFramebufferWidth(parameters.width),
-                            getShadowsFramebufferHeigth(parameters.height)),
-                    VK_IMAGE_ASPECT_DEPTH_BIT);
-            rd->m_shadowsColorAttachment = vulkan::ImageView::createImageViewAndImage(
-                    inDevice,
-                    getShadowsFramebufferWidth(parameters.width),
-                    getShadowsFramebufferHeigth(parameters.height),
-                    VK_FORMAT_R32G32B32A32_SFLOAT,
-                    VK_IMAGE_TILING_OPTIMAL,
-                    VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
-                    VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
-                    VK_IMAGE_ASPECT_COLOR_BIT);
-            rd->m_samplerShadows = std::make_shared<vulkan::ImageSampler>(
-                    inDevice, rd->m_shadowsColorAttachment,
-                    VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER,
-                    VK_BORDER_COLOR_FLOAT_OPAQUE_WHITE);
-            auto colorImageInfo =
-                    std::vector<vulkan::RenderPass::ImageAttachmentInfo>{vulkan::RenderPass::ImageAttachmentInfo{
-                            VK_ATTACHMENT_LOAD_OP_CLEAR, VK_ATTACHMENT_STORE_OP_STORE,
-                            rd->m_shadowsColorAttachment->image()->format(),
-                            VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL}};
-            auto depthImageInfo =
-                    std::make_shared<vulkan::RenderPass::ImageAttachmentInfo>(
-                            VK_ATTACHMENT_LOAD_OP_CLEAR, VK_ATTACHMENT_STORE_OP_STORE,
-                            rd->m_depthImageViewShadows->image()->format(),
-                            VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL);
-            rd->m_renderPassShadows = vulkan::RenderPass::createDepthTextureRenderPass(
-                    inDevice, colorImageInfo, depthImageInfo);
+            rd->createShadowResources();
 
             auto shadowParameters = createShadowParameters(rd, parameters);
 
@@ -80,16 +48,11 @@ namespace shadowsChaining {
                                                                     rd->m_depthImageViewShadows},
                     shadowParameters.width, shadowParameters.height);
 
-            // texture render details
-            auto refTexture = renderLoader->load(
-                    gameRequester, textureWithShadows::RenderDetailsVulkan::name(), parameters);
+            // main render details
+            auto refMain = renderLoader->load(
+                    gameRequester, objectWithShadows::RenderDetailsVulkan::name(), parameters);
 
-            // color render details
-            auto refColor = renderLoader->load(
-                    gameRequester, colorWithShadows::RenderDetailsVulkan::name(), parameters);
-
-            rd->m_textureRenderDetails = refTexture.renderDetails;
-            rd->m_colorRenderDetails = refColor.renderDetails;
+            rd->m_objectWithShadowsRenderDetails = refMain.renderDetails;
             rd->m_shadowsRenderDetails = refShadows.renderDetails;
 
             return createReference(std::move(rd), refShadows, refTexture, refColor);
@@ -116,10 +79,25 @@ namespace shadowsChaining {
         auto refObjectWithShadows = renderLoader->load(
             gameRequester, renderLoader, objectWithShadows::RenderDetailsVulkan::name(), parameters);
 
-        rd->m_objectWithShadowsRenderDetails = refTexture.renderDetails;
+        rd->m_objectWithShadowsRenderDetails = refObjectWithShadows.renderDetails;
         rd->m_shadowsRenderDetails = refShadows.renderDetails;
 
         return createReference(std::move(rdBase), refShadows, refObjectWithShadows);
+    }
+
+    void RenderDetailsVulkan::reload(
+            std::shared_ptr<GameRequester> const &gameRequester,
+            std::shared_ptr<RenderLoaderVulkan> const &renderLoader,
+            ParametersVulkan const &parameters)
+    {
+        createShadowResources(ParametersVulkan const &parameters);
+
+        m_surfaceWidth = parameters.width;
+        m_surfaceHeight = parameters.height;
+
+        auto shadowParameters = createShadowParameters(rd, parameters);
+        m_shadowsRenderDetails->reload(gameRequester, renderLoader, shadowParameters);
+        m_objectWithShadowsRenderDetails->reload(gameRequester, renderLoader, parameters);
     }
 
     void RenderDetailsVulkan::addPreRenderPassCmdsToCommandBuffer(
@@ -224,6 +202,47 @@ namespace shadowsChaining {
                 });
 
         return std::move(ref);
+    }
+
+    void RenderDetailsVulkan::createShadowResources(ParametersVulkan const &parameters) {
+        m_renderPassShadows.reset();
+        m_samplerShadows.reset();
+        m_shadowsColorAttachment.reset();
+        m_depthImageViewShadows.reset();
+
+        // shadow resources
+        m_depthImageViewShadows = std::make_shared<vulkan::ImageView>(
+                vulkan::ImageFactory::createDepthImage(
+                        m_device,
+                        VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT,
+                        getShadowsFramebufferWidth(parameters.width),
+                        getShadowsFramebufferHeigth(parameters.height)),
+                VK_IMAGE_ASPECT_DEPTH_BIT);
+        m_shadowsColorAttachment = vulkan::ImageView::createImageViewAndImage(
+                m_device,
+                getShadowsFramebufferWidth(parameters.width),
+                getShadowsFramebufferHeigth(parameters.height),
+                VK_FORMAT_R32G32B32A32_SFLOAT,
+                VK_IMAGE_TILING_OPTIMAL,
+                VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
+                VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+                VK_IMAGE_ASPECT_COLOR_BIT);
+        m_samplerShadows = std::make_shared<vulkan::ImageSampler>(
+                m_device, m_shadowsColorAttachment,
+                VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER,
+                VK_BORDER_COLOR_FLOAT_OPAQUE_WHITE);
+        auto colorImageInfo =
+                std::vector<vulkan::RenderPass::ImageAttachmentInfo>{vulkan::RenderPass::ImageAttachmentInfo{
+                        VK_ATTACHMENT_LOAD_OP_CLEAR, VK_ATTACHMENT_STORE_OP_STORE,
+                        m_shadowsColorAttachment->image()->format(),
+                        VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL}};
+        auto depthImageInfo =
+                std::make_shared<vulkan::RenderPass::ImageAttachmentInfo>(
+                        VK_ATTACHMENT_LOAD_OP_CLEAR, VK_ATTACHMENT_STORE_OP_STORE,
+                        m_depthImageViewShadows->image()->format(),
+                        VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL);
+        m_renderPassShadows = vulkan::RenderPass::createDepthTextureRenderPass(
+                inDevice, colorImageInfo, depthImageInfo);
     }
 
     RegisterVulkan<renderDetails::RenderDetailsVulkan, RenderDetailsVulkan, Config, renderDetails::ParametersVulkan> registerVulkan();

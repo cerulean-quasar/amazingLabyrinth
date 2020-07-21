@@ -52,7 +52,7 @@ namespace levelDrawer {
             return m_drawObjectTableList[type].numberObjects();
         }
 
-        void clearDrawObjectTable(ObjectType type) override {
+        void clearDrawObjectTable(ObjectType type) {
             m_drawObjectTableList[type]->clear();
         }
 

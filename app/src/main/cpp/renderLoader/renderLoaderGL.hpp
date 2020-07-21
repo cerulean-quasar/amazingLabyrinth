@@ -60,7 +60,7 @@ protected:
             std::shared_ptr<RenderLoaderGLTraits::RenderDetailsType> const &renderDetails,
             RenderLoaderGLTraits::RenderDetailsParameterType const &parameters) override
     {
-        renderDetails.reload(gameRequester, parameters);
+        renderDetails.reload(gameRequester, shared_from_this(), parameters);
     }
 
     RenderLoaderGLTraits::RenderDetailsReferenceType loadExisting(

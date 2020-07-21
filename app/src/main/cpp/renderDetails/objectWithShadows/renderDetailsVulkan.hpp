@@ -315,6 +315,11 @@ namespace objectWithShadows {
                 std::shared_ptr<levelDrawer::DrawObjectTableVulkan> const &drawObjTable,
                 std::vector<size_t> const &drawObjectsIndices) override;
 
+        void reload(
+                std::shared_ptr<GameRequester> const &gameRequester,
+                std::shared_ptr<RenderLoaderVulkan> const &renderLoader,
+                ParametersVulkan const &parameters) override;
+
         ~RenderDetailsVulkan() override = default;
 
     private:

@@ -28,6 +28,7 @@
 #include "renderLoader.hpp"
 #include "../renderDetails/renderDetailsVulkan.hpp"
 #include "registerVulkan.hpp"
+#include "../../../../../../../Android/Sdk/ndk/21.3.6528147/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/include/vulkan/vulkan_core.h"
 
 struct RenderLoaderVulkanTraits {
     using RenderDetailsParametersType = renderDetails::ParametersVulkan;
@@ -59,6 +60,7 @@ protected:
         std::shared_ptr<RenderLoaderVulkanTraits::RenderDetailsType> const &renderDetails,
         RenderLoaderVulkanTraits::RenderDetailsParameterType const &parameters) override
     {
+        vkDeviceWaitIdle(m_device->logicalDevice().get());
         renderDetails.reload(gameRequester, shared_from_this(), parameters);
     }
 
