@@ -48,14 +48,13 @@ namespace movablePassage {
 
         bool tap(float x, float y) override;
 
-        glm::vec4 getBackgroundColor() override { return {0.6f, 0.8f, 1.0f, 1.0f}; }
-
         bool updateData() override;
 
-        bool updateStaticDrawObjects(DrawObjectTable &objs, TextureMap &textures) override;
+        void addStaticDrawObjects();
 
-        bool updateDynamicDrawObjects(DrawObjectTable &objs, TextureMap &textures,
-                                      bool &texturesChanged) override;
+        void addDynamicDrawObjects();
+
+        bool updateDrawObjects() override;
 
         void start() override { m_prevTime = std::chrono::high_resolution_clock::now(); }
 
@@ -76,13 +75,11 @@ namespace movablePassage {
         ~Level() override = default;
 
         Level(
-            std::shared_ptr<GameRequester> inGameRequester,
+            levelDrawer::Adaptor inLevelDrawer,
             std::shared_ptr<LevelConfigData> const &lcd,
             std::shared_ptr<LevelSaveData> const &sd,
-            glm::mat4 const &proj,
-            glm::mat4 const &view,
             float maxZ)
-            : basic::Level(inGameRequester, lcd, proj, view, maxZ, true),
+            : basic::Level(std::move(inLevelDrawer), lcd, maxZ, true),
               m_random{},
               m_zdrawTopsOfObjects{ m_mazeFloorZ },
               m_zMovingPlacement{ m_mazeFloorZ + m_scaleBall },
@@ -104,6 +101,8 @@ namespace movablePassage {
               m_initDone{ false },
               m_objsIndexBall{ 0 }
         {
+            m_levelDrawer.setClearColor(glm::vec4{0.6f, 0.8f, 1.0f, 1.0f});
+
             m_textureLockedComponent = lcd->placementLockedInPlaceTexture;
 
             m_componentModels[Component::ComponentType::noMovementRock] = lcd->rockModels;
@@ -143,11 +142,15 @@ namespace movablePassage {
 
             initDone(sd);
 
+            auto projView = m_levelDrawer.getProjectionView();
             // do after the game board is initialized.
-            auto wh = getWidthHeight(m_gameBoard.getZPosEndTile(), proj, view);
+            auto wh = getWidthHeight(m_gameBoard.getZPosEndTile(), projView.first, projView.second);
             m_gameBoard.setCenterPos(glm::vec3{0.0f, (wh.second - m_gameBoard.heightInTiles() *
                                                                m_gameBoard.blockSize()) / 2.0f,
                                                m_mazeFloorZ});
+
+            addStaticDrawObjects();
+            addDynamicDrawObjects();
         }
 
     private:
@@ -169,6 +172,7 @@ namespace movablePassage {
         bool m_initDone;
 
         size_t m_objsIndexBall;
+        size_t m_objDataIndexBall;
 
         std::array<std::vector<std::string>,
                 Component::ComponentType::maxComponentType + 1> m_componentModels;
@@ -226,6 +230,8 @@ namespace movablePassage {
 
         // all other init functions before calling this function or starting the level
         void initDone(std::shared_ptr<LevelSaveData> const &sd);
+
+        void addComponentModelMatrices(boost::optional<size_t> const &ballReference);
     };
 } // namespace movablePassage
 

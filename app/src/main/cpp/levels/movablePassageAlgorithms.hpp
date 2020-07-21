@@ -42,20 +42,19 @@
 // from the locked in place models/textures or the non-locked in place models/textures.
 // The objIsDynAndIndex indicates if it is a dynamic reference (true) and what the index is.
 struct ObjReference {
-    // true means it is a dynamic obj, otherwise it is a static obj.
-    boost::optional<std::pair<bool, size_t>> objIsDynAndIndex;
+    // The index used to identify the draw object.
+    boost::optional<size_t> objIndex;
 
     bool isLockedInPlaceRef;
     size_t modelIndex;
     size_t textureIndex;
 
     ObjReference(
-            bool isDynamicObj,
-            size_t objIndex,
+            size_t objIndex_,
             bool isLockedInPlaceRef_,
             size_t modelIndex_,
             size_t textureIndex_)
-            : objIsDynAndIndex{std::make_pair(isDynamicObj, objIndex)},
+            : objIndex{objIndex_},
               isLockedInPlaceRef{isLockedInPlaceRef_},
               modelIndex{modelIndex_},
               textureIndex{textureIndex_}
@@ -65,14 +64,14 @@ struct ObjReference {
             bool isLockedInPlaceRef_,
             size_t modelIndex_,
             size_t textureIndex_)
-            : objIsDynAndIndex{boost::none},
+            : objIndex{boost::none},
               isLockedInPlaceRef{isLockedInPlaceRef_},
               modelIndex{modelIndex_},
               textureIndex{textureIndex_}
     {}
 
     ObjReference()
-        : objIsDynAndIndex{boost::none},
+        : objIndex{boost::none},
           isLockedInPlaceRef{false},
           modelIndex{0},
           textureIndex{0}
@@ -815,39 +814,30 @@ private:
     }
 };
 
-template <void (*getModel)(std::vector<Vertex> &vertices, std::vector<uint32_t> &indices)>
+template <typename AlternateModelDescriptionType>
 std::set<ObjReference> addObjs(
-        std::shared_ptr<GameRequester> const &gameRequester,
-        bool isDyn,
-        DrawObjectTable &objs,
-        TextureMap &textures,
+        levelDrawer::Adaptor const &levelDrawer,
         bool isLockedInPlaceRef,
         std::vector<std::string> const &models,
         std::vector<std::string> const &textureNames)
 {
     std::set<ObjReference> ret;
-    std::vector<std::pair<std::vector<Vertex>, std::vector<uint32_t>>> v;
+    std::vector<std::shared_ptr<levelDrawer::ModelDescription>> v;
     if (models.empty()) {
-        v.resize(1);
-        getModel(v[0].first, v[0].second);
+        v.push_back(std::make_shared<AlternateModelDescriptionType>());
     } else {
-        v.resize(models.size());
         for (size_t i = 0; i < models.size(); i++) {
-            loadModel(gameRequester->getAssetStream(models[i]), v[i]);
+            v.push_back(std::make_shared<levelDrawer::ModelDescriptionPath>(models[i]));
         }
     }
 
     for (size_t i = 0; i < std::max(v.size(), textureNames.size()); i++) {
-        auto obj = std::make_shared<DrawObject>();
-        obj->vertices = v[i%v.size()].first;
-        obj->indices = v[i%v.size()].second;
-        obj->texture = std::make_shared<TextureDescriptionPath>(gameRequester,
-                                                                textureNames[i%textureNames.size()]);
-        if (i < textureNames.size()) {
-            textures.insert(std::make_pair(obj->texture, std::shared_ptr<TextureData>()));
-        }
-        ret.emplace(isDyn, objs.size(), isLockedInPlaceRef, i % v.size(), i % textureNames.size());
-        objs.emplace_back(obj, std::shared_ptr<DrawObjectData>());
+        auto objIndex = levelDrawer.addObject(
+                v[i%v.size()],
+                std::make_shared<levelDrawer::TextureDescriptionPath>(
+                        textureNames[i%textureNames.size()]));
+
+        ret.emplace(objIndex, isLockedInPlaceRef, i % v.size(), i % textureNames.size());
     }
 
     return std::move(ret);
@@ -859,8 +849,8 @@ boost::optional<ObjReference> chooseObj(
         size_t placementIndex);
 
 boost::optional<ObjReference> addModelMatrixToObj(
+        levelDrawer::Adaptor const &levelDrawer,
         Random &randomNumbers,
-        DrawObjectTable &objs,
         std::set<ObjReference> const &refs,
         std::shared_ptr<Component> const &component,
         size_t placementIndex,

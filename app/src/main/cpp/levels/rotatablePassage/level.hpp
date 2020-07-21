@@ -30,7 +30,6 @@
 #include <glm/gtc/matrix_transform.hpp>
 
 #include "../basic/level.hpp"
-#include "../../graphics.hpp"
 #include "../movablePassageAlgorithms.hpp"
 #include "../generatedMazeAlgorithms.hpp"
 
@@ -48,14 +47,13 @@ namespace rotatablePassage {
             return m_gameBoard.tap(position);
         }
 
-        glm::vec4 getBackgroundColor() override { return {0.0f, 0.0f, 0.0f, 1.0f}; }
-
         bool updateData() override;
 
-        bool updateStaticDrawObjects(DrawObjectTable &objs, TextureMap &textures) override;
+        bool updateDrawObjects() override;
 
-        bool updateDynamicDrawObjects(DrawObjectTable &objs, TextureMap &textures,
-                                      bool &texturesChanged) override;
+        void addStaticDrawObjects();
+
+        void addDynamicDrawObjects();
 
         void start() override { m_prevTime = std::chrono::high_resolution_clock::now(); }
 
@@ -72,11 +70,11 @@ namespace rotatablePassage {
                                       char const *saveLevelDataKey) override;
 
         Level(
-            std::shared_ptr<GameRequester> inGameRequester,
+            levelDrawer::Adaptor inLevelDrawer,
             std::shared_ptr<LevelConfigData> const &lcd,
             std::shared_ptr<LevelSaveData> const &sd,
             glm::mat4 const &proj, glm::mat4 const &view, float maxZ)
-            : basic::Level(inGameRequester, lcd, proj, view, maxZ, true),
+            : basic::Level(inLevelDrawer, lcd, maxZ, true),
               m_gameBoard(),
               m_components{
                       std::make_shared<Component>(Component::ComponentType::straight),
@@ -88,10 +86,13 @@ namespace rotatablePassage {
               m_ballCol{0},
               m_endRow{0},
               m_endCol{0},
-              m_objsReferenceBall{0},
+              m_objIndexBall{0},
+              m_objDataIndexBall{0},
               m_holeModel{lcd->holeModel},
               m_holeTexture{lcd->holeTexture}
         {
+            m_levelDrawer.setClearColor(glm::vec4{0.0f, 0.0f, 0.0f, 1.0f});
+
             m_componentModels[Component::ComponentType::straight].push_back(lcd->straight.model);
             m_componentTextures[Component::ComponentType::straight].push_back(lcd->straight.texture);
             m_componentTexturesLockedInPlace[Component::ComponentType::straight].push_back(
@@ -135,6 +136,9 @@ namespace rotatablePassage {
             for (auto &component : m_components) {
                 component->setSize(m_gameBoard.blockSize());
             }
+
+            addStaticDrawObjects();
+            addDynamicDrawObjects();
         }
 
     private:
@@ -156,7 +160,8 @@ namespace rotatablePassage {
         uint32_t m_endRow;
         uint32_t m_endCol;
 
-        size_t m_objsReferenceBall;
+        size_t m_objIndexBall;
+        size_t m_objDataIndexBall;
 
         std::string m_holeModel;
         std::string m_holeTexture;

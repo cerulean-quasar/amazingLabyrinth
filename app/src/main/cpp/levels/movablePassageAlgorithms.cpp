@@ -247,7 +247,7 @@ boost::optional<ObjReference> chooseObj(
     // have an objIndex yet.  This could happen if we were restoring from save.
     auto placementRef = component->placement(placementIndex).objReference();
     if (placementRef != boost::none) {
-        if (placementRef.get().objIsDynAndIndex != boost::none) {
+        if (placementRef.get().objIndex != boost::none) {
             return placementRef;
         }
         auto it = refs.find(placementRef.get());
@@ -284,8 +284,8 @@ boost::optional<ObjReference> chooseObj(
 }
 
 boost::optional<ObjReference> addModelMatrixToObj(
+        levelDrawer::Adaptor levelDrawer,
         Random &randomNumbers,
-        DrawObjectTable &objs,
         std::set<ObjReference> const &refs,
         std::shared_ptr<Component> const &component,
         size_t placementIndex,
@@ -296,13 +296,13 @@ boost::optional<ObjReference> addModelMatrixToObj(
         // have an objIndex yet.  This could happen if we were restoring from save.
         auto placementRef = component->placement(placementIndex).objReference();
         if (placementRef != boost::none) {
-            if (placementRef.get().objIsDynAndIndex != boost::none) {
-                objs[placementRef.get().objIsDynAndIndex.get().second].first->modelMatrices.push_back(modelMatrix);
+            if (placementRef.get().objIndex != boost::none) {
+                levelDrawer.addModelMatrixForObject(placementRef.get().objIndex.get(), modelMatrix);
                 return placementRef;
             }
             auto it = refs.find(placementRef.get());
             if (it != refs.end()) {
-                objs[it->objIsDynAndIndex.get().second].first->modelMatrices.push_back(modelMatrix);
+                levelDrawer.addModelMatrixForObject(it->objIndex.get(), modelMatrix);
                 component->placement(placementIndex).setObjReference(*it);
                 return *it;
             }
@@ -315,6 +315,7 @@ boost::optional<ObjReference> addModelMatrixToObj(
             return boost::none;
         case 1:
             i = 0;
+            break;
         default:
             i = randomNumbers.getUInt(0, refs.size() - 1);
     }
@@ -322,7 +323,7 @@ boost::optional<ObjReference> addModelMatrixToObj(
     size_t j = 0;
     for (auto const &ref : refs) {
         if (i == j) {
-            objs[ref.objIsDynAndIndex.get().second].first->modelMatrices.push_back(modelMatrix);
+            levelDrawer.addModelMatrixForObject(ref.objIndex.get(), modelMatrix);
             if (component) {
                 component->placement(placementIndex).setObjReference(ref);
             }

@@ -204,196 +204,186 @@ namespace rotatablePassage {
         return true;
     }
 
-    bool Level::updateStaticDrawObjects(DrawObjectTable &objs, TextureMap &textures) {
-        if (objs.empty()) {
-            auto refs = addObjs<getCube>(m_gameRequester, false, objs, textures,
-                                         false, std::vector<std::string>{}, m_borderTextures);
+    void Level::addStaticDrawObjects() {
+        auto refs = addObjs<levelDrawer::ModelDescriptionCube>(
+                m_levelDrawer,false, std::vector<std::string>{},
+                m_borderTextures);
 
-            float scale = m_gameBoard.blockSize() / m_modelSize;
+        float scale = m_gameBoard.blockSize() / m_modelSize;
 
-            // the left and right
-            for (size_t i = 0; i < m_gameBoard.heightInTiles(); i++) {
-                glm::vec3 pos = m_gameBoard.position(i, 0);
-                pos.x -= m_gameBoard.blockSize();
-                addModelMatrixToObj(m_randomNumbers, objs, refs, nullptr, 0,
-                                    glm::translate(glm::mat4{1.0f}, pos) *
-                                    glm::scale(glm::mat4{1.0f}, glm::vec3{scale, scale, scale}));
-
-                pos = m_gameBoard.position(i, m_gameBoard.widthInTiles() - 1);
-                pos.x += m_gameBoard.blockSize();
-                addModelMatrixToObj(m_randomNumbers, objs, refs, nullptr, 0,
-                                    glm::translate(glm::mat4{1.0f}, pos) *
-                                    glm::scale(glm::mat4{1.0f}, glm::vec3{scale, scale, scale}));
-            }
-
-            // the top and bottom
-            for (size_t i = 0; i < m_gameBoard.widthInTiles(); i++) {
-                glm::vec3 pos = m_gameBoard.position(0, i);
-                pos.y -= m_gameBoard.blockSize();
-                addModelMatrixToObj(m_randomNumbers, objs, refs, nullptr, 0,
-                                    glm::translate(glm::mat4{1.0f}, pos) *
-                                    glm::scale(glm::mat4{1.0f}, glm::vec3{scale, scale, scale}));
-
-                pos = m_gameBoard.position(m_gameBoard.heightInTiles() - 1, i);
-                pos.y += m_gameBoard.blockSize();
-                addModelMatrixToObj(m_randomNumbers, objs, refs, nullptr, 0,
-                                    glm::translate(glm::mat4{1.0f}, pos) *
-                                    glm::scale(glm::mat4{1.0f}, glm::vec3{scale, scale, scale}));
-            }
-
-            // the bottom left corner
-            glm::vec3 pos = m_gameBoard.position(0, 0);
-            pos.y -= m_gameBoard.blockSize();
+        // the left and right
+        for (size_t i = 0; i < m_gameBoard.heightInTiles(); i++) {
+            glm::vec3 pos = m_gameBoard.position(i, 0);
             pos.x -= m_gameBoard.blockSize();
-            addModelMatrixToObj(m_randomNumbers, objs, refs, nullptr, 0,
+            addModelMatrixToObj(m_levelDrawer, m_randomNumbers, refs, nullptr, 0,
                                 glm::translate(glm::mat4{1.0f}, pos) *
                                 glm::scale(glm::mat4{1.0f}, glm::vec3{scale, scale, scale}));
 
-            // the bottom right corner
-            pos = m_gameBoard.position(0, m_gameBoard.widthInTiles() - 1);
-            pos.y -= m_gameBoard.blockSize();
+            pos = m_gameBoard.position(i, m_gameBoard.widthInTiles() - 1);
             pos.x += m_gameBoard.blockSize();
-            addModelMatrixToObj(m_randomNumbers, objs, refs, nullptr, 0,
+            addModelMatrixToObj(m_levelDrawer, m_randomNumbers, refs, nullptr, 0,
                                 glm::translate(glm::mat4{1.0f}, pos) *
                                 glm::scale(glm::mat4{1.0f}, glm::vec3{scale, scale, scale}));
-
-            // the top right corner
-            pos = m_gameBoard.position(m_gameBoard.heightInTiles() - 1,
-                                       m_gameBoard.widthInTiles() - 1);
-            pos.y += m_gameBoard.blockSize();
-            pos.x += m_gameBoard.blockSize();
-            addModelMatrixToObj(m_randomNumbers, objs, refs, nullptr, 0,
-                                glm::translate(glm::mat4{1.0f}, pos) *
-                                glm::scale(glm::mat4{1.0f}, glm::vec3{scale, scale, scale}));
-
-            // the top left corner
-            pos = m_gameBoard.position(m_gameBoard.heightInTiles() - 1, 0);
-            pos.y += m_gameBoard.blockSize();
-            pos.x -= m_gameBoard.blockSize();
-            addModelMatrixToObj(m_randomNumbers, objs, refs, nullptr, 0,
-                                glm::translate(glm::mat4{1.0f}, pos) *
-                                glm::scale(glm::mat4{1.0f}, glm::vec3{scale, scale, scale}));
-
-
-            // the hole
-            std::vector<std::string> holeModels;
-            if (!m_holeModel.empty()) {
-                holeModels.push_back(m_holeModel);
-            }
-            refs = addObjs<getQuad>(m_gameRequester, false, objs, textures, false, holeModels,
-                                    std::vector<std::string>{m_holeTexture});
-            pos = m_gameBoard.position(m_endRow, m_endCol);
-            addModelMatrixToObj(m_randomNumbers, objs, refs, nullptr, 0,
-                                glm::translate(glm::mat4{1.0f}, pos) *
-                                glm::scale(glm::mat4{1.0f},
-                                           glm::vec3{scale / 2, scale / 2, scale / 2}));
-            return true;
         }
 
-        return false;
+        // the top and bottom
+        for (size_t i = 0; i < m_gameBoard.widthInTiles(); i++) {
+            glm::vec3 pos = m_gameBoard.position(0, i);
+            pos.y -= m_gameBoard.blockSize();
+            addModelMatrixToObj(m_levelDrawer, m_randomNumbers, refs, nullptr, 0,
+                                glm::translate(glm::mat4{1.0f}, pos) *
+                                glm::scale(glm::mat4{1.0f}, glm::vec3{scale, scale, scale}));
+
+            pos = m_gameBoard.position(m_gameBoard.heightInTiles() - 1, i);
+            pos.y += m_gameBoard.blockSize();
+            addModelMatrixToObj(m_levelDrawer, m_randomNumbers, refs, nullptr, 0,
+                                glm::translate(glm::mat4{1.0f}, pos) *
+                                glm::scale(glm::mat4{1.0f}, glm::vec3{scale, scale, scale}));
+        }
+
+        // the bottom left corner
+        glm::vec3 pos = m_gameBoard.position(0, 0);
+        pos.y -= m_gameBoard.blockSize();
+        pos.x -= m_gameBoard.blockSize();
+        addModelMatrixToObj(m_levelDrawer, m_randomNumbers, refs, nullptr, 0,
+                            glm::translate(glm::mat4{1.0f}, pos) *
+                            glm::scale(glm::mat4{1.0f}, glm::vec3{scale, scale, scale}));
+
+        // the bottom right corner
+        pos = m_gameBoard.position(0, m_gameBoard.widthInTiles() - 1);
+        pos.y -= m_gameBoard.blockSize();
+        pos.x += m_gameBoard.blockSize();
+        addModelMatrixToObj(m_levelDrawer, m_randomNumbers, refs, nullptr, 0,
+                            glm::translate(glm::mat4{1.0f}, pos) *
+                            glm::scale(glm::mat4{1.0f}, glm::vec3{scale, scale, scale}));
+
+        // the top right corner
+        pos = m_gameBoard.position(m_gameBoard.heightInTiles() - 1,
+                                   m_gameBoard.widthInTiles() - 1);
+        pos.y += m_gameBoard.blockSize();
+        pos.x += m_gameBoard.blockSize();
+        addModelMatrixToObj(m_levelDrawer, m_randomNumbers, refs, nullptr, 0,
+                            glm::translate(glm::mat4{1.0f}, pos) *
+                            glm::scale(glm::mat4{1.0f}, glm::vec3{scale, scale, scale}));
+
+        // the top left corner
+        pos = m_gameBoard.position(m_gameBoard.heightInTiles() - 1, 0);
+        pos.y += m_gameBoard.blockSize();
+        pos.x -= m_gameBoard.blockSize();
+        addModelMatrixToObj(m_levelDrawer, m_randomNumbers, refs, nullptr, 0,
+                            glm::translate(glm::mat4{1.0f}, pos) *
+                            glm::scale(glm::mat4{1.0f}, glm::vec3{scale, scale, scale}));
+
+
+        // the hole
+        std::vector<std::string> holeModels;
+        if (!m_holeModel.empty()) {
+            holeModels.push_back(m_holeModel);
+        }
+        refs = addObjs<levelDrawer::ModelDescriptionQuad>(m_levelDrawer, false, holeModels,
+                                std::vector<std::string>{m_holeTexture});
+        pos = m_gameBoard.position(m_endRow, m_endCol);
+        addModelMatrixToObj(m_levelDrawer, m_randomNumbers, refs, nullptr, 0,
+                            glm::translate(glm::mat4{1.0f}, pos) *
+                            glm::scale(glm::mat4{1.0f},
+                                       glm::vec3{scale / 2, scale / 2, scale / 2}));
     }
 
-    bool Level::updateDynamicDrawObjects(DrawObjectTable &objs, TextureMap &textures,
-                                                    bool &texturesChanged) {
+    void Level::addDynamicDrawObjects() {
         float scale = m_gameBoard.blockSize() / m_modelSize;
-        if (objs.empty()) {
-            for (auto &component : m_components) {
-                Component::ComponentType type = component->type();
-                auto refs = addObjs<getCube>(m_gameRequester, true, objs, textures, false,
-                                             m_componentModels[type],
-                                             m_componentTextures[type]);
-                component->setObjReferences(refs);
+        for (auto &component : m_components) {
+            Component::ComponentType type = component->type();
+            auto refs = addObjs<levelDrawer::ModelDescriptionCube>(
+                    m_levelDrawer, false,
+                    m_componentModels[type],m_componentTextures[type]);
+            component->setObjReferences(refs);
 
-                auto refsLockedInPlace = addObjs<getCube>(m_gameRequester, true, objs, textures,
-                                                          true,
-                                                          m_componentModels[type],
-                                                          m_componentTexturesLockedInPlace[type]);
-                component->setObjReferencesLockedComponent(refsLockedInPlace);
+            auto refsLockedInPlace = addObjs<levelDrawer::ModelDescriptionCube>(
+                    m_levelDrawer,true,
+                    m_componentModels[type],
+                    m_componentTexturesLockedInPlace[type]);
+            component->setObjReferencesLockedComponent(refsLockedInPlace);
 
-                size_t i = 0;
-                for (auto placementIt = component->placementsBegin();
-                     placementIt != component->placementsEnd();
-                     placementIt++, i++) {
-                    auto pos = m_gameBoard.position(placementIt->row(), placementIt->col());
-                    auto modelMatrix = glm::translate(glm::mat4{1.0f}, pos) *
-                                       glm::rotate(glm::mat4{1.0f}, placementIt->rotationAngle(),
-                                                   glm::vec3{0.0f, 0.0f, 1.0f}) *
-                                       glm::scale(glm::mat4{1.0f}, glm::vec3{scale, scale, scale});
-                    if (placementIt->movementAllowed()) {
-                        addModelMatrixToObj(m_randomNumbers, objs, refs, component, i, modelMatrix);
-                    } else {
-                        addModelMatrixToObj(m_randomNumbers, objs, refsLockedInPlace, component, i,
-                                            modelMatrix);
-                    }
+            size_t i = 0;
+            for (auto placementIt = component->placementsBegin();
+                 placementIt != component->placementsEnd();
+                 placementIt++, i++) {
+                auto pos = m_gameBoard.position(placementIt->row(), placementIt->col());
+                auto modelMatrix = glm::translate(glm::mat4{1.0f}, pos) *
+                                   glm::rotate(glm::mat4{1.0f}, placementIt->rotationAngle(),
+                                               glm::vec3{0.0f, 0.0f, 1.0f}) *
+                                   glm::scale(glm::mat4{1.0f}, glm::vec3{scale, scale, scale});
+                if (placementIt->movementAllowed()) {
+                    addModelMatrixToObj(m_levelDrawer, m_randomNumbers, refs, component,
+                            i, modelMatrix);
+                } else {
+                    addModelMatrixToObj(m_levelDrawer, m_randomNumbers, refsLockedInPlace,
+                            component, i, modelMatrix);
                 }
             }
-
-            // the ball
-            std::pair<std::vector<Vertex>, std::vector<uint32_t>> v;
-            auto obj = std::make_shared<DrawObject>();
-            loadModel(m_gameRequester->getAssetStream(m_ballModel), v);
-            std::swap(v.first, obj->vertices);
-            std::swap(v.second, obj->indices);
-            obj->texture = std::make_shared<TextureDescriptionPath>(m_gameRequester, m_ballTexture);
-            textures.emplace(obj->texture, std::shared_ptr<TextureData>());
-            obj->modelMatrices.push_back(
-                    glm::translate(glm::mat4(1.0f), m_ball.position) *
-                    glm::mat4_cast(m_ball.totalRotated) *
-                    glm::scale(glm::mat4(1.0f), glm::vec3{m_scaleBall, m_scaleBall, m_scaleBall}));
-            m_objsReferenceBall = objs.size();
-            objs.emplace_back(obj, std::shared_ptr<DrawObjectData>());
-
-            texturesChanged = true;
-        } else {
-            // the maze components.
-            std::vector<size_t> nbrModelMatrices;
-            nbrModelMatrices.resize(objs.size(), 0);
-            for (auto &component : m_components) {
-                size_t i = 0;
-                auto refs = component->objReferences();
-                for (auto placementIt = component->placementsBegin();
-                     placementIt != component->placementsEnd();
-                     placementIt++, i++) {
-                    auto pos = m_gameBoard.position(placementIt->row(), placementIt->col());
-                    auto ref = placementIt->objReference();
-                    if (ref == boost::none) {
-                        ref = chooseObj(m_randomNumbers, component, i);
-                        placementIt->setObjReference(ref);
-                    }
-                    if (ref == boost::none || ref.get().objIsDynAndIndex == boost::none) {
-                        // shouldn't happen
-                        throw std::runtime_error("unexpected empty draw object reference");
-                    }
-                    auto modelMatrix = glm::translate(glm::mat4{1.0f}, pos) *
-                                       glm::rotate(glm::mat4{1.0f}, placementIt->rotationAngle(),
-                                                   glm::vec3{0.0f, 0.0f, 1.0f}) *
-                                       glm::scale(glm::mat4{1.0f}, glm::vec3{scale, scale, scale});
-                    size_t objIndex = ref.get().objIsDynAndIndex.get().second;
-                    if (objs[objIndex].first->modelMatrices.size() <= nbrModelMatrices[objIndex]) {
-                        objs[objIndex].first->modelMatrices.push_back(modelMatrix);
-                    } else {
-                        objs[objIndex].first->modelMatrices[nbrModelMatrices[objIndex]] = modelMatrix;
-                    }
-                    nbrModelMatrices[objIndex]++;
-                }
-            }
-
-            // resize model matrices to the actual number added in case some were transferred to/from
-            // the locked in place obj.
-            for (size_t i = 0; i < objs.size(); i++) {
-                if (i != m_objsReferenceBall) {
-                    objs[i].first->modelMatrices.resize(nbrModelMatrices[i]);
-                }
-            }
-
-            // the ball
-            objs[m_objsReferenceBall].first->modelMatrices[0] =
-                    glm::translate(glm::mat4(1.0f), m_ball.position) *
-                    glm::mat4_cast(m_ball.totalRotated) *
-                    glm::scale(glm::mat4(1.0f), glm::vec3{m_scaleBall, m_scaleBall, m_scaleBall});
-
         }
 
-        return true;
+        // the ball
+        m_objIndexBall = m_levelDrawer.addObject(
+                std::make_shared<levelDrawer::ModelDescriptionPath>(m_ballModel),
+                std::make_shared<levelDrawer::TextureDescriptionPath>(m_ballTexture));
+        m_objDataIndexBall = m_levelDrawer.addModelMatrixForObject(
+                m_objIndexBall,
+                glm::translate(glm::mat4(1.0f), m_ball.position) *
+                glm::mat4_cast(m_ball.totalRotated) *
+                glm::scale(glm::mat4(1.0f), glm::vec3{m_scaleBall, m_scaleBall, m_scaleBall}));
+    }
+
+    bool Level::updateDrawObjects() {
+        // the maze components.
+        float scale = m_gameBoard.blockSize() / m_modelSize;
+        std::vector<size_t> nbrModelMatrices;
+        nbrModelMatrices.resize(m_levelDrawer.numberObjects(), 0);
+        for (auto &component : m_components) {
+            size_t i = 0;
+            auto refs = component->objReferences();
+            for (auto placementIt = component->placementsBegin();
+                 placementIt != component->placementsEnd();
+                 placementIt++, i++) {
+                auto pos = m_gameBoard.position(placementIt->row(), placementIt->col());
+                auto ref = placementIt->objReference();
+                if (ref == boost::none) {
+                    ref = chooseObj(m_randomNumbers, component, i);
+                    placementIt->setObjReference(ref);
+                }
+                if (ref == boost::none || ref.get().objIndex == boost::none) {
+                    // shouldn't happen
+                    throw std::runtime_error("unexpected empty draw object reference");
+                }
+                auto modelMatrix = glm::translate(glm::mat4{1.0f}, pos) *
+                                   glm::rotate(glm::mat4{1.0f}, placementIt->rotationAngle(),
+                                               glm::vec3{0.0f, 0.0f, 1.0f}) *
+                                   glm::scale(glm::mat4{1.0f}, glm::vec3{scale, scale, scale});
+                size_t objIndex = ref.get().objIndex.get();
+                if (m_levelDrawer.numberObjectsDataForObject(objIndex) <= nbrModelMatrices[objIndex]) {
+                    m_levelDrawer.addModelMatrixForObject(objIndex, modelMatrix);
+                } else {
+                    m_levelDrawer.updateModelMatrixForObject(objIndex, nbrModelMatrices[objIndex], modelMatrix);
+                }
+                nbrModelMatrices[objIndex]++;
+            }
+        }
+
+        // resize model matrices to the actual number added in case some were transferred to/from
+        // the locked in place obj.
+        auto nbrObjs = m_levelDrawer.numberObjects();
+        for (size_t i = 0; i < nbrObjs; i++) {
+            if (i != m_objIndexBall) {
+                m_levelDrawer.resizeObjectsData(i, nbrModelMatrices[i]);
+            }
+        }
+
+        // the ball
+        m_levelDrawer.updateModelMatrixForObject(
+                m_objIndexBall,
+                m_objDataIndexBall,
+                glm::translate(glm::mat4(1.0f), m_ball.position) *
+                glm::mat4_cast(m_ball.totalRotated) *
+                glm::scale(glm::mat4(1.0f), glm::vec3{m_scaleBall, m_scaleBall, m_scaleBall}));
     }
 } // namespace rotatablePassage
