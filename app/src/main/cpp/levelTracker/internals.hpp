@@ -82,11 +82,10 @@ namespace levelTracker {
                              *sd = sdjson->get<LevelSaveDataType>();
                          }
                          return GenerateLevelFcn(
-                             [lcd, sd, z](std::shared_ptr<GameRequester> gameRequester,
-                                                                         glm::mat4 const &proj, glm::mat4 const &view) -> std::shared_ptr<basic::Level>
+                             [lcd, sd, z](levelDrawer::Adaptor inLevelDrawer) -> std::shared_ptr<basic::Level>
                              {
                                  return std::make_shared<LevelType>(
-                                       std::move(gameRequester), lcd, sd, proj, view, z);
+                                         std::move(inLevelDrawer), lcd, sd, z);
                              });
                      }))
             );
@@ -104,11 +103,11 @@ namespace levelTracker {
                 auto lcd = std::make_shared<LevelConfigDataType>();
                 *lcd = lcdjson.get<LevelConfigDataType>();
                 return GenerateLevelFcn(
-                    [lcd, sd(std::shared_ptr<LevelSaveDataType>()), z](std::shared_ptr<GameRequester> gameRequester,
-                            glm::mat4 const &proj, glm::mat4 const &view) -> std::shared_ptr<basic::Level>
+                    [lcd, sd(std::shared_ptr<LevelSaveDataType>()), z](
+                            levelDrawer::Adaptor inLevelDrawer) -> std::shared_ptr<basic::Level>
                     {
                         return std::make_shared<LevelType>(
-                                std::move(gameRequester), lcd, sd, proj, view, z);
+                                std::move(inLevelDrawer), lcd, sd, z);
                     });
             }))
             );
@@ -125,12 +124,12 @@ namespace levelTracker {
                      {
                          auto lcd = std::make_shared<LevelConfigDataType>(lcdjson.get<LevelConfigDataType>());
                          return levelTracker::GenerateFinisherFcn(
-                             [lcd{std::move(lcd)}, finisherZ](std::shared_ptr<GameRequester> gameRequester,
-                                 glm::mat4 const &proj, glm::mat4 const &view, float centerX, float centerY, float centerZ)
+                             [lcd{std::move(lcd)}, finisherZ](levelDrawer::Adaptor inLevelDrawer,
+                                     float centerX, float centerY, float centerZ)
                                      -> std::shared_ptr<finisher::LevelFinisher>
                              {
                                  return std::make_shared<LevelType>(
-                                         std::move(gameRequester), lcd, proj, view,
+                                         std::move(inLevelDrawer), lcd,
                                          centerX, centerY, centerZ, finisherZ);
                              });
                      }))

@@ -139,4 +139,7 @@ namespace normalMap {
 
         return std::move(ref);
     }
+
+    RegisterVulkan<renderDetails::RenderDetailsVulkan, RenderDetailsVulkan, Config, renderDetails::ParametersVulkan> registerVulkan();
+
 }

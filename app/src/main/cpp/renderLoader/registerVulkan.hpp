@@ -58,7 +58,7 @@ RenderDetailsVulkanRetrieveMap &getRenderDetailsVulkanMap() {
 
 class RenderLoaderVulkan;
 
-template <typename RenderDetailsBaseType, typename RenderDetailsType, typename CommonObjectDataType, typename ConfigType, typename ParametersType>
+template <typename RenderDetailsBaseType, typename RenderDetailsType, typename ConfigType, typename ParametersType>
 class RegisterVulkan {
     RegisterVulkan() {
         getRenderDetailsVulkanMap().emplace(

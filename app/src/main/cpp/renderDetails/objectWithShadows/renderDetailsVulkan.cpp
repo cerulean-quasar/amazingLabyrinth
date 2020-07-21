@@ -421,4 +421,6 @@ namespace objectWithShadows {
                     commandBuffer, drawObjTableList[index], drawObjectsIndicesList[index]);
         }
     }
+
+    RegisterVulkan<renderDetails::RenderDetailsVulkan, RenderDetailsVulkan, Config, renderDetails::ParametersVulkan> registerVulkan();
 }

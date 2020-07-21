@@ -135,4 +135,7 @@ namespace shadows {
             }
         }
     }
+
+    RegisterGL<renderDetails::RenderDetailsGL, RenderDetailsGL, Config, renderDetails::ParametersGL> registerGL();
+
 } // namespace shadows

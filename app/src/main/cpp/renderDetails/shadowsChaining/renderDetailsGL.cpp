@@ -177,4 +177,6 @@ namespace shadowsChaining {
         m_objectWithShadowsRenderDetails->draw(MODEL_MATRIX_ID_MAIN,
                 cod->m_objectWithShadowsCOD, drawObjTable, drawObjectsIndices);
     }
+
+    RegisterGL<renderDetails::RenderDetailsGL, RenderDetailsGL, Config, renderDetails::ParametersGL> registerGL();
 }

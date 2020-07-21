@@ -54,7 +54,7 @@ RenderDetailsGLRetrieveMap &getRenderDetailsGLMap() {
     return map;
 }
 
-template <typename RenderDetailsType, typename ConfigType, typename ParametersType>
+template <typename RenderDetailsBaseType, typename RenderDetailsType, typename ConfigType, typename ParametersType>
 class RegisterGL {
     RegisterGL() {
         getRenderDetailsGLMap().emplace(
@@ -73,7 +73,7 @@ class RegisterGL {
                     fcns.renderDetailsLoadExistingFcn = RenderDetailsGLRetrieveFcns::RenderDetailsLoadExistingFcn (
                             [config] (std::shared_ptr<GameRequester> const &gameRequester,
                                       std::shared_ptr<RenderLoaderGL> const &renderLoader,
-                                      std::shared_ptr<RenderDetailsType> const &rd,
+                                      std::shared_ptr<RenderDetailsBaseType> const &rd,
                                       ParametersType const &parameters) -> RenderDetailsGLRetrieveFcns::RenderDetailsReferenceGL
                             {
                                 return RenderDetailsType::loadExisting(gameRequester, renderLoader, rd, parameters, config);
