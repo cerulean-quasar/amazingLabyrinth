@@ -28,7 +28,6 @@
 #include "renderLoader.hpp"
 #include "../renderDetails/renderDetailsVulkan.hpp"
 #include "registerVulkan.hpp"
-#include "../../../../../../../Android/Sdk/ndk/21.3.6528147/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/include/vulkan/vulkan_core.h"
 
 struct RenderLoaderVulkanTraits {
     using RenderDetailsParametersType = renderDetails::ParametersVulkan;
@@ -44,6 +43,10 @@ struct RenderLoaderVulkanTraits {
 
 class RenderLoaderVulkan : public std::enable_shared_from_this<RenderLoaderVulkan>, public RenderLoader<RenderLoaderVulkanTraits> {
 public:
+    RenderLoader(std::shared_ptr<vulkan::Device> inDevice)
+        : RenderLoader<RenderLoaderVulkanTraits>(),
+        m_device{std::move(inDevice)}
+    {}
     ~RenderLoaderVulkan() override = default;
 
 protected:

@@ -218,6 +218,11 @@ namespace shadowsChaining {
                         getShadowsFramebufferWidth(parameters.width),
                         getShadowsFramebufferHeigth(parameters.height)),
                 VK_IMAGE_ASPECT_DEPTH_BIT);
+
+        m_depthImageViewShadows->image()->transitionImageLayout(
+                VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL,
+                m_commandPool);
+
         m_shadowsColorAttachment = vulkan::ImageView::createImageViewAndImage(
                 m_device,
                 getShadowsFramebufferWidth(parameters.width),

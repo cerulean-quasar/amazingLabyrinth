@@ -32,37 +32,6 @@ class LevelSequence {
 public:
     inline uint32_t surfaceWidth() { return m_surfaceWidth; }
     inline uint32_t surfaceHeight() { return m_surfaceHeight; }
-    inline DrawObjectTable const &levelStaticObjsData() { return m_staticObjsData; }
-    inline DrawObjectTable const &levelDynObjsData() { return m_dynObjsData; }
-    inline DrawObjectTable const &finisherObjsData() { return m_levelFinisherObjsData; }
-    inline DrawObjectTable const &starterStaticObjsData() { return m_levelStarterStaticObjsData; }
-    inline DrawObjectTable const &starterDynObjsData() { return m_levelStarterDynObjsData; }
-
-    inline TextureMap const &starterTextures() { return m_texturesLevelStarter; }
-    inline TextureMap const &levelTextures() { return m_texturesLevel; }
-    inline TextureMap const &finisherTextures() { return m_texturesLevelFinisher; }
-
-    virtual glm::mat4 getPerspectiveMatrixForLevel(uint32_t surfaceWidth, uint32_t surfaceHeight) = 0;
-
-    glm::mat4 projectionMatrix() {
-        if (!m_projInitialized) {
-            updatePerspectiveMatrix(m_surfaceWidth, m_surfaceHeight);
-            m_projInitialized = true;
-        }
-        return m_proj;
-    }
-
-    glm::mat4 viewMatrix() {
-        if (!m_viewInitialized) {
-            setView();
-            m_viewInitialized = true;
-        }
-        return m_view;
-    }
-
-    glm::vec3 lightingSource() { return m_lightingSource; }
-    glm::mat4 viewLightSource() { return m_viewLightingSource; }
-    glm::vec4 backgroundColor() { return m_level->getBackgroundColor(); }
     bool needFinisherObjs() { return m_level->isFinished() || m_levelFinisher->isUnveiling(); }
 
     void saveLevelData() {
@@ -70,9 +39,13 @@ public:
                 m_levelTracker->levelName(), m_level, (m_levelStarter != nullptr));
     }
 
-    bool updateData(bool alwaysUpdateDynObjs);
-    void updateAcceleration(float x, float y, float z);
-    void changeLevel(std::string const &level);
+    void updateAcceleration(float x, float y, float z) {
+        if (m_levelStarter) {
+            m_levelStarter->updateAcceleration(x, y, z);
+        } else if (m_level) {
+            m_level->updateAcceleration(x, y, z);
+        }
+    }
 
     bool drag(float startX, float startY, float distanceX, float distanceY) {
         if (!m_level || m_levelStarter) {
@@ -102,150 +75,60 @@ public:
         return m_level->tap(position.first, position.second);
     }
 
-    void notifySurfaceChanged(uint32_t surfaceWidth, uint32_t surfaceHeight, glm::mat4 preTransform = glm::mat4(1.0f));
-    virtual void updatePretransform(glm::mat4 pretransform) = 0;
-    void cleanupLevelData();
+    bool updateData(bool alwaysUpdateDynObjs);
 
-    LevelSequence(std::shared_ptr<GameRequester> inRequester,
-                  uint32_t surfaceWidth,
-                  uint32_t surfaceHeight,
-                  bool isGL)
-            : m_isGL{isGL},
-              m_projInitialized{false},
-              m_viewInitialized{false},
-              m_surfaceWidth{surfaceWidth},
+    void changeLevel(std::string const &level);
+
+    // Called in preparation to calling notifySurfaceChanged
+    void cleanupLevelData() {
+        m_levelDrawer->clearDrawObjectTable(levelDrawer::STARTER);
+        m_levelDrawer->clearDrawObjectTable(levelDrawer::LEVEL);
+        m_levelDrawer->clearDrawObjectTable(levelDrawer::FINISHER);
+    }
+
+    void notifySurfaceChanged(uint32_t surfaceWidth, uint32_t surfaceHeight, glm::mat4 preTransform);
+
+    virtual void updatePretransform(glm::mat4 pretransform) = 0;
+
+    LevelSequence(
+            std::shared_ptr<levelDrawer::LevelDrawer> inLevelDrawer,
+            std::shared_ptr<GameRequester> inGameRequester,
+            uint32_t surfaceWidth,
+            uint32_t surfaceHeight)
+            : m_surfaceWidth{surfaceWidth},
               m_surfaceHeight{surfaceHeight},
-              m_gameRequester{std::move(inRequester)},
-              m_proj{},
-              m_view{},
-              m_viewLightingSource{},
-              m_lightingSource{},
+              m_gameRequester{std::move(inGameRequester)},
+              m_levelDrawer{std::move(inLevelDrawer)},
               m_levelTracker{std::make_shared<levelTracker::Loader>(m_gameRequester)},
               m_levelGroupFcns{m_levelTracker->getLevelGroupFcns(m_surfaceWidth, m_surfaceHeight)},
-              m_texturesLevel{},
-              m_texturesLevelStarter{},
-              m_texturesLevelFinisher{},
-              m_texturesChanged{false},
-              m_staticObjsData{},
-              m_dynObjsData{},
-              m_levelFinisherObjsData{},
-              m_levelStarterStaticObjsData{},
-              m_levelStarterDynObjsData{},
               m_level{},
               m_levelFinisher{},
               m_levelStarter{}
     {
-        // initialization that must not be done in the constructor.
-        m_initialize = std::function<bool()>(
-            [&]() -> bool {
-                setView();
-                updatePerspectiveMatrix(m_surfaceWidth, m_surfaceHeight);
-
-                setLightingSource();
-                setViewLightingSource();
-
-                auto proj = getPerspectiveMatrixForLevel(m_surfaceWidth, m_surfaceHeight);
-                m_level = m_levelGroupFcns.getLevelFcn(m_gameRequester, proj, m_view);
-                m_levelStarter = m_levelGroupFcns.getStarterFcn(m_gameRequester, proj, m_view);
-
-                m_levelFinisherObjsData.clear();
-                m_texturesLevelFinisher.clear();
-                float x, y, z;
-                m_level->getLevelFinisherCenter(x, y, z);
-                m_levelFinisher = m_levelGroupFcns.getFinisherFcn(m_gameRequester, proj, m_view, x, y, z);
-
-                setupCommonBuffers();
-
-                if (m_levelStarter != nullptr && ! m_levelStarter->isFinished()) {
-                    initializeLevelData(m_levelStarter, m_levelStarterStaticObjsData,
-                                        m_levelStarterDynObjsData, m_texturesLevelStarter);
-                }
-                initializeLevelData(m_level, m_staticObjsData, m_dynObjsData, m_texturesLevel);
-
-                m_initialize = std::function<bool()>(
-                        []() -> bool {
-                            return false;
-                        });
-
-                return true;
-            });
     }
 
 private:
-    bool m_isGL;
-    bool m_projInitialized;
-    bool m_viewInitialized;
     uint32_t m_surfaceWidth;
     uint32_t m_surfaceHeight;
     std::shared_ptr<GameRequester> m_gameRequester;
+    std::shared_ptr<levelDrawer::LevelDrawer> m_levelDrawer;
 
 protected:
-    static float constexpr m_perspectiveViewAngle = 3.1415926f/4.0f;
-    static float constexpr m_perspectiveNearPlane = 0.5f;
-    static float constexpr m_perspectiveFarPlane = 5.0f;
-    glm::mat4 m_proj;
-    glm::mat4 m_view;
-    glm::mat4 m_viewLightingSource;
-    glm::vec3 m_lightingSource;
     std::shared_ptr<levelTracker::Loader> m_levelTracker;
     levelTracker::LevelGroup m_levelGroupFcns;
-
-    TextureMap m_texturesLevel;
-    TextureMap m_texturesLevelStarter;
-    TextureMap m_texturesLevelFinisher;
-
-    bool m_texturesChanged;
-
-    DrawObjectTable m_staticObjsData;
-    DrawObjectTable m_dynObjsData;
-    DrawObjectTable m_levelFinisherObjsData;
-    DrawObjectTable m_levelStarterStaticObjsData;
-    DrawObjectTable m_levelStarterDynObjsData;
 
     std::shared_ptr<basic::Level> m_level;
     std::shared_ptr<finisher::LevelFinisher> m_levelFinisher;
     std::shared_ptr<basic::Level> m_levelStarter;
 
-    /* initialize all the level data */
-    std::function<bool()> m_initialize;
-
-    void setView();
-    virtual void updatePerspectiveMatrix(uint32_t surfaceWidth, uint32_t surfaceHeight) = 0;
-    void setLightingSource();
-    virtual void setupCommonBuffers() { /* work only needed in Vulkan */ }
-    void setViewLightingSource();
-    void addObjects(DrawObjectTable &objs, TextureMap &textures);
-    void addTextures(TextureMap &textures);
-    void initializeLevelData(std::shared_ptr<basic::Level> const &level, DrawObjectTable &staticObjsData,
-                             DrawObjectTable &dynObjsData, TextureMap &textures);
-
-    virtual std::shared_ptr<TextureData> createTexture(std::shared_ptr<TextureDescription> const &textureDescription) = 0;
-    virtual std::shared_ptr<DrawObjectData> createObject(std::shared_ptr<DrawObject> const &obj, TextureMap &textures) = 0;
-    virtual void updateLevelData(DrawObjectTable &objsData, TextureMap &textures) = 0;
 private:
     // x and y are in pixels off set from the bottom left corner
     inline std::pair<float, float> getCoordsAtDepth(float x, float y, bool isAbsoluteMove) {
-        float z = levelTracker::Loader::m_maxZLevel;
-        if (m_level) {
-            z = m_level->getZForTapCoords();
-        }
-
         if (isAbsoluteMove) {
-            return getXYAtZ(x / m_surfaceWidth * 2.0f - 1.0f,
-                            1.0f - y / m_surfaceHeight * 2.0f, levelTracker::Loader::m_maxZLevel,
-                            getPerspectiveMatrixForLevel(m_surfaceWidth, m_surfaceHeight),
-                            getViewMatrix());
+            return std::make_pair(x/m_surfaceWidth*2.0f - 1.0f, 1.0f - y / m_surfaceHeight * 2.0f);
         } else {
-            return getXYAtZ(x / m_surfaceWidth * 2.0f,
-                            -y / m_surfaceHeight * 2.0f, levelTracker::Loader::m_maxZLevel,
-                            getPerspectiveMatrixForLevel(m_surfaceWidth, m_surfaceHeight),
-                            getViewMatrix());
+            return std::make_pair(x/m_surfaceWidth*2.0f, -y / m_surfaceHeight * 2.0f);
         }
-
-    }
-    glm::mat4 getViewMatrix() {
-        return glm::lookAt(glm::vec3(0.0f, 0.0f, 1.0f),
-                glm::vec3(0.0f, 0.0f, levelTracker::Loader::m_maxZLevel), glm::vec3(0.0f, 1.0f, 0.0f));
     }
 };
 
@@ -309,17 +192,6 @@ public:
 
     virtual void cleanupThread()=0;
 
-    // some levels use this function to get a depth texture.
-    virtual void getDepthTexture(
-            DrawObjectTable const &objsData,
-            float width,
-            float height,
-            uint32_t nbrWidthSamples,
-            float farthestDepth,
-            float nearestDepth,
-            std::vector<float> &depthValues,
-            std::vector<glm::vec3> &normalMap) = 0;
-
     explicit Graphics(GameRequesterCreator inRequesterCreator,
             float inRotationAngle)
         : m_gameRequester{inRequesterCreator(this)},
@@ -337,7 +209,7 @@ protected:
     static float constexpr m_depthTextureNearPlane = 0.1f;
     static float constexpr m_depthTextureFarPlane = 10.0f;
 
-    bool testDepthTexture();
+    bool testDepthTexture(levelDrawer::Adaptor inLevelDrawer);
 };
 
 #endif // AMAZING_LABYRINTH_MAZE_GRAPHICS_HPP

@@ -28,19 +28,21 @@
 
 namespace levelDrawer {
     using ModelsTextures = std::vector<std::pair<std::shared_ptr<ModelDescription>, std::shared_ptr<TextureDescription>>>;
+    enum ObjectType {
+        STARTER,
+        LEVEL,
+        FINISHER
+    };
+
     class LevelDrawer {
     public:
-        enum ObjectType {
-            STARTER,
-            LEVEL,
-            FINISHER
-        };
-
         virtual void setClearColor(ObjectType type, glm::vec4 const &clearColor) = 0;
 
         virtual bool emptyOfDrawObjects(ObjectType type) = 0;
 
         virtual size_t numberObjects(ObjectType type) = 0;
+
+        virtual void clearDrawObjectTable(ObjectType type) = 0;
 
         // returns index of new object
         virtual size_t addObject(
@@ -95,7 +97,7 @@ namespace levelDrawer {
 
     class Adaptor {
     public:
-        Adaptor(LevelDrawer::ObjectType type, std::shared_ptr<LevelDrawer> ld)
+        Adaptor(ObjectType type, std::shared_ptr<LevelDrawer> ld)
             : m_type{type},
             m_levelDrawer{std::move(ld)}
         {}

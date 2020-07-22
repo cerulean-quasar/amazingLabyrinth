@@ -90,6 +90,8 @@ namespace finisher {
 
         bool isDone() { return finished; }
 
+        virtual void start() = 0;
+
         virtual bool updateDrawObjects() = 0;
 
         virtual ~LevelFinisher() = default;
@@ -117,6 +119,8 @@ namespace manyQuadsCoverUp {
     public:
         static char constexpr const *m_name = "manyQuadsCoverUp";
         bool updateDrawObjects() override;
+
+        void start() override;
 
         LevelFinisher(levelDrawer::Adaptor inLeveDrawer,
                 std::shared_ptr<LevelConfigData> const &lcd,
@@ -146,6 +150,8 @@ namespace growingQuad {
     public:
         static char constexpr const *m_name = "growingQuad";
         bool updateDrawObjects() override;
+
+        void start() override;
 
         LevelFinisher(levelDrawer::Adaptor inLeveDrawer,
                       std::shared_ptr<LevelConfigData> const &lcd,

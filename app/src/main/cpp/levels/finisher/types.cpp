@@ -57,6 +57,10 @@ namespace manyQuadsCoverUp {
         }
     }
 
+    void LevelFinisher::start() {
+        prevTime = std::chrono::high_resolution_clock::now();
+    }
+
     bool LevelFinisher::updateDrawObjects() {
         auto currentTime = std::chrono::high_resolution_clock::now();
         float time = std::chrono::duration<float, std::chrono::seconds::period>(
@@ -142,6 +146,11 @@ namespace growingQuad {
                 m_objIndex,
                 glm::translate(glm::mat4(1.0f), transVector) *
                 glm::scale(glm::mat4(1.0f), scaleVector))
+    }
+
+    void LevelFinisher::start() {
+        prevTime = std::chrono::high_resolution_clock::now();
+        timeSoFar = 0.0f;
     }
 
     bool

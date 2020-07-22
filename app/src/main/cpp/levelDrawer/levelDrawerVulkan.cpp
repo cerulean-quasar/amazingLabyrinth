@@ -55,7 +55,7 @@ namespace levelDrawer {
         // begin the main render pass
         VkRenderPassBeginInfo renderPassInfo = {};
         renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-        renderPassInfo.renderPass = m_neededForDrawing.renderPass->renderPass().get();
+        renderPassInfo.renderPass = info.renderPass->renderPass().get();
         renderPassInfo.framebuffer = info.framebuffer;
         /* size of the render area */
         renderPassInfo.renderArea.offset = {0, 0};

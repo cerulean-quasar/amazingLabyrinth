@@ -22,6 +22,7 @@
 #include "graphicsVulkan.hpp"
 #include "mazeGraphics.hpp"
 #include "common.hpp"
+#include "levelDrawer/levelDrawerVulkan.hpp"
 
 char constexpr const *SHADER_VERT_FILE ="shaders/shader.vert.spv";
 char constexpr const *SHADER_FRAG_FILE ="shaders/shader.frag.spv";
@@ -426,68 +427,21 @@ public:
               m_device{new vulkan::Device{m_instance}},
               m_swapChain{new vulkan::SwapChain{m_device}},
               m_renderPass{vulkan::RenderPass::createRenderPass(m_device, m_swapChain)},
-              m_descriptorSetLayout{new AmazingLabyrinthDescriptorSetLayout{m_device}},
-              m_descriptorPools{new vulkan::DescriptorPools{m_device, m_descriptorSetLayout}},
-              m_graphicsPipeline{new vulkan::Pipeline{m_gameRequester, m_device, m_swapChain->extent(),
-                                                      m_renderPass, m_descriptorPools,
-                                                      getBindingDescription(), getAttributeDescriptions(),
-                                                      SHADER_VERT_FILE, SHADER_FRAG_FILE, nullptr}},
               m_commandPool{new vulkan::CommandPool{m_device}},
               m_depthImageView{new vulkan::ImageView{vulkan::ImageFactory::createDepthImage(m_swapChain),
                                                      VK_IMAGE_ASPECT_DEPTH_BIT}},
-              m_descriptorSetLayoutShadows{std::make_shared<AmazingLabyrinthShadowsDescriptorSetLayout>(m_device)},
-              m_descriptorPoolsShadows{std::make_shared<vulkan::DescriptorPools>(m_device, m_descriptorSetLayoutShadows)},
-              m_depthImageViewShadows{std::make_shared<vulkan::ImageView>(vulkan::ImageFactory::createDepthImage(m_device,
-                      VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT, getShadowsFramebufferWidth(),
-                                      getShadowsFramebufferHeigth()),
-                                      VK_IMAGE_ASPECT_DEPTH_BIT)},
-              m_shadowsColorAttachment{vulkan::ImageView::createImageViewAndImage(
-                      m_device,
-                      getShadowsFramebufferWidth(),
-                      getShadowsFramebufferHeigth(),
-                      VK_FORMAT_R32G32B32A32_SFLOAT,
-                      VK_IMAGE_TILING_OPTIMAL,
-                      VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
-                      VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
-                      VK_IMAGE_ASPECT_COLOR_BIT)},
-              m_samplerShadows{std::make_shared<vulkan::ImageSampler>(m_device,
-                      m_shadowsColorAttachment, VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER,
-                      VK_BORDER_COLOR_FLOAT_OPAQUE_WHITE)},
-              m_commandBufferShadows{std::make_shared<vulkan::CommandBuffer>(m_device,
-                      m_commandPool, VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT)},
-              m_renderPassShadows{vulkan::RenderPass::createDepthTextureRenderPass(m_device,
-                      std::vector<vulkan::RenderPass::ImageAttachmentInfo>{vulkan::RenderPass::ImageAttachmentInfo{
-                          VK_ATTACHMENT_LOAD_OP_CLEAR, VK_ATTACHMENT_STORE_OP_STORE,
-                          m_shadowsColorAttachment->image()->format(),
-                          VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
-                      }},
-                      std::make_shared<vulkan::RenderPass::ImageAttachmentInfo>(
-                              VK_ATTACHMENT_LOAD_OP_CLEAR, VK_ATTACHMENT_STORE_OP_STORE,
-                              m_depthImageViewShadows->image()->format(),
-                              VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL))},
-              m_framebufferShadows{std::make_shared<vulkan::Framebuffer>(
-                      m_device, m_renderPassShadows,
-                      std::vector<std::shared_ptr<vulkan::ImageView>>{m_shadowsColorAttachment, m_depthImageViewShadows},
-                      getShadowsFramebufferWidth(),
-                      getShadowsFramebufferHeigth())},
-              m_pipelineShadows{std::make_shared<vulkan::Pipeline>(m_gameRequester, m_device,
-                      VkExtent2D{getShadowsFramebufferWidth(), getShadowsFramebufferHeigth()},
-                      m_renderPassShadows, m_descriptorPoolsShadows, getBindingDescription(), getAttributeDescriptions(),
-                      SHADOW_VERT_FILE, SHADER_SIMPLE_FRAG_FILE, m_graphicsPipeline, VK_CULL_MODE_FRONT_BIT)},
               m_swapChainCommands{new vulkan::SwapChainCommands{m_swapChain, m_commandPool, m_renderPass, m_depthImageView}},
               m_imageAvailableSemaphore{m_device},
-              m_renderFinishedSemaphore{m_device}
+              m_renderFinishedSemaphore{m_device},
+              m_renderLoader{std::make_shared<RenderLoaderVulkan>(m_device)},
+              m_levelDrawer{std::make_shared<levelDrawer::LevelDrawerVulkan>(levelDrawer::NeededForDrawingVulkan(m_device, m_commandPool), m_renderLoader, m_gameRequester)}
     {
-        m_levelSequence = std::make_shared<LevelSequenceVulkan>(m_gameRequester, m_device, m_commandPool, m_descriptorPools,
-                        m_descriptorPoolsShadows, m_samplerShadows,
-                        m_swapChain->extent().width, m_swapChain->extent().height, preTransform());
+        m_levelSequence = std::make_shared<LevelSequence>(m_levelDrawer,
+                        m_swapChain->extent().width, m_swapChain->extent().height);
 
         prepareDepthResources();
 
-        m_depthImageViewShadows->image()->transitionImageLayout(VK_IMAGE_LAYOUT_UNDEFINED,
-                                                  VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL, m_commandPool);
-
-        if (!testDepthTexture()) {
+        if (!testDepthTexture(levelDrawer::Adaptor(levelDrawer::LEVEL, m_levelDrawer)) {
             throw std::runtime_error(
                     "This version of Vulkan has bugs making it impossible to get the depth texture and normal map.");
         }
@@ -511,16 +465,6 @@ public:
                 std::vector<std::string>{}};
     }
 
-    virtual void getDepthTexture(
-            DrawObjectTable const &objsData,
-            float width,
-            float height,
-            uint32_t nbrSamplesForWidth,
-            float farthestDepth,
-            float nearestDepth,
-            std::vector<float> &depthMap,
-            std::vector<glm::vec3> &normalMap);
-
     virtual ~GraphicsVulkan() {
         if (m_device) {
             vkDeviceWaitIdle(m_device->logicalDevice().get());
@@ -533,28 +477,9 @@ private:
     std::shared_ptr<vulkan::Instance> m_instance;
     std::shared_ptr<vulkan::Device> m_device;
     std::shared_ptr<vulkan::SwapChain> m_swapChain;
-
     std::shared_ptr<vulkan::RenderPass> m_renderPass;
-
-    std::shared_ptr<AmazingLabyrinthDescriptorSetLayout> m_descriptorSetLayout;
-    std::shared_ptr<vulkan::DescriptorPools> m_descriptorPools;
-    std::shared_ptr<vulkan::Pipeline> m_graphicsPipeline;
     std::shared_ptr<vulkan::CommandPool> m_commandPool;
-
-    /* depth buffer image */
     std::shared_ptr<vulkan::ImageView> m_depthImageView;
-
-    /* shadow resources */
-    std::shared_ptr<AmazingLabyrinthShadowsDescriptorSetLayout> m_descriptorSetLayoutShadows;
-    std::shared_ptr<vulkan::DescriptorPools> m_descriptorPoolsShadows;
-    std::shared_ptr<vulkan::ImageView> m_depthImageViewShadows;
-    std::shared_ptr<vulkan::ImageView> m_shadowsColorAttachment;
-    std::shared_ptr<vulkan::ImageSampler> m_samplerShadows;
-    std::shared_ptr<vulkan::CommandBuffer> m_commandBufferShadows;
-    std::shared_ptr<vulkan::RenderPass> m_renderPassShadows;
-    std::shared_ptr<vulkan::Framebuffer> m_framebufferShadows;
-    std::shared_ptr<vulkan::Pipeline> m_pipelineShadows;
-
     std::shared_ptr<vulkan::SwapChainCommands> m_swapChainCommands;
 
     /* use semaphores to coordinate the rendering and presentation. Could also use fences
@@ -563,6 +488,9 @@ private:
      */
     vulkan::Semaphore m_imageAvailableSemaphore;
     vulkan::Semaphore m_renderFinishedSemaphore;
+
+    std::shared_ptr<RenderLoaderVulkan> m_renderLoader;
+    std::shared_ptr<levelDrawer::LevelDrawerVulkan> m_levelDrawer;
 
     void cleanupSwapChain();
     void initializeCommandBuffers();

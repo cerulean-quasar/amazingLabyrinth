@@ -43,7 +43,11 @@ namespace rotatablePassage {
         static char constexpr const *m_name = "rotatablePassage";
 
         bool tap(float x, float y) override {
-            glm::vec2 position{x, y};
+            auto projView = m_levelDrawer.getProjectionView();
+
+            auto XY = getXYAtZ(x, y, m_mazeFloorZ, projView.first, projView.second);
+
+            glm::vec2 position{XY.first, XY.second};
             return m_gameBoard.tap(position);
         }
 

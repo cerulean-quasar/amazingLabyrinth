@@ -201,8 +201,7 @@ namespace levelTracker {
                                                     m_maxZLevelStarter);
         } else {
             group.getStarterFcn = GenerateLevelFcn(
-                    [](std::shared_ptr<GameRequester>,
-                       glm::mat4 const &, glm::mat4 const &) -> std::shared_ptr<basic::Level> {
+                    [](levelDrawer::Adaptor) -> std::shared_ptr<basic::Level> {
                         return nullptr;
                     });
         }

@@ -43,12 +43,12 @@ namespace levelDrawer {
     struct NeededForDrawingVulkan {
         std::shared_ptr<vulkan::Device> device;
         std::shared_ptr<vulkan::CommandPool> commandPool;
-        std::shared_ptr<vulkan::RenderPass> renderPass;
     };
 
     struct DrawArgumentVulkan {
         VkCommandBuffer cmdBuffer;
-        VkFramebuffer frameBuffer;
+        VkFramebuffer framebuffer;
+        std::shared_ptr<vulkan::RenderPass> renderPass;
         VkExtent2D extent;
     };
 

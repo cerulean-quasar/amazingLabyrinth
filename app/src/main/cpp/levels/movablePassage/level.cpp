@@ -739,18 +739,31 @@ namespace movablePassage {
             return false;
         }
 
-        glm::vec2 startPosition{startX, startY};
-        glm::vec2 distance{distanceX, distanceY};
+        auto projView = m_levelDrawer.getProjectionView();
+
+        auto startXY = getXYAtZ(startX, startY, m_mazeFloorZ, projView.first, projView.second);
+        auto distanceXY = getXYAtZ(startX, startY, m_mazeFloorZ, projView.first, projView.second);
+
+        glm::vec2 startPosition{startXY.first, startXY.second};
+        glm::vec2 distance{distanceXY.first, distanceXY.second};
         return m_gameBoard.drag(startPosition, distance);
     }
 
     bool Level::dragEnded(float x, float y) {
-        glm::vec2 endPosition{x, y};
+        auto projView = m_levelDrawer.getProjectionView();
+
+        auto XY = getXYAtZ(x, y, m_mazeFloorZ, projView.first, projView.second);
+
+        glm::vec2 endPosition{XY.first, XY.second};
         return m_gameBoard.dragEnded(endPosition);
     }
 
     bool Level::tap(float x, float y) {
-        glm::vec2 position{x, y};
+        auto projView = m_levelDrawer.getProjectionView();
+
+        auto XY = getXYAtZ(x, y, m_mazeFloorZ, projView.first, projView.second);
+
+        glm::vec2 position{XY.first, XY.second};
         return m_gameBoard.tap(position);
     }
 } // namespace movablePassage
