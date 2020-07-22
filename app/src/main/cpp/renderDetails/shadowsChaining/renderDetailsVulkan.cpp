@@ -26,45 +26,55 @@ namespace shadowsChaining {
             std::shared_ptr<GameRequester> const &gameRequester,
             std::shared_ptr<RenderLoaderVulkan> const &renderLoader,
             std::shared_ptr<vulkan::Device> const &inDevice,
-            renderDetails::ParametersVulkan const &parameters,
+            std::shared_ptr<renderDetails::Parameters> const &parametersBase,
             Config const &config)
     {
-            // initialize main render details
-            auto rd = std::make_shared<RenderDetailsVulkan>(parameters.width, parameters.height);
-            rd->m_device = inDevice;
+        auto parameters = dynamic_cast<renderDetails::ParametersVulkan*>(parametersBase.get());
+        if (parameters == nullptr) {
+            throw std::runtime_error("Invalid render details parameter type.");
+        }
 
-            rd->createShadowResources();
+        // initialize main render details
+        auto rd = std::make_shared<RenderDetailsVulkan>(parameters->width, parameters->height);
+        rd->m_device = inDevice;
 
-            auto shadowParameters = createShadowParameters(rd, parameters);
+        rd->createShadowResources();
 
-            // shadows render details
-            auto refShadows = renderLoader->load(
-                    gameRequester, shadows::RenderDetailsVulkan::name(), shadowParameters);
+        auto shadowParameters = createShadowParameters(rd, parameters);
 
-            // shadows framebuffer
-            rd->m_framebufferShadows = std::make_shared<vulkan::Framebuffer>(
-                    inDevice, rd->m_renderPassShadows,
-                    std::vector<std::shared_ptr<vulkan::ImageView>>{rd->m_shadowsColorAttachment,
-                                                                    rd->m_depthImageViewShadows},
-                    shadowParameters.width, shadowParameters.height);
+        // shadows render details
+        auto refShadows = renderLoader->load(
+                gameRequester, shadows::RenderDetailsVulkan::name(), shadowParameters);
 
-            // main render details
-            auto refMain = renderLoader->load(
-                    gameRequester, objectWithShadows::RenderDetailsVulkan::name(), parameters);
+        // shadows framebuffer
+        rd->m_framebufferShadows = std::make_shared<vulkan::Framebuffer>(
+                inDevice, rd->m_renderPassShadows,
+                std::vector<std::shared_ptr<vulkan::ImageView>>{rd->m_shadowsColorAttachment,
+                                                                rd->m_depthImageViewShadows},
+                shadowParameters.width, shadowParameters.height);
 
-            rd->m_objectWithShadowsRenderDetails = refMain.renderDetails;
-            rd->m_shadowsRenderDetails = refShadows.renderDetails;
+        // main render details
+        auto refMain = renderLoader->load(
+                gameRequester, objectWithShadows::RenderDetailsVulkan::name(), parametersBase);
 
-            return createReference(std::move(rd), refShadows, refTexture, refColor);
+        rd->m_objectWithShadowsRenderDetails = refMain.renderDetails;
+        rd->m_shadowsRenderDetails = refShadows.renderDetails;
+
+        return createReference(std::move(rd), refShadows, refTexture, refColor);
     }
 
     renderDetails::ReferenceVulkan RenderDetailsVulkan::loadExisting(
             std::shared_ptr<GameRequester> const &gameRequester,
             std::shared_ptr<RenderLoaderVulkan> const &renderLoader,
             std::shared_ptr<renderDetails::RenderDetailsVulkan> rdBase,
-            renderDetails::ParametersVulkan const &parameters,
+            std::shared_ptr<renderDetails::Parameters> const &parametersBase,
             Config const &config)
     {
+        auto parameters = dynamic_cast<renderDetails::ParametersVulkan*>(parametersBase.get());
+        if (parameters == nullptr) {
+            throw std::runtime_error("Invalid render details parameter type.");
+        }
+
         auto rd = dynamic_cast<RenderDetailsVulkan*>(rdBase.get());
         if (rd == nullptr) {
             throw std::runtime_error("Invalid render details type.")
@@ -77,7 +87,7 @@ namespace shadowsChaining {
 
         // object with shadows render details
         auto refObjectWithShadows = renderLoader->load(
-            gameRequester, renderLoader, objectWithShadows::RenderDetailsVulkan::name(), parameters);
+            gameRequester, renderLoader, objectWithShadows::RenderDetailsVulkan::name(), parametersBase);
 
         rd->m_objectWithShadowsRenderDetails = refObjectWithShadows.renderDetails;
         rd->m_shadowsRenderDetails = refShadows.renderDetails;
@@ -88,16 +98,19 @@ namespace shadowsChaining {
     void RenderDetailsVulkan::reload(
             std::shared_ptr<GameRequester> const &gameRequester,
             std::shared_ptr<RenderLoaderVulkan> const &renderLoader,
-            ParametersVulkan const &parameters)
+            std::shared_ptr<renderDetails::Parameters> const &parametersBase)
     {
-        createShadowResources(ParametersVulkan const &parameters);
+        auto parameters = dynamic_cast<renderDetails::ParametersVulkan*>(parametersBase.get());
+        if (parameters == nullptr) {
+            throw std::runtime_error("Invalid render details parameter type.");
+        }
 
-        m_surfaceWidth = parameters.width;
-        m_surfaceHeight = parameters.height;
+        m_surfaceWidth = parameters->width;
+        m_surfaceHeight = parameters->height;
 
         auto shadowParameters = createShadowParameters(rd, parameters);
         m_shadowsRenderDetails->reload(gameRequester, renderLoader, shadowParameters);
-        m_objectWithShadowsRenderDetails->reload(gameRequester, renderLoader, parameters);
+        m_objectWithShadowsRenderDetails->reload(gameRequester, renderLoader, parametersBase);
     }
 
     void RenderDetailsVulkan::addPreRenderPassCmdsToCommandBuffer(
@@ -204,7 +217,7 @@ namespace shadowsChaining {
         return std::move(ref);
     }
 
-    void RenderDetailsVulkan::createShadowResources(ParametersVulkan const &parameters) {
+    void RenderDetailsVulkan::createShadowResources(renderDetails::ParametersVulkan const *parameters) {
         m_renderPassShadows.reset();
         m_samplerShadows.reset();
         m_shadowsColorAttachment.reset();
@@ -215,8 +228,8 @@ namespace shadowsChaining {
                 vulkan::ImageFactory::createDepthImage(
                         m_device,
                         VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT,
-                        getShadowsFramebufferWidth(parameters.width),
-                        getShadowsFramebufferHeigth(parameters.height)),
+                        getShadowsFramebufferWidth(parameters->width),
+                        getShadowsFramebufferHeigth(parameters->height)),
                 VK_IMAGE_ASPECT_DEPTH_BIT);
 
         m_depthImageViewShadows->image()->transitionImageLayout(
@@ -225,8 +238,8 @@ namespace shadowsChaining {
 
         m_shadowsColorAttachment = vulkan::ImageView::createImageViewAndImage(
                 m_device,
-                getShadowsFramebufferWidth(parameters.width),
-                getShadowsFramebufferHeigth(parameters.height),
+                getShadowsFramebufferWidth(parameters->width),
+                getShadowsFramebufferHeigth(parameters->height),
                 VK_FORMAT_R32G32B32A32_SFLOAT,
                 VK_IMAGE_TILING_OPTIMAL,
                 VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,

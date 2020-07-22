@@ -102,20 +102,20 @@ namespace shadowsChaining {
             std::shared_ptr<GameRequester> const &gameRequester,
             std::shared_ptr<RenderLoaderVulkan> const &renderLoader,
             std::shared_ptr<vulkan::Device> const &inDevice,
-            renderDetails::ParametersVulkan const &parameters,
+            std::shared_ptr<renderDetails::Parameters> const &parameters,
             Config const &config);
 
         static renderDetails::ReferenceVulkan loadExisting(
             std::shared_ptr<GameRequester> const &gameRequester,
             std::shared_ptr<RenderLoaderVulkan> const &renderLoader,
             std::shared_ptr<renderDetails::RenderDetailsVulkan> rdBase,
-            renderDetails::ParametersVulkan const &parameters,
+            std::shared_ptr<renderDetails::Parameters> const &parameters,
             Config const &config);
 
-        virtual void reload(
+        void reload(
                 std::shared_ptr<GameRequester> const &gameRequester,
                 std::shared_ptr<RenderLoaderVulkan> const &renderLoader,
-                ParametersVulkan const &parameters);
+                std::shared_ptr<renderDetails::Parameters> const &parameters) override;
 
         void addPreRenderPassCmdsToCommandBuffer(
                 VkCommandBuffer const &commandBuffer,
@@ -157,19 +157,19 @@ namespace shadowsChaining {
                 renderDetails::ReferenceVulkan const &refObjectWithShadows,
                 std::shared_ptr<vulkan::ImageSampler> const &shadowsImageSampler);
 
-        static renderDetails::ParametersVulkan createShadowParameters(
+        static std::shared_ptr<renderDetails::Parameters> createShadowParameters(
                 std::shared_ptr<RenderDetailsVulkan> const &rd,
-                renderDetails::ParametersVulkan const &parameters)
+                renderDetails::ParametersVulkan const *parameters)
         {
             renderDetails::ParametersVulkan shadowParameters;
-            shadowParameters.width = getShadowsFramebufferDimension(parameters.width);
-            shadowParameters.height = getShadowsFramebufferDimension(parameters.height);
-            shadowParameters.preTransform = parameters.preTransform;
+            shadowParameters.width = getShadowsFramebufferDimension(parameters->width);
+            shadowParameters.height = getShadowsFramebufferDimension(parameters->height);
+            shadowParameters.preTransform = parameters->preTransform;
             shadowParameters.renderPass = rd->m_renderPassShadows;
-            return std::move(shadowParameters);
+            return std::make_shared<renderDetails::ParametersVulkan>(shadowParameters);
         }
 
-        void createShadowResources(ParametersVulkan const &parameters);
+        void createShadowResources(ParametersVulkan const *parameters);
 
         RenderDetailsVulkan(
                 uint32_t inWidth,

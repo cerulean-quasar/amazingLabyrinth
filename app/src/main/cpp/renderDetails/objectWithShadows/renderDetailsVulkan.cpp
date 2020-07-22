@@ -425,24 +425,29 @@ namespace objectWithShadows {
     void RenderDetailsVulkan::reload(
             std::shared_ptr<GameRequester> const &gameRequester,
             std::shared_ptr<RenderLoaderVulkan> const &renderLoader,
-            ParametersVulkan const &parameters)
+            std::shared_ptr<renderDetails::Parameters> const &parametersBase)
     {
+        auto parameters = dynamic_cast<renderDetails::ParametersVulkan*>(parametersBase.get());
+        if (parameters == nullptr) {
+            throw std::runtime_error("Invalid render details parameter type.");
+        }
+
         m_pipelineColor.reset();
         m_pipelineTexture.reset();
 
-        m_surfaceWidth = parameters.width;
-        m_surfaceHeight = parameters.height;
+        m_surfaceWidth = parameters->width;
+        m_surfaceHeight = parameters->height;
 
         m_pipelineTexture = std::make_shared<vulkan::Pipeline>(
                 gameRequester, m_device, VkExtent2D{m_surfaceWidth, m_surfaceHeight},
-                parameters.renderPass, m_descriptorPoolsTexture,
+                parameters->renderPass, m_descriptorPoolsTexture,
                 getBindingDescription(),
                 getAttributeDescriptions(),
                 SHADER_VERT_FILE, TEXTURE_SHADER_FRAG_FILE, nullptr);
 
         m_pipelineColor = std::make_shared<vulkan::Pipeline>(
                 gameRequester, m_device, VkExtent2D{m_surfaceWidth, m_surfaceHeight},
-                parameters.renderPass, m_descriptorPoolsColor,
+                parameters->renderPass, m_descriptorPoolsColor,
                 getBindingDescription(),
                 getAttributeDescriptions(),
                 SHADER_VERT_FILE, COLOR_SHADER_FRAG_FILE, m_pipelineTexture);

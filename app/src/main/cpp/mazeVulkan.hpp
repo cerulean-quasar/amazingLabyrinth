@@ -62,6 +62,9 @@ public:
 
     void drawFrame() override;
 
+    std::shared_ptr<renderDetails::Parameters> getParametersForRenderDetailsName(
+            char const *renderDetailsName) override;
+
     void recreateSwapChain(uint32_t width, uint32_t height) override ;
 
     GraphicsDescription graphicsDescription() override {

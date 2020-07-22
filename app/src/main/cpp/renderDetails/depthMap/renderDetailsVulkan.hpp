@@ -204,15 +204,19 @@ namespace depthMap {
                 std::shared_ptr<GameRequester> const &gameRequester,
                 std::shared_ptr<RenderLoaderVulkan> const &,
                 std::shared_ptr<vulkan::Device> const &inDevice,
-                renderDetails::ParametersVulkan const &parameters,
+                std::shared_ptr<renderDetails::Parameters> const &parametersBase,
                 Config const &config)
         {
+            auto parameters =
+                    dynamic_cast<renderDetails::ParametersWithSurfaceWidthHeightAtDepthVulkan*>(parametersBase.get());
+            if (parameters == nullptr) {
+                throw std::runtime_error("Invalid render details parameter type.");
+            }
+
             auto rd = std::make_shared<RenderDetailsVulkan>(
                     gameRequester, inDevice, nullptr, parameters);
 
-            auto parametersWithWidthHeightAtDepth =
-                    dynamic_cast<renderDetails::ParametersWithSurfaceWidthHeightAtDepthVulkan const &>(parameters);
-            auto cod = rd->createCommonObjectData(parametersWithWidthHeightAtDepth, config);
+            auto cod = rd->createCommonObjectData(parameters, config);
 
             return createReference(std::move(rd), std::move(cod));
         }
@@ -221,17 +225,21 @@ namespace depthMap {
                 std::shared_ptr<GameRequester> const &,
                 std::shared_ptr<RenderLoaderVulkan> const &,
                 std::shared_ptr<renderDetails::RenderDetailsVulkan> const &rdBase,
-                renderDetails::ParametersVulkan const &parameters,
+                std::shared_ptr<renderDetails::Parameters> const &parametersBase,
                 Config const &config)
         {
+            auto parameters =
+                    dynamic_cast<renderDetails::ParametersWithSurfaceWidthHeightAtDepthVulkan*>(parametersBase.get());
+            if (parameters == nullptr) {
+                throw std::runtime_error("Invalid render details parameter type.");
+            }
+
             auto rd = dynamic_cast<RenderDetailsVulkan*>(rdBase.get());
             if (rd == nullptr) {
                 throw std::runtime_error("Invalid render details type.");
             }
 
-            auto parametersWithWidthHeightAtDepth =
-                    dynamic_cast<renderDetails::ParametersWithSurfaceWidthHeightAtDepthVulkan const &>(parameters);
-            auto cod = rd->createCommonObjectData(parametersWithWidthHeightAtDepth, config);
+            auto cod = rd->createCommonObjectData(parameters, config);
 
             return createReference(std::move(rdBase), std::move(cod));
         }
@@ -256,7 +264,7 @@ namespace depthMap {
         void reload(
                 std::shared_ptr<GameRequester> const &gameRequester,
                 std::shared_ptr<RenderLoaderVulkan> const &renderLoader,
-                ParametersVulkan const &parameters) override;
+                std::shared_ptr<renderDetails::Parameters> const &parametersBase) override;
 
         std::shared_ptr<vulkan::Device> const &device() override { return m_device; }
         std::shared_ptr<vulkan::DescriptorPools> const &descriptorPools() override {
@@ -284,15 +292,15 @@ namespace depthMap {
                 std::shared_ptr<GameRequester> const &gameRequester,
                 std::shared_ptr<vulkan::Device> const &inDevice,
                 std::shared_ptr<vulkan::Pipeline> const &basePipeline,
-                renderDetails::ParametersVulkan const &parameters)
-        : RenderDetailsVulkan{parameters.width, parameters.height},
+                renderDetails::ParametersVulkan const *parameters)
+        : RenderDetailsVulkan{parameters->width, parameters->height},
         m_device{inDevice},
         m_descriptorSetLayout{std::make_shared<DescriptorSetLayout>(m_device)},
         m_descriptorPools{std::make_shared<vulkan::DescriptorPools>(m_device, m_descriptorSetLayout)},
         m_pipeline{std::make_shared<vulkan::Pipeline>(
                     gameRequester, m_device,
                     VkExtent2D{m_width, m_height},
-                    parameters.renderPass, m_descriptorPools, getBindingDescription(),
+                    parameters->renderPass, m_descriptorPools, getBindingDescription(),
                     getAttributeDescriptions(),
                     SHADER_LINEAR_DEPTH_VERT_FILE, SHADER_SIMPLE_FRAG_FILE, basePipeline)}
         {}
@@ -302,16 +310,16 @@ namespace depthMap {
                 std::shared_ptr<CommonObjectDataVulkan> cod);
 
         static std::shared_ptr<CommonObjectDataVulkan> createCommonObjectData(
-                renderDetails::ParametersWithSurfaceWidthHeightAtDepthVulkan const &parameters,
+                renderDetails::ParametersWithSurfaceWidthHeightAtDepthVulkan const *parameters,
                 Config const &config)
         {
             return std::make_shared<CommonObjectDataVulkan>(
-                    parameters.preTransform,
-                    parameters.nearestDepth,
-                    parameters.farthestDepth,
+                    parameters->preTransform,
+                    parameters->nearestDepth,
+                    parameters->farthestDepth,
                     config,
-                    parameters.widthAtDepth,
-                    parameters.heightAtDepth);
+                    parameters->widthAtDepth,
+                    parameters->heightAtDepth);
         }
     };
 }

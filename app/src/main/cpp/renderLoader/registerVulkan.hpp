@@ -35,13 +35,13 @@ struct RenderDetailsVulkanRetrieveFcns {
         std::shared_ptr<GameRequester> const &,
         std::shared_ptr<RenderLoaderVulkan> const &,
         std::shared_ptr<vulkan::Device>,
-        renderDetails::ParametersVulkan const &)>;
+        std::shared_ptr<renderDetails::Parameters> const &)>;
 
     using RenderDetailsLoadExistingFcn = std::function<renderDetails::ReferenceVulkan(
         std::shared_ptr<GameRequester> const &,
         std::shared_ptr<RenderLoaderVulkan> const &,
         std::shared_ptr<renderDetails::RenderDetailsVulkan> const &,
-        renderDetails::ParametersVulkan const &)>;
+        std::shared_ptr<renderDetails::Parameters> const &)>;
 
     RenderDetailsLoadNewFcn renderDetailsLoadNewFcn;
     RenderDetailsLoadExistingFcn renderDetailsLoadExistingFcn;
@@ -58,7 +58,7 @@ RenderDetailsVulkanRetrieveMap &getRenderDetailsVulkanMap() {
 
 class RenderLoaderVulkan;
 
-template <typename RenderDetailsBaseType, typename RenderDetailsType, typename ConfigType, typename ParametersType>
+template <typename RenderDetailsBaseType, typename RenderDetailsType, typename ConfigType>
 class RegisterVulkan {
     RegisterVulkan() {
         getRenderDetailsVulkanMap().emplace(
@@ -71,7 +71,7 @@ class RegisterVulkan {
                             [config] (std::shared_ptr<GameRequester> const &gameRequester,
                                       std::shared_ptr<RenderLoaderVulkan> const &renderLoader,
                                       std::shared_ptr<vulkan::Device> inDevice,
-                                      ParametersType const &parameters) -> RenderDetailsVulkanRetrieveFcns::RenderDetailsReferenceVulkan
+                                      std::shared_ptr<renderDetails::Parameters> const &parameters) -> RenderDetailsVulkanRetrieveFcns::RenderDetailsReferenceVulkan
                             {
                                 return RenderDetailsType::loadNew(gameRequester, renderLoader,
                                         inDevice, parameters, config);
@@ -80,7 +80,7 @@ class RegisterVulkan {
                             [config] (std::shared_ptr<GameRequester> const &gameRequester,
                                       std::shared_ptr<RenderLoaderVulkan> const &renderLoader,
                                       std::shared_ptr<RenderDetailsBaseType> const &renderDetails,
-                                      ParametersType const &parameters) -> RenderDetailsVulkanRetrieveFcns::RenderDetailsReferenceVulkan
+                                      std::shared_ptr<renderDetails::Parameters> const &parameters) -> RenderDetailsVulkanRetrieveFcns::RenderDetailsReferenceVulkan
                             {
                                 return RenderDetailsType::loadExisting(gameRequester, renderLoader,
                                         renderDetails, parameters, config);

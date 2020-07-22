@@ -172,17 +172,22 @@ namespace shadows {
     void RenderDetailsVulkan::reload(
             std::shared_ptr<GameRequester> const &gameRequester,
             std::shared_ptr<RenderLoaderVulkan> const &renderLoader,
-            ParametersVulkan const &parameters)
+            std::shared_ptr<renderDetails::Parameters> const &parametersBase)
     {
+        auto parameters = dynamic_cast<renderDetails::ParametersVulkan*>(parametersBase.get());
+        if (parameters == nullptr) {
+            throw std::runtime_error("Invalid render details parameter type.");
+        }
+
         m_pipeline.reset();
 
-        m_surfaceWidth = parameters.width;
-        m_surfaceHeight = parameters.height;
+        m_surfaceWidth = parameters->width;
+        m_surfaceHeight = parameters->height;
 
         m_pipeline = std::make_shared<vulkan::Pipeline>(
                 gameRequester, m_device,
                 VkExtent2D{m_surfaceWidth, m_surfaceHeight},
-                parameters.renderPass, m_descriptorPools, getBindingDescription(),
+                parameters->renderPass, m_descriptorPools, getBindingDescription(),
                 getAttributeDescriptions(),
                 SHADOW_VERT_FILE, SHADER_SIMPLE_FRAG_FILE, nullptr,
                 VK_CULL_MODE_FRONT_BIT);

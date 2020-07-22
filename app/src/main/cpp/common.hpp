@@ -23,6 +23,7 @@
 #include <string>
 #include <memory>
 #include <streambuf>
+#include "renderDetails/renderDetails.hpp"
 
 class Graphics;
 
@@ -51,7 +52,8 @@ public:
 
 class GraphicsRequester {
 public:
-    virtual void getParametersForRenderDetailsName(char const *renderDetailsName) = 0;
+    virtual std::shared_ptr<renderDetails::Parameters> getParametersForRenderDetailsName(
+            char const *renderDetailsName) = 0;
     virtual ~GraphicsRequester() = default;
 };
 

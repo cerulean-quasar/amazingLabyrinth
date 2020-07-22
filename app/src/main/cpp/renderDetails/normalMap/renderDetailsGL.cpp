@@ -27,26 +27,30 @@ namespace normalMap {
     RenderDetailsGL::RenderDetailsGL(std::shared_ptr<GameRequester> const &inGameRequester,
                                              uint32_t inWidth, uint32_t inHeight)
             : renderDetails::RenderDetailsGL(inWidth, inHeight),
-              m_depthProgramID{loadShaders(inGameRequester, LINEAR_DEPTH_VERT_FILE, SIMPLE_FRAG_FILE)}
+              m_programID{loadShaders(inGameRequester, LINEAR_DEPTH_VERT_FILE, SIMPLE_FRAG_FILE)}
     {}
 
     renderDetails::ReferenceGL RenderDetailsGL::loadNew(
             std::shared_ptr<GameRequester> const &gameRequester,
             std::shared_ptr<RenderLoaderGL> const &,
-            renderDetails::ParametersGL const &parameters,
+            std::shared_ptr<renderDetails::Parameters> const &parametersBase,
             Config const &config)
     {
-        auto rd = std::make_shared<RenderDetailsGL>(gameRequester, parameters.width,
-                                                    parameters.height);
+        auto parameters =
+                dynamic_cast<renderDetails::ParametersWithWidthHeightAtDepthGL*>(parametersBase.get());
+        if (parameters == nullptr) {
+            throw std::runtime_error("Invalid render details parameter type.");
+        }
 
-        auto parametersWithExtra =
-                static_cast<renderDetails::ParametersWithWidthHeightAtDepthGL const &>(parameters);
+        auto rd = std::make_shared<RenderDetailsGL>(gameRequester, parameters->width,
+                                                    parameters->height);
+
         auto cod = std::make_shared<CommonObjectDataGL>(
-                parametersWithExtra.nearestDepth,
-                parametersWithExtra.farthestDepth,
+                parameters->nearestDepth,
+                parameters->farthestDepth,
                 config,
-                parametersWithExtra.width,
-                parametersWithExtra.height);
+                parameters->width,
+                parameters->height);
 
         return createReference(rd, cod);
     }
@@ -55,18 +59,21 @@ namespace normalMap {
             std::shared_ptr<GameRequester> const &gameRequester,
             std::shared_ptr<RenderLoaderGL> const &renderLoader,
             std::shared_ptr<renderDetails::RenderDetailsGL> rdBase,
-            renderDetails::ParametersGL const &parameters,
+            std::shared_ptr<renderDetails::Parameters> const &parametersBase,
             Config const &config)
     {
-        auto parametersWithExtra =
-                static_cast<renderDetails::ParametersWithWidthHeightAtDepthGL const &>(parameters);
+        auto parameters =
+                dynamic_cast<renderDetails::ParametersWithWidthHeightAtDepthGL*>(parametersBase.get());
+        if (parameters == nullptr) {
+            throw std::runtime_error("Invalid render details parameter type.");
+        }
 
         auto cod = std::make_shared<CommonObjectDataGL>(
-                parametersWithExtra.nearestDepth,
-                parametersWithExtra.farthestDepth,
+                parameters->nearestDepth,
+                parameters->farthestDepth,
                 config,
-                parametersWithExtra.width,
-                parametersWithExtra.height);
+                parameters->width,
+                parameters->height);
 
         return createReference(std::move(rdBase), std::move(cod));
     }

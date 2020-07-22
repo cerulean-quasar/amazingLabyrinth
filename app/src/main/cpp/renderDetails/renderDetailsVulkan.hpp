@@ -114,7 +114,7 @@ namespace renderDetails {
         virtual void reload(
                 std::shared_ptr<GameRequester> const &gameRequester,
                 std::shared_ptr<RenderLoaderVulkan> const &renderLoader,
-                ParametersVulkan const &parameters) = 0;
+                std::shared_ptr<renderDetails::Parameters> const &parameters) = 0;
 
         RenderDetailsVulkan(uint32_t width, uint32_t height)
             : RenderDetails(width, height)

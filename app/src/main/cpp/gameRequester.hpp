@@ -27,6 +27,7 @@
 #include <boost/optional.hpp>
 #include "common.hpp"
 #include "android.hpp"
+#include "renderDetails/renderDetails.hpp"
 
 // These must be the same values as the values in java: MySurfaceCallback.java
 std::string const KeyGraphicsName = "graphicsName";
@@ -56,7 +57,7 @@ public:
     }
     std::string getSaveDataFileName() override { return m_pathSaveFile; }
 
-    void getParametersForRenderDetailsName(
+    std::shared_ptr<renderDetails::Parameters> getParametersForRenderDetailsName(
             char const *renderDetailsName) override;
 
     // accessors

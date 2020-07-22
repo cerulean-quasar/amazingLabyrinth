@@ -31,6 +31,7 @@
 
 #include "gameRequester.hpp"
 #include "drawer.hpp"
+#include "renderDetails/renderDetails.hpp"
 
 void handleJNIException(JNIEnv *env) {
     if (env->ExceptionCheck()) {
@@ -239,10 +240,10 @@ void JGameBundle::putDatum<int>(std::string const &key, int const &val) {
     handleJNIException(lenv);
 }
 
-void JGameRequester::getParametersForRenderDetailsName(
+std::shared_ptr<renderDetails::Parameters> JGameRequester::getParametersForRenderDetailsName(
         char const *renderDetailsName)
 {
-    m_graphics->getParametersForRenderDetailsName(renderDetailsName);
+    return m_graphics->getParametersForRenderDetailsName(renderDetailsName);
 }
 
 std::vector<char> JGameRequester::getTextImage(std::string text, uint32_t &width, uint32_t &height, uint32_t &channels) {

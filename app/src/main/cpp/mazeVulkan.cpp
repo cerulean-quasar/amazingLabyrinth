@@ -231,3 +231,16 @@ void GraphicsVulkan::prepareDepthResources() {
     m_depthImageView->image()->transitionImageLayout(VK_IMAGE_LAYOUT_UNDEFINED,
                                                      VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL, m_commandPool);
 }
+
+std::shared_ptr<renderDetails::Parameters> GraphicsVulkan::getParametersForRenderDetailsName(
+        char const *renderDetailsName)
+{
+    auto extent = m_swapChain->extent();
+    renderDetails::ParametersVulkan parameters;
+    parameters.width = extent.width;
+    parameters.height = extent.height;
+    parameters.preTransform = preTransform();
+    parameters.renderPass = m_renderPass;
+
+    return std::make_shared<renderDetails::ParametersVulkan>(parameters);
+}

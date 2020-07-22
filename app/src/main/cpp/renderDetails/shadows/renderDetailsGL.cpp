@@ -32,14 +32,14 @@ namespace shadows {
     renderDetails::ReferenceGL RenderDetailsGL::loadNew(
             std::shared_ptr<GameRequester> const &gameRequester,
             std::shared_ptr<RenderLoaderGL> const &,
-            renderDetails::ParametersGL const &parameters,
+            std::shared_ptr<renderDetails::Parameters> const &parameters,
             Config const &config)
     {
-        auto rd = std::make_shared<RenderDetailsGL>(gameRequester, parameters.width,
-                                                    parameters.height);
+        auto rd = std::make_shared<RenderDetailsGL>(gameRequester, parameters->width,
+                                                    parameters->height);
 
         auto cod = std::make_shared<CommonObjectDataGL>(
-                parameters.width / static_cast<float>(parameters.height), config);
+                parameters->width / static_cast<float>(parameters->height), config);
 
         return createReference(rd, cod);
     }
@@ -48,11 +48,11 @@ namespace shadows {
             std::shared_ptr<GameRequester> const &gameRequester,
             std::shared_ptr<RenderLoaderGL> const &renderLoader,
             std::shared_ptr<renderDetails::RenderDetailsGL> rdBase,
-            renderDetails::ParametersGL const &parameters,
+            std::shared_ptr<renderDetails::Parameters> const &parameters,
             Config const &config)
     {
         auto cod = std::make_shared<CommonObjectDataGL>(
-                parameters.width / static_cast<float>(parameters.height), config);
+                parameters->width / static_cast<float>(parameters->height), config);
 
         return createReference(std::move(rdBase), std::move(cod));
     }

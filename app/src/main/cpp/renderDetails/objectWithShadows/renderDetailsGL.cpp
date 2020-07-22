@@ -29,17 +29,20 @@ namespace objectWithShadows {
     renderDetails::ReferenceGL RenderDetailsGL::loadNew(
             std::shared_ptr<GameRequester> const &gameRequester,
             std::shared_ptr<RenderLoaderGL> const &renderLoader,
-            renderDetails::ParametersGL const &parameters,
+            std::shared_ptr<renderDetails::Parameters> const &parametersBase,
             Config const &config)
     {
-        auto rd = std::make_shared<RenderDetailsGL>(gameRequester, parameters.width,
-                                                    parameters.height);
+        auto parameters =
+                dynamic_cast<renderDetails::ParametersWithShadowsGL*>(parametersBase.get());
+        if (parameters == nullptr) {
+            throw std::runtime_error("Invalid render details parameter type.");
+        }
 
-        renderDetails::ParametersWithShadowsGL const &p =
-                dynamic_cast<renderDetails::ParametersWithShadowsGL const &>(parameters);
+        auto rd = std::make_shared<RenderDetailsGL>(gameRequester, parameters->width,
+                                                    parameters->height);
 
-        auto cod = std::make_shared<CommonObjectDataGL>(p.shadowsFB,
-                parameters.width / static_cast<float>(parameters.height), config);
+        auto cod = std::make_shared<CommonObjectDataGL>(parameters->shadowsFB,
+                parameters->width / static_cast<float>(parameters->height), config);
 
         return createReference(std::move(rd), std::move(cod));
     }
@@ -48,14 +51,17 @@ namespace objectWithShadows {
             std::shared_ptr<GameRequester> const &gameRequester,
             std::shared_ptr<RenderLoaderGL> const &renderLoader,
             std::shared_ptr<renderDetails::RenderDetailsGL> rdBase,
-            renderDetails::ParametersGL const &parameters,
+            std::shared_ptr<renderDetails::Parameters> const &parametersBase,
             Config const &config)
     {
-        renderDetails::ParametersWithShadowsGL const &p =
-                dynamic_cast<renderDetails::ParametersWithShadowsGL const &>(parameters);
+        auto parameters =
+                dynamic_cast<renderDetails::ParametersWithShadowsGL*>(parametersBase.get());
+        if (parameters == nullptr) {
+            throw std::runtime_error("Invalid render details parameter type.");
+        }
 
-        auto cod = std::make_shared<CommonObjectDataGL>(p.shadowsFB,
-                parameters.width / static_cast<float>(parameters.height), config);
+        auto cod = std::make_shared<CommonObjectDataGL>(parameters->shadowsFB,
+                parameters->width / static_cast<float>(parameters->height), config);
 
         return createReference(std::move(rdBase), std::move(cod));
     }

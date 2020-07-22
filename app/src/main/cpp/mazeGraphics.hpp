@@ -162,7 +162,8 @@ public:
 
     virtual GraphicsDescription graphicsDescription() = 0;
 
-    virtual getParametersForRenderDetailsName
+    virtual std::shared_ptr<renderDetails::Parameters> getParametersForRenderDetailsName(
+            char const *renderDetailsName) = 0;
 
     void sendGraphicsDescription(bool hasAccelerometer, std::string vulkanError) {
         GraphicsDescription info = graphicsDescription();

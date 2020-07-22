@@ -24,11 +24,16 @@ namespace shadowsChaining {
     renderDetails::ReferenceGL RenderDetailsGL::loadNew(
             std::shared_ptr<GameRequester> const &gameRequester,
             std::shared_ptr<RenderLoaderGL> const &renderLoader,
-            renderDetails::ParametersGL const &parameters,
+            std::shared_ptr<renderDetails::Parameters> const &parametersBase,
             Config const &config)
     {
+        auto parameters = dynamic_cast<renderDetails::ParametersGL*>(parametersBase.get());
+        if (parameters == nullptr) {
+            throw std::runtime_error("Invalid render details parameter type.");
+        }
+
         auto rd = std::make_shared<RenderDetailsGL>(
-                parameters.useIntTexture, parameters.width, parameters.height);
+                parameters->useIntTexture, parameters->width, parameters->height);
 
         createFramebuffer(rd.get(), parameters);
 
@@ -36,13 +41,14 @@ namespace shadowsChaining {
                 gameRequester, shadows::RenderDetailsGL::name(), parameters);
 
         renderDetails::ParametersWithShadowsGL parametersWithShadows = {};
-        parametersWithShadows.width = parameters.width;
-        parametersWithShadows.height = parameters.height;
-        parametersWithShadows.useIntTexture = parameters.useIntTexture;
+        parametersWithShadows.width = parameters->width;
+        parametersWithShadows.height = parameters->height;
+        parametersWithShadows.useIntTexture = parameters->useIntTexture;
         parametersWithShadows.shadowsFB = rd->m_framebufferShadows;
 
         auto refObjectWithShadows = renderLoader->load(
-                gameRequester, objectWithShadows::RenderDetailsGL::name(), parametersWithShadows);
+                gameRequester, objectWithShadows::RenderDetailsGL::name(),
+                std::make_shared<renderDetails::ParametersWithShadowsGL>(parametersWithShadows));
 
         rd->m_shadowsRenderDetails = refShadows.renderDetails;
         rd->m_objectWithShadowsRenderDetails = refObjectWithShadows.renderDetails;
@@ -54,16 +60,21 @@ namespace shadowsChaining {
             std::shared_ptr<GameRequester> const &gameRequester,
             std::shared_ptr<RenderLoaderGL> const &renderLoader,
             std::shared_ptr<renderDetails::RenderDetailsGL> rdBase,
-            renderDetails::ParametersGL const &parameters,
+            std::shared_ptr<renderDetails::Parameters> const &parametersBase,
             Config const &config)
     {
+        auto parameters = dynamic_cast<renderDetails::ParametersGL*>(parametersBase.get());
+        if (parameters == nullptr) {
+            throw std::runtime_error("Invalid render details parameter type.");
+        }
+
         auto rd = dynamic_cast<RenderDetailsGL*>(rdBase.get());
         if (rd == nullptr) {
             throw std::runtime_error("Invalid render details type.");
         }
 
-        if (parameters.useIntTexture != rd->m_useIntTexture) {
-            rd->m_useIntTexture = parameters.useIntTexture;
+        if (parameters->useIntTexture != rd->m_useIntTexture) {
+            rd->m_useIntTexture = parameters->useIntTexture;
             createFramebuffer(rd, parameters);
         }
 
@@ -87,7 +98,7 @@ namespace shadowsChaining {
 
     void RenderDetailsGL::createFramebuffer(
             RenderDetailsGL *rd,
-            renderDetails::ParametersGL const &parameters)
+            renderDetails::ParametersGL const *parameters)
     {
         std::vector<graphicsGL::Framebuffer::ColorImageFormat> colorImageFormats;
 

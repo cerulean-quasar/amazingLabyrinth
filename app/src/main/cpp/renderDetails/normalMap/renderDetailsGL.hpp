@@ -96,14 +96,14 @@ namespace normalMap {
         static renderDetails::ReferenceGL loadNew(
                 std::shared_ptr<GameRequester> const &gameRequester,
                 std::shared_ptr<RenderLoaderGL> const &renderLoader,
-                renderDetails::ParametersGL const &parameters,
+                std::shared_ptr<renderDetails::Parameters> const &parameters,
                 Config const &config);
 
         static renderDetails::ReferenceGL loadExisting(
                 std::shared_ptr<GameRequester> const &gameRequester,
                 std::shared_ptr<RenderLoaderGL> const &renderLoader,
                 std::shared_ptr<renderDetails::RenderDetailsGL> rdBase,
-                renderDetails::ParametersGL const &parameters,
+                std::shared_ptr<renderDetails::Parameters> const &parameters,
                 Config const &config);
 
         void draw(

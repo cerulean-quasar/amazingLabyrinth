@@ -34,7 +34,6 @@ struct RenderLoaderVulkanTraits {
     using RenderDetailsType = renderDetails::RenderDetailsVulkan;
     using CommonObjectDataType = renderDetails::CommonObjectData;
     using RenderDetailsReferenceType = renderDetails::RenderDetailsReference<RenderDetailsType, CommonObjectDataType>;
-    using RenderDetailsParameterType = renderDetails::ParametersVulkan;
     using RetrieveFcns = RenderDetailsVulkanRetrieveFcns;
     static RenderDetailsVulkanRetrieveMap &getRenderDetailsMap() {
         return getRenderDetailsVulkanMap();
@@ -53,7 +52,7 @@ protected:
     RenderLoaderVulkanTraits::RenderDetailsReferenceType loadNew(
         RenderLoaderVulkanTraits::RetrieveFcns const &fcns,
         std::shared_ptr<GameRequester> const &gameRequester,
-        RenderLoaderVulkanTraits::RenderDetailsParameterType const &parameters) override
+        std::shared_ptr<renderDetails::Parameters> const &parameters) override
     {
         return fcns.renderDetailsLoadNewFcn(gameRequester, shared_from_this(), m_device, parameters);
     }
@@ -61,7 +60,7 @@ protected:
     void reload(
         std::shared_ptr<GameRequester> const &gameRequester,
         std::shared_ptr<RenderLoaderVulkanTraits::RenderDetailsType> const &renderDetails,
-        RenderLoaderVulkanTraits::RenderDetailsParameterType const &parameters) override
+        std::shared_ptr<renderDetails::Parameters> const &parameters) override
     {
         vkDeviceWaitIdle(m_device->logicalDevice().get());
         renderDetails.reload(gameRequester, shared_from_this(), parameters);
@@ -71,7 +70,7 @@ protected:
         RenderLoaderVulkanTraits::RetrieveFcns const &fcns,
         std::shared_ptr<GameRequester> const &gameRequester,
         std::shared_ptr<RenderLoaderVulkanTraits::RenderDetailsType> const &renderDetails,
-        RenderLoaderVulkanTraits::RenderDetailsParameterType const &parameters) override
+        std::shared_ptr<renderDetails::Parameters> const &parameters) override
     {
         return fcns.renderDetailsLoadExistingFcn(gameRequester, shared_from_this(), renderDetails, parameters);
     }
