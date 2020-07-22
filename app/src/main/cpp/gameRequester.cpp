@@ -239,18 +239,10 @@ void JGameBundle::putDatum<int>(std::string const &key, int const &val) {
     handleJNIException(lenv);
 }
 
-void JGameRequester::getDepthTexture(
-        DrawObjectTable const &objsData,
-        float width,
-        float height,
-        uint32_t nbrSamplesForWidth,
-        float farthestDepth,
-        float nearestDepth,
-        std::vector<float> &depthMap,
-        std::vector<glm::vec3> &normalMap)
+void JGameRequester::getParametersForRenderDetailsName(
+        char const *renderDetailsName)
 {
-    m_graphics->getDepthTexture(objsData, width, height, nbrSamplesForWidth, farthestDepth,
-            nearestDepth, depthMap, normalMap);
+    m_graphics->getParametersForRenderDetailsName(renderDetailsName);
 }
 
 std::vector<char> JGameRequester::getTextImage(std::string text, uint32_t &width, uint32_t &height, uint32_t &channels) {

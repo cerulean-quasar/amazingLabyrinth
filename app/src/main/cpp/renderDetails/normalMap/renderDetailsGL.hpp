@@ -125,13 +125,15 @@ namespace normalMap {
             bitmapToNormals(input, m_surfaceWidth, m_surfaceHeight, 4, false, results);
         }
 
-        ~RenderDetailsGL() override = default;
+        ~RenderDetailsGL() override {
+            glDeleteShader(m_programID);
+        }
 
     private:
         static char constexpr const *LINEAR_DEPTH_VERT_FILE ="shaders/linearDepthGL.vert";
         static char constexpr const *SIMPLE_FRAG_FILE = "shaders/simpleGL.frag";
 
-        GLuint m_depthProgramID;
+        GLuint m_programID;
 
         static renderDetails::ReferenceGL createReference(
                 std::shared_ptr<renderDetails::RenderDetailsGL> rd,

@@ -51,15 +51,7 @@ public:
 
 class GraphicsRequester {
 public:
-    virtual void getDepthTexture(
-            DrawObjectTable const &objsData,
-            float width,
-            float height,
-            uint32_t nbrSamplesForWidth,
-            float farthestDepth,
-            float nearestDepth,
-            std::vector<float> &depthMap,
-            std::vector<glm::vec3> &normalMap) = 0;
+    virtual void getParametersForRenderDetailsName(char const *renderDetailsName) = 0;
     virtual ~GraphicsRequester() = default;
 };
 

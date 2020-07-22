@@ -99,7 +99,9 @@ namespace shadows {
                 std::shared_ptr<levelDrawer::DrawObjectTableGL> const &drawObjTable,
                 std::vector<size_t> const &drawObjectsIndices) override;
 
-        ~RenderDetailsGL() override = default;
+        ~RenderDetailsGL() override {
+            glDeleteShader(m_depthProgramID);
+        }
 
     private:
         static char constexpr const *DEPTH_VERT_FILE = "shaders/depthShaderGL.vert";

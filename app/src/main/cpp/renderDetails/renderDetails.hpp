@@ -27,6 +27,13 @@
 #include "../levelDrawer/textureTable/textureLoader.hpp"
 
 namespace renderDetails {
+    struct Parameters {
+        uint32_t width;
+        uint32_t height;
+
+        virtual ~Parameters() = default;
+    };
+
     template <typename RenderDetailsType, typename CommonObjectDataType, typename DrawObjectDataType>
     struct Reference {
         using CreateDrawObjectData = std::function<std::shared_ptr<DrawObjectDataType>(

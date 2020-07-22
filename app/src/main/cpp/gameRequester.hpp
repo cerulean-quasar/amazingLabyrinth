@@ -56,15 +56,8 @@ public:
     }
     std::string getSaveDataFileName() override { return m_pathSaveFile; }
 
-    void getDepthTexture(
-            DrawObjectTable const &objsData,
-            float width,
-            float height,
-            uint32_t nbrSamplesForWidth,
-            float farthestDepth,
-            float nearestDepth,
-            std::vector<float> &depthMap,
-            std::vector<glm::vec3> &normalMap) override;
+    void getParametersForRenderDetailsName(
+            char const *renderDetailsName) override;
 
     // accessors
     JNIEnv *env() { return m_env; }

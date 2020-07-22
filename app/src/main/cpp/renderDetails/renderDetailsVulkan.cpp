@@ -23,6 +23,13 @@
 #include "renderDetailsVulkan.hpp"
 
 namespace renderDetails {
+    std::shared_ptr<vulkan::Buffer> createUniformBuffer(
+            std::shared_ptr<vulkan::Device> const &device, size_t bufferSize) {
+        return std::shared_ptr<vulkan::Buffer>{new vulkan::Buffer{device, bufferSize,
+                                                                  VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
+                                                                  VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT}};
+    }
+
     VkVertexInputBindingDescription RenderDetailsVulkan::getBindingDescription() {
         VkVertexInputBindingDescription bindingDescription = {};
 

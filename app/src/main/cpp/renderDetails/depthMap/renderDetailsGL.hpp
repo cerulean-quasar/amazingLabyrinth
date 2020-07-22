@@ -127,7 +127,9 @@ namespace depthMap {
             return true;
         }
 
-        ~RenderDetailsGL() override = default;
+        ~RenderDetailsGL() override {
+            glDeleteProgram(m_depthProgramID);
+        }
 
     private:
         static char constexpr const *LINEAR_DEPTH_VERT_FILE ="shaders/linearDepthGL.vert";

@@ -44,6 +44,10 @@ struct RenderLoaderGLTraits {
 
 class RenderLoaderGL :  public std::enable_shared_from_this<RenderLoaderGL>, public RenderLoader<RenderLoaderGLTraits> {
 public:
+    void clearRenderDetails() {
+        m_loadedRenderDetails.clear();
+    }
+
     ~RenderLoaderGL() override = default;
 
 protected:

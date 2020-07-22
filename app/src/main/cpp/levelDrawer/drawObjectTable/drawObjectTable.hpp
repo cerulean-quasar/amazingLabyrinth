@@ -108,6 +108,7 @@ namespace levelDrawer {
         }
 
         void clear() {
+            m_renderDetailsReference = traits::RenderDetailsReferenceType();
             m_drawObjects.clear();
             m_objsIndicesWithOverridingRenderDetails.clear();
             m_objsIndicesWithGlobalRenderDetails.clear();

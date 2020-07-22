@@ -102,7 +102,7 @@ namespace normalMap {
             std::vector<size_t> const &drawObjectsIndices)
     {
         // set the shader to use
-        glUseProgram(m_depthProgramID);
+        glUseProgram(m_programID);
         checkGraphicsError();
         glCullFace(GL_BACK);
         checkGraphicsError();
@@ -121,26 +121,26 @@ namespace normalMap {
         GLint MatrixID;
 
         // the projection matrix
-        MatrixID = glGetUniformLocation(m_depthProgramID, "proj");
+        MatrixID = glGetUniformLocation(m_programID, "proj");
         checkGraphicsError();
         glUniformMatrix4fv(MatrixID, 1, GL_FALSE, &(projView.first)[0][0]);
         checkGraphicsError();
 
         // the view matrix
-        MatrixID = glGetUniformLocation(m_depthProgramID, "view");
+        MatrixID = glGetUniformLocation(m_programID, "view");
         checkGraphicsError();
         glUniformMatrix4fv(MatrixID, 1, GL_FALSE, &(projView.second)[0][0]);
         checkGraphicsError();
 
-        GLint loc = glGetUniformLocation(m_depthProgramID, "nearestDepth");
+        GLint loc = glGetUniformLocation(m_programID, "nearestDepth");
         glUniform1f(loc, cod->nearestDepth());
         checkGraphicsError();
 
-        loc = glGetUniformLocation(m_depthProgramID, "farthestDepth");
+        loc = glGetUniformLocation(m_programID, "farthestDepth");
         glUniform1f(loc, cod->farthestDepth());
         checkGraphicsError();
 
-        MatrixID = glGetUniformLocation(m_depthProgramID, "model");
+        MatrixID = glGetUniformLocation(m_programID, "model");
         checkGraphicsError();
 
         for (auto drawObjIndex : drawObjectsIndices) {
@@ -155,7 +155,7 @@ namespace normalMap {
                 glUniformMatrix4fv(MatrixID, 1, GL_FALSE, &modelMatrix[0][0]);
                 checkGraphicsError();
 
-                drawVertices(m_depthProgramID, modelData);
+                drawVertices(m_programID, modelData);
             }
         }
     }

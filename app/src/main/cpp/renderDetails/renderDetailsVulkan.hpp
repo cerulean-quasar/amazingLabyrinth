@@ -31,11 +31,12 @@
 #include "renderDetails.hpp"
 
 namespace renderDetails {
-    struct ParametersVulkan {
+    std::shared_ptr<vulkan::Buffer> createUniformBuffer(
+            std::shared_ptr<vulkan::Device> const &device, size_t bufferSize);
+
+    struct ParametersVulkan : public Parameters {
         std::shared_ptr<vulkan::RenderPass> renderPass;
         glm::mat4 preTransform;
-        uint32_t width;
-        uint32_t height;
 
         virtual ~ParametersVulkan() = default;
     };

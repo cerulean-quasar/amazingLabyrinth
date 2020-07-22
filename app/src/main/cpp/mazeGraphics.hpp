@@ -162,6 +162,8 @@ public:
 
     virtual GraphicsDescription graphicsDescription() = 0;
 
+    virtual getParametersForRenderDetailsName
+
     void sendGraphicsDescription(bool hasAccelerometer, std::string vulkanError) {
         GraphicsDescription info = graphicsDescription();
         if (!vulkanError.empty()) {

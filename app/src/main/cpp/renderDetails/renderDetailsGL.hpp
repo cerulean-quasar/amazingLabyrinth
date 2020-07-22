@@ -30,10 +30,8 @@
 #include "../levelDrawer/levelDrawerGL.hpp"
 
 namespace renderDetails {
-    struct ParametersGL {
+    struct ParametersGL : public Parameters {
         bool useIntTexture;
-        uint32_t width;
-        uint32_t height;
 
         virtual ~ParametersGL() = default;
     };

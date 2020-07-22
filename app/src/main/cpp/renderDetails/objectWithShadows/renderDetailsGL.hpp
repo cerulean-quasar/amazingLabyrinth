@@ -109,12 +109,15 @@ namespace objectWithShadows {
                 std::shared_ptr<levelDrawer::DrawObjectTableGL> const &drawObjTable,
                 std::vector<size_t> const &drawObjectsIndices) override;
 
-        ~RenderDetailsGL() override = default;
+        ~RenderDetailsGL() override {
+            glDeleteShader(m_textureProgramID);
+            glDeleteProgram(m_colorProgramID);
+        }
 
     private:
         static char constexpr const *SHADER_VERT_FILE = "shaders/shaderGL.vert";
         static char constexpr const *TEXTURE_SHADER_FRAG_FILE = "shaders/shaderGL.frag";
-        static char constexpr const *COLOR_SHADER_FRAG_FILE = "shaders/shaderGL.frag";
+        static char constexpr const *COLOR_SHADER_FRAG_FILE = "shaders/colorGL.frag";
 
         GLuint m_textureProgramID;
         GLuint m_colorProgramID;

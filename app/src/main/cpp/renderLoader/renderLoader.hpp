@@ -66,6 +66,9 @@ public:
     virtual ~RenderLoader() = default;
 
 protected:
+    static size_t constexpr m_nbrRenderDetailsToKeep = 10;
+    std::list<std::shared_ptr<typename traits::RenderDetailsType>> m_loadedRenderDetails;
+
     virtual typename traits::RenderDetailsReferenceType loadNew(
             typename traits::RetrieveFcns const &fcns,
             std::shared_ptr<GameRequester> const &gameRequester,
@@ -80,9 +83,6 @@ protected:
             std::shared_ptr<typename traits::RenderDetailsType> const &renderDetails,
             typename traits::RenderDetailsParametersType const &parameters) = 0;
 private:
-    static size_t constexpr m_nbrRenderDetailsToKeep = 10;
-    std::list<std::shared_ptr<typename traits::RenderDetailsType>> m_loadedRenderDetails;
-
     typename traits::RetrieveFcns getFcns(std::string const &name) {
         auto loaderFcnIt = traits::getRenderDetailsMap().find(name);
         if (loaderFcnIt == traits::getRenderDetailsMap().end()) {
