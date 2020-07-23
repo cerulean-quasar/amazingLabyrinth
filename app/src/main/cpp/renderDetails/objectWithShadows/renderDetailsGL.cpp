@@ -93,7 +93,7 @@ namespace objectWithShadows {
     void RenderDetailsGL::draw(
             uint32_t modelMatrixID,
             std::shared_ptr<renderDetails::CommonObjectData> const &commonObjectData,
-            std::shared_ptr<levelDrawer::DrawObjectTableGL> const &drawObjTable,
+            std::shared_ptr<renderDetails::DrawObjectTableGL> const &drawObjTable,
             std::vector<size_t> const &drawObjectsIndices)
     {
         if (drawObjectsIndices.empty() ||
@@ -117,7 +117,7 @@ namespace objectWithShadows {
             bool drawObjsWithTexture,
             uint32_t modelMatrixID,
             std::shared_ptr<renderDetails::CommonObjectData> const &commonObjectData,
-            std::shared_ptr<levelDrawer::DrawObjectTableGL> const &drawObjTable,
+            std::shared_ptr<renderDetails::DrawObjectTableGL> const &drawObjTable,
             std::vector<size_t> const &drawObjectsIndices)
     {
         glUseProgram(programID);
@@ -223,5 +223,5 @@ namespace objectWithShadows {
         m_colorProgramID{loadShaders(inGameRequester, SHADER_VERT_FILE, COLOR_SHADER_FRAG_FILE)}
     {}
 
-    RegisterGL<renderDetails::RenderDetailsGL, RenderDetailsGL, Config, renderDetails::ParametersGL> registerGL();
+    RegisterGL<renderDetails::RenderDetailsGL, RenderDetailsGL, Config> registerGL();
 } // objectWithShados

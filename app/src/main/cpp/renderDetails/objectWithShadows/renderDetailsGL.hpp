@@ -54,19 +54,20 @@ namespace objectWithShadows {
             return glm::lookAt(m_lightingSource, m_lookAt, m_up);
         }
 
-    private:
-        std::shared_ptr<graphicsGL::Framebuffer> m_shadowsFramebuffer;
-        glm::vec3 m_lightingSource;
-
         CommonObjectDataGL(
                 std::shared_ptr<graphicsGL::Framebuffer> shadowsFramebuffer,
                 float aspectRatio,
                 Config const &config)
-            : CommonObjectDataPerspective(config.viewAngle, aspectRatio, config.nearPlane, config.farPlane,
-                    config.viewPoint, config.lookAt, config.up),
-            m_shadowsFramebuffer(std::move(shadowsFramebuffer)),
-            m_lightingSource{config.lightingSource}
+                : renderDetails::CommonObjectDataPerspective(config.viewAngle, aspectRatio, config.nearPlane, config.farPlane,
+                                              config.viewPoint, config.lookAt, config.up),
+                  m_shadowsFramebuffer(std::move(shadowsFramebuffer)),
+                  m_lightingSource{config.lightingSource}
         {}
+
+        ~CommonObjectDataGL() override = default;
+    private:
+        std::shared_ptr<graphicsGL::Framebuffer> m_shadowsFramebuffer;
+        glm::vec3 m_lightingSource;
     };
 
     class DrawObjectDataGL : public renderDetails::DrawObjectDataGL {
@@ -109,6 +110,9 @@ namespace objectWithShadows {
                 std::shared_ptr<renderDetails::DrawObjectTableGL> const &drawObjTable,
                 std::vector<size_t> const &drawObjectsIndices) override;
 
+        RenderDetailsGL(std::shared_ptr<GameRequester> const &inGameRequester,
+                        uint32_t inWidth, uint32_t inHeight);
+
         ~RenderDetailsGL() override {
             glDeleteShader(m_textureProgramID);
             glDeleteProgram(m_colorProgramID);
@@ -133,9 +137,6 @@ namespace objectWithShadows {
                 std::shared_ptr<renderDetails::CommonObjectData> const &commonObjectData,
                 std::shared_ptr<renderDetails::DrawObjectTableGL> const &drawObjTable,
                 std::vector<size_t> const &drawObjectsIndices);
-
-        RenderDetailsGL(std::shared_ptr<GameRequester> const &inGameRequester,
-                        uint32_t inWidth, uint32_t inHeight);
     };
 }
 

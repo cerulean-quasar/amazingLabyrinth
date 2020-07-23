@@ -68,7 +68,9 @@ namespace normalMap {
                 float height)
                 : CommonObjectDataOrtho(
                     -width/2, width/2, -height/2, height/2,
-                    config.nearPlane, config.farPlane, config.viewPoint, config.lookAt, config.up)
+                    config.nearPlane, config.farPlane, config.viewPoint, config.lookAt, config.up),
+                    m_nearestDepth(inNearestDepth),
+                    m_farthestDepth(inFarthestDepth)
         {}
     };
 
@@ -109,7 +111,7 @@ namespace normalMap {
         void draw(
                 uint32_t modelMatrixID,
                 std::shared_ptr<renderDetails::CommonObjectData> const &commonObjectData,
-                std::shared_ptr<levelDrawer::DrawObjectTableGL> const &drawObjTable,
+                std::shared_ptr<renderDetails::DrawObjectTableGL> const &drawObjTable,
                 std::vector<size_t> const &drawObjectsIndices) override;
 
         bool overrideClearColor(glm::vec4 &clearColor) override {
@@ -125,6 +127,9 @@ namespace normalMap {
             bitmapToNormals(input, m_surfaceWidth, m_surfaceHeight, 4, false, results);
         }
 
+        RenderDetailsGL(std::shared_ptr<GameRequester> const &inGameRequester,
+                        uint32_t inWidth, uint32_t inHeight);
+
         ~RenderDetailsGL() override {
             glDeleteShader(m_programID);
         }
@@ -138,9 +143,6 @@ namespace normalMap {
         static renderDetails::ReferenceGL createReference(
                 std::shared_ptr<renderDetails::RenderDetailsGL> rd,
                 std::shared_ptr<CommonObjectDataGL> cod);
-
-        RenderDetailsGL(std::shared_ptr<GameRequester> const &inGameRequester,
-                        uint32_t inWidth, uint32_t inHeight);
     };
 }
 #endif // AMAZING_LABYRINTH_NORMALMAP_RENDER_DETAILS_GL_HPP

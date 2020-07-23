@@ -711,7 +711,7 @@ namespace movablePassage {
         // the ball
         m_objsIndexBall = m_levelDrawer.addObject(
                 std::make_shared<levelDrawer::ModelDescriptionPath>(m_ballModel),
-                std::make_shared<levelDrawer::TextureDescriptionPath(m_ballTexture));
+                std::make_shared<levelDrawer::TextureDescriptionPath>(m_ballTexture));
 
         m_objDataIndexBall = m_levelDrawer.addModelMatrixForObject(
                 m_objsIndexBall,

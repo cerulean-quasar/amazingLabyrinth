@@ -75,7 +75,7 @@ namespace shadowsChaining {
 
         if (parameters->useIntTexture != rd->m_useIntTexture) {
             rd->m_useIntTexture = parameters->useIntTexture;
-            createFramebuffer(rd, parameters);
+            createFramebuffer(rd);
         }
 
         auto refShadows = renderLoader->load(
@@ -120,13 +120,14 @@ namespace shadowsChaining {
         renderDetails::ReferenceGL ref = {};
         auto cod = std::make_shared<CommonObjectDataGL>(refObjectWithShadows.commonObjectData,
                                                         refShadows.commonObjectData);
+        ref.renderDetails = std::move(rd);
         ref.createDrawObjectData = renderDetails::ReferenceGL::CreateDrawObjectData{
                 [createDODObjectWithShadows(refObjectWithShadows.createDrawObjectData),
                         createDODShadows(refShadows.createDrawObjectData)] (
-                        std::shared_ptr<renderDetails::DrawObjectDataGL> sharingDOD,
-                        std::shared_ptr<levelDrawer::TextureData> textureData,
-                        glm::mat4 modelMatrix) ->
-                        std::shared_ptr<renderDetails::DrawObjectData>
+                        std::shared_ptr<renderDetails::DrawObjectDataGL> const &sharingDOD,
+                        std::shared_ptr<levelDrawer::TextureData> const &textureData,
+                        glm::mat4 const &modelMatrix) ->
+                        std::shared_ptr<renderDetails::DrawObjectDataGL>
                 {
                     auto dodMain = createDODObjectWithShadows(sharingDOD, std::move(textureData),
                                                               std::move(modelMatrix));
@@ -148,14 +149,14 @@ namespace shadowsChaining {
     }
 
     void RenderDetailsGL::preMainDraw(
-            uint32_t modelMatrixID,
-            levelDrawer::LevelDrawerGL::CommonObjectDataList const &commonObjectDataList,
-            levelDrawer::LevelDrawerGL::DrawObjectTableList const &drawObjTableList,
-            levelDrawer::LevelDrawerGL::IndicesForDrawList const &drawObjectsIndicesList)
+            uint32_t /* unused matrix ID */,
+            renderDetails::CommonObjectDataList const &commonObjectDataList,
+            renderDetails::DrawObjectTableList const &drawObjTableList,
+            renderDetails::IndicesForDrawList const &drawObjectsIndicesList)
     {
         // get the shadows common object data
         auto codLevel = dynamic_cast<CommonObjectDataGL*>(
-                commonObjectDataList[levelDrawer::LevelDrawer::ObjectType::LEVEL].get());
+                commonObjectDataList[levelDrawer::ObjectType::LEVEL].get());
 
         glBindFramebuffer(GL_FRAMEBUFFER, m_framebufferShadows->fbo());
         checkGraphicsError();
@@ -169,8 +170,8 @@ namespace shadowsChaining {
         m_shadowsRenderDetails->draw(
                 MODEL_MATRIX_ID_SHADOWS,
                 codLevel->m_shadowsCOD,
-                drawObjTableList[levelDrawer::LevelDrawer::ObjectType::LEVEL],
-                drawObjectsIndicesList[levelDrawer::LevelDrawer::ObjectType::LEVEL]);
+                drawObjTableList[levelDrawer::ObjectType::LEVEL],
+                drawObjectsIndicesList[levelDrawer::ObjectType::LEVEL]);
 
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
         checkGraphicsError();
@@ -179,7 +180,7 @@ namespace shadowsChaining {
     void RenderDetailsGL::draw(
             uint32_t /* unused model matrix ID */,
             std::shared_ptr<renderDetails::CommonObjectData> const &commonObjectData,
-            std::shared_ptr<levelDrawer::DrawObjectTableGL> const &drawObjTable,
+            std::shared_ptr<renderDetails::DrawObjectTableGL> const &drawObjTable,
             std::vector<size_t> const &drawObjectsIndices)
     {
         // get the shadows common object data
@@ -189,5 +190,5 @@ namespace shadowsChaining {
                 cod->m_objectWithShadowsCOD, drawObjTable, drawObjectsIndices);
     }
 
-    RegisterGL<renderDetails::RenderDetailsGL, RenderDetailsGL, Config, renderDetails::ParametersGL> registerGL();
+    RegisterGL<renderDetails::RenderDetailsGL, RenderDetailsGL, Config> registerGL();
 }

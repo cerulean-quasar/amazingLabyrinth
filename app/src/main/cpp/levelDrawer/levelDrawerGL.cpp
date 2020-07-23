@@ -94,7 +94,8 @@ namespace levelDrawer {
         parameters.heightAtDepth = height;
         parameters.nearestDepth = nearestDepth;
         parameters.farthestDepth = farthestDepth;
-        auto ref = m_renderLoader->load(m_gameRequester, renderDetailsName, parameters);
+        auto ref = m_renderLoader->load(m_gameRequester, renderDetailsName,
+                std::make_shared<renderDetails::ParametersWithWidthHeightAtDepthGL>(parameters));
 
         // perform the commands to be executed before the main draw.
         auto rules = drawObjTable->getDrawRules();

@@ -45,11 +45,11 @@ namespace levelDrawer {
             std::array<std::shared_ptr<typename traits::CommonObjectDataType>, m_numberDrawObjectTables>;
 
         bool emptyOfDrawObjects(ObjectType type) override {
-            return m_drawObjectTableList[type].emptyOfDrawObjects();
+            return m_drawObjectTableList[type]->emptyOfDrawObjects();
         }
 
         size_t numberObjects(ObjectType type) override {
-            return m_drawObjectTableList[type].numberObjects();
+            return m_drawObjectTableList[type]->numberObjects();
         }
 
         void clearDrawObjectTable(ObjectType type) override {
@@ -69,7 +69,7 @@ namespace levelDrawer {
                 textureData = m_textureTable.addTexture(textureDescription);
             }
 
-            m_drawObjectTableList[type].addObject(modelData, textureData);
+            m_drawObjectTableList[type]->addObject(modelData, textureData);
         }
 
         size_t addObject(
@@ -236,10 +236,10 @@ namespace levelDrawer {
         std::vector<DrawRules> getDrawRules() {
             std::map<std::string, DrawRules> rulesGroup{};
             for (size_t i = 0; i < m_numberDrawObjectTables; i++) {
-                auto rules = m_drawObjectTableList[i].getDrawRules();
+                auto rules = m_drawObjectTableList[i]->getDrawRules();
 
                 for (auto const &rule : rules) {
-                    std::array<std::pair<std::shared_ptr<typename traits::CommonObjectData>, std::vector<size_t>>, m_numberDrawObjectTables> drawRulesLevelList{};
+                    std::array<std::pair<std::shared_ptr<renderDetails::CommonObjectData>, std::vector<size_t>>, m_numberDrawObjectTables> drawRulesLevelList{};
                     auto insertResult = rulesGroup.emplace(rule.renderDetails, drawRulesLevelList);
 
                     insertResult.first->second.commonObjectDataList[i] = rule.commonObjectData;

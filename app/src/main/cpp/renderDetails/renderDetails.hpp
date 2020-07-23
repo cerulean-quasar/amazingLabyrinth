@@ -128,7 +128,7 @@ namespace renderDetails {
             m_farPlane{farPlane}
         {}
 
-        virtual ~CommonObjectDataPerspective() = default;
+        ~CommonObjectDataPerspective() override = default;
     protected:
         float m_viewAngle;
         float m_aspectRatio;

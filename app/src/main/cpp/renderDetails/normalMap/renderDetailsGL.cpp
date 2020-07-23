@@ -56,8 +56,8 @@ namespace normalMap {
     }
 
     renderDetails::ReferenceGL RenderDetailsGL::loadExisting(
-            std::shared_ptr<GameRequester> const &gameRequester,
-            std::shared_ptr<RenderLoaderGL> const &renderLoader,
+            std::shared_ptr<GameRequester> const &,
+            std::shared_ptr<RenderLoaderGL> const &,
             std::shared_ptr<renderDetails::RenderDetailsGL> rdBase,
             std::shared_ptr<renderDetails::Parameters> const &parametersBase,
             Config const &config)
@@ -105,7 +105,7 @@ namespace normalMap {
     void RenderDetailsGL::draw(
             uint32_t modelMatrixID,
             std::shared_ptr<renderDetails::CommonObjectData> const &commonObjectData,
-            std::shared_ptr<levelDrawer::DrawObjectTableGL> const &drawObjTable,
+            std::shared_ptr<renderDetails::DrawObjectTableGL> const &drawObjTable,
             std::vector<size_t> const &drawObjectsIndices)
     {
         // set the shader to use
@@ -167,6 +167,6 @@ namespace normalMap {
         }
     }
 
-    RegisterGL<renderDetails::RenderDetailsGL, RenderDetailsGL, Config, renderDetails::ParametersGL> registerGL();
+    RegisterGL<renderDetails::RenderDetailsGL, RenderDetailsGL, Config> registerGL();
 
 } // namespace normalMap
