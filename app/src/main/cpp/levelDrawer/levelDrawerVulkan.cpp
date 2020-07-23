@@ -26,7 +26,7 @@
 namespace levelDrawer {
     template <>
     void LevelDrawerGraphics<LevelDrawerVulkanTraits>::draw(
-            LevelDrawerVulkanTraits::DrawArgumentType info)
+            LevelDrawerVulkanTraits::DrawArgumentType const &info)
     {
         VkCommandBufferBeginInfo beginInfo = {};
         beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;

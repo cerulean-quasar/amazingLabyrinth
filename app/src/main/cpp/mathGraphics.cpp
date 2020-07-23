@@ -120,7 +120,7 @@ void unFlattenMap(
     }
 
     output.clear();
-    for (int i = 0; i < input.size() / 3; i++) {
+    for (size_t i = 0; i < input.size() / 3; i++) {
         float x = input[i * 3];
         float y = input[i * 3 + 1];
         float z = input[i * 3 + 2];

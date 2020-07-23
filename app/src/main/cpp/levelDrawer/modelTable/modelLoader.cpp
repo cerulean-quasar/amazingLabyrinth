@@ -22,44 +22,52 @@
 
 #include <json.hpp>
 
+#include "../../common.hpp"
 #include "modelLoader.hpp"
+namespace std {
+    template<>
+    struct hash<glm::vec3> {
+        size_t operator()(glm::vec3 vector) const {
+            return ((hash<float>()(vector.x) ^
+                     (hash<float>()(vector.y) << 1)) >> 1) ^
+                   (hash<float>()(vector.z) << 1);
+        }
+    };
+
+    template<>
+    struct hash<glm::vec2> {
+        size_t operator()(glm::vec2 vector) const {
+            return (hash<float>()(vector.x) ^ (hash<float>()(vector.y) << 1));
+        }
+    };
+
+    template<>
+    struct hash<levelDrawer::Vertex> {
+        size_t operator()(levelDrawer::Vertex const &vertex) const {
+            return ((((hash<glm::vec3>()(vertex.pos) ^ (hash<glm::vec3>()(vertex.color) << 1))
+                    >> 1) ^
+                     (hash<glm::vec2>()(vertex.texCoord) << 1)) >> 1) ^
+                   (hash<glm::vec3>()(vertex.normal) << 1);
+        }
+    };
+}
+
 namespace levelDrawer {
     bool Vertex::operator==(const Vertex &other) const {
         return pos == other.pos && color == other.color && texCoord == other.texCoord &&
                normal == other.normal;
     }
 
-    bool compareLess(glm::vec3 const &vec1, glm::vec3 const &vec2) {
-        // todo: check to make sure this works
-        return vec1 < vec2;
-    }
+    bool compareLessVec3(glm::vec3 const &vec1, glm::vec3 const &vec2) {
+        if (vec1.x != vec2.x) {
+            return vec1.x < vec2.x;
+        } else if (vec1.y != vec2.y) {
+            return vec1.y < vec2.y;
+        } else if (vec1.z != vec2.z) {
+            return vec1.z < vec2.z;
+        }
 
-    namespace std {
-        template<>
-        struct hash<glm::vec3> {
-            size_t operator()(glm::vec3 vector) const {
-                return ((hash<float>()(vector.x) ^
-                         (hash<float>()(vector.y) << 1)) >> 1) ^
-                       (hash<float>()(vector.z) << 1);
-            }
-        };
-
-        template<>
-        struct hash<glm::vec2> {
-            size_t operator()(glm::vec2 vector) const {
-                return (hash<float>()(vector.x) ^ (hash<float>()(vector.y) << 1));
-            }
-        };
-
-        template<>
-        struct hash<Vertex> {
-            size_t operator()(Vertex const &vertex) const {
-                return ((((hash<glm::vec3>()(vertex.pos) ^ (hash<glm::vec3>()(vertex.color) << 1))
-                        >> 1) ^
-                         (hash<glm::vec2>()(vertex.texCoord) << 1)) >> 1) ^
-                       (hash<glm::vec3>()(vertex.normal) << 1);
-            }
-        };
+        return false;
     }
 
     class LoadModelSaxClass {

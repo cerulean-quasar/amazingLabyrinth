@@ -816,7 +816,7 @@ private:
 
 template <typename AlternateModelDescriptionType>
 std::set<ObjReference> addObjs(
-        levelDrawer::Adaptor const &levelDrawer,
+        levelDrawer::Adaptor &levelDrawer,
         bool isLockedInPlaceRef,
         std::vector<std::string> const &models,
         std::vector<std::string> const &textureNames)

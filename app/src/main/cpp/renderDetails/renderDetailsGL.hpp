@@ -27,9 +27,17 @@
 #include "../common.hpp"
 #include "renderDetails.hpp"
 #include "../graphicsGL.hpp"
-#include "../levelDrawer/levelDrawerGL.hpp"
+#include "../levelDrawer/drawObjectTable/drawObjectTableGL.hpp"
+#include "../levelDrawer/drawObjectTable/drawObjectTable.hpp"
+#include "../levelDrawer/modelTable/modelTableGL.hpp"
 
+class RenderLoaderGL;
 namespace renderDetails {
+    using DrawObjectTableGL = levelDrawer::DrawObjectTable<levelDrawer::DrawObjectGLTraits>;
+    using DrawObjectTableList = std::array<std::shared_ptr<DrawObjectTableGL>, 3>;
+    using IndicesForDrawList = std::array<std::vector<size_t>, 3>;
+    using CommonObjectDataList = std::array<std::shared_ptr<CommonObjectData>, 3>;
+
     struct ParametersGL : public Parameters {
         bool useIntTexture;
 
@@ -48,7 +56,7 @@ namespace renderDetails {
         float nearestDepth;
         float farthestDepth;
 
-        ~ParametersWithSurfaceWidthHeightAtDepthGL() override = default;
+        ~ParametersWithWidthHeightAtDepthGL() override = default;
     };
 
     class DrawObjectDataGL : public DrawObjectData {
@@ -68,23 +76,23 @@ namespace renderDetails {
                 std::vector<float> const &input,
                 std::vector<float> &results)
         {
-            output.resize(input.size());
-            std::copy(input.begin(), input.end(), output.begin());
+            results.resize(input.size());
+            std::copy(input.begin(), input.end(), results.begin());
         }
 
         // GL commands that need to occur before the main draw.  They can be things like generating
         // a shadow map or other draws to a framebuffer.  Most shaders don't need these commands so
         // the default does nothing.
         virtual void preMainDraw(
-                uint32_t modelMatrixID,
-                levelDrawer::LevelDrawerGL::CommonObjectDataList const &commonObjectDataList,
-                levelDrawer::LevelDrawerGL::DrawObjectTableList const &drawObjTableList,
-                levelDrawer::LevelDrawerGL::IndicesForDrawList const &drawObjectsIndicesList)
+                uint32_t,
+                CommonObjectDataList const &,
+                DrawObjectTableList const &,
+                IndicesForDrawList const &)
         {}
 
-        virtual void reload(std::shared_ptr<GameRequester> const &gameRequester,
-                            std::shared_ptr<RenderLoaderGL> const &renderLoader,
-                            std::shared_ptr<renderDetails::Parameters> const &parameters)
+        virtual void reload(std::shared_ptr<GameRequester> const &,
+                            std::shared_ptr<RenderLoaderGL> const &,
+                            std::shared_ptr<renderDetails::Parameters> const &)
         {
             // do nothing.  For GL, we need to dump all render details and reload everything.
         }
@@ -92,10 +100,10 @@ namespace renderDetails {
         virtual void draw(
                 uint32_t modelMatrixID,
                 std::shared_ptr<renderDetails::CommonObjectData> const &commonObjectData,
-                std::shared_ptr<levelDrawer::DrawObjectTableGL> const &drawObjTable,
+                std::shared_ptr<DrawObjectTableGL> const &drawObjTable,
                 std::vector<size_t> const &drawObjectsIndices) = 0;
 
-        virtual bool overrideClearColor(glm::vec4 &clearColor) {
+        virtual bool overrideClearColor(glm::vec4 &) {
             return false;
         }
 

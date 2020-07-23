@@ -149,7 +149,7 @@ namespace levelDrawer {
                 std::shared_ptr<typename traits::RenderDetailsReferenceType> renderDetailsReference,
                 std::shared_ptr<typename traits::ModelDataType> modelData,
                 std::shared_ptr<typename traits::TextureDataType> textureData,
-                std::vector<std::shared_ptr<typename traits::DrawObjectDataType> objsData) {
+                std::vector<std::shared_ptr<typename traits::DrawObjectDataType>> objsData) {
             m_drawObjects.emplace_back(std::make_shared<traits::DrawObjectDataType>(
                     std::move(renderDetailsReference), modelData, textureData,
                     std::move(objsData)));

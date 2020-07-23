@@ -20,10 +20,10 @@
 #ifndef AMAZING_LABYRINTH_COMMON_HPP
 #define AMAZING_LABYRINTH_COMMON_HPP
 
+#include <vector>
 #include <string>
 #include <memory>
 #include <streambuf>
-#include "renderDetails/renderDetails.hpp"
 
 class Graphics;
 
@@ -49,6 +49,10 @@ public:
     {
     }
 };
+
+namespace renderDetails {
+    class Parameters;
+}
 
 class GraphicsRequester {
 public:

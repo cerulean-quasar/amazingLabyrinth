@@ -154,6 +154,7 @@ namespace avoidVortexOpenArea {
 
     bool Level::updateDrawObjects() {
         m_levelDrawer.updateModelMatrixForObject(m_objIndexBall, m_objDataIndexBall, modelMatrixBall);
+        return true;
     }
 
 } // namespace avoidVortexOpenArea

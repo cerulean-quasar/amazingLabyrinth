@@ -17,7 +17,6 @@
  *  along with Amazing Labyrinth.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
-#include "graphics.hpp"
 #include "android.hpp"
 #include "drawer.hpp"
 #include "gameRequester.hpp"

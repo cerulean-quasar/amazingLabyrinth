@@ -80,7 +80,7 @@ namespace levelDrawer {
 
     template <>
     void LevelDrawerGraphics<LevelDrawerVulkanTraits>::draw(
-            LevelDrawerVulkanTraits::DrawArgumentType info);
+            LevelDrawerVulkanTraits::DrawArgumentType const &info);
 
     template <>
     void LevelDrawerGraphics<LevelDrawerVulkanTraits>::drawToBuffer(

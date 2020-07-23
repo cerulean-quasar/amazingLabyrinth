@@ -35,7 +35,7 @@ namespace levelDrawer {
         std::shared_ptr <ModelDataType> const &
         addModel(std::shared_ptr <GameRequester> const &gameRequester,
                  std::shared_ptr <ModelDescription> const &modelDescription) {
-            auto item = m_modelIndexMap.emplace(modelDescription, nullptr);
+            auto item = m_modelMap.emplace(modelDescription, nullptr);
             if (!item.second) {
                 item.first->second = getModelData(gameRequester, modelDescription);
             }

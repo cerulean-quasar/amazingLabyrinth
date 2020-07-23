@@ -27,6 +27,7 @@
 #include "levels/finisher/types.hpp"
 #include "levelTracker/levelTracker.hpp"
 #include "renderLoader/renderLoaderGL.hpp"
+#include "levelDrawer/levelDrawerGL.hpp"
 
 class GraphicsGL : public Graphics {
 public:
@@ -52,7 +53,7 @@ public:
     bool updateData(bool alwaysUpdateDynObjs) override { return m_levelSequence->updateData(alwaysUpdateDynObjs); }
 
     void drawFrame() override {
-        m_levelDrawer->draw(levelDrawer::DrawArgumentGL{m_useIntTexture});
+        m_levelDrawer->draw(levelDrawer::DrawArgumentGL{m_surface->width(), m_surface->height()});
     }
 
     std::shared_ptr<renderDetails::Parameters> getParametersForRenderDetailsName(

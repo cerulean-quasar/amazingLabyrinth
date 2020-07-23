@@ -52,7 +52,7 @@ namespace levelDrawer {
             return m_drawObjectTableList[type].numberObjects();
         }
 
-        void clearDrawObjectTable(ObjectType type) {
+        void clearDrawObjectTable(ObjectType type) override {
             m_drawObjectTableList[type]->clear();
         }
 
@@ -89,7 +89,7 @@ namespace levelDrawer {
                 m_renderLoader->load(
                         m_gameRequester,
                         renderDetailsName,
-                        m_gameRequester->getParametersForRenderDetailsName(renderDetailsName)),
+                        m_gameRequester->getParametersForRenderDetailsName(renderDetailsName.c_str())),
                 modelData,
                 textureData);
         }
@@ -150,7 +150,7 @@ namespace levelDrawer {
 
         void requestRenderDetails(ObjectType type, std::string const &name) override {
             m_drawObjectTableList[type]->loadRenderDetails(m_renderLoader.load(m_gameRequester, name,
-                    m_gameRequester->getParametersForRenderDetailsName(name)));
+                    m_gameRequester->getParametersForRenderDetailsName(name.c_str())));
         }
 
         std::pair<glm::mat4, glm::mat4> getProjectionView(ObjectType type) override {
@@ -203,7 +203,7 @@ namespace levelDrawer {
         glm::vec4 m_bgColor;
 
         size_t addModelMatrixToDrawObjTable(
-                std::shared_ptr<DrawObjectTableList> const &drawObjTable,
+                std::shared_ptr<typename traits::DrawObjectTableType> const &drawObjTable,
                 size_t objsIndex,
                 glm::mat4 const &modelMatrix)
         {

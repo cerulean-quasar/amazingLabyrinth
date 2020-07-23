@@ -24,22 +24,28 @@
 #include <map>
 
 #include "../common.hpp"
-#include "../renderDetails/renderDetailsGL.hpp"
+
+namespace renderDetails {
+    class RenderDetailsGL;
+    class DrawObjectDataGL;
+    using ReferenceGL = Reference<RenderDetailsGL, CommonObjectData, DrawObjectDataGL>;
+    struct ParametersGL;
+}
 
 // Register RenderDetailsGL types
 class RenderLoaderGL;
 struct RenderDetailsGLRetrieveFcns {
-    using RenderDetailsReferenceGL = renderDetails::Reference<renderDetails::RenderDetailsGL, renderDetails::CommonObjectData, renderDetails::DrawObjectDataGL>;
+    using RenderDetailsReferenceGL = renderDetails::ReferenceGL;
     using RenderDetailsLoadNewFcn = std::function<renderDetails::ReferenceGL(
         std::shared_ptr<GameRequester> const &,
         std::shared_ptr<RenderLoaderGL> const &renderLoader,
-        renderDetails::ParametersGL const &)>;
+        std::shared_ptr<renderDetails::Parameters> const &)>;
 
     using RenderDetailsLoadExistingFcn = std::function<renderDetails::ReferenceGL(
         std::shared_ptr<GameRequester> const &,
         std::shared_ptr<RenderLoaderGL> const &renderLoader,
         std::shared_ptr<renderDetails::RenderDetailsGL> const &,
-        renderDetails::ParametersGL const &)>;
+        std::shared_ptr<renderDetails::Parameters> const &)>;
 
     RenderDetailsLoadNewFcn renderDetailsLoadNewFcn;
     RenderDetailsLoadExistingFcn renderDetailsLoadExistingFcn;
@@ -48,11 +54,7 @@ struct RenderDetailsGLRetrieveFcns {
 using RenderDetailsGLRetrieveMap =
     std::map<std::string, std::function<RenderDetailsGLRetrieveFcns()>>;
 
-RenderDetailsGLRetrieveMap &getRenderDetailsGLMap() {
-    static RenderDetailsGLRetrieveMap map{};
-
-    return map;
-}
+RenderDetailsGLRetrieveMap &getRenderDetailsGLMap();
 
 template <typename RenderDetailsBaseType, typename RenderDetailsType, typename ConfigType>
 class RegisterGL {
@@ -81,7 +83,7 @@ class RegisterGL {
                     return std::move(fcns);
                 }
             )
-        )
+        );
     }
 };
 

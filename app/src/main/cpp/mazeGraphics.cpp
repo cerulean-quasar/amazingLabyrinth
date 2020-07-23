@@ -152,7 +152,9 @@ bool testMap(
 }
 
 bool Graphics::testDepthTexture(levelDrawer::Adaptor inLevelDrawer) {
-    levelDrawer::ModelsTextures modelsTextures{std::make_pair(std::make_shared<levelDrawer::ModelDescriptionQuad>(),
+    levelDrawer::ModelsTextures modelsTextures{
+        std::make_pair<std::shared_ptr<levelDrawer::ModelDescription>, std::shared_ptr<levelDrawer::TextureDescription>>(
+            std::make_shared<levelDrawer::ModelDescriptionQuad>(),
             std::shared_ptr<levelDrawer::TextureDescription>())};
 
     // just request something to be drawn that is definitely bigger than the screen

@@ -20,11 +20,12 @@
 #include "../graphicsGL.hpp"
 #include "levelDrawerGL.hpp"
 #include "levelDrawerGraphics.hpp"
+#include "../renderDetails/renderDetailsGL.hpp"
 
 namespace levelDrawer {
     template <>
     void LevelDrawerGraphics<LevelDrawerGLTraits>::draw(
-            LevelDrawerGLTraits::DrawArgumentType info)
+            LevelDrawerGLTraits::DrawArgumentType const &info)
     {
         auto rulesList = getDrawRules();
 
@@ -86,7 +87,7 @@ namespace levelDrawer {
         uint32_t imageWidth = nbrSamplesForWidth;
         uint32_t imageHeight = static_cast<uint32_t>(std::floor((imageWidth * height)/width));
 
-        renderDetails::ParametersWithSurfaceWidthHeightAtDepthGL parameters{};
+        renderDetails::ParametersWithWidthHeightAtDepthGL parameters{};
         parameters.width = imageWidth;
         parameters.height = imageHeight;
         parameters.widthAtDepth = width;

@@ -24,7 +24,6 @@
 #include <vector>
 
 #include "android.hpp"
-#include "graphics.hpp"
 
 constexpr int Sensors::MAX_EVENT_REPORT_TIME;
 

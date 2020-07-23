@@ -120,14 +120,14 @@ namespace shadowsChaining {
 
         void preMainDraw(
                 uint32_t modelMatrixID,
-                levelDrawer::LevelDrawerGL::CommonObjectDataList const &commonObjectDataList,
-                levelDrawer::LevelDrawerGL::DrawObjectTableList const &drawObjTableList,
-                levelDrawer::LevelDrawerGL::IndicesForDrawList const &drawObjectsIndicesList) override;
+                renderDetails::CommonObjectDataList const &commonObjectDataList,
+                renderDetails::DrawObjectTableList const &drawObjTableList,
+                renderDetails::IndicesForDrawList const &drawObjectsIndicesList) override;
 
         void draw(
                 uint32_t modelMatrixID,
                 std::shared_ptr<renderDetails::CommonObjectData> const &commonObjectData,
-                std::shared_ptr<levelDrawer::DrawObjectTableGL> const &drawObjTable,
+                std::shared_ptr<renderDetails::DrawObjectTableGL> const &drawObjTable,
                 std::vector<size_t> const &drawObjectsIndices) override;
 
         ~RenderDetailsGL() override = default;
@@ -144,7 +144,7 @@ namespace shadowsChaining {
                 renderDetails::ReferenceGL const &refShadows);
 
         // Initialize framebuffer for shadow mapping.
-        static void createFramebuffer(RenderDetailsGL *rd, renderDetails::ParametersGL const *parameters);
+        static void createFramebuffer(RenderDetailsGL *rd);
 
         RenderDetailsGL(bool useIntTexture, uint32_t inWidth, uint32_t inHeight)
                 : renderDetails::RenderDetailsGL{inWidth, inHeight},

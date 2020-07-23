@@ -68,7 +68,9 @@ namespace depthMap {
                 float height)
                 : CommonObjectDataOrtho(
                     -width/2, width/2, -height/2, height/2,
-                    config.nearPlane, config.farPlane, config.viewPoint, config.lookAt, config.up)
+                    config.nearPlane, config.farPlane, config.viewPoint, config.lookAt, config.up),
+                    m_nearestDepth{inNearestDepth},
+                    m_farthestDepth{inFarthestDepth}
         {}
     };
 

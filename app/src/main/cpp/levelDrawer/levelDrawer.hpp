@@ -181,7 +181,7 @@ namespace levelDrawer {
         }
 
     private:
-        LevelDrawer::ObjectType m_type;
+        ObjectType m_type;
         std::shared_ptr<LevelDrawer> m_levelDrawer;
     };
 }

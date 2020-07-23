@@ -24,9 +24,9 @@
 #include <string>
 
 #include <glm/glm.hpp>
-#include "../../common.hpp"
 #include "../common.hpp"
 
+class GameRequester;
 namespace levelDrawer {
 // todo: use getCube instead
     static std::string const MODEL_WALL("models/wall.modelcbor");
@@ -47,7 +47,7 @@ namespace levelDrawer {
 
     using ModelVertices = std::pair<std::vector<Vertex>, std::vector<uint32_t>>;
 
-    bool compareLess(glm::vec3 vec1, glm::vec3 vec2);
+    bool compareLessVec3(glm::vec3 vec1, glm::vec3 vec2);
 
     class ModelDescription {
         friend BaseClassPtrLess<ModelDescription>;
@@ -59,7 +59,7 @@ namespace levelDrawer {
         virtual bool compareLess(ModelDescription *) = 0;
     };
 
-    class ModelDescriptionPath : ModelDescription {
+    class ModelDescriptionPath : public ModelDescription {
     public:
         ModelVertices
         getVerticesWithVertexNormals(std::shared_ptr<GameRequester> const &gameRequester);
@@ -77,7 +77,7 @@ namespace levelDrawer {
                 // should never happen
                 throw std::runtime_error("Comparing incompatible pointers");
             }
-            return m_path < other->m_path;
+            return m_path < otherPath->m_path;
         }
 
     private:
@@ -91,7 +91,7 @@ namespace levelDrawer {
     };
 
 // creates a quad with each side length 2.0f and center at specified location.
-    class ModelDescriptionQuad : ModelDescription {
+    class ModelDescriptionQuad : public ModelDescription {
     public:
         ModelVertices getData(std::shared_ptr<GameRequester> const &gameRequester) override;
 
@@ -108,7 +108,7 @@ namespace levelDrawer {
                 // should never happen
                 throw std::runtime_error("Quad: Comparing incompatible pointers");
             }
-            return compareLess(m_center, otherQuad->m_center);
+            return compareLessVec3(m_center, otherQuad->m_center);
         }
 
     private:
@@ -116,7 +116,7 @@ namespace levelDrawer {
     };
 
     // creates a cube with each side length 2.0f and center at specified location
-    class ModelDescriptionCube : ModelDescription {
+    class ModelDescriptionCube : public ModelDescription {
     public:
         ModelVertices getData(std::shared_ptr<GameRequester> const &gameRequester) override;
 
@@ -133,7 +133,7 @@ namespace levelDrawer {
                 // should never happen
                 throw std::runtime_error("Cube: Comparing incompatible pointers");
             }
-            return compareLess(m_center, otherCube->m_center);
+            return compareLessVec3(m_center, otherCube->m_center);
         }
 
     private:

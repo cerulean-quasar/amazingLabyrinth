@@ -100,8 +100,6 @@ namespace movingSafeAreas {
 
         float maxQuadMovingSpeed() { return m_width / 10.0f; }
 
-        void loadModels();
-
         void preGenerate();
 
         void generate();

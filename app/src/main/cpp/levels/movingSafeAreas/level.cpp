@@ -23,17 +23,9 @@
 
 #include "level.hpp"
 #include "loadData.hpp"
-#include "../../modelLoader.hpp"
 
 namespace movingSafeAreas {
     char constexpr const *Level::m_name;
-    void Level::loadModels() {
-        std::pair<std::vector<Vertex>, std::vector<uint32_t>> v;
-        loadModel(m_gameRequester->getAssetStream(m_ballModel), v);
-        std::swap(v.first, m_ballVertices);
-        std::swap(v.second, m_ballIndices);
-        getQuad(m_quadVertices, m_quadIndices);
-    }
 
     void Level::preGenerate() {
         m_quadScaleY = m_height / (numberOfMidQuadRows + 2.0f) / m_quadOriginalSize;

@@ -32,9 +32,10 @@ namespace levelDrawer {
     template<typename TextureDataType>
     class TextureTable {
     public:
-        std::shared_ptr<TextureDataType>
-        addTexture(std::shared_ptr<GameRequester> const &gameRequester,
-                   std::shared_ptr<TextureDescription> const &textureDescription) override {
+        std::shared_ptr<TextureDataType> addTexture(
+                std::shared_ptr<GameRequester> const &gameRequester,
+                std::shared_ptr<TextureDescription> const &textureDescription)
+        {
             auto item = m_textureIndexMap.emplace(textureDescription, 0);
             if (!item.second) {
                 item.first->second = getTextureData(gameRequester, textureDescription);
@@ -47,9 +48,9 @@ namespace levelDrawer {
         virtual ~TextureTable() = default;
 
     protected:
-        virtual std::shared_ptr<TextureDataType>
-        getTextureData(std::shared_ptr<GameRequester> const &gameRequester,
-                       std::shared_ptr<TextureDescription> const &textureDescription) = 0;
+        virtual std::shared_ptr<TextureDataType> getTextureData(
+                std::shared_ptr<GameRequester> const &gameRequester,
+                std::shared_ptr<TextureDescription> const &textureDescription) = 0;
 
         std::map<std::shared_ptr<TextureDescription>, std::shared_ptr<TextureDataType>, BaseClassPtrLess<TextureDescription>> m_textureIndexMap;
     };

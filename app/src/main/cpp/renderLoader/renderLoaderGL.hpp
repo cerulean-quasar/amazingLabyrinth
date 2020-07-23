@@ -23,8 +23,6 @@
 #include <memory>
 #include <string>
 
-#include "../graphicsVulkan.hpp"
-
 #include "../renderDetails/renderDetails.hpp"
 #include "renderLoader.hpp"
 #include "../renderDetails/renderDetailsGL.hpp"
@@ -64,7 +62,7 @@ protected:
             std::shared_ptr<RenderLoaderGLTraits::RenderDetailsType> const &renderDetails,
             std::shared_ptr<renderDetails::Parameters> const &parameters) override
     {
-        renderDetails.reload(gameRequester, shared_from_this(), parameters);
+        renderDetails->reload(gameRequester, shared_from_this(), parameters);
     }
 
     RenderLoaderGLTraits::RenderDetailsReferenceType loadExisting(

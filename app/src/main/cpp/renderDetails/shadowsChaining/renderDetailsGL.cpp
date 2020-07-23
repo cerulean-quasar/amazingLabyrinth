@@ -25,7 +25,7 @@ namespace shadowsChaining {
             std::shared_ptr<GameRequester> const &gameRequester,
             std::shared_ptr<RenderLoaderGL> const &renderLoader,
             std::shared_ptr<renderDetails::Parameters> const &parametersBase,
-            Config const &config)
+            Config const &)
     {
         auto parameters = dynamic_cast<renderDetails::ParametersGL*>(parametersBase.get());
         if (parameters == nullptr) {
@@ -35,10 +35,10 @@ namespace shadowsChaining {
         auto rd = std::make_shared<RenderDetailsGL>(
                 parameters->useIntTexture, parameters->width, parameters->height);
 
-        createFramebuffer(rd.get(), parameters);
+        createFramebuffer(rd.get());
 
         auto refShadows = renderLoader->load(
-                gameRequester, shadows::RenderDetailsGL::name(), parameters);
+                gameRequester, shadows::RenderDetailsGL::name(), parametersBase);
 
         renderDetails::ParametersWithShadowsGL parametersWithShadows = {};
         parametersWithShadows.width = parameters->width;
@@ -61,7 +61,7 @@ namespace shadowsChaining {
             std::shared_ptr<RenderLoaderGL> const &renderLoader,
             std::shared_ptr<renderDetails::RenderDetailsGL> rdBase,
             std::shared_ptr<renderDetails::Parameters> const &parametersBase,
-            Config const &config)
+            Config const &)
     {
         auto parameters = dynamic_cast<renderDetails::ParametersGL*>(parametersBase.get());
         if (parameters == nullptr) {
@@ -79,16 +79,17 @@ namespace shadowsChaining {
         }
 
         auto refShadows = renderLoader->load(
-                gameRequester, shadows::RenderDetailsGL::name(), parameters);
+                gameRequester, shadows::RenderDetailsGL::name(), parametersBase);
 
         renderDetails::ParametersWithShadowsGL parametersWithShadows = {};
-        parametersWithShadows.width = parameters.width;
-        parametersWithShadows.height = parameters.height;
-        parametersWithShadows.useIntTexture = parameters.useIntTexture;
+        parametersWithShadows.width = parameters->width;
+        parametersWithShadows.height = parameters->height;
+        parametersWithShadows.useIntTexture = parameters->useIntTexture;
         parametersWithShadows.shadowsFB = rd->m_framebufferShadows;
 
         auto refObjectWithShadows = renderLoader->load(
-                gameRequester, objectWithShadows::RenderDetailsGL::name(), parametersWithShadows);
+                gameRequester, objectWithShadows::RenderDetailsGL::name(),
+                std::make_shared<renderDetails::ParametersWithShadowsGL>(parametersWithShadows));
 
         rd->m_shadowsRenderDetails = refShadows.renderDetails;
         rd->m_objectWithShadowsRenderDetails = refObjectWithShadows.renderDetails;
@@ -97,8 +98,7 @@ namespace shadowsChaining {
     }
 
     void RenderDetailsGL::createFramebuffer(
-            RenderDetailsGL *rd,
-            renderDetails::ParametersGL const *parameters)
+            RenderDetailsGL *rd)
     {
         std::vector<graphicsGL::Framebuffer::ColorImageFormat> colorImageFormats;
 

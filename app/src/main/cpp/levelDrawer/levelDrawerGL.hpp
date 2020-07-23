@@ -27,6 +27,7 @@
 #include "levelDrawerGraphics.hpp"
 #include "drawObjectTable/drawObjectTable.hpp"
 #include "../renderLoader/renderLoaderGL.hpp"
+#include "drawObjectTable/drawObjectTableGL.hpp"
 
 namespace renderDetails {
     class RenderDetailsGL;
@@ -36,6 +37,7 @@ namespace renderDetails {
     using ReferenceGL = Reference<RenderDetailsGL, CommonObjectData, DrawObjectDataGL>;
 }
 
+class RenderLoaderGL;
 namespace levelDrawer {
     struct NeededForDrawingGL {
         bool useIntegerSurface;
@@ -43,17 +45,7 @@ namespace levelDrawer {
 
     struct DrawArgumentGL {
         uint32_t width;
-        uiuint32_t height;
-    };
-
-    struct DrawObjectGLTraits {
-        using RenderDetailsParametersType = renderDetails::ParametersGL;
-        using RenderDetailsType = renderDetails::RenderDetailsGL;
-        using CommonObjectDataType = renderDetails::CommonObjectData;
-        using RenderDetailsReferenceType = renderDetails::ReferenceGL;
-        using ModelDataType = ModelDataGL;
-        using TextureDataType = TextureDataGL;
-        using DrawObjectDataType = renderDetails::DrawObjectDataGL;
+        uint32_t height;
     };
 
     using DrawObjectTableGL = DrawObjectTable<DrawObjectGLTraits>;
@@ -73,28 +65,29 @@ namespace levelDrawer {
     };
 
     using LevelDrawerGL = LevelDrawerGraphics<LevelDrawerGLTraits>;
+
+    template <>
+    void LevelDrawerGraphics<LevelDrawerGLTraits>::draw(
+            LevelDrawerGLTraits::DrawArgumentType const &info);
+
+    template <>
+    void LevelDrawerGraphics<LevelDrawerGLTraits>::drawToBuffer(
+            std::string const &renderDetailsName,
+            ModelsTextures const &modelsTextures,
+            std::vector<glm::mat4> const &modelMatrix,
+            float width,
+            float height,
+            uint32_t nbrSamplesForWidth,
+            float farthestDepth,
+            float nearestDepth,
+            std::vector<float> &results);
+
+    template <>
+    LevelDrawerGraphics<LevelDrawerGLTraits>::LevelDrawerGraphics(
+            LevelDrawerGLTraits::NeededForDrawingType neededForDrawing,
+            std::shared_ptr<LevelDrawerGLTraits::RenderLoaderType> inRenderLoader,
+            std::shared_ptr<GameRequester> inGameRequester);
+
 }
-
-template <>
-void LevelDrawerGraphics<LevelDrawerGLTraits>::draw(
-        LevelDrawerGLTraits::DrawArgumentType info);
-
-template <>
-void LevelDrawerGraphics<LevelDrawerGLTraits>::drawToBuffer(
-        std::string const &renderDetailsName,
-        ModelsTextures const &modelsTextures,
-        std::vector<glm::mat4> const &modelMatrix,
-        float width,
-        float height,
-        uint32_t nbrSamplesForWidth,
-        float farthestDepth,
-        float nearestDepth,
-        std::vector<float> &results);
-
-template <>
-LevelDrawerGraphics<LevelDrawerGLTraits>::LevelDrawerGraphics(
-        LevelDrawerGLTraits::NeededForDrawingType neededForDrawing,
-        std::shared_ptr<LevelDrawerGLTraits::RenderLoaderType> inRenderLoader,
-        std::shared_ptr<GameRequester> inGameRequester);
 
 #endif // AMAZING_LABYRINTH_LEVEL_DRAWER_GL_HPP

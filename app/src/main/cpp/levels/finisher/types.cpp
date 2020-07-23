@@ -105,9 +105,9 @@ namespace manyQuadsCoverUp {
             // then a texture image is selected at random.
             size_t index;
             if (totalNumberReturned < imagePaths.size()) {
-                auto objIndex = m_levelDrawer.addObject(
-                        std::make_shared<levelDrawer::ModelDescriptionQuad>(),
-                        std::make_shared<levelDrawer::TextureDescriptionPath>(imagePaths[totalNumberReturned]));
+                auto model = std::make_shared<levelDrawer::ModelDescriptionQuad>();
+                auto texture = std::make_shared<levelDrawer::TextureDescriptionPath>(imagePaths[totalNumberReturned]);
+                auto objIndex = m_levelDrawer.addObject(model, texture);
                 objIndices.push_back(objIndex);
                 m_levelDrawer.addModelMatrixForObject(objIndex, trans * scale);
             } else {
@@ -145,7 +145,7 @@ namespace growingQuad {
         m_objDataIndex = m_levelDrawer.addModelMatrixForObject(
                 m_objIndex,
                 glm::translate(glm::mat4(1.0f), transVector) *
-                glm::scale(glm::mat4(1.0f), scaleVector))
+                glm::scale(glm::mat4(1.0f), scaleVector));
     }
 
     void LevelFinisher::start() {

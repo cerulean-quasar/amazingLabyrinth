@@ -436,7 +436,7 @@ namespace fixedMaze {
                 m_objDataIndexBall,
                 glm::translate(glm::mat4(1.0f), m_ball.position) *
                 glm::mat4_cast(m_ball.totalRotated) *
-                glm::scale(glm::mat4(1.0f), glm::vec3{m_scaleBall, m_scaleBall, m_scaleBall});
+                glm::scale(glm::mat4(1.0f), glm::vec3{m_scaleBall, m_scaleBall, m_scaleBall}));
 
         return true;
     }
@@ -452,7 +452,7 @@ namespace fixedMaze {
         z = m_mazeFloorZ;
     }
 
-    Level::Level(levelDrawer::Adaptor inLevelDrawer
+    Level::Level(levelDrawer::Adaptor inLevelDrawer,
             std::shared_ptr<LevelConfigData> const &lcd,
             std::shared_ptr<LevelSaveData> const &,
             float mazeFloorZ)
