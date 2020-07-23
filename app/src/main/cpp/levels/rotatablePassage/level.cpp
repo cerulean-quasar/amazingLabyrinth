@@ -385,5 +385,7 @@ namespace rotatablePassage {
                 glm::translate(glm::mat4(1.0f), m_ball.position) *
                 glm::mat4_cast(m_ball.totalRotated) *
                 glm::scale(glm::mat4(1.0f), glm::vec3{m_scaleBall, m_scaleBall, m_scaleBall}));
+
+        return true;
     }
 } // namespace rotatablePassage

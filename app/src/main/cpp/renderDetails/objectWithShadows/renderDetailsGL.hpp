@@ -34,9 +34,7 @@
 #include "../../renderLoader/renderLoaderGL.hpp"
 
 namespace objectWithShadows {
-    class RenderDetailsGL;
     class CommonObjectDataGL : public renderDetails::CommonObjectDataPerspective {
-        friend RenderDetailsGL;
     public:
         std::pair<glm::mat4, glm::mat4> getProjViewForLevel() override {
             /* perspective matrix: takes the perspective projection, the aspect ratio, near and far
@@ -53,6 +51,8 @@ namespace objectWithShadows {
         glm::mat4 getViewLightSource() override {
             return glm::lookAt(m_lightingSource, m_lookAt, m_up);
         }
+
+        std::shared_ptr<graphicsGL::Framebuffer> const &shadowsFramebuffer() {return m_shadowsFramebuffer;}
 
         CommonObjectDataGL(
                 std::shared_ptr<graphicsGL::Framebuffer> shadowsFramebuffer,
@@ -71,25 +71,29 @@ namespace objectWithShadows {
     };
 
     class DrawObjectDataGL : public renderDetails::DrawObjectDataGL {
-        friend RenderDetailsGL;
     public:
+        glm::mat4 modelMatrix(uint32_t) override {
+            return m_modelMatrix;
+        }
+
         void update(glm::mat4 const &modelMatrix) override {
             m_modelMatrix = modelMatrix;
         }
 
-        ~DrawObjectDataGL() override = default;
-    private:
         DrawObjectDataGL(
                 glm::mat4 inModelMatrix)
                 : renderDetails::DrawObjectDataGL{},
                   m_modelMatrix{std::move(inModelMatrix)}
         {}
 
+        ~DrawObjectDataGL() override = default;
+    private:
         glm::mat4 m_modelMatrix;
     };
 
     class RenderDetailsGL : public renderDetails::RenderDetailsGL {
     public:
+        std::string nameString() override { return name(); }
         static char const *name() { return objectWithShadowsRenderDetailsName; }
         static renderDetails::ReferenceGL loadNew(
                 std::shared_ptr<GameRequester> const &gameRequester,

@@ -155,7 +155,7 @@ namespace objectWithShadows {
         if (!cod) {
             throw std::runtime_error("Invalid common object data type");
         }
-        auto fb = cod->m_shadowsFramebuffer;
+        auto fb = cod->shadowsFramebuffer();
 
         GLint textureID = glGetUniformLocation(programID, "texShadowMap");
         checkGraphicsError();

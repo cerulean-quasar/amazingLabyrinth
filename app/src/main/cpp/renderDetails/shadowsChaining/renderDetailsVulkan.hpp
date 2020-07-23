@@ -22,6 +22,7 @@
 
 #include <memory>
 #include <vector>
+#include <string>
 
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
@@ -96,6 +97,7 @@ namespace shadowsChaining {
 
     class RenderDetailsVulkan : public renderDetails::RenderDetailsVulkan {
     public:
+        std::string nameString() override { return name(); }
         static char const *name() { return shadowsChainingRenderDetailsName; }
 
         static renderDetails::ReferenceVulkan loadNew(

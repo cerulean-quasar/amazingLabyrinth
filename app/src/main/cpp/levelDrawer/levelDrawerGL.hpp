@@ -56,9 +56,11 @@ namespace levelDrawer {
         using RenderDetailsType = renderDetails::RenderDetailsGL;
         using CommonObjectDataType = renderDetails::CommonObjectData;
         using RenderDetailsReferenceType = renderDetails::ReferenceGL;
+        using ModelDataType = ModelDataGL;
         using ModelTableType = ModelTableGL;
         using TextureDataType = TextureDataGL;
         using TextureTableType = TextureTableGL;
+        using DrawObjectType = DrawObject<DrawObjectGLTraits>;
         using DrawObjectTableType = DrawObjectTableGL;
         using NeededForDrawingType = NeededForDrawingGL;
         using DrawArgumentType = DrawArgumentGL;

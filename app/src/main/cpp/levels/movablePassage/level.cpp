@@ -732,6 +732,8 @@ namespace movablePassage {
                 glm::translate(glm::mat4(1.0f), m_ball.position) *
                 glm::mat4_cast(m_ball.totalRotated) *
                 glm::scale(glm::mat4(1.0f), glm::vec3{scaleBall, scaleBall, scaleBall}));
+
+        return true;
     }
 
     bool Level::drag(float startX, float startY, float distanceX, float distanceY) {
@@ -742,7 +744,7 @@ namespace movablePassage {
         auto projView = m_levelDrawer.getProjectionView();
 
         auto startXY = getXYAtZ(startX, startY, m_mazeFloorZ, projView.first, projView.second);
-        auto distanceXY = getXYAtZ(startX, startY, m_mazeFloorZ, projView.first, projView.second);
+        auto distanceXY = getXYAtZ(distanceX, distanceY, m_mazeFloorZ, projView.first, projView.second);
 
         glm::vec2 startPosition{startXY.first, startXY.second};
         glm::vec2 distance{distanceXY.first, distanceXY.second};

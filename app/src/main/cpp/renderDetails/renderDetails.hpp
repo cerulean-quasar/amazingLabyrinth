@@ -57,7 +57,7 @@ namespace renderDetails {
         CommonObjectData() = default;
         virtual ~CommonObjectData() = default;
     protected:
-        virtual void update() = 0;
+        virtual void update() {} // todo: revisit this: only needed for Vulkan
     };
 
     class CommonObjectDataView : public CommonObjectData {
@@ -81,18 +81,18 @@ namespace renderDetails {
             update();
         }
 
-        ~CommonObjectDataView() override = default;
-    protected:
         CommonObjectDataView(
                 glm::vec3 viewPoint,
                 glm::vec3 lookAt,
                 glm::vec3 up)
-            : CommonObjectData(),
-            m_viewPoint{std::move(viewPoint)},
-            m_lookAt{std::move(lookAt)},
-            m_up{std::move(up)}
+                : CommonObjectData(),
+                  m_viewPoint{std::move(viewPoint)},
+                  m_lookAt{std::move(lookAt)},
+                  m_up{std::move(up)}
         {}
 
+        ~CommonObjectDataView() override = default;
+    protected:
         glm::vec3 m_viewPoint;
         glm::vec3 m_lookAt;
         glm::vec3 m_up;
@@ -199,6 +199,8 @@ namespace renderDetails {
                 : m_surfaceWidth{inWidth},
                   m_surfaceHeight{inHeight}
         {}
+
+        virtual std::string nameString() = 0;
 
         virtual ~RenderDetails() = default;
 

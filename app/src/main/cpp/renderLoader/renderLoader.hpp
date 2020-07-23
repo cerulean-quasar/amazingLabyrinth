@@ -36,7 +36,7 @@ public:
     {
         typename traits::RetrieveFcns fcns = getFcns(name);
         for (auto it = m_loadedRenderDetails.begin(); it != m_loadedRenderDetails.end(); it++) {
-            if (it->name() == name) {
+            if ((*it)->nameString() == name) {
                 auto renderDetails = *it;
                 if (renderDetails->width() != parameters->width ||
                     renderDetails->height() != parameters->height)

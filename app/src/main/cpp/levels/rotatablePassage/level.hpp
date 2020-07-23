@@ -77,7 +77,7 @@ namespace rotatablePassage {
             levelDrawer::Adaptor inLevelDrawer,
             std::shared_ptr<LevelConfigData> const &lcd,
             std::shared_ptr<LevelSaveData> const &sd,
-            glm::mat4 const &proj, glm::mat4 const &view, float maxZ)
+            float maxZ)
             : basic::Level(inLevelDrawer, lcd, maxZ, true),
               m_gameBoard(),
               m_components{

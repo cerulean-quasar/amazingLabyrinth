@@ -51,12 +51,16 @@ namespace shadows {
             return viewPoint();
         }
 
-        ~CommonObjectDataGL() override = default;
-    private:
+        glm::mat4 getViewLightSource() override {
+            return view();
+        }
+
         CommonObjectDataGL(float aspectRatio, Config const &config)
-            : CommonObjectDataPerspective(config.viewAngle, aspectRatio, config.nearPlane, config.farPlane,
-                    config.lightingSource, config.lookAt, config.up)
+                : CommonObjectDataPerspective(config.viewAngle, aspectRatio, config.nearPlane, config.farPlane,
+                                              config.lightingSource, config.lookAt, config.up)
         {}
+
+        ~CommonObjectDataGL() override = default;
     };
 
     class DrawObjectDataGL : public renderDetails::DrawObjectDataGL {
@@ -78,6 +82,7 @@ namespace shadows {
 
     class RenderDetailsGL : public renderDetails::RenderDetailsGL {
     public:
+        std::string nameString() override { return name(); }
         static char const *name() { return shadowsRenderDetailsName; }
 
         static renderDetails::ReferenceGL loadNew(
@@ -99,6 +104,9 @@ namespace shadows {
                 std::shared_ptr<renderDetails::DrawObjectTableGL> const &drawObjTable,
                 std::vector<size_t> const &drawObjectsIndices) override;
 
+        RenderDetailsGL(std::shared_ptr<GameRequester> const &inGameRequester,
+                        uint32_t inWidth, uint32_t inHeight);
+
         ~RenderDetailsGL() override {
             glDeleteShader(m_depthProgramID);
         }
@@ -112,9 +120,6 @@ namespace shadows {
         static renderDetails::ReferenceGL createReference(
                 std::shared_ptr<renderDetails::RenderDetailsGL> rd,
                 std::shared_ptr<CommonObjectDataGL> cod);
-
-        RenderDetailsGL(std::shared_ptr<GameRequester> const &inGameRequester,
-                        uint32_t inWidth, uint32_t inHeight);
     };
 }
 #endif // AMAZING_LABYRINTH_SHADOWS_RENDER_DETAILS_GL_HPP

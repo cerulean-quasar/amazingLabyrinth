@@ -33,9 +33,7 @@
 #include "../../renderLoader/renderLoaderGL.hpp"
 
 namespace depthMap {
-    class RenderDetailsGL;
     class CommonObjectDataGL : public renderDetails::CommonObjectDataOrtho {
-        friend RenderDetailsGL;
     public:
         std::pair<glm::mat4, glm::mat4> getProjViewForLevel() override {
             return std::make_pair<glm::mat4, glm::mat4>(
@@ -55,11 +53,6 @@ namespace depthMap {
         float nearestDepth() { return m_nearestDepth; }
         float farthestDepth() { return m_farthestDepth; }
 
-        ~CommonObjectDataGL() override = default;
-    private:
-        float m_nearestDepth;
-        float m_farthestDepth;
-
         CommonObjectDataGL(
                 float inNearestDepth,
                 float inFarthestDepth,
@@ -67,11 +60,16 @@ namespace depthMap {
                 float width,
                 float height)
                 : CommonObjectDataOrtho(
-                    -width/2, width/2, -height/2, height/2,
-                    config.nearPlane, config.farPlane, config.viewPoint, config.lookAt, config.up),
-                    m_nearestDepth{inNearestDepth},
-                    m_farthestDepth{inFarthestDepth}
+                -width/2, width/2, -height/2, height/2,
+                config.nearPlane, config.farPlane, config.viewPoint, config.lookAt, config.up),
+                  m_nearestDepth{inNearestDepth},
+                  m_farthestDepth{inFarthestDepth}
         {}
+
+        ~CommonObjectDataGL() override = default;
+    private:
+        float m_nearestDepth;
+        float m_farthestDepth;
     };
 
     class DrawObjectDataGL : public renderDetails::DrawObjectDataGL {
@@ -93,6 +91,7 @@ namespace depthMap {
 
     class RenderDetailsGL : public renderDetails::RenderDetailsGL {
     public:
+        std::string nameString() override { return name(); }
         static char const *name() { return shadowsRenderDetailsName; }
 
         static renderDetails::ReferenceGL loadNew(
@@ -129,6 +128,9 @@ namespace depthMap {
             return true;
         }
 
+        RenderDetailsGL(std::shared_ptr<GameRequester> const &inGameRequester,
+                        uint32_t inWidth, uint32_t inHeight);
+
         ~RenderDetailsGL() override {
             glDeleteProgram(m_depthProgramID);
         }
@@ -142,9 +144,6 @@ namespace depthMap {
         static renderDetails::ReferenceGL createReference(
                 std::shared_ptr<renderDetails::RenderDetailsGL> rd,
                 std::shared_ptr<CommonObjectDataGL> cod);
-
-        RenderDetailsGL(std::shared_ptr<GameRequester> const &inGameRequester,
-                        uint32_t inWidth, uint32_t inHeight);
     };
 }
 #endif // AMAZING_LABYRINTH_DEPTHMAP_RENDER_DETAILS_GL_HPP

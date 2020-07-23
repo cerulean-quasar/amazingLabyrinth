@@ -198,6 +198,7 @@ namespace depthMap {
 
     class RenderDetailsVulkan : public renderDetails::RenderDetailsVulkan {
     public:
+        std::string nameString() override { return name(); }
         static char const *name() { return depthMapRenderDetailsName; }
 
         static renderDetails::ReferenceVulkan loadNew(

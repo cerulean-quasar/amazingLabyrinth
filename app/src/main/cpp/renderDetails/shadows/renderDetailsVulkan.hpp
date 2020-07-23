@@ -174,6 +174,7 @@ namespace shadows {
 
     class RenderDetailsVulkan : public renderDetails::RenderDetails {
     public:
+        std::string nameString() override { return name(); }
         static char const *name() { return shadowsRenderDetailsName; }
 
         static renderDetails::ReferenceVulkan loadNew(

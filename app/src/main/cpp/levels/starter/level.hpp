@@ -84,11 +84,6 @@ namespace starter {
         {
             prevTime = std::chrono::high_resolution_clock::now();
 
-            std::pair<std::vector<Vertex>, std::vector<uint32_t>> v;
-            loadModel(m_gameRequester->getAssetStream(m_ballModel), v);
-            std::swap(v.first, ballVertices);
-            std::swap(v.second, ballIndices);
-
             textIndex = 0;
             transitionText = false;
 

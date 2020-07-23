@@ -29,6 +29,7 @@
 
 #include "modelTable/modelLoader.hpp"
 #include "textureTable/textureLoader.hpp"
+#include "../renderDetails/renderDetails.hpp"
 
 #include "levelDrawer.hpp"
 
@@ -62,11 +63,11 @@ namespace levelDrawer {
                 std::shared_ptr<TextureDescription> const &textureDescription) override
         {
             std::shared_ptr<typename traits::ModelDataType> modelData = m_modelTable.addModel(
-                    modelDescription);
+                    m_gameRequester, modelDescription);
             std::shared_ptr<typename traits::TextureDataType> textureData{};
 
             if (textureDescription) {
-                textureData = m_textureTable.addTexture(textureDescription);
+                textureData = m_textureTable.addTexture(m_gameRequester, textureDescription);
             }
 
             m_drawObjectTableList[type]->addObject(modelData, textureData);
@@ -190,7 +191,7 @@ namespace levelDrawer {
     private:
         struct DrawRules {
             std::shared_ptr<typename traits::RenderDetailsType> renderDetails;
-            std::array<std::shared_ptr<typename traits::CommonObjectDataType>, m_numberDrawObjectTables> commonObjectDataList;
+            std::array<std::shared_ptr<typename traits::CommonObjectDataType>, m_numberDrawObjectTables> commonObjectData;
             std::array<std::vector<size_t>, m_numberDrawObjectTables> indicesPerLevelType;
         };
 
@@ -239,10 +240,12 @@ namespace levelDrawer {
                 auto rules = m_drawObjectTableList[i]->getDrawRules();
 
                 for (auto const &rule : rules) {
-                    std::array<std::pair<std::shared_ptr<renderDetails::CommonObjectData>, std::vector<size_t>>, m_numberDrawObjectTables> drawRulesLevelList{};
-                    auto insertResult = rulesGroup.emplace(rule.renderDetails, drawRulesLevelList);
+                    std::array<std::shared_ptr<renderDetails::CommonObjectData>, m_numberDrawObjectTables> codList{};
+                    std::array<std::vector<size_t>, m_numberDrawObjectTables> indicesList{};
+                    auto insertResult = rulesGroup.emplace(rule.renderDetails->nameString(),
+                            DrawRules{rule.renderDetails, codList, indicesList});
 
-                    insertResult.first->second.commonObjectDataList[i] = rule.commonObjectData;
+                    insertResult.first->second.commonObjectData[i] = rule.commonObjectData;
                     insertResult.first->second.indicesPerLevelType[i] = rule.drawObjectIndices;
                 }
             }

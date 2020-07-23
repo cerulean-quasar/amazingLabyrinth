@@ -274,6 +274,7 @@ namespace objectWithShadows {
 
     class RenderDetailsVulkan : public renderDetails::RenderDetailsVulkan {
     public:
+        std::string nameString() override { return name(); }
         static char const *name() { return objectWithShadowsRenderDetailsName; }
 
         static renderDetails::ReferenceVulkan loadNew(

@@ -31,7 +31,7 @@ namespace levelDrawer {
 
         // add the pre main draw commands to the command buffer.
         for (auto const &rule : rulesList) {
-            rule.renderDetails->preMainDraw(0, rule.commonObjectDataList,
+            rule.renderDetails->preMainDraw(0, rule.commonObjectData,
                     m_drawObjectTableList, rule.indicesPerLevelType);
         }
 
@@ -53,7 +53,7 @@ namespace levelDrawer {
         for (auto index : std::vector<ObjectType>{LEVEL, STARTER, FINISHER}) {
             for (auto const &rule : rulesList) {
                 rule.renderDetails->draw(
-                        0, rule.commonObjectDataList[index], m_drawObjectTableList[index],
+                        0, rule.commonObjectData[index], m_drawObjectTableList[index],
                         rule.indicesPerLevelType[index]);
             }
         }

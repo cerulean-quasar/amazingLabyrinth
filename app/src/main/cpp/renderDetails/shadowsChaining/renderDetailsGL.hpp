@@ -36,15 +36,12 @@
 #include "../../renderLoader/renderLoaderGL.hpp"
 
 namespace shadowsChaining {
-    class RenderDetailsGL;
-
     enum {
         MODEL_MATRIX_ID_MAIN,
         MODEL_MATRIX_ID_SHADOWS
     };
 
     class CommonObjectDataGL : public renderDetails::CommonObjectData {
-        friend RenderDetailsGL;
     public:
         std::pair<glm::mat4, glm::mat4> getProjViewForLevel() override {
             return m_objectWithShadowsCOD->getProjViewForLevel();
@@ -73,7 +70,6 @@ namespace shadowsChaining {
     };
 
     class DrawObjectDataGL : public renderDetails::DrawObjectDataGL {
-        friend RenderDetailsGL;
     public:
         glm::mat4 modelMatrix(uint32_t id) override {
             if (id == MODEL_MATRIX_ID_MAIN) {
@@ -88,8 +84,6 @@ namespace shadowsChaining {
             m_shadowsDOD->update(modelMatrix);
         }
 
-        ~DrawObjectDataGL() override = default;
-    private:
         DrawObjectDataGL(
                 std::shared_ptr<objectWithShadows::DrawObjectDataGL> mainDOD,
                 std::shared_ptr<shadows::DrawObjectDataGL> shadowsDOD)
@@ -98,12 +92,15 @@ namespace shadowsChaining {
                   m_shadowsDOD{std::move(shadowsDOD)}
         {}
 
+        ~DrawObjectDataGL() override = default;
+    private:
         std::shared_ptr<objectWithShadows::DrawObjectDataGL> m_mainDOD;
         std::shared_ptr<shadows::DrawObjectDataGL> m_shadowsDOD;
     };
 
     class RenderDetailsGL : public renderDetails::RenderDetailsGL {
     public:
+        std::string nameString() override { return name(); }
         static char const *name() { return shadowsChainingRenderDetailsName; }
         static renderDetails::ReferenceGL loadNew(
                 std::shared_ptr<GameRequester> const &gameRequester,
@@ -130,6 +127,11 @@ namespace shadowsChaining {
                 std::shared_ptr<renderDetails::DrawObjectTableGL> const &drawObjTable,
                 std::vector<size_t> const &drawObjectsIndices) override;
 
+        RenderDetailsGL(bool useIntTexture, uint32_t inWidth, uint32_t inHeight)
+                : renderDetails::RenderDetailsGL{inWidth, inHeight},
+                  m_useIntTexture(useIntTexture)
+        {}
+
         ~RenderDetailsGL() override = default;
 
     private:
@@ -145,11 +147,6 @@ namespace shadowsChaining {
 
         // Initialize framebuffer for shadow mapping.
         static void createFramebuffer(RenderDetailsGL *rd);
-
-        RenderDetailsGL(bool useIntTexture, uint32_t inWidth, uint32_t inHeight)
-                : renderDetails::RenderDetailsGL{inWidth, inHeight},
-                m_useIntTexture(useIntTexture)
-        {}
     };
 }
 #endif // AMAZING_LABYRINTH_OBJECTWITHSHADOWS_RENDER_DETAILS_GL_HPP

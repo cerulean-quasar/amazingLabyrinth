@@ -36,7 +36,7 @@ namespace levelDrawer {
                 std::shared_ptr<GameRequester> const &gameRequester,
                 std::shared_ptr<TextureDescription> const &textureDescription)
         {
-            auto item = m_textureIndexMap.emplace(textureDescription, 0);
+            auto item = m_textureMap.emplace(textureDescription, nullptr);
             if (!item.second) {
                 item.first->second = getTextureData(gameRequester, textureDescription);
             }
@@ -52,7 +52,7 @@ namespace levelDrawer {
                 std::shared_ptr<GameRequester> const &gameRequester,
                 std::shared_ptr<TextureDescription> const &textureDescription) = 0;
 
-        std::map<std::shared_ptr<TextureDescription>, std::shared_ptr<TextureDataType>, BaseClassPtrLess<TextureDescription>> m_textureIndexMap;
+        std::map<std::shared_ptr<TextureDescription>, std::shared_ptr<TextureDataType>, BaseClassPtrLess<TextureDescription>> m_textureMap;
     };
 }
 #endif // AMAZING_LABYRINTH_TEXTURE_TABLE_HPP

@@ -108,7 +108,7 @@ namespace levelDrawer {
         }
 
         void clear() {
-            m_renderDetailsReference = traits::RenderDetailsReferenceType();
+            m_renderDetailsReference = typename traits::RenderDetailsReferenceType{};
             m_drawObjects.clear();
             m_objsIndicesWithOverridingRenderDetails.clear();
             m_objsIndicesWithGlobalRenderDetails.clear();
@@ -118,7 +118,7 @@ namespace levelDrawer {
         size_t addObject(
                 std::shared_ptr<typename traits::ModelDataType> modelData,
                 std::shared_ptr<typename traits::TextureDataType> textureData) {
-            m_drawObjects.emplace_back(std::make_shared<traits::DrawObjectDataType>(
+            m_drawObjects.emplace_back(std::make_shared<typename traits::DrawObjectDataType>(
                     std::move(modelData), std::move(textureData)));
 
             size_t newObjectIndex = m_drawObjects.size() - 1;

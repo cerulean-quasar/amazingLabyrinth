@@ -33,9 +33,7 @@
 #include "../../renderLoader/renderLoaderGL.hpp"
 
 namespace normalMap {
-    class RenderDetailsGL;
     class CommonObjectDataGL : public renderDetails::CommonObjectDataOrtho {
-        friend RenderDetailsGL;
     public:
         std::pair<glm::mat4, glm::mat4> getProjViewForLevel() override {
             return std::make_pair<glm::mat4, glm::mat4>(
@@ -55,23 +53,23 @@ namespace normalMap {
         float nearestDepth() { return m_nearestDepth; }
         float farthestDepth() { return m_farthestDepth; }
 
-        ~CommonObjectDataGL() override = default;
-    private:
-        float m_nearestDepth;
-        float m_farthestDepth;
-
         CommonObjectDataGL(
                 float inNearestDepth,
                 float inFarthestDepth,
                 Config config,
                 float width,
                 float height)
-                : CommonObjectDataOrtho(
-                    -width/2, width/2, -height/2, height/2,
-                    config.nearPlane, config.farPlane, config.viewPoint, config.lookAt, config.up),
-                    m_nearestDepth(inNearestDepth),
-                    m_farthestDepth(inFarthestDepth)
+                : renderDetails::CommonObjectDataOrtho(
+                -width/2, width/2, -height/2, height/2,
+                config.nearPlane, config.farPlane, config.viewPoint, config.lookAt, config.up),
+                  m_nearestDepth(inNearestDepth),
+                  m_farthestDepth(inFarthestDepth)
         {}
+
+        ~CommonObjectDataGL() override = default;
+    private:
+        float m_nearestDepth;
+        float m_farthestDepth;
     };
 
     class DrawObjectDataGL : public renderDetails::DrawObjectDataGL {
@@ -93,6 +91,7 @@ namespace normalMap {
 
     class RenderDetailsGL : public renderDetails::RenderDetailsGL {
     public:
+        std::string nameString() override { return name(); }
         static char const *name() { return shadowsRenderDetailsName; }
 
         static renderDetails::ReferenceGL loadNew(
