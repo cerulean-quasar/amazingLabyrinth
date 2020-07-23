@@ -22,6 +22,7 @@
 #include "../graphicsVulkan.hpp"
 #include "levelDrawerVulkan.hpp"
 #include "levelDrawerGraphics.hpp"
+#include "../renderDetails/renderDetailsVulkan.hpp"
 
 namespace levelDrawer {
     template <>
@@ -48,7 +49,7 @@ namespace levelDrawer {
         // add the pre main draw commands to the command buffer.
         for (auto const &rule : rulesList) {
             rule.renderDetails->addPreRenderPassCmdsToCommandBuffer(
-                    info.cmdBuffer, 0, rule.commonObjectDataList, m_drawObjectTableList,
+                    info.cmdBuffer, 0, rule.commonObjectData, m_drawObjectTableList,
                     rule.indicesPerLevelType);
         }
 
@@ -78,8 +79,8 @@ namespace levelDrawer {
         for (auto index : std::vector<ObjectType>{LEVEL, STARTER, FINISHER}) {
             for (auto const &rule : rulesList) {
                 rule.renderDetails->addPreRenderPassCmdsToCommandBuffer(
-                        info.cmdBuffer, 0, rule.commonObjectDataList[i], m_drawObjectTableList[i],
-                        rule.indicesPerLevelType[i]);
+                        info.cmdBuffer, 0, rule.commonObjectData, m_drawObjectTableList,
+                        rule.indicesPerLevelType);
             }
         }
 

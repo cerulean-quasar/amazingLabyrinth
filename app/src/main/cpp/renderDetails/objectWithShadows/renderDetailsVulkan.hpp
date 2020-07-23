@@ -150,13 +150,13 @@ namespace objectWithShadows {
             createDescriptorSetLayout();
         }
 
-        virtual std::shared_ptr<VkDescriptorSetLayout_T> const &descriptorSetLayout() {
+        std::shared_ptr<VkDescriptorSetLayout_T> const &descriptorSetLayout() override {
             return m_descriptorSetLayout;
         }
 
-        virtual uint32_t numberOfDescriptors() { return m_numberOfDescriptorSetsInPool; }
+        uint32_t numberOfDescriptors() override { return m_numberOfDescriptorSetsInPool; }
 
-        virtual VkDescriptorPoolCreateInfo const &poolCreateInfo() {
+        VkDescriptorPoolCreateInfo const &poolCreateInfo() override {
             return m_poolInfo;
         }
 
@@ -195,13 +195,13 @@ namespace objectWithShadows {
             createDescriptorSetLayout();
         }
 
-        virtual std::shared_ptr<VkDescriptorSetLayout_T> const &descriptorSetLayout() {
+        std::shared_ptr<VkDescriptorSetLayout_T> const &descriptorSetLayout() override {
             return m_descriptorSetLayout;
         }
 
-        virtual uint32_t numberOfDescriptors() { return m_numberOfDescriptorSetsInPool; }
+        uint32_t numberOfDescriptors() override { return m_numberOfDescriptorSetsInPool; }
 
-        virtual VkDescriptorPoolCreateInfo const &poolCreateInfo() {
+        VkDescriptorPoolCreateInfo const &poolCreateInfo() override {
             return m_poolInfo;
         }
 
@@ -224,7 +224,7 @@ namespace objectWithShadows {
 
         void update(glm::mat4 const &modelMatrix) override {
             PerObjectUBO ubo{};
-            ubo.model = modelMatrix;
+            ubo.modelMatrix = modelMatrix;
             m_uniformBuffer->copyRawTo(&ubo, sizeof (ubo));
         }
 

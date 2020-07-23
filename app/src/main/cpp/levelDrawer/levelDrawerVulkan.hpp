@@ -29,7 +29,7 @@
 #include "modelTable/modelTableVulkan.hpp"
 #include "textureTable/textureTableVulkan.hpp"
 #include "drawObjectTable/drawObjectTable.hpp"
-#include "../renderLoader/renderLoaderVulkan.hpp"
+#include "drawObjectTable/drawObjectTableVulkan.hpp"
 
 namespace renderDetails {
     class RenderDetailsVulkan;
@@ -39,6 +39,7 @@ namespace renderDetails {
     using ReferenceVulkan = Reference<RenderDetailsVulkan, CommonObjectData, DrawObjectDataVulkan>;
 }
 
+class RenderLoaderVulkan;
 namespace levelDrawer {
     struct NeededForDrawingVulkan {
         std::shared_ptr<vulkan::Device> device;
@@ -50,16 +51,6 @@ namespace levelDrawer {
         VkFramebuffer framebuffer;
         std::shared_ptr<vulkan::RenderPass> renderPass;
         VkExtent2D extent;
-    };
-
-    struct DrawObjectVulkanTraits {
-        using RenderDetailsParametersType = renderDetails::ParametersVulkan;
-        using RenderDetailsType = renderDetails::RenderDetailsVulkan;
-        using CommonObjectDataType = renderDetails::CommonObjectData;
-        using RenderDetailsReferenceType = renderDetails::ReferenceVulkan;
-        using ModelDataType = ModelDataVulkan;
-        using TextureDataType = TextureDataVulkan;
-        using DrawObjectDataType = renderDetails::DrawObjectDataVulkan;
     };
 
     using DrawObjectTableVulkan = DrawObjectTable<DrawObjectVulkanTraits>;

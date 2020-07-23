@@ -34,10 +34,6 @@ namespace fixedMaze {
         return false;
     }
 
-    glm::vec4 Level::getBackgroundColor() {
-        return glm::vec4{0.0f, 0.0f, 0.0f, 0.0f};
-    }
-
     void boundsCheck(int32_t &cell, size_t size) {
         if (cell < 0) {
             cell = 0;
@@ -525,6 +521,7 @@ namespace fixedMaze {
     }
 
     void Level::init() {
+        m_levelDrawer.setClearColor(glm::vec4{0.0f, 0.0f, 0.0f, 0.0f});
         m_prevTime = std::chrono::high_resolution_clock::now();
 
         // Get the depth map and normal map

@@ -24,6 +24,7 @@
 #include <map>
 
 #include "../common.hpp"
+#include "../renderDetails/renderDetails.hpp"
 
 namespace renderDetails {
     class RenderDetailsGL;

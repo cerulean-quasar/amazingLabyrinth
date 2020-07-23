@@ -56,7 +56,7 @@ void GraphicsGL::recreateSwapChain(uint32_t width, uint32_t height) {
 
     initPipeline(false);
 
-    m_levelSequence->notifySurfaceChanged(m_surface->width(), m_surface->height(), glm::mat4(1));
+    m_levelSequence->notifySurfaceChanged(m_surface->width(), m_surface->height());
 }
 
 std::shared_ptr<renderDetails::Parameters> GraphicsGL::getParametersForRenderDetailsName(

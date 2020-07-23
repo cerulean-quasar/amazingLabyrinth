@@ -169,7 +169,7 @@ namespace shadowsChaining {
 
         m_shadowsRenderDetails->draw(
                 MODEL_MATRIX_ID_SHADOWS,
-                codLevel->m_shadowsCOD,
+                codLevel->shadowsCOD(),
                 drawObjTableList[levelDrawer::ObjectType::LEVEL],
                 drawObjectsIndicesList[levelDrawer::ObjectType::LEVEL]);
 
@@ -187,7 +187,7 @@ namespace shadowsChaining {
         auto cod = dynamic_cast<CommonObjectDataGL*>(commonObjectData.get());
 
         m_objectWithShadowsRenderDetails->draw(MODEL_MATRIX_ID_MAIN,
-                cod->m_objectWithShadowsCOD, drawObjTable, drawObjectsIndices);
+                cod->objectWithShadowsCOD(), drawObjTable, drawObjectsIndices);
     }
 
     RegisterGL<renderDetails::RenderDetailsGL, RenderDetailsGL, Config> registerGL();

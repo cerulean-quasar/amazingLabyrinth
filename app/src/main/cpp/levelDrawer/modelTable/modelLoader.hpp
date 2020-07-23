@@ -47,7 +47,7 @@ namespace levelDrawer {
 
     using ModelVertices = std::pair<std::vector<Vertex>, std::vector<uint32_t>>;
 
-    bool compareLessVec3(glm::vec3 vec1, glm::vec3 vec2);
+    bool compareLessVec3(glm::vec3 const &vec1, glm::vec3 const &vec2);
 
     class ModelDescription {
         friend BaseClassPtrLess<ModelDescription>;

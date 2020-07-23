@@ -71,6 +71,8 @@ namespace levelDrawer {
             }
 
             m_drawObjectTableList[type]->addObject(modelData, textureData);
+
+            return true;
         }
 
         size_t addObject(
@@ -79,14 +81,14 @@ namespace levelDrawer {
                 std::shared_ptr<TextureDescription> const &textureDescription,
                 std::string const &renderDetailsName) override {
             std::shared_ptr<typename traits::ModelDataType> modelData = m_modelTable.addModel(
-                    modelDescription);
+                    m_gameRequester, modelDescription);
             std::shared_ptr<typename traits::TextureDataType> textureData{};
 
             if (textureDescription) {
-                textureData = m_textureTable.addTexture(textureDescription);
+                textureData = m_textureTable.addTexture(m_gameRequester, textureDescription);
             }
 
-            m_drawObjectTableList[type]->addObject(
+            return m_drawObjectTableList[type]->addObject(
                 m_renderLoader->load(
                         m_gameRequester,
                         renderDetailsName,
@@ -136,9 +138,9 @@ namespace levelDrawer {
             while (nbrObjsData < newSize) {
                 std::shared_ptr<typename traits::DrawObjectDataType> objData;
                 if (overridingRef.renderDetails != nullptr) {
-                    objData = overridingRef(textureData, glm::mat4(1.0f));
+                    objData = overridingRef.createDrawObjectData(nullptr, textureData, glm::mat4(1.0f));
                 } else {
-                    objData = globalRef(textureData, glm::mat4(1.0f));
+                    objData = globalRef.createDrawObjectData(nullptr, textureData, glm::mat4(1.0f));
                 }
                 drawObj->addObjectData(objData);
                 nbrObjsData++;
@@ -150,7 +152,7 @@ namespace levelDrawer {
         }
 
         void requestRenderDetails(ObjectType type, std::string const &name) override {
-            m_drawObjectTableList[type]->loadRenderDetails(m_renderLoader.load(m_gameRequester, name,
+            m_drawObjectTableList[type]->loadRenderDetails(m_renderLoader->load(m_gameRequester, name,
                     m_gameRequester->getParametersForRenderDetailsName(name.c_str())));
         }
 
@@ -218,7 +220,7 @@ namespace levelDrawer {
             std::shared_ptr<typename traits::DrawObjectDataType> objData;
             if (renderDetailsRef.renderDetails != nullptr) {
                 // we need to add new objects data.
-                objData = renderDetailsRef.createDrawObjectData(textureData, modelMatrix);
+                objData = renderDetailsRef.createDrawObjectData(nullptr, textureData, modelMatrix);
             } else {
                 auto ref = drawObjTable->renderDetailsReference();
 
@@ -226,7 +228,7 @@ namespace levelDrawer {
                     throw std::runtime_error("Render details not initialized!");
                 }
 
-                objData = ref.createDrawObjectData(textureData, modelMatrix);
+                objData = ref.createDrawObjectData(nullptr, textureData, modelMatrix);
             }
 
             drawObj->addObjectData(objData);

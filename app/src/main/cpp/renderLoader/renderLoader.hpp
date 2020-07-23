@@ -54,7 +54,7 @@ public:
         }
 
         typename traits::RenderDetailsReferenceType renderDetailsRef =
-                loadNew(fcns, gameRequester, name, parameters);
+                loadNew(fcns, gameRequester, parameters);
         m_loadedRenderDetails.push_front(renderDetailsRef.renderDetails);
         while (m_loadedRenderDetails.size() > m_nbrRenderDetailsToKeep) {
             m_loadedRenderDetails.pop_back();
@@ -88,7 +88,7 @@ private:
         if (loaderFcnIt == traits::getRenderDetailsMap().end()) {
             throw std::runtime_error("RenderDetails not registered.");
         }
-        return loaderFcnIt->second;
+        return loaderFcnIt->second();
     }
 };
 

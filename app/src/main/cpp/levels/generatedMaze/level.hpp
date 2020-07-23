@@ -213,8 +213,6 @@ namespace generatedMaze {
             scaleBall = ballScaleMatrix();
         }
 
-        glm::vec4 getBackgroundColor() override { return {0.0f, 0.0f, 0.0f, 0.0f}; }
-
         bool updateData() override;
 
         bool updateDrawObjects() override;

@@ -86,13 +86,11 @@ public:
         m_levelDrawer->clearDrawObjectTable(levelDrawer::FINISHER);
     }
 
-    void notifySurfaceChanged(uint32_t surfaceWidth, uint32_t surfaceHeight, glm::mat4 preTransform);
-
-    virtual void updatePretransform(glm::mat4 pretransform) = 0;
+    void notifySurfaceChanged(uint32_t surfaceWidth, uint32_t surfaceHeight);
 
     LevelSequence(
-            std::shared_ptr<levelDrawer::LevelDrawer> inLevelDrawer,
             std::shared_ptr<GameRequester> inGameRequester,
+            std::shared_ptr<levelDrawer::LevelDrawer> inLevelDrawer,
             uint32_t surfaceWidth,
             uint32_t surfaceHeight)
             : m_surfaceWidth{surfaceWidth},

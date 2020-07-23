@@ -35,7 +35,7 @@ void to_json(nlohmann::json &j, ObjReference const &val) {
 }
 
 void from_json(nlohmann::json const &j, ObjReference &val) {
-    val.objIsDynAndIndex = boost::none;
+    val.objIndex = boost::none;
     val.isLockedInPlaceRef = j[LockedInPlaceRef].get<bool>();
     val.modelIndex = j[ModelIndex].get<size_t>();
     val.textureIndex = j[TextureIndex].get<size_t>();

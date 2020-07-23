@@ -22,7 +22,15 @@
 #include "../renderDetailsGL.hpp"
 #include "renderDetailsGL.hpp"
 
+
 namespace shadows {
+    float constexpr const Config::viewAngle;
+    float constexpr const Config::nearPlane;
+    float constexpr const Config::farPlane;
+    glm::vec3 constexpr const Config::lightingSource;
+    glm::vec3 constexpr const Config::lookAt;
+    glm::vec3 constexpr const Config::up;
+
     RenderDetailsGL::RenderDetailsGL(std::shared_ptr<GameRequester> const &inGameRequester,
                                              uint32_t inWidth, uint32_t inHeight)
             : renderDetails::RenderDetailsGL(inWidth, inHeight),

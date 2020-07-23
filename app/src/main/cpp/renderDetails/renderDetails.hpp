@@ -200,6 +200,9 @@ namespace renderDetails {
                   m_surfaceHeight{inHeight}
         {}
 
+        uint32_t width() { return m_surfaceWidth; }
+        uint32_t height() { return m_surfaceHeight; }
+
         virtual std::string nameString() = 0;
 
         virtual ~RenderDetails() = default;
@@ -208,5 +211,9 @@ namespace renderDetails {
         uint32_t m_surfaceWidth;
         uint32_t m_surfaceHeight;
     };
+
+    static size_t constexpr const nbrDrawObjectTables = 3;
+    using IndicesForDrawList = std::array<std::vector<size_t>, nbrDrawObjectTables>;
+    using CommonObjectDataList = std::array<std::shared_ptr<CommonObjectData>, nbrDrawObjectTables>;
 }
 #endif // AMAZING_LABYRINTH_RENDER_DETAILS_HPP

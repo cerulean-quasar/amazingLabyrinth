@@ -88,7 +88,7 @@ class RegisterVulkan {
                     return std::move(fcns);
                 }
             )
-        )
+        );
     }
 };
 

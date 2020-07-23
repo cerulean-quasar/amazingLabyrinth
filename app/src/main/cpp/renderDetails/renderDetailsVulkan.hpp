@@ -27,10 +27,15 @@
 
 #include "../graphicsVulkan.hpp"
 #include "../levelDrawer/modelTable/modelTableVulkan.hpp"
-#include "../levelDrawer/levelDrawerVulkan.hpp"
 #include "renderDetails.hpp"
+#include "../levelDrawer/drawObjectTable/drawObjectTable.hpp"
+#include "../levelDrawer/drawObjectTable/drawObjectTableVulkan.hpp"
 
+class RenderLoaderVulkan;
 namespace renderDetails {
+    using DrawObjectTableVulkan = levelDrawer::DrawObjectTable<levelDrawer::DrawObjectVulkanTraits>;
+    using DrawObjectTableList = std::array<std::shared_ptr<DrawObjectTableVulkan>, nbrDrawObjectTables>;
+
     std::shared_ptr<vulkan::Buffer> createUniformBuffer(
             std::shared_ptr<vulkan::Device> const &device, size_t bufferSize);
 
@@ -67,9 +72,9 @@ namespace renderDetails {
         virtual void addPreRenderPassCmdsToCommandBuffer(
                 VkCommandBuffer const &/* unused command buffer */,
                 size_t /* descriptor set ID, not used */,
-                levelDrawer::LevelDrawerVulkan::CommonObjectDataList const &/* common object data */,
-                levelDrawer::LevelDrawerVulkan::DrawObjectTableList const &/* draw object table */,
-                levelDrawer::LevelDrawerVulkan::IndicesForDrawList const &/* draw indices */)
+                CommonObjectDataList const &/* common object data */,
+                DrawObjectTableList const &/* draw object table */,
+                IndicesForDrawList const &/* draw indices */)
         {}
 
         // For postprocessing results written to an image buffer whose contents are put in input.
@@ -80,8 +85,8 @@ namespace renderDetails {
                 std::vector<float> const &input,
                 std::vector<float> &results)
         {
-            output.resize(input.size());
-            std::copy(input.begin(), input.end(), output.begin());
+            results.resize(input.size());
+            std::copy(input.begin(), input.end(), results.begin());
         }
 
         // This function is called to add draw commands to the command buffer after the main render
@@ -89,8 +94,8 @@ namespace renderDetails {
         virtual void addDrawCmdsToCommandBuffer(
                 VkCommandBuffer const &commandBuffer,
                 size_t descriptorSetID,
-                std::shared_ptr<renderDetails::CommonObjectData> const &commonObjectData,
-                std::shared_ptr<levelDrawer::DrawObjectTableVulkan> const &drawObjTable,
+                std::shared_ptr<CommonObjectData> const &commonObjectData,
+                std::shared_ptr<DrawObjectTableVulkan> const &drawObjTable,
                 std::vector<size_t> const &drawObjectsIndices) = 0;
 
         enum DrawIfHasTexture {
@@ -104,10 +109,10 @@ namespace renderDetails {
             size_t descriptorSetID,
             std::shared_ptr<vulkan::Pipeline> const &pipeline,
              VkCommandBuffer const &commandBuffer,
-            levelDrawer::DrawObjectTableVulkan const &drawObjectTable,
+            DrawObjectTableVulkan const &drawObjectTable,
             std::vector<size_t> const &drawObjectsIndices);
 
-        virtual bool overrideClearColor(glm::vec4 &clearColor) {
+        virtual bool overrideClearColor(glm::vec4 &) {
             return false;
         }
 
@@ -116,12 +121,12 @@ namespace renderDetails {
                 std::shared_ptr<RenderLoaderVulkan> const &renderLoader,
                 std::shared_ptr<renderDetails::Parameters> const &parameters) = 0;
 
-        RenderDetailsVulkan(uint32_t width, uint32_t height)
-            : RenderDetails(width, height)
-        {}
-
         virtual std::shared_ptr<vulkan::Device> const &device() = 0;
         virtual std::shared_ptr<vulkan::DescriptorPools> const &descriptorPools() = 0;
+
+        RenderDetailsVulkan(uint32_t width, uint32_t height)
+                : RenderDetails(width, height)
+        {}
 
         ~RenderDetailsVulkan() override  = default;
     protected:

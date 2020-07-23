@@ -41,8 +41,6 @@ namespace fixedMaze {
         static char constexpr const *m_name = "fixedMaze";
         static float constexpr MODEL_MAXZ = 1.0f;
 
-        glm::vec4 getBackgroundColor() override;
-
         bool updateData() override;
 
         bool updateDrawObjects() override;

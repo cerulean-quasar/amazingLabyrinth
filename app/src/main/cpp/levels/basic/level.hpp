@@ -120,8 +120,6 @@ namespace basic {
     public:
         static float constexpr m_floatErrorAmount = 0.0001f;
 
-        virtual glm::vec4 getBackgroundColor() = 0;
-
         void updateAcceleration(float x, float y, float z) {
             m_ball.acceleration =
                     m_accelerationAdjustment * glm::vec3{-x, -y, m_ignoreZMovement ? 0 : -z};

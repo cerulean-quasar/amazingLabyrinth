@@ -21,13 +21,12 @@
 #define AMAZING_LABYRINTH_SHADOWS_RENDER_DETAILS_VULKAN_HPP
 
 #include <memory>
-#include <glm/glm.h>
+#include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 
 #include "../../graphicsVulkan.hpp"
 #include "../../levelDrawer/drawObjectTable/drawObjectTable.hpp"
 #include "../renderDetails.hpp"
-#include "../../renderLoader/renderLoaderVulkan.hpp"
 #include "../renderDetailsVulkan.hpp"
 
 #include "config.hpp"
@@ -105,7 +104,7 @@ namespace shadows {
         }
 
         std::shared_ptr<vulkan::Buffer> const &bufferModelMatrix() override { return m_uniformBuffer; }
-        std::shared_ptr<vulkan::DescriptorSet> const &descriptorSet(uint32_t id) override { return m_descriptorSet; }
+        std::shared_ptr<vulkan::DescriptorSet> const &descriptorSet(uint32_t) override { return m_descriptorSet; }
 
         ~DrawObjectDataVulkan() override = default;
 
@@ -172,14 +171,14 @@ namespace shadows {
         void createDescriptorSetLayout();
     };
 
-    class RenderDetailsVulkan : public renderDetails::RenderDetails {
+    class RenderDetailsVulkan : public renderDetails::RenderDetailsVulkan {
     public:
         std::string nameString() override { return name(); }
         static char const *name() { return shadowsRenderDetailsName; }
 
         static renderDetails::ReferenceVulkan loadNew(
                 std::shared_ptr<GameRequester> const &gameRequester,
-                std::shared_ptr<RenderLoaderVulkan> const &renderLoader,
+                std::shared_ptr<RenderLoaderVulkan> const &,
                 std::shared_ptr<vulkan::Device> const &inDevice,
                 std::shared_ptr<renderDetails::Parameters> const &parametersBase,
                 Config const &config)
@@ -223,7 +222,7 @@ namespace shadows {
                 VkCommandBuffer const &commandBuffer,
                 size_t descriptorSetID,
                 std::shared_ptr<renderDetails::CommonObjectData> const &commonObjectData,
-                std::shared_ptr<levelDrawer::DrawObjectTableVulkan> const &drawObjTable,
+                std::shared_ptr<renderDetails::DrawObjectTableVulkan> const &drawObjTable,
                 std::vector<size_t> const &drawObjectsIndices) override;
 
         void reload(
@@ -236,6 +235,24 @@ namespace shadows {
             return m_descriptorPools;
         }
 
+        RenderDetailsVulkan(
+                std::shared_ptr<GameRequester> const &gameRequester,
+                std::shared_ptr<vulkan::Device> const &inDevice,
+                std::shared_ptr<vulkan::Pipeline> const &basePipeline,
+                renderDetails::ParametersVulkan const *parameters)
+                : renderDetails::RenderDetailsVulkan{parameters->width, parameters->height},
+                  m_device{inDevice},
+                  m_descriptorSetLayout{std::make_shared<DescriptorSetLayout>(m_device)},
+                  m_descriptorPools{std::make_shared<vulkan::DescriptorPools>(m_device, m_descriptorSetLayout)},
+                  m_pipeline{std::make_shared<vulkan::Pipeline>(
+                          gameRequester, m_device,
+                          VkExtent2D{m_surfaceWidth, m_surfaceHeight},
+                          parameters->renderPass, m_descriptorPools, getBindingDescription(),
+                          getAttributeDescriptions(),
+                          SHADOW_VERT_FILE, SHADER_SIMPLE_FRAG_FILE, basePipeline,
+                          VK_CULL_MODE_FRONT_BIT)}
+        {}
+
         ~RenderDetailsVulkan() override = default;
     private:
         static char constexpr const *SHADER_SIMPLE_FRAG_FILE = "shaders/simple.frag.spv";
@@ -247,24 +264,6 @@ namespace shadows {
         std::shared_ptr<DescriptorSetLayout> m_descriptorSetLayout;
         std::shared_ptr<vulkan::Pipeline> m_pipeline;
 
-        RenderDetailsVulkan(
-            std::shared_ptr<GameRequester> const &gameRequester,
-            std::shared_ptr<vulkan::Device> const &inDevice,
-            std::shared_ptr<vulkan::Pipeline> const &basePipeline,
-            renderDetails::ParametersVulkan const *parameters)
-            : RenderDetails{parameters->width, parameters->height},
-            m_device{inDevice},
-            m_descriptorSetLayout{std::make_shared<DescriptorSetLayout>(m_device)},
-            m_descriptorPools{std::make_shared<vulkan::DescriptorPools>(m_device, m_descriptorSetLayout)},
-            m_pipeline{std::make_shared<vulkan::Pipeline>(
-                        gameRequester, m_device,
-                        VkExtent2D{m_surfaceWidth, m_surfaceHeight},
-                        parameters->renderPass, m_descriptorPools, getBindingDescription(),
-                        getAttributeDescriptions(),
-                        SHADOW_VERT_FILE, SHADER_SIMPLE_FRAG_FILE, basePipeline,
-                        VK_CULL_MODE_FRONT_BIT)}
-        {}
-
         static renderDetails::ReferenceVulkan createReference(
                 std::shared_ptr<renderDetails::RenderDetailsVulkan> rd,
                 std::shared_ptr<CommonObjectDataVulkan> cod);
@@ -273,7 +272,7 @@ namespace shadows {
                 glm::mat4 const &preTransform,
                 Config const &config)
         {
-            auto buffer = createUniformBuffer(m_device, sizeof (CommonObjectDataVulkan::CommonUBO));
+            auto buffer = renderDetails::createUniformBuffer(m_device, sizeof (CommonObjectDataVulkan::CommonUBO));
             return std::make_shared<CommonObjectDataVulkan>(buffer, preTransform,
                                                             m_surfaceWidth/ static_cast<float>(m_surfaceHeight), config);
         }

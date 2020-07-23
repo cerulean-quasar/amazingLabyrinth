@@ -24,6 +24,12 @@
 #include "config.hpp"
 
 namespace depthMap {
+    float constexpr const Config::nearPlane;
+    float constexpr const Config::farPlane;
+    glm::vec3 constexpr const Config::viewPoint;
+    glm::vec3 constexpr const Config::lookAt;
+    glm::vec3 constexpr const Config::up;
+
     RenderDetailsGL::RenderDetailsGL(std::shared_ptr<GameRequester> const &inGameRequester,
                                              uint32_t inWidth, uint32_t inHeight)
             : renderDetails::RenderDetailsGL(inWidth, inHeight),

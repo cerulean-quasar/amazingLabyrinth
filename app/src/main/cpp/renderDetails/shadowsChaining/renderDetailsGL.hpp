@@ -48,25 +48,32 @@ namespace shadowsChaining {
         }
 
         glm::vec3 getLightSource() override {
-            return m_shadowsCOD->viewPoint();
+            return m_shadowsCOD->getLightSource();
         }
 
         glm::mat4 getViewLightSource() override {
-            return m_shadowsCOD->view();
+            return m_shadowsCOD->getViewLightSource();
         }
+
+        std::shared_ptr<objectWithShadows::CommonObjectDataGL> const &objectWithShadowsCOD()
+        {
+            return m_objectWithShadowsCOD;
+        }
+
+        std::shared_ptr<shadows::CommonObjectDataGL> const &shadowsCOD() { return m_shadowsCOD; }
+
+        CommonObjectDataGL(
+                std::shared_ptr<renderDetails::CommonObjectData> inObjectWithShadowsCOD,
+                std::shared_ptr<renderDetails::CommonObjectData> inShadowsCOD)
+                : CommonObjectData(),
+                  m_objectWithShadowsCOD(std::dynamic_pointer_cast<objectWithShadows::CommonObjectDataGL>(inObjectWithShadowsCOD)),
+                  m_shadowsCOD(std::dynamic_pointer_cast<shadows::CommonObjectDataGL>(inShadowsCOD))
+        {}
 
         ~CommonObjectDataGL() override = default;
     private:
         std::shared_ptr<objectWithShadows::CommonObjectDataGL> m_objectWithShadowsCOD;
         std::shared_ptr<shadows::CommonObjectDataGL> m_shadowsCOD;
-
-        CommonObjectDataGL(
-                std::shared_ptr<objectWithShadows::CommonObjectDataGL> inObjectWithShadowsCOD,
-                std::shared_ptr<shadows::CommonObjectDataGL> inShadowsCOD)
-                : CommonObjectData(),
-                  m_objectWithShadowsCOD(std::move(inObjectWithShadowsCOD)),
-                  m_shadowsCOD(std::move(inShadowsCOD))
-        {}
     };
 
     class DrawObjectDataGL : public renderDetails::DrawObjectDataGL {
@@ -85,8 +92,8 @@ namespace shadowsChaining {
         }
 
         DrawObjectDataGL(
-                std::shared_ptr<objectWithShadows::DrawObjectDataGL> mainDOD,
-                std::shared_ptr<shadows::DrawObjectDataGL> shadowsDOD)
+                std::shared_ptr<renderDetails::DrawObjectDataGL> mainDOD,
+                std::shared_ptr<renderDetails::DrawObjectDataGL> shadowsDOD)
                 : renderDetails::DrawObjectDataGL{},
                   m_mainDOD{std::move(mainDOD)},
                   m_shadowsDOD{std::move(shadowsDOD)}
@@ -94,8 +101,8 @@ namespace shadowsChaining {
 
         ~DrawObjectDataGL() override = default;
     private:
-        std::shared_ptr<objectWithShadows::DrawObjectDataGL> m_mainDOD;
-        std::shared_ptr<shadows::DrawObjectDataGL> m_shadowsDOD;
+        std::shared_ptr<renderDetails::DrawObjectDataGL> m_mainDOD;
+        std::shared_ptr<renderDetails::DrawObjectDataGL> m_shadowsDOD;
     };
 
     class RenderDetailsGL : public renderDetails::RenderDetailsGL {

@@ -21,14 +21,13 @@
 #define AMAZING_LABYRINTH_DEPTHMAP_RENDER_DETAILS_VULKAN_HPP
 
 #include <memory>
-#include <glm/glm.h>
+#include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 
 #include "../../graphicsVulkan.hpp"
 #include "../../mathGraphics.hpp"
 #include "../../levelDrawer/drawObjectTable/drawObjectTable.hpp"
 #include "../renderDetails.hpp"
-#include "../../renderLoader/renderLoaderVulkan.hpp"
 #include "../renderDetailsVulkan.hpp"
 
 #include "config.hpp"

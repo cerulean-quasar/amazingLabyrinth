@@ -849,7 +849,7 @@ boost::optional<ObjReference> chooseObj(
         size_t placementIndex);
 
 boost::optional<ObjReference> addModelMatrixToObj(
-        levelDrawer::Adaptor const &levelDrawer,
+        levelDrawer::Adaptor &levelDrawer,
         Random &randomNumbers,
         std::set<ObjReference> const &refs,
         std::shared_ptr<Component> const &component,

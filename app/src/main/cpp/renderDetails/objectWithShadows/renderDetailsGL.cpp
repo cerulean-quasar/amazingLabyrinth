@@ -26,6 +26,14 @@
 #include "../../graphicsGL.hpp"
 
 namespace objectWithShadows {
+    float constexpr const Config::viewAngle;
+    float constexpr const Config::nearPlane;
+    float constexpr const Config::farPlane;
+    glm::vec3 constexpr const Config::viewPoint;
+    glm::vec3 constexpr const Config::lightingSource;
+    glm::vec3 constexpr const Config::lookAt;
+    glm::vec3 constexpr const Config::up;
+
     renderDetails::ReferenceGL RenderDetailsGL::loadNew(
             std::shared_ptr<GameRequester> const &gameRequester,
             std::shared_ptr<RenderLoaderGL> const &,

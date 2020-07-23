@@ -34,9 +34,7 @@
 class RenderLoaderGL;
 namespace renderDetails {
     using DrawObjectTableGL = levelDrawer::DrawObjectTable<levelDrawer::DrawObjectGLTraits>;
-    using DrawObjectTableList = std::array<std::shared_ptr<DrawObjectTableGL>, 3>;
-    using IndicesForDrawList = std::array<std::vector<size_t>, 3>;
-    using CommonObjectDataList = std::array<std::shared_ptr<CommonObjectData>, 3>;
+    using DrawObjectTableList = std::array<std::shared_ptr<DrawObjectTableGL>, nbrDrawObjectTables>;
 
     struct ParametersGL : public Parameters {
         bool useIntTexture;

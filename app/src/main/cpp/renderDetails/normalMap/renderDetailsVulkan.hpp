@@ -21,14 +21,13 @@
 #define AMAZING_LABYRINTH_NORMALMAP_RENDER_DETAILS_VULKAN_HPP
 
 #include <memory>
-#include <glm/glm.h>
+#include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 
 #include "../../graphicsVulkan.hpp"
 #include "../../mathGraphics.hpp"
 #include "../../levelDrawer/drawObjectTable/drawObjectTable.hpp"
 #include "../renderDetails.hpp"
-#include "../../renderLoader/renderLoaderVulkan.hpp"
 #include "../renderDetailsVulkan.hpp"
 
 #include "config.hpp"
@@ -131,7 +130,7 @@ namespace normalMap {
         }
 
         std::shared_ptr<vulkan::Buffer> const &bufferModelMatrix() override { return m_uniformBuffer; }
-        std::shared_ptr<vulkan::DescriptorSet> const &descriptorSet(uint32_t id) override { return m_descriptorSet; }
+        std::shared_ptr<vulkan::DescriptorSet> const &descriptorSet(uint32_t) override { return m_descriptorSet; }
 
         ~DrawObjectDataVulkan() override = default;
 
@@ -257,13 +256,13 @@ namespace normalMap {
                 VkCommandBuffer const &commandBuffer,
                 size_t descriptorSetID,
                 std::shared_ptr<renderDetails::CommonObjectData> const &commonObjectData,
-                std::shared_ptr<levelDrawer::DrawObjectTableVulkan> const &drawObjTable,
+                std::shared_ptr<renderDetails::DrawObjectTableVulkan> const &drawObjTable,
                 std::vector<size_t> const &drawObjectsIndices) override;
 
         void reload(
                 std::shared_ptr<GameRequester> const &gameRequester,
                 std::shared_ptr<RenderLoaderVulkan> const &renderLoader,
-                ParametersVulkan const &parameters) override;
+                renderDetails::ParametersVulkan const &parameters) override;
 
         std::shared_ptr<vulkan::Device> const &device() override { return m_device; }
         std::shared_ptr<vulkan::DescriptorPools> const &descriptorPools() override {

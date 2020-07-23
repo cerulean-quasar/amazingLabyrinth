@@ -73,7 +73,7 @@ namespace levelDrawer {
         }
 
         DrawObject(
-                std::shared_ptr<typename traits::RenderDetailsReferenceType> renderDetailsReference_,
+                typename traits::RenderDetailsReferenceType renderDetailsReference_,
                 std::shared_ptr<typename traits::ModelDataType> modelData_,
                 std::shared_ptr<typename traits::TextureDataType> textureData_)
                 : m_renderDetailsReference{std::move(renderDetailsReference_)},
@@ -117,8 +117,9 @@ namespace levelDrawer {
         // returns index of added object.
         size_t addObject(
                 std::shared_ptr<typename traits::ModelDataType> modelData,
-                std::shared_ptr<typename traits::TextureDataType> textureData) {
-            m_drawObjects.emplace_back(std::make_shared<typename traits::DrawObjectDataType>(
+                std::shared_ptr<typename traits::TextureDataType> textureData)
+        {
+            m_drawObjects.emplace_back(std::make_shared<DrawObject<traits>>(
                     std::move(modelData), std::move(textureData)));
 
             size_t newObjectIndex = m_drawObjects.size() - 1;
@@ -130,17 +131,22 @@ namespace levelDrawer {
         size_t addObject(
                 typename traits::RenderDetailsReferenceType renderDetailsReference,
                 std::shared_ptr<typename traits::ModelDataType> modelData,
-                std::shared_ptr<typename traits::TextureDataType> textureData) {
-            m_drawObjects.emplace_back(std::make_shared<traits::DrawObjectDataType>(
-                    std::move(renderDetailsReference), std::move(modelData),
-                    std::move(textureData)));
+                std::shared_ptr<typename traits::TextureDataType> textureData)
+        {
+            size_t newObjectIndex = m_drawObjects.size();
 
-            size_t newObjectIndex = m_drawObjects.size() - 1;
             if (renderDetailsReference.renderDetails != nullptr) {
                 m_objsIndicesWithOverridingRenderDetails.push_back(newObjectIndex);
+                m_drawObjects.emplace_back(std::make_shared<DrawObject<traits>>(
+                        std::move(renderDetailsReference), std::move(modelData),
+                        std::move(textureData)));
             } else {
                 m_objsIndicesWithGlobalRenderDetails.push_back(newObjectIndex);
+                m_drawObjects.emplace_back(std::make_shared<DrawObject<traits>>(
+                        std::move(modelData), std::move(textureData)));
             }
+
+
             return newObjectIndex;
         }
 
@@ -150,7 +156,7 @@ namespace levelDrawer {
                 std::shared_ptr<typename traits::ModelDataType> modelData,
                 std::shared_ptr<typename traits::TextureDataType> textureData,
                 std::vector<std::shared_ptr<typename traits::DrawObjectDataType>> objsData) {
-            m_drawObjects.emplace_back(std::make_shared<traits::DrawObjectDataType>(
+            m_drawObjects.emplace_back(std::make_shared<DrawObject<traits>>(
                     std::move(renderDetailsReference), modelData, textureData,
                     std::move(objsData)));
 
@@ -164,16 +170,16 @@ namespace levelDrawer {
         }
 
         void removeObject(size_t objIndex) {
-            if (m_drawObjects[objIndex].hasOverridingRenderDetailsReference()) {
-                for (auto it = m_objsIndicesWithOverridingRenderDetails; it != m_objsIndicesWithOverridingRenderDetails.end(); it++) {
+            if (m_drawObjects[objIndex]->hasOverridingRenderDetailsReference()) {
+                for (auto it = m_objsIndicesWithOverridingRenderDetails.begin(); it != m_objsIndicesWithOverridingRenderDetails.end(); it++) {
                     if (*it == objIndex) {
-                        m_objsIndicesWithOverridingRenderDetails.erase(objIndex);
+                        m_objsIndicesWithOverridingRenderDetails.erase(it);
                     }
                 }
             } else {
-                for (auto it = m_objsIndicesWithGlobalRenderDetails; it != m_objsIndicesWithGlobalRenderDetails.end(); it++) {
+                for (auto it = m_objsIndicesWithGlobalRenderDetails.begin(); it != m_objsIndicesWithGlobalRenderDetails.end(); it++) {
                     if (*it == objIndex) {
-                        m_objsIndicesWithGlobalRenderDetails.erase(objIndex);
+                        m_objsIndicesWithGlobalRenderDetails.erase(it);
                     }
                 }
             }
@@ -246,16 +252,16 @@ namespace levelDrawer {
 
         std::vector<DrawRule> getDrawRules() {
             std::vector<DrawRule> rules;
-            rules.emplace_back(m_renderDetailsReference.renderDetails,
+            rules.emplace_back(DrawRule{m_renderDetailsReference.renderDetails,
                     m_renderDetailsReference.commonObjectData,
-                    m_objsIndicesWithGlobalRenderDetails);
+                    m_objsIndicesWithGlobalRenderDetails});
 
             std::map<std::string, DrawRule> alreadyAdded;
             for (auto index : m_objsIndicesWithOverridingRenderDetails) {
-                auto const &ref = m_drawObjects[index].renderDetailsReference();
-                auto ret = alreadyAdded.emplace(ref.renderDetails.name(),
+                auto const &ref = m_drawObjects[index]->renderDetailsReference();
+                auto ret = alreadyAdded.emplace(ref.renderDetails->nameString(),
                         DrawRule{ref.renderDetails, ref.commonObjectData, std::vector<size_t>{}});
-                ret.first->second.push_back(index);
+                ret.first->second.drawObjectIndices.push_back(index);
             }
 
             for (auto item : alreadyAdded) {

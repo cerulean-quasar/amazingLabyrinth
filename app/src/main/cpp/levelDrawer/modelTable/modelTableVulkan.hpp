@@ -32,6 +32,12 @@
 namespace levelDrawer {
     class ModelDataVulkan {
     public:
+        inline uint32_t numberIndices() { return m_numberIndices; }
+
+        inline std::shared_ptr<vulkan::Buffer> const &vertexBuffer() { return m_vertexBuffer; }
+
+        inline std::shared_ptr<vulkan::Buffer> const &indexBuffer() { return m_indexBuffer; }
+
         ModelDataVulkan(std::shared_ptr<GameRequester> const &gameRequester,
                         std::shared_ptr<vulkan::Device> const &inDevice,
                         std::shared_ptr<vulkan::CommandPool> const &inPool,
@@ -52,17 +58,11 @@ namespace levelDrawer {
                                                              VK_BUFFER_USAGE_INDEX_BUFFER_BIT,
                                                              VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 
-            copyVerticesToBuffer(inPool, modelData.first);
-            copyIndicesToBuffer(inPool, modelData.second);
+            copyVerticesToBuffer<Vertex>(inPool, modelData.first, *m_vertexBuffer);
+            vulkan::copyIndicesToBuffer(inPool, modelData.second, *m_indexBuffer);
 
             m_numberIndices = modelData.second.size();
         }
-
-        inline uint32_t numberIndices() { return m_numberIndices; }
-
-        inline std::shared_ptr<vulkan::Buffer> const &vertexBuffer() { return m_vertexBuffer; }
-
-        inline std::shared_ptr<vulkan::Buffer> const &indexBuffer() { return m_indexBuffer; }
 
         ~ModelDataVulkan() = default;
 
@@ -75,14 +75,22 @@ namespace levelDrawer {
         std::shared_ptr<vulkan::Buffer> m_indexBuffer;
         uint32_t m_numberIndices;
 
-        void copyVerticesToBuffer(std::shared_ptr<vulkan::CommandPool> const &cmdpool,
-                                  std::vector<Vertex> const &vertices) {
-            vulkan::copyVerticesToBuffer<Vertex>(cmdpool, vertices, m_vertexBuffer);
-        }
+        template <typename VertexType>
+        static void copyVerticesToBuffer(std::shared_ptr<vulkan::CommandPool> const &cmdpool,
+                                         std::vector<VertexType> const &vertices,
+                                         vulkan::Buffer &buffer)
+        {
+            VkDeviceSize bufferSize = sizeof(vertices[0]) * vertices.size();
 
-        void copyIndicesToBuffer(std::shared_ptr<vulkan::CommandPool> const &cmdpool,
-                                 std::vector<uint32_t> const &indices) {
-            vulkan::copyIndicesToBuffer(cmdpool, indices, m_indexBuffer);
+            /* use a staging buffer in the CPU accessable memory to copy the data into graphics card
+             * memory.  Then use a copy command to copy the data into fast graphics card only memory.
+             */
+            vulkan::Buffer stagingBuffer(cmdpool->device(), bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+                                         VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+
+            stagingBuffer.copyRawTo(vertices.data(), bufferSize);
+
+            buffer.copyTo(cmdpool, stagingBuffer, bufferSize);
         }
     };
 
@@ -91,7 +99,7 @@ namespace levelDrawer {
         ModelTableVulkan(
                 std::shared_ptr<vulkan::Device> inDevice,
                 std::shared_ptr<vulkan::CommandPool> inCommandPool)
-                : ModelTableGeneric<ModelDataVulkan>{},
+                : ModelTable<ModelDataVulkan>{},
                   m_device{inDevice},
                   m_commandPool{inCommandPool} {}
 

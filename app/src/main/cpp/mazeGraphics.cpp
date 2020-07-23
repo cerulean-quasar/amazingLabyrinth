@@ -22,10 +22,8 @@
 
 void LevelSequence::notifySurfaceChanged(
         uint32_t surfaceWidth,
-        uint32_t surfaceHeight,
-        glm::mat4 preTransform)
+        uint32_t surfaceHeight)
 {
-    updatePretransform(preTransform);
     m_surfaceWidth = surfaceWidth;
     m_surfaceHeight = surfaceHeight;
 

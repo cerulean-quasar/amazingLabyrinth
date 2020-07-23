@@ -27,10 +27,9 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 
-#include "../../levelDrawer/levelDrawerVulkan.hpp"
 #include "../objectWithShadows/renderDetailsVulkan.hpp"
 #include "../renderDetailsVulkan.hpp"
-#include "../../renderLoader/renderLoaderVulkan.hpp"
+#include "../../levelDrawer/drawObjectTable/drawObjectTableVulkan.hpp"
 #include "config.hpp"
 
 namespace shadowsChaining {

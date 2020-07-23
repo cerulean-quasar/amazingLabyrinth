@@ -61,6 +61,7 @@ namespace levelDrawer {
         using TextureDataType = TextureDataGL;
         using TextureTableType = TextureTableGL;
         using DrawObjectType = DrawObject<DrawObjectGLTraits>;
+        using DrawObjectDataType = renderDetails::DrawObjectDataGL;
         using DrawObjectTableType = DrawObjectTableGL;
         using NeededForDrawingType = NeededForDrawingGL;
         using DrawArgumentType = DrawArgumentGL;

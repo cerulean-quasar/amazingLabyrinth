@@ -76,9 +76,9 @@ namespace openArea {
     public:
         static char constexpr const *m_name = "openArea";
         Level(
-                std::shared_ptr <LevelSaveData> const &levelRestoreData,
-                std::shared_ptr<LevelConfigData> const &lcd,
                 levelDrawer::Adaptor inLevelDrawer,
+                std::shared_ptr<LevelConfigData> const &lcd,
+                std::shared_ptr <LevelSaveData> const &levelRestoreData,
                 float maxZ)
                 : basic::Level(std::move(inLevelDrawer), lcd, maxZ, true),
                   prevTime(std::chrono::high_resolution_clock::now())
