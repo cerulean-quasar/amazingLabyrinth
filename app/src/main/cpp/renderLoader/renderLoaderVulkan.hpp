@@ -33,7 +33,7 @@ struct RenderLoaderVulkanTraits {
     using RenderDetailsParametersType = renderDetails::ParametersVulkan;
     using RenderDetailsType = renderDetails::RenderDetailsVulkan;
     using CommonObjectDataType = renderDetails::CommonObjectData;
-    using RenderDetailsReferenceType = renderDetails::RenderDetailsReference<RenderDetailsType, CommonObjectDataType>;
+    using RenderDetailsReferenceType = renderDetails::ReferenceVulkan;
     using RetrieveFcns = RenderDetailsVulkanRetrieveFcns;
     static RenderDetailsVulkanRetrieveMap &getRenderDetailsMap() {
         return getRenderDetailsVulkanMap();
@@ -42,7 +42,7 @@ struct RenderLoaderVulkanTraits {
 
 class RenderLoaderVulkan : public std::enable_shared_from_this<RenderLoaderVulkan>, public RenderLoader<RenderLoaderVulkanTraits> {
 public:
-    RenderLoader(std::shared_ptr<vulkan::Device> inDevice)
+    RenderLoaderVulkan(std::shared_ptr<vulkan::Device> inDevice)
         : RenderLoader<RenderLoaderVulkanTraits>(),
         m_device{std::move(inDevice)}
     {}
@@ -63,7 +63,7 @@ protected:
         std::shared_ptr<renderDetails::Parameters> const &parameters) override
     {
         vkDeviceWaitIdle(m_device->logicalDevice().get());
-        renderDetails.reload(gameRequester, shared_from_this(), parameters);
+        renderDetails->reload(gameRequester, shared_from_this(), parameters);
     }
 
     RenderLoaderVulkanTraits::RenderDetailsReferenceType loadExisting(

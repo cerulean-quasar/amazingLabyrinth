@@ -138,10 +138,6 @@ namespace levelDrawer {
                 VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
                 VK_IMAGE_ASPECT_COLOR_BIT);
 
-        std::vector<std::shared_ptr<vulkan::ImageView>> attachments = {colorImage, depthView};
-        auto frameBuffer = std::make_shared<vulkan::Framebuffer>(
-                m_neededForDrawing.device, renderPass, attachments, imageWidth, imageHeight);
-
         std::vector<vulkan::RenderPass::ImageAttachmentInfo> infos{};
         infos.emplace_back(VK_ATTACHMENT_LOAD_OP_CLEAR, VK_ATTACHMENT_STORE_OP_STORE,
                            colorImage->image()->format(),

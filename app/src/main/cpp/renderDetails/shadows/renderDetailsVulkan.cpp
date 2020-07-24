@@ -96,7 +96,7 @@ namespace shadows {
         descriptorWrites[0].pTexelBufferView = nullptr; // Optional
 
         VkDescriptorBufferInfo commonInfo = {};
-        commonInfo.buffer = inCommonObjectData->cameraBuffer();
+        commonInfo.buffer = inCommonObjectData->cameraBuffer()->buffer();
         commonInfo.offset = 0;
         commonInfo.range = inCommonObjectData->cameraBufferSize();
 

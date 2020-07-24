@@ -48,7 +48,7 @@ public:
 
         prepareDepthResources();
 
-        if (!testDepthTexture(levelDrawer::Adaptor(levelDrawer::LEVEL, m_levelDrawer)) {
+        if (!testDepthTexture(levelDrawer::Adaptor(levelDrawer::LEVEL, m_levelDrawer))) {
             throw std::runtime_error(
                     "This version of Vulkan has bugs making it impossible to get the depth texture and normal map.");
         }

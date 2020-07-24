@@ -146,7 +146,7 @@ namespace normalMap {
             std::shared_ptr<renderDetails::Parameters> const &parametersBase)
     {
         auto parameters =
-                dynamic_cast<renderDetails::ParametersWithSurfaceWidthHeightAtDepthVulkan const &>(parametersBase);
+                dynamic_cast<renderDetails::ParametersWithSurfaceWidthHeightAtDepthVulkan*>(parametersBase.get());
         if (parameters == nullptr) {
             throw std::runtime_error("Invalid render details parameter type.");
         }

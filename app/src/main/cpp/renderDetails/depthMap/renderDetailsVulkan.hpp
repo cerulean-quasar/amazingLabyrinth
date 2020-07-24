@@ -130,7 +130,7 @@ namespace depthMap {
         }
 
         std::shared_ptr<vulkan::Buffer> const &bufferModelMatrix() override { return m_uniformBuffer; }
-        std::shared_ptr<vulkan::DescriptorSet> const &descriptorSet(uint32_t id) override { return m_descriptorSet; }
+        std::shared_ptr<vulkan::DescriptorSet> const &descriptorSet(uint32_t) override { return m_descriptorSet; }
 
         ~DrawObjectDataVulkan() override = default;
 
@@ -258,7 +258,7 @@ namespace depthMap {
                 VkCommandBuffer const &commandBuffer,
                 size_t descriptorSetID,
                 std::shared_ptr<renderDetails::CommonObjectData> const &commonObjectData,
-                std::shared_ptr<levelDrawer::DrawObjectTableVulkan> const &drawObjTable,
+                std::shared_ptr<renderDetails::DrawObjectTableVulkan> const &drawObjTable,
                 std::vector<size_t> const &drawObjectsIndices) override;
 
         void reload(
@@ -293,13 +293,13 @@ namespace depthMap {
                 std::shared_ptr<vulkan::Device> const &inDevice,
                 std::shared_ptr<vulkan::Pipeline> const &basePipeline,
                 renderDetails::ParametersVulkan const *parameters)
-        : RenderDetailsVulkan{parameters->width, parameters->height},
+        : renderDetails::RenderDetailsVulkan{parameters->width, parameters->height},
         m_device{inDevice},
         m_descriptorSetLayout{std::make_shared<DescriptorSetLayout>(m_device)},
         m_descriptorPools{std::make_shared<vulkan::DescriptorPools>(m_device, m_descriptorSetLayout)},
         m_pipeline{std::make_shared<vulkan::Pipeline>(
                     gameRequester, m_device,
-                    VkExtent2D{m_width, m_height},
+                    VkExtent2D{m_surfaceWidth, m_surfaceHeight},
                     parameters->renderPass, m_descriptorPools, getBindingDescription(),
                     getAttributeDescriptions(),
                     SHADER_LINEAR_DEPTH_VERT_FILE, SHADER_SIMPLE_FRAG_FILE, basePipeline)}

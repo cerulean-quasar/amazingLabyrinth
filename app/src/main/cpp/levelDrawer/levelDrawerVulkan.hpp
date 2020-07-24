@@ -60,8 +60,11 @@ namespace levelDrawer {
         using RenderDetailsType = renderDetails::RenderDetailsVulkan;
         using CommonObjectDataType = renderDetails::CommonObjectData;
         using RenderDetailsReferenceType = renderDetails::ReferenceVulkan;
+        using ModelDataType = ModelDataVulkan;
         using ModelTableType = ModelTableVulkan;
+        using TextureDataType = TextureDataVulkan;
         using TextureTableType = TextureTableVulkan;
+        using DrawObjectDataType = renderDetails::DrawObjectDataVulkan;
         using DrawObjectTableType = DrawObjectTableVulkan;
         using DrawArgumentType = DrawArgumentVulkan;
         using NeededForDrawingType = NeededForDrawingVulkan;

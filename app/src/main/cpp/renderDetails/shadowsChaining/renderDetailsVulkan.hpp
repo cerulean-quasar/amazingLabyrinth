@@ -67,7 +67,7 @@ namespace shadowsChaining {
         void update(glm::mat4 const &modelMatrix) override {
             // the main draw object data and the shadows draw object data share a buffer.
             // So it is only necessary to update one.
-            m_mainDrawObjectData.update(modelMatrix);
+            m_mainDrawObjectData->update(modelMatrix);
         }
 
         std::shared_ptr<vulkan::DescriptorSet> const &descriptorSet(uint32_t id) override {
@@ -90,8 +90,8 @@ namespace shadowsChaining {
 
         ~DrawObjectDataVulkan() override = default;
     private:
-        std::shared_ptr<objectWithShadows::DrawObjectDataVulkan> m_mainDrawObjectData;
-        std::shared_ptr<shadows::DrawObjectDataVulkan> m_shadowsDrawObjectData;
+        std::shared_ptr<renderDetails::DrawObjectDataVulkan> m_mainDrawObjectData;
+        std::shared_ptr<renderDetails::DrawObjectDataVulkan> m_shadowsDrawObjectData;
     };
 
     class RenderDetailsVulkan : public renderDetails::RenderDetailsVulkan {
@@ -121,15 +121,15 @@ namespace shadowsChaining {
         void addPreRenderPassCmdsToCommandBuffer(
                 VkCommandBuffer const &commandBuffer,
                 size_t /* descriptor set ID, not used */,
-                levelDrawer::LevelDrawerVulkan::CommonObjectDataList const &commonObjectDataList,
-                levelDrawer::LevelDrawerVulkan::DrawObjectTableList const &drawObjTableList,
-                levelDrawer::LevelDrawerVulkan::IndicesForDrawList const &drawObjectsIndicesList) override;
+                renderDetails::CommonObjectDataList const &commonObjectDataList,
+                renderDetails::DrawObjectTableList const &drawObjTableList,
+                renderDetails::IndicesForDrawList const &drawObjectsIndicesList) override;
 
         void addDrawCmdsToCommandBuffer(
                 VkCommandBuffer const &commandBuffer,
                 size_t descriptorSetID,
                 std::shared_ptr<renderDetails::CommonObjectData> const &commonObjectData,
-                std::shared_ptr<levelDrawer::DrawObjectTableVulkan> const &drawObjTable,
+                std::shared_ptr<renderDetails::DrawObjectTableVulkan> const &drawObjTable,
                 std::vector<size_t> const &drawObjectsIndices) override;
 
         ~RenderDetailsVulkan() override = default;
@@ -139,13 +139,13 @@ namespace shadowsChaining {
         static float constexpr shadowsSizeMultiplier = 0.5f;
 
         std::shared_ptr<vulkan::Device> m_device;
-        std::shared_ptr<objectWithShadows::RenderDetailsVulkan> m_objectWithShadowsRenderDetails;
+        std::shared_ptr<renderDetails::RenderDetailsVulkan> m_objectWithShadowsRenderDetails;
 
         std::shared_ptr<vulkan::ImageView> m_depthImageViewShadows;
         std::shared_ptr<vulkan::ImageView> m_shadowsColorAttachment;
         std::shared_ptr<vulkan::ImageSampler> m_samplerShadows;
         std::shared_ptr<vulkan::RenderPass> m_renderPassShadows;
-        std::shared_ptr<shadows::RenderDetailsVulkan> m_shadowsRenderDetails;
+        std::shared_ptr<renderDetails::RenderDetailsVulkan> m_shadowsRenderDetails;
         std::shared_ptr<vulkan::Framebuffer> m_framebufferShadows;
 
         static uint32_t getShadowsFramebufferDimension(uint32_t dimension) {
@@ -159,7 +159,7 @@ namespace shadowsChaining {
                 std::shared_ptr<vulkan::ImageSampler> const &shadowsImageSampler);
 
         static std::shared_ptr<renderDetails::Parameters> createShadowParameters(
-                std::shared_ptr<RenderDetailsVulkan> const &rd,
+                RenderDetailsVulkan const *rd,
                 renderDetails::ParametersVulkan const *parameters)
         {
             renderDetails::ParametersVulkan shadowParameters;
@@ -170,7 +170,7 @@ namespace shadowsChaining {
             return std::make_shared<renderDetails::ParametersVulkan>(shadowParameters);
         }
 
-        void createShadowResources(ParametersVulkan const *parameters);
+        void createShadowResources(renderDetails::ParametersVulkan const *parameters);
 
         RenderDetailsVulkan(
                 uint32_t inWidth,

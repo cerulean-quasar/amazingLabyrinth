@@ -20,6 +20,7 @@
 #include <memory>
 
 #include "renderDetailsVulkan.hpp"
+#include "../../renderLoader/renderLoaderVulkan.hpp"
 
 namespace shadowsChaining {
     renderDetails::ReferenceVulkan RenderDetailsVulkan::loadNew(
@@ -27,7 +28,7 @@ namespace shadowsChaining {
             std::shared_ptr<RenderLoaderVulkan> const &renderLoader,
             std::shared_ptr<vulkan::Device> const &inDevice,
             std::shared_ptr<renderDetails::Parameters> const &parametersBase,
-            Config const &config)
+            Config const &)
     {
         auto parameters = dynamic_cast<renderDetails::ParametersVulkan*>(parametersBase.get());
         if (parameters == nullptr) {
@@ -38,9 +39,9 @@ namespace shadowsChaining {
         auto rd = std::make_shared<RenderDetailsVulkan>(parameters->width, parameters->height);
         rd->m_device = inDevice;
 
-        rd->createShadowResources();
+        rd->createShadowResources(parameters);
 
-        auto shadowParameters = createShadowParameters(rd, parameters);
+        auto shadowParameters = createShadowParameters(rd.get(), parameters);
 
         // shadows render details
         auto refShadows = renderLoader->load(
@@ -51,7 +52,7 @@ namespace shadowsChaining {
                 inDevice, rd->m_renderPassShadows,
                 std::vector<std::shared_ptr<vulkan::ImageView>>{rd->m_shadowsColorAttachment,
                                                                 rd->m_depthImageViewShadows},
-                shadowParameters.width, shadowParameters.height);
+                shadowParameters->width, shadowParameters->height);
 
         // main render details
         auto refMain = renderLoader->load(
@@ -60,7 +61,7 @@ namespace shadowsChaining {
         rd->m_objectWithShadowsRenderDetails = refMain.renderDetails;
         rd->m_shadowsRenderDetails = refShadows.renderDetails;
 
-        return createReference(std::move(rd), refShadows, refTexture, refColor);
+        return createReference(std::move(rd), refShadows, refMain, rd->m_samplerShadows);
     }
 
     renderDetails::ReferenceVulkan RenderDetailsVulkan::loadExisting(
@@ -77,7 +78,7 @@ namespace shadowsChaining {
 
         auto rd = dynamic_cast<RenderDetailsVulkan*>(rdBase.get());
         if (rd == nullptr) {
-            throw std::runtime_error("Invalid render details type.")
+            throw std::runtime_error("Invalid render details type.");
         }
         auto shadowParameters = createShadowParameters(rd, parameters);
 
@@ -108,7 +109,7 @@ namespace shadowsChaining {
         m_surfaceWidth = parameters->width;
         m_surfaceHeight = parameters->height;
 
-        auto shadowParameters = createShadowParameters(rd, parameters);
+        auto shadowParameters = createShadowParameters(this, parameters);
         m_shadowsRenderDetails->reload(gameRequester, renderLoader, shadowParameters);
         m_objectWithShadowsRenderDetails->reload(gameRequester, renderLoader, parametersBase);
     }

@@ -34,14 +34,14 @@
 #include "../renderDetailsVulkan.hpp"
 
 namespace objectWithShadows {
-    class RenderDetailsDataVulkan;
+    class RenderDetailsVulkan;
 
     struct ParametersVulkan : public renderDetails::ParametersVulkan {
         std::shared_ptr<vulkan::ImageSampler> shadowsSampler;
     };
 
     class CommonObjectDataVulkan : public renderDetails::CommonObjectDataPerspective {
-        friend RenderDetailsDataVulkan;
+        friend RenderDetailsVulkan;
     public:
         void setShadowsImageSampler(std::shared_ptr<vulkan::ImageSampler> shadowsImageSampler) {
             m_shadowsSampler = std::move(shadowsImageSampler);
@@ -128,6 +128,16 @@ namespace objectWithShadows {
 
     class TextureDescriptorSetLayout : public vulkan::DescriptorSetLayout {
     public:
+        std::shared_ptr<VkDescriptorSetLayout_T> const &descriptorSetLayout() override {
+            return m_descriptorSetLayout;
+        }
+
+        uint32_t numberOfDescriptors() override { return m_numberOfDescriptorSetsInPool; }
+
+        VkDescriptorPoolCreateInfo const &poolCreateInfo() override {
+            return m_poolInfo;
+        }
+
         TextureDescriptorSetLayout(std::shared_ptr<vulkan::Device> inDevice)
                 : m_device(inDevice) {
             m_poolSizes[0].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
@@ -150,16 +160,6 @@ namespace objectWithShadows {
             createDescriptorSetLayout();
         }
 
-        std::shared_ptr<VkDescriptorSetLayout_T> const &descriptorSetLayout() override {
-            return m_descriptorSetLayout;
-        }
-
-        uint32_t numberOfDescriptors() override { return m_numberOfDescriptorSetsInPool; }
-
-        VkDescriptorPoolCreateInfo const &poolCreateInfo() override {
-            return m_poolInfo;
-        }
-
         ~TextureDescriptorSetLayout() override = default;
 
     private:
@@ -175,6 +175,16 @@ namespace objectWithShadows {
 
     class ColorDescriptorSetLayout : public vulkan::DescriptorSetLayout {
     public:
+        std::shared_ptr<VkDescriptorSetLayout_T> const &descriptorSetLayout() override {
+            return m_descriptorSetLayout;
+        }
+
+        uint32_t numberOfDescriptors() override { return m_numberOfDescriptorSetsInPool; }
+
+        VkDescriptorPoolCreateInfo const &poolCreateInfo() override {
+            return m_poolInfo;
+        }
+
         ColorDescriptorSetLayout(std::shared_ptr<vulkan::Device> inDevice)
                 : m_device(inDevice) {
             m_poolSizes[0].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
@@ -195,16 +205,6 @@ namespace objectWithShadows {
             createDescriptorSetLayout();
         }
 
-        std::shared_ptr<VkDescriptorSetLayout_T> const &descriptorSetLayout() override {
-            return m_descriptorSetLayout;
-        }
-
-        uint32_t numberOfDescriptors() override { return m_numberOfDescriptorSetsInPool; }
-
-        VkDescriptorPoolCreateInfo const &poolCreateInfo() override {
-            return m_poolInfo;
-        }
-
         ~ColorDescriptorSetLayout() override = default;
 
     private:
@@ -220,6 +220,8 @@ namespace objectWithShadows {
 
     /* for passing data other than the vertex data to the vertex shader */
     class DrawObjectDataVulkan : public renderDetails::DrawObjectDataVulkan {
+        friend RenderDetailsVulkan;
+    public:
         bool hasTexture() override { return m_hasTexture; }
 
         void update(glm::mat4 const &modelMatrix) override {
@@ -238,7 +240,7 @@ namespace objectWithShadows {
 
         DrawObjectDataVulkan(std::shared_ptr<vulkan::Device> const &inDevice,
                 std::shared_ptr<CommonObjectDataVulkan> const &cod,
-                std::shared_ptr<levelDrawer::TextureData> const &textureData,
+                std::shared_ptr<levelDrawer::TextureDataVulkan> const &textureData,
                 std::shared_ptr<vulkan::DescriptorSet> inDescriptorSet,
                 std::shared_ptr<vulkan::Buffer> inBuffer)
                 : m_hasTexture{textureData != nullptr},
@@ -265,7 +267,7 @@ namespace objectWithShadows {
         void textureUpdateDescriptorSet(
                 std::shared_ptr<vulkan::Device> const &inDevice,
                 std::shared_ptr<CommonObjectDataVulkan> const &cod,
-                std::shared_ptr<levelDrawer::TextureData> const &textureData);
+                std::shared_ptr<levelDrawer::TextureDataVulkan> const &textureData);
 
         void colorUpdateDescriptorSet(
                 std::shared_ptr<vulkan::Device> const &inDevice,
@@ -279,7 +281,7 @@ namespace objectWithShadows {
 
         static renderDetails::ReferenceVulkan loadNew(
                 std::shared_ptr<GameRequester> const &gameRequester,
-                std::shared_ptr<RenderLoaderVulkan> const &renderLoader,
+                std::shared_ptr<RenderLoaderVulkan> const &,
                 std::shared_ptr<vulkan::Device> const &inDevice,
                 std::shared_ptr<renderDetails::Parameters> const &parametersBase,
                 Config const &config)
@@ -309,21 +311,21 @@ namespace objectWithShadows {
                 throw std::runtime_error("Invalid render details parameter type.");
             }
 
-            auto rd = dynamic_cast<RenderDetailsVulkan*>(rdBase.get());
+            auto rd = std::dynamic_pointer_cast<RenderDetailsVulkan>(rdBase);
             if (rd == nullptr) {
                 throw std::runtime_error("Invalid render details type.");
             }
 
             auto cod = rd->createCommonObjectData(parameters->preTransform, config);
 
-            return createReference(std::move(rdBase), std::move(cod));
+            return createReference(std::move(rd), std::move(cod));
         }
 
         void addDrawCmdsToCommandBuffer(
                 VkCommandBuffer const &commandBuffer,
                 size_t descriptorSetID,
                 std::shared_ptr<renderDetails::CommonObjectData> const &commonObjectData,
-                std::shared_ptr<levelDrawer::DrawObjectTableVulkan> const &drawObjTable,
+                std::shared_ptr<renderDetails::DrawObjectTableVulkan> const &drawObjTable,
                 std::vector<size_t> const &drawObjectsIndices) override;
 
         void reload(
@@ -364,7 +366,7 @@ namespace objectWithShadows {
                       parameters.renderPass, m_descriptorPoolsTexture,
                       getBindingDescription(),
                       getAttributeDescriptions(),
-                      SHADER_VERT_FILE, TEXTURE_SHADER_FRAG_FILE, nullptr)},
+                      SHADER_VERT_FILE, TEXTURE_SHADER_FRAG_FILE, basePipeline)},
                 m_descriptorSetLayoutColor{std::make_shared<ColorDescriptorSetLayout>(m_device)},
                 m_descriptorPoolsColor{std::make_shared<vulkan::DescriptorPools>(m_device, m_descriptorSetLayoutColor)},
                 m_pipelineColor{std::make_shared<vulkan::Pipeline>(
@@ -375,12 +377,14 @@ namespace objectWithShadows {
                             SHADER_VERT_FILE, COLOR_SHADER_FRAG_FILE, m_pipelineTexture)}
         {}
 
-        std::shared_ptr<renderDetails::CommonObjectData> createCommonObjectData(
+        std::shared_ptr<CommonObjectDataVulkan> createCommonObjectData(
                 glm::mat4 const &preTransform,
                 Config const &config)
         {
-            auto vertexUbo = createUniformBuffer(m_device, sizeof (CommonObjectDataVulkan::CommonVertexUBO));
-            auto fragUbo = createUniformBuffer(m_device, sizeof (CommonObjectDataVulkan::CommonFragmentUBO));
+            auto vertexUbo = renderDetails::createUniformBuffer(
+                    m_device, sizeof (CommonObjectDataVulkan::CommonVertexUBO));
+            auto fragUbo = renderDetails::createUniformBuffer(
+                    m_device, sizeof (CommonObjectDataVulkan::CommonFragmentUBO));
 
             return std::make_shared<CommonObjectDataVulkan>(
                     vertexUbo, fragUbo, preTransform,

@@ -104,7 +104,7 @@ namespace objectWithShadows {
     void DrawObjectDataVulkan::textureUpdateDescriptorSet(
             std::shared_ptr<vulkan::Device> const &inDevice,
             std::shared_ptr<CommonObjectDataVulkan> const &cod,
-            std::shared_ptr<levelDrawer::TextureData> const &textureData)
+            std::shared_ptr<levelDrawer::TextureDataVulkan> const &textureData)
     {
         VkDescriptorBufferInfo bufferInfo = {};
         bufferInfo.buffer = m_uniformBuffer->buffer();
@@ -333,7 +333,7 @@ namespace objectWithShadows {
                     if (sharingDOD) {
                         modelMatrixBuffer = sharingDOD->bufferModelMatrix();
                     } else {
-                        modelMatrixBuffer = createUniformBuffer(
+                        modelMatrixBuffer = renderDetails::createUniformBuffer(
                                 rd->device(), sizeof (DrawObjectDataVulkan::PerObjectUBO));
                         DrawObjectDataVulkan::PerObjectUBO perObjectUbo{};
                         perObjectUbo.model = modelMatrix;

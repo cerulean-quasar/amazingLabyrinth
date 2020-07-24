@@ -208,7 +208,7 @@ namespace normalMap {
                 Config const &config)
         {
             auto parameters =
-                    dynamic_cast<renderDetails::ParametersWithSurfaceWidthHeightAtDepthVulkan const &>(parametersBase);
+                    dynamic_cast<renderDetails::ParametersWithSurfaceWidthHeightAtDepthVulkan*>(parametersBase.get());
             if (parameters == nullptr) {
                 throw std::runtime_error("Invalid render details parameter type.");
             }
@@ -229,7 +229,7 @@ namespace normalMap {
                 Config const &config)
         {
             auto parameters =
-                    dynamic_cast<renderDetails::ParametersWithSurfaceWidthHeightAtDepthVulkan const &>(parametersBase);
+                    dynamic_cast<renderDetails::ParametersWithSurfaceWidthHeightAtDepthVulkan*>(parametersBase.get());
             if (parameters == nullptr) {
                 throw std::runtime_error("Invalid render details parameter type.");
             }
@@ -262,7 +262,7 @@ namespace normalMap {
         void reload(
                 std::shared_ptr<GameRequester> const &gameRequester,
                 std::shared_ptr<RenderLoaderVulkan> const &renderLoader,
-                renderDetails::ParametersVulkan const &parameters) override;
+                std::shared_ptr<renderDetails::Parameters> const &parameters) override;
 
         std::shared_ptr<vulkan::Device> const &device() override { return m_device; }
         std::shared_ptr<vulkan::DescriptorPools> const &descriptorPools() override {
@@ -291,7 +291,7 @@ namespace normalMap {
                 std::shared_ptr<vulkan::Device> const &inDevice,
                 std::shared_ptr<vulkan::Pipeline> const &basePipeline,
                 renderDetails::ParametersVulkan const *parameters)
-            : RenderDetailsVulkan{parameters->width, parameters->height},
+            : renderDetails::RenderDetailsVulkan{parameters->width, parameters->height},
             m_device{inDevice},
             m_descriptorSetLayout{std::make_shared<DescriptorSetLayout>(m_device)},
             m_descriptorPools{std::make_shared<vulkan::DescriptorPools>(m_device, m_descriptorSetLayout)},
