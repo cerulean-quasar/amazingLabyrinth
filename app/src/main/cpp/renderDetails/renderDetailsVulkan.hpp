@@ -34,7 +34,7 @@
 class RenderLoaderVulkan;
 namespace renderDetails {
     using DrawObjectTableVulkan = levelDrawer::DrawObjectTable<levelDrawer::DrawObjectVulkanTraits>;
-    using DrawObjectTableList = std::array<std::shared_ptr<DrawObjectTableVulkan>, nbrDrawObjectTables>;
+    using DrawObjectTableVulkanList = std::array<std::shared_ptr<DrawObjectTableVulkan>, nbrDrawObjectTables>;
 
     std::shared_ptr<vulkan::Buffer> createUniformBuffer(
             std::shared_ptr<vulkan::Device> const &device, size_t bufferSize);
@@ -73,7 +73,7 @@ namespace renderDetails {
                 VkCommandBuffer const &/* unused command buffer */,
                 size_t /* descriptor set ID, not used */,
                 CommonObjectDataList const &/* common object data */,
-                DrawObjectTableList const &/* draw object table */,
+                DrawObjectTableVulkanList const &/* draw object table */,
                 IndicesForDrawList const &/* draw indices */)
         {}
 
@@ -109,7 +109,7 @@ namespace renderDetails {
             size_t descriptorSetID,
             std::shared_ptr<vulkan::Pipeline> const &pipeline,
              VkCommandBuffer const &commandBuffer,
-            DrawObjectTableVulkan const &drawObjectTable,
+            std::shared_ptr<DrawObjectTableVulkan> const &drawObjectTable,
             std::vector<size_t> const &drawObjectsIndices);
 
         virtual bool overrideClearColor(glm::vec4 &) {
@@ -122,7 +122,6 @@ namespace renderDetails {
                 std::shared_ptr<renderDetails::Parameters> const &parameters) = 0;
 
         virtual std::shared_ptr<vulkan::Device> const &device() = 0;
-        virtual std::shared_ptr<vulkan::DescriptorPools> const &descriptorPools() = 0;
 
         RenderDetailsVulkan(uint32_t width, uint32_t height)
                 : RenderDetails(width, height)
@@ -135,6 +134,6 @@ namespace renderDetails {
         std::vector<VkVertexInputAttributeDescription> getAttributeDescriptions();
     };
 
-    using ReferenceVulkan = renderDetails::Reference<RenderDetailsVulkan, renderDetails::CommonObjectData, renderDetails::DrawObjectDataVulkan>;
+    using ReferenceVulkan = renderDetails::Reference<RenderDetailsVulkan, levelDrawer::TextureDataVulkan, renderDetails::DrawObjectDataVulkan>;
 }
 #endif // AMAZING_LABYRINTH_RENDER_DETAILS_VULKAN_HPP

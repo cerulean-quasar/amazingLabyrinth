@@ -25,11 +25,12 @@
 
 #include "../common.hpp"
 #include "../renderDetails/renderDetails.hpp"
+#include "../levelDrawer/textureTable/textureTableGL.hpp"
 
 namespace renderDetails {
     class RenderDetailsGL;
     class DrawObjectDataGL;
-    using ReferenceGL = Reference<RenderDetailsGL, CommonObjectData, DrawObjectDataGL>;
+    using ReferenceGL = Reference<RenderDetailsGL, levelDrawer::TextureDataGL, DrawObjectDataGL>;
     struct ParametersGL;
 }
 

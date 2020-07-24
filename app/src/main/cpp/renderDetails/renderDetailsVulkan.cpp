@@ -81,7 +81,7 @@ namespace renderDetails {
         size_t descriptorSetID,
         std::shared_ptr<vulkan::Pipeline> const &pipeline,
         VkCommandBuffer const &commandBuffer,
-        std::shared_ptr<levelDrawer::DrawObjectTableVulkan> const &drawObjectTable,
+        std::shared_ptr<DrawObjectTableVulkan> const &drawObjectTable,
         std::vector<size_t> const &drawObjectsIndices)
     {
         if (!drawObjectTable || drawObjectsIndices.empty()) {

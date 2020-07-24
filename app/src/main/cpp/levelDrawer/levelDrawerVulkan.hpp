@@ -36,7 +36,7 @@ namespace renderDetails {
     class CommonObjectData;
     class DrawObjectDataVulkan;
     class ParametersVulkan;
-    using ReferenceVulkan = Reference<RenderDetailsVulkan, CommonObjectData, DrawObjectDataVulkan>;
+    using ReferenceVulkan = Reference<RenderDetailsVulkan, levelDrawer::TextureDataVulkan, DrawObjectDataVulkan>;
 }
 
 class RenderLoaderVulkan;

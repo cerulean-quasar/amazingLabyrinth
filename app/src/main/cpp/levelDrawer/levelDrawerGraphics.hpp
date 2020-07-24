@@ -30,6 +30,7 @@
 #include "modelTable/modelLoader.hpp"
 #include "textureTable/textureLoader.hpp"
 #include "../renderDetails/renderDetails.hpp"
+#include "drawObjectTable/drawObjectTable.hpp"
 
 #include "levelDrawer.hpp"
 
@@ -119,8 +120,7 @@ namespace levelDrawer {
         }
 
         void resizeObjectsData(ObjectType type, size_t objsIndex, size_t newSize) override {
-            std::shared_ptr<typename traits::DrawObjectType> drawObj =
-                    m_drawObjectTableList[type]->drawObject(objsIndex);
+            auto drawObj = m_drawObjectTableList[type]->drawObject(objsIndex);
 
             size_t nbrObjsData = drawObj->numberObjectsData();
             if (nbrObjsData == newSize) {
@@ -210,8 +210,7 @@ namespace levelDrawer {
                 size_t objsIndex,
                 glm::mat4 const &modelMatrix)
         {
-            std::shared_ptr<typename traits::DrawObjectType> drawObj =
-                    drawObjTable->drawObject(objsIndex);
+            auto drawObj = drawObjTable->drawObject(objsIndex);
 
             auto renderDetailsRef = drawObj->renderDetailsReference();
 

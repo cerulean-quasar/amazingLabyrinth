@@ -17,11 +17,10 @@
  *  along with AmazingLabyrinth.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
-#include "registerGL.hpp"
+#include "registerVulkan.hpp"
 
-RenderDetailsGLRetrieveMap &getRenderDetailsGLMap() {
-    static RenderDetailsGLRetrieveMap map{};
+RenderDetailsVulkanRetrieveMap &getRenderDetailsVulkanMap() {
+    static RenderDetailsVulkanRetrieveMap map{};
 
     return map;
 }
-

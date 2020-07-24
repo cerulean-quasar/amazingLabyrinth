@@ -36,19 +36,6 @@ namespace renderDetails {
         virtual ~Parameters() = default;
     };
 
-    template <typename RenderDetailsType, typename CommonObjectDataType, typename DrawObjectDataType>
-    struct Reference {
-        using CreateDrawObjectData = std::function<std::shared_ptr<DrawObjectDataType>(
-                std::shared_ptr<DrawObjectDataType> const &,
-                std::shared_ptr<levelDrawer::TextureData> const &,
-                glm::mat4 const &)>;
-        using GetProjViewForLevel = std::function<std::pair<glm::mat4, glm::mat4>()>;
-        std::shared_ptr<RenderDetailsType> renderDetails;
-        std::shared_ptr<CommonObjectDataType> commonObjectData;
-        CreateDrawObjectData createDrawObjectData;
-        GetProjViewForLevel getProjViewForLevel;
-    };
-
     class CommonObjectData {
     public:
         virtual std::pair<glm::mat4, glm::mat4> getProjViewForLevel() = 0;
@@ -58,6 +45,19 @@ namespace renderDetails {
         virtual ~CommonObjectData() = default;
     protected:
         virtual void update() {} // todo: revisit this: only needed for Vulkan
+    };
+
+    template <typename RenderDetailsType, typename TextureDataType, typename DrawObjectDataType>
+    struct Reference {
+        using CreateDrawObjectData = std::function<std::shared_ptr<DrawObjectDataType>(
+                std::shared_ptr<DrawObjectDataType> const &,
+                std::shared_ptr<TextureDataType> const &,
+                glm::mat4 const &)>;
+        using GetProjViewForLevel = std::function<std::pair<glm::mat4, glm::mat4>()>;
+        std::shared_ptr<RenderDetailsType> renderDetails;
+        std::shared_ptr<CommonObjectData> commonObjectData;
+        CreateDrawObjectData createDrawObjectData;
+        GetProjViewForLevel getProjViewForLevel;
     };
 
     class CommonObjectDataView : public CommonObjectData {

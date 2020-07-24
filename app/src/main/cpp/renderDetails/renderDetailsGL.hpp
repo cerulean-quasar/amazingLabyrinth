@@ -34,7 +34,7 @@
 class RenderLoaderGL;
 namespace renderDetails {
     using DrawObjectTableGL = levelDrawer::DrawObjectTable<levelDrawer::DrawObjectGLTraits>;
-    using DrawObjectTableList = std::array<std::shared_ptr<DrawObjectTableGL>, nbrDrawObjectTables>;
+    using DrawObjectTableGLList = std::array<std::shared_ptr<DrawObjectTableGL>, nbrDrawObjectTables>;
 
     struct ParametersGL : public Parameters {
         bool useIntTexture;
@@ -84,7 +84,7 @@ namespace renderDetails {
         virtual void preMainDraw(
                 uint32_t,
                 CommonObjectDataList const &,
-                DrawObjectTableList const &,
+                DrawObjectTableGLList const &,
                 IndicesForDrawList const &)
         {}
 
@@ -119,7 +119,7 @@ namespace renderDetails {
                            std::string const &vertexShaderFile, std::string const &fragmentShaderFile);
     };
 
-    using ReferenceGL = Reference<RenderDetailsGL, CommonObjectData, DrawObjectDataGL>;
+    using ReferenceGL = Reference<RenderDetailsGL, levelDrawer::TextureDataGL, DrawObjectDataGL>;
 }
 
 #endif // AMAZING_LABYRINTH_RENDER_DETAILS_GL_HPP

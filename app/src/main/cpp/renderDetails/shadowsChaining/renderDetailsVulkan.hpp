@@ -35,7 +35,7 @@
 namespace shadowsChaining {
     class RenderDetailsVulkan;
 
-    class CommonObjectDataVulkan : renderDetails::CommonObjectData {
+    class CommonObjectDataVulkan : public renderDetails::CommonObjectData {
         friend RenderDetailsVulkan;
     public:
         std::pair<glm::mat4, glm::mat4> getProjViewForLevel() override {
@@ -122,7 +122,7 @@ namespace shadowsChaining {
                 VkCommandBuffer const &commandBuffer,
                 size_t /* descriptor set ID, not used */,
                 renderDetails::CommonObjectDataList const &commonObjectDataList,
-                renderDetails::DrawObjectTableList const &drawObjTableList,
+                renderDetails::DrawObjectTableVulkanList const &drawObjTableList,
                 renderDetails::IndicesForDrawList const &drawObjectsIndicesList) override;
 
         void addDrawCmdsToCommandBuffer(
@@ -131,6 +131,14 @@ namespace shadowsChaining {
                 std::shared_ptr<renderDetails::CommonObjectData> const &commonObjectData,
                 std::shared_ptr<renderDetails::DrawObjectTableVulkan> const &drawObjTable,
                 std::vector<size_t> const &drawObjectsIndices) override;
+
+        std::shared_ptr<vulkan::Device> const &device() override { return m_objectWithShadowsRenderDetails->device(); }
+
+        RenderDetailsVulkan(
+                uint32_t inWidth,
+                uint32_t inHeight)
+                : renderDetails::RenderDetailsVulkan{inWidth, inHeight}
+        {}
 
         ~RenderDetailsVulkan() override = default;
 
@@ -153,7 +161,7 @@ namespace shadowsChaining {
         }
 
         static renderDetails::ReferenceVulkan createReference(
-                std::shared_ptr<RenderDetailsVulkan> rd,
+                std::shared_ptr<renderDetails::RenderDetailsVulkan> rd,
                 renderDetails::ReferenceVulkan const &refShadows,
                 renderDetails::ReferenceVulkan const &refObjectWithShadows,
                 std::shared_ptr<vulkan::ImageSampler> const &shadowsImageSampler);
@@ -171,13 +179,6 @@ namespace shadowsChaining {
         }
 
         void createShadowResources(renderDetails::ParametersVulkan const *parameters);
-
-        RenderDetailsVulkan(
-                uint32_t inWidth,
-                uint32_t inHeight)
-                : renderDetails::RenderDetailsVulkan{inWidth, inHeight}
-        {}
-
     };
 }
 

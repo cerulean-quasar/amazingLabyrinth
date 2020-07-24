@@ -20,6 +20,7 @@
 
 #include "../../graphicsVulkan.hpp"
 #include "renderDetailsVulkan.hpp"
+#include "../../renderLoader/registerVulkan.hpp"
 
 namespace depthMap {
 /* for accessing data other than the vertices from the shaders */
@@ -56,12 +57,12 @@ namespace depthMap {
     /* descriptor set for the MVP matrix and texture samplers */
     void
     DrawObjectDataVulkan::updateDescriptorSet(std::shared_ptr<vulkan::Device> const &inDevice,
-                                              std::shared_ptr<CommonObjectDataVulkan> const &inCommonObjectData)
+                                              std::shared_ptr<CommonObjectDataVulkan> const &)
     {
         VkDescriptorBufferInfo bufferInfo = {};
-        bufferInfo.buffer = inCommonObjectData->buffer();
+        bufferInfo.buffer = m_uniformBuffer->buffer();
         bufferInfo.offset = 0;
-        bufferInfo.range = sizeof (UniformBufferObjectDepthTexture);
+        bufferInfo.range = sizeof (PerObjectUBO);
 
         VkWriteDescriptorSet descriptorWrite = {};
         descriptorWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
@@ -81,8 +82,8 @@ namespace depthMap {
     void RenderDetailsVulkan::addDrawCmdsToCommandBuffer(
             VkCommandBuffer const &commandBuffer,
             size_t descriptorSetID,
-            std::shared_ptr<renderDetails::CommonObjectData> const &commonObjectData,
-            std::shared_ptr<levelDrawer::DrawObjectTableVulkan> const &drawObjTable,
+            std::shared_ptr<renderDetails::CommonObjectData> const &,
+            std::shared_ptr<renderDetails::DrawObjectTableVulkan> const &drawObjTable,
             std::vector<size_t> const &drawObjectsIndices)
     {
         /* bind the graphics pipeline to the command buffer, the second parameter tells Vulkan
@@ -93,18 +94,18 @@ namespace depthMap {
 
         initializeCommandBufferDrawObjects(
                 DrawIfHasTexture::BOTH, descriptorSetID, m_pipeline,
-                commandBuffer, drawObjTableList[index], drawObjectsIndicesList[index]);
+                commandBuffer, drawObjTable, drawObjectsIndices);
     }
 
     renderDetails::ReferenceVulkan RenderDetailsVulkan::createReference(
-            std::shared_ptr<renderDetails::RenderDetailsVulkan> rd,
+            std::shared_ptr<RenderDetailsVulkan> rd,
             std::shared_ptr<CommonObjectDataVulkan> cod)
     {
         renderDetails::ReferenceVulkan ref;
         ref.createDrawObjectData = renderDetails::ReferenceVulkan::CreateDrawObjectData(
                 [rd, cod] (
                         std::shared_ptr<renderDetails::DrawObjectDataVulkan> const &sharingDOD,
-                           std::shared_ptr<levelDrawer::TextureData> const &textureData,
+                           std::shared_ptr<levelDrawer::TextureData> const &,
                            glm::mat4 const &modelMatrix) ->
                         std::shared_ptr<renderDetails::DrawObjectDataVulkan>
                 {
@@ -112,12 +113,13 @@ namespace depthMap {
                     if (sharingDOD) {
                         modelMatrixBuffer = sharingDOD->bufferModelMatrix();
                     } else {
-                        modelMatrixBuffer = createUniformBuffer(rd->device(),
+                        modelMatrixBuffer =
+                                renderDetails::createUniformBuffer(rd->device(),
                                                                 sizeof (DrawObjectDataVulkan::PerObjectUBO));
                         DrawObjectDataVulkan::PerObjectUBO perObjectUbo{};
                         auto projView = cod->getProjViewForRender();
                         perObjectUbo.mvp = projView.first * projView.second * modelMatrix;
-                        perObjectUbo.model = modelMatrix;
+                        perObjectUbo.modelMatrix = modelMatrix;
                         perObjectUbo.nearestDepth = cod->nearestDepth();
                         perObjectUbo.farthestDepth = cod->farthestDepth();
                         modelMatrixBuffer->copyRawTo(&perObjectUbo,
@@ -142,7 +144,7 @@ namespace depthMap {
 
     void RenderDetailsVulkan::reload(
             std::shared_ptr<GameRequester> const &gameRequester,
-            std::shared_ptr<RenderLoaderVulkan> const &renderLoader,
+            std::shared_ptr<RenderLoaderVulkan> const &,
             std::shared_ptr<renderDetails::Parameters> const &parametersBase)
     {
         auto parameters =
@@ -164,6 +166,6 @@ namespace depthMap {
                 SHADER_LINEAR_DEPTH_VERT_FILE, SHADER_SIMPLE_FRAG_FILE, nullptr);
     }
 
-    RegisterVulkan<renderDetails::RenderDetailsVulkan, RenderDetailsVulkan, Config, renderDetails::ParametersVulkan> registerVulkan();
+    RegisterVulkan<renderDetails::RenderDetailsVulkan, RenderDetailsVulkan, Config> registerVulkan();
 
 }

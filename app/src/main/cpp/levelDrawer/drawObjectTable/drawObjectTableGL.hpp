@@ -35,7 +35,7 @@ namespace levelDrawer {
         using RenderDetailsParametersType = renderDetails::ParametersGL;
         using RenderDetailsType = renderDetails::RenderDetailsGL;
         using CommonObjectDataType = renderDetails::CommonObjectData;
-        using RenderDetailsReferenceType = renderDetails::Reference<renderDetails::RenderDetailsGL, renderDetails::CommonObjectData, renderDetails::DrawObjectDataGL>;
+        using RenderDetailsReferenceType = renderDetails::Reference<renderDetails::RenderDetailsGL, levelDrawer::TextureDataGL, renderDetails::DrawObjectDataGL>;
         using ModelDataType = ModelDataGL;
         using TextureDataType = TextureDataGL;
         using DrawObjectDataType = renderDetails::DrawObjectDataGL;

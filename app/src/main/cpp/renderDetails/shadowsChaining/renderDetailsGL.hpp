@@ -125,7 +125,7 @@ namespace shadowsChaining {
         void preMainDraw(
                 uint32_t modelMatrixID,
                 renderDetails::CommonObjectDataList const &commonObjectDataList,
-                renderDetails::DrawObjectTableList const &drawObjTableList,
+                renderDetails::DrawObjectTableGLList const &drawObjTableList,
                 renderDetails::IndicesForDrawList const &drawObjectsIndicesList) override;
 
         void draw(

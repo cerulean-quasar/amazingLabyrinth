@@ -37,7 +37,7 @@ namespace levelDrawer {
         using RenderDetailsParametersType = renderDetails::ParametersVulkan;
         using RenderDetailsType = renderDetails::RenderDetailsVulkan;
         using CommonObjectDataType = renderDetails::CommonObjectData;
-        using RenderDetailsReferenceType = renderDetails::Reference<renderDetails::RenderDetailsVulkan, renderDetails::CommonObjectData, renderDetails::DrawObjectDataVulkan>;
+        using RenderDetailsReferenceType = renderDetails::Reference<renderDetails::RenderDetailsVulkan, levelDrawer::TextureDataVulkan, renderDetails::DrawObjectDataVulkan>;
         using ModelDataType = ModelDataVulkan;
         using TextureDataType = TextureDataVulkan;
         using DrawObjectDataType = renderDetails::DrawObjectDataVulkan;

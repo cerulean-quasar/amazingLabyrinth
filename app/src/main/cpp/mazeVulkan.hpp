@@ -23,6 +23,7 @@
 #include "mazeGraphics.hpp"
 #include "common.hpp"
 #include "levelDrawer/levelDrawerVulkan.hpp"
+#include "renderLoader/renderLoaderVulkan.hpp"
 
 class GraphicsVulkan : public Graphics {
 public:
@@ -43,8 +44,8 @@ public:
               m_renderLoader{std::make_shared<RenderLoaderVulkan>(m_device)},
               m_levelDrawer{std::make_shared<levelDrawer::LevelDrawerVulkan>(levelDrawer::NeededForDrawingVulkan{m_device, m_commandPool}, m_renderLoader, m_gameRequester)}
     {
-        m_levelSequence = std::make_shared<LevelSequence>(m_levelDrawer, m_gameRequester,
-                        m_swapChain->extent().width, m_swapChain->extent().height);
+        m_levelSequence = std::make_shared<LevelSequence>(
+                m_gameRequester, m_levelDrawer, m_swapChain->extent().width, m_swapChain->extent().height);
 
         prepareDepthResources();
 

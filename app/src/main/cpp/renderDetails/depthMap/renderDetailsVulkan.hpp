@@ -31,6 +31,7 @@
 #include "../renderDetailsVulkan.hpp"
 
 #include "config.hpp"
+#include "../../../../../../../../Android/Sdk/ndk/21.3.6528147/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/include/vulkan/vulkan_core.h"
 
 namespace depthMap {
     class RenderDetailsVulkan;
@@ -69,6 +70,23 @@ namespace depthMap {
         uint32_t cameraBufferSize() { return sizeof(CommonUBO); }
         */
 
+        CommonObjectDataVulkan(
+                //std::shared_ptr<vulkan::Buffer> buffer,
+                glm::mat4 preTransform,
+                float inNearestDepth,
+                float inFarthestDepth,
+                Config config,
+                float width,
+                float height)
+                : renderDetails::CommonObjectDataOrtho(-width/2, width/2, -height/2, height/2,
+                                                       config.nearPlane, config.farPlane, config.viewPoint, config.lookAt, config.up),
+                /*m_camera{std::move(buffer)},
+                  */
+                  m_preTransform{preTransform},
+                  m_nearestDepth{inNearestDepth},
+                  m_farthestDepth{inFarthestDepth}
+        {}
+
         ~CommonObjectDataVulkan() override = default;
 
     protected:
@@ -97,23 +115,6 @@ namespace depthMap {
         glm::mat4 m_preTransform;
         float m_nearestDepth;
         float m_farthestDepth;
-
-        CommonObjectDataVulkan(
-                //std::shared_ptr<vulkan::Buffer> buffer,
-                glm::mat4 preTransform,
-                float inNearestDepth,
-                float inFarthestDepth,
-                Config config,
-                float width,
-                float height)
-                : renderDetails::CommonObjectDataOrtho(-width/2, width/2, -height/2, height/2,
-                        config.nearPlane, config.farPlane, config.viewPoint, config.lookAt, config.up),
-                /*m_camera{std::move(buffer)},
-                  */
-                  m_preTransform{preTransform},
-                  m_nearestDepth{inNearestDepth},
-                  m_farthestDepth{inFarthestDepth}
-        {}
     };
 
     /* for passing data other than the vertex data to the vertex shader */
@@ -129,8 +130,19 @@ namespace depthMap {
             m_uniformBuffer->copyRawTo(&ubo, sizeof(ubo));
         }
 
+        bool hasTexture() override { return false; }
         std::shared_ptr<vulkan::Buffer> const &bufferModelMatrix() override { return m_uniformBuffer; }
         std::shared_ptr<vulkan::DescriptorSet> const &descriptorSet(uint32_t) override { return m_descriptorSet; }
+
+        DrawObjectDataVulkan(std::shared_ptr<vulkan::Device> const &inDevice,
+                             std::shared_ptr<CommonObjectDataVulkan> const &inCommonObjectData,
+                             std::shared_ptr<vulkan::DescriptorSet> inDescriptorSet,
+                             std::shared_ptr<vulkan::Buffer> inUniformBuffer)
+                : m_descriptorSet{std::move(inDescriptorSet)},
+                  m_uniformBuffer{std::move(inUniformBuffer)}
+        {
+            updateDescriptorSet(inDevice, inCommonObjectData);
+        }
 
         ~DrawObjectDataVulkan() override = default;
 
@@ -144,16 +156,6 @@ namespace depthMap {
 
         std::shared_ptr<vulkan::DescriptorSet> m_descriptorSet;
         std::shared_ptr<vulkan::Buffer> m_uniformBuffer;
-
-        DrawObjectDataVulkan(std::shared_ptr<vulkan::Device> const &inDevice,
-                             std::shared_ptr<CommonObjectDataVulkan> const &inCommonObjectData,
-                             std::shared_ptr<vulkan::DescriptorSet> inDescriptorSet,
-                             std::shared_ptr<vulkan::Buffer> inUniformBuffer)
-                : m_descriptorSet{std::move(inDescriptorSet)},
-                  m_uniformBuffer{std::move(inUniformBuffer)}
-        {
-            updateDescriptorSet(inDevice, inCommonObjectData);
-        }
 
         void updateDescriptorSet(std::shared_ptr<vulkan::Device> const &inDevice,
                                  std::shared_ptr<CommonObjectDataVulkan> const &inCommonObjectData);
@@ -234,14 +236,14 @@ namespace depthMap {
                 throw std::runtime_error("Invalid render details parameter type.");
             }
 
-            auto rd = dynamic_cast<RenderDetailsVulkan*>(rdBase.get());
+            auto rd = std::dynamic_pointer_cast<RenderDetailsVulkan>(rdBase);
             if (rd == nullptr) {
                 throw std::runtime_error("Invalid render details type.");
             }
 
             auto cod = rd->createCommonObjectData(parameters, config);
 
-            return createReference(std::move(rdBase), std::move(cod));
+            return createReference(std::move(rd), std::move(cod));
         }
 
         void postProcessImageBuffer(
@@ -267,13 +269,33 @@ namespace depthMap {
                 std::shared_ptr<renderDetails::Parameters> const &parametersBase) override;
 
         std::shared_ptr<vulkan::Device> const &device() override { return m_device; }
-        std::shared_ptr<vulkan::DescriptorPools> const &descriptorPools() override {
-            return m_descriptorPools;
-        }
+        std::shared_ptr<vulkan::DescriptorPools> const &descriptorPools() { return m_descriptorPools; }
 
         bool overrideClearColor(glm::vec4 &clearColor) override {
             clearColor = {0.0f, 0.0f, 0.0f, 1.0f};
             return true;
+        }
+
+        RenderDetailsVulkan(
+                std::shared_ptr<GameRequester> const &gameRequester,
+                std::shared_ptr<vulkan::Device> const &inDevice,
+                std::shared_ptr<vulkan::Pipeline> const &basePipeline,
+                renderDetails::ParametersVulkan const *parameters)
+                : renderDetails::RenderDetailsVulkan{parameters->width, parameters->height},
+                  m_device{inDevice},
+                  m_descriptorSetLayout{std::make_shared<DescriptorSetLayout>(m_device)},
+                  m_descriptorPools{std::make_shared<vulkan::DescriptorPools>(m_device, m_descriptorSetLayout)},
+                  m_pipeline{}
+        {
+            std::string vertFile{SHADER_LINEAR_DEPTH_VERT_FILE};
+            std::string fragFile{SHADER_SIMPLE_FRAG_FILE};
+            VkExtent2D extent{m_surfaceWidth, m_surfaceHeight};
+            m_pipeline = std::make_shared<vulkan::Pipeline>(
+                    gameRequester, m_device,
+                    extent,
+                    parameters->renderPass, m_descriptorPools, getBindingDescription(),
+                    getAttributeDescriptions(),
+                    vertFile, fragFile, basePipeline);
         }
 
         ~RenderDetailsVulkan() override = default;
@@ -288,25 +310,8 @@ namespace depthMap {
         std::shared_ptr<DescriptorSetLayout> m_descriptorSetLayout;
         std::shared_ptr<vulkan::Pipeline> m_pipeline;
 
-        RenderDetailsVulkan(
-                std::shared_ptr<GameRequester> const &gameRequester,
-                std::shared_ptr<vulkan::Device> const &inDevice,
-                std::shared_ptr<vulkan::Pipeline> const &basePipeline,
-                renderDetails::ParametersVulkan const *parameters)
-        : renderDetails::RenderDetailsVulkan{parameters->width, parameters->height},
-        m_device{inDevice},
-        m_descriptorSetLayout{std::make_shared<DescriptorSetLayout>(m_device)},
-        m_descriptorPools{std::make_shared<vulkan::DescriptorPools>(m_device, m_descriptorSetLayout)},
-        m_pipeline{std::make_shared<vulkan::Pipeline>(
-                    gameRequester, m_device,
-                    VkExtent2D{m_surfaceWidth, m_surfaceHeight},
-                    parameters->renderPass, m_descriptorPools, getBindingDescription(),
-                    getAttributeDescriptions(),
-                    SHADER_LINEAR_DEPTH_VERT_FILE, SHADER_SIMPLE_FRAG_FILE, basePipeline)}
-        {}
-
         static renderDetails::ReferenceVulkan createReference(
-                std::shared_ptr<renderDetails::RenderDetailsVulkan> rd,
+                std::shared_ptr<RenderDetailsVulkan> rd,
                 std::shared_ptr<CommonObjectDataVulkan> cod);
 
         static std::shared_ptr<CommonObjectDataVulkan> createCommonObjectData(

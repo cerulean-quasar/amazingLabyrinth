@@ -125,7 +125,7 @@ namespace shadowsChaining {
                 [createDODObjectWithShadows(refObjectWithShadows.createDrawObjectData),
                         createDODShadows(refShadows.createDrawObjectData)] (
                         std::shared_ptr<renderDetails::DrawObjectDataGL> const &sharingDOD,
-                        std::shared_ptr<levelDrawer::TextureData> const &textureData,
+                        std::shared_ptr<levelDrawer::TextureDataGL> const &textureData,
                         glm::mat4 const &modelMatrix) ->
                         std::shared_ptr<renderDetails::DrawObjectDataGL>
                 {
@@ -151,7 +151,7 @@ namespace shadowsChaining {
     void RenderDetailsGL::preMainDraw(
             uint32_t /* unused matrix ID */,
             renderDetails::CommonObjectDataList const &commonObjectDataList,
-            renderDetails::DrawObjectTableList const &drawObjTableList,
+            renderDetails::DrawObjectTableGLList const &drawObjTableList,
             renderDetails::IndicesForDrawList const &drawObjectsIndicesList)
     {
         // get the shadows common object data

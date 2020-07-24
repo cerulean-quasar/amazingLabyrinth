@@ -24,6 +24,7 @@
 
 #include "mazeVulkan.hpp"
 #include "mathGraphics.hpp"
+#include "renderDetails/renderDetailsVulkan.hpp"
 
 glm::mat4 GraphicsVulkan::preTransform() {
     glm::mat4 preTransformRet{1.0f};
@@ -82,7 +83,7 @@ void GraphicsVulkan::recreateSwapChain(uint32_t width, uint32_t height) {
     m_swapChainCommands = std::make_shared<vulkan::SwapChainCommands>(m_swapChain, m_commandPool, m_renderPass, m_depthImageView);
 
     extent = m_swapChain->extent();
-    m_levelSequence->notifySurfaceChanged(extent.width, extent.height, preTransform());
+    m_levelSequence->notifySurfaceChanged(extent.width, extent.height);
 }
 
 void GraphicsVulkan::cleanupSwapChain() {
@@ -91,7 +92,6 @@ void GraphicsVulkan::cleanupSwapChain() {
     }
 
     m_levelSequence->cleanupLevelData();
-    m_shadowsColorAttachment.reset();
 
     m_swapChainCommands.reset();
 
@@ -111,6 +111,7 @@ void GraphicsVulkan::initializeCommandBuffers() {
 
 void GraphicsVulkan::initializeCommandBuffer(uint32_t cmdBufferIndex) {
     VkCommandBuffer commandBuffer = m_swapChainCommands->commandBuffer(cmdBufferIndex);
+    VkFramebuffer framebuffer = m_swapChainCommands->frameBuffer(cmdBufferIndex);
 
     levelDrawer::DrawArgumentVulkan info;
     info.cmdBuffer = commandBuffer;
@@ -233,7 +234,7 @@ void GraphicsVulkan::prepareDepthResources() {
 }
 
 std::shared_ptr<renderDetails::Parameters> GraphicsVulkan::getParametersForRenderDetailsName(
-        char const *renderDetailsName)
+        char const */* unused renderDetailsName - reserved for future use */)
 {
     auto extent = m_swapChain->extent();
     renderDetails::ParametersVulkan parameters;

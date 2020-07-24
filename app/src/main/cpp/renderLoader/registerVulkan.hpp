@@ -50,11 +50,7 @@ struct RenderDetailsVulkanRetrieveFcns {
 using RenderDetailsVulkanRetrieveMap =
     std::map<std::string, std::function<RenderDetailsVulkanRetrieveFcns()>>;
 
-RenderDetailsVulkanRetrieveMap &getRenderDetailsVulkanMap() {
-    static RenderDetailsVulkanRetrieveMap map{};
-
-    return map;
-}
+RenderDetailsVulkanRetrieveMap &getRenderDetailsVulkanMap();
 
 class RenderLoaderVulkan;
 

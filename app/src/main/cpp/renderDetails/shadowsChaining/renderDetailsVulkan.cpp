@@ -69,7 +69,7 @@ namespace shadowsChaining {
             std::shared_ptr<RenderLoaderVulkan> const &renderLoader,
             std::shared_ptr<renderDetails::RenderDetailsVulkan> rdBase,
             std::shared_ptr<renderDetails::Parameters> const &parametersBase,
-            Config const &config)
+            Config const &)
     {
         auto parameters = dynamic_cast<renderDetails::ParametersVulkan*>(parametersBase.get());
         if (parameters == nullptr) {
@@ -84,16 +84,16 @@ namespace shadowsChaining {
 
         // shadows render details
         auto refShadows = renderLoader->load(
-            gameRequester, renderLoader, shadows::RenderDetailsVulkan::name(), shadowParameters);
+            gameRequester, shadows::RenderDetailsVulkan::name(), shadowParameters);
 
         // object with shadows render details
         auto refObjectWithShadows = renderLoader->load(
-            gameRequester, renderLoader, objectWithShadows::RenderDetailsVulkan::name(), parametersBase);
+            gameRequester, objectWithShadows::RenderDetailsVulkan::name(), parametersBase);
 
         rd->m_objectWithShadowsRenderDetails = refObjectWithShadows.renderDetails;
         rd->m_shadowsRenderDetails = refShadows.renderDetails;
 
-        return createReference(std::move(rdBase), refShadows, refObjectWithShadows);
+        return createReference(std::move(rdBase), refShadows, refObjectWithShadows, rd->m_samplerShadows);
     }
 
     void RenderDetailsVulkan::reload(
@@ -117,9 +117,9 @@ namespace shadowsChaining {
     void RenderDetailsVulkan::addPreRenderPassCmdsToCommandBuffer(
             VkCommandBuffer const &commandBuffer,
             size_t /* descriptor set ID, not used */,
-            levelDrawer::LevelDrawerVulkan::CommonObjectDataList const &commonObjectDataList,
-            levelDrawer::LevelDrawerVulkan::DrawObjectTableList const &drawObjTableList,
-            levelDrawer::LevelDrawerVulkan::IndicesForDrawList const &drawObjectsIndicesList)
+            renderDetails::CommonObjectDataList const &commonObjectDataList,
+            renderDetails::DrawObjectTableVulkanList const &drawObjTableList,
+            renderDetails::IndicesForDrawList const &drawObjectsIndicesList)
     {
         // The shadows rendering needs to occur before the main render pass.
 
@@ -127,7 +127,7 @@ namespace shadowsChaining {
         VkRenderPassBeginInfo renderPassInfo = {};
         renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
         renderPassInfo.renderPass = m_renderPassShadows->renderPass().get();
-        renderPassInfo.framebuffer = m_framebufferShadows;
+        renderPassInfo.framebuffer = m_framebufferShadows->framebuffer().get();
         /* size of the render area */
         renderPassInfo.renderArea.offset = {0, 0};
         renderPassInfo.renderArea.extent = VkExtent2D{getShadowsFramebufferDimension(m_surfaceWidth),
@@ -153,9 +153,9 @@ namespace shadowsChaining {
         m_shadowsRenderDetails->addDrawCmdsToCommandBuffer(
                 commandBuffer,
                 1 /* shadows ID */,
-                commonObjectDataList[levelDrawer::LevelDrawer::ObjectType::LEVEL],
-                drawObjTableList[levelDrawer::LevelDrawer::ObjectType::LEVEL],
-                drawObjectsIndicesList[levelDrawer::LevelDrawer::ObjectType::LEVEL]);
+                commonObjectDataList[levelDrawer::ObjectType::LEVEL],
+                drawObjTableList[levelDrawer::ObjectType::LEVEL],
+                drawObjectsIndicesList[levelDrawer::ObjectType::LEVEL]);
 
         vkCmdEndRenderPass(commandBuffer);
     }
@@ -164,7 +164,7 @@ namespace shadowsChaining {
             VkCommandBuffer const &commandBuffer,
             size_t /* unused descriptor set ID */,
             std::shared_ptr<renderDetails::CommonObjectData> const &commonObjectData,
-            std::shared_ptr<levelDrawer::DrawObjectTableVulkan> const &drawObjTable,
+            std::shared_ptr<renderDetails::DrawObjectTableVulkan> const &drawObjTable,
             std::vector<size_t> const &drawObjectsIndices)
     {
         m_objectWithShadowsRenderDetails->addDrawCmdsToCommandBuffer(
@@ -173,21 +173,24 @@ namespace shadowsChaining {
     }
 
     renderDetails::ReferenceVulkan RenderDetailsVulkan::createReference(
-            std::shared_ptr<RenderDetailsVulkan> rd,
+            std::shared_ptr<renderDetails::RenderDetailsVulkan> rd,
             renderDetails::ReferenceVulkan const &refShadows,
             renderDetails::ReferenceVulkan const &refObjectWithShadows,
             std::shared_ptr<vulkan::ImageSampler> const &shadowsImageSampler)
     {
         auto cod = std::make_shared<CommonObjectDataVulkan>();
-        cod->m_objectWithShadowsCOD = refObjectWithShadows.commonObjectData;
-        cod->m_shadowsCOD = refShadows.commonObjectData;
-
-        // set the shadows image sampler
-        auto codObjectWithShadows = dynamic_cast<objectWithShadows::CommonObjectDataVulkan*>(refObjectWithShadows.commonObjectData.get());
-        if (codObjectWithShadows == nullptr) {
+        cod->m_objectWithShadowsCOD = std::dynamic_pointer_cast<objectWithShadows::CommonObjectDataVulkan>(refObjectWithShadows.commonObjectData);
+        if (cod->m_objectWithShadowsCOD == nullptr) {
             throw std::runtime_error("Invalid common object data");
         }
-        codObjectWithShadows->setShadowsImageSampler(shadowsImageSampler);
+
+        cod->m_shadowsCOD = std::dynamic_pointer_cast<shadows::CommonObjectDataVulkan>(refShadows.commonObjectData);
+        if (cod->m_shadowsCOD == nullptr) {
+            throw std::runtime_error("Invalid common object data");
+        }
+
+        // set the shadows image sampler
+        cod->m_objectWithShadowsCOD->setShadowsImageSampler(shadowsImageSampler);
 
         renderDetails::ReferenceVulkan ref;
         ref.renderDetails = rd;
@@ -196,13 +199,13 @@ namespace shadowsChaining {
                 [createDODShadows(refShadows.createDrawObjectData),
                 createDODObjectWithShadow(refObjectWithShadows.createDrawObjectData)] (
                         std::shared_ptr<renderDetails::DrawObjectDataVulkan> const &sharingDOD,
-                        std::shared_ptr<levelDrawer::TextureData> const &textureData,
+                        std::shared_ptr<levelDrawer::TextureDataVulkan> const &textureData,
                         glm::mat4 const &modelMatrix) ->
                         std::shared_ptr<renderDetails::DrawObjectDataVulkan>
                 {
                     auto dodMain = createDODObjectWithShadow(sharingDOD, textureData, modelMatrix);
-                    auto dodShadows = createDODShadows(dodMain,
-                                                       std::shared_ptr<levelDrawer::TextureData>(), modelMatrix);
+                    auto dodShadows = createDODShadows(
+                            dodMain, std::shared_ptr<levelDrawer::TextureDataVulkan>(), modelMatrix);
 
                     return std::make_shared<DrawObjectDataVulkan>(dodMain, dodShadows);
                 }
@@ -229,18 +232,20 @@ namespace shadowsChaining {
                 vulkan::ImageFactory::createDepthImage(
                         m_device,
                         VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT,
-                        getShadowsFramebufferWidth(parameters->width),
-                        getShadowsFramebufferHeigth(parameters->height)),
+                        getShadowsFramebufferDimension(parameters->width),
+                        getShadowsFramebufferDimension(parameters->height)),
                 VK_IMAGE_ASPECT_DEPTH_BIT);
 
+        /*
         m_depthImageViewShadows->image()->transitionImageLayout(
                 VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL,
                 m_commandPool);
+                */ // todo: is this required?
 
         m_shadowsColorAttachment = vulkan::ImageView::createImageViewAndImage(
                 m_device,
-                getShadowsFramebufferWidth(parameters->width),
-                getShadowsFramebufferHeigth(parameters->height),
+                getShadowsFramebufferDimension(parameters->width),
+                getShadowsFramebufferDimension(parameters->height),
                 VK_FORMAT_R32G32B32A32_SFLOAT,
                 VK_IMAGE_TILING_OPTIMAL,
                 VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
@@ -261,8 +266,8 @@ namespace shadowsChaining {
                         m_depthImageViewShadows->image()->format(),
                         VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL);
         m_renderPassShadows = vulkan::RenderPass::createDepthTextureRenderPass(
-                inDevice, colorImageInfo, depthImageInfo);
+                m_device, colorImageInfo, depthImageInfo);
     }
 
-    RegisterVulkan<renderDetails::RenderDetailsVulkan, RenderDetailsVulkan, Config, renderDetails::ParametersVulkan> registerVulkan();
+    RegisterVulkan<renderDetails::RenderDetailsVulkan, RenderDetailsVulkan, Config> registerVulkan();
 } // namespace shadowsChaining

@@ -20,6 +20,7 @@
 
 #include "../../graphicsVulkan.hpp"
 #include "renderDetailsVulkan.hpp"
+#include "../../renderLoader/registerVulkan.hpp"
 
 namespace shadows {
     /* for accessing data other than the vertices from the shaders */
@@ -115,8 +116,8 @@ namespace shadows {
     void RenderDetailsVulkan::addDrawCmdsToCommandBuffer(
             VkCommandBuffer const &commandBuffer,
             size_t descriptorSetID,
-            std::shared_ptr<renderDetails::CommonObjectData> const &commonObjectData,
-            std::shared_ptr<levelDrawer::DrawObjectTableVulkan> const &drawObjTable,
+            std::shared_ptr<renderDetails::CommonObjectData> const &,
+            std::shared_ptr<renderDetails::DrawObjectTableVulkan> const &drawObjTable,
             std::vector<size_t> const &drawObjectsIndices)
     {
         /* bind the graphics pipeline to the command buffer, the second parameter tells Vulkan
@@ -127,17 +128,17 @@ namespace shadows {
 
         initializeCommandBufferDrawObjects(
                 DrawIfHasTexture::BOTH, descriptorSetID, m_pipeline,
-                commandBuffer, drawObjTableList[index], drawObjectsIndicesList[index]);
+                commandBuffer, drawObjTable, drawObjectsIndices);
     }
 
-    static renderDetails::ReferenceVulkan RenderDetailsVulkan::createReference(
-            std::shared_ptr<renderDetails::RenderDetailsVulkan> rd,
+    renderDetails::ReferenceVulkan RenderDetailsVulkan::createReference(
+            std::shared_ptr<RenderDetailsVulkan> rd,
             std::shared_ptr<CommonObjectDataVulkan> cod)
     {
         renderDetails::ReferenceVulkan ref;
         ref.createDrawObjectData = renderDetails::ReferenceVulkan::CreateDrawObjectData(
                 [rd, cod] (std::shared_ptr<renderDetails::DrawObjectDataVulkan> const &sharingDOD,
-                           std::shared_ptr<TextureData> const &textureData,
+                           std::shared_ptr<levelDrawer::TextureDataVulkan> const &,
                            glm::mat4 const &modelMatrix) ->
                         std::shared_ptr<renderDetails::DrawObjectDataVulkan>
                 {
@@ -145,10 +146,10 @@ namespace shadows {
                     if (sharingDOD) {
                         modelMatrixBuffer = sharingDOD->bufferModelMatrix();
                     } else {
-                        modelMatrixBuffer = createUniformBuffer(rd->device(),
+                        modelMatrixBuffer = renderDetails::createUniformBuffer(rd->device(),
                                                                 sizeof (DrawObjectDataVulkan::PerObjectUBO));
                         DrawObjectDataVulkan::PerObjectUBO perObjectUbo{};
-                        perObjectUbo.model = modelMatrix;
+                        perObjectUbo.modelMatrix = modelMatrix;
                         modelMatrixBuffer->copyRawTo(&perObjectUbo,
                                                      sizeof(DrawObjectDataVulkan::PerObjectUBO));
                     }
@@ -171,7 +172,7 @@ namespace shadows {
 
     void RenderDetailsVulkan::reload(
             std::shared_ptr<GameRequester> const &gameRequester,
-            std::shared_ptr<RenderLoaderVulkan> const &renderLoader,
+            std::shared_ptr<RenderLoaderVulkan> const &,
             std::shared_ptr<renderDetails::Parameters> const &parametersBase)
     {
         auto parameters = dynamic_cast<renderDetails::ParametersVulkan*>(parametersBase.get());
@@ -193,5 +194,5 @@ namespace shadows {
                 VK_CULL_MODE_FRONT_BIT);
     }
 
-    RegisterVulkan<renderDetails::RenderDetailsVulkan, RenderDetailsVulkan, Config, renderDetails::ParametersVulkan> registerVulkan();
+    RegisterVulkan<renderDetails::RenderDetailsVulkan, RenderDetailsVulkan, Config> registerVulkan();
 }

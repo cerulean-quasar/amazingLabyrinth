@@ -69,6 +69,23 @@ namespace objectWithShadows {
 
         glm::vec3 getLightSource() override { return m_lightingSource;}
 
+        CommonObjectDataVulkan(
+                std::shared_ptr<vulkan::Buffer> cameraBuffer,
+                std::shared_ptr<vulkan::Buffer> lightingSourceBuffer,
+                glm::mat4 const &preTransform,
+                float aspectRatio,
+                Config const &config)
+                : renderDetails::CommonObjectDataPerspective(
+                config.viewAngle, aspectRatio, config.nearPlane, config.farPlane,
+                config.viewPoint, config.lookAt, config.up),
+                  m_preTransform{preTransform},
+                  m_lightingSource{config.lightingSource},
+                  m_cameraBuffer{std::move(cameraBuffer)},
+                  m_lightingSourceBuffer{std::move(lightingSourceBuffer)}
+        {
+            doUpdate();
+        }
+
         ~CommonObjectDataVulkan() override = default;
     protected:
         void update() override {
@@ -91,23 +108,6 @@ namespace objectWithShadows {
         std::shared_ptr<vulkan::Buffer> m_cameraBuffer;
         std::shared_ptr<vulkan::Buffer> m_lightingSourceBuffer;
         std::shared_ptr<vulkan::ImageSampler> m_shadowsSampler;
-
-        CommonObjectDataVulkan(
-            std::shared_ptr<vulkan::Buffer> cameraBuffer,
-            std::shared_ptr<vulkan::Buffer> lightingSourceBuffer,
-            glm::mat4 const &preTransform,
-            float aspectRatio,
-            Config const &config)
-            : renderDetails::CommonObjectDataPerspective(
-                config.viewAngle, aspectRatio, config.nearPlane, config.farPlane,
-                config.viewPoint, config.lookAt, config.up),
-            m_preTransform{preTransform},
-            m_lightingSource{config.lightingSource},
-            m_cameraBuffer{std::move(cameraBuffer)},
-            m_lightingSourceBuffer{std::move(lightingSourceBuffer)}
-        {
-            doUpdate();
-        }
 
         void doUpdate() {
             CommonVertexUBO commonUbo;
@@ -333,6 +333,33 @@ namespace objectWithShadows {
                 std::shared_ptr<RenderLoaderVulkan> const &renderLoader,
                 std::shared_ptr<renderDetails::Parameters> const &parameters) override;
 
+        std::shared_ptr<vulkan::Device> const &device() override { return m_device; }
+
+        RenderDetailsVulkan(
+                std::shared_ptr<GameRequester> const &gameRequester,
+                std::shared_ptr<vulkan::Device> const &inDevice,
+                std::shared_ptr<vulkan::Pipeline> const &basePipeline,
+                renderDetails::ParametersVulkan const *parameters)
+                : renderDetails::RenderDetailsVulkan{parameters->width, parameters->height},
+                  m_device{inDevice},
+                  m_descriptorSetLayoutTexture{std::make_shared<TextureDescriptorSetLayout>(m_device)},
+                  m_descriptorPoolsTexture{std::make_shared<vulkan::DescriptorPools>(m_device, m_descriptorSetLayoutTexture)},
+                  m_pipelineTexture{std::make_shared<vulkan::Pipeline>(
+                          gameRequester, m_device, VkExtent2D{m_surfaceWidth, m_surfaceHeight},
+                          parameters->renderPass, m_descriptorPoolsTexture,
+                          getBindingDescription(),
+                          getAttributeDescriptions(),
+                          SHADER_VERT_FILE, TEXTURE_SHADER_FRAG_FILE, basePipeline)},
+                  m_descriptorSetLayoutColor{std::make_shared<ColorDescriptorSetLayout>(m_device)},
+                  m_descriptorPoolsColor{std::make_shared<vulkan::DescriptorPools>(m_device, m_descriptorSetLayoutColor)},
+                  m_pipelineColor{std::make_shared<vulkan::Pipeline>(
+                          gameRequester, m_device, VkExtent2D{m_surfaceWidth, m_surfaceHeight},
+                          parameters->renderPass, m_descriptorPoolsColor,
+                          getBindingDescription(),
+                          getAttributeDescriptions(),
+                          SHADER_VERT_FILE, COLOR_SHADER_FRAG_FILE, m_pipelineTexture)}
+        {}
+
         ~RenderDetailsVulkan() override = default;
 
     private:
@@ -351,31 +378,6 @@ namespace objectWithShadows {
         std::shared_ptr<ColorDescriptorSetLayout> m_descriptorSetLayoutColor;
         std::shared_ptr<vulkan::DescriptorPools> m_descriptorPoolsColor;
         std::shared_ptr<vulkan::Pipeline> m_pipelineColor;
-
-        RenderDetailsVulkan(
-                std::shared_ptr<GameRequester> const &gameRequester,
-                std::shared_ptr<vulkan::Device> const &inDevice,
-                std::shared_ptr<vulkan::Pipeline> const &basePipeline,
-                renderDetails::ParametersVulkan const &parameters)
-                : renderDetails::RenderDetailsVulkan{parameters.width, parameters.height},
-                m_device{inDevice},
-                m_descriptorSetLayoutTexture{std::make_shared<TextureDescriptorSetLayout>(m_device)},
-                m_descriptorPoolsTexture{std::make_shared<vulkan::DescriptorPools>(m_device, m_descriptorSetLayoutTexture)},
-                m_pipelineTexture{std::make_shared<vulkan::Pipeline>(
-                      gameRequester, m_device, VkExtent2D{m_surfaceWidth, m_surfaceHeight},
-                      parameters.renderPass, m_descriptorPoolsTexture,
-                      getBindingDescription(),
-                      getAttributeDescriptions(),
-                      SHADER_VERT_FILE, TEXTURE_SHADER_FRAG_FILE, basePipeline)},
-                m_descriptorSetLayoutColor{std::make_shared<ColorDescriptorSetLayout>(m_device)},
-                m_descriptorPoolsColor{std::make_shared<vulkan::DescriptorPools>(m_device, m_descriptorSetLayoutColor)},
-                m_pipelineColor{std::make_shared<vulkan::Pipeline>(
-                            gameRequester, m_device, VkExtent2D{m_surfaceWidth, m_surfaceHeight},
-                            parameters.renderPass, m_descriptorPoolsColor,
-                            getBindingDescription(),
-                            getAttributeDescriptions(),
-                            SHADER_VERT_FILE, COLOR_SHADER_FRAG_FILE, m_pipelineTexture)}
-        {}
 
         std::shared_ptr<CommonObjectDataVulkan> createCommonObjectData(
                 glm::mat4 const &preTransform,

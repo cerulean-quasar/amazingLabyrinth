@@ -23,6 +23,7 @@
 #include "levelDrawerVulkan.hpp"
 #include "levelDrawerGraphics.hpp"
 #include "../renderDetails/renderDetailsVulkan.hpp"
+#include "../renderLoader/renderLoaderVulkan.hpp"
 
 namespace levelDrawer {
     template <>
@@ -164,7 +165,8 @@ namespace levelDrawer {
         parameters.nearestDepth = nearestDepth;
         parameters.farthestDepth = farthestDepth;
 
-        drawObjTable->loadRenderDetails(m_renderLoader.load(m_gameRequester, renderDetailsName, parameters));
+        drawObjTable->loadRenderDetails(m_renderLoader->load(m_gameRequester, renderDetailsName,
+                std::make_shared<renderDetails::ParametersWithSurfaceWidthHeightAtDepthVulkan>(parameters)));
 
         // start recording commands
         vulkan::CommandBuffer cmds{m_neededForDrawing.device, m_neededForDrawing.commandPool};
@@ -174,7 +176,7 @@ namespace levelDrawer {
         auto rules = drawObjTable->getDrawRules();
         DrawObjectTableList drawObjTableList = {nullptr, drawObjTable, nullptr};
         CommonObjectDataList commonObjectDataList = {nullptr, rules[0].commonObjectData, nullptr};
-        IndicesForDrawList indicesForDrawList = {nullptr, rules[0].drawObjectIndices, nullptr};
+        IndicesForDrawList indicesForDrawList = {std::vector<size_t>{}, rules[0].drawObjectIndices, std::vector<size_t>{}};
         rules[0].renderDetails->addPreRenderPassCmdsToCommandBuffer(
                 cmds.commandBuffer().get(), 0, commonObjectDataList, drawObjTableList,
                 indicesForDrawList);
@@ -206,11 +208,11 @@ namespace levelDrawer {
          */
         vkCmdBeginRenderPass(cmds.commandBuffer().get(), &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
 
-        rules.renderDetails->addDrawCmdsToCommandBuffer(cmds.commandBuffer().get(),
-                0, rules.commonObjectData, drawObjTable, rules.drawObjectIndices);
+        rules[0].renderDetails->addDrawCmdsToCommandBuffer(cmds.commandBuffer().get(),
+                0, rules[0].commonObjectData, drawObjTable, rules[0].drawObjectIndices);
 
         // end the main render pass
-        vkCmdEndRenderPass(cmds.commandBuffer());
+        vkCmdEndRenderPass(cmds.commandBuffer().get());
 
         // end the command buffer
         cmds.end();
@@ -223,10 +225,10 @@ namespace levelDrawer {
                               imageWidth * imageHeight * sizeof (float) * 4,
                               VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,
                               VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT};
-        colorDepthImage->image()->copyImageToBuffer(buffer, m_commandPool);
+        colorImage->image()->copyImageToBuffer(buffer, m_neededForDrawing.commandPool);
         buffer.copyRawFrom(imageData.data(), imageData.size() * sizeof (float) * 4);
 
-        rules->renderDetails->postProcessImageBuffer(rules.commonObjectData, imageData, results);
+        rules[0].renderDetails->postProcessImageBuffer(rules[0].commonObjectData, imageData, results);
     }
 
     template <>
@@ -234,8 +236,8 @@ namespace levelDrawer {
             LevelDrawerVulkanTraits::NeededForDrawingType neededForDrawing,
             std::shared_ptr<LevelDrawerVulkanTraits::RenderLoaderType> inRenderLoader,
             std::shared_ptr<GameRequester> inGameRequester)
-            : m_modelTable(neededForDrawing.device, neededForDrawing.m_commandPool),
-            m_textureTable(neededForDrawing.device, neededForDrawing.m_commandPool),
+            : m_modelTable(neededForDrawing.device, neededForDrawing.commandPool),
+            m_textureTable(neededForDrawing.device, neededForDrawing.commandPool),
             m_drawObjectTableList{
                 std::make_shared<LevelDrawerVulkanTraits::DrawObjectTableType>(),
                 std::make_shared<LevelDrawerVulkanTraits::DrawObjectTableType>(),

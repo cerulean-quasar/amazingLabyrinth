@@ -34,7 +34,7 @@ namespace renderDetails {
     class CommonObjectData;
     class DrawObjectDataGL;
     class ParametersGL;
-    using ReferenceGL = Reference<RenderDetailsGL, CommonObjectData, DrawObjectDataGL>;
+    using ReferenceGL = Reference<RenderDetailsGL, levelDrawer::TextureDataGL, DrawObjectDataGL>;
 }
 
 class RenderLoaderGL;

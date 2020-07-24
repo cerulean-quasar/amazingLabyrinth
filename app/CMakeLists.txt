@@ -33,7 +33,8 @@ if ((NOT ${CMAKE_ANDROID_ARCH_ABI} STREQUAL x86) AND (NOT ${CMAKE_ANDROID_ARCH_A
             src/main/cpp/renderDetails/normalMap/renderDetailsVulkan.cpp
             src/main/cpp/renderDetails/objectWithShadows/renderDetailsVulkan.cpp
             src/main/cpp/renderDetails/shadows/renderDetailsVulkan.cpp
-            src/main/cpp/renderDetails/shadowsChaining/renderDetailsVulkan.cpp)
+            src/main/cpp/renderDetails/shadowsChaining/renderDetailsVulkan.cpp
+            src/main/cpp/renderLoader/renderLoaderVulkan.cpp)
 
     list(APPEND platform64_files
         graphics-vulkan)

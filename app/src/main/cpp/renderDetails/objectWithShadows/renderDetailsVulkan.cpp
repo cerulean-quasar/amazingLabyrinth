@@ -21,6 +21,7 @@
 
 #include "../../graphicsVulkan.hpp"
 #include "renderDetailsVulkan.hpp"
+#include "../../renderLoader/registerVulkan.hpp"
 
 namespace objectWithShadows {
     /* descriptor set for the MVP matrix and texture samplers */
@@ -325,7 +326,7 @@ namespace objectWithShadows {
         renderDetails::ReferenceVulkan ref;
         ref.createDrawObjectData = renderDetails::ReferenceVulkan::CreateDrawObjectData(
                 [rd, cod] (std::shared_ptr<renderDetails::DrawObjectDataVulkan> const &sharingDOD,
-                           std::shared_ptr<levelDrawer::TextureData> const &textureData,
+                           std::shared_ptr<levelDrawer::TextureDataVulkan> const &textureData,
                            glm::mat4 const &modelMatrix) ->
                         std::shared_ptr<renderDetails::DrawObjectDataVulkan>
                 {
@@ -336,7 +337,7 @@ namespace objectWithShadows {
                         modelMatrixBuffer = renderDetails::createUniformBuffer(
                                 rd->device(), sizeof (DrawObjectDataVulkan::PerObjectUBO));
                         DrawObjectDataVulkan::PerObjectUBO perObjectUbo{};
-                        perObjectUbo.model = modelMatrix;
+                        perObjectUbo.modelMatrix = modelMatrix;
                         modelMatrixBuffer->copyRawTo(
                                 &perObjectUbo, sizeof(DrawObjectDataVulkan::PerObjectUBO));
                     }
@@ -352,7 +353,7 @@ namespace objectWithShadows {
                             rd->device(),
                             cod,
                             textureData,
-                            rd->descriptorPools()->allocateDescriptor(),
+                            std::move(ds),
                             std::move(modelMatrixBuffer));
                 });
 
@@ -367,19 +368,19 @@ namespace objectWithShadows {
         return std::move(ref);
     }
 
-    bool checkForObjects(DrawIfHasTexture condition,
-            std::shared_ptr<levelDrawer::DrawObjectTableVulkan> const &table,
+    bool checkForObjects(renderDetails::RenderDetailsVulkan::DrawIfHasTexture condition,
+            std::shared_ptr<renderDetails::DrawObjectTableVulkan> const &table,
             std::vector<size_t> objIndices)
     {
-        if (objIndices.size() > 0 && condition == DrawIfHasTexture::BOTH) {
+        if (objIndices.size() > 0 && condition == renderDetails::RenderDetailsVulkan::DrawIfHasTexture::BOTH) {
             return true;
         }
 
         for (auto const &objIndex : objIndices) {
-            auto const &drawObj = table[objIndex];
+            auto const &drawObj = table->drawObject(objIndex);
 
-            if ((condition == DrawIfHasTexture::ONLY_IF_TEXTURE && drawObj->textureData()) ||
-                (condition == DrawIfHasTexture::ONLY_IF_NO_TEXTURE && !drawObj->textureData()))
+            if ((condition == renderDetails::RenderDetailsVulkan::DrawIfHasTexture::ONLY_IF_TEXTURE && drawObj->textureData()) ||
+                (condition == renderDetails::RenderDetailsVulkan::DrawIfHasTexture::ONLY_IF_NO_TEXTURE && !drawObj->textureData()))
             {
                 return true;
             }
@@ -390,13 +391,13 @@ namespace objectWithShadows {
     void RenderDetailsVulkan::addDrawCmdsToCommandBuffer(
             VkCommandBuffer const &commandBuffer,
             size_t descriptorSetID,
-            std::shared_ptr<renderDetails::CommonObjectData> const &commonObjectData,
-            std::shared_ptr<levelDrawer::DrawObjectTableVulkan> const &drawObjTable,
+            std::shared_ptr<renderDetails::CommonObjectData> const &,
+            std::shared_ptr<renderDetails::DrawObjectTableVulkan> const &drawObjTable,
             std::vector<size_t> const &drawObjectsIndices)
     {
         // Objects with texture
-        if (checkForObjects(DrawIfHasTexture::ONLY_IF_TEXTURE, drawObjTableList[index],
-                            drawObjectsIndicesList[index]))
+        if (checkForObjects(DrawIfHasTexture::ONLY_IF_TEXTURE, drawObjTable,
+                            drawObjectsIndices))
         {
             /* bind the graphics pipeline to the command buffer, the second parameter tells Vulkan
              * that we are binding to a graphics pipeline.
@@ -406,25 +407,25 @@ namespace objectWithShadows {
 
             initializeCommandBufferDrawObjects(
                     DrawIfHasTexture::ONLY_IF_TEXTURE, descriptorSetID, m_pipelineTexture,
-                    commandBuffer, drawObjTableList[index], drawObjectsIndicesList[index]);
+                    commandBuffer, drawObjTable, drawObjectsIndices);
         }
 
         // Objects that just use vertex color.
-        if (checkForObjects(DrawIfHasTexture::ONLY_IF_NO_TEXTURE, drawObjTableList[index],
-                            drawObjectsIndicesList[index]))
+        if (checkForObjects(DrawIfHasTexture::ONLY_IF_NO_TEXTURE, drawObjTable,
+                            drawObjectsIndices))
         {
             vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
                               m_pipelineColor->pipeline().get());
 
             initializeCommandBufferDrawObjects(
                     DrawIfHasTexture::ONLY_IF_NO_TEXTURE, descriptorSetID, m_pipelineTexture,
-                    commandBuffer, drawObjTableList[index], drawObjectsIndicesList[index]);
+                    commandBuffer, drawObjTable, drawObjectsIndices);
         }
     }
 
     void RenderDetailsVulkan::reload(
             std::shared_ptr<GameRequester> const &gameRequester,
-            std::shared_ptr<RenderLoaderVulkan> const &renderLoader,
+            std::shared_ptr<RenderLoaderVulkan> const &,
             std::shared_ptr<renderDetails::Parameters> const &parametersBase)
     {
         auto parameters = dynamic_cast<renderDetails::ParametersVulkan*>(parametersBase.get());
@@ -453,5 +454,5 @@ namespace objectWithShadows {
                 SHADER_VERT_FILE, COLOR_SHADER_FRAG_FILE, m_pipelineTexture);
     }
 
-    RegisterVulkan<renderDetails::RenderDetailsVulkan, RenderDetailsVulkan, Config, renderDetails::ParametersVulkan> registerVulkan();
+    RegisterVulkan<renderDetails::RenderDetailsVulkan, RenderDetailsVulkan, Config> registerVulkan();
 }

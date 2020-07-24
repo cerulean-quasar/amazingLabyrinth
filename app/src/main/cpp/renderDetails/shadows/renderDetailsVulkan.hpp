@@ -47,15 +47,25 @@ namespace shadows {
                     view());
         }
 
-        glm::mat4 getViewLightSource() override {
-            return view();
-        }
+        glm::mat4 getViewLightSource() override { return view(); }
 
-        glm::vec3 lightSource() { return viewPoint(); }
+        glm::vec3 getLightSource() override { return viewPoint(); }
 
         std::shared_ptr<vulkan::Buffer> const &cameraBuffer() { return m_camera; }
 
         uint32_t cameraBufferSize() { return sizeof(CommonUBO); }
+
+        CommonObjectDataVulkan(
+                std::shared_ptr<vulkan::Buffer> buffer,
+                glm::mat4 preTransform,
+                float aspectRatio,
+                Config const &config)
+                : renderDetails::CommonObjectDataPerspective(
+                    config.viewAngle, aspectRatio, config.nearPlane, config.farPlane,
+                    config.lightingSource, config.lookAt, config.up),
+                m_camera{std::move(buffer)},
+                m_preTransform{preTransform}
+        {}
 
         ~CommonObjectDataVulkan() override = default;
 
@@ -79,18 +89,6 @@ namespace shadows {
 
         std::shared_ptr<vulkan::Buffer> m_camera;
         glm::mat4 m_preTransform;
-
-        CommonObjectDataVulkan(
-                std::shared_ptr<vulkan::Buffer> buffer,
-                glm::mat4 preTransform,
-                float aspectRatio,
-                Config const &config)
-                : renderDetails::CommonObjectDataPerspective(
-                config.viewAngle, aspectRatio, config.nearPlane, config.farPlane,
-                config.lightingSource, config.lookAt, config.up),
-                m_camera{std::move(buffer)},
-                m_preTransform{preTransform}
-        {}
     };
 
     /* for passing data other than the vertex data to the vertex shader */
@@ -103,18 +101,9 @@ namespace shadows {
             m_uniformBuffer->copyRawTo(&ubo, sizeof(ubo));
         }
 
+        bool hasTexture() override { return false; }
         std::shared_ptr<vulkan::Buffer> const &bufferModelMatrix() override { return m_uniformBuffer; }
         std::shared_ptr<vulkan::DescriptorSet> const &descriptorSet(uint32_t) override { return m_descriptorSet; }
-
-        ~DrawObjectDataVulkan() override = default;
-
-    private:
-        struct PerObjectUBO {
-            glm::mat4 modelMatrix;
-        };
-
-        std::shared_ptr<vulkan::DescriptorSet> m_descriptorSet;
-        std::shared_ptr<vulkan::Buffer> m_uniformBuffer;
 
         DrawObjectDataVulkan(std::shared_ptr<vulkan::Device> const &inDevice,
                              std::shared_ptr<CommonObjectDataVulkan> const &inCommonObjectData,
@@ -125,6 +114,16 @@ namespace shadows {
         {
             updateDescriptorSet(inDevice, inCommonObjectData);
         }
+
+        ~DrawObjectDataVulkan() override = default;
+
+    private:
+        struct PerObjectUBO {
+            glm::mat4 modelMatrix;
+        };
+
+        std::shared_ptr<vulkan::DescriptorSet> m_descriptorSet;
+        std::shared_ptr<vulkan::Buffer> m_uniformBuffer;
 
         void updateDescriptorSet(std::shared_ptr<vulkan::Device> const &inDevice,
                 std::shared_ptr<CommonObjectDataVulkan> const &inCommonObjectData);
@@ -208,14 +207,14 @@ namespace shadows {
                 throw std::runtime_error("Invalid render details parameter type.");
             }
 
-            auto rd = dynamic_cast<RenderDetailsVulkan*>(rdBase.get());
+            auto rd = std::dynamic_pointer_cast<RenderDetailsVulkan>(rdBase);
             if (rd == nullptr) {
                 throw std::runtime_error("Invalid render details type.");
             }
 
             auto cod = rd->createCommonObjectData(parameters->preTransform, config);
 
-            return createReference(std::move(rdBase), std::move(cod));
+            return createReference(std::move(rd), std::move(cod));
         }
 
         void addDrawCmdsToCommandBuffer(
@@ -231,7 +230,7 @@ namespace shadows {
                 std::shared_ptr<renderDetails::Parameters> const &parameters) override;
 
         std::shared_ptr<vulkan::Device> const &device() override { return m_device; }
-        std::shared_ptr<vulkan::DescriptorPools> const &descriptorPools() override {
+        std::shared_ptr<vulkan::DescriptorPools> const &descriptorPools() {
             return m_descriptorPools;
         }
 
@@ -244,14 +243,19 @@ namespace shadows {
                   m_device{inDevice},
                   m_descriptorSetLayout{std::make_shared<DescriptorSetLayout>(m_device)},
                   m_descriptorPools{std::make_shared<vulkan::DescriptorPools>(m_device, m_descriptorSetLayout)},
-                  m_pipeline{std::make_shared<vulkan::Pipeline>(
-                          gameRequester, m_device,
-                          VkExtent2D{m_surfaceWidth, m_surfaceHeight},
-                          parameters->renderPass, m_descriptorPools, getBindingDescription(),
-                          getAttributeDescriptions(),
-                          SHADOW_VERT_FILE, SHADER_SIMPLE_FRAG_FILE, basePipeline,
-                          VK_CULL_MODE_FRONT_BIT)}
-        {}
+                  m_pipeline{}
+        {
+            std::string vertFile{SHADOW_VERT_FILE};
+            std::string fragFile{SHADER_SIMPLE_FRAG_FILE};
+            VkExtent2D extent{m_surfaceWidth, m_surfaceHeight};
+            m_pipeline = std::make_shared<vulkan::Pipeline>(
+                    gameRequester, m_device,
+                    extent,
+                    parameters->renderPass, m_descriptorPools, getBindingDescription(),
+                    getAttributeDescriptions(),
+                    vertFile, fragFile,
+                    basePipeline, VK_CULL_MODE_FRONT_BIT);
+        }
 
         ~RenderDetailsVulkan() override = default;
     private:
@@ -265,7 +269,7 @@ namespace shadows {
         std::shared_ptr<vulkan::Pipeline> m_pipeline;
 
         static renderDetails::ReferenceVulkan createReference(
-                std::shared_ptr<renderDetails::RenderDetailsVulkan> rd,
+                std::shared_ptr<RenderDetailsVulkan> rd,
                 std::shared_ptr<CommonObjectDataVulkan> cod);
 
         std::shared_ptr<CommonObjectDataVulkan> createCommonObjectData(
