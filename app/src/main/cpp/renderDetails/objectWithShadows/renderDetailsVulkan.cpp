@@ -454,5 +454,5 @@ namespace objectWithShadows {
                 SHADER_VERT_FILE, COLOR_SHADER_FRAG_FILE, m_pipelineTexture);
     }
 
-    RegisterVulkan<renderDetails::RenderDetailsVulkan, RenderDetailsVulkan, Config> registerVulkan();
+    RegisterVulkan<renderDetails::RenderDetailsVulkan, RenderDetailsVulkan, Config> registerVulkan;
 }

@@ -190,5 +190,5 @@ namespace shadowsChaining {
                 cod->objectWithShadowsCOD(), drawObjTable, drawObjectsIndices);
     }
 
-    RegisterGL<renderDetails::RenderDetailsGL, RenderDetailsGL, Config> registerGL();
+    RegisterGL<renderDetails::RenderDetailsGL, RenderDetailsGL, Config> registerGL;
 }

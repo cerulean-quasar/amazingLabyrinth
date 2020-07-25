@@ -108,17 +108,6 @@ namespace levelDrawer {
     {
         auto drawObjTable = std::make_shared<DrawObjectTableVulkan>();
 
-        size_t i = 0;
-        for (auto const &modelTexture : modelsTextures) {
-            auto modelData = m_modelTable.addModel(m_gameRequester, modelTexture.first);
-            std::shared_ptr<LevelDrawerVulkanTraits::TextureDataType> textureData{};
-            if (modelTexture.second) {
-                textureData = m_textureTable.addTexture(m_gameRequester, modelTexture.second);
-            }
-            auto objIndex = drawObjTable->addObject(modelData, textureData);
-            addModelMatrixToDrawObjTable(drawObjTable, objIndex, modelMatrix[i++]);
-        }
-
         uint32_t imageWidth = nbrSamplesForWidth;
         uint32_t imageHeight = static_cast<uint32_t>(std::floor((imageWidth * height)/width));
         auto depthView = std::make_shared<vulkan::ImageView>(
@@ -165,8 +154,21 @@ namespace levelDrawer {
         parameters.nearestDepth = nearestDepth;
         parameters.farthestDepth = farthestDepth;
 
+        // load the render details
         drawObjTable->loadRenderDetails(m_renderLoader->load(m_gameRequester, renderDetailsName,
                 std::make_shared<renderDetails::ParametersWithSurfaceWidthHeightAtDepthVulkan>(parameters)));
+
+        // add the draw objects
+        size_t i = 0;
+        for (auto const &modelTexture : modelsTextures) {
+            auto modelData = m_modelTable.addModel(m_gameRequester, modelTexture.first);
+            std::shared_ptr<LevelDrawerVulkanTraits::TextureDataType> textureData{};
+            if (modelTexture.second) {
+                textureData = m_textureTable.addTexture(m_gameRequester, modelTexture.second);
+            }
+            auto objIndex = drawObjTable->addObject(modelData, textureData);
+            addModelMatrixToDrawObjTable(drawObjTable, objIndex, modelMatrix[i++]);
+        }
 
         // start recording commands
         vulkan::CommandBuffer cmds{m_neededForDrawing.device, m_neededForDrawing.commandPool};

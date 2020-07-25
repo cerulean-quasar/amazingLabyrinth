@@ -37,6 +37,8 @@ namespace levelDrawer {
                     std::shared_ptr <ModelDescription> const &modelDescription) {
             ModelVertices vertices = modelDescription->getData(gameRequester);
 
+            m_numberIndices = vertices.second.size();
+
             // the index buffer
             glGenBuffers(1, &(m_indexBuffer));
             checkGraphicsError();

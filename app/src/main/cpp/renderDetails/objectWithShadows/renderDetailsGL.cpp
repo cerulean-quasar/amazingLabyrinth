@@ -231,5 +231,5 @@ namespace objectWithShadows {
         m_colorProgramID{loadShaders(inGameRequester, SHADER_VERT_FILE, COLOR_SHADER_FRAG_FILE)}
     {}
 
-    RegisterGL<renderDetails::RenderDetailsGL, RenderDetailsGL, Config> registerGL();
+    RegisterGL<renderDetails::RenderDetailsGL, RenderDetailsGL, Config> registerGL;
 } // objectWithShados

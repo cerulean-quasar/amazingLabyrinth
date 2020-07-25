@@ -56,6 +56,7 @@ class RenderLoaderVulkan;
 
 template <typename RenderDetailsBaseType, typename RenderDetailsType, typename ConfigType>
 class RegisterVulkan {
+public:
     RegisterVulkan() {
         getRenderDetailsVulkanMap().emplace(
             RenderDetailsType::name(),

@@ -60,6 +60,7 @@ RenderDetailsGLRetrieveMap &getRenderDetailsGLMap();
 
 template <typename RenderDetailsBaseType, typename RenderDetailsType, typename ConfigType>
 class RegisterGL {
+public:
     RegisterGL() {
         getRenderDetailsGLMap().emplace(
             RenderDetailsType::name(),

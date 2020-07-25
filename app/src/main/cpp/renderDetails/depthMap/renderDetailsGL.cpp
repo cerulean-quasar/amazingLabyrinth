@@ -173,6 +173,6 @@ namespace depthMap {
         }
     }
 
-    RegisterGL<renderDetails::RenderDetailsGL, RenderDetailsGL, Config> registerGL();
+    RegisterGL<renderDetails::RenderDetailsGL, RenderDetailsGL, Config> registerGL;
 
 } // namespace depthMap

@@ -199,7 +199,7 @@ namespace normalMap {
     class RenderDetailsVulkan : public renderDetails::RenderDetailsVulkan {
     public:
         std::string nameString() override { return name(); }
-        static char const *name() { return depthMapRenderDetailsName; }
+        static char const *name() { return normalMapRenderDetailsName; }
 
         static renderDetails::ReferenceVulkan loadNew(
                 std::shared_ptr<GameRequester> const &gameRequester,

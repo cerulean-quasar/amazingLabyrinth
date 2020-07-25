@@ -166,6 +166,6 @@ namespace depthMap {
                 SHADER_LINEAR_DEPTH_VERT_FILE, SHADER_SIMPLE_FRAG_FILE, nullptr);
     }
 
-    RegisterVulkan<renderDetails::RenderDetailsVulkan, RenderDetailsVulkan, Config> registerVulkan();
+    RegisterVulkan<renderDetails::RenderDetailsVulkan, RenderDetailsVulkan, Config> registerVulkan;
 
 }

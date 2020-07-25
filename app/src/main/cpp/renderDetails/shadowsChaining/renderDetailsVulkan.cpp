@@ -269,5 +269,5 @@ namespace shadowsChaining {
                 m_device, colorImageInfo, depthImageInfo);
     }
 
-    RegisterVulkan<renderDetails::RenderDetailsVulkan, RenderDetailsVulkan, Config> registerVulkan();
+    RegisterVulkan<renderDetails::RenderDetailsVulkan, RenderDetailsVulkan, Config> registerVulkan;
 } // namespace shadowsChaining

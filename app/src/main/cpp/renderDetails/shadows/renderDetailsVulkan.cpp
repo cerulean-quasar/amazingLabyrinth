@@ -194,5 +194,5 @@ namespace shadows {
                 VK_CULL_MODE_FRONT_BIT);
     }
 
-    RegisterVulkan<renderDetails::RenderDetailsVulkan, RenderDetailsVulkan, Config> registerVulkan();
+    RegisterVulkan<renderDetails::RenderDetailsVulkan, RenderDetailsVulkan, Config> registerVulkan;
 }
