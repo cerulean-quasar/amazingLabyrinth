@@ -52,7 +52,7 @@ namespace finisher {
                   shouldUnveil(false),
                   finished(false)
         {
-            m_levelDrawer.requestRenderDetails(objectWithShadowsRenderDetailsName);
+            m_levelDrawer.requestRenderDetails(shadowsChainingRenderDetailsName);
 
             auto projView = m_levelDrawer.getProjectionView();
             auto wh = getWidthHeight(maxZ, projView.first, projView.second);

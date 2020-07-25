@@ -40,10 +40,10 @@ public:
               m_renderLoader{std::make_shared<RenderLoaderGL>()},
               m_levelDrawer{std::make_shared<levelDrawer::LevelDrawerGL>(levelDrawer::NeededForDrawingGL{m_useIntTexture}, m_renderLoader, m_gameRequester)}
     {
-        m_levelSequence = std::make_shared<LevelSequence>(m_gameRequester, m_levelDrawer, static_cast<uint32_t>(m_surface->width()),
-                        static_cast<uint32_t >(m_surface->height()));
         initPipeline();
 
+        m_levelSequence = std::make_shared<LevelSequence>(m_gameRequester, m_levelDrawer, static_cast<uint32_t>(m_surface->width()),
+                                                          static_cast<uint32_t >(m_surface->height()));
     }
 
     void initThread() override { m_surface->initThread(); }
@@ -54,6 +54,8 @@ public:
 
     void drawFrame() override {
         m_levelDrawer->draw(levelDrawer::DrawArgumentGL{m_surface->width(), m_surface->height()});
+
+        eglSwapBuffers(m_surface->display(), m_surface->surface());
     }
 
     std::shared_ptr<renderDetails::Parameters> getParametersForRenderDetailsName(

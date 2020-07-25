@@ -99,10 +99,13 @@ public:
               m_levelDrawer{std::move(inLevelDrawer)},
               m_levelTracker{std::make_shared<levelTracker::Loader>(m_gameRequester)},
               m_levelGroupFcns{m_levelTracker->getLevelGroupFcns(m_surfaceWidth, m_surfaceHeight)},
-              m_level{},
+              m_level{m_levelGroupFcns.getLevelFcn(levelDrawer::Adaptor(levelDrawer::LEVEL, m_levelDrawer))},
               m_levelFinisher{},
-              m_levelStarter{}
+              m_levelStarter{m_levelGroupFcns.getStarterFcn(levelDrawer::Adaptor(levelDrawer::STARTER, m_levelDrawer))}
     {
+        float x, y, z;
+        m_level->getLevelFinisherCenter(x, y, z);
+        m_levelFinisher = m_levelGroupFcns.getFinisherFcn(levelDrawer::Adaptor(levelDrawer::FINISHER, m_levelDrawer), x, y, z);
     }
 
 private:

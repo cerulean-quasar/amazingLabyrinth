@@ -251,6 +251,13 @@ namespace levelDrawer {
         }
 
         std::vector<DrawRule> getDrawRules() {
+            // a null render details may mean that no one requested a general render details.
+            // this probably means that this table is for the level starter and a level starter was
+            // not needed.
+            if (m_renderDetailsReference.renderDetails == nullptr) {
+                return std::vector<DrawRule>{};
+            }
+
             std::vector<DrawRule> rules;
             rules.emplace_back(DrawRule{m_renderDetailsReference.renderDetails,
                     m_renderDetailsReference.commonObjectData,

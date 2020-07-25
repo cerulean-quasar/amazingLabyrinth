@@ -71,9 +71,8 @@ namespace levelDrawer {
                 textureData = m_textureTable.addTexture(m_gameRequester, textureDescription);
             }
 
-            m_drawObjectTableList[type]->addObject(modelData, textureData);
+            return m_drawObjectTableList[type]->addObject(modelData, textureData);
 
-            return true;
         }
 
         size_t addObject(

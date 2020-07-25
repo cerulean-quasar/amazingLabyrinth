@@ -144,6 +144,7 @@ namespace shadowsChaining {
                     return getPVObjectWithShadows();
                 });
 
+        ref.commonObjectData = std::move(cod);
 
         return std::move(ref);
     }

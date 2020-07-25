@@ -52,6 +52,9 @@ namespace levelDrawer {
         // add the commands to the command buffer for the main draw.
         for (auto index : std::vector<ObjectType>{LEVEL, STARTER, FINISHER}) {
             for (auto const &rule : rulesList) {
+                if (rule.commonObjectData[index] == nullptr || rule.indicesPerLevelType[index].empty()) {
+                    continue;
+                }
                 rule.renderDetails->draw(
                         0, rule.commonObjectData[index], m_drawObjectTableList[index],
                         rule.indicesPerLevelType[index]);
@@ -151,15 +154,16 @@ namespace levelDrawer {
             rules[0].renderDetails->postProcessImageBuffer(rules[0].commonObjectData, data, results);
         } else {
             /* width * height * 4 color values each a char in size. */
-            std::vector<uint8_t> data(static_cast<size_t>(imageWidth * imageHeight * 4), 0);
+            std::vector<uint8_t> data(static_cast<size_t>(imageWidth * imageHeight * 4), 0.0f);
             glReadBuffer(GL_COLOR_ATTACHMENT0);
             checkGraphicsError();
             glReadPixels(0, 0, imageWidth, imageHeight, colorImageFormat.format, colorImageFormat.type, data.data());
             checkGraphicsError();
             std::vector<float> input{};
             for (auto datum : data) {
-                float *pdatum = reinterpret_cast<float*>(&datum);
-                input.push_back(static_cast<float>(*pdatum));
+                uint32_t datum32 = datum;
+                float *pdatum = reinterpret_cast<float*>(&datum32);
+                input.push_back(*pdatum);
             }
             rules[0].renderDetails->postProcessImageBuffer(rules[0].commonObjectData, input, results);
         }

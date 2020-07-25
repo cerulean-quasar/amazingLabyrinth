@@ -55,8 +55,8 @@ namespace depthMap {
                 parameters->nearestDepth,
                 parameters->farthestDepth,
                 config,
-                parameters->width,
-                parameters->height);
+                parameters->widthAtDepth,
+                parameters->heightAtDepth);
 
         return createReference(rd, cod);
     }

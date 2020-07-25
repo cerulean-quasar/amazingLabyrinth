@@ -37,7 +37,7 @@ namespace levelDrawer {
                 std::shared_ptr<TextureDescription> const &textureDescription)
         {
             auto item = m_textureMap.emplace(textureDescription, nullptr);
-            if (!item.second) {
+            if (item.second) {
                 item.first->second = getTextureData(gameRequester, textureDescription);
             }
             return item.first->second;
