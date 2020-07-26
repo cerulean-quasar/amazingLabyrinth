@@ -81,6 +81,10 @@ public:
 
     // Called in preparation to calling notifySurfaceChanged
     void cleanupLevelData() {
+        m_levelStarter.reset();
+        m_level.reset();
+        m_levelFinisher.reset();
+
         m_levelDrawer->clearDrawObjectTable(levelDrawer::STARTER);
         m_levelDrawer->clearDrawObjectTable(levelDrawer::LEVEL);
         m_levelDrawer->clearDrawObjectTable(levelDrawer::FINISHER);

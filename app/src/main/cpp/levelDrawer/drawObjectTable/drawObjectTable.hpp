@@ -174,12 +174,14 @@ namespace levelDrawer {
                 for (auto it = m_objsIndicesWithOverridingRenderDetails.begin(); it != m_objsIndicesWithOverridingRenderDetails.end(); it++) {
                     if (*it == objIndex) {
                         m_objsIndicesWithOverridingRenderDetails.erase(it);
+                        break;
                     }
                 }
             } else {
                 for (auto it = m_objsIndicesWithGlobalRenderDetails.begin(); it != m_objsIndicesWithGlobalRenderDetails.end(); it++) {
                     if (*it == objIndex) {
                         m_objsIndicesWithGlobalRenderDetails.erase(it);
+                        break;
                     }
                 }
             }

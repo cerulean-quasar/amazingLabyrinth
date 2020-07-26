@@ -121,7 +121,7 @@ namespace starter {
             m_levelDrawer.addModelMatrixForObject(
                     objIndex,
                     glm::translate(glm::mat4(1.0f),
-                                   glm::vec3(-xpos, -ypos, m_mazeFloorZ - ballRadius())) *
+                                   glm::vec3(-xpos, ypos, m_mazeFloorZ - ballRadius())) *
                     glm::scale(glm::mat4(1.0f), cornerScale));
 
             // the corners of the maze
@@ -177,11 +177,11 @@ namespace starter {
                     std::make_shared<levelDrawer::ModelDescriptionPath>(m_ballModel),
                     std::make_shared<levelDrawer::TextureDescriptionPath>(m_ballTexture));
 
+            glm::mat4 modelMatrix = glm::translate(glm::mat4(1.0f), m_ball.position) *
+                                   glm::mat4_cast(m_ball.totalRotated) *
+                                   ballScaleMatrix();
             m_objDataIndexBall = m_levelDrawer.addModelMatrixForObject(
-                    m_objIndexBall,
-                    glm::translate(glm::mat4(1.0f), m_ball.position) *
-                    glm::mat4_cast(m_ball.totalRotated) *
-                    ballScaleMatrix());
+                    m_objIndexBall, modelMatrix);
 
             // the text box
             m_objIndexTextBox = m_levelDrawer.addObject(
@@ -189,7 +189,7 @@ namespace starter {
                     std::make_shared<levelDrawer::TextureDescriptionText>(text[textIndex]));
 
             m_objDataIndexTextBox = m_levelDrawer.addModelMatrixForObject(
-                    m_objIndexBall,
+                    m_objIndexTextBox,
                     glm::translate(glm::mat4(1.0f), glm::vec3(-ballRadius(), 0.0f, m_mazeFloorZ)) *
                     glm::scale(glm::mat4(1.0f), textScale));
         }

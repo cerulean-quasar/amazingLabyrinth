@@ -128,7 +128,7 @@ namespace starter {
                     std::make_shared<levelDrawer::TextureDescriptionText>(text[textIndex]));
 
             m_objDataIndexTextBox = m_levelDrawer.addModelMatrixForObject(
-                    m_objIndexBall,
+                    m_objIndexTextBox,
                     glm::translate(glm::mat4(1.0f), glm::vec3(-ballRadius(), 0.0f, m_mazeFloorZ)) *
                     glm::scale(glm::mat4(1.0f), textScale));
 

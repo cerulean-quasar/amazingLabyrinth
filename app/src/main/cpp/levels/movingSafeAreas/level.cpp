@@ -159,13 +159,13 @@ namespace movingSafeAreas {
                                           ballScaleMatrix());
 
         // the moving quads
-        for (size_t i = 1; i < m_objDataIndicesQuad.size(); i++) {
+        for (size_t i = 0; i < m_objDataIndicesQuad.size(); i++) {
             for (size_t j = 0; j < m_objDataIndicesQuad[i].size(); j++) {
                 m_levelDrawer.updateModelMatrixForObject(
                         m_objIndicesQuad[i],
                         m_objDataIndicesQuad[i][j],
-                        glm::translate(glm::mat4(1.0f), m_movingQuads[i - 1].positions[j]) *
-                        glm::scale(glm::mat4(1.0f), m_movingQuads[i - 1].scale));
+                        glm::translate(glm::mat4(1.0f), m_movingQuads[i].positions[j]) *
+                        glm::scale(glm::mat4(1.0f), m_movingQuads[i].scale));
             }
         }
         return true;

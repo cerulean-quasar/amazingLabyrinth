@@ -82,10 +82,10 @@ namespace objectWithShadows {
         ref.createDrawObjectData = renderDetails::ReferenceGL::CreateDrawObjectData(
             [] (
                     std::shared_ptr<renderDetails::DrawObjectDataGL> const &,
-                    std::shared_ptr<levelDrawer::TextureData>,
-                    glm::mat4 modelMatrix) -> std::shared_ptr<renderDetails::DrawObjectDataGL>
+                    std::shared_ptr<levelDrawer::TextureData> const &,
+                    glm::mat4 const &modelMatrix) -> std::shared_ptr<renderDetails::DrawObjectDataGL>
             {
-                return std::make_shared<DrawObjectDataGL>(std::move(modelMatrix));
+                return std::make_shared<DrawObjectDataGL>(modelMatrix);
             });
 
         ref.getProjViewForLevel = renderDetails::ReferenceGL::GetProjViewForLevel(

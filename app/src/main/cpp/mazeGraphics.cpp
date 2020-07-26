@@ -60,7 +60,7 @@ void LevelSequence::changeLevel(std::string const &level) {
     float x, y, z;
     m_level->getLevelFinisherCenter(x, y, z);
     m_levelFinisher = m_levelGroupFcns.getFinisherFcn(
-            levelDrawer::Adaptor(levelDrawer::STARTER, m_levelDrawer), x, y, z);
+            levelDrawer::Adaptor(levelDrawer::FINISHER, m_levelDrawer), x, y, z);
 }
 
 bool LevelSequence::updateData(bool alwaysUpdateDynObjs) {
@@ -70,10 +70,10 @@ bool LevelSequence::updateData(bool alwaysUpdateDynObjs) {
     if (m_level->isFinished() || m_levelFinisher->isUnveiling()) {
         if (m_levelFinisher->isUnveiling()) {
             if (m_levelFinisher->isDone()) {
-                m_levelDrawer->clearDrawObjectTable(levelDrawer::FINISHER);
                 float x, y, z;
                 m_level->getLevelFinisherCenter(x, y, z);
 
+                m_levelFinisher.reset();
                 m_levelDrawer->clearDrawObjectTable(levelDrawer::FINISHER);
                 m_levelFinisher = m_levelGroupFcns.getFinisherFcn(
                         levelDrawer::Adaptor(levelDrawer::FINISHER, m_levelDrawer), x, y, z);
@@ -87,10 +87,12 @@ bool LevelSequence::updateData(bool alwaysUpdateDynObjs) {
                 m_levelTracker->gotoNextLevel();
                 m_levelGroupFcns = m_levelTracker->getLevelGroupFcns(m_surfaceWidth, m_surfaceHeight);
 
+                m_levelStarter.reset();
                 m_levelDrawer->clearDrawObjectTable(levelDrawer::STARTER);
                 m_levelStarter = m_levelGroupFcns.getStarterFcn(
                         levelDrawer::Adaptor(levelDrawer::STARTER, m_levelDrawer));
 
+                m_level.reset();
                 m_levelDrawer->clearDrawObjectTable(levelDrawer::LEVEL);
                 m_level = m_levelGroupFcns.getLevelFcn(
                         levelDrawer::Adaptor(levelDrawer::LEVEL, m_levelDrawer));

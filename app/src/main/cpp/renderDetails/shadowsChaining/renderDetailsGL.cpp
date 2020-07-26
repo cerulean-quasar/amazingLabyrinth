@@ -129,8 +129,7 @@ namespace shadowsChaining {
                         glm::mat4 const &modelMatrix) ->
                         std::shared_ptr<renderDetails::DrawObjectDataGL>
                 {
-                    auto dodMain = createDODObjectWithShadows(sharingDOD, std::move(textureData),
-                                                              std::move(modelMatrix));
+                    auto dodMain = createDODObjectWithShadows(sharingDOD, textureData, modelMatrix);
                     auto dodShadows = createDODShadows(sharingDOD, nullptr, modelMatrix);
 
                     return std::make_shared<DrawObjectDataGL>(std::move(dodMain), std::move(dodShadows));

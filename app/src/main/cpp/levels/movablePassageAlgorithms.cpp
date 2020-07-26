@@ -323,7 +323,8 @@ boost::optional<ObjReference> addModelMatrixToObj(
     size_t j = 0;
     for (auto const &ref : refs) {
         if (i == j) {
-            levelDrawer.addModelMatrixForObject(ref.objIndex.get(), modelMatrix);
+            auto objDataIndex = levelDrawer.addModelMatrixForObject(ref.objIndex.get(), modelMatrix);
+            levelDrawer.updateModelMatrixForObject(ref.objIndex.get(), objDataIndex, modelMatrix);
             if (component) {
                 component->placement(placementIndex).setObjReference(ref);
             }

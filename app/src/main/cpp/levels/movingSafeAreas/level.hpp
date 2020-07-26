@@ -159,16 +159,6 @@ namespace movingSafeAreas {
                 }
             }
 
-            // the ball
-            m_objIndexBall = m_levelDrawer.addObject(std::make_shared<levelDrawer::ModelDescriptionPath>(m_ballModel),
-                    std::make_shared<levelDrawer::TextureDescriptionPath>(m_ballTexture));
-
-            m_objDataIndexBall = m_levelDrawer.addModelMatrixForObject(
-                    m_objIndexBall,
-                   glm::translate(glm::mat4(1.0f), m_ball.position) *
-                        glm::mat4_cast(m_ball.totalRotated) *
-                        ballScaleMatrix());
-
             // the starting quad
             auto objIndex = m_levelDrawer.addObject(
                     std::make_shared<levelDrawer::ModelDescriptionQuad>(),
