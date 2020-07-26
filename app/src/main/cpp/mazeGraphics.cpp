@@ -159,7 +159,7 @@ bool Graphics::testDepthTexture(levelDrawer::Adaptor inLevelDrawer) {
 
     // just request something to be drawn that is definitely bigger than the screen
     glm::mat4 modelMatrix =
-            glm::scale(glm::mat4(1.0f), glm::vec3{10.0f, 10.f, 1.0f});
+            glm::scale(glm::mat4(1.0f), glm::vec3{1.0f, 1.0f, 1.0f});
 
     std::vector<float> depthMap;
     inLevelDrawer.drawToBuffer(depthMapRenderDetailsName, modelsTextures, {modelMatrix},

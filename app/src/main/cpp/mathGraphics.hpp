@@ -67,8 +67,8 @@ std::pair<float, float> getXYAtZ(
         glm::mat4 const &view);
 
 void unFlattenMap(
-        std::vector<float> input,
-        std::vector<glm::vec3> output);
+        std::vector<float> const &input,
+        std::vector<glm::vec3> &output);
 
 float transformRange(
         float colorValue,
@@ -155,7 +155,7 @@ void bitmapToNormals(
             }
         }
     } else {
-        for (size_t i = 0; i < normalMap.size(); i++) {
+        for (size_t i = 0; i < normalMap.size() / resultsStep; i++) {
             float x = convertColor<inputDataType>(texture[i * step], true, -1.0f, 1.0f);
             float y = convertColor<inputDataType>(texture[i * step + 1], true, -1.0f, 1.0f);
             float z = convertColor<inputDataType>(texture[i * step + 2], true, -1.0f, 1.0f);

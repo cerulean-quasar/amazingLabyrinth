@@ -455,6 +455,8 @@ namespace fixedMaze {
             : basic::Level{std::move(inLevelDrawer), lcd, mazeFloorZ, false},
               m_floorModel{lcd->mazeFloorModel},
               m_floorTexture{lcd->mazeFloorTexture},
+              m_rowWidth{}, // initialized by init()
+              m_rowHeight{200},
               m_extraBounce{1.0f + lcd->extraBounce * m_diagonal},
               m_minSpeedOnObjBounce{lcd->minSpeedOnBounce * m_diagonal},
               m_speedLimit{m_diagonal / 4.0f}
@@ -556,6 +558,8 @@ namespace fixedMaze {
         unFlattenMap(normalMapFlat, normalMap);
 
         // cut the model so that the hole appears in the center if possible.
+        // note: the width and the height of the actual model are the same, so pass in m_rowHeight
+        // for the actual model width.
         glm::mat4 trans;
         findModelViewPort(depthMap, normalMap, m_rowHeight, trans, m_depthMap, m_normalMap,
                           m_rowWidth);
@@ -591,6 +595,10 @@ namespace fixedMaze {
         auto objIndex = m_levelDrawer.addObject(
                 std::make_shared<levelDrawer::ModelDescriptionPath>(m_floorModel),
                 std::make_shared<levelDrawer::TextureDescriptionPath>(m_floorTexture));
+
+        floorModelMatrix = trans *
+                           glm::scale(glm::mat4(1.0f),glm::vec3{m_height / m_modelSize, m_height / m_modelSize, 1.0f}) *
+                           glm::mat4_cast(glm::angleAxis(3.1415926f / 2.0f, glm::vec3(1.0f, 0.0f, 0.0f)));
 
         m_levelDrawer.addModelMatrixForObject(objIndex, floorModelMatrix);
     }

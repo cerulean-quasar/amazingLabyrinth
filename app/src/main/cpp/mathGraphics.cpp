@@ -112,8 +112,8 @@ std::pair<float, float> getXYAtZ(
 }
 
 void unFlattenMap(
-        std::vector<float> input,
-        std::vector<glm::vec3> output)
+        std::vector<float> const &input,
+        std::vector<glm::vec3> &output)
 {
     if (input.size() % 3 != 0) {
         throw std::runtime_error("Improper size for input to be un-flattened");

@@ -144,6 +144,9 @@ namespace levelDrawer {
 
         rules[0].renderDetails->draw(0, rules[0].commonObjectData, drawObjTable, rules[0].drawObjectIndices);
 
+        glFinish();
+        checkGraphicsError();
+
         if (m_neededForDrawing.useIntegerSurface) {
             /* width * height * 4 color values each a char in size. */
             std::vector<float> data(static_cast<size_t>(imageWidth * imageHeight * 4), 0.0f);
