@@ -38,30 +38,75 @@ namespace levelDrawer {
 
         inline std::shared_ptr<vulkan::Buffer> const &indexBuffer() { return m_indexBuffer; }
 
+        inline uint32_t numberIndicesWithVertexNormals() { return m_numberIndicesWithVertexNormals; }
+
+        inline std::shared_ptr<vulkan::Buffer> const &vertexBufferWithVertexNormals() {
+            if (m_numberIndicesWithVertexNormals == 0) {
+                throw std::runtime_error("Vertex normals not requested at model creation, but requested at model usage.");
+            }
+            return m_vertexBufferWithVertexNormals;
+        }
+
+        inline std::shared_ptr<vulkan::Buffer> const &indexBufferWithVertexNormals() {
+            if (m_numberIndicesWithVertexNormals == 0) {
+                throw std::runtime_error("Vertex normals not requested at model creation, but requested at model usage.");
+            }
+            return m_indexBufferWithVertexNormals;
+        }
+
         ModelDataVulkan(std::shared_ptr<GameRequester> const &gameRequester,
                         std::shared_ptr<vulkan::Device> const &inDevice,
                         std::shared_ptr<vulkan::CommandPool> const &inPool,
-                        std::shared_ptr<ModelDescription> const &model) {
-            auto modelData = model->getData(gameRequester);
-            if (modelData.first.size() == 0 || modelData.second.size() == 0) {
+                        std::shared_ptr<ModelDescription> const &model)
+                        : m_numberIndices{},
+                        m_indexBufferWithVertexNormals{}
+        {
+            std::pair<ModelVertices, ModelVertices> modelData;
+            if (model->shouldLoadVertexNormals()) {
+                modelData = model->getDataWithVertexNormalsAlso(gameRequester);
+            } else {
+                modelData.first = model->getData(gameRequester);
+            }
+
+            if (modelData.first.first.size() == 0 || modelData.first.second.size() == 0) {
                 throw std::runtime_error("Error: model has no vertices or indices");
             }
 
-            m_vertexBuffer = std::make_shared<vulkan::Buffer>(inDevice, sizeof(modelData.first[0]) *
-                                                                        modelData.first.size(),
+            m_numberIndices = modelData.first.second.size();
+
+            m_vertexBuffer = std::make_shared<vulkan::Buffer>(inDevice, sizeof(modelData.first.first[0]) *
+                                                                        modelData.first.first.size(),
                                                               VK_BUFFER_USAGE_TRANSFER_DST_BIT |
                                                               VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
                                                               VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
-            m_indexBuffer = std::make_shared<vulkan::Buffer>(inDevice, sizeof(modelData.second[0]) *
-                                                                       modelData.second.size(),
+            m_indexBuffer = std::make_shared<vulkan::Buffer>(inDevice, sizeof(modelData.first.second[0]) *
+                                                                       modelData.first.second.size(),
                                                              VK_BUFFER_USAGE_TRANSFER_DST_BIT |
                                                              VK_BUFFER_USAGE_INDEX_BUFFER_BIT,
                                                              VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 
-            copyVerticesToBuffer<Vertex>(inPool, modelData.first, *m_vertexBuffer);
-            vulkan::copyIndicesToBuffer(inPool, modelData.second, *m_indexBuffer);
+            copyVerticesToBuffer<Vertex>(inPool, modelData.first.first, *m_vertexBuffer);
+            vulkan::copyIndicesToBuffer(inPool, modelData.first.second, *m_indexBuffer);
 
-            m_numberIndices = modelData.second.size();
+
+            m_numberIndicesWithVertexNormals = modelData.second.second.size();
+            if (m_numberIndicesWithVertexNormals > 0) {
+                m_vertexBufferWithVertexNormals = std::make_shared<vulkan::Buffer>(inDevice,
+                                                                  sizeof(modelData.second.first[0]) *
+                                                                  modelData.second.first.size(),
+                                                                  VK_BUFFER_USAGE_TRANSFER_DST_BIT |
+                                                                  VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
+                                                                  VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+                m_indexBufferWithVertexNormals = std::make_shared<vulkan::Buffer>(inDevice,
+                                                                 sizeof(modelData.second.second[0]) *
+                                                                 modelData.second.second.size(),
+                                                                 VK_BUFFER_USAGE_TRANSFER_DST_BIT |
+                                                                 VK_BUFFER_USAGE_INDEX_BUFFER_BIT,
+                                                                 VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+
+                copyVerticesToBuffer<Vertex>(inPool, modelData.second.first, *m_vertexBufferWithVertexNormals);
+                vulkan::copyIndicesToBuffer(inPool, modelData.second.second, *m_indexBufferWithVertexNormals);
+            }
         }
 
         ~ModelDataVulkan() = default;
@@ -74,6 +119,10 @@ namespace levelDrawer {
         std::shared_ptr<vulkan::Buffer> m_vertexBuffer;
         std::shared_ptr<vulkan::Buffer> m_indexBuffer;
         uint32_t m_numberIndices;
+
+        std::shared_ptr<vulkan::Buffer> m_vertexBufferWithVertexNormals;
+        std::shared_ptr<vulkan::Buffer> m_indexBufferWithVertexNormals;
+        uint32_t m_numberIndicesWithVertexNormals;
 
         template <typename VertexType>
         static void copyVerticesToBuffer(std::shared_ptr<vulkan::CommandPool> const &cmdpool,

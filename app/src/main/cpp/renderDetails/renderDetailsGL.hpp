@@ -113,7 +113,8 @@ namespace renderDetails {
     protected:
         static void drawVertices(
                 GLuint programID,
-                std::shared_ptr<levelDrawer::ModelDataGL> const &modelData);
+                std::shared_ptr<levelDrawer::ModelDataGL> const &modelData,
+                bool useVertexNormals = false);
 
         static GLuint loadShaders(std::shared_ptr<GameRequester> const &gameRequester,
                            std::string const &vertexShaderFile, std::string const &fragmentShaderFile);

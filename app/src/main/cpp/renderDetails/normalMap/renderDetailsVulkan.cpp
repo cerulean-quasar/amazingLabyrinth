@@ -94,7 +94,7 @@ namespace normalMap {
 
         initializeCommandBufferDrawObjects(
                 DrawIfHasTexture::BOTH, descriptorSetID, m_pipeline,
-                commandBuffer, drawObjTable, drawObjectsIndices);
+                commandBuffer, drawObjTable, drawObjectsIndices, true);
     }
 
     renderDetails::ReferenceVulkan RenderDetailsVulkan::createReference(

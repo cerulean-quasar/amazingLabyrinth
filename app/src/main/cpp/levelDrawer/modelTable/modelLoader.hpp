@@ -52,6 +52,12 @@ namespace levelDrawer {
     class ModelDescription {
         friend BaseClassPtrLess<ModelDescription>;
     public:
+        virtual bool shouldLoadVertexNormals() { return false; }
+        virtual std::pair<ModelVertices, ModelVertices> getDataWithVertexNormalsAlso(
+                std::shared_ptr<GameRequester> const &)
+        {
+            throw std::runtime_error("Requesting vertex normals does not apply for this object.");
+        }
         virtual ModelVertices getData(std::shared_ptr<GameRequester> const &gameRequester) = 0;
 
     protected:
@@ -61,13 +67,16 @@ namespace levelDrawer {
 
     class ModelDescriptionPath : public ModelDescription {
     public:
-        ModelVertices
-        getVerticesWithVertexNormals(std::shared_ptr<GameRequester> const &gameRequester);
+        bool shouldLoadVertexNormals() override { return m_loadVertexNormals; }
+        std::pair<ModelVertices, ModelVertices> getDataWithVertexNormalsAlso(
+                std::shared_ptr<GameRequester> const &gameRequester) override;
 
         ModelVertices getData(std::shared_ptr<GameRequester> const &gameRequester) override;
 
-        ModelDescriptionPath(std::string path)
-                : m_path{std::move(path)} {}
+        ModelDescriptionPath(std::string path, bool loadVertexNormalsAlso = false)
+                : m_path{std::move(path)},
+                m_loadVertexNormals{loadVertexNormalsAlso}
+        {}
 
     protected:
         // Always equal to other, never less than other
@@ -82,7 +91,7 @@ namespace levelDrawer {
 
     private:
         std::string m_path;
-        ModelVertices m_modelVertices;
+        bool m_loadVertexNormals;
 
         bool loadModel(
                 std::unique_ptr<std::streambuf> const &modelStreamBuf,

@@ -35,17 +35,21 @@ namespace levelDrawer {
     public:
         ModelDataGL(std::shared_ptr <GameRequester> const &gameRequester,
                     std::shared_ptr <ModelDescription> const &modelDescription) {
-            ModelVertices vertices = modelDescription->getData(gameRequester);
-
-            m_numberIndices = vertices.second.size();
+            std::pair<ModelVertices, ModelVertices> vertices;
+            if (modelDescription->shouldLoadVertexNormals()) {
+                vertices = modelDescription->getDataWithVertexNormalsAlso(gameRequester);
+            } else {
+                vertices.first = modelDescription->getData(gameRequester);
+            }
+            m_numberIndices = vertices.first.second.size();
 
             // the index buffer
             glGenBuffers(1, &(m_indexBuffer));
             checkGraphicsError();
             glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_indexBuffer);
             checkGraphicsError();
-            glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(uint32_t) * vertices.second.size(),
-                         vertices.second.data(), GL_STATIC_DRAW);
+            glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(uint32_t) * vertices.first.second.size(),
+                         vertices.first.second.data(), GL_STATIC_DRAW);
             checkGraphicsError();
 
             // the vertex buffer
@@ -53,14 +57,41 @@ namespace levelDrawer {
             checkGraphicsError();
             glBindBuffer(GL_ARRAY_BUFFER, m_vertexBuffer);
             checkGraphicsError();
-            glBufferData(GL_ARRAY_BUFFER, sizeof(Vertex) * vertices.first.size(),
-                         vertices.first.data(), GL_STATIC_DRAW);
+            glBufferData(GL_ARRAY_BUFFER, sizeof (Vertex) * vertices.first.first.size(),
+                         vertices.first.first.data(), GL_STATIC_DRAW);
             checkGraphicsError();
+
+            // the vertex normals (if requested)
+            m_indexBufferWithVertexNormals = vertices.second.second.size();
+            if (m_indexBufferWithVertexNormals > 0) {
+                // the index buffer
+                glGenBuffers(1, &(m_indexBufferWithVertexNormals));
+                checkGraphicsError();
+                glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_indexBufferWithVertexNormals);
+                checkGraphicsError();
+                glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof (uint32_t) * vertices.second.second.size(),
+                             vertices.second.second.data(), GL_STATIC_DRAW);
+                checkGraphicsError();
+
+                // the vertex buffer
+                glGenBuffers(1, &(m_vertexBufferWithVertexNormals));
+                checkGraphicsError();
+                glBindBuffer(GL_ARRAY_BUFFER, m_vertexBufferWithVertexNormals);
+                checkGraphicsError();
+                glBufferData(GL_ARRAY_BUFFER, sizeof (Vertex) * vertices.second.first.size(),
+                             vertices.second.first.data(), GL_STATIC_DRAW);
+                checkGraphicsError();
+            }
         }
 
         ~ModelDataGL() {
             glDeleteBuffers(1, &m_vertexBuffer);
             glDeleteBuffers(1, &m_indexBuffer);
+
+            if (m_numberIndicesWithVertexNormals > 0) {
+                glDeleteBuffers(1, &m_vertexBufferWithVertexNormals);
+                glDeleteBuffers(1, &m_indexBufferWithVertexNormals);
+            }
         }
 
         inline GLuint vertexBuffer() const { return m_vertexBuffer; }
@@ -68,10 +99,32 @@ namespace levelDrawer {
         inline GLuint indexBuffer() const { return m_indexBuffer; }
 
         inline uint32_t numberIndices() const { return m_numberIndices; }
+
+        inline GLuint vertexBufferWithVertexNormals() const {
+            if (m_numberIndicesWithVertexNormals == 0) {
+                throw std::runtime_error("Vertex normals not requested at model creation, but requested at model usage.");
+            }
+            return m_vertexBufferWithVertexNormals;
+        }
+
+        inline GLuint indexBufferWithVertexNormals() const {
+            if (m_numberIndicesWithVertexNormals == 0) {
+                throw std::runtime_error("Vertex normals not requested at model creation, but requested at model usage.");
+            }
+            return m_indexBufferWithVertexNormals;
+        }
+
+        inline uint32_t numberIndicesWithVertexNormals() const {
+            return m_numberIndicesWithVertexNormals;
+        }
     private:
         GLuint m_vertexBuffer;
         GLuint m_indexBuffer;
         uint32_t m_numberIndices;
+
+        GLuint m_vertexBufferWithVertexNormals;
+        GLuint m_indexBufferWithVertexNormals;
+        uint32_t m_numberIndicesWithVertexNormals;
     };
 
     class ModelTableGL : public ModelTable<ModelDataGL> {

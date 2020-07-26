@@ -119,11 +119,22 @@ namespace renderDetails {
 
     void RenderDetailsGL::drawVertices(
             GLuint programID,
-            std::shared_ptr<levelDrawer::ModelDataGL> const &modelData)
+            std::shared_ptr<levelDrawer::ModelDataGL> const &modelData,
+            bool useVertexNormals)
     {
-        glBindBuffer(GL_ARRAY_BUFFER, modelData->vertexBuffer());
+        GLuint vertexBuffer = useVertexNormals ?
+                modelData->vertexBufferWithVertexNormals() :
+                modelData->vertexBuffer();
+        GLuint indexBuffer = useVertexNormals ?
+                modelData->indexBufferWithVertexNormals() :
+                modelData->indexBuffer();
+        uint32_t nbrIndices = useVertexNormals ?
+                modelData->numberIndicesWithVertexNormals() :
+                modelData->numberIndices();
+
+        glBindBuffer(GL_ARRAY_BUFFER, vertexBuffer);
         checkGraphicsError();
-        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, modelData->indexBuffer());
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, indexBuffer);
         checkGraphicsError();
 
         // 1st attribute buffer : colors
@@ -191,7 +202,7 @@ namespace renderDetails {
         }
 
         // Draw the triangles !
-        glDrawElements(GL_TRIANGLES, modelData->numberIndices(), GL_UNSIGNED_INT, 0);
+        glDrawElements(GL_TRIANGLES, nbrIndices, GL_UNSIGNED_INT, 0);
         checkGraphicsError();
 
         glDisableVertexAttribArray(position);

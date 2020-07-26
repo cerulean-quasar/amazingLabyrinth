@@ -300,25 +300,19 @@ namespace levelDrawer {
         std::vector<float> m_texCoords;
     };
 
-    ModelVertices ModelDescriptionPath::getVerticesWithVertexNormals(
-            std::shared_ptr<GameRequester> const &gameRequester) {
+    std::pair<ModelVertices, ModelVertices> ModelDescriptionPath::getDataWithVertexNormalsAlso(
+            const std::shared_ptr<GameRequester> &gameRequester)
+    {
         ModelVertices vertices;
-        loadModel(gameRequester->getAssetStream(m_path), m_modelVertices, &vertices);
-        return std::move(vertices);
+        ModelVertices verticesWithVertexNormals;
+        loadModel(gameRequester->getAssetStream(m_path), vertices, &verticesWithVertexNormals);
+        return std::make_pair(std::move(vertices), std::move(verticesWithVertexNormals));
     }
 
     ModelVertices
     ModelDescriptionPath::getData(std::shared_ptr<GameRequester> const &gameRequester) {
-        ModelVertices vertices{};
-        if (m_modelVertices.first.empty()) {
-            loadModel(gameRequester->getAssetStream(m_path), vertices);
-        } else {
-            // the fact that we got here means that the vertices with vertex normals were requested
-            // before.  We cached the result for the vertices with face normals in m_modelVertices.
-            // Just swap the data into the return value because the caller only requests these data
-            // once.  No need to keep it around.
-            std::swap(vertices, m_modelVertices);
-        }
+        ModelVertices vertices;
+        loadModel(gameRequester->getAssetStream(m_path), vertices);
         return std::move(vertices);
     }
 

@@ -82,7 +82,8 @@ namespace renderDetails {
         std::shared_ptr<vulkan::Pipeline> const &pipeline,
         VkCommandBuffer const &commandBuffer,
         std::shared_ptr<DrawObjectTableVulkan> const &drawObjectTable,
-        std::vector<size_t> const &drawObjectsIndices)
+        std::vector<size_t> const &drawObjectsIndices,
+        bool useVertexNormals)
     {
         if (!drawObjectTable || drawObjectsIndices.empty()) {
             return;
@@ -102,8 +103,18 @@ namespace renderDetails {
                 continue;
             }
 
-            VkBuffer vertexBuffer = modelData->vertexBuffer().cbuffer();
-            VkBuffer indexBuffer = modelData->indexBuffer().cbuffer();
+            VkBuffer vertexBuffer = useVertexNormals ?
+                    modelData->vertexBufferWithVertexNormals().cbuffer() :
+                    modelData->vertexBuffer().cbuffer();
+
+            VkBuffer indexBuffer = useVertexNormals ?
+                    modelData->indexBufferWithVertexNormals().cbuffer() :
+                    modelData->indexBuffer().cbuffer();
+
+            uint32_t nbrIndices = useVertexNormals ?
+                    modelData->numberIndicesWithVertexNormals() :
+                    modelData->numberIndices();
+
             vkCmdBindVertexBuffers(commandBuffer, 0, 1, &vertexBuffer, offsets);
             vkCmdBindIndexBuffer(commandBuffer, indexBuffer, 0, VK_INDEX_TYPE_UINT32);
 
@@ -126,7 +137,7 @@ namespace renderDetails {
                  * parameter 5 - offset to add to the indices in the index buffer
                  * parameter 6 - offset for instance rendering
                  */
-                vkCmdDrawIndexed(commandBuffer, modelData->numberIndices(), 1, 0, 0, 0);
+                vkCmdDrawIndexed(commandBuffer, nbrIndices, 1, 0, 0, 0);
             }
         }
     }

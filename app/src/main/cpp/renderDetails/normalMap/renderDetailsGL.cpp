@@ -168,7 +168,7 @@ namespace normalMap {
                 glUniformMatrix4fv(MatrixID, 1, GL_FALSE, &modelMatrix[0][0]);
                 checkGraphicsError();
 
-                drawVertices(m_programID, modelData);
+                drawVertices(m_programID, modelData, true);
             }
         }
     }

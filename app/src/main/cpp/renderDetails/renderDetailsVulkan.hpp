@@ -110,7 +110,8 @@ namespace renderDetails {
             std::shared_ptr<vulkan::Pipeline> const &pipeline,
              VkCommandBuffer const &commandBuffer,
             std::shared_ptr<DrawObjectTableVulkan> const &drawObjectTable,
-            std::vector<size_t> const &drawObjectsIndices);
+            std::vector<size_t> const &drawObjectsIndices,
+            bool useVertexNormals = false);
 
         virtual bool overrideClearColor(glm::vec4 &) {
             return false;
