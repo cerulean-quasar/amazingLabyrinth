@@ -23,6 +23,7 @@
 #include <string>
 
 #include <GLES3/gl3.h>
+#include <boost/variant.hpp>
 
 #include "../common.hpp"
 #include "renderDetails.hpp"
@@ -64,18 +65,29 @@ namespace renderDetails {
         ~DrawObjectDataGL() override = default;
     };
 
+    class DoNothingVisitor : public boost::static_visitor<std::vector<float>> {
+    public:
+        template <typename value_type>
+        std::vector<float>  operator()(std::vector<value_type> const &input) const {
+            std::vector<float> results(input.size());
+            std::copy(input.begin(), input.end(), results.begin());
+            return std::move(results);
+        }
+    };
+
     class RenderDetailsGL : public RenderDetails {
     public:
         // For postprocessing results written to an image buffer whose contents are put in input.
         // This function is for render details that produce results to be used by the CPU.  Most
-        // render details don't need this.
+        // render details don't need this.  Provide this default function which copies the
+        // source into the destination (probably will never be called).
         virtual void postProcessImageBuffer(
                 std::shared_ptr<renderDetails::CommonObjectData> const &,
-                std::vector<float> const &input,
+                boost::variant<std::vector<float>, std::vector<uint8_t>> &input,
                 std::vector<float> &results)
         {
-            results.resize(input.size());
-            std::copy(input.begin(), input.end(), results.begin());
+            DoNothingVisitor doNothing;
+            results = boost::apply_visitor(doNothing, input);
         }
 
         // GL commands that need to occur before the main draw.  They can be things like generating

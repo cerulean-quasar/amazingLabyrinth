@@ -17,6 +17,7 @@
  *  along with AmazingLabyrinth.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
+#include <boost/variant.hpp>
 #include "../graphicsGL.hpp"
 #include "levelDrawerGL.hpp"
 #include "levelDrawerGraphics.hpp"
@@ -147,6 +148,7 @@ namespace levelDrawer {
         glFinish();
         checkGraphicsError();
 
+        boost::variant<std::vector<float>, std::vector<uint8_t>> dataVariant;
         if (m_neededForDrawing.useIntegerSurface) {
             /* width * height * 4 color values each a char in size. */
             std::vector<float> data(static_cast<size_t>(imageWidth * imageHeight * 4), 0.0f);
@@ -154,22 +156,17 @@ namespace levelDrawer {
             checkGraphicsError();
             glReadPixels(0, 0, imageWidth, imageHeight, colorImageFormat.format, colorImageFormat.type, data.data());
             checkGraphicsError();
-            rules[0].renderDetails->postProcessImageBuffer(rules[0].commonObjectData, data, results);
+            dataVariant = std::move(data);
         } else {
             /* width * height * 4 color values each a char in size. */
-            std::vector<uint8_t> data(static_cast<size_t>(imageWidth * imageHeight * 4), 0.0f);
+            std::vector<uint8_t> data(static_cast<size_t>(imageWidth * imageHeight * 4), 0);
             glReadBuffer(GL_COLOR_ATTACHMENT0);
             checkGraphicsError();
             glReadPixels(0, 0, imageWidth, imageHeight, colorImageFormat.format, colorImageFormat.type, data.data());
             checkGraphicsError();
-            std::vector<float> input{};
-            for (auto datum : data) {
-                uint32_t datum32 = datum;
-                float *pdatum = reinterpret_cast<float*>(&datum32);
-                input.push_back(*pdatum);
-            }
-            rules[0].renderDetails->postProcessImageBuffer(rules[0].commonObjectData, input, results);
+            dataVariant = std::move(data);
         }
+        rules[0].renderDetails->postProcessImageBuffer(rules[0].commonObjectData, dataVariant, results);
 
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
         checkGraphicsError();

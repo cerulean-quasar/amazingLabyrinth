@@ -89,6 +89,31 @@ namespace depthMap {
         glm::mat4 m_modelMatrix;
     };
 
+    class PostProcessDepthVisitor : public boost::static_visitor<std::vector<float>> {
+    public:
+        template <typename value_type>
+        std::vector<float> operator() (std::vector<value_type> const &input) {
+            std::vector<float> results;
+            bitmapToDepthMap(input, m_farthestDepth, m_nearestDepth,
+                             m_surfaceWidth, m_surfaceHeight, 4, false, results);
+            return std::move(results);
+        }
+
+        PostProcessDepthVisitor(
+                uint32_t surfaceWidth, uint32_t surfaceHeight,
+                float farthestDepth, float nearestDepth)
+                : m_surfaceWidth{surfaceWidth},
+                m_surfaceHeight{surfaceHeight},
+                m_farthestDepth{farthestDepth},
+                m_nearestDepth{nearestDepth}
+        {}
+    private:
+        uint32_t m_surfaceWidth;
+        uint32_t m_surfaceHeight;
+        float m_farthestDepth;
+        float m_nearestDepth;
+    };
+
     class RenderDetailsGL : public renderDetails::RenderDetailsGL {
     public:
         std::string nameString() override { return name(); }
@@ -115,12 +140,12 @@ namespace depthMap {
 
         void postProcessImageBuffer(
                 std::shared_ptr<renderDetails::CommonObjectData> const &commonObjectData,
-                std::vector<float> const &input,
+                boost::variant<std::vector<float>, std::vector<uint8_t>> &input,
                 std::vector<float> &results) override
         {
             auto cod = dynamic_cast<CommonObjectDataGL*>(commonObjectData.get());
-            bitmapToDepthMap(input, cod->farthestDepth(), cod->nearestDepth(),
-                             m_surfaceWidth, m_surfaceHeight, 4, false, results);
+            PostProcessDepthVisitor visitor(m_surfaceWidth, m_surfaceHeight, cod->farthestDepth(), cod->nearestDepth());
+            results = boost::apply_visitor(visitor, input);
         }
 
         bool overrideClearColor(glm::vec4 &clearColor) override {

@@ -25,6 +25,7 @@
 #include <glm/glm.hpp>
 
 #include <GLES3/gl3.h>
+#include <boost/variant.hpp>
 
 #include "../renderDetailsGL.hpp"
 #include "../renderDetails.hpp"
@@ -80,6 +81,24 @@ namespace normalMap {
         glm::mat4 m_modelMatrix;
     };
 
+    class PostProcessNormalsVisitor : public boost::static_visitor<std::vector<float>> {
+    public:
+        PostProcessNormalsVisitor(uint32_t surfaceWidth, uint32_t surfaceHeight)
+                : m_surfaceWidth{surfaceWidth},
+                  m_surfaceHeight{surfaceHeight}
+        {}
+        template <typename value_type>
+        std::vector<float> operator()(std::vector<value_type> const &input) {
+            std::vector<float> results;
+            bitmapToNormals(input, m_surfaceWidth, m_surfaceHeight, 4, false, results);
+            return std::move(results);
+        }
+
+    private:
+        uint32_t m_surfaceWidth;
+        uint32_t m_surfaceHeight;
+    };
+
     class RenderDetailsGL : public renderDetails::RenderDetailsGL {
     public:
         std::string nameString() override { return name(); }
@@ -111,10 +130,11 @@ namespace normalMap {
 
         void postProcessImageBuffer(
                 std::shared_ptr<renderDetails::CommonObjectData> const &,
-                std::vector<float> const &input,
+                boost::variant<std::vector<float>, std::vector<uint8_t>> &input,
                 std::vector<float> &results) override
         {
-            bitmapToNormals(input, m_surfaceWidth, m_surfaceHeight, 4, false, results);
+            PostProcessNormalsVisitor postProcessNormalsVisitor(m_surfaceWidth, m_surfaceHeight);
+            results = boost::apply_visitor(postProcessNormalsVisitor, input);
         }
 
         RenderDetailsGL(std::shared_ptr<GameRequester> const &inGameRequester,
