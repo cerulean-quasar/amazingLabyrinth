@@ -149,8 +149,6 @@ namespace normalMap {
         struct PerObjectUBO {
             glm::mat4 mvp;
             glm::mat4 modelMatrix;
-            float farthestDepth;
-            float nearestDepth;
         };
 
         std::shared_ptr<vulkan::DescriptorSet> m_descriptorSet;

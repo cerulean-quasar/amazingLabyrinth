@@ -50,26 +50,17 @@ namespace normalMap {
             return view();
         }
 
-        float nearestDepth() { return m_nearestDepth; }
-        float farthestDepth() { return m_farthestDepth; }
-
         CommonObjectDataGL(
-                float inNearestDepth,
-                float inFarthestDepth,
                 Config config,
                 float width,
                 float height)
                 : renderDetails::CommonObjectDataOrtho(
                 -width/2, width/2, -height/2, height/2,
-                config.nearPlane, config.farPlane, config.viewPoint, config.lookAt, config.up),
-                  m_nearestDepth(inNearestDepth),
-                  m_farthestDepth(inFarthestDepth)
+                config.nearPlane, config.farPlane, config.viewPoint, config.lookAt, config.up)
         {}
 
         ~CommonObjectDataGL() override = default;
     private:
-        float m_nearestDepth;
-        float m_farthestDepth;
     };
 
     class DrawObjectDataGL : public renderDetails::DrawObjectDataGL {
@@ -127,17 +118,18 @@ namespace normalMap {
         }
 
         RenderDetailsGL(std::shared_ptr<GameRequester> const &inGameRequester,
-                        uint32_t inWidth, uint32_t inHeight);
+                        uint32_t inWidth, uint32_t inHeight, bool isIntSurface);
 
         ~RenderDetailsGL() override {
             glDeleteShader(m_programID);
         }
 
     private:
-        static char constexpr const *LINEAR_DEPTH_VERT_FILE ="shaders/linearDepthGL.vert";
+        static char constexpr const *NORMAL_VERT_FILE ="shaders/normalGL.vert";
         static char constexpr const *SIMPLE_FRAG_FILE = "shaders/simpleGL.frag";
 
         GLuint m_programID;
+        bool m_isIntSurface;
 
         static renderDetails::ReferenceGL createReference(
                 std::shared_ptr<renderDetails::RenderDetailsGL> rd,

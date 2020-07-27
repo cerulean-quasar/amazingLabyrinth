@@ -31,9 +31,11 @@ namespace normalMap {
     glm::vec3 constexpr const Config::up;
 
     RenderDetailsGL::RenderDetailsGL(std::shared_ptr<GameRequester> const &inGameRequester,
-                                             uint32_t inWidth, uint32_t inHeight)
+                                             uint32_t inWidth, uint32_t inHeight,
+                                             bool isIntSurface)
             : renderDetails::RenderDetailsGL(inWidth, inHeight),
-              m_programID{loadShaders(inGameRequester, LINEAR_DEPTH_VERT_FILE, SIMPLE_FRAG_FILE)}
+              m_programID{loadShaders(inGameRequester, NORMAL_VERT_FILE, SIMPLE_FRAG_FILE)},
+              m_isIntSurface{isIntSurface}
     {}
 
     renderDetails::ReferenceGL RenderDetailsGL::loadNew(
@@ -49,11 +51,9 @@ namespace normalMap {
         }
 
         auto rd = std::make_shared<RenderDetailsGL>(gameRequester, parameters->width,
-                                                    parameters->height);
+                                                    parameters->height, parameters->useIntTexture);
 
         auto cod = std::make_shared<CommonObjectDataGL>(
-                parameters->nearestDepth,
-                parameters->farthestDepth,
                 config,
                 parameters->widthAtDepth,
                 parameters->heightAtDepth);
@@ -75,8 +75,6 @@ namespace normalMap {
         }
 
         auto cod = std::make_shared<CommonObjectDataGL>(
-                parameters->nearestDepth,
-                parameters->farthestDepth,
                 config,
                 parameters->widthAtDepth,
                 parameters->heightAtDepth);
@@ -145,15 +143,10 @@ namespace normalMap {
         glUniformMatrix4fv(MatrixID, 1, GL_FALSE, &(projView.second)[0][0]);
         checkGraphicsError();
 
-        GLint loc = glGetUniformLocation(m_programID, "nearestDepth");
-        glUniform1f(loc, cod->nearestDepth());
-        checkGraphicsError();
-
-        loc = glGetUniformLocation(m_programID, "farthestDepth");
-        glUniform1f(loc, cod->farthestDepth());
-        checkGraphicsError();
-
         MatrixID = glGetUniformLocation(m_programID, "model");
+        checkGraphicsError();
+
+        GLint normalMatrixID = glGetUniformLocation(m_programID, "normalMatrix");
         checkGraphicsError();
 
         for (auto drawObjIndex : drawObjectsIndices) {
@@ -166,6 +159,10 @@ namespace normalMap {
                 auto modelMatrix = objData->modelMatrix(modelMatrixID);
 
                 glUniformMatrix4fv(MatrixID, 1, GL_FALSE, &modelMatrix[0][0]);
+                checkGraphicsError();
+
+                glm::mat4 normalMatrix = glm::transpose(glm::inverse(modelMatrix));
+                glUniformMatrix4fv(normalMatrixID, 1, GL_FALSE, &normalMatrix[0][0]);
                 checkGraphicsError();
 
                 drawVertices(m_programID, modelData, true);

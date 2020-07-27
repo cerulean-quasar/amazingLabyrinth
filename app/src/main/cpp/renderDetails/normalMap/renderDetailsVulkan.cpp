@@ -119,8 +119,6 @@ namespace normalMap {
                         auto projView = cod->getProjViewForRender();
                         perObjectUbo.mvp = projView.first * projView.second * modelMatrix;
                         perObjectUbo.modelMatrix = modelMatrix;
-                        perObjectUbo.nearestDepth = cod->nearestDepth();
-                        perObjectUbo.farthestDepth = cod->farthestDepth();
                         modelMatrixBuffer->copyRawTo(&perObjectUbo,
                                                      sizeof(DrawObjectDataVulkan::PerObjectUBO));
                     }

@@ -62,8 +62,8 @@ namespace levelDrawer {
             checkGraphicsError();
 
             // the vertex normals (if requested)
-            m_indexBufferWithVertexNormals = vertices.second.second.size();
-            if (m_indexBufferWithVertexNormals > 0) {
+            m_numberIndicesWithVertexNormals = vertices.second.second.size();
+            if (m_numberIndicesWithVertexNormals > 0) {
                 // the index buffer
                 glGenBuffers(1, &(m_indexBufferWithVertexNormals));
                 checkGraphicsError();
