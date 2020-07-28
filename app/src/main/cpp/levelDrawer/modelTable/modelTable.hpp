@@ -34,12 +34,26 @@ namespace levelDrawer {
     public:
         std::shared_ptr <ModelDataType> const &
         addModel(std::shared_ptr <GameRequester> const &gameRequester,
-                 std::shared_ptr <ModelDescription> const &modelDescription) {
-            auto item = m_modelMap.emplace(modelDescription, nullptr);
-            if (item.second) {
-                item.first->second = getModelData(gameRequester, modelDescription);
+                 std::shared_ptr <ModelDescription> const &modelDescription)
+        {
+            std::shared_ptr<ModelDataType> md;
+
+            auto item = m_modelMap.emplace(modelDescription, std::weak_ptr<ModelDataType>());
+            if (item.second || item.first->second.expired()) {
+                md = getModelData(gameRequester, modelDescription);
+                item.first->second = md;
+            } else {
+                md = item.first->second.lock();
             }
-            return item.first->second;
+            return std::move(md);
+        }
+
+        void prune() {
+            for (auto it = m_modelMap.begin(); it != m_modelMap.end(); it++) {
+                if (it->second.expired()) {
+                    it = m_modelMap.erase(it);
+                }
+            }
         }
 
         ModelTable() = default;
@@ -51,7 +65,7 @@ namespace levelDrawer {
         getModelData(std::shared_ptr <GameRequester> const &gameRequester,
                      std::shared_ptr <ModelDescription> const &modelDescription) = 0;
 
-        std::map <std::shared_ptr<ModelDescription>, std::shared_ptr<ModelDataType>, BaseClassPtrLess<ModelDescription>> m_modelMap;
+        std::map <std::shared_ptr<ModelDescription>, std::weak_ptr<ModelDataType>, BaseClassPtrLess<ModelDescription>> m_modelMap;
     };
 }
 

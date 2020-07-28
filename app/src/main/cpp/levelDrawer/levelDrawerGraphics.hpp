@@ -56,6 +56,14 @@ namespace levelDrawer {
 
         void clearDrawObjectTable(ObjectType type) override {
             m_drawObjectTableList[type]->clear();
+
+            // We don't need to clear empty model and texture references out more than once during
+            // the level cycle, they don't reference much data once they become empty.  Just clear
+            // them out when switching to the new level, not the level starter or finisher.
+            if (type == LEVEL) {
+                m_modelTable.prune();
+                m_textureTable.prune();
+            }
         }
 
         size_t addObject(

@@ -36,11 +36,24 @@ namespace levelDrawer {
                 std::shared_ptr<GameRequester> const &gameRequester,
                 std::shared_ptr<TextureDescription> const &textureDescription)
         {
-            auto item = m_textureMap.emplace(textureDescription, nullptr);
-            if (item.second) {
-                item.first->second = getTextureData(gameRequester, textureDescription);
+            std::shared_ptr<TextureDataType> td;
+
+            auto item = m_textureMap.emplace(textureDescription, std::weak_ptr<TextureDataType>());
+            if (item.second || item.first->second.expired()) {
+                td = getTextureData(gameRequester, textureDescription);
+                item.first->second = td;
+            } else {
+                td = item.first->second.lock();
             }
-            return item.first->second;
+            return std::move(td);
+        }
+
+        void prune() {
+            for (auto it = m_textureMap.begin(); it != m_textureMap.end(); it++) {
+                if (it->second.expired()) {
+                    it = m_textureMap.erase(it);
+                }
+            }
         }
 
         TextureTable() = default;
@@ -52,7 +65,7 @@ namespace levelDrawer {
                 std::shared_ptr<GameRequester> const &gameRequester,
                 std::shared_ptr<TextureDescription> const &textureDescription) = 0;
 
-        std::map<std::shared_ptr<TextureDescription>, std::shared_ptr<TextureDataType>, BaseClassPtrLess<TextureDescription>> m_textureMap;
+        std::map<std::shared_ptr<TextureDescription>, std::weak_ptr<TextureDataType>, BaseClassPtrLess<TextureDescription>> m_textureMap;
     };
 }
 #endif // AMAZING_LABYRINTH_TEXTURE_TABLE_HPP
