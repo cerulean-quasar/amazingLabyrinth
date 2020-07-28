@@ -32,7 +32,7 @@ namespace levelDrawer {
     template <typename ModelDataType>
     class ModelTable {
     public:
-        std::shared_ptr <ModelDataType> const &
+        std::shared_ptr <ModelDataType>
         addModel(std::shared_ptr <GameRequester> const &gameRequester,
                  std::shared_ptr <ModelDescription> const &modelDescription)
         {
