@@ -93,7 +93,7 @@ namespace shadows {
             uint32_t modelMatrixID,
             std::shared_ptr<renderDetails::CommonObjectData> const &commonObjectData,
             std::shared_ptr<renderDetails::DrawObjectTableGL> const &drawObjTable,
-            std::vector<size_t> const &drawObjectsIndices)
+            std::vector<renderDetails::DrawObjReference> const &drawObjectRefs)
     {
         // set the shader to use
         glUseProgram(m_depthProgramID);
@@ -101,7 +101,7 @@ namespace shadows {
         glCullFace(GL_FRONT);
         checkGraphicsError();
 
-        if (drawObjectsIndices.empty() ||
+        if (drawObjectRefs.empty() ||
             drawObjTable == nullptr ||
             commonObjectData == nullptr)
         {
@@ -127,12 +127,11 @@ namespace shadows {
         MatrixID = glGetUniformLocation(m_depthProgramID, "model");
         checkGraphicsError();
 
-        for (auto drawObjIndex : drawObjectsIndices) {
-            auto drawObj = drawObjTable->drawObject(drawObjIndex);
+        for (auto drawObjRef : drawObjectRefs) {
+            auto drawObj = drawObjTable->drawObject(drawObjRef);
             auto modelData = drawObj->modelData();
 
-            size_t nbrObjData = drawObj->numberObjectsData();
-            for (size_t i = 0; i < nbrObjData; i++) {
+            for (auto const &i : drawObj->drawObjDataRefs()) {
                 auto objData = drawObj->objData(i);
                 auto modelMatrix = objData->modelMatrix(modelMatrixID);
 

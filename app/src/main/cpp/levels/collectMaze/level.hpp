@@ -37,8 +37,8 @@ namespace collectMaze {
         std::string m_collectTexture;
         bool m_collectObjsSameAsBall;
 
-        size_t m_objIndexCollect;
-        std::vector<size_t> m_objDataIndicesCollect;
+        levelDrawer::DrawObjReference m_objRefCollect;
+        std::vector<levelDrawer::DrawObjDataReference> m_objDataRefCollect;
     public:
         static char constexpr const *m_name = "collectMaze";
 
@@ -70,9 +70,9 @@ namespace collectMaze {
             }
 
             if (m_collectObjsSameAsBall) {
-                m_objIndexCollect = m_objIndexBall;
+                m_objRefCollect = m_objIndexBall;
             } else {
-                m_objIndexCollect = m_levelDrawer.addObject(
+                m_objRefCollect = m_levelDrawer.addObject(
                         std::make_shared<levelDrawer::ModelDescriptionPath>(m_collectModel),
                         std::make_shared<levelDrawer::TextureDescriptionPath>(m_collectTexture));
             }
@@ -83,11 +83,11 @@ namespace collectMaze {
 
             for (auto const &item : m_collectionObjectLocations) {
                 auto index = m_levelDrawer.addModelMatrixForObject(
-                        m_objIndexCollect,
+                        m_objRefCollect,
                         glm::translate(glm::mat4(1.0f), item.second) *
                                                     glm::mat4_cast(m_ball.totalRotated) *
                                                     scaleMatrix);
-                m_objDataIndicesCollect.push_back(index);
+                m_objDataRefCollect.push_back(index);
             }
         }
 

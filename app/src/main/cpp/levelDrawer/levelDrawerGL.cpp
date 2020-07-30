@@ -33,7 +33,7 @@ namespace levelDrawer {
         // add the pre main draw commands to the command buffer.
         for (auto const &rule : rulesList) {
             rule.renderDetails->preMainDraw(0, rule.commonObjectData,
-                    m_drawObjectTableList, rule.indicesPerLevelType);
+                    m_drawObjectTableList, rule.drawObjRefs);
         }
 
         glViewport(0, 0, info.width, info.height);
@@ -53,12 +53,12 @@ namespace levelDrawer {
         // add the commands to the command buffer for the main draw.
         for (auto index : std::vector<ObjectType>{LEVEL, STARTER, FINISHER}) {
             for (auto const &rule : rulesList) {
-                if (rule.commonObjectData[index] == nullptr || rule.indicesPerLevelType[index].empty()) {
+                if (rule.commonObjectData[index] == nullptr || rule.drawObjRefs[index].empty()) {
                     continue;
                 }
                 rule.renderDetails->draw(
                         0, rule.commonObjectData[index], m_drawObjectTableList[index],
-                        rule.indicesPerLevelType[index]);
+                        rule.drawObjRefs[index]);
             }
         }
     }
@@ -114,9 +114,9 @@ namespace levelDrawer {
         auto rules = drawObjTable->getDrawRules();
         DrawObjectTableList drawObjTableList = {nullptr, drawObjTable, nullptr};
         CommonObjectDataList commonObjectDataList = {nullptr, rules[0].commonObjectData, nullptr};
-        IndicesForDrawList indicesForDrawList = {std::vector<size_t>{}, rules[0].drawObjectIndices, std::vector<size_t>{}};
+        DrawObjRefsForDrawList refsForDrawList = {std::vector<DrawObjReference>{}, rules[0].drawObjectIndices, std::vector<DrawObjReference>{}};
         rules[0].renderDetails->preMainDraw(
-                0, commonObjectDataList, drawObjTableList, indicesForDrawList);
+                0, commonObjectDataList, drawObjTableList, refsForDrawList);
 
         graphicsGL::Framebuffer::ColorImageFormat colorImageFormat{GL_RGBA32UI, GL_RGBA_INTEGER,
                                                                    GL_UNSIGNED_INT};

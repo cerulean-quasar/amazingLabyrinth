@@ -230,6 +230,23 @@ namespace objectWithShadows {
             m_uniformBuffer->copyRawTo(&ubo, sizeof (ubo));
         }
 
+        bool updateTextureData(
+                std::shared_ptr<renderDetails::CommonObjectData> const &commonObjectData,
+                std::shared_ptr<levelDrawer::TextureDataVulkan> const &textureData) override
+        {
+            if (m_hasTexture && textureData) {
+                auto cod = std::dynamic_pointer_cast<CommonObjectDataVulkan>(commonObjectData);
+                if (cod == nullptr) {
+                    return false;
+                }
+                textureUpdateDescriptorSet(m_descriptorSet->device(), cod, textureData);
+            } else if (!m_hasTexture && !textureData) {
+                // no need to update the descriptor set, but return true since the update is successful
+                return true;
+            }
+            return false;
+        }
+
         std::shared_ptr<vulkan::Buffer> const &bufferModelMatrix() override {
             return m_uniformBuffer;
         }
@@ -326,7 +343,7 @@ namespace objectWithShadows {
                 size_t descriptorSetID,
                 std::shared_ptr<renderDetails::CommonObjectData> const &commonObjectData,
                 std::shared_ptr<renderDetails::DrawObjectTableVulkan> const &drawObjTable,
-                std::vector<size_t> const &drawObjectsIndices) override;
+                std::vector<renderDetails::DrawObjReference> const &drawObjRefs) override;
 
         void reload(
                 std::shared_ptr<GameRequester> const &gameRequester,

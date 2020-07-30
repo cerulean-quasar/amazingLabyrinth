@@ -39,8 +39,8 @@ namespace openArea {
         glm::vec3 holePosition;
 
         /* The object index for drawing the ball - needed to update the ball's location. */
-        size_t m_objIndexBall;
-        size_t m_objDataIndexBall;
+        levelDrawer::DrawObjReference m_objRefBall;
+        levelDrawer::DrawObjDataReference m_objDataRefBall;
 
         glm::mat4 modelMatrixHole;
         glm::mat4 modelMatrixBall;
@@ -95,14 +95,14 @@ namespace openArea {
             m_levelDrawer.setClearColor(glm::vec4{0.0f, 0.0f, 0.0f, 1.0f});
 
             // the ball
-            m_objIndexBall = m_levelDrawer.addObject(
+            m_objRefBall = m_levelDrawer.addObject(
                     std::make_shared<levelDrawer::ModelDescriptionPath>(m_ballModel),
                     std::make_shared<levelDrawer::TextureDescriptionPath>(m_ballTexture));
 
-            m_objDataIndexBall = m_levelDrawer.addModelMatrixForObject(m_objIndexBall, modelMatrixBall);
+            m_objDataRefBall = m_levelDrawer.addModelMatrixForObject(m_objRefBall, modelMatrixBall);
 
             // the hole
-            size_t objIndexHole = m_levelDrawer.addObject(
+            auto objIndexHole = m_levelDrawer.addObject(
                     std::make_shared<levelDrawer::ModelDescriptionQuad>(),
                     std::make_shared<levelDrawer::TextureDescriptionPath>(lcd->holeTexture));
 

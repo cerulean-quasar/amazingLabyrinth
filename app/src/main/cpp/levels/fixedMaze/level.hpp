@@ -78,8 +78,8 @@ namespace fixedMaze {
         float m_minSpeedOnObjBounce;
         Random m_randomNbrs;
 
-        size_t m_objIndexBall;
-        size_t m_objDataIndexBall;
+        levelDrawer::DrawObjReference m_objRefBall;
+        levelDrawer::DrawObjDataReference m_objDataRefBall;
 
         size_t getXCell(float x);
 

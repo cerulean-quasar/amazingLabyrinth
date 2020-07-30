@@ -112,7 +112,7 @@ namespace depthMap {
             uint32_t modelMatrixID,
             std::shared_ptr<renderDetails::CommonObjectData> const &commonObjectData,
             std::shared_ptr<renderDetails::DrawObjectTableGL> const &drawObjTable,
-            std::vector<size_t> const &drawObjectsIndices)
+            std::vector<renderDetails::DrawObjReference> const &drawObjRefs)
     {
         // set the shader to use
         glUseProgram(m_depthProgramID);
@@ -120,7 +120,7 @@ namespace depthMap {
         glCullFace(GL_BACK);
         checkGraphicsError();
 
-        if (drawObjectsIndices.empty() ||
+        if (drawObjRefs.empty() ||
             drawObjTable == nullptr ||
             commonObjectData == nullptr)
         {
@@ -156,8 +156,8 @@ namespace depthMap {
         MatrixID = glGetUniformLocation(m_depthProgramID, "model");
         checkGraphicsError();
 
-        for (auto drawObjIndex : drawObjectsIndices) {
-            auto drawObj = drawObjTable->drawObject(drawObjIndex);
+        for (auto drawObjRef : drawObjRefs) {
+            auto drawObj = drawObjTable->drawObject(drawObjRef);
             auto modelData = drawObj->modelData();
 
             size_t nbrObjData = drawObj->numberObjectsData();

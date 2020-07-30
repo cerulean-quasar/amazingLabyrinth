@@ -102,7 +102,7 @@ namespace shadows {
                 uint32_t modelMatrixID,
                 std::shared_ptr<renderDetails::CommonObjectData> const &commonObjectData,
                 std::shared_ptr<renderDetails::DrawObjectTableGL> const &drawObjTable,
-                std::vector<size_t> const &drawObjectsIndices) override;
+                std::vector<renderDetails::DrawObjReference> const &drawObjectsIndices) override;
 
         RenderDetailsGL(std::shared_ptr<GameRequester> const &inGameRequester,
                         uint32_t inWidth, uint32_t inHeight);

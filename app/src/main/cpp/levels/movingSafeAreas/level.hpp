@@ -87,12 +87,12 @@ namespace movingSafeAreas {
         std::vector<MovingQuadRow> m_movingQuads;
 
         // indices to identify the ball for moving
-        size_t m_objIndexBall;
-        size_t m_objDataIndexBall;
+        levelDrawer::DrawObjReference m_objRefBall;
+        levelDrawer::DrawObjDataReference m_objDataRefBall;
 
         // indices to identify the moving quads
-        std::vector<size_t> m_objIndicesQuad;
-        std::vector<std::vector<size_t>> m_objDataIndicesQuad;
+        std::vector<levelDrawer::DrawObjReference> m_objRefQuad;
+        std::vector<std::vector<levelDrawer::DrawObjDataReference>> m_objDataRefQuad;
 
         bool ballOnQuad(glm::vec3 const &centerPos, float xSize);
 
@@ -183,9 +183,9 @@ namespace movingSafeAreas {
                 objIndex = m_levelDrawer.addObject(
                         std::make_shared<levelDrawer::ModelDescriptionQuad>(),
                         std::make_shared<levelDrawer::TextureDescriptionPath>(texture));
-                m_objIndicesQuad.push_back(objIndex);
+                m_objRefQuad.push_back(objIndex);
             }
-            m_objDataIndicesQuad.resize(m_middleQuadTextures.size());
+            m_objDataRefQuad.resize(m_middleQuadTextures.size());
 
             size_t nbrRowsForTexture = m_movingQuads.size() / m_middleQuadTextures.size();
             size_t leftover = m_movingQuads.size() % m_middleQuadTextures.size();
@@ -202,21 +202,21 @@ namespace movingSafeAreas {
 
                 for (auto const &movingQuadPos : movingQuadRow.positions) {
                     auto objDataIndex = m_levelDrawer.addModelMatrixForObject(
-                            m_objIndicesQuad[textureNumber],
+                            m_objRefQuad[textureNumber],
                             glm::translate(glm::mat4(1.0f), movingQuadPos) *
                             glm::scale(glm::mat4(1.0f), movingQuadRow.scale));
-                    m_objDataIndicesQuad[textureNumber].push_back(objDataIndex);
+                    m_objDataRefQuad[textureNumber].push_back(objDataIndex);
                 }
                 i++;
             }
 
             // the ball
-            m_objIndexBall = m_levelDrawer.addObject(
+            m_objRefBall = m_levelDrawer.addObject(
                     std::make_shared<levelDrawer::ModelDescriptionPath>(m_ballModel),
                     std::make_shared<levelDrawer::TextureDescriptionPath>(m_ballTexture));
 
-            m_objDataIndexBall = m_levelDrawer.addModelMatrixForObject(
-                    m_objIndexBall,
+            m_objDataRefBall = m_levelDrawer.addModelMatrixForObject(
+                    m_objRefBall,
                     glm::translate(glm::mat4(1.0f), m_ball.position) *
                     glm::mat4_cast(m_ball.totalRotated) *
                     ballScaleMatrix());

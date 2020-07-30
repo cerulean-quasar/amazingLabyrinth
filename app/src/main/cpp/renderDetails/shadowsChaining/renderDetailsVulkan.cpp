@@ -119,7 +119,7 @@ namespace shadowsChaining {
             size_t /* descriptor set ID, not used */,
             renderDetails::CommonObjectDataList const &commonObjectDataList,
             renderDetails::DrawObjectTableVulkanList const &drawObjTableList,
-            renderDetails::IndicesForDrawList const &drawObjectsIndicesList)
+            renderDetails::DrawObjRefsForDrawList const &DrawObjRefsList)
     {
         // The shadows rendering needs to occur before the main render pass.
 
@@ -155,7 +155,7 @@ namespace shadowsChaining {
                 1 /* shadows ID */,
                 commonObjectDataList[levelDrawer::ObjectType::LEVEL],
                 drawObjTableList[levelDrawer::ObjectType::LEVEL],
-                drawObjectsIndicesList[levelDrawer::ObjectType::LEVEL]);
+                DrawObjRefsList[levelDrawer::ObjectType::LEVEL]);
 
         vkCmdEndRenderPass(commandBuffer);
     }
@@ -165,11 +165,11 @@ namespace shadowsChaining {
             size_t /* unused descriptor set ID */,
             std::shared_ptr<renderDetails::CommonObjectData> const &commonObjectData,
             std::shared_ptr<renderDetails::DrawObjectTableVulkan> const &drawObjTable,
-            std::vector<size_t> const &drawObjectsIndices)
+            std::vector<renderDetails::DrawObjReference> const &drawObjRefs)
     {
         m_objectWithShadowsRenderDetails->addDrawCmdsToCommandBuffer(
                 commandBuffer, 0 /* main render details ID */, commonObjectData,
-                drawObjTable, drawObjectsIndices);
+                drawObjTable, drawObjRefs);
     }
 
     renderDetails::ReferenceVulkan RenderDetailsVulkan::createReference(

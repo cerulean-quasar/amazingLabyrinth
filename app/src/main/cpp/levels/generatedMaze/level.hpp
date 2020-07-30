@@ -68,8 +68,8 @@ namespace generatedMaze {
         glm::mat4 modelMatrixBall;
 
         // the indices stating how to identify the ball object
-        size_t m_objIndexBall;
-        size_t m_objDataIndexBall;
+        levelDrawer::DrawObjReference m_objRefBall;
+        levelDrawer::DrawObjDataReference m_objDataRefBall;
 
         std::vector<uint32_t> m_wallTextureIndices;
 
@@ -195,11 +195,11 @@ namespace generatedMaze {
             }
 
             // the ball
-            m_objIndexBall = m_levelDrawer.addObject(
+            m_objRefBall = m_levelDrawer.addObject(
                     std::make_shared<levelDrawer::ModelDescriptionPath>(m_ballModel),
                     std::make_shared<levelDrawer::TextureDescriptionPath>(m_ballTexture));
 
-            m_objDataIndexBall = m_levelDrawer.addModelMatrixForObject(m_objIndexBall, modelMatrixBall);
+            m_objDataRefBall = m_levelDrawer.addModelMatrixForObject(m_objRefBall, modelMatrixBall);
         }
 
         void preGenerate() {

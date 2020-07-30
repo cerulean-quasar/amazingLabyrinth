@@ -112,12 +112,12 @@ namespace collectMaze {
                                            glm::vec3{collectBallScaleFactor, collectBallScaleFactor,
                                                      collectBallScaleFactor});
 
-        if (m_collectionObjectLocations.size() != m_objDataIndicesCollect.size()) {
+        if (m_collectionObjectLocations.size() != m_objDataRefCollect.size()) {
             throw std::runtime_error("Invalid number of collection objects");
         }
 
         for (size_t i = 0; i < m_collectionObjectLocations.size(); i++) {
-            m_levelDrawer.updateModelMatrixForObject(m_objIndexCollect, m_objDataIndicesCollect[i],
+            m_levelDrawer.updateModelMatrixForObject(m_objRefCollect, m_objDataRefCollect[i],
                     glm::translate(glm::mat4(1.0f), m_collectionObjectLocations[i].second) *
                     glm::mat4_cast(m_ball.totalRotated) *
                     scaleMatrix);

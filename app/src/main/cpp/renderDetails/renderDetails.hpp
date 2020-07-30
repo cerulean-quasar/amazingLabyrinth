@@ -212,8 +212,10 @@ namespace renderDetails {
         uint32_t m_surfaceHeight;
     };
 
+    // todo: fix these redefinitions
     static size_t constexpr const nbrDrawObjectTables = 3;
-    using IndicesForDrawList = std::array<std::vector<size_t>, nbrDrawObjectTables>;
+    using DrawObjReference = uint64_t;
+    using DrawObjRefsForDrawList = std::array<std::vector<DrawObjReference>, nbrDrawObjectTables>;
     using CommonObjectDataList = std::array<std::shared_ptr<CommonObjectData>, nbrDrawObjectTables>;
 }
 #endif // AMAZING_LABYRINTH_RENDER_DETAILS_HPP

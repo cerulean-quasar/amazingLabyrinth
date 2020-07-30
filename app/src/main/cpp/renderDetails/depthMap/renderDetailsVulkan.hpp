@@ -261,7 +261,7 @@ namespace depthMap {
                 size_t descriptorSetID,
                 std::shared_ptr<renderDetails::CommonObjectData> const &commonObjectData,
                 std::shared_ptr<renderDetails::DrawObjectTableVulkan> const &drawObjTable,
-                std::vector<size_t> const &drawObjectsIndices) override;
+                std::vector<renderDetails::DrawObjReference> const &drawObjRefs) override;
 
         void reload(
                 std::shared_ptr<GameRequester> const &gameRequester,

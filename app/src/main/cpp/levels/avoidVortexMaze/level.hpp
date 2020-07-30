@@ -66,11 +66,11 @@ namespace avoidVortexMaze {
                 generateAvoidModelMatrices(lcd->numberAvoidObjects);
             }
 
-            auto objIndex = m_levelDrawer.addObject(std::make_shared<levelDrawer::ModelDescriptionQuad>(),
+            auto objRef = m_levelDrawer.addObject(std::make_shared<levelDrawer::ModelDescriptionQuad>(),
                     std::make_shared<levelDrawer::TextureDescriptionPath>(m_avoidObjTexture));
 
             for (auto const &item : m_avoidObjectLocations) {
-                m_levelDrawer.addModelMatrixForObject(objIndex,
+                m_levelDrawer.addModelMatrixForObject(objRef,
                         glm::translate(glm::mat4(1.0f), item) * scaleBall);
             }
         }

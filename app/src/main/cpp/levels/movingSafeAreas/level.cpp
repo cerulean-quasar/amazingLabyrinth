@@ -152,18 +152,18 @@ namespace movingSafeAreas {
     bool Level::updateDrawObjects() {
         // the ball
         m_levelDrawer.updateModelMatrixForObject(
-                m_objIndexBall,
-                m_objDataIndexBall,
+                m_objRefBall,
+                m_objDataRefBall,
                 glm::translate(glm::mat4(1.0f), m_ball.position) *
                                           glm::mat4_cast(m_ball.totalRotated) *
                                           ballScaleMatrix());
 
         // the moving quads
-        for (size_t i = 0; i < m_objDataIndicesQuad.size(); i++) {
-            for (size_t j = 0; j < m_objDataIndicesQuad[i].size(); j++) {
+        for (size_t i = 0; i < m_objDataRefQuad.size(); i++) {
+            for (size_t j = 0; j < m_objDataRefQuad[i].size(); j++) {
                 m_levelDrawer.updateModelMatrixForObject(
-                        m_objIndicesQuad[i],
-                        m_objDataIndicesQuad[i][j],
+                        m_objRefQuad[i],
+                        m_objDataRefQuad[i][j],
                         glm::translate(glm::mat4(1.0f), m_movingQuads[i].positions[j]) *
                         glm::scale(glm::mat4(1.0f), m_movingQuads[i].scale));
             }

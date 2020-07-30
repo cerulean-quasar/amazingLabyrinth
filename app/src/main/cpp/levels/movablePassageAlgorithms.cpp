@@ -296,13 +296,13 @@ boost::optional<ObjReference> addModelMatrixToObj(
         // have an objIndex yet.  This could happen if we were restoring from save.
         auto placementRef = component->placement(placementIndex).objReference();
         if (placementRef != boost::none) {
-            if (placementRef.get().objIndex != boost::none) {
-                levelDrawer.addModelMatrixForObject(placementRef.get().objIndex.get(), modelMatrix);
+            if (placementRef.get().objRef != boost::none) {
+                levelDrawer.addModelMatrixForObject(placementRef.get().objRef.get(), modelMatrix);
                 return placementRef;
             }
             auto it = refs.find(placementRef.get());
             if (it != refs.end()) {
-                levelDrawer.addModelMatrixForObject(it->objIndex.get(), modelMatrix);
+                levelDrawer.addModelMatrixForObject(it->objRef.get(), modelMatrix);
                 component->placement(placementIndex).setObjReference(*it);
                 return *it;
             }
@@ -323,8 +323,8 @@ boost::optional<ObjReference> addModelMatrixToObj(
     size_t j = 0;
     for (auto const &ref : refs) {
         if (i == j) {
-            auto objDataIndex = levelDrawer.addModelMatrixForObject(ref.objIndex.get(), modelMatrix);
-            levelDrawer.updateModelMatrixForObject(ref.objIndex.get(), objDataIndex, modelMatrix);
+            auto objDataIndex = levelDrawer.addModelMatrixForObject(ref.objRef.get(), modelMatrix);
+            levelDrawer.updateModelMatrixForObject(ref.objRef.get(), objDataIndex, modelMatrix);
             if (component) {
                 component->placement(placementIndex).setObjReference(ref);
             }

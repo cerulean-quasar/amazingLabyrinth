@@ -324,11 +324,11 @@ namespace rotatablePassage {
         }
 
         // the ball
-        m_objIndexBall = m_levelDrawer.addObject(
+        m_objRefBall = m_levelDrawer.addObject(
                 std::make_shared<levelDrawer::ModelDescriptionPath>(m_ballModel),
                 std::make_shared<levelDrawer::TextureDescriptionPath>(m_ballTexture));
-        m_objDataIndexBall = m_levelDrawer.addModelMatrixForObject(
-                m_objIndexBall,
+        m_objDataRefBall = m_levelDrawer.addModelMatrixForObject(
+                m_objRefBall,
                 glm::translate(glm::mat4(1.0f), m_ball.position) *
                 glm::mat4_cast(m_ball.totalRotated) *
                 glm::scale(glm::mat4(1.0f), glm::vec3{m_scaleBall, m_scaleBall, m_scaleBall}));
@@ -373,7 +373,7 @@ namespace rotatablePassage {
         // the locked in place obj.
         auto nbrObjs = m_levelDrawer.numberObjects();
         for (size_t i = 0; i < nbrObjs; i++) {
-            if (i != m_objIndexBall) {
+            if (i != m_objRefBall) {
                 m_levelDrawer.resizeObjectsData(i, nbrModelMatrices[i]);
             }
         }

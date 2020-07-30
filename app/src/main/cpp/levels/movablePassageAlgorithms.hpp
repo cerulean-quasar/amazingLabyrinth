@@ -42,19 +42,19 @@
 // from the locked in place models/textures or the non-locked in place models/textures.
 // The objIsDynAndIndex indicates if it is a dynamic reference (true) and what the index is.
 struct ObjReference {
-    // The index used to identify the draw object.
-    boost::optional<size_t> objIndex;
+    // The reference used to identify the draw object.
+    boost::optional<levelDrawer::DrawObjReference> objRef;
 
     bool isLockedInPlaceRef;
     size_t modelIndex;
     size_t textureIndex;
 
     ObjReference(
-            size_t objIndex_,
+            levelDrawer::DrawObjReference objRef_,
             bool isLockedInPlaceRef_,
             size_t modelIndex_,
             size_t textureIndex_)
-            : objIndex{objIndex_},
+            : objRef{objRef_},
               isLockedInPlaceRef{isLockedInPlaceRef_},
               modelIndex{modelIndex_},
               textureIndex{textureIndex_}
@@ -64,14 +64,14 @@ struct ObjReference {
             bool isLockedInPlaceRef_,
             size_t modelIndex_,
             size_t textureIndex_)
-            : objIndex{boost::none},
+            : objRef{boost::none},
               isLockedInPlaceRef{isLockedInPlaceRef_},
               modelIndex{modelIndex_},
               textureIndex{textureIndex_}
     {}
 
     ObjReference()
-        : objIndex{boost::none},
+        : objRef{boost::none},
           isLockedInPlaceRef{false},
           modelIndex{0},
           textureIndex{0}

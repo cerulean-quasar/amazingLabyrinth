@@ -62,11 +62,11 @@ namespace starter {
 
         glm::vec3 textScale;
 
-        size_t m_objIndexBall;
-        size_t m_objDataIndexBall;
+        levelDrawer::DrawObjReference m_objRefBall;
+        levelDrawer::DrawObjDataReference m_objDataRefBall;
 
-        size_t m_objIndexTextBox;
-        size_t m_objDataIndexTextBox;
+        levelDrawer::DrawObjReference m_objRefTextBox;
+        levelDrawer::DrawObjDataReference m_objDataRefTextBox;
     public:
         static char constexpr const *m_name = "starter";
 
@@ -173,22 +173,22 @@ namespace starter {
                     glm::rotate(glm::mat4(1.0), glm::radians(90.0f), zaxis));
 
             // ball
-            m_objIndexBall = m_levelDrawer.addObject(
+            m_objRefBall = m_levelDrawer.addObject(
                     std::make_shared<levelDrawer::ModelDescriptionPath>(m_ballModel),
                     std::make_shared<levelDrawer::TextureDescriptionPath>(m_ballTexture));
 
             glm::mat4 modelMatrix = glm::translate(glm::mat4(1.0f), m_ball.position) *
                                    glm::mat4_cast(m_ball.totalRotated) *
                                    ballScaleMatrix();
-            m_objDataIndexBall = m_levelDrawer.addModelMatrixForObject(
+            m_objDataRefBall = m_levelDrawer.addModelMatrixForObject(
                     m_objIndexBall, modelMatrix);
 
             // the text box
-            m_objIndexTextBox = m_levelDrawer.addObject(
+            m_objRefTextBox = m_levelDrawer.addObject(
                     std::make_shared<levelDrawer::ModelDescriptionQuad>(),
                     std::make_shared<levelDrawer::TextureDescriptionText>(text[textIndex]));
 
-            m_objDataIndexTextBox = m_levelDrawer.addModelMatrixForObject(
+            m_objDataRefTextBox = m_levelDrawer.addModelMatrixForObject(
                     m_objIndexTextBox,
                     glm::translate(glm::mat4(1.0f), glm::vec3(-ballRadius(), 0.0f, m_mazeFloorZ)) *
                     glm::scale(glm::mat4(1.0f), textScale));

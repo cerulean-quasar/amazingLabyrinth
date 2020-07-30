@@ -34,6 +34,9 @@ namespace levelDrawer {
         FINISHER
     };
 
+    using DrawObjReference = uint64_t;
+    using DrawObjDataReference = uint64_t;
+
     class LevelDrawer {
     public:
         virtual void setClearColor(ObjectType type, glm::vec4 const &clearColor) = 0;
@@ -45,13 +48,13 @@ namespace levelDrawer {
         virtual void clearDrawObjectTable(ObjectType type) = 0;
 
         // returns index of new object
-        virtual size_t addObject(
+        virtual DrawObjReference addObject(
                 ObjectType type,
                 std::shared_ptr <ModelDescription> const &modelDescription,
                 std::shared_ptr <TextureDescription> const &textureDescription) = 0;
 
         // returns index of new object
-        virtual size_t addObject(
+        virtual DrawObjReference addObject(
                 ObjectType type,
                 std::shared_ptr <ModelDescription> const &modelDescription,
                 std::shared_ptr <TextureDescription> const &textureDescription,
@@ -59,23 +62,26 @@ namespace levelDrawer {
 
         virtual void removeObject(
                 ObjectType type,
-                size_t objIndex) = 0;
+                DrawObjReference objIndex) = 0;
 
         // returns index of new object data.
-        virtual size_t addModelMatrixForObject(
+        virtual DrawObjDataReference addModelMatrixForObject(
                 ObjectType type,
-                size_t objsIndex,
+                DrawObjReference drawObjReference,
                 glm::mat4 const &modelMatrix) = 0;
 
         virtual void updateModelMatrixForObject(
                 ObjectType type,
-                size_t objsIndex,
-                size_t objDataIndex,
+                DrawObjReference drawObjReference,
+                DrawObjDataReference objDataReference,
                 glm::mat4 const &modelMatrix) = 0;
 
-        virtual void resizeObjectsData(ObjectType type, size_t objsIndex, size_t newSize) = 0;
+        virtual void removeObjectData(
+                ObjectType type,
+                DrawObjReference drawObjReference,
+                DrawObjDataReference objDataReference) = 0;
 
-        virtual size_t numberObjectsDataForObject(ObjectType type, size_t objsIndex) = 0;
+        virtual size_t numberObjectsDataForObject(ObjectType type, DrawObjReference drawObjReference) = 0;
 
         virtual void requestRenderDetails(ObjectType type, std::string const &name) = 0;
 
@@ -115,43 +121,42 @@ namespace levelDrawer {
         }
 
         // returns index of new object
-        size_t addObject(
+        DrawObjReference addObject(
                 std::shared_ptr <ModelDescription> const &modelDescription,
                 std::shared_ptr <TextureDescription> const &textureDescription) {
             return m_levelDrawer->addObject(m_type, modelDescription, textureDescription);
         }
 
         // returns index of new object
-        size_t addObject(
+        DrawObjReference addObject(
                 std::shared_ptr <ModelDescription> const &modelDescription,
                 std::shared_ptr <TextureDescription> const &textureDescription,
                 std::string const &renderDetailsName) {
             return m_levelDrawer->addObject(m_type, modelDescription, textureDescription, renderDetailsName);
         }
 
-        void removeObject(size_t objIndex) {
-            m_levelDrawer->removeObject(m_type, objIndex);
+        void removeObject(DrawObjReference drawObjReference) {
+            m_levelDrawer->removeObject(m_type, drawObjReference);
         }
 
         // returns index of new object data.
-        size_t addModelMatrixForObject(size_t objIndex, glm::mat4 const &modelMatrix) {
-            return m_levelDrawer->addModelMatrixForObject(m_type, objIndex, modelMatrix);
+        DrawObjDataReference addModelMatrixForObject(DrawObjReference drawObjReference, glm::mat4 const &modelMatrix) {
+            return m_levelDrawer->addModelMatrixForObject(m_type, drawObjReference, modelMatrix);
         }
 
         void updateModelMatrixForObject(size_t objIndex, size_t objDataIndex, glm::mat4 const &modelMatrix) {
             m_levelDrawer->updateModelMatrixForObject(m_type, objIndex, objDataIndex, modelMatrix);
         }
 
-        // resize:  trim off back if newSize is smaller than current size,
-        //          add glm::mat4(1.0f) to the back if larger than current size.
-        void resizeObjectsData(size_t objsIndex, size_t newSize) {
-            m_levelDrawer->resizeObjectsData(m_type, objsIndex,newSize);
+        void removeObjectData(DrawObjReference drawObjReference, DrawObjDataReference objDataReference)
+        {
+            m_levelDrawer->removeObjectData(m_type, drawObjReference, objDataReference);
         }
 
         // returns the number of object positions for an object with a specific
         // model and texture.
-        size_t numberObjectsDataForObject(size_t objsIndex) {
-            return m_levelDrawer->numberObjectsDataForObject(m_type, objsIndex);
+        size_t numberObjectsDataForObject(DrawObjReference drawObjReference) {
+            return m_levelDrawer->numberObjectsDataForObject(m_type, drawObjReference);
         }
 
         // request a global render details for this level.  Can be overridden by particular

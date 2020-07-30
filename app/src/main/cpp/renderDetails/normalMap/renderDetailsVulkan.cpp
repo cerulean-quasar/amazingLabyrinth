@@ -84,7 +84,7 @@ namespace normalMap {
             size_t descriptorSetID,
             std::shared_ptr<renderDetails::CommonObjectData> const &,
             std::shared_ptr<renderDetails::DrawObjectTableVulkan> const &drawObjTable,
-            std::vector<size_t> const &drawObjectsIndices)
+            std::vector<renderDetails::DrawObjReference> const &drawObjRefs)
     {
         /* bind the graphics pipeline to the command buffer, the second parameter tells Vulkan
          * that we are binding to a graphics pipeline.
@@ -94,7 +94,7 @@ namespace normalMap {
 
         initializeCommandBufferDrawObjects(
                 DrawIfHasTexture::BOTH, descriptorSetID, m_pipeline,
-                commandBuffer, drawObjTable, drawObjectsIndices, true);
+                commandBuffer, drawObjTable, drawObjRefs, true);
     }
 
     renderDetails::ReferenceVulkan RenderDetailsVulkan::createReference(

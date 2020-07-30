@@ -42,7 +42,7 @@ namespace levelDrawer {
 
         using DrawObjectTableList =
             std::array<std::shared_ptr<typename traits::DrawObjectTableType>, m_numberDrawObjectTables>;
-        using IndicesForDrawList = std::array<std::vector<size_t>, m_numberDrawObjectTables>;
+        using DrawObjRefsForDrawList = std::array<std::vector<DrawObjReference>, m_numberDrawObjectTables>;
         using CommonObjectDataList =
             std::array<std::shared_ptr<typename traits::CommonObjectDataType>, m_numberDrawObjectTables>;
 
@@ -66,7 +66,7 @@ namespace levelDrawer {
             }
         }
 
-        size_t addObject(
+        DrawObjReference addObject(
                 ObjectType type,
                 std::shared_ptr<ModelDescription> const &modelDescription,
                 std::shared_ptr<TextureDescription> const &textureDescription) override
@@ -83,7 +83,7 @@ namespace levelDrawer {
 
         }
 
-        size_t addObject(
+        DrawObjReference addObject(
                 ObjectType type,
                 std::shared_ptr<ModelDescription> const &modelDescription,
                 std::shared_ptr<TextureDescription> const &textureDescription,
@@ -107,14 +107,18 @@ namespace levelDrawer {
 
         void removeObject(
                 ObjectType type,
-                size_t objIndex) override
+                DrawObjReference drawObjReference) override
         {
-            m_drawObjectTableList[type]->removeObject(objIndex);
+            m_drawObjectTableList[type]->removeObject(drawObjReference);
         }
 
-        size_t addModelMatrixForObject(ObjectType type, size_t objsIndex, glm::mat4 const &modelMatrix) override {
-            auto const &drawObjTable = m_drawObjectTableList[type];
-            return addModelMatrixToDrawObjTable(drawObjTable, objsIndex, modelMatrix);
+        DrawObjDataReference addModelMatrixForObject(
+                ObjectType type,
+                DrawObjReference drawObjReference,
+                glm::mat4 const &modelMatrix) override
+        {
+            return addModelMatrixToDrawObjTable(
+                    m_drawObjectTableList[type], drawObjReference, modelMatrix);
         }
 
         void updateModelMatrixForObject(
@@ -126,41 +130,22 @@ namespace levelDrawer {
             m_drawObjectTableList[type]->updateObjectData(objIndex, objDataIndex, modelMatrix);
         }
 
-        void resizeObjectsData(ObjectType type, size_t objsIndex, size_t newSize) override {
-            auto drawObj = m_drawObjectTableList[type]->drawObject(objsIndex);
-
-            size_t nbrObjsData = drawObj->numberObjectsData();
-            if (nbrObjsData == newSize) {
-                return;
-            } else if (nbrObjsData > newSize) {
-                drawObj->trimBack(newSize);
-                return;
-            }
-
-            auto overridingRef = drawObj->renderDetailsReference();
-            auto globalRef = m_drawObjectTableList[type]->renderDetailsReference();
-
-            std::shared_ptr<typename traits::TextureDataType> textureData = drawObj->textureData();
-            // we need to add new objects data.
-            while (nbrObjsData < newSize) {
-                std::shared_ptr<typename traits::DrawObjectDataType> objData;
-                if (overridingRef.renderDetails != nullptr) {
-                    objData = overridingRef.createDrawObjectData(nullptr, textureData, glm::mat4(1.0f));
-                } else {
-                    objData = globalRef.createDrawObjectData(nullptr, textureData, glm::mat4(1.0f));
-                }
-                drawObj->addObjectData(objData);
-                nbrObjsData++;
-            }
+        void removeObjectData(
+                ObjectType type,
+                DrawObjReference objRef,
+                DrawObjDataReference objDataRef)
+        {
+            m_drawObjectTableList[type]->removeObjectData(objRef, objDataRef);
         }
 
-        size_t numberObjectsDataForObject(ObjectType type, size_t objsIndex) override {
-            return m_drawObjectTableList[type]->numberObjectsDataForObject(objsIndex);
+        size_t numberObjectsDataForObject(ObjectType type, DrawObjReference drawObjReference) override {
+            return m_drawObjectTableList[type]->numberObjectsDataForObject(drawObjReference);
         }
 
         void requestRenderDetails(ObjectType type, std::string const &name) override {
-            m_drawObjectTableList[type]->loadRenderDetails(m_renderLoader->load(m_gameRequester, name,
-                    m_gameRequester->getParametersForRenderDetailsName(name.c_str())));
+            m_drawObjectTableList[type]->loadRenderDetails(
+                    m_renderLoader->load(m_gameRequester, name,
+                        m_gameRequester->getParametersForRenderDetailsName(name.c_str())));
         }
 
         std::pair<glm::mat4, glm::mat4> getProjectionView(ObjectType type) override {
@@ -201,7 +186,7 @@ namespace levelDrawer {
         struct DrawRules {
             std::shared_ptr<typename traits::RenderDetailsType> renderDetails;
             std::array<std::shared_ptr<typename traits::CommonObjectDataType>, m_numberDrawObjectTables> commonObjectData;
-            std::array<std::vector<size_t>, m_numberDrawObjectTables> indicesPerLevelType;
+            std::array<std::vector<DrawObjReference>, m_numberDrawObjectTables> drawObjRefs;
         };
 
         typename traits::ModelTableType m_modelTable;
@@ -212,7 +197,7 @@ namespace levelDrawer {
         typename traits::NeededForDrawingType m_neededForDrawing;
         glm::vec4 m_bgColor;
 
-        size_t addModelMatrixToDrawObjTable(
+        DrawObjReference addModelMatrixToDrawObjTable(
                 std::shared_ptr<typename traits::DrawObjectTableType> const &drawObjTable,
                 size_t objsIndex,
                 glm::mat4 const &modelMatrix)
@@ -237,9 +222,7 @@ namespace levelDrawer {
                 objData = ref.createDrawObjectData(nullptr, textureData, modelMatrix);
             }
 
-            drawObj->addObjectData(objData);
-
-            return drawObj->numberObjectsData() - 1;
+            return drawObj->addObjectData(objData);
         }
 
         std::vector<DrawRules> getDrawRules() {
@@ -249,12 +232,12 @@ namespace levelDrawer {
 
                 for (auto const &rule : rules) {
                     std::array<std::shared_ptr<renderDetails::CommonObjectData>, m_numberDrawObjectTables> codList{};
-                    std::array<std::vector<size_t>, m_numberDrawObjectTables> indicesList{};
+                    std::array<std::vector<DrawObjReference>, m_numberDrawObjectTables> indicesList{};
                     auto insertResult = rulesGroup.emplace(rule.renderDetails->nameString(),
                             DrawRules{rule.renderDetails, codList, indicesList});
 
                     insertResult.first->second.commonObjectData[i] = rule.commonObjectData;
-                    insertResult.first->second.indicesPerLevelType[i] = rule.drawObjectIndices;
+                    insertResult.first->second.drawObjRefs[i] = rule.drawObjectIndices;
                 }
             }
 

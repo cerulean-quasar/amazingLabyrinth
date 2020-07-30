@@ -55,8 +55,8 @@ namespace avoidVortexOpenArea {
         std::vector<glm::vec3> vortexPositions;
 
         /* The object index for drawing the ball - needed to update the ball's location. */
-        size_t m_objIndexBall;
-        size_t m_objDataIndexBall;
+        levelDrawer::DrawObjReference m_objRefBall;
+        levelDrawer::DrawObjDataReference m_objDataRefBall;
 
         glm::mat4 modelMatrixHole;
         glm::mat4 modelMatrixBall;
@@ -126,31 +126,31 @@ namespace avoidVortexOpenArea {
             postGenerate();
             generateModelMatrices();
 
-            auto objIndexHole = m_levelDrawer.addObject(
+            auto objRefHole = m_levelDrawer.addObject(
                     std::make_shared<levelDrawer::ModelDescriptionQuad>(),
                     std::make_shared<levelDrawer::TextureDescriptionPath>(lcd->holeTexture));
 
-            m_levelDrawer.addModelMatrixForObject(objIndexHole, modelMatrixHole);
+            m_levelDrawer.addModelMatrixForObject(objRefHole, modelMatrixHole);
 
-            auto objIndexVortex = m_levelDrawer.addObject(
+            auto objRefVortex = m_levelDrawer.addObject(
                     std::make_shared<levelDrawer::ModelDescriptionQuad>(),
                     std::make_shared<levelDrawer::TextureDescriptionPath>(lcd->vortexTexture));
 
             for (auto const &modelMatrixVortex : modelMatrixVortexes) {
-                m_levelDrawer.addModelMatrixForObject(objIndexVortex, modelMatrixVortex);
+                m_levelDrawer.addModelMatrixForObject(objRefVortex, modelMatrixVortex);
             }
 
-            auto objIndexStartVortex = m_levelDrawer.addObject(
+            auto objRefStartVortex = m_levelDrawer.addObject(
                     std::make_shared<levelDrawer::ModelDescriptionQuad>(),
                     std::make_shared<levelDrawer::TextureDescriptionPath>(lcd->startVortexTexture));
 
-            m_levelDrawer.addModelMatrixForObject(objIndexStartVortex, modelMatrixStartVortex);
+            m_levelDrawer.addModelMatrixForObject(objRefStartVortex, modelMatrixStartVortex);
 
-            m_objIndexBall = m_levelDrawer.addObject(
+            m_objRefBall = m_levelDrawer.addObject(
                     std::make_shared<levelDrawer::ModelDescriptionPath>(m_ballModel),
                     std::make_shared<levelDrawer::TextureDescriptionPath>(m_ballTexture));
 
-            m_objDataIndexBall = m_levelDrawer.addModelMatrixForObject(m_objIndexBall, modelMatrixBall);
+            m_objDataRefBall = m_levelDrawer.addModelMatrixForObject(m_objRefBall, modelMatrixBall);
         }
 
         ~Level() override = default;

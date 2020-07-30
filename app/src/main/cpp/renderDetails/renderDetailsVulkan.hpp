@@ -59,6 +59,18 @@ namespace renderDetails {
     public:
         virtual bool hasTexture() = 0;
 
+        virtual bool updateTextureData(
+                std::shared_ptr<CommonObjectData> const &commonObjectData,
+                std::shared_ptr<levelDrawer::TextureDataVulkan> const &textureData)
+        {
+            // The default behavior for this function should be that it fails (returns false).
+            // For certain Render Details, this function will succeed.  It means that it was
+            // possible to update the descriptor set with the new texture value making a change
+            // in texture possible without reallocating the descriptor or reallocating the memory
+            // for the uniform buffers used.
+            return false;
+        }
+
         virtual std::shared_ptr<vulkan::Buffer> const &bufferModelMatrix() = 0;
         virtual std::shared_ptr<vulkan::DescriptorSet> const &descriptorSet(uint32_t id) = 0;
 
@@ -74,7 +86,7 @@ namespace renderDetails {
                 size_t /* descriptor set ID, not used */,
                 CommonObjectDataList const &/* common object data */,
                 DrawObjectTableVulkanList const &/* draw object table */,
-                IndicesForDrawList const &/* draw indices */)
+                DrawObjRefsForDrawList const &/* draw indices */)
         {}
 
         // For postprocessing results written to an image buffer whose contents are put in input.
@@ -96,7 +108,7 @@ namespace renderDetails {
                 size_t descriptorSetID,
                 std::shared_ptr<CommonObjectData> const &commonObjectData,
                 std::shared_ptr<DrawObjectTableVulkan> const &drawObjTable,
-                std::vector<size_t> const &drawObjectsIndices) = 0;
+                std::vector<DrawObjReference> const &drawObjectRefs) = 0;
 
         enum DrawIfHasTexture {
             ONLY_IF_NO_TEXTURE,

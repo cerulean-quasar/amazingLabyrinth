@@ -64,7 +64,7 @@ namespace openArea {
     }
 
     bool Level::updateDrawObjects() {
-        m_levelDrawer.updateModelMatrixForObject(m_objIndexBall, m_objDataIndexBall, modelMatrixBall);
+        m_levelDrawer.updateModelMatrixForObject(m_objRefBall, m_objDataRefBall, modelMatrixBall);
         return true;
     }
 } // namespace openArea

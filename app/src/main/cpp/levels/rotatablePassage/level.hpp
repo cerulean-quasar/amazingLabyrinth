@@ -90,8 +90,8 @@ namespace rotatablePassage {
               m_ballCol{0},
               m_endRow{0},
               m_endCol{0},
-              m_objIndexBall{0},
-              m_objDataIndexBall{0},
+              m_objRefBall{0},
+              m_objDataRefBall{0},
               m_holeModel{lcd->holeModel},
               m_holeTexture{lcd->holeTexture}
         {
@@ -164,8 +164,8 @@ namespace rotatablePassage {
         uint32_t m_endRow;
         uint32_t m_endCol;
 
-        size_t m_objIndexBall;
-        size_t m_objDataIndexBall;
+        levelDrawer::DrawObjReference m_objRefBall;
+        levelDrawer::DrawObjDataReference m_objDataRefBall;
 
         std::string m_holeModel;
         std::string m_holeTexture;

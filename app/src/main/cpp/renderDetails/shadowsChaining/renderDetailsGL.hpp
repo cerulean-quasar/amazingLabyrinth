@@ -126,13 +126,13 @@ namespace shadowsChaining {
                 uint32_t modelMatrixID,
                 renderDetails::CommonObjectDataList const &commonObjectDataList,
                 renderDetails::DrawObjectTableGLList const &drawObjTableList,
-                renderDetails::IndicesForDrawList const &drawObjectsIndicesList) override;
+                renderDetails::DrawObjRefsForDrawList const &drawObjRefsList) override;
 
         void draw(
                 uint32_t modelMatrixID,
                 std::shared_ptr<renderDetails::CommonObjectData> const &commonObjectData,
                 std::shared_ptr<renderDetails::DrawObjectTableGL> const &drawObjTable,
-                std::vector<size_t> const &drawObjectsIndices) override;
+                std::vector<renderDetails::DrawObjReference> const &drawObjRefs) override;
 
         RenderDetailsGL(bool useIntTexture, uint32_t inWidth, uint32_t inHeight)
                 : renderDetails::RenderDetailsGL{inWidth, inHeight},

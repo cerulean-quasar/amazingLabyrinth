@@ -428,8 +428,8 @@ namespace fixedMaze {
     bool Level::updateDrawObjects() {
         /* ball */
         m_levelDrawer.updateModelMatrixForObject(
-                m_objIndexBall,
-                m_objDataIndexBall,
+                m_objRefBall,
+                m_objDataRefBall,
                 glm::translate(glm::mat4(1.0f), m_ball.position) *
                 glm::mat4_cast(m_ball.totalRotated) *
                 glm::scale(glm::mat4(1.0f), glm::vec3{m_scaleBall, m_scaleBall, m_scaleBall}));
@@ -580,19 +580,19 @@ namespace fixedMaze {
         m_ball.position.z += ballRadius();
 
         // add the ball object
-        m_objIndexBall = m_levelDrawer.addObject(
+        m_objRefBall = m_levelDrawer.addObject(
                 std::make_shared<levelDrawer::ModelDescriptionPath>(m_ballModel),
                 std::make_shared<levelDrawer::TextureDescriptionPath>(m_ballTexture));
 
-        m_objDataIndexBall = m_levelDrawer.addModelMatrixForObject(
-                m_objIndexBall,
+        m_objDataRefBall = m_levelDrawer.addModelMatrixForObject(
+                m_objRefBall,
                 glm::translate(glm::mat4(1.0f), m_ball.position) *
                 glm::mat4_cast(m_ball.totalRotated) *
                 glm::scale(glm::mat4(1.0f),
                         glm::vec3{m_scaleBall, m_scaleBall, m_scaleBall}));
 
         // the maze floor
-        auto objIndex = m_levelDrawer.addObject(
+        auto objRef = m_levelDrawer.addObject(
                 floorModelDesc,
                 std::make_shared<levelDrawer::TextureDescriptionPath>(m_floorTexture));
 
@@ -600,7 +600,7 @@ namespace fixedMaze {
                            glm::scale(glm::mat4(1.0f),glm::vec3{m_height / m_modelSize, m_height / m_modelSize, 1.0f}) *
                            glm::mat4_cast(glm::angleAxis(3.1415926f / 2.0f, glm::vec3(1.0f, 0.0f, 0.0f)));
 
-        m_levelDrawer.addModelMatrixForObject(objIndex, floorModelMatrix);
+        m_levelDrawer.addModelMatrixForObject(objRef, floorModelMatrix);
     }
 
 } // namespace fixedMaze

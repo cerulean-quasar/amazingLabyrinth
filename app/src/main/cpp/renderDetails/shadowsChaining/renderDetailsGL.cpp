@@ -152,7 +152,7 @@ namespace shadowsChaining {
             uint32_t /* unused matrix ID */,
             renderDetails::CommonObjectDataList const &commonObjectDataList,
             renderDetails::DrawObjectTableGLList const &drawObjTableList,
-            renderDetails::IndicesForDrawList const &drawObjectsIndicesList)
+            renderDetails::DrawObjRefsForDrawList const &drawObjectsIndicesList)
     {
         // get the shadows common object data
         auto codLevel = dynamic_cast<CommonObjectDataGL*>(
@@ -181,7 +181,7 @@ namespace shadowsChaining {
             uint32_t /* unused model matrix ID */,
             std::shared_ptr<renderDetails::CommonObjectData> const &commonObjectData,
             std::shared_ptr<renderDetails::DrawObjectTableGL> const &drawObjTable,
-            std::vector<size_t> const &drawObjectsIndices)
+            std::vector<renderDetails::DrawObjReference> const &drawObjectsIndices)
     {
         // get the shadows common object data
         auto cod = dynamic_cast<CommonObjectDataGL*>(commonObjectData.get());

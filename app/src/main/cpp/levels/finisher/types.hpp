@@ -106,7 +106,8 @@ namespace manyQuadsCoverUp {
         static uint32_t constexpr totalNumberObjects =
                 totalNumberObjectsForSide * totalNumberObjectsForSide;
         std::list<glm::vec3> translateVectors;
-        std::vector<size_t> objIndices;
+        std::vector<levelDrawer::DrawObjReference> m_objRefs;
+        std::vector<std::vector<levelDrawer::DrawObjDataReference>> m_objDataRefs;
 
         // every timeThreshold, a new image appears, covering up the maze.
         static float constexpr timeThreshold = 0.05f;
@@ -145,8 +146,8 @@ namespace growingQuad {
 
         glm::vec3 transVector;
 
-        size_t m_objIndex;
-        size_t m_objDataIndex;
+        levelDrawer::DrawObjReference m_objRef;
+        levelDrawer::DrawObjDataReference m_objDataRef;
     public:
         static char constexpr const *m_name = "growingQuad";
         bool updateDrawObjects() override;

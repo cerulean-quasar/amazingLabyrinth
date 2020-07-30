@@ -102,9 +102,9 @@ namespace objectWithShadows {
             uint32_t modelMatrixID,
             std::shared_ptr<renderDetails::CommonObjectData> const &commonObjectData,
             std::shared_ptr<renderDetails::DrawObjectTableGL> const &drawObjTable,
-            std::vector<size_t> const &drawObjectsIndices)
+            std::vector<renderDetails::DrawObjReference> const &drawObjRefs)
     {
-        if (drawObjectsIndices.empty() ||
+        if (drawObjRefs.empty() ||
             drawObjTable == nullptr ||
             commonObjectData == nullptr) {
             return;
@@ -114,10 +114,10 @@ namespace objectWithShadows {
         checkGraphicsError();
 
         drawLevelType(m_textureProgramID, true, modelMatrixID,
-            commonObjectData, drawObjTable, drawObjectsIndices);
+            commonObjectData, drawObjTable, drawObjRefs);
 
         drawLevelType(m_colorProgramID, false, modelMatrixID,
-            commonObjectData, drawObjTable, drawObjectsIndices);
+            commonObjectData, drawObjTable, drawObjRefs);
     }
 
     void RenderDetailsGL::drawLevelType(
@@ -126,7 +126,7 @@ namespace objectWithShadows {
             uint32_t modelMatrixID,
             std::shared_ptr<renderDetails::CommonObjectData> const &commonObjectData,
             std::shared_ptr<renderDetails::DrawObjectTableGL> const &drawObjTable,
-            std::vector<size_t> const &drawObjectsIndices)
+            std::vector<renderDetails::DrawObjReference> const &drawObjRefs)
     {
         glUseProgram(programID);
         checkGraphicsError();
@@ -185,8 +185,8 @@ namespace objectWithShadows {
             checkGraphicsError();
         }
 
-        for (auto drawObjIndex : drawObjectsIndices) {
-            auto drawObj = drawObjTable->drawObject(drawObjIndex);
+        for (auto drawObjRef : drawObjRefs) {
+            auto drawObj = drawObjTable->drawObject(drawObjRef);
             auto modelData = drawObj->modelData();
             auto textureData = drawObj->textureData();
 

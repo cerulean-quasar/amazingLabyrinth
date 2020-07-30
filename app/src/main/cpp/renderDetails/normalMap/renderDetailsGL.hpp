@@ -121,7 +121,7 @@ namespace normalMap {
                 uint32_t modelMatrixID,
                 std::shared_ptr<renderDetails::CommonObjectData> const &commonObjectData,
                 std::shared_ptr<renderDetails::DrawObjectTableGL> const &drawObjTable,
-                std::vector<size_t> const &drawObjectsIndices) override;
+                std::vector<renderDetails::DrawObjReference> const &drawObjRefs) override;
 
         bool overrideClearColor(glm::vec4 &clearColor) override {
             clearColor = {0.5f, 0.5f, 1.0f, 1.0f};

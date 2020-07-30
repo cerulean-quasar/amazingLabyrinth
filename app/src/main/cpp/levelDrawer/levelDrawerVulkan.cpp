@@ -178,10 +178,10 @@ namespace levelDrawer {
         auto rules = drawObjTable->getDrawRules();
         DrawObjectTableList drawObjTableList = {nullptr, drawObjTable, nullptr};
         CommonObjectDataList commonObjectDataList = {nullptr, rules[0].commonObjectData, nullptr};
-        IndicesForDrawList indicesForDrawList = {std::vector<size_t>{}, rules[0].drawObjectIndices, std::vector<size_t>{}};
+        DrawObjRefsForDrawList drawObjRefsForDrawList = {std::vector<DrawObjReference>{}, rules[0].drawObjectIndices, std::vector<DrawObjReference>{}};
         rules[0].renderDetails->addPreRenderPassCmdsToCommandBuffer(
                 cmds.commandBuffer().get(), 0, commonObjectDataList, drawObjTableList,
-                indicesForDrawList);
+                drawObjRefsForDrawList);
 
         /* begin the render pass: drawing starts here*/
         VkRenderPassBeginInfo renderPassInfo = {};

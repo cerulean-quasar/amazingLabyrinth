@@ -114,21 +114,21 @@ namespace starter {
 
         // the ball
         m_levelDrawer.updateModelMatrixForObject(
-                m_objIndexBall,
-                m_objDataIndexBall,
+                m_objRefBall,
+                m_objDataRefBall,
                 glm::translate(glm::mat4(1.0f), m_ball.position) *
                 glm::mat4_cast(m_ball.totalRotated) * ballScaleMatrix());
 
         if (transitionText && !m_finished) {
             textIndex++;
 
-            m_levelDrawer.removeObject(m_objIndexTextBox);
-            m_objIndexTextBox = m_levelDrawer.addObject(
+            m_levelDrawer.removeObject(m_objRefTextBox);
+            m_objRefTextBox = m_levelDrawer.addObject(
                     std::make_shared<levelDrawer::ModelDescriptionQuad>(),
                     std::make_shared<levelDrawer::TextureDescriptionText>(text[textIndex]));
 
-            m_objDataIndexTextBox = m_levelDrawer.addModelMatrixForObject(
-                    m_objIndexTextBox,
+            m_objDataRefTextBox = m_levelDrawer.addModelMatrixForObject(
+                    m_objRefTextBox,
                     glm::translate(glm::mat4(1.0f), glm::vec3(-ballRadius(), 0.0f, m_mazeFloorZ)) *
                     glm::scale(glm::mat4(1.0f), textScale));
 

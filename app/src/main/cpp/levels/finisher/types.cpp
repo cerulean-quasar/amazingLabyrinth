@@ -77,12 +77,15 @@ namespace manyQuadsCoverUp {
                 return false;
             }
 
-            uint32_t i = random.getUInt(0, objIndices.size() - 1);
-            size_t nbrObjsData = m_levelDrawer.numberObjectsDataForObject(objIndices[i]);
-            m_levelDrawer.resizeObjectsData(objIndices[i], nbrObjsData -1);
+            uint32_t i = random.getUInt(0, m_objRefs.size() - 1);
+            size_t nbrObjsData = m_levelDrawer.numberObjectsDataForObject(m_objRefs[i]);
+            m_levelDrawer.removeObjectData(m_objRefs[i], m_objDataRefs[i][nbrObjsData-1]);
             if (--nbrObjsData == 0) {
-                m_levelDrawer.removeObject(objIndices[i]);
-                objIndices.erase(objIndices.begin() + i);
+                m_levelDrawer.removeObject(m_objRefs[i]);
+                m_objRefs.erase(m_objRefs.begin() + i);
+                m_objDataRefs.erase(m_objDataRefs.begin() + 1);
+            } else {
+                m_objDataRefs[i].pop_back();
             }
 
             totalNumberReturned --;
@@ -103,16 +106,18 @@ namespace manyQuadsCoverUp {
 
             // the first imagePaths.size() objects are the linear order of objects in imagePaths,
             // then a texture image is selected at random.
-            size_t index;
             if (totalNumberReturned < imagePaths.size()) {
                 auto model = std::make_shared<levelDrawer::ModelDescriptionQuad>();
                 auto texture = std::make_shared<levelDrawer::TextureDescriptionPath>(imagePaths[totalNumberReturned]);
-                auto objIndex = m_levelDrawer.addObject(model, texture);
-                objIndices.push_back(objIndex);
-                m_levelDrawer.addModelMatrixForObject(objIndex, trans * scale);
+                auto objRef = m_levelDrawer.addObject(model, texture);
+                m_objRefs.push_back(objRef);
+                auto objDataRef = m_levelDrawer.addModelMatrixForObject(objRef, trans * scale);
+                m_objDataRefs.push_back(std::vector<levelDrawer::DrawObjDataReference>{objDataRef});
             } else {
+                size_t index;
                 index = random.getUInt(0, imagePaths.size() - 1);
-                m_levelDrawer.addModelMatrixForObject(objIndices[index], trans * scale);
+                auto objDataRef = m_levelDrawer.addModelMatrixForObject(m_objRefs[index], trans * scale);
+                m_objDataRefs[index].push_back(objDataRef);
             }
 
             totalNumberReturned++;
@@ -132,18 +137,18 @@ namespace growingQuad {
               finalSize{1.5f * std::max(m_width, m_height)},
               minSize{0.005f * std::min(m_width, m_height)},
               imagePath{lcd->texture},
-              m_objIndex{0},
-              m_objDataIndex{0}
+              m_objRef{0},
+              m_objDataRef{0}
     {
         transVector = {m_centerX, m_centerY, maxZ};
         prevTime = std::chrono::high_resolution_clock::now();
         timeSoFar = 0.0f;
         scaleVector = {minSize, minSize, minSize};
-        m_objIndex = m_levelDrawer.addObject(
+        m_objRef = m_levelDrawer.addObject(
                 std::make_shared<levelDrawer::ModelDescriptionQuad>(),
                 std::make_shared<levelDrawer::TextureDescriptionPath>(imagePath));
-        m_objDataIndex = m_levelDrawer.addModelMatrixForObject(
-                m_objIndex,
+        m_objDataRef = m_levelDrawer.addModelMatrixForObject(
+                m_objRef,
                 glm::translate(glm::mat4(1.0f), transVector) *
                 glm::scale(glm::mat4(1.0f), scaleVector));
     }
@@ -181,8 +186,8 @@ namespace growingQuad {
             size = size + multiplier * timeSoFar / totalTime * (finalSize - minSize);
             scaleVector = {size, size, size};
             m_levelDrawer.updateModelMatrixForObject(
-                    m_objIndex,
-                    m_objDataIndex,
+                    m_objRef,
+                    m_objDataRef,
                     glm::translate(glm::mat4(1.0f), transVector) *
                     glm::scale(glm::mat4(1.0f), scaleVector));
 

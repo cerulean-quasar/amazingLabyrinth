@@ -393,11 +393,11 @@ namespace objectWithShadows {
             size_t descriptorSetID,
             std::shared_ptr<renderDetails::CommonObjectData> const &,
             std::shared_ptr<renderDetails::DrawObjectTableVulkan> const &drawObjTable,
-            std::vector<size_t> const &drawObjectsIndices)
+            std::vector<renderDetails::DrawObjReference> const &drawObjRefs)
     {
         // Objects with texture
         if (checkForObjects(DrawIfHasTexture::ONLY_IF_TEXTURE, drawObjTable,
-                            drawObjectsIndices))
+                            drawObjRefs))
         {
             /* bind the graphics pipeline to the command buffer, the second parameter tells Vulkan
              * that we are binding to a graphics pipeline.
@@ -407,19 +407,19 @@ namespace objectWithShadows {
 
             initializeCommandBufferDrawObjects(
                     DrawIfHasTexture::ONLY_IF_TEXTURE, descriptorSetID, m_pipelineTexture,
-                    commandBuffer, drawObjTable, drawObjectsIndices);
+                    commandBuffer, drawObjTable, drawObjRefs);
         }
 
         // Objects that just use vertex color.
         if (checkForObjects(DrawIfHasTexture::ONLY_IF_NO_TEXTURE, drawObjTable,
-                            drawObjectsIndices))
+                            drawObjRefs))
         {
             vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
                               m_pipelineColor->pipeline().get());
 
             initializeCommandBufferDrawObjects(
                     DrawIfHasTexture::ONLY_IF_NO_TEXTURE, descriptorSetID, m_pipelineTexture,
-                    commandBuffer, drawObjTable, drawObjectsIndices);
+                    commandBuffer, drawObjTable, drawObjRefs);
         }
     }
 

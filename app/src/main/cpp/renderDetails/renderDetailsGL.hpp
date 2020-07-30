@@ -62,6 +62,15 @@ namespace renderDetails {
     public:
         virtual glm::mat4 modelMatrix(uint32_t) = 0;
 
+        // no work is needed for this function in GL.  Just return true to indicate that it
+        // succeeded
+        virtual bool updateTextureData(
+                std::shared_ptr<CommonObjectData> const &commonObjectData,
+                std::shared_ptr<levelDrawer::TextureDataGL> const &textureData)
+        {
+            return true;
+        }
+
         ~DrawObjectDataGL() override = default;
     };
 
@@ -97,7 +106,7 @@ namespace renderDetails {
                 uint32_t,
                 CommonObjectDataList const &,
                 DrawObjectTableGLList const &,
-                IndicesForDrawList const &)
+                DrawObjRefsForDrawList const &)
         {}
 
         virtual void reload(std::shared_ptr<GameRequester> const &,

@@ -50,6 +50,10 @@ namespace shadowsChaining {
             return m_shadowsCOD->viewPoint();
         }
 
+        std::shared_ptr<objectWithShadows::CommonObjectDataVulkan> const &objectWithShadowsCOD() {
+            return m_objectWithShadowsCOD;
+        }
+
         ~CommonObjectDataVulkan() override = default;
     private:
         std::shared_ptr<objectWithShadows::CommonObjectDataVulkan> m_objectWithShadowsCOD;
@@ -62,6 +66,14 @@ namespace shadowsChaining {
 
         std::shared_ptr<vulkan::Buffer> const &bufferModelMatrix() override {
             return m_mainDrawObjectData->bufferModelMatrix();
+        }
+
+        bool updateTextureData(
+                std::shared_ptr<renderDetails::CommonObjectData> const &commonObjectData,
+                std::shared_ptr<levelDrawer::TextureDataVulkan> const &textureData) override
+        {
+            auto cod = dynamic_cast<CommonObjectDataVulkan*>(commonObjectData.get());
+            return m_mainDrawObjectData->updateTextureData(cod->objectWithShadowsCOD(), textureData);
         }
 
         void update(glm::mat4 const &modelMatrix) override {
@@ -123,14 +135,14 @@ namespace shadowsChaining {
                 size_t /* descriptor set ID, not used */,
                 renderDetails::CommonObjectDataList const &commonObjectDataList,
                 renderDetails::DrawObjectTableVulkanList const &drawObjTableList,
-                renderDetails::IndicesForDrawList const &drawObjectsIndicesList) override;
+                renderDetails::DrawObjRefsForDrawList const &drawObjectsIndicesList) override;
 
         void addDrawCmdsToCommandBuffer(
                 VkCommandBuffer const &commandBuffer,
                 size_t descriptorSetID,
                 std::shared_ptr<renderDetails::CommonObjectData> const &commonObjectData,
                 std::shared_ptr<renderDetails::DrawObjectTableVulkan> const &drawObjTable,
-                std::vector<size_t> const &drawObjectsIndices) override;
+                std::vector<renderDetails::DrawObjReference> const &drawObjectsIndices) override;
 
         std::shared_ptr<vulkan::Device> const &device() override { return m_objectWithShadowsRenderDetails->device(); }
 
