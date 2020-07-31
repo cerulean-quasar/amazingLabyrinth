@@ -22,6 +22,7 @@
 
 #include <memory>
 #include <string>
+#include <boost/optional.hpp>
 
 #include "modelTable/modelLoader.hpp"
 #include "textureTable/textureLoader.hpp"
@@ -76,7 +77,15 @@ namespace levelDrawer {
                 DrawObjDataReference objDataReference,
                 glm::mat4 const &modelMatrix) = 0;
 
-        virtual void removeObjectData(
+        // From draw object reference, draw object data reference, to draw object reference
+        // returns true if successful, false otherwise
+        virtual boost::optional<DrawObjDataReference> transferObject(
+                ObjectType type,
+                DrawObjReference fromObjRef,
+                DrawObjDataReference objDataRef,
+                DrawObjReference toObjRef) = 0;
+
+            virtual void removeObjectData(
                 ObjectType type,
                 DrawObjReference drawObjReference,
                 DrawObjDataReference objDataReference) = 0;
@@ -135,6 +144,14 @@ namespace levelDrawer {
             return m_levelDrawer->addObject(m_type, modelDescription, textureDescription, renderDetailsName);
         }
 
+        boost::optional<DrawObjDataReference> transferObject(
+                DrawObjReference fromObjRef,
+                DrawObjDataReference objDataRef,
+                DrawObjReference toObjRef)
+        {
+            return m_levelDrawer->transferObject(m_type, fromObjRef, objDataRef, toObjRef);
+        }
+
         void removeObject(DrawObjReference drawObjReference) {
             m_levelDrawer->removeObject(m_type, drawObjReference);
         }
@@ -144,7 +161,7 @@ namespace levelDrawer {
             return m_levelDrawer->addModelMatrixForObject(m_type, drawObjReference, modelMatrix);
         }
 
-        void updateModelMatrixForObject(size_t objIndex, size_t objDataIndex, glm::mat4 const &modelMatrix) {
+        void updateModelMatrixForObject(DrawObjReference objIndex, DrawObjDataReference objDataIndex, glm::mat4 const &modelMatrix) {
             m_levelDrawer->updateModelMatrixForObject(m_type, objIndex, objDataIndex, modelMatrix);
         }
 

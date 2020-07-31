@@ -33,7 +33,14 @@ std::pair<uint32_t, uint32_t> GameBoard::findRC(glm::vec2 position) {
 // returs true if a redraw is needed.
 // expects the position and distance in world space.
 // the distance is relative to the previous moved position, not relative to the start position.
-bool GameBoard::drag(glm::vec2 const &startPosition, glm::vec2 const &distance) {
+bool GameBoard::drag(
+        levelDrawer::Adaptor &levelDrawer,
+        Random &randomNumbers,
+        float modelSize,
+        float zMovingPlacement,
+        glm::vec2 const &startPosition,
+        glm::vec2 const &distance)
+{
     std::pair<uint32_t, uint32_t> rc = findRC(startPosition);
     if (m_moveInProgress) {
         if (rc.first != m_moveStartingPosition.first || rc.second != m_moveStartingPosition.second) {
@@ -44,6 +51,7 @@ bool GameBoard::drag(glm::vec2 const &startPosition, glm::vec2 const &distance) 
             m_moveInProgress = false;
         }
     }
+
     auto &b = m_blocks[rc.first][rc.second];
     glm::vec2 totalDistance = distance;
     if (!m_moveInProgress) {
@@ -54,20 +62,58 @@ bool GameBoard::drag(glm::vec2 const &startPosition, glm::vec2 const &distance) 
                 m_moveInProgress = true;
                 m_moveStartingPosition = rc;
                 totalDistance += startPosition;
+
+                if (b.blockType() == GameBoardBlock::BlockType::onBoard) {
+                    // add the secondary component to the level drawer so that it is drawn while
+                    // the move is in progress.
+                    glm::vec3 pos = position(rc.first, rc.second);
+                    float scale = blockSize() / modelSize;
+                    glm::mat4 modelMatrix =
+                            glm::translate(glm::mat4(1.0f), pos) *
+                            glm::scale(glm::mat4(1.0f), glm::vec3{scale, scale, scale});
+
+                    auto refAndDataRef = chooseObj(
+                            levelDrawer, randomNumbers, b.secondaryComponent(),
+                            b.secondaryPlacementIndex(), modelMatrix);
+                }
             }
         } else {
             return false;
         }
     }
+
     if (m_moveInProgress) {
-        b.component()->placement(b.placementIndex()).movePlacement(totalDistance);
+        auto &placement = b.component()->placement(b.placementIndex());
+        placement.movePlacement(totalDistance);
+
+        auto objRef = placement.objReference();
+        auto objDataRef = placement.objDataReference();
+        if (objRef == boost::none || objRef.get().objRef == boost::none || objDataRef == boost::none) {
+            throw std::runtime_error("invalid draw object reference or draw object data reference in drag");
+        }
+
+        float scale = blockSize()/modelSize;
+        glm::vec3 zaxis{0.0f, 0.0f, 1.0f};
+        glm::vec2 xy = placement.movePositionSoFar();
+
+        glm::mat4 modelMatrix =
+                glm::translate(glm::mat4(1.0f), glm::vec3{xy.x, xy.y, zMovingPlacement}) *
+                glm::rotate(glm::mat4(1.0f), placement.rotationAngle(), zaxis) *
+                glm::scale(glm::mat4(1.0f), glm::vec3{scale, scale, scale});
+
+        levelDrawer.updateModelMatrixForObject(objRef.get().objRef.get(), objDataRef.get(), modelMatrix);
     }
+
     return true;
 }
 
-// returs true if a redraw is needed.
+// returns true if a redraw is needed.
 // expects the position in world space.
-bool GameBoard::dragEnded(glm::vec2 const &endPosition) {
+bool GameBoard::dragEnded(
+        levelDrawer::Adaptor &levelDrawer,
+        float modelSize,
+        glm::vec2 const &endPosition)
+{
     if (!m_moveInProgress) {
         return false;
     }
@@ -79,6 +125,15 @@ bool GameBoard::dragEnded(glm::vec2 const &endPosition) {
         m_moveInProgress = false;
         b.component()->placement(b.placementIndex()).moveDone();
 
+        // if the moving component was on an on board block, remove the draw object data for the secondary
+        // component so that it is no longer drawn.
+        if (b.blockType() == GameBoardBlock::BlockType::onBoard) {
+            auto &secondaryPlacement = b.secondaryComponent()->placement(
+                    b.secondaryPlacementIndex());
+            auto objRef = secondaryPlacement.objReference();
+            auto objDataRef = secondaryPlacement.objDataReference();
+            levelDrawer.removeObjectData(objRef->objRef.get(), objDataRef.get());
+        }
         // we still need to redraw even if the move failed.  to move the component back to the
         // original spot.
         return true;
@@ -102,6 +157,54 @@ bool GameBoard::dragEnded(glm::vec2 const &endPosition) {
         b.setComponent(b.secondaryComponent(), b.secondaryPlacementIndex());
         b.setSecondaryComponent(nullptr, 0);
         m_moveInProgress = false;
+
+        // draw the moving component at the end position and the secondary component if necessary
+        // if the new secondary component at the ending location should not be drawn, then remove
+        // it from the level drawer.
+        if (bEnd.blockType() == GameBoardBlock::BlockType::onBoard) {
+            // on board
+            // remove the end location secondary component from the level drawer
+            auto &placementEndSecondary = bEnd.secondaryComponent()->placement(bEnd.secondaryPlacementIndex());
+            auto objRef = placementEndSecondary.objReference();
+            auto objDataRef = placementEndSecondary.objDataReference();
+            levelDrawer.removeObjectData(objRef->objRef.get(), objDataRef.get());
+            placementEndSecondary.setObjAndDataReference(boost::none, boost::none);
+
+            // draw the updated position of the end location primary component
+            auto &placement = bEnd.component()->placement(bEnd.placementIndex());
+            glm::vec3 pos = position(rc.first, rc.second);
+            float scale = blockSize()/modelSize;
+            glm::vec3 zaxis{0.0f, 0.0f, 1.0f};
+            glm::mat4 modelMatrix =
+                    glm::translate(glm::mat4(1.0f), pos) *
+                    glm::rotate(glm::mat4(1.0f), placement.rotationAngle(), zaxis) *
+                    glm::scale(glm::mat4(1.0f), glm::vec3{scale, scale, scale});
+
+            objRef = placement.objReference();
+            objDataRef = placement.objDataReference();
+            levelDrawer.updateModelMatrixForObject(objRef.get().objRef.get(), objDataRef.get(), modelMatrix);
+        } else {
+            // off board
+            // we want the secondary component to still get drawn so don't remove it from the
+            // level drawer.
+
+            // draw the updated position of the end location primary component.  Should be above
+            // the secondary component and smaller than the secondary component.
+            auto &placement = bEnd.component()->placement(bEnd.placementIndex());
+            float multiplier = 2.0f/3.0f;
+            float scale = blockSize()*multiplier/modelSize;
+            glm::vec3 pos = position(rc.first, rc.second);
+            pos.z = blockSize()*(multiplier + 1.0f/2.0f);
+            glm::vec3 zaxis{0.0f, 0.0f, 1.0f};
+            glm::mat4 modelMatrix =
+                    glm::translate(glm::mat4(1.0f), pos) *
+                    glm::rotate(glm::mat4(1.0f), placement.rotationAngle(), zaxis) *
+                    glm::scale(glm::mat4(1.0f), glm::vec3{scale, scale, scale});
+
+            auto objRef = placement.objReference();
+            auto objDataRef = placement.objDataReference();
+            levelDrawer.updateModelMatrixForObject(objRef.get().objRef.get(), objDataRef.get(), modelMatrix);
+        }
         return true;
     }
 
@@ -110,13 +213,27 @@ bool GameBoard::dragEnded(glm::vec2 const &endPosition) {
     m_moveInProgress = false;
     b.component()->placement(b.placementIndex()).moveDone();
 
+    // if the moving component was on an on board block, remove the draw object data for the secondary
+    // component so that it is no longer drawn.
+    if (b.blockType() == GameBoardBlock::BlockType::onBoard) {
+        auto &secondaryPlacement = b.secondaryComponent()->placement(
+                b.secondaryPlacementIndex());
+        auto objRef = secondaryPlacement.objReference();
+        auto objDataRef = secondaryPlacement.objDataReference();
+        levelDrawer.removeObjectData(objRef->objRef.get(), objDataRef.get());
+    }
+
     // we still need to redraw even if the move failed.  to move the component back to the
     // original spot.
     return true;
 }
 
-bool GameBoard::tap(glm::vec2 const &position) {
-    std::pair<uint32_t, uint32_t> rc = findRC(position);
+bool GameBoard::tap(
+        levelDrawer::Adaptor &levelDrawer,
+        float modelSize,
+        glm::vec2 const &positionOfTap)
+{
+    std::pair<uint32_t, uint32_t> rc = findRC(positionOfTap);
     auto &b = m_blocks[rc.first][rc.second];
     if (!hasMovableComponent(b)) {
         return false;
@@ -126,6 +243,20 @@ bool GameBoard::tap(glm::vec2 const &position) {
         return false;
     }
     placement.rotate();
+
+    auto objRef = placement.objReference();
+    auto objDataRef = placement.objDataReference();
+    if (objRef == boost::none || objRef.get().objRef == boost::none || objDataRef == boost::none) {
+        throw std::runtime_error("invalid draw object reference or draw object data reference in tap");
+    }
+
+    glm::vec3 pos = position(rc.first, rc.second);
+    float scale = blockSize()/modelSize;
+    glm::vec3 zaxis{0.0f, 0.0f, 1.0f};
+    glm::mat4 modelMatrix = glm::translate(glm::mat4(1.0f), pos) *
+                            glm::rotate(glm::mat4(1.0f), placement.rotationAngle(), zaxis) *
+                            glm::scale(glm::mat4(1.0f), glm::vec3{scale, scale, scale});
+    levelDrawer.updateModelMatrixForObject(objRef.get().objRef.get(), objDataRef.get(), modelMatrix);
     return true;
 }
 
@@ -230,13 +361,21 @@ std::pair<bool, bool> GameBoard::checkforNextWall(Component::CellWall wall1, Com
     }
 }
 
-boost::optional<ObjReference> chooseObj(
+std::pair<boost::optional<ObjReference>, boost::optional<levelDrawer::DrawObjDataReference>> chooseObj(
+        levelDrawer::Adaptor &levelDrawer,
         Random &randomNumbers,
         std::shared_ptr<Component> const &component,
-        size_t placementIndex)
+        size_t placementIndex,
+        glm::mat4 const &modelMatrix)
 {
+    if (!component) {
+        return std::make_pair(boost::none, boost::none);
+    }
+
+    auto &placement = component->placement(placementIndex);
+
     std::set<ObjReference> refs;
-    if (!component->placement(placementIndex).movementAllowed()) {
+    if (!placement.movementAllowed()) {
         refs = component->objReferencesLockedComponent();
     }
     if (refs.size() == 0) {
@@ -245,22 +384,31 @@ boost::optional<ObjReference> chooseObj(
 
     // check to see if the placement has already been assigned a model/texture and we didn't
     // have an objIndex yet.  This could happen if we were restoring from save.
-    auto placementRef = component->placement(placementIndex).objReference();
+    auto placementRef = placement.objReference();
+    auto placementDataRef = placement.objDataReference();
     if (placementRef != boost::none) {
-        if (placementRef.get().objIndex != boost::none) {
-            return placementRef;
+        if (placementRef.get().objRef != boost::none) {
+            if (placementDataRef == boost::none) {
+                auto dataRef = levelDrawer.addModelMatrixForObject(placementRef.get().objRef.get(), modelMatrix);
+                placementDataRef = dataRef;
+                placement.setObjAndDataReference(placementRef, placementDataRef);
+            }
+            return std::make_pair(placementRef, placementDataRef);
         }
         auto it = refs.find(placementRef.get());
         if (it != refs.end()) {
-            component->placement(placementIndex).setObjReference(*it);
-            return *it;
+            auto dataRef = levelDrawer.addModelMatrixForObject(it->objRef.get(), modelMatrix);
+            placementDataRef = dataRef;
+            component->placement(placementIndex).setObjAndDataReference(*it, placementDataRef);
+            return std::make_pair(*it, placementDataRef);
         }
     }
 
     size_t i;
     switch (refs.size()) {
         case 0:
-            return boost::none;
+            // shouldn't happen
+            return std::make_pair(boost::none, boost::none);
         case 1:
             i = 0;
             break;
@@ -271,19 +419,19 @@ boost::optional<ObjReference> chooseObj(
     size_t j = 0;
     for (auto const &ref : refs) {
         if (j == i) {
-            if (component) {
-                component->placement(placementIndex).setObjReference(ref);
-            }
-            return ref;
+            auto dataRef = levelDrawer.addModelMatrixForObject(placementRef.get().objRef.get(), modelMatrix);
+            placementDataRef = dataRef;
+            component->placement(placementIndex).setObjAndDataReference(ref, placementDataRef);
+            return std::make_pair(ref, dataRef);
         }
         j++;
     }
 
     // shouldn't happen
-    return boost::none;
+    return std::make_pair(boost::none, boost::none);
 }
 
-boost::optional<ObjReference> addModelMatrixToObj(
+std::pair<boost::optional<ObjReference>, boost::optional<levelDrawer::DrawObjDataReference>> addModelMatrixToObj(
         levelDrawer::Adaptor &levelDrawer,
         Random &randomNumbers,
         std::set<ObjReference> const &refs,
@@ -297,14 +445,17 @@ boost::optional<ObjReference> addModelMatrixToObj(
         auto placementRef = component->placement(placementIndex).objReference();
         if (placementRef != boost::none) {
             if (placementRef.get().objRef != boost::none) {
-                levelDrawer.addModelMatrixForObject(placementRef.get().objRef.get(), modelMatrix);
-                return placementRef;
+                auto dataRef = levelDrawer.addModelMatrixForObject(placementRef.get().objRef.get(), modelMatrix);
+                boost::optional<levelDrawer::DrawObjDataReference> optDataRef(dataRef);
+                component->placement(placementIndex).setObjAndDataReference(placementRef, optDataRef);
+                return std::make_pair(placementRef, optDataRef);
             }
             auto it = refs.find(placementRef.get());
             if (it != refs.end()) {
-                levelDrawer.addModelMatrixForObject(it->objRef.get(), modelMatrix);
-                component->placement(placementIndex).setObjReference(*it);
-                return *it;
+                auto dataRef = levelDrawer.addModelMatrixForObject(it->objRef.get(), modelMatrix);
+                boost::optional<levelDrawer::DrawObjDataReference> optDataRef(dataRef);
+                component->placement(placementIndex).setObjAndDataReference(*it, optDataRef);
+                return std::make_pair(*it, optDataRef);
             }
         }
     }
@@ -312,7 +463,8 @@ boost::optional<ObjReference> addModelMatrixToObj(
     size_t i;
     switch (refs.size()) {
         case 0:
-            return boost::none;
+            // shouldn't happen
+            return std::make_pair(boost::none, boost::none);
         case 1:
             i = 0;
             break;
@@ -323,21 +475,70 @@ boost::optional<ObjReference> addModelMatrixToObj(
     size_t j = 0;
     for (auto const &ref : refs) {
         if (i == j) {
-            auto objDataIndex = levelDrawer.addModelMatrixForObject(ref.objRef.get(), modelMatrix);
-            levelDrawer.updateModelMatrixForObject(ref.objRef.get(), objDataIndex, modelMatrix);
+            auto dataRef = levelDrawer.addModelMatrixForObject(ref.objRef.get(), modelMatrix);
+            boost::optional<levelDrawer::DrawObjDataReference> optDataRef(dataRef);
             if (component) {
-                component->placement(placementIndex).setObjReference(ref);
+                component->placement(placementIndex).setObjAndDataReference(ref, optDataRef);
             }
-            return ref;
+            return std::make_pair(ref, optDataRef);
         }
         j++;
     }
 
     // shouldn't happen
-    return boost::none;
+    return std::make_pair(boost::none, boost::none);
+}
+
+void movePlacement(
+        Random &randomNumbers,
+        levelDrawer::Adaptor &levelDrawer,
+        GameBoard &gameBoard,
+        float modelSize,
+        std::set<ObjReference> const &newRefs,
+        Component::Placement &placement)
+{
+    // choose a new obj ref.
+    size_t i;
+    switch (newRefs.size()) {
+        case 0:
+            // shouldn't happen
+            return;
+        case 1:
+            i = 0;
+            break;
+        default:
+            i = randomNumbers.getUInt(0, newRefs.size() - 1);
+    }
+
+    size_t j = 0;
+    for (auto const &ref : newRefs) {
+        if (i == j) {
+            auto oldRef = placement.objReference();
+            auto dataRef = placement.objDataReference();
+            auto newDataRef = levelDrawer.transferObject(oldRef.get().objRef.get(), dataRef.get(),
+                    ref.objRef.get());
+            if (newDataRef == boost::none) {
+                // transfer failed, we have to delete from the old ref and add to the new.
+                glm::vec3 zaxis{0.0f, 0.0f, 1.0f};
+                glm::vec3 pos = gameBoard.position(placement.row(), placement.col());
+                float scale = gameBoard.blockSize() / modelSize;
+                glm::mat4 modelMatrix = glm::translate(glm::mat4(1.0f), pos) *
+                                        glm::rotate(glm::mat4(1.0f), placement.rotationAngle(), zaxis) *
+                                        glm::scale(glm::mat4(1.0f), glm::vec3{scale, scale, scale});
+                levelDrawer.removeObjectData(oldRef.get().objRef.get(), dataRef.get());
+                newDataRef = levelDrawer.addModelMatrixForObject(ref.objRef.get(), modelMatrix);
+            }
+            placement.setObjAndDataReference(ref, newDataRef);
+        }
+        j++;
+    }
 }
 
 void blockUnblockPlacements(
+        levelDrawer::Adaptor &levelDrawer,
+        Random &randomNumbers,
+        GameBoard &gameBoard,
+        float modelSize,
         std::shared_ptr<Component> const &oldComponent,
         size_t oldPlacementIndex,
         std::shared_ptr<Component> const &newComponent,
@@ -352,9 +553,9 @@ void blockUnblockPlacements(
             oldPlacement.prev() = std::make_pair(nullptr, 0);
             newPlacement.next() = std::make_pair(nullptr, 0);
 
-            // remove the obj reference so that the obj reference for the locked placement
-            // can be added.
-            oldPlacement.setObjReference(boost::none);
+            // move the old placement to the unlocked placement draw object references.
+            movePlacement(randomNumbers, levelDrawer, gameBoard, modelSize,
+                    oldComponent->objReferences(),oldPlacement);
         } else {
             // We encountered a loop.  Unblock the entire loop
             std::shared_ptr<Component> nextComponent = newComponent;
@@ -368,7 +569,8 @@ void blockUnblockPlacements(
                 auto &loopPlacement = loopComponent->placement(loopIndex);
                 loopPlacement.prev() = std::make_pair(nullptr, 0);
                 loopPlacement.next() = std::make_pair(nullptr, 0);
-                loopPlacement.setObjReference(boost::none);
+                movePlacement(randomNumbers, levelDrawer, gameBoard, modelSize,
+                        loopComponent->objReferences(),loopPlacement);
                 loopComponent = tmp.first;
                 loopIndex = tmp.second;
             }
@@ -379,7 +581,8 @@ void blockUnblockPlacements(
     } else if (!newPlacement.lockedIntoPlace()) {
         // the ball is entering a new cell that is not in its path yet.
         newPlacement.prev() = std::make_pair(oldComponent, oldPlacementIndex);
-        newPlacement.setObjReference(boost::none);
+        movePlacement(randomNumbers, levelDrawer, gameBoard, modelSize,
+                newComponent->objReferencesLockedComponent(),newPlacement);
 
         oldPlacement.next() = std::make_pair(newComponent, newPlacementIndex);
     }

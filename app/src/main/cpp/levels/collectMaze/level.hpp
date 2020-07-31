@@ -70,7 +70,7 @@ namespace collectMaze {
             }
 
             if (m_collectObjsSameAsBall) {
-                m_objRefCollect = m_objIndexBall;
+                m_objRefCollect = m_objRefBall;
             } else {
                 m_objRefCollect = m_levelDrawer.addObject(
                         std::make_shared<levelDrawer::ModelDescriptionPath>(m_collectModel),

@@ -230,8 +230,6 @@ namespace movablePassage {
 
         // all other init functions before calling this function or starting the level
         void initDone(std::shared_ptr<LevelSaveData> const &sd);
-
-        void addComponentModelMatrices(boost::optional<size_t> const &ballReference);
     };
 } // namespace movablePassage
 

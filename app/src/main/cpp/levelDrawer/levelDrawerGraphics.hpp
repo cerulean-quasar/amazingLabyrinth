@@ -123,17 +123,26 @@ namespace levelDrawer {
 
         void updateModelMatrixForObject(
                 ObjectType type,
-                size_t objIndex,
-                size_t objDataIndex,
+                DrawObjReference objIndex,
+                DrawObjDataReference objDataIndex,
                 glm::mat4 const &modelMatrix) override
         {
             m_drawObjectTableList[type]->updateObjectData(objIndex, objDataIndex, modelMatrix);
         }
 
+        boost::optional<DrawObjDataReference> transferObject(
+                ObjectType type,
+                DrawObjReference fromObjRef,
+                DrawObjDataReference objDataRef,
+                DrawObjReference toObjRef) override
+        {
+            return m_drawObjectTableList[type]->transferObject(fromObjRef, objDataRef, toObjRef);
+        }
+
         void removeObjectData(
                 ObjectType type,
                 DrawObjReference objRef,
-                DrawObjDataReference objDataRef)
+                DrawObjDataReference objDataRef) override
         {
             m_drawObjectTableList[type]->removeObjectData(objRef, objDataRef);
         }

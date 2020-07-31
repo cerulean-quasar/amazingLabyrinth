@@ -521,11 +521,19 @@ public:
         auto &next() { return m_next; }
         glm::vec2 movePositionSoFar() { return m_movePositionSoFar; }
         boost::optional<ObjReference> objReference() { return m_objReference; }
+        boost::optional<levelDrawer::DrawObjDataReference> objDataReference() { return m_objDataReference; }
         bool movementAllowed() { return (!m_lockedIntoPlace) && (m_prev.first == nullptr); }
 
         /* setters */
         void setRC(uint32_t row, uint32_t col) { m_row = row; m_col = col; }
-        void setObjReference(boost::optional<ObjReference> ref) { m_objReference = ref; }
+        void setObjAndDataReference(
+                boost::optional<ObjReference> ref,
+                boost::optional<levelDrawer::DrawObjDataReference> dataRef)
+        {
+            m_objReference = std::move(ref);
+            m_objDataReference = std::move(dataRef);
+        }
+
         void setLockedIntoPlace(bool lockedIntoPlace) { m_lockedIntoPlace = lockedIntoPlace; }
         void rotate() {
             m_nbr90DegreeRotations = (m_nbr90DegreeRotations + 1) %4;
@@ -572,6 +580,7 @@ public:
         bool m_moveInProgress;
         glm::vec2 m_movePositionSoFar;
         boost::optional<ObjReference> m_objReference;
+        boost::optional<levelDrawer::DrawObjDataReference> m_objDataReference;
     };
 
     uint32_t add(
@@ -674,6 +683,12 @@ private:
     std::set<ObjReference> m_objReferencesLockedComponent;
 };
 
+// The game board is the section of the surface in which components can be placed.  There are
+// off board segments that can contain components where the ball cannot go.  On board is the
+// areas where the ball can go.  The game board does not include the blocks around the edges
+// to fill in empty area because the device surface is not an integer number of blocks.  The
+// end is special, not really part of the game board.  On board segments are the game board
+// segments where the ball is allowed to go and that the user can place components
 class GameBoardBlock {
 public:
     enum BlockType {
@@ -723,9 +738,21 @@ class GameBoard {
 public:
     uint32_t widthInTiles() { return m_blocks.empty() ? 0 : m_blocks[0].size(); }
     uint32_t heightInTiles() { return m_blocks.size(); }
-    bool drag(glm::vec2 const &startPosition, glm::vec2 const &distance);
-    bool dragEnded(glm::vec2 const &endPosition);
-    bool tap(glm::vec2 const &position);
+    bool drag(
+            levelDrawer::Adaptor &levelDrawer,
+            Random &randomNumbers,
+            float modelSize,
+            float zMovingPlacement,
+            glm::vec2 const &startPosition,
+            glm::vec2 const &distance);
+    bool dragEnded(
+            levelDrawer::Adaptor &levelDrawer,
+            float modelSize,
+            glm::vec2 const &endPosition);
+    bool tap(
+            levelDrawer::Adaptor &levelDrawer,
+            float modelSize,
+            glm::vec2 const &positionOfTap);
     std::pair<uint32_t, uint32_t> findRC(glm::vec2 postion);
     float blockSize() { return m_blockSize; }
     bool isMoveInProgress() { return m_moveInProgress; }
@@ -802,6 +829,7 @@ private:
 
     float m_blockSize;
     std::vector<std::vector<GameBoardBlock>> m_blocks;
+
     bool m_moveInProgress;
     std::pair<uint32_t, uint32_t> m_moveStartingPosition;
 
@@ -832,23 +860,25 @@ std::set<ObjReference> addObjs(
     }
 
     for (size_t i = 0; i < std::max(v.size(), textureNames.size()); i++) {
-        auto objIndex = levelDrawer.addObject(
+        auto objRef = levelDrawer.addObject(
                 v[i%v.size()],
                 std::make_shared<levelDrawer::TextureDescriptionPath>(
                         textureNames[i%textureNames.size()]));
 
-        ret.emplace(objIndex, isLockedInPlaceRef, i % v.size(), i % textureNames.size());
+        ret.emplace(objRef, isLockedInPlaceRef, i % v.size(), i % textureNames.size());
     }
 
     return std::move(ret);
 }
 
-boost::optional<ObjReference> chooseObj(
+std::pair<boost::optional<ObjReference>, boost::optional<levelDrawer::DrawObjDataReference>> chooseObj(
+        levelDrawer::Adaptor &levelDrawer,
         Random &randomNumbers,
         std::shared_ptr<Component> const &component,
-        size_t placementIndex);
+        size_t placementIndex,
+        glm::mat4 const &modelMatrix);
 
-boost::optional<ObjReference> addModelMatrixToObj(
+std::pair<boost::optional<ObjReference>, boost::optional<levelDrawer::DrawObjDataReference>> addModelMatrixToObj(
         levelDrawer::Adaptor &levelDrawer,
         Random &randomNumbers,
         std::set<ObjReference> const &refs,
@@ -857,6 +887,10 @@ boost::optional<ObjReference> addModelMatrixToObj(
         glm::mat4 modelMatrix);
 
 void blockUnblockPlacements(
+        levelDrawer::Adaptor &levelDrawer,
+        Random &randomNumbers,
+        GameBoard &gameBoard,
+        float modelSize,
         std::shared_ptr<Component> const &oldComponent,
         size_t oldPlacementIndex,
         std::shared_ptr<Component> const &newComponent,

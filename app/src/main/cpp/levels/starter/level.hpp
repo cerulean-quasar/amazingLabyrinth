@@ -181,7 +181,7 @@ namespace starter {
                                    glm::mat4_cast(m_ball.totalRotated) *
                                    ballScaleMatrix();
             m_objDataRefBall = m_levelDrawer.addModelMatrixForObject(
-                    m_objIndexBall, modelMatrix);
+                    m_objRefBall, modelMatrix);
 
             // the text box
             m_objRefTextBox = m_levelDrawer.addObject(
@@ -189,7 +189,7 @@ namespace starter {
                     std::make_shared<levelDrawer::TextureDescriptionText>(text[textIndex]));
 
             m_objDataRefTextBox = m_levelDrawer.addModelMatrixForObject(
-                    m_objIndexTextBox,
+                    m_objRefTextBox,
                     glm::translate(glm::mat4(1.0f), glm::vec3(-ballRadius(), 0.0f, m_mazeFloorZ)) *
                     glm::scale(glm::mat4(1.0f), textScale));
         }

@@ -55,8 +55,8 @@ namespace rotatablePassage {
                 size_t placementIndex = m_components[componentType]->add(rowIndex, colIndex,
                         gameBoardPlacement.nbr90DegreeRotations);
                 b.setComponent(m_components[componentType], placementIndex);
-                m_components[componentType]->placement(placementIndex).setObjReference(
-                        gameBoardPlacement.objReference);
+                m_components[componentType]->placement(placementIndex).setObjAndDataReference(
+                        gameBoardPlacement.objReference, boost::none);
             }
         }
 
@@ -193,8 +193,9 @@ namespace rotatablePassage {
             return true;
         }
 
-        blockUnblockPlacements(block.component(), block.placementIndex(),
-                               nextBlock.component(), nextBlock.placementIndex());
+        blockUnblockPlacements(m_levelDrawer, m_randomNumbers, m_gameBoard, m_modelSize,
+                block.component(), block.placementIndex(),
+                nextBlock.component(), nextBlock.placementIndex());
 
         m_ball.position = position;
         updateRotation(timeDiffTotal);
@@ -335,53 +336,12 @@ namespace rotatablePassage {
     }
 
     bool Level::updateDrawObjects() {
-        // the maze components.
-        float scale = m_gameBoard.blockSize() / m_modelSize;
-        std::vector<size_t> nbrModelMatrices;
-        nbrModelMatrices.resize(m_levelDrawer.numberObjects(), 0);
-        for (auto &component : m_components) {
-            size_t i = 0;
-            auto refs = component->objReferences();
-            for (auto placementIt = component->placementsBegin();
-                 placementIt != component->placementsEnd();
-                 placementIt++, i++) {
-                auto pos = m_gameBoard.position(placementIt->row(), placementIt->col());
-                auto ref = placementIt->objReference();
-                if (ref == boost::none) {
-                    ref = chooseObj(m_randomNumbers, component, i);
-                    placementIt->setObjReference(ref);
-                }
-                if (ref == boost::none || ref.get().objIndex == boost::none) {
-                    // shouldn't happen
-                    throw std::runtime_error("unexpected empty draw object reference");
-                }
-                auto modelMatrix = glm::translate(glm::mat4{1.0f}, pos) *
-                                   glm::rotate(glm::mat4{1.0f}, placementIt->rotationAngle(),
-                                               glm::vec3{0.0f, 0.0f, 1.0f}) *
-                                   glm::scale(glm::mat4{1.0f}, glm::vec3{scale, scale, scale});
-                size_t objIndex = ref.get().objIndex.get();
-                if (m_levelDrawer.numberObjectsDataForObject(objIndex) <= nbrModelMatrices[objIndex]) {
-                    m_levelDrawer.addModelMatrixForObject(objIndex, modelMatrix);
-                } else {
-                    m_levelDrawer.updateModelMatrixForObject(objIndex, nbrModelMatrices[objIndex], modelMatrix);
-                }
-                nbrModelMatrices[objIndex]++;
-            }
-        }
-
-        // resize model matrices to the actual number added in case some were transferred to/from
-        // the locked in place obj.
-        auto nbrObjs = m_levelDrawer.numberObjects();
-        for (size_t i = 0; i < nbrObjs; i++) {
-            if (i != m_objRefBall) {
-                m_levelDrawer.resizeObjectsData(i, nbrModelMatrices[i]);
-            }
-        }
+        // the maze components are updated by blockUnblockPlacements, and tap.
 
         // the ball
         m_levelDrawer.updateModelMatrixForObject(
-                m_objIndexBall,
-                m_objDataIndexBall,
+                m_objRefBall,
+                m_objDataRefBall,
                 glm::translate(glm::mat4(1.0f), m_ball.position) *
                 glm::mat4_cast(m_ball.totalRotated) *
                 glm::scale(glm::mat4(1.0f), glm::vec3{m_scaleBall, m_scaleBall, m_scaleBall}));

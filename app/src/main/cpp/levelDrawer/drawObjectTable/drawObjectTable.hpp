@@ -60,7 +60,7 @@ namespace levelDrawer {
                 throw std::runtime_error("Invalid draw object data reference on retrieve.");
             }
 
-            return *it;
+            return it->second;
         }
 
         DrawObjDataReference addObjectData(std::shared_ptr<typename traits::DrawObjectDataType> objectData) {
@@ -74,7 +74,7 @@ namespace levelDrawer {
             if (it == m_objsData.end()) {
                 throw std::runtime_error("Invalid draw object data reference on update.");
             }
-            it->update(modelMatrix);
+            it->second->update(modelMatrix);
         }
 
         void removeObjectData(DrawObjDataReference objDataRef) {
@@ -153,15 +153,15 @@ namespace levelDrawer {
             DrawObjReference objRef = m_nextDrawObjReference++;
 
             if (renderDetailsReference.renderDetails != nullptr) {
-                m_objsIndicesWithOverridingRenderDetails.push_back(objRef);
-                m_drawObjects.emplace_back(
+                m_objsIndicesWithOverridingRenderDetails.insert(objRef);
+                m_drawObjects.emplace(
                         objRef,
                         std::make_shared<DrawObject<traits>>(
                             std::move(renderDetailsReference), std::move(modelData),
                             std::move(textureData)));
             } else {
-                m_objsIndicesWithGlobalRenderDetails.push_back(objRef);
-                m_drawObjects.emplace_back(
+                m_objsIndicesWithGlobalRenderDetails.insert(objRef);
+                m_drawObjects.emplace(
                         objRef,
                         std::make_shared<DrawObject<traits>>(
                             std::move(modelData), std::move(textureData)));
@@ -177,7 +177,7 @@ namespace levelDrawer {
                 return;
             }
 
-            if (itObjRef->hasOverridingRenderDetailsReference()) {
+            if (itObjRef->second->hasOverridingRenderDetailsReference()) {
                 m_objsIndicesWithOverridingRenderDetails.erase(objReference);
             } else {
                 m_objsIndicesWithGlobalRenderDetails.erase(objReference);
@@ -208,7 +208,7 @@ namespace levelDrawer {
                 throw std::runtime_error("Invalid draw object reference on finding the number of draw object data.");
             }
 
-            return it->numberObjectsData();
+            return it->second->numberObjectsData();
         }
 
         std::shared_ptr<DrawObject<traits>> const &drawObject(DrawObjReference drawObjRef) {
@@ -217,7 +217,7 @@ namespace levelDrawer {
                 throw std::runtime_error("Invalid draw object reference on retrieve draw object.");
             }
 
-            return *it;
+            return it->second;
         }
 
         DrawObjDataReference addDrawObjData(DrawObjReference drawObjRef, std::shared_ptr<typename traits::DrawObjectDataType> objData) {
@@ -229,30 +229,31 @@ namespace levelDrawer {
             return it->addObjectData(std::move(objData));
         }
 
-        // returns true if the move was successful
-        bool transferObject(DrawObjReference objRef1, DrawObjDataReference objDataRef, DrawObjReference objRef2) {
+        // returns boost::none if it failed.
+        boost::optional<DrawObjDataReference> transferObject(DrawObjReference objRef1, DrawObjDataReference objDataRef, DrawObjReference objRef2) {
             auto it1 = m_drawObjects.find(objRef1);
             auto it2 = m_drawObjects.find(objRef2);
             if (it1 == m_drawObjects.end() || it2 == m_drawObjects.end()) {
                 throw std::runtime_error("Invalid draw object reference on transfer");
             }
 
-            if ((!it1->hasOverridingRenderDetailsReference() &&
-                 !it2->hasOverridingRenderDetailsReference()) ||
-                (it1->hasOverridingRenderDetailsReference() &&
-                 it2->hasOverridingRenderDetailsReference() &&
-                 it1->renderDetailsReference().renderDetails->name() ==
-                 it2->renderDetailsReference().renderDetails->name()))
+            if ((!it1->second->hasOverridingRenderDetailsReference() &&
+                 !it2->second->hasOverridingRenderDetailsReference()) ||
+                (it1->second->hasOverridingRenderDetailsReference() &&
+                 it2->second->hasOverridingRenderDetailsReference() &&
+                 it1->second->renderDetailsReference().renderDetails->nameString() ==
+                 it2->second->renderDetailsReference().renderDetails->nameString()))
             {
                 // object is of the same render details, it is ok to move.
-                std::shared_ptr<typename traits::DrawObjectDataType> objData = it1->drawObjData();
-                it1->removeObjData(objDataRef);
-                objData->updateTextureData(it2->textureData());
-                it2->addObjectData(objData);
-                return true;
+                std::shared_ptr<typename traits::DrawObjectDataType> objData = it1->second->objData(objDataRef);
+                it1->second->removeObjectData(objDataRef);
+                bool succeeded = objData->updateTextureData(it2->second->textureData());
+                if (succeeded) {
+                    return boost::optional<DrawObjDataReference>(it2->second->addObjectData(objData));
+                }
             }
 
-            return false;
+            return boost::none;
         }
 
         void updateObjectData(DrawObjReference objRef, DrawObjDataReference objDataRef, glm::mat4 const &modelMatrix) {
@@ -260,7 +261,7 @@ namespace levelDrawer {
             if (it == m_drawObjects.end()) {
                 throw std::runtime_error("Invalid draw object reference on update");
             }
-            it->updateObjectData(objDataRef, modelMatrix);
+            it->second->updateObjectData(objDataRef, modelMatrix);
         }
 
         void removeObjectData(DrawObjReference objRef, DrawObjDataReference objDataRef) {
@@ -268,7 +269,7 @@ namespace levelDrawer {
             if (it == m_drawObjects.end()) {
                 throw std::runtime_error("Invalid draw object reference on update");
             }
-            it->removeObjectData(objDataRef);
+            it->second->removeObjectData(objDataRef);
         }
 
         void loadRenderDetails(typename traits::RenderDetailsReferenceType ref) {
@@ -286,15 +287,16 @@ namespace levelDrawer {
             std::vector<DrawRule> rules;
             rules.emplace_back(DrawRule{m_renderDetailsReference.renderDetails,
                     m_renderDetailsReference.commonObjectData,
-                    m_objsIndicesWithGlobalRenderDetails});
+                    std::vector<DrawObjReference>(m_objsIndicesWithGlobalRenderDetails.begin(),
+                            m_objsIndicesWithGlobalRenderDetails.end())});
 
             std::map<std::string, DrawRule> alreadyAdded;
             for (auto drawObjRef : m_objsIndicesWithOverridingRenderDetails) {
                 auto it = m_drawObjects.find(drawObjRef);
-                if (it == m_drawObjects->end()) {
+                if (it == m_drawObjects.end()) {
                     throw std::runtime_error("Invalid draw object reference in get draw rules");
                 }
-                auto const &ref = it->renderDetailsReference();
+                auto const &ref = it->second->renderDetailsReference();
                 auto ret = alreadyAdded.emplace(ref.renderDetails->nameString(),
                         DrawRule{ref.renderDetails, ref.commonObjectData, std::vector<DrawObjReference>{}});
                 ret.first->second.drawObjectIndices.push_back(drawObjRef);

@@ -65,8 +65,8 @@ namespace renderDetails {
         // no work is needed for this function in GL.  Just return true to indicate that it
         // succeeded
         virtual bool updateTextureData(
-                std::shared_ptr<CommonObjectData> const &commonObjectData,
-                std::shared_ptr<levelDrawer::TextureDataGL> const &textureData)
+                std::shared_ptr<CommonObjectData> const &,
+                std::shared_ptr<levelDrawer::TextureDataGL> const &)
         {
             return true;
         }
@@ -120,7 +120,7 @@ namespace renderDetails {
                 uint32_t modelMatrixID,
                 std::shared_ptr<renderDetails::CommonObjectData> const &commonObjectData,
                 std::shared_ptr<DrawObjectTableGL> const &drawObjTable,
-                std::vector<size_t> const &drawObjectsIndices) = 0;
+                std::vector<DrawObjReference> const &drawObjectsIndices) = 0;
 
         virtual bool overrideClearColor(glm::vec4 &) {
             return false;
