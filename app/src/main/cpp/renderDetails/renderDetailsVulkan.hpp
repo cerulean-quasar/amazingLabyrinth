@@ -60,8 +60,8 @@ namespace renderDetails {
         virtual bool hasTexture() = 0;
 
         virtual bool updateTextureData(
-                std::shared_ptr<CommonObjectData> const &commonObjectData,
-                std::shared_ptr<levelDrawer::TextureDataVulkan> const &textureData)
+                std::shared_ptr<CommonObjectData> const &,
+                std::shared_ptr<levelDrawer::TextureDataVulkan> const &)
         {
             // The default behavior for this function should be that it fails (returns false).
             // For certain Render Details, this function will succeed.  It means that it was

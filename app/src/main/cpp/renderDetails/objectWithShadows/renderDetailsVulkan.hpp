@@ -239,7 +239,7 @@ namespace objectWithShadows {
                 if (cod == nullptr) {
                     return false;
                 }
-                textureUpdateDescriptorSet(m_descriptorSet->device(), cod, textureData);
+                textureUpdateDescriptorSet(m_device, cod, textureData);
             } else if (!m_hasTexture && !textureData) {
                 // no need to update the descriptor set, but return true since the update is successful
                 return true;
@@ -261,6 +261,7 @@ namespace objectWithShadows {
                 std::shared_ptr<vulkan::DescriptorSet> inDescriptorSet,
                 std::shared_ptr<vulkan::Buffer> inBuffer)
                 : m_hasTexture{textureData != nullptr},
+                  m_device{inDevice},
                   m_descriptorSet{std::move(inDescriptorSet)},
                   m_uniformBuffer{std::move(inBuffer)}
         {
@@ -278,6 +279,7 @@ namespace objectWithShadows {
         };
 
         bool m_hasTexture;
+        std::shared_ptr<vulkan::Device> m_device;
         std::shared_ptr<vulkan::DescriptorSet> m_descriptorSet;
         std::shared_ptr<vulkan::Buffer> m_uniformBuffer;
 

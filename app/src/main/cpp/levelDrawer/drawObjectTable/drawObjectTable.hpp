@@ -247,7 +247,16 @@ namespace levelDrawer {
                 // object is of the same render details, it is ok to move.
                 std::shared_ptr<typename traits::DrawObjectDataType> objData = it1->second->objData(objDataRef);
                 it1->second->removeObjectData(objDataRef);
-                bool succeeded = objData->updateTextureData(it2->second->textureData());
+                bool succeeded = false;
+                if (it1->second->hasOverridingRenderDetailsReference()) {
+                    succeeded = objData->updateTextureData(
+                            it1->second->renderDetailsReference().commonObjectData,
+                            it2->second->textureData());
+                } else {
+                    succeeded = objData->updateTextureData(
+                            m_renderDetailsReference.commonObjectData,
+                            it2->second->textureData());
+                }
                 if (succeeded) {
                     return boost::optional<DrawObjDataReference>(it2->second->addObjectData(objData));
                 }

@@ -51,7 +51,7 @@ namespace levelDrawer {
         for (auto const &rule : rulesList) {
             rule.renderDetails->addPreRenderPassCmdsToCommandBuffer(
                     info.cmdBuffer, 0, rule.commonObjectData, m_drawObjectTableList,
-                    rule.indicesPerLevelType);
+                    rule.drawObjRefs);
         }
 
         // begin the main render pass
@@ -81,7 +81,7 @@ namespace levelDrawer {
             for (auto const &rule : rulesList) {
                 rule.renderDetails->addPreRenderPassCmdsToCommandBuffer(
                         info.cmdBuffer, 0, rule.commonObjectData, m_drawObjectTableList,
-                        rule.indicesPerLevelType);
+                        rule.drawObjRefs);
             }
         }
 
