@@ -276,7 +276,7 @@ namespace levelDrawer {
         void removeObjectData(DrawObjReference objRef, DrawObjDataReference objDataRef) {
             auto it = m_drawObjects.find(objRef);
             if (it == m_drawObjects.end()) {
-                throw std::runtime_error("Invalid draw object reference on update");
+                throw std::runtime_error("Invalid draw object reference on remove");
             }
             it->second->removeObjectData(objDataRef);
         }

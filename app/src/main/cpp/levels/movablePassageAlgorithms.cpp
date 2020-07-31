@@ -30,6 +30,62 @@ std::pair<uint32_t, uint32_t> GameBoard::findRC(glm::vec2 position) {
     return std::make_pair(row, col);
 }
 
+void GameBoard::drawPlacements(
+        levelDrawer::Adaptor &levelDrawer,
+        float offBoardComponentScaleMultiplier,
+        float modelSize,
+        size_t row,
+        size_t col)
+{
+    auto &blockToPlace = block(row, col);
+    // draw the moving component at the end position and the secondary component if necessary
+    // if the new secondary component at the ending location should not be drawn, then remove
+    // it from the level drawer.
+    if (blockToPlace.blockType() == GameBoardBlock::BlockType::onBoard) {
+        // on board
+        // remove the end location secondary component from the level drawer
+        auto &placementEndSecondary = blockToPlace.secondaryComponent()->placement(blockToPlace.secondaryPlacementIndex());
+        auto objRef = placementEndSecondary.objReference();
+        auto objDataRef = placementEndSecondary.objDataReference();
+        levelDrawer.removeObjectData(objRef->objRef.get(), objDataRef.get());
+        placementEndSecondary.setObjAndDataReference(boost::none, boost::none);
+
+        // draw the updated position of the end location primary component
+        auto &placement = blockToPlace.component()->placement(blockToPlace.placementIndex());
+        glm::vec3 pos = position(row, col);
+        float scale = blockSize()/modelSize;
+        glm::vec3 zaxis{0.0f, 0.0f, 1.0f};
+        glm::mat4 modelMatrix =
+                glm::translate(glm::mat4(1.0f), pos) *
+                glm::rotate(glm::mat4(1.0f), placement.rotationAngle(), zaxis) *
+                glm::scale(glm::mat4(1.0f), glm::vec3{scale, scale, scale});
+
+        objRef = placement.objReference();
+        objDataRef = placement.objDataReference();
+        levelDrawer.updateModelMatrixForObject(objRef.get().objRef.get(), objDataRef.get(), modelMatrix);
+    } else {
+        // off board
+        // we want the secondary component to still get drawn so don't remove it from the
+        // level drawer.
+
+        // draw the updated position of the end location primary component.  Should be above
+        // the secondary component and smaller than the secondary component.
+        auto &placement = blockToPlace.component()->placement(blockToPlace.placementIndex());
+        float scale = blockSize()*offBoardComponentScaleMultiplier/modelSize;
+        glm::vec3 pos = position(row, col);
+        pos.z = blockSize()*(offBoardComponentScaleMultiplier + 1.0f/2.0f);
+        glm::vec3 zaxis{0.0f, 0.0f, 1.0f};
+        glm::mat4 modelMatrix =
+                glm::translate(glm::mat4(1.0f), pos) *
+                glm::rotate(glm::mat4(1.0f), placement.rotationAngle(), zaxis) *
+                glm::scale(glm::mat4(1.0f), glm::vec3{scale, scale, scale});
+
+        auto objRef = placement.objReference();
+        auto objDataRef = placement.objDataReference();
+        levelDrawer.updateModelMatrixForObject(objRef.get().objRef.get(), objDataRef.get(), modelMatrix);
+    }
+}
+
 // returs true if a redraw is needed.
 // expects the position and distance in world space.
 // the distance is relative to the previous moved position, not relative to the start position.
@@ -38,6 +94,7 @@ bool GameBoard::drag(
         Random &randomNumbers,
         float modelSize,
         float zMovingPlacement,
+        float offBoardComponentScaleMultiplier,
         glm::vec2 const &startPosition,
         glm::vec2 const &distance)
 {
@@ -49,6 +106,10 @@ bool GameBoard::drag(
             auto &b = m_blocks[m_moveStartingPosition.first][m_moveStartingPosition.second];
             b.component()->placement(b.placementIndex()).moveDone();
             m_moveInProgress = false;
+
+            // put the placements back to the way they were.
+            drawPlacements(levelDrawer, offBoardComponentScaleMultiplier, modelSize,
+                    m_moveStartingPosition.first, m_moveStartingPosition.second);
         }
     }
 
@@ -111,6 +172,7 @@ bool GameBoard::drag(
 // expects the position in world space.
 bool GameBoard::dragEnded(
         levelDrawer::Adaptor &levelDrawer,
+        float offBoardComponentScaleMultiplier,
         float modelSize,
         glm::vec2 const &endPosition)
 {
@@ -158,53 +220,7 @@ bool GameBoard::dragEnded(
         b.setSecondaryComponent(nullptr, 0);
         m_moveInProgress = false;
 
-        // draw the moving component at the end position and the secondary component if necessary
-        // if the new secondary component at the ending location should not be drawn, then remove
-        // it from the level drawer.
-        if (bEnd.blockType() == GameBoardBlock::BlockType::onBoard) {
-            // on board
-            // remove the end location secondary component from the level drawer
-            auto &placementEndSecondary = bEnd.secondaryComponent()->placement(bEnd.secondaryPlacementIndex());
-            auto objRef = placementEndSecondary.objReference();
-            auto objDataRef = placementEndSecondary.objDataReference();
-            levelDrawer.removeObjectData(objRef->objRef.get(), objDataRef.get());
-            placementEndSecondary.setObjAndDataReference(boost::none, boost::none);
-
-            // draw the updated position of the end location primary component
-            auto &placement = bEnd.component()->placement(bEnd.placementIndex());
-            glm::vec3 pos = position(rc.first, rc.second);
-            float scale = blockSize()/modelSize;
-            glm::vec3 zaxis{0.0f, 0.0f, 1.0f};
-            glm::mat4 modelMatrix =
-                    glm::translate(glm::mat4(1.0f), pos) *
-                    glm::rotate(glm::mat4(1.0f), placement.rotationAngle(), zaxis) *
-                    glm::scale(glm::mat4(1.0f), glm::vec3{scale, scale, scale});
-
-            objRef = placement.objReference();
-            objDataRef = placement.objDataReference();
-            levelDrawer.updateModelMatrixForObject(objRef.get().objRef.get(), objDataRef.get(), modelMatrix);
-        } else {
-            // off board
-            // we want the secondary component to still get drawn so don't remove it from the
-            // level drawer.
-
-            // draw the updated position of the end location primary component.  Should be above
-            // the secondary component and smaller than the secondary component.
-            auto &placement = bEnd.component()->placement(bEnd.placementIndex());
-            float multiplier = 2.0f/3.0f;
-            float scale = blockSize()*multiplier/modelSize;
-            glm::vec3 pos = position(rc.first, rc.second);
-            pos.z = blockSize()*(multiplier + 1.0f/2.0f);
-            glm::vec3 zaxis{0.0f, 0.0f, 1.0f};
-            glm::mat4 modelMatrix =
-                    glm::translate(glm::mat4(1.0f), pos) *
-                    glm::rotate(glm::mat4(1.0f), placement.rotationAngle(), zaxis) *
-                    glm::scale(glm::mat4(1.0f), glm::vec3{scale, scale, scale});
-
-            auto objRef = placement.objReference();
-            auto objDataRef = placement.objDataReference();
-            levelDrawer.updateModelMatrixForObject(objRef.get().objRef.get(), objDataRef.get(), modelMatrix);
-        }
+        drawPlacements(levelDrawer, offBoardComponentScaleMultiplier, modelSize, rc.first, rc.second);
         return true;
     }
 
@@ -419,7 +435,7 @@ std::pair<boost::optional<ObjReference>, boost::optional<levelDrawer::DrawObjDat
     size_t j = 0;
     for (auto const &ref : refs) {
         if (j == i) {
-            auto dataRef = levelDrawer.addModelMatrixForObject(placementRef.get().objRef.get(), modelMatrix);
+            auto dataRef = levelDrawer.addModelMatrixForObject(ref.objRef.get(), modelMatrix);
             placementDataRef = dataRef;
             component->placement(placementIndex).setObjAndDataReference(ref, placementDataRef);
             return std::make_pair(ref, dataRef);

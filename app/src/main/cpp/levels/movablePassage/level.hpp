@@ -154,6 +154,7 @@ namespace movablePassage {
         }
 
     private:
+        static float constexpr m_offBoardComponentScaleMultiplier = 2.0f/3.0f;
         Random m_random;
         float const m_zMovingPlacement;
         float const m_zdrawTopsOfObjects;

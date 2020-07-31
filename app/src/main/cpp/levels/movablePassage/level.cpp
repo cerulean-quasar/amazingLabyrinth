@@ -304,10 +304,11 @@ namespace movablePassage {
             for (uint32_t l = 0; l < m_gameBoard.widthInTiles(); l++) {
                 auto &b = m_gameBoard.block(k, l);
                 if (b.blockType() == GameBoardBlock::BlockType::onBoard) {
-                    auto index = dirt->add(k, l, 0.0f);
                     if (b.component() == nullptr) {
+                        auto index = dirt->add(k, l, 0.0f);
                         b.setComponent(dirt, index);
-                    } else {
+                    } else if (b.component()->type() != Component::ComponentType::noMovementRock) {
+                        auto index = dirt->add(k, l, 0.0f);
                         b.setSecondaryComponent(dirt, index);
                     }
                 } else {
@@ -612,8 +613,23 @@ namespace movablePassage {
 
             size_t placementIndex = 0;
             for (auto it = component->placementsBegin(); it != component->placementsEnd(); it++) {
+                auto &block = m_gameBoard.block(it->row(), it->col());
+                if (block.secondaryComponent() &&
+                    block.secondaryComponent()->type() == component->type() &&
+                    block.blockType() == GameBoardBlock::onBoard)
+                {
+                    continue;
+                }
                 glm::vec3 pos = m_gameBoard.position(it->row(), it->col());
                 float scale = m_gameBoard.blockSize()/m_modelSize;
+                if (block.blockType() == GameBoardBlock::offBoard &&
+                        component->type() != Component::ComponentType::noMovementRock &&
+                        component->type() != Component::ComponentType::noMovementDirt)
+                {
+                    pos.z += m_gameBoard.blockSize() *
+                             (0.5f + m_offBoardComponentScaleMultiplier / 2.0f);
+                    scale *= m_offBoardComponentScaleMultiplier;
+                }
                 glm::mat4 modelMatrix = glm::translate(glm::mat4(1.0f), pos) *
                                         glm::rotate(glm::mat4(1.0f), it->rotationAngle(), zaxis) *
                                         glm::scale(glm::mat4(1.0f), glm::vec3{scale, scale, scale});
@@ -662,7 +678,7 @@ namespace movablePassage {
         glm::vec2 startPosition{startXY.first, startXY.second};
         glm::vec2 distance{distanceXY.first, distanceXY.second};
         return m_gameBoard.drag(m_levelDrawer, m_random, m_modelSize, m_zMovingPlacement,
-                startPosition, distance);
+                m_offBoardComponentScaleMultiplier, startPosition, distance);
     }
 
     bool Level::dragEnded(float x, float y) {
@@ -671,7 +687,8 @@ namespace movablePassage {
         auto XY = getXYAtZ(x, y, m_mazeFloorZ, projView.first, projView.second);
 
         glm::vec2 endPosition{XY.first, XY.second};
-        return m_gameBoard.dragEnded(m_levelDrawer, m_modelSize, endPosition);
+        return m_gameBoard.dragEnded(m_levelDrawer, m_offBoardComponentScaleMultiplier,
+                m_modelSize, endPosition);
     }
 
     bool Level::tap(float x, float y) {

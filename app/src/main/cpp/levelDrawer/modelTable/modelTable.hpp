@@ -49,9 +49,11 @@ namespace levelDrawer {
         }
 
         void prune() {
-            for (auto it = m_modelMap.begin(); it != m_modelMap.end(); it++) {
+            for (auto it = m_modelMap.begin(); it != m_modelMap.end(); ) {
                 if (it->second.expired()) {
                     it = m_modelMap.erase(it);
+                } else {
+                    it++;
                 }
             }
         }

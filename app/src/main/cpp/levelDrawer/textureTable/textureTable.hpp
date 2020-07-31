@@ -49,9 +49,11 @@ namespace levelDrawer {
         }
 
         void prune() {
-            for (auto it = m_textureMap.begin(); it != m_textureMap.end(); it++) {
+            for (auto it = m_textureMap.begin(); it != m_textureMap.end(); ) {
                 if (it->second.expired()) {
                     it = m_textureMap.erase(it);
+                } else {
+                    it++;
                 }
             }
         }

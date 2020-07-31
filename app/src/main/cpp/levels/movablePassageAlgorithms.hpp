@@ -743,10 +743,12 @@ public:
             Random &randomNumbers,
             float modelSize,
             float zMovingPlacement,
+            float offBoardComponentScaleFactor,
             glm::vec2 const &startPosition,
             glm::vec2 const &distance);
     bool dragEnded(
             levelDrawer::Adaptor &levelDrawer,
+            float offBoardComponentScaleMultiplier,
             float modelSize,
             glm::vec2 const &endPosition);
     bool tap(
@@ -832,6 +834,13 @@ private:
 
     bool m_moveInProgress;
     std::pair<uint32_t, uint32_t> m_moveStartingPosition;
+
+    void drawPlacements(
+            levelDrawer::Adaptor &levelDrawer,
+            float offBoardComponentScaleMultiplier,
+            float modelSize,
+            size_t row,
+            size_t col);
 
     bool hasMovableComponent(GameBoardBlock &b) {
         return (b.blockType() == GameBoardBlock::BlockType::offBoard ||
