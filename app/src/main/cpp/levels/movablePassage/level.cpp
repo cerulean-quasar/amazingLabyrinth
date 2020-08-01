@@ -611,16 +611,16 @@ namespace movablePassage {
                 component->setObjReferencesLockedComponent(refs);
             }
 
-            size_t placementIndex = 0;
-            for (auto it = component->placementsBegin(); it != component->placementsEnd(); it++) {
-                auto &block = m_gameBoard.block(it->row(), it->col());
+            for (size_t placementIndex = 0; placementIndex < component->nbrPlacements(); placementIndex++) {
+                auto &placement = component->placement(placementIndex);
+                auto &block = m_gameBoard.block(placement.row(), placement.col());
                 if (block.secondaryComponent() &&
                     block.secondaryComponent()->type() == component->type() &&
                     block.blockType() == GameBoardBlock::onBoard)
                 {
                     continue;
                 }
-                glm::vec3 pos = m_gameBoard.position(it->row(), it->col());
+                glm::vec3 pos = m_gameBoard.position(placement.row(), placement.col());
                 float scale = m_gameBoard.blockSize()/m_modelSize;
                 if (block.blockType() == GameBoardBlock::offBoard &&
                         component->type() != Component::ComponentType::noMovementRock &&
@@ -631,11 +631,10 @@ namespace movablePassage {
                     scale *= m_offBoardComponentScaleMultiplier;
                 }
                 glm::mat4 modelMatrix = glm::translate(glm::mat4(1.0f), pos) *
-                                        glm::rotate(glm::mat4(1.0f), it->rotationAngle(), zaxis) *
+                                        glm::rotate(glm::mat4(1.0f), placement.rotationAngle(), zaxis) *
                                         glm::scale(glm::mat4(1.0f), glm::vec3{scale, scale, scale});
 
                 chooseObj(m_levelDrawer, m_random, component, placementIndex, modelMatrix);
-                placementIndex++;
             }
         }
 
@@ -697,6 +696,7 @@ namespace movablePassage {
         auto XY = getXYAtZ(x, y, m_mazeFloorZ, projView.first, projView.second);
 
         glm::vec2 position{XY.first, XY.second};
-        return m_gameBoard.tap(m_levelDrawer, m_modelSize, position);
+        return m_gameBoard.tap(m_levelDrawer, m_offBoardComponentScaleMultiplier,
+                m_modelSize, position);
     }
 } // namespace movablePassage

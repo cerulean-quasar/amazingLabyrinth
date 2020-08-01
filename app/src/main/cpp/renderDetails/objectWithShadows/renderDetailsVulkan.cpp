@@ -370,14 +370,18 @@ namespace objectWithShadows {
 
     bool checkForObjects(renderDetails::RenderDetailsVulkan::DrawIfHasTexture condition,
             std::shared_ptr<renderDetails::DrawObjectTableVulkan> const &table,
-            std::vector<size_t> objIndices)
+            std::vector<renderDetails::DrawObjReference> const &objRefs)
     {
-        if (objIndices.size() > 0 && condition == renderDetails::RenderDetailsVulkan::DrawIfHasTexture::BOTH) {
+        if (objRefs.size() == 0) {
+            return false;
+        }
+
+        if (condition == renderDetails::RenderDetailsVulkan::DrawIfHasTexture::BOTH) {
             return true;
         }
 
-        for (auto const &objIndex : objIndices) {
-            auto const &drawObj = table->drawObject(objIndex);
+        for (auto const &objRef : objRefs) {
+            auto const &drawObj = table->drawObject(objRef);
 
             if ((condition == renderDetails::RenderDetailsVulkan::DrawIfHasTexture::ONLY_IF_TEXTURE && drawObj->textureData()) ||
                 (condition == renderDetails::RenderDetailsVulkan::DrawIfHasTexture::ONLY_IF_NO_TEXTURE && !drawObj->textureData()))

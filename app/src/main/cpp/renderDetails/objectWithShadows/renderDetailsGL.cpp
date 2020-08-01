@@ -185,7 +185,7 @@ namespace objectWithShadows {
             checkGraphicsError();
         }
 
-        for (auto drawObjRef : drawObjRefs) {
+        for (auto const &drawObjRef : drawObjRefs) {
             auto drawObj = drawObjTable->drawObject(drawObjRef);
             auto modelData = drawObj->modelData();
             auto textureData = drawObj->textureData();
@@ -205,8 +205,7 @@ namespace objectWithShadows {
                 checkGraphicsError();
             }
 
-            size_t nbrObjData = drawObj->numberObjectsData();
-            for (size_t i = 0; i < nbrObjData; i++) {
+            for (auto const &i : drawObj->drawObjDataRefs()) {
                 auto objData = drawObj->objData(i);
                 auto modelMatrix = objData->modelMatrix(modelMatrixID);
 

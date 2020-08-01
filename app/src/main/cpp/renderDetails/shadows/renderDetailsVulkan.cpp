@@ -118,7 +118,7 @@ namespace shadows {
             size_t descriptorSetID,
             std::shared_ptr<renderDetails::CommonObjectData> const &,
             std::shared_ptr<renderDetails::DrawObjectTableVulkan> const &drawObjTable,
-            std::vector<renderDetails::DrawObjReference> const &drawObjectsIndices)
+            std::vector<renderDetails::DrawObjReference> const &drawObjectsRefs)
     {
         /* bind the graphics pipeline to the command buffer, the second parameter tells Vulkan
          * that we are binding to a graphics pipeline.
@@ -128,7 +128,7 @@ namespace shadows {
 
         initializeCommandBufferDrawObjects(
                 DrawIfHasTexture::BOTH, descriptorSetID, m_pipeline,
-                commandBuffer, drawObjTable, drawObjectsIndices);
+                commandBuffer, drawObjTable, drawObjectsRefs);
     }
 
     renderDetails::ReferenceVulkan RenderDetailsVulkan::createReference(

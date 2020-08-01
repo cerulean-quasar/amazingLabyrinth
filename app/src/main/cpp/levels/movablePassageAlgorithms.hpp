@@ -753,6 +753,7 @@ public:
             glm::vec2 const &endPosition);
     bool tap(
             levelDrawer::Adaptor &levelDrawer,
+            float offBoardComponentScaleMultiplier,
             float modelSize,
             glm::vec2 const &positionOfTap);
     std::pair<uint32_t, uint32_t> findRC(glm::vec2 postion);

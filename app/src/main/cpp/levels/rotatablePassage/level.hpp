@@ -48,7 +48,7 @@ namespace rotatablePassage {
             auto XY = getXYAtZ(x, y, m_mazeFloorZ, projView.first, projView.second);
 
             glm::vec2 position{XY.first, XY.second};
-            return m_gameBoard.tap(m_levelDrawer, m_modelSize, position);
+            return m_gameBoard.tap(m_levelDrawer, 1, m_modelSize, position);
         }
 
         bool updateData() override;

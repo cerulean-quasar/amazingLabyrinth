@@ -82,17 +82,17 @@ namespace renderDetails {
         std::shared_ptr<vulkan::Pipeline> const &pipeline,
         VkCommandBuffer const &commandBuffer,
         std::shared_ptr<DrawObjectTableVulkan> const &drawObjectTable,
-        std::vector<size_t> const &drawObjectsIndices,
+        std::vector<DrawObjReference> const &drawObjRefs,
         bool useVertexNormals)
     {
-        if (!drawObjectTable || drawObjectsIndices.empty()) {
+        if (!drawObjectTable || drawObjRefs.empty()) {
             return;
         }
 
         VkDeviceSize offsets[1] = {0};
 
-        for (auto const &index : drawObjectsIndices) {
-            auto const &drawObj = drawObjectTable->drawObject(index);
+        for (auto const &objRef : drawObjRefs) {
+            auto const &drawObj = drawObjectTable->drawObject(objRef);
             auto const &modelData = drawObj->modelData();
             auto const &textureData = drawObj->textureData();
 
@@ -118,9 +118,8 @@ namespace renderDetails {
             vkCmdBindVertexBuffers(commandBuffer, 0, 1, &vertexBuffer, offsets);
             vkCmdBindIndexBuffer(commandBuffer, indexBuffer, 0, VK_INDEX_TYPE_UINT32);
 
-            size_t nbrModelMatrices = drawObj->numberObjectsData();
-            for (size_t i = 0; i < nbrModelMatrices; i++) {
-                auto drawObjData = drawObj->objData(i);
+            for (auto const &i : drawObj->drawObjDataRefs()) {
+                auto const &drawObjData = drawObj->objData(i);
 
                 /* The MVP matrix and texture samplers */
                 VkDescriptorSet descriptorSet = drawObjData->descriptorSet(

@@ -127,7 +127,7 @@ namespace shadows {
         MatrixID = glGetUniformLocation(m_depthProgramID, "model");
         checkGraphicsError();
 
-        for (auto drawObjRef : drawObjectRefs) {
+        for (auto const &drawObjRef : drawObjectRefs) {
             auto drawObj = drawObjTable->drawObject(drawObjRef);
             auto modelData = drawObj->modelData();
 

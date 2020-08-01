@@ -83,7 +83,7 @@ namespace manyQuadsCoverUp {
             if (--nbrObjsData == 0) {
                 m_levelDrawer.removeObject(m_objRefs[i]);
                 m_objRefs.erase(m_objRefs.begin() + i);
-                m_objDataRefs.erase(m_objDataRefs.begin() + 1);
+                m_objDataRefs.erase(m_objDataRefs.begin() + i);
             } else {
                 m_objDataRefs[i].pop_back();
             }

@@ -73,7 +73,7 @@ void GameBoard::drawPlacements(
         auto &placement = blockToPlace.component()->placement(blockToPlace.placementIndex());
         float scale = blockSize()*offBoardComponentScaleMultiplier/modelSize;
         glm::vec3 pos = position(row, col);
-        pos.z = blockSize()*(offBoardComponentScaleMultiplier + 1.0f/2.0f);
+        pos.z += blockSize()*(offBoardComponentScaleMultiplier + 1.0f/2.0f);
         glm::vec3 zaxis{0.0f, 0.0f, 1.0f};
         glm::mat4 modelMatrix =
                 glm::translate(glm::mat4(1.0f), pos) *
@@ -187,15 +187,10 @@ bool GameBoard::dragEnded(
         m_moveInProgress = false;
         b.component()->placement(b.placementIndex()).moveDone();
 
-        // if the moving component was on an on board block, remove the draw object data for the secondary
-        // component so that it is no longer drawn.
-        if (b.blockType() == GameBoardBlock::BlockType::onBoard) {
-            auto &secondaryPlacement = b.secondaryComponent()->placement(
-                    b.secondaryPlacementIndex());
-            auto objRef = secondaryPlacement.objReference();
-            auto objDataRef = secondaryPlacement.objDataReference();
-            levelDrawer.removeObjectData(objRef->objRef.get(), objDataRef.get());
-        }
+        // put the placement back to its original position
+        drawPlacements(levelDrawer, offBoardComponentScaleMultiplier, modelSize,
+                       m_moveStartingPosition.first, m_moveStartingPosition.second);
+
         // we still need to redraw even if the move failed.  to move the component back to the
         // original spot.
         return true;
@@ -229,15 +224,9 @@ bool GameBoard::dragEnded(
     m_moveInProgress = false;
     b.component()->placement(b.placementIndex()).moveDone();
 
-    // if the moving component was on an on board block, remove the draw object data for the secondary
-    // component so that it is no longer drawn.
-    if (b.blockType() == GameBoardBlock::BlockType::onBoard) {
-        auto &secondaryPlacement = b.secondaryComponent()->placement(
-                b.secondaryPlacementIndex());
-        auto objRef = secondaryPlacement.objReference();
-        auto objDataRef = secondaryPlacement.objDataReference();
-        levelDrawer.removeObjectData(objRef->objRef.get(), objDataRef.get());
-    }
+    // put the placement back to its original position
+    drawPlacements(levelDrawer, offBoardComponentScaleMultiplier, modelSize,
+            m_moveStartingPosition.first, m_moveStartingPosition.second);
 
     // we still need to redraw even if the move failed.  to move the component back to the
     // original spot.
@@ -246,6 +235,7 @@ bool GameBoard::dragEnded(
 
 bool GameBoard::tap(
         levelDrawer::Adaptor &levelDrawer,
+        float offBoardComponentScaleMultiplier,
         float modelSize,
         glm::vec2 const &positionOfTap)
 {
@@ -268,6 +258,10 @@ bool GameBoard::tap(
 
     glm::vec3 pos = position(rc.first, rc.second);
     float scale = blockSize()/modelSize;
+    if (b.blockType() == GameBoardBlock::BlockType::offBoard) {
+        pos.z += blockSize()*(offBoardComponentScaleMultiplier + 1.0f/2.0f);
+        scale *= offBoardComponentScaleMultiplier;
+    }
     glm::vec3 zaxis{0.0f, 0.0f, 1.0f};
     glm::mat4 modelMatrix = glm::translate(glm::mat4(1.0f), pos) *
                             glm::rotate(glm::mat4(1.0f), placement.rotationAngle(), zaxis) *
