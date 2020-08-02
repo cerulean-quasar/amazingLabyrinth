@@ -563,9 +563,11 @@ void blockUnblockPlacements(
             oldPlacement.prev() = std::make_pair(nullptr, 0);
             newPlacement.next() = std::make_pair(nullptr, 0);
 
-            // move the old placement to the unlocked placement draw object references.
-            movePlacement(randomNumbers, levelDrawer, gameBoard, modelSize,
-                    oldComponent->objReferences(),oldPlacement);
+            if (!oldPlacement.lockedIntoPlace()) {
+                // move the old placement to the unlocked placement draw object references.
+                movePlacement(randomNumbers, levelDrawer, gameBoard, modelSize,
+                              oldComponent->objReferences(), oldPlacement);
+            }
         } else {
             // We encountered a loop.  Unblock the entire loop
             std::shared_ptr<Component> nextComponent = newComponent;
@@ -579,8 +581,10 @@ void blockUnblockPlacements(
                 auto &loopPlacement = loopComponent->placement(loopIndex);
                 loopPlacement.prev() = std::make_pair(nullptr, 0);
                 loopPlacement.next() = std::make_pair(nullptr, 0);
-                movePlacement(randomNumbers, levelDrawer, gameBoard, modelSize,
-                        loopComponent->objReferences(),loopPlacement);
+                if (!loopPlacement.lockedIntoPlace()) {
+                    movePlacement(randomNumbers, levelDrawer, gameBoard, modelSize,
+                                  loopComponent->objReferences(), loopPlacement);
+                }
                 loopComponent = tmp.first;
                 loopIndex = tmp.second;
             }
@@ -629,8 +633,8 @@ void restorePathLockedInPlace(GameBoard &gameBoard, std::vector<Point<uint32_t>>
             prev.first = bPrev.component();
             prev.second = bPrev.placementIndex();
 
-            if (i + 1 < pathLockedInPlace.size()) {
-                Point<uint32_t> rowColNext{pathLockedInPlace[i+1]};
+            if (i + 2 < pathLockedInPlace.size()) {
+                Point<uint32_t> rowColNext{pathLockedInPlace[i+2]};
                 auto &next = b.component()->placement(b.placementIndex()).next();
                 auto bNext = gameBoard.block(rowColNext.row, rowColNext.col);
                 if (bNext.component() == nullptr) {
