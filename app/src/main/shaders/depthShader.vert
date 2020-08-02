@@ -25,9 +25,8 @@ layout(set = 0, binding = 0) uniform UniformBufferObject {
 } ubo;
 
 layout(set = 0, binding = 1) uniform CommonUBO {
-    mat4 viewLightMatrix;
-    mat4 view;
     mat4 proj;
+    mat4 view;
 } cubo;
 
 layout(location = 0) in vec3 inPosition;
@@ -42,7 +41,6 @@ out gl_PerVertex {
 };
 
 void main() {
-    gl_Position = cubo.proj * cubo.viewLightMatrix * ubo.model * vec4(inPosition, 1.0);
+    gl_Position = cubo.proj * cubo.view * ubo.model * vec4(inPosition, 1.0);
     fragColor = gl_Position.zzz/gl_Position.w;
-    //gl_Position.z = gl_Position.w - gl_Position.z;
 }

@@ -277,8 +277,10 @@ namespace shadows {
                 Config const &config)
         {
             auto buffer = renderDetails::createUniformBuffer(m_device, sizeof (CommonObjectDataVulkan::CommonUBO));
-            return std::make_shared<CommonObjectDataVulkan>(buffer, preTransform,
+            auto cod = std::make_shared<CommonObjectDataVulkan>(buffer, preTransform,
                                                             m_surfaceWidth/ static_cast<float>(m_surfaceHeight), config);
+            cod->update();
+            return cod;
         }
     };
 }
