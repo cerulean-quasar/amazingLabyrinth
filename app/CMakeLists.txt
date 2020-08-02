@@ -5,41 +5,47 @@
 
 cmake_minimum_required(VERSION 3.4.1)
 
+set (platform64_files)
+if ((NOT ${CMAKE_ANDROID_ARCH_ABI} STREQUAL x86) AND (NOT ${CMAKE_ANDROID_ARCH_ABI} STREQUAL armeabi-v7a))
+    list(APPEND platform64_files
+        ${ANDROID_NDK}/sources/third_party/vulkan/src/common/vulkan_wrapper.cpp
+        src/main/cpp/graphicsVulkan.cpp
+        src/main/cpp/mazeVulkan.cpp
+        src/main/cpp/vk_mem_alloc.cpp
+        src/main/cpp/levelDrawer/levelDrawerVulkan.cpp
+        src/main/cpp/renderDetails/renderDetailsVulkan.cpp
+        src/main/cpp/renderDetails/depthMap/renderDetailsVulkan.cpp
+        src/main/cpp/renderDetails/normalMap/renderDetailsVulkan.cpp
+        src/main/cpp/renderDetails/objectWithShadows/renderDetailsVulkan.cpp
+        src/main/cpp/renderDetails/shadows/renderDetailsVulkan.cpp
+        src/main/cpp/renderDetails/shadowsChaining/renderDetailsVulkan.cpp
+        src/main/cpp/renderLoader/renderLoaderVulkan.cpp)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DCQ_ENABLE_VULKAN")
+endif ((NOT ${CMAKE_ANDROID_ARCH_ABI} STREQUAL x86) AND (NOT ${CMAKE_ANDROID_ARCH_ABI} STREQUAL armeabi-v7a))
+
 #set (platform64_files)
 #if ((NOT ${CMAKE_ANDROID_ARCH_ABI} STREQUAL x86) AND (NOT ${CMAKE_ANDROID_ARCH_ABI} STREQUAL armeabi-v7a))
-#    list(APPEND platform64_files
+#    add_library(
+#            graphics-vulkan
+#
+#            STATIC
+#
 #            ${ANDROID_NDK}/sources/third_party/vulkan/src/common/vulkan_wrapper.cpp
 #            src/main/cpp/graphicsVulkan.cpp
 #            src/main/cpp/mazeVulkan.cpp
 #            src/main/cpp/vk_mem_alloc.cpp
-#            src/main/cpp/levelDrawer/renderDetailsTable/renderDetailsDataVulkan.cpp
-#            src/main/cpp/levelDrawer/drawObjectTable/drawObjectDataVulkan.cpp)
+#            src/main/cpp/levelDrawer/levelDrawerVulkan.cpp
+#            src/main/cpp/renderDetails/depthMap/renderDetailsVulkan.cpp
+#            src/main/cpp/renderDetails/normalMap/renderDetailsVulkan.cpp
+#            src/main/cpp/renderDetails/objectWithShadows/renderDetailsVulkan.cpp
+#            src/main/cpp/renderDetails/shadows/renderDetailsVulkan.cpp
+#            src/main/cpp/renderDetails/shadowsChaining/renderDetailsVulkan.cpp
+#            src/main/cpp/renderLoader/renderLoaderVulkan.cpp)
+#
+#    list(APPEND platform64_files
+#        graphics-vulkan)
 #    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DCQ_ENABLE_VULKAN")
 #endif ((NOT ${CMAKE_ANDROID_ARCH_ABI} STREQUAL x86) AND (NOT ${CMAKE_ANDROID_ARCH_ABI} STREQUAL armeabi-v7a))
-
-set (platform64_files)
-if ((NOT ${CMAKE_ANDROID_ARCH_ABI} STREQUAL x86) AND (NOT ${CMAKE_ANDROID_ARCH_ABI} STREQUAL armeabi-v7a))
-    add_library(
-            graphics-vulkan
-
-            STATIC
-
-            ${ANDROID_NDK}/sources/third_party/vulkan/src/common/vulkan_wrapper.cpp
-            src/main/cpp/graphicsVulkan.cpp
-            src/main/cpp/mazeVulkan.cpp
-            src/main/cpp/vk_mem_alloc.cpp
-            src/main/cpp/levelDrawer/levelDrawerVulkan.cpp
-            src/main/cpp/renderDetails/depthMap/renderDetailsVulkan.cpp
-            src/main/cpp/renderDetails/normalMap/renderDetailsVulkan.cpp
-            src/main/cpp/renderDetails/objectWithShadows/renderDetailsVulkan.cpp
-            src/main/cpp/renderDetails/shadows/renderDetailsVulkan.cpp
-            src/main/cpp/renderDetails/shadowsChaining/renderDetailsVulkan.cpp
-            src/main/cpp/renderLoader/renderLoaderVulkan.cpp)
-
-    list(APPEND platform64_files
-        graphics-vulkan)
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DCQ_ENABLE_VULKAN")
-endif ((NOT ${CMAKE_ANDROID_ARCH_ABI} STREQUAL x86) AND (NOT ${CMAKE_ANDROID_ARCH_ABI} STREQUAL armeabi-v7a))
 
 # Creates and names a library, sets it as either STATIC
 # or SHARED, and provides the relative paths to its source code.
@@ -52,6 +58,7 @@ add_library( # Sets the name of the library.
         SHARED
 
         # Provides a relative path to your source file(s).
+        ${platform64_files}
         src/main/cpp/native-lib.cpp
         src/main/cpp/gameRequester.cpp
         src/main/cpp/android.cpp
@@ -141,9 +148,9 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Werror -Wno-unused-parameter -W -std=c+
 #     -1 to 1 depth in our code.
 # (2) GLM_FORCE_RADIANS: tell GLM to use radians for angles.
 target_compile_definitions(native-lib PUBLIC -DVK_USE_PLATFORM_ANDROID_KHR -DGLM_FORCE_DEPTH_ZERO_TO_ONE -DGLM_FORCE_RADIANS)
-if ((NOT ${CMAKE_ANDROID_ARCH_ABI} STREQUAL x86) AND (NOT ${CMAKE_ANDROID_ARCH_ABI} STREQUAL armeabi-v7a))
-target_compile_definitions(graphics-vulkan PUBLIC -DVK_USE_PLATFORM_ANDROID_KHR -DGLM_FORCE_DEPTH_ZERO_TO_ONE -DGLM_FORCE_RADIANS)
-endif ((NOT ${CMAKE_ANDROID_ARCH_ABI} STREQUAL x86) AND (NOT ${CMAKE_ANDROID_ARCH_ABI} STREQUAL armeabi-v7a))
+#if ((NOT ${CMAKE_ANDROID_ARCH_ABI} STREQUAL x86) AND (NOT ${CMAKE_ANDROID_ARCH_ABI} STREQUAL armeabi-v7a))
+#target_compile_definitions(graphics-vulkan PUBLIC -DVK_USE_PLATFORM_ANDROID_KHR -DGLM_FORCE_DEPTH_ZERO_TO_ONE -DGLM_FORCE_RADIANS)
+#endif ((NOT ${CMAKE_ANDROID_ARCH_ABI} STREQUAL x86) AND (NOT ${CMAKE_ANDROID_ARCH_ABI} STREQUAL armeabi-v7a))
 
 
 # Specifies libraries CMake should link to your target library. You
@@ -156,7 +163,6 @@ target_link_libraries( # Specifies the target library.
                        # Links the target library to the log library
                        # included in the NDK.
                        ${log-lib}
-                       ${platform64_files}
                        EGL
                        GLESv3
                        android)

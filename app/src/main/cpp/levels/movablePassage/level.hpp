@@ -101,7 +101,7 @@ namespace movablePassage {
               m_initDone{ false },
               m_objsIndexBall{ 0 }
         {
-            m_levelDrawer.setClearColor(glm::vec4{0.6f, 0.8f, 1.0f, 1.0f});
+            m_levelDrawer.setClearColor(glm::vec4{0.0f, 0.0f, 0.0f, 1.0f});
 
             m_textureLockedComponent = lcd->placementLockedInPlaceTexture;
 

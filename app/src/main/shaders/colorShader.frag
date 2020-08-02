@@ -26,11 +26,10 @@ layout(location = 2) in vec3 fragNormal;
 layout(location = 3) in vec3 fragPosition;
 layout(location = 4) in vec4 fragPosLightSpace;
 
-layout(binding = 2) uniform sampler2D texSampler;
-layout(set = 0, binding = 3) uniform UniformBufferObject {
+layout(set = 0, binding = 2) uniform UniformBufferObject {
     vec3 pos;
 } light;
-layout(binding = 4) uniform sampler2D texShadowMap;
+layout(binding = 3) uniform sampler2D texShadowMap;
 
 layout(location = 0) out vec4 outColor;
 
@@ -54,8 +53,5 @@ void main() {
     float diff = max(dot(fragNormal, lightDirection), 0.0);
     vec3 diffuse = diff * vec3(1.0, 1.0, 1.0);
     float shadow = ShadowCalculation(fragPosLightSpace);
-    //outColor = vec4(vec3(1.0,1.0,1.0)*shadow, 1.0);
-    outColor = vec4(fragColor + diffuse*(1.0 - shadow), 1.0) * texture(texSampler, fragTexCoord);
-    //outColor = vec4(fragColor + diffuse, 1.0) * texture(texShadowMap, fragTexCoord).r;
-    //outColor = vec4(1.0, 1.0, 1.0, 1.0);
+    outColor = vec4(fragColor + diffuse*(1.0 - shadow), 1.0);
 }

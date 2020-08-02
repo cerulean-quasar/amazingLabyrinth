@@ -24,6 +24,10 @@
 #include "../../renderLoader/registerVulkan.hpp"
 
 namespace objectWithShadows {
+    char constexpr const *RenderDetailsVulkan::SHADER_VERT_FILE;
+    char constexpr const *RenderDetailsVulkan::TEXTURE_SHADER_FRAG_FILE;
+    char constexpr const *RenderDetailsVulkan::COLOR_SHADER_FRAG_FILE;
+
     /* descriptor set for the MVP matrix and texture samplers */
     void DrawObjectDataVulkan::colorUpdateDescriptorSet(
             std::shared_ptr<vulkan::Device> const &inDevice,

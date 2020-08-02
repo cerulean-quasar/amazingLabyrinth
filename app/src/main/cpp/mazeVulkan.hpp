@@ -44,15 +44,15 @@ public:
               m_renderLoader{std::make_shared<RenderLoaderVulkan>(m_device)},
               m_levelDrawer{std::make_shared<levelDrawer::LevelDrawerVulkan>(levelDrawer::NeededForDrawingVulkan{m_device, m_commandPool}, m_renderLoader, m_gameRequester)}
     {
-        m_levelSequence = std::make_shared<LevelSequence>(
-                m_gameRequester, m_levelDrawer, m_swapChain->extent().width, m_swapChain->extent().height);
-
         prepareDepthResources();
 
         if (!testDepthTexture(levelDrawer::Adaptor(levelDrawer::LEVEL, m_levelDrawer))) {
             throw std::runtime_error(
                     "This version of Vulkan has bugs making it impossible to get the depth texture and normal map.");
         }
+
+        m_levelSequence = std::make_shared<LevelSequence>(
+                m_gameRequester, m_levelDrawer, m_swapChain->extent().width, m_swapChain->extent().height);
     }
 
     void initThread() override { }

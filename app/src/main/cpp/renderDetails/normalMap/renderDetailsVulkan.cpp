@@ -23,7 +23,10 @@
 #include "../../renderLoader/registerVulkan.hpp"
 
 namespace normalMap {
-/* for accessing data other than the vertices from the shaders */
+    char constexpr const *RenderDetailsVulkan::SHADER_SIMPLE_FRAG_FILE;
+    char constexpr const *RenderDetailsVulkan::SHADER_NORMAL_VERT_FILE;
+
+    /* for accessing data other than the vertices from the shaders */
     void DescriptorSetLayout::createDescriptorSetLayout() {
         /* MVP matrix */
         VkDescriptorSetLayoutBinding uboLayoutBinding = {};

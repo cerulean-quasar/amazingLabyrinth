@@ -61,7 +61,7 @@ namespace shadowsChaining {
         rd->m_objectWithShadowsRenderDetails = refMain.renderDetails;
         rd->m_shadowsRenderDetails = refShadows.renderDetails;
 
-        return createReference(std::move(rd), refShadows, refMain, rd->m_samplerShadows);
+        return createReference(std::move(rd), refShadows, refMain);
     }
 
     renderDetails::ReferenceVulkan RenderDetailsVulkan::loadExisting(
@@ -76,11 +76,11 @@ namespace shadowsChaining {
             throw std::runtime_error("Invalid render details parameter type.");
         }
 
-        auto rd = dynamic_cast<RenderDetailsVulkan*>(rdBase.get());
+        auto rd = std::dynamic_pointer_cast<RenderDetailsVulkan>(rdBase);
         if (rd == nullptr) {
             throw std::runtime_error("Invalid render details type.");
         }
-        auto shadowParameters = createShadowParameters(rd, parameters);
+        auto shadowParameters = createShadowParameters(rd.get(), parameters);
 
         // shadows render details
         auto refShadows = renderLoader->load(
@@ -93,7 +93,7 @@ namespace shadowsChaining {
         rd->m_objectWithShadowsRenderDetails = refObjectWithShadows.renderDetails;
         rd->m_shadowsRenderDetails = refShadows.renderDetails;
 
-        return createReference(std::move(rdBase), refShadows, refObjectWithShadows, rd->m_samplerShadows);
+        return createReference(std::move(rd), refShadows, refObjectWithShadows);
     }
 
     void RenderDetailsVulkan::reload(
@@ -101,6 +101,7 @@ namespace shadowsChaining {
             std::shared_ptr<RenderLoaderVulkan> const &renderLoader,
             std::shared_ptr<renderDetails::Parameters> const &parametersBase)
     {
+        // todo: reload the framebuffer and render pass and images.
         auto parameters = dynamic_cast<renderDetails::ParametersVulkan*>(parametersBase.get());
         if (parameters == nullptr) {
             throw std::runtime_error("Invalid render details parameter type.");
@@ -173,10 +174,9 @@ namespace shadowsChaining {
     }
 
     renderDetails::ReferenceVulkan RenderDetailsVulkan::createReference(
-            std::shared_ptr<renderDetails::RenderDetailsVulkan> rd,
+            std::shared_ptr<RenderDetailsVulkan> rd,
             renderDetails::ReferenceVulkan const &refShadows,
-            renderDetails::ReferenceVulkan const &refObjectWithShadows,
-            std::shared_ptr<vulkan::ImageSampler> const &shadowsImageSampler)
+            renderDetails::ReferenceVulkan const &refObjectWithShadows)
     {
         auto cod = std::make_shared<CommonObjectDataVulkan>();
         cod->m_objectWithShadowsCOD = std::dynamic_pointer_cast<objectWithShadows::CommonObjectDataVulkan>(refObjectWithShadows.commonObjectData);
@@ -190,7 +190,7 @@ namespace shadowsChaining {
         }
 
         // set the shadows image sampler
-        cod->m_objectWithShadowsCOD->setShadowsImageSampler(shadowsImageSampler);
+        cod->m_objectWithShadowsCOD->setShadowsImageSampler(rd->m_samplerShadows);
 
         renderDetails::ReferenceVulkan ref;
         ref.renderDetails = rd;

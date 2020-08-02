@@ -53,4 +53,6 @@ void main() {
     fragNormal = normalize(mat3(transpose(inverse(ubo.model))) * inNormal);
     fragPosition = vec3(ubo.model * vec4(inPosition, 1.0));
     fragPosLightSpace = cubo.proj * cubo.viewLightMatrix * ubo.model * vec4(inPosition, 1.0);
+
+    //gl_Position = vec4(inPosition, 1.0);
 }

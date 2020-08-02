@@ -23,6 +23,9 @@
 #include "../../renderLoader/registerVulkan.hpp"
 
 namespace shadows {
+    char constexpr const *RenderDetailsVulkan::SHADER_SIMPLE_FRAG_FILE;
+    char constexpr const *RenderDetailsVulkan::SHADOW_VERT_FILE;
+
     /* for accessing data other than the vertices from the shaders */
     void DescriptorSetLayout::createDescriptorSetLayout() {
         /* model matrix */

@@ -306,8 +306,8 @@ namespace depthMap {
 
         std::shared_ptr<vulkan::Device> m_device;
 
-        std::shared_ptr<vulkan::DescriptorPools> m_descriptorPools;
         std::shared_ptr<DescriptorSetLayout> m_descriptorSetLayout;
+        std::shared_ptr<vulkan::DescriptorPools> m_descriptorPools;
         std::shared_ptr<vulkan::Pipeline> m_pipeline;
 
         static renderDetails::ReferenceVulkan createReference(

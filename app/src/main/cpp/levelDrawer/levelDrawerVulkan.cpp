@@ -79,9 +79,9 @@ namespace levelDrawer {
         // add the commands to the command buffer for the main draw.
         for (auto index : std::vector<ObjectType>{LEVEL, STARTER, FINISHER}) {
             for (auto const &rule : rulesList) {
-                rule.renderDetails->addPreRenderPassCmdsToCommandBuffer(
-                        info.cmdBuffer, 0, rule.commonObjectData, m_drawObjectTableList,
-                        rule.drawObjRefs);
+                rule.renderDetails->addDrawCmdsToCommandBuffer(
+                        info.cmdBuffer, 0, rule.commonObjectData[index], m_drawObjectTableList[index],
+                        rule.drawObjRefs[index]);
             }
         }
 
@@ -228,7 +228,7 @@ namespace levelDrawer {
                               VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,
                               VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT};
         colorImage->image()->copyImageToBuffer(buffer, m_neededForDrawing.commandPool);
-        buffer.copyRawFrom(imageData.data(), imageData.size() * sizeof (float) * 4);
+        buffer.copyRawFrom(imageData.data(), imageData.size() * sizeof (float));
 
         rules[0].renderDetails->postProcessImageBuffer(rules[0].commonObjectData, imageData, results);
     }

@@ -173,10 +173,9 @@ namespace shadowsChaining {
         }
 
         static renderDetails::ReferenceVulkan createReference(
-                std::shared_ptr<renderDetails::RenderDetailsVulkan> rd,
+                std::shared_ptr<RenderDetailsVulkan> rd,
                 renderDetails::ReferenceVulkan const &refShadows,
-                renderDetails::ReferenceVulkan const &refObjectWithShadows,
-                std::shared_ptr<vulkan::ImageSampler> const &shadowsImageSampler);
+                renderDetails::ReferenceVulkan const &refObjectWithShadows);
 
         static std::shared_ptr<renderDetails::Parameters> createShadowParameters(
                 RenderDetailsVulkan const *rd,

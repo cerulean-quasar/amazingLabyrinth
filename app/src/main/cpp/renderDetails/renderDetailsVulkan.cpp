@@ -34,7 +34,7 @@ namespace renderDetails {
         VkVertexInputBindingDescription bindingDescription = {};
 
         bindingDescription.binding = 0;
-        bindingDescription.stride = sizeof(Vertex);
+        bindingDescription.stride = sizeof(levelDrawer::Vertex);
 
         /* move to the next data entry after each vertex.  VK_VERTEX_INPUT_RATE_INSTANCE
          * moves to the next data entry after each instance, but we are not using instanced
@@ -54,25 +54,25 @@ namespace renderDetails {
         attributeDescriptions[0].binding = 0; /* binding description to use */
         attributeDescriptions[0].location = 0; /* matches the location in the vertex shader */
         attributeDescriptions[0].format = VK_FORMAT_R32G32B32_SFLOAT;
-        attributeDescriptions[0].offset = offsetof(Vertex, pos);
+        attributeDescriptions[0].offset = offsetof(levelDrawer::Vertex, pos);
 
         /* color */
         attributeDescriptions[1].binding = 0; /* binding description to use */
         attributeDescriptions[1].location = 1;
         attributeDescriptions[1].format = VK_FORMAT_R32G32B32_SFLOAT;
-        attributeDescriptions[1].offset = offsetof(Vertex, color);
+        attributeDescriptions[1].offset = offsetof(levelDrawer::Vertex, color);
 
         /* texture coordinate */
         attributeDescriptions[2].binding = 0;
         attributeDescriptions[2].location = 2;
         attributeDescriptions[2].format = VK_FORMAT_R32G32_SFLOAT;
-        attributeDescriptions[2].offset = offsetof(Vertex, texCoord);
+        attributeDescriptions[2].offset = offsetof(levelDrawer::Vertex, texCoord);
 
         /* normal vector */
         attributeDescriptions[3].binding = 0;
         attributeDescriptions[3].location = 3;
         attributeDescriptions[3].format = VK_FORMAT_R32G32B32_SFLOAT;
-        attributeDescriptions[3].offset = offsetof(Vertex, normal);
+        attributeDescriptions[3].offset = offsetof(levelDrawer::Vertex, normal);
         return attributeDescriptions;
     }
 
@@ -104,12 +104,12 @@ namespace renderDetails {
             }
 
             VkBuffer vertexBuffer = useVertexNormals ?
-                    modelData->vertexBufferWithVertexNormals().cbuffer() :
-                    modelData->vertexBuffer().cbuffer();
+                    modelData->vertexBufferWithVertexNormals()->cbuffer() :
+                    modelData->vertexBuffer()->cbuffer();
 
             VkBuffer indexBuffer = useVertexNormals ?
-                    modelData->indexBufferWithVertexNormals().cbuffer() :
-                    modelData->indexBuffer().cbuffer();
+                    modelData->indexBufferWithVertexNormals()->cbuffer() :
+                    modelData->indexBuffer()->cbuffer();
 
             uint32_t nbrIndices = useVertexNormals ?
                     modelData->numberIndicesWithVertexNormals() :
@@ -123,7 +123,7 @@ namespace renderDetails {
 
                 /* The MVP matrix and texture samplers */
                 VkDescriptorSet descriptorSet = drawObjData->descriptorSet(
-                        descriptorSetID).get();
+                        descriptorSetID)->descriptorSet().get();
                 vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
                                         pipeline->layout().get(), 0, 1, &descriptorSet, 0,
                                         nullptr);

@@ -23,7 +23,10 @@
 #include "../../renderLoader/registerVulkan.hpp"
 
 namespace depthMap {
-/* for accessing data other than the vertices from the shaders */
+    char constexpr const *RenderDetailsVulkan::SHADER_SIMPLE_FRAG_FILE;
+    char constexpr const *RenderDetailsVulkan::SHADER_LINEAR_DEPTH_VERT_FILE;
+
+    /* for accessing data other than the vertices from the shaders */
     void DescriptorSetLayout::createDescriptorSetLayout() {
         /* MVP matrix */
         VkDescriptorSetLayoutBinding uboLayoutBinding = {};
