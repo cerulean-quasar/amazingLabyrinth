@@ -118,9 +118,9 @@ namespace shadowsChaining {
     void RenderDetailsVulkan::addPreRenderPassCmdsToCommandBuffer(
             VkCommandBuffer const &commandBuffer,
             size_t /* descriptor set ID, not used */,
-            renderDetails::CommonObjectDataList const &commonObjectDataList,
-            renderDetails::DrawObjectTableVulkanList const &drawObjTableList,
-            renderDetails::DrawObjRefsForDrawList const &DrawObjRefsList)
+            levelDrawer::CommonObjectDataList const &commonObjectDataList,
+            levelDrawer::DrawObjectTableVulkanList const &drawObjTableList,
+            levelDrawer::DrawObjRefsForDrawList const &DrawObjRefsList)
     {
         // The shadows rendering needs to occur before the main render pass.
 
@@ -165,8 +165,8 @@ namespace shadowsChaining {
             VkCommandBuffer const &commandBuffer,
             size_t /* unused descriptor set ID */,
             std::shared_ptr<renderDetails::CommonObjectData> const &commonObjectData,
-            std::shared_ptr<renderDetails::DrawObjectTableVulkan> const &drawObjTable,
-            std::vector<renderDetails::DrawObjReference> const &drawObjRefs)
+            std::shared_ptr<levelDrawer::DrawObjectTableVulkan> const &drawObjTable,
+            std::vector<levelDrawer::DrawObjReference> const &drawObjRefs)
     {
         m_objectWithShadowsRenderDetails->addDrawCmdsToCommandBuffer(
                 commandBuffer, 0 /* main render details ID */, commonObjectData,

@@ -36,11 +36,6 @@
 #include "../../renderLoader/renderLoaderGL.hpp"
 
 namespace shadowsChaining {
-    enum {
-        MODEL_MATRIX_ID_MAIN,
-        MODEL_MATRIX_ID_SHADOWS
-    };
-
     class CommonObjectDataGL : public renderDetails::CommonObjectData {
     public:
         std::pair<glm::mat4, glm::mat4> getProjViewForLevel() override {
@@ -79,7 +74,7 @@ namespace shadowsChaining {
     class DrawObjectDataGL : public renderDetails::DrawObjectDataGL {
     public:
         glm::mat4 modelMatrix(uint32_t id) override {
-            if (id == MODEL_MATRIX_ID_MAIN) {
+            if (id == renderDetails::MODEL_MATRIX_ID_MAIN) {
                 return m_mainDOD->modelMatrix(id);
             } else {
                 return m_shadowsDOD->modelMatrix(id);
@@ -124,15 +119,15 @@ namespace shadowsChaining {
 
         void preMainDraw(
                 uint32_t modelMatrixID,
-                renderDetails::CommonObjectDataList const &commonObjectDataList,
-                renderDetails::DrawObjectTableGLList const &drawObjTableList,
-                renderDetails::DrawObjRefsForDrawList const &drawObjRefsList) override;
+                levelDrawer::CommonObjectDataList const &commonObjectDataList,
+                levelDrawer::DrawObjectTableGLList const &drawObjTableList,
+                levelDrawer::DrawObjRefsForDrawList const &drawObjRefsList) override;
 
         void draw(
                 uint32_t modelMatrixID,
                 std::shared_ptr<renderDetails::CommonObjectData> const &commonObjectData,
                 std::shared_ptr<renderDetails::DrawObjectTableGL> const &drawObjTable,
-                std::vector<renderDetails::DrawObjReference> const &drawObjRefs) override;
+                std::vector<levelDrawer::DrawObjReference> const &drawObjRefs) override;
 
         RenderDetailsGL(bool useIntTexture, uint32_t inWidth, uint32_t inHeight)
                 : renderDetails::RenderDetailsGL{inWidth, inHeight},

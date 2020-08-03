@@ -120,8 +120,8 @@ namespace shadows {
             VkCommandBuffer const &commandBuffer,
             size_t descriptorSetID,
             std::shared_ptr<renderDetails::CommonObjectData> const &,
-            std::shared_ptr<renderDetails::DrawObjectTableVulkan> const &drawObjTable,
-            std::vector<renderDetails::DrawObjReference> const &drawObjectsRefs)
+            std::shared_ptr<levelDrawer::DrawObjectTableVulkan> const &drawObjTable,
+            std::vector<levelDrawer::DrawObjReference> const &drawObjectsRefs)
     {
         /* bind the graphics pipeline to the command buffer, the second parameter tells Vulkan
          * that we are binding to a graphics pipeline.
@@ -159,7 +159,8 @@ namespace shadows {
 
                     auto descriptorSet = rd->descriptorPools()->allocateDescriptor();
                     return std::make_shared<DrawObjectDataVulkan>(
-                            rd->device(), cod, std::move(descriptorSet), std::move(modelMatrixBuffer));
+                            rd->device(), cod, std::move(descriptorSet),
+                            std::move(modelMatrixBuffer), modelMatrix);
                 });
 
         ref.getProjViewForLevel = renderDetails::ReferenceVulkan::GetProjViewForLevel(

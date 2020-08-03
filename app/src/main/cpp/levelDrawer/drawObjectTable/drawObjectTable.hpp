@@ -31,8 +31,12 @@
 #include "../../renderDetails/renderDetails.hpp"
 
 namespace levelDrawer {
+    template <typename traits>
+    class DrawObjectTable;
+
     template<typename traits>
     class DrawObject {
+        friend DrawObjectTable<traits>;
     public:
         bool hasOverridingRenderDetailsReference() {
             return m_renderDetailsReference.renderDetails != nullptr;
@@ -63,24 +67,6 @@ namespace levelDrawer {
             return it->second;
         }
 
-        DrawObjDataReference addObjectData(std::shared_ptr<typename traits::DrawObjectDataType> objectData) {
-            DrawObjDataReference objDataRef = m_nextDrawObjDataReference++;
-            m_objsData.emplace(objDataRef, objectData);
-            return objDataRef;
-        }
-
-        void updateObjectData(DrawObjDataReference objDataRef, glm::mat4 const &modelMatrix) {
-            auto it = m_objsData.find(objDataRef);
-            if (it == m_objsData.end()) {
-                throw std::runtime_error("Invalid draw object data reference on update.");
-            }
-            it->second->update(modelMatrix);
-        }
-
-        void removeObjectData(DrawObjDataReference objDataRef) {
-            m_objsData.erase(objDataRef);
-        }
-
         size_t numberObjectsData() const {
             return m_objsData.size();
         }
@@ -103,6 +89,24 @@ namespace levelDrawer {
                   m_textureData{textureData_} {}
 
     private:
+        DrawObjDataReference addObjectData(std::shared_ptr<typename traits::DrawObjectDataType> objectData) {
+            DrawObjDataReference objDataRef = m_nextDrawObjDataReference++;
+            m_objsData.emplace(objDataRef, objectData);
+            return objDataRef;
+        }
+
+        void updateObjectData(DrawObjDataReference objDataRef, glm::mat4 const &modelMatrix) {
+            auto it = m_objsData.find(objDataRef);
+            if (it == m_objsData.end()) {
+                throw std::runtime_error("Invalid draw object data reference on update.");
+            }
+            it->second->update(modelMatrix);
+        }
+
+        void removeObjectData(DrawObjDataReference objDataRef) {
+            m_objsData.erase(objDataRef);
+        }
+
         DrawObjReference m_nextDrawObjDataReference;
         typename traits::RenderDetailsReferenceType m_renderDetailsReference;
         std::shared_ptr<typename traits::ModelDataType> m_modelData;
@@ -128,6 +132,7 @@ namespace levelDrawer {
             m_drawObjects.clear();
             m_objsIndicesWithOverridingRenderDetails.clear();
             m_objsIndicesWithGlobalRenderDetails.clear();
+            m_zValueReferernces.clear();
             m_nextDrawObjReference = 0;
         }
 
@@ -183,6 +188,7 @@ namespace levelDrawer {
                 m_objsIndicesWithGlobalRenderDetails.erase(objReference);
             }
 
+            m_zValueReferernces.erase(ZValueReference(boost::none, objReference, boost::none));
             m_drawObjects.erase(itObjRef);
         }
 
@@ -329,6 +335,7 @@ namespace levelDrawer {
         std::unordered_map<DrawObjReference, std::shared_ptr<DrawObject<traits>>> m_drawObjects;
         std::unordered_set<DrawObjReference> m_objsIndicesWithOverridingRenderDetails;
         std::unordered_set<DrawObjReference> m_objsIndicesWithGlobalRenderDetails;
+        std::set<ZValueReference> m_zValueReferernces;
     };
 }
 #endif // AMAZING_LABYRINTH_DRAW_OBJECT_TABLE_HPP

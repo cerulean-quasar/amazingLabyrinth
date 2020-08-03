@@ -358,7 +358,8 @@ namespace objectWithShadows {
                             cod,
                             textureData,
                             std::move(ds),
-                            std::move(modelMatrixBuffer));
+                            std::move(modelMatrixBuffer),
+                            modelMatrix);
                 });
 
         ref.getProjViewForLevel = renderDetails::ReferenceVulkan::GetProjViewForLevel(
@@ -400,8 +401,8 @@ namespace objectWithShadows {
             VkCommandBuffer const &commandBuffer,
             size_t descriptorSetID,
             std::shared_ptr<renderDetails::CommonObjectData> const &,
-            std::shared_ptr<renderDetails::DrawObjectTableVulkan> const &drawObjTable,
-            std::vector<renderDetails::DrawObjReference> const &drawObjRefs)
+            std::shared_ptr<levelDrawer::DrawObjectTableVulkan> const &drawObjTable,
+            std::vector<levelDrawer::DrawObjReference> const &drawObjRefs)
     {
         // Objects with texture
         if (checkForObjects(DrawIfHasTexture::ONLY_IF_TEXTURE, drawObjTable,

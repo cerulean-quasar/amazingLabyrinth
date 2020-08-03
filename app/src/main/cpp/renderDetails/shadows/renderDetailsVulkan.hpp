@@ -65,12 +65,18 @@ namespace shadows {
                     config.lightingSource, config.lookAt, config.up),
                 m_camera{std::move(buffer)},
                 m_preTransform{preTransform}
-        {}
+        {
+            doUpdate();
+        }
 
         ~CommonObjectDataVulkan() override = default;
 
     protected:
         void update() override {
+            doUpdate();
+        }
+
+        void doUpdate() {
             CommonUBO commonUbo;
             commonUbo.proj = m_preTransform *
                              getPerspectiveMatrix(m_viewAngle, m_aspectRatio, m_nearPlane, m_farPlane, true, true);
@@ -95,22 +101,30 @@ namespace shadows {
     class DrawObjectDataVulkan : public renderDetails::DrawObjectDataVulkan {
         friend RenderDetailsVulkan;
     public:
-        void update(glm::mat4 const &modelMatrix) override {
+        void update(glm::mat4 const &inModelMatrix) override {
             PerObjectUBO ubo{};
-            ubo.modelMatrix = modelMatrix;
+            ubo.modelMatrix = inModelMatrix;
             m_uniformBuffer->copyRawTo(&ubo, sizeof(ubo));
+            m_modelMatrix = inModelMatrix;
         }
 
         bool hasTexture() override { return false; }
         std::shared_ptr<vulkan::Buffer> const &bufferModelMatrix() override { return m_uniformBuffer; }
         std::shared_ptr<vulkan::DescriptorSet> const &descriptorSet(uint32_t) override { return m_descriptorSet; }
+        glm::mat4 modelMatrix(uint32_t) override { return m_modelMatrix; }
+
+        void updateModelMatrixNoBufferUpdate(glm::mat4 const &modelMatrix) override {
+            m_modelMatrix = modelMatrix;
+        }
 
         DrawObjectDataVulkan(std::shared_ptr<vulkan::Device> const &inDevice,
                              std::shared_ptr<CommonObjectDataVulkan> const &inCommonObjectData,
                              std::shared_ptr<vulkan::DescriptorSet> inDescriptorSet,
-                             std::shared_ptr<vulkan::Buffer> inUniformBuffer)
+                             std::shared_ptr<vulkan::Buffer> inUniformBuffer,
+                             glm::mat4 const &inModelMatrix)
                 : m_descriptorSet{std::move(inDescriptorSet)},
-                  m_uniformBuffer{std::move(inUniformBuffer)}
+                  m_uniformBuffer{std::move(inUniformBuffer)},
+                  m_modelMatrix{inModelMatrix}
         {
             updateDescriptorSet(inDevice, inCommonObjectData);
         }
@@ -124,6 +138,7 @@ namespace shadows {
 
         std::shared_ptr<vulkan::DescriptorSet> m_descriptorSet;
         std::shared_ptr<vulkan::Buffer> m_uniformBuffer;
+        glm::mat4 m_modelMatrix;
 
         void updateDescriptorSet(std::shared_ptr<vulkan::Device> const &inDevice,
                 std::shared_ptr<CommonObjectDataVulkan> const &inCommonObjectData);
@@ -221,8 +236,8 @@ namespace shadows {
                 VkCommandBuffer const &commandBuffer,
                 size_t descriptorSetID,
                 std::shared_ptr<renderDetails::CommonObjectData> const &commonObjectData,
-                std::shared_ptr<renderDetails::DrawObjectTableVulkan> const &drawObjTable,
-                std::vector<renderDetails::DrawObjReference> const &drawObjectsIndices) override;
+                std::shared_ptr<levelDrawer::DrawObjectTableVulkan> const &drawObjTable,
+                std::vector<levelDrawer::DrawObjReference> const &drawObjectsIndices) override;
 
         void reload(
                 std::shared_ptr<GameRequester> const &gameRequester,
@@ -277,10 +292,9 @@ namespace shadows {
                 Config const &config)
         {
             auto buffer = renderDetails::createUniformBuffer(m_device, sizeof (CommonObjectDataVulkan::CommonUBO));
-            auto cod = std::make_shared<CommonObjectDataVulkan>(buffer, preTransform,
-                                                            m_surfaceWidth/ static_cast<float>(m_surfaceHeight), config);
-            cod->update();
-            return cod;
+            return std::make_shared<CommonObjectDataVulkan>(
+                    buffer, preTransform,
+                    m_surfaceWidth/ static_cast<float>(m_surfaceHeight), config);
         }
     };
 }

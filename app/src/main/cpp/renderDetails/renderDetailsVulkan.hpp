@@ -33,9 +33,6 @@
 
 class RenderLoaderVulkan;
 namespace renderDetails {
-    using DrawObjectTableVulkan = levelDrawer::DrawObjectTable<levelDrawer::DrawObjectVulkanTraits>;
-    using DrawObjectTableVulkanList = std::array<std::shared_ptr<DrawObjectTableVulkan>, nbrDrawObjectTables>;
-
     std::shared_ptr<vulkan::Buffer> createUniformBuffer(
             std::shared_ptr<vulkan::Device> const &device, size_t bufferSize);
 
@@ -71,6 +68,7 @@ namespace renderDetails {
             return false;
         }
 
+        virtual void updateModelMatrixNoBufferUpdate(glm::mat4 const &modelMatrix) = 0;
         virtual std::shared_ptr<vulkan::Buffer> const &bufferModelMatrix() = 0;
         virtual std::shared_ptr<vulkan::DescriptorSet> const &descriptorSet(uint32_t id) = 0;
 

@@ -30,6 +30,7 @@
 #include "../objectWithShadows/renderDetailsVulkan.hpp"
 #include "../renderDetailsVulkan.hpp"
 #include "../../levelDrawer/drawObjectTable/drawObjectTableVulkan.hpp"
+#include "../../levelDrawer/common.hpp"
 #include "config.hpp"
 
 namespace shadowsChaining {
@@ -68,6 +69,14 @@ namespace shadowsChaining {
             return m_mainDrawObjectData->bufferModelMatrix();
         }
 
+        glm::mat4 modelMatrix(uint32_t id) override {
+            if (id == renderDetails::MODEL_MATRIX_ID_MAIN) {
+                return m_mainDrawObjectData->modelMatrix(id);
+            } else {
+                return m_shadowsDrawObjectData->modelMatrix(id);
+            }
+        }
+
         bool updateTextureData(
                 std::shared_ptr<renderDetails::CommonObjectData> const &commonObjectData,
                 std::shared_ptr<levelDrawer::TextureDataVulkan> const &textureData) override
@@ -76,10 +85,16 @@ namespace shadowsChaining {
             return m_mainDrawObjectData->updateTextureData(cod->objectWithShadowsCOD(), textureData);
         }
 
+        void updateModelMatrixNoBufferUpdate(glm::mat4 const &modelMatrix) override {
+            m_mainDrawObjectData->updateModelMatrixNoBufferUpdate(modelMatrix);
+            m_shadowsDrawObjectData->updateModelMatrixNoBufferUpdate(modelMatrix);
+        }
+
         void update(glm::mat4 const &modelMatrix) override {
             // the main draw object data and the shadows draw object data share a buffer.
             // So it is only necessary to update one.
             m_mainDrawObjectData->update(modelMatrix);
+            m_shadowsDrawObjectData->updateModelMatrixNoBufferUpdate(modelMatrix);
         }
 
         std::shared_ptr<vulkan::DescriptorSet> const &descriptorSet(uint32_t id) override {
@@ -133,16 +148,16 @@ namespace shadowsChaining {
         void addPreRenderPassCmdsToCommandBuffer(
                 VkCommandBuffer const &commandBuffer,
                 size_t /* descriptor set ID, not used */,
-                renderDetails::CommonObjectDataList const &commonObjectDataList,
-                renderDetails::DrawObjectTableVulkanList const &drawObjTableList,
-                renderDetails::DrawObjRefsForDrawList const &drawObjectsIndicesList) override;
+                levelDrawer::CommonObjectDataList const &commonObjectDataList,
+                levelDrawer::DrawObjectTableVulkanList const &drawObjTableList,
+                levelDrawer::DrawObjRefsForDrawList const &drawObjectsIndicesList) override;
 
         void addDrawCmdsToCommandBuffer(
                 VkCommandBuffer const &commandBuffer,
                 size_t descriptorSetID,
                 std::shared_ptr<renderDetails::CommonObjectData> const &commonObjectData,
-                std::shared_ptr<renderDetails::DrawObjectTableVulkan> const &drawObjTable,
-                std::vector<renderDetails::DrawObjReference> const &drawObjectsIndices) override;
+                std::shared_ptr<levelDrawer::DrawObjectTableVulkan> const &drawObjTable,
+                std::vector<levelDrawer::DrawObjReference> const &drawObjectsIndices) override;
 
         std::shared_ptr<vulkan::Device> const &device() override { return m_objectWithShadowsRenderDetails->device(); }
 

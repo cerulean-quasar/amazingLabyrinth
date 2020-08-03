@@ -29,6 +29,15 @@
 #include "../levelDrawer/textureTable/textureLoader.hpp"
 
 namespace renderDetails {
+    // only really matters to the shadowsChaining render details.  It tells the Draw Object data
+    // which descriptor set to return when requested.  MODEL_MATRIX_ID_MAIN is for the main
+    // render details descriptor set, and MODEL_MATRIX_ID_SHADOWS is for the shadows render details
+    // descriptor set.
+    enum {
+        MODEL_MATRIX_ID_MAIN,
+        MODEL_MATRIX_ID_SHADOWS
+    };
+
     struct Parameters {
         uint32_t width;
         uint32_t height;
@@ -189,6 +198,7 @@ namespace renderDetails {
 
     class DrawObjectData {
     public:
+        virtual glm::mat4 modelMatrix(uint32_t) = 0;
         virtual void update(glm::mat4 const &) = 0;
         virtual ~DrawObjectData() = default;
     };
@@ -211,11 +221,5 @@ namespace renderDetails {
         uint32_t m_surfaceWidth;
         uint32_t m_surfaceHeight;
     };
-
-    // todo: fix these redefinitions
-    static size_t constexpr const nbrDrawObjectTables = 3;
-    using DrawObjReference = uint64_t;
-    using DrawObjRefsForDrawList = std::array<std::vector<DrawObjReference>, nbrDrawObjectTables>;
-    using CommonObjectDataList = std::array<std::shared_ptr<CommonObjectData>, nbrDrawObjectTables>;
 }
 #endif // AMAZING_LABYRINTH_RENDER_DETAILS_HPP

@@ -28,16 +28,6 @@
 #include "textureTable/textureLoader.hpp"
 
 namespace levelDrawer {
-    using ModelsTextures = std::vector<std::pair<std::shared_ptr<ModelDescription>, std::shared_ptr<TextureDescription>>>;
-    enum ObjectType {
-        STARTER,
-        LEVEL,
-        FINISHER
-    };
-
-    using DrawObjReference = uint64_t;
-    using DrawObjDataReference = uint64_t;
-
     class LevelDrawer {
     public:
         virtual void setClearColor(ObjectType type, glm::vec4 const &clearColor) = 0;

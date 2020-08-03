@@ -124,22 +124,30 @@ namespace depthMap {
         // todo: fix this.  This function should not be called, but if it were it would do the wrong thing.
         // the correct thing to do is to separate the data that comes from the CommonObjectData into
         // a separate buffer.
-        void update(glm::mat4 const &modelMatrix) override {
+        void update(glm::mat4 const &inModelMatrix) override {
             PerObjectUBO ubo{};
-            ubo.modelMatrix = modelMatrix;
+            ubo.modelMatrix = inModelMatrix;
             m_uniformBuffer->copyRawTo(&ubo, sizeof(ubo));
+            m_modelMatrix = inModelMatrix;
+        }
+
+        void updateModelMatrixNoBufferUpdate(glm::mat4 const &inModelMatrix) override {
+            m_modelMatrix = inModelMatrix;
         }
 
         bool hasTexture() override { return false; }
         std::shared_ptr<vulkan::Buffer> const &bufferModelMatrix() override { return m_uniformBuffer; }
         std::shared_ptr<vulkan::DescriptorSet> const &descriptorSet(uint32_t) override { return m_descriptorSet; }
+        glm::mat4 modelMatrix(uint32_t) override { return m_modelMatrix; }
 
         DrawObjectDataVulkan(std::shared_ptr<vulkan::Device> const &inDevice,
                              std::shared_ptr<CommonObjectDataVulkan> const &inCommonObjectData,
                              std::shared_ptr<vulkan::DescriptorSet> inDescriptorSet,
-                             std::shared_ptr<vulkan::Buffer> inUniformBuffer)
+                             std::shared_ptr<vulkan::Buffer> inUniformBuffer,
+                             glm::mat4 const &inModelMatrix)
                 : m_descriptorSet{std::move(inDescriptorSet)},
-                  m_uniformBuffer{std::move(inUniformBuffer)}
+                  m_uniformBuffer{std::move(inUniformBuffer)},
+                  m_modelMatrix{inModelMatrix}
         {
             updateDescriptorSet(inDevice, inCommonObjectData);
         }
@@ -156,6 +164,7 @@ namespace depthMap {
 
         std::shared_ptr<vulkan::DescriptorSet> m_descriptorSet;
         std::shared_ptr<vulkan::Buffer> m_uniformBuffer;
+        glm::mat4 m_modelMatrix;
 
         void updateDescriptorSet(std::shared_ptr<vulkan::Device> const &inDevice,
                                  std::shared_ptr<CommonObjectDataVulkan> const &inCommonObjectData);
@@ -260,8 +269,8 @@ namespace depthMap {
                 VkCommandBuffer const &commandBuffer,
                 size_t descriptorSetID,
                 std::shared_ptr<renderDetails::CommonObjectData> const &commonObjectData,
-                std::shared_ptr<renderDetails::DrawObjectTableVulkan> const &drawObjTable,
-                std::vector<renderDetails::DrawObjReference> const &drawObjRefs) override;
+                std::shared_ptr<levelDrawer::DrawObjectTableVulkan> const &drawObjTable,
+                std::vector<levelDrawer::DrawObjReference> const &drawObjRefs) override;
 
         void reload(
                 std::shared_ptr<GameRequester> const &gameRequester,

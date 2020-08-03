@@ -34,9 +34,6 @@
 
 class RenderLoaderGL;
 namespace renderDetails {
-    using DrawObjectTableGL = levelDrawer::DrawObjectTable<levelDrawer::DrawObjectGLTraits>;
-    using DrawObjectTableGLList = std::array<std::shared_ptr<DrawObjectTableGL>, nbrDrawObjectTables>;
-
     struct ParametersGL : public Parameters {
         bool useIntTexture;
 
@@ -60,8 +57,6 @@ namespace renderDetails {
 
     class DrawObjectDataGL : public DrawObjectData {
     public:
-        virtual glm::mat4 modelMatrix(uint32_t) = 0;
-
         // no work is needed for this function in GL.  Just return true to indicate that it
         // succeeded
         virtual bool updateTextureData(
@@ -104,9 +99,9 @@ namespace renderDetails {
         // the default does nothing.
         virtual void preMainDraw(
                 uint32_t,
-                CommonObjectDataList const &,
-                DrawObjectTableGLList const &,
-                DrawObjRefsForDrawList const &)
+                levelDrawer::CommonObjectDataList const &,
+                levelDrawer::DrawObjectTableGLList const &,
+                levelDrawer::DrawObjRefsForDrawList const &)
         {}
 
         virtual void reload(std::shared_ptr<GameRequester> const &,
@@ -119,8 +114,8 @@ namespace renderDetails {
         virtual void draw(
                 uint32_t modelMatrixID,
                 std::shared_ptr<renderDetails::CommonObjectData> const &commonObjectData,
-                std::shared_ptr<DrawObjectTableGL> const &drawObjTable,
-                std::vector<DrawObjReference> const &drawObjectsIndices) = 0;
+                std::shared_ptr<levelDrawer::DrawObjectTableGL> const &drawObjTable,
+                std::vector<levelDrawer::DrawObjReference> const &drawObjectsIndices) = 0;
 
         virtual bool overrideClearColor(glm::vec4 &) {
             return false;

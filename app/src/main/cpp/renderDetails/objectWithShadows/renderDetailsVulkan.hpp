@@ -224,10 +224,11 @@ namespace objectWithShadows {
     public:
         bool hasTexture() override { return m_hasTexture; }
 
-        void update(glm::mat4 const &modelMatrix) override {
+        void update(glm::mat4 const &inModelMatrix) override {
             PerObjectUBO ubo{};
-            ubo.modelMatrix = modelMatrix;
+            ubo.modelMatrix = inModelMatrix;
             m_uniformBuffer->copyRawTo(&ubo, sizeof (ubo));
+            m_modelMatrix = inModelMatrix;
         }
 
         bool updateTextureData(
@@ -247,6 +248,10 @@ namespace objectWithShadows {
             return false;
         }
 
+        void updateModelMatrixNoBufferUpdate(glm::mat4 const &modelMatrix) override {
+            m_modelMatrix = modelMatrix;
+        }
+
         std::shared_ptr<vulkan::Buffer> const &bufferModelMatrix() override {
             return m_uniformBuffer;
         }
@@ -255,15 +260,19 @@ namespace objectWithShadows {
             return m_descriptorSet;
         }
 
+        glm::mat4 modelMatrix(uint32_t) override { return m_modelMatrix; }
+
         DrawObjectDataVulkan(std::shared_ptr<vulkan::Device> const &inDevice,
                 std::shared_ptr<CommonObjectDataVulkan> const &cod,
                 std::shared_ptr<levelDrawer::TextureDataVulkan> const &textureData,
                 std::shared_ptr<vulkan::DescriptorSet> inDescriptorSet,
-                std::shared_ptr<vulkan::Buffer> inBuffer)
+                std::shared_ptr<vulkan::Buffer> inBuffer,
+                glm::mat4 const &inModelMatrix)
                 : m_hasTexture{textureData != nullptr},
                   m_device{inDevice},
                   m_descriptorSet{std::move(inDescriptorSet)},
-                  m_uniformBuffer{std::move(inBuffer)}
+                  m_uniformBuffer{std::move(inBuffer)},
+                  m_modelMatrix{inModelMatrix}
         {
             if (m_hasTexture) {
                 textureUpdateDescriptorSet(inDevice, cod, textureData);
@@ -282,6 +291,7 @@ namespace objectWithShadows {
         std::shared_ptr<vulkan::Device> m_device;
         std::shared_ptr<vulkan::DescriptorSet> m_descriptorSet;
         std::shared_ptr<vulkan::Buffer> m_uniformBuffer;
+        glm::mat4 m_modelMatrix;
 
         void textureUpdateDescriptorSet(
                 std::shared_ptr<vulkan::Device> const &inDevice,
@@ -344,8 +354,8 @@ namespace objectWithShadows {
                 VkCommandBuffer const &commandBuffer,
                 size_t descriptorSetID,
                 std::shared_ptr<renderDetails::CommonObjectData> const &commonObjectData,
-                std::shared_ptr<renderDetails::DrawObjectTableVulkan> const &drawObjTable,
-                std::vector<renderDetails::DrawObjReference> const &drawObjRefs) override;
+                std::shared_ptr<levelDrawer::DrawObjectTableVulkan> const &drawObjTable,
+                std::vector<levelDrawer::DrawObjReference> const &drawObjRefs) override;
 
         void reload(
                 std::shared_ptr<GameRequester> const &gameRequester,

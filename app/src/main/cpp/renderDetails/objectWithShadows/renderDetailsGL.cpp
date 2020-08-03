@@ -101,8 +101,8 @@ namespace objectWithShadows {
     void RenderDetailsGL::draw(
             uint32_t modelMatrixID,
             std::shared_ptr<renderDetails::CommonObjectData> const &commonObjectData,
-            std::shared_ptr<renderDetails::DrawObjectTableGL> const &drawObjTable,
-            std::vector<renderDetails::DrawObjReference> const &drawObjRefs)
+            std::shared_ptr<levelDrawer::DrawObjectTableGL> const &drawObjTable,
+            std::vector<levelDrawer::DrawObjReference> const &drawObjRefs)
     {
         if (drawObjRefs.empty() ||
             drawObjTable == nullptr ||
@@ -125,8 +125,8 @@ namespace objectWithShadows {
             bool drawObjsWithTexture,
             uint32_t modelMatrixID,
             std::shared_ptr<renderDetails::CommonObjectData> const &commonObjectData,
-            std::shared_ptr<renderDetails::DrawObjectTableGL> const &drawObjTable,
-            std::vector<renderDetails::DrawObjReference> const &drawObjRefs)
+            std::shared_ptr<levelDrawer::DrawObjectTableGL> const &drawObjTable,
+            std::vector<levelDrawer::DrawObjReference> const &drawObjRefs)
     {
         glUseProgram(programID);
         checkGraphicsError();
