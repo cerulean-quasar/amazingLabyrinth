@@ -188,15 +188,26 @@ namespace levelDrawer {
                 m_objsIndicesWithGlobalRenderDetails.erase(objReference);
             }
 
-            m_zValueReferernces.erase(ZValueReference(boost::none, objReference, boost::none));
+            ZValueReference zRefToFind(boost::none, objReference, boost::none);
+            for (auto it = m_zValueReferernces.begin(); it != m_zValueReferernces.end(); ) {
+                if (*it == zRefToFind) {
+                    it = m_zValueReferernces.erase(it);
+                } else {
+                    it++;
+                }
+            }
             m_drawObjects.erase(itObjRef);
         }
 
+        std::set<ZValueReference> const &zValueReferences() { return m_zValueReferernces; }
+
+        // todo: remove?
         std::vector<DrawObjReference> objsIndicesWithOverridingRenderDetails() {
             return std::vector<DrawObjReference>(m_objsIndicesWithOverridingRenderDetails.begin(),
                     m_objsIndicesWithOverridingRenderDetails.end());
         }
 
+        // todo: remove?
         std::vector<DrawObjReference> objsIndicesWithGlobalRenderDetails() {
             return std::vector<DrawObjReference>(m_objsIndicesWithGlobalRenderDetails.begin(),
                     m_objsIndicesWithGlobalRenderDetails.end());
@@ -206,8 +217,23 @@ namespace levelDrawer {
             return m_renderDetailsReference;
         }
 
+        typename traits::RenderDetailsReferenceType const &renderDetailsReference(DrawObjReference drawObjRef) {
+            auto it = m_drawObjects.find(drawObjRef);
+            if (it == m_drawObjects.end()) {
+                throw std::runtime_error("Invalid draw object reference on finding the number of draw object data.");
+            }
+
+            if (it->hasOverridingRenderDetailsReference()) {
+                return it->renderDetailsReferernce();
+            }
+
+            return m_renderDetailsReference;
+        }
+
+        // todo: remove?
         size_t numberObjects() { return m_drawObjects.size(); }
 
+        // todo: remove?
         size_t numberObjectsDataForObject(DrawObjReference drawObjRef) {
             auto it = m_drawObjects.find(drawObjRef);
             if (it == m_drawObjects.end()) {
@@ -232,7 +258,10 @@ namespace levelDrawer {
                 throw std::runtime_error("Invalid draw object reference on add object data");
             }
 
-            return it->addObjectData(std::move(objData));
+            auto objDataRef = it->addObjectData(std::move(objData));
+            m_zValueReferernces.emplace(zValue(objData), drawObjRef, objDataRef);
+
+            return objDataRef;
         }
 
         // returns boost::none if it failed.
@@ -263,8 +292,16 @@ namespace levelDrawer {
                             m_renderDetailsReference.commonObjectData,
                             it2->second->textureData());
                 }
+
                 if (succeeded) {
-                    return boost::optional<DrawObjDataReference>(it2->second->addObjectData(objData));
+                    auto objDataRefNew = it2->second->addObjectData(objData);
+                    m_zValueReferernces.erase(ZValueReference(boost::none, objRef1, objDataRef));
+                    m_zValueReferernces.emplace(zValue(objData), objRef2, objDataRefNew);
+                    return boost::optional<DrawObjDataReference>(objDataRefNew);
+                } else {
+                    // reinsert the draw object data reference so that it can be moved in
+                    // some other way.
+                    it1->second->addObjectData(objDataRef);
                 }
             }
 
@@ -277,6 +314,9 @@ namespace levelDrawer {
                 throw std::runtime_error("Invalid draw object reference on update");
             }
             it->second->updateObjectData(objDataRef, modelMatrix);
+
+            m_zValueReferernces.erase(ZValueReference(boost::none, objRef, objDataRef));
+            m_zValueReferernces.emplace(zValue(modelMatrix), objRef, objDataRef);
         }
 
         void removeObjectData(DrawObjReference objRef, DrawObjDataReference objDataRef) {
@@ -285,12 +325,14 @@ namespace levelDrawer {
                 throw std::runtime_error("Invalid draw object reference on remove");
             }
             it->second->removeObjectData(objDataRef);
+            m_zValueReferernces.erase(ZValueReference(boost::none, objRef, objDataRef));
         }
 
         void loadRenderDetails(typename traits::RenderDetailsReferenceType ref) {
             m_renderDetailsReference = std::move(ref);
         }
 
+        // todo: remove?
         std::vector<DrawRule> getDrawRules() {
             // a null render details may mean that no one requested a general render details.
             // this probably means that this table is for the level starter and a level starter was
@@ -329,6 +371,16 @@ namespace levelDrawer {
         {}
 
     private:
+        float zValue(std::shared_ptr<typename traits::DrawObjectDataType> const &objData) {
+            return zValue(objData->modelMatrix(0));
+        }
+
+        float zValue(glm::mat4 const &modelMatrix) {
+            glm::vec4 zVec = modelMatrix * glm::vec4{0.0f, 0.0f, 1.0f, 1.0f};
+
+            return zVec.z / zVec.w;
+        }
+
         typename traits::RenderDetailsReferenceType m_renderDetailsReference;
 
         DrawObjReference m_nextDrawObjReference;

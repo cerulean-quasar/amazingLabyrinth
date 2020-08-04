@@ -45,13 +45,15 @@ namespace levelDrawer {
          */
         vkBeginCommandBuffer(info.cmdBuffer, &beginInfo);
 
-        auto rulesList = getDrawRules();
+        auto rdAndCodList = getRenderDetailsAndCODList();
 
         // add the pre main draw commands to the command buffer.
-        for (auto const &rule : rulesList) {
-            rule.renderDetails->addPreRenderPassCmdsToCommandBuffer(
-                    info.cmdBuffer, 0, rule.commonObjectData, m_drawObjectTableList,
-                    rule.drawObjRefs);
+        for (auto const &rdAndCod : rdAndCodList) {
+            rdAndCod.second.first->addPreRenderPassCmdsToCommandBuffer(
+                    info.cmdBuffer, 0, rdAndCodList.second.second, m_drawObjectTableList,
+                    m_drawObjectTableList[0].zValueReferences(),
+                    m_drawObjectTableList[1].zValueReferences(),
+                    m_drawObjectTableList[2].zValueReferences());
         }
 
         // begin the main render pass
@@ -77,11 +79,15 @@ namespace levelDrawer {
         vkCmdBeginRenderPass(info.cmdBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
 
         // add the commands to the command buffer for the main draw.
-        for (auto index : std::vector<ObjectType>{LEVEL, STARTER, FINISHER}) {
-            for (auto const &rule : rulesList) {
-                rule.renderDetails->addDrawCmdsToCommandBuffer(
-                        info.cmdBuffer, 0, rule.commonObjectData[index], m_drawObjectTableList[index],
-                        rule.drawObjRefs[index]);
+        performDraw(ExexuteDraw{
+            [cmdBuffer(info.cmdBuffer)] (
+                    std::shared_ptr<typename traits::RenderDetailsType> const &rd,
+                    std::shared_ptr<CommonObjectData> const &cod,
+                    std::shared_ptr<typename traits::DrawObjectTableType> const &drawObjTable,
+                    std::set<ZValueReference>::iterator zValRefBegin,
+                    std::set<ZValueReference>::iterator zValRefEnd) -> void {
+                rd->addDrawCmdsToCommandBuffer(
+                        cmdBuffer, 0, cod, drawObjTable, zValRefBegin, zValRefEnd);
             }
         }
 

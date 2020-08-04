@@ -57,7 +57,9 @@ namespace levelDrawer {
     class CommonObjectData;
     static size_t constexpr const nbrDrawObjectTables = 3;
 
+    // todo: remove?
     using DrawObjRefsForDrawList = std::array<std::vector<DrawObjReference>, nbrDrawObjectTables>;
+
     using CommonObjectDataList = std::array<std::shared_ptr<CommonObjectData>, nbrDrawObjectTables>;
 
     template <typename traits> class DrawObjectTable;
@@ -68,7 +70,7 @@ namespace levelDrawer {
 
     struct DrawObjectGLTraits;
     using DrawObjectTableGL = DrawObjectTable<DrawObjectGLTraits>;
-    using DrawObjectTableGLList = std::array<std::shared_ptr<DrawObjectTableGL>, nbrDrawObjectTables>;
+    using DrawObjectTableGList = std::array<std::shared_ptr<DrawObjectTableGL>, nbrDrawObjectTables>;
 
     struct ZValueReference {
         static float constexpr errVal = 0.000001f;
