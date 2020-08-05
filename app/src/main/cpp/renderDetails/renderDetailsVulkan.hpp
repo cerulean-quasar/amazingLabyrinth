@@ -84,8 +84,8 @@ namespace renderDetails {
         virtual void addPreRenderPassCmdsToCommandBuffer(
                 VkCommandBuffer const &/* unused command buffer */,
                 size_t /* descriptor set ID, not used */,
-                CommonObjectDataList const &/* common object data */,
-                DrawObjectTableVulkanList const &/* draw object table */,
+                levelDrawer::CommonObjectDataList const &/* common object data */,
+                levelDrawer::DrawObjectTableVulkanList const &/* draw object table */,
                 std::set<levelDrawer::ZValueReference> const & /* starter */,
                 std::set<levelDrawer::ZValueReference> const & /* level */,
                 std::set<levelDrawer::ZValueReference> const & /* finisher */)
@@ -118,7 +118,7 @@ namespace renderDetails {
                 size_t descriptorSetID,
                 std::shared_ptr<vulkan::Pipeline> const &colorPipeline,
                 std::shared_ptr<vulkan::Pipeline> const &texturePipeline,
-                std::shared_ptr<DrawObjectTableVulkan> const &drawObjectTable,
+                std::shared_ptr<levelDrawer::DrawObjectTableVulkan> const &drawObjectTable,
                 std::set<levelDrawer::ZValueReference>::iterator beginZValRefs,
                 std::set<levelDrawer::ZValueReference>::iterator endZValRefs,
                 bool useVertexNormals = false);

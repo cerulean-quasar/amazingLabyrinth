@@ -158,7 +158,7 @@ namespace shadowsChaining {
                 renderDetails::MODEL_MATRIX_ID_SHADOWS /* shadows ID */,
                 commonObjectDataList[levelDrawer::ObjectType::LEVEL],
                 drawObjTableList[levelDrawer::ObjectType::LEVEL],
-                levelZValues);
+                levelZValues.begin(), levelZValues.end());
 
         vkCmdEndRenderPass(commandBuffer);
     }
@@ -169,7 +169,7 @@ namespace shadowsChaining {
             std::shared_ptr<renderDetails::CommonObjectData> const &commonObjectData,
             std::shared_ptr<levelDrawer::DrawObjectTableVulkan> const &drawObjTable,
             std::set<levelDrawer::ZValueReference>::iterator beginZValRefs,
-            std::set<levelDrawer::ZValueReference>::iterator endZValRefs
+            std::set<levelDrawer::ZValueReference>::iterator endZValRefs)
     {
         m_objectWithShadowsRenderDetails->addDrawCmdsToCommandBuffer(
                 commandBuffer, renderDetails::MODEL_MATRIX_ID_MAIN /* main render details ID */,

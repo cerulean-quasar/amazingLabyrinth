@@ -100,7 +100,7 @@ namespace levelDrawer {
             if (z != boost::none && other.z != boost::none &&
                (z.get() > other.z.get() + errVal || z.get() < other.z.get() - errVal))
             {
-                return z < other.z;
+                return z.get() < other.z.get();
             }
 
             if (drawObjectReference < other.drawObjectReference) {
@@ -108,7 +108,7 @@ namespace levelDrawer {
             }
 
             if (drawObjectDataReference != boost::none && other.drawObjectDataReference != boost::none) {
-                return drawObjectDataReference < other.drawObjectDataReference;
+                return drawObjectDataReference.get() < other.drawObjectDataReference.get();
             }
 
             return false;

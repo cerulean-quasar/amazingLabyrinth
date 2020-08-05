@@ -254,8 +254,13 @@ namespace levelDrawer {
                 throw std::runtime_error("Invalid draw object reference on add object data");
             }
 
+            float zVal = zValue(objData);
             auto objDataRef = it->second->addObjectData(std::move(objData));
-            m_zValueReferernces.emplace(zValue(objData), drawObjRef, objDataRef);
+            auto ret = m_zValueReferernces.emplace(zVal, drawObjRef, objDataRef);
+
+            if (!ret.second) {
+                throw std::runtime_error("draw object data already in the Z value reference table!");
+            }
 
             return objDataRef;
         }
@@ -318,7 +323,10 @@ namespace levelDrawer {
                 throw std::runtime_error("Invalid draw object reference on remove");
             }
             it->second->removeObjectData(objDataRef);
-            m_zValueReferernces.erase(ZValueReference(boost::none, objRef, objDataRef));
+            size_t nbrRemoved = m_zValueReferernces.erase(ZValueReference(boost::none, objRef, objDataRef));
+            if (nbrRemoved != 1) {
+                throw std::runtime_error("Unexpected number of items removed!");
+            }
         }
 
         void loadRenderDetails(typename traits::RenderDetailsReferenceType ref) {

@@ -240,6 +240,9 @@ namespace levelDrawer {
             std::unordered_map<std::string, std::pair<std::shared_ptr<typename traits::RenderDetailsType>, std::array<std::shared_ptr<renderDetails::CommonObjectData>, nbrDrawObjectTables>>> ret;
             std::pair<std::shared_ptr<typename traits::RenderDetailsType>, std::array<std::shared_ptr<renderDetails::CommonObjectData>, nbrDrawObjectTables>> value;
             for (size_t i = 0; i < nbrDrawObjectTables; i++) {
+                if (m_drawObjectTableList[i]->emptyOfDrawObjects()) {
+                    continue;
+                }
                 auto &ref = m_drawObjectTableList[i]->renderDetailsReference();
                 auto result = ret.emplace(ref.renderDetails->nameString(), value);
                 if (result.second) {
@@ -263,6 +266,9 @@ namespace levelDrawer {
         void performDraw(ExecuteDraw executeDraw)
         {
             for (auto table : std::vector<ObjectType>{LEVEL, STARTER, FINISHER}) {
+                if (m_drawObjectTableList[table]->emptyOfDrawObjects()) {
+                    continue;
+                }
                 typename traits::RenderDetailsReferenceType currentRenderDetails =
                         m_drawObjectTableList[table]->renderDetailsReference();
                 std::string defaultRenderDetailsName = currentRenderDetails.renderDetails->nameString();
@@ -281,13 +287,13 @@ namespace levelDrawer {
                         break;
                     }
 
-                    auto const &drawObj = m_drawObjectTableList[table]->drawObject(itEnd->drawObjectReference.get());
-                    if (isDefaultRenderDetailsReference && !drawObj->hasOverridingRenderDetails()) {
+                    auto const &drawObj = m_drawObjectTableList[table]->drawObject(itEnd->drawObjectReference);
+                    if (isDefaultRenderDetailsReference && !drawObj->hasOverridingRenderDetailsReference()) {
                         itEnd++;
                         continue;
                     }
 
-                    auto renderDetailsRef = drawObj.renderDetailsReference(itEnd->objReference().get());
+                    auto renderDetailsRef = drawObj->renderDetailsReference();
                     if (renderDetailsRef.renderDetails->nameString() == currentRenderDetails.renderDetails->nameString()) {
                         itEnd++;
                         continue;
@@ -296,7 +302,8 @@ namespace levelDrawer {
                     if (itBegin != itEnd) {
                         executeDraw(
                                 currentRenderDetails.renderDetails,
-                                currentRenderDetails.commonObjectData, itBegin, itEnd);
+                                currentRenderDetails.commonObjectData,
+                                m_drawObjectTableList[table], itBegin, itEnd);
                     }
 
                     if (isDefaultRenderDetailsReference) {
@@ -306,6 +313,7 @@ namespace levelDrawer {
                     }
                     currentRenderDetails = renderDetailsRef;
                     itBegin = itEnd;
+                    itEnd++;
                 }
             }
         }

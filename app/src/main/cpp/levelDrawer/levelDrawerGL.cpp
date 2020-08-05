@@ -98,7 +98,7 @@ namespace levelDrawer {
         auto ref = m_renderLoader->load(m_gameRequester, renderDetailsName,
                 std::make_shared<renderDetails::ParametersWithWidthHeightAtDepthGL>(parameters));
 
-        drawObjTable->loadRenderDetails(std::move(ref));
+        drawObjTable->loadRenderDetails(ref);
 
         // add the draw objects
         size_t i = 0;

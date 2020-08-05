@@ -77,82 +77,16 @@ namespace renderDetails {
     }
 
     void RenderDetailsVulkan::initializeCommandBufferDrawObjects(
-        DrawIfHasTexture drawIf,
-        size_t descriptorSetID,
-        std::shared_ptr<vulkan::Pipeline> const &pipeline,
-        VkCommandBuffer const &commandBuffer,
-        std::shared_ptr<DrawObjectTableVulkan> const &drawObjectTable,
-        std::set<levelDrawer::ZValueReference>::iterator beginZValRefs,
-        std::set<levelDrawer::ZValueReference>::iterator endZValRefs,
-        bool useVertexNormals)
-    {
-        if (!drawObjectTable || drawObjRefs.empty()) {
-            return;
-        }
-
-        VkDeviceSize offsets[1] = {0};
-
-        for (auto const &objRef : drawObjRefs) {
-            auto const &drawObj = drawObjectTable->drawObject(objRef);
-            auto const &modelData = drawObj->modelData();
-            auto const &textureData = drawObj->textureData();
-
-            if (drawIf != DrawIfHasTexture::BOTH &&
-                ((drawIf == DrawIfHasTexture::ONLY_IF_NO_TEXTURE && textureData) ||
-                (drawIf == DrawIfHasTexture::ONLY_IF_TEXTURE && !textureData)))
-            {
-                continue;
-            }
-
-            VkBuffer vertexBuffer = useVertexNormals ?
-                    modelData->vertexBufferWithVertexNormals()->cbuffer() :
-                    modelData->vertexBuffer()->cbuffer();
-
-            VkBuffer indexBuffer = useVertexNormals ?
-                    modelData->indexBufferWithVertexNormals()->cbuffer() :
-                    modelData->indexBuffer()->cbuffer();
-
-            uint32_t nbrIndices = useVertexNormals ?
-                    modelData->numberIndicesWithVertexNormals() :
-                    modelData->numberIndices();
-
-            vkCmdBindVertexBuffers(commandBuffer, 0, 1, &vertexBuffer, offsets);
-            vkCmdBindIndexBuffer(commandBuffer, indexBuffer, 0, VK_INDEX_TYPE_UINT32);
-
-            for (auto const &i : drawObj->drawObjDataRefs()) {
-                auto const &drawObjData = drawObj->objData(i);
-
-                /* The MVP matrix and texture samplers */
-                VkDescriptorSet descriptorSet = drawObjData->descriptorSet(
-                        descriptorSetID)->descriptorSet().get();
-                vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
-                                        pipeline->layout().get(), 0, 1, &descriptorSet, 0,
-                                        nullptr);
-
-                /* indexed draw command:
-                 * parameter 1 - Command buffer for the draw command
-                 * parameter 2 - the number of indices (the vertex count)
-                 * parameter 3 - the instance count, use 1 because we are not using instanced rendering
-                 * parameter 4 - offset into the index buffer
-                 * parameter 5 - offset to add to the indices in the index buffer
-                 * parameter 6 - offset for instance rendering
-                 */
-                vkCmdDrawIndexed(commandBuffer, nbrIndices, 1, 0, 0, 0);
-            }
-        }
-    }
-
-    void RenderDetailsVulkan::initializeCommandBufferDrawObjects(
             VkCommandBuffer const &commandBuffer,
             size_t descriptorSetID,
             std::shared_ptr<vulkan::Pipeline> const &colorPipeline,
             std::shared_ptr<vulkan::Pipeline> const &texturePipeline,
-            std::shared_ptr<DrawObjectTableVulkan> const &drawObjectTable,
+            std::shared_ptr<levelDrawer::DrawObjectTableVulkan> const &drawObjectTable,
             std::set<levelDrawer::ZValueReference>::iterator beginZValRefs,
             std::set<levelDrawer::ZValueReference>::iterator endZValRefs,
             bool useVertexNormals)
     {
-        if (!drawObjectTable || drawObjRefs.empty()) {
+        if (!drawObjectTable || beginZValRefs == endZValRefs) {
             return;
         }
 
@@ -212,16 +146,19 @@ namespace renderDetails {
                 vkCmdBindIndexBuffer(commandBuffer, indexBuffer, 0, VK_INDEX_TYPE_UINT32);
 
                 prev.first = it->drawObjectReference;
-                prev.second = it->drawObjectDataReference;
+                prev.second = it->drawObjectDataReference.get();
             }
 
-            auto const &drawObjData = drawObj->objData(it->drawObjectDataReference);
+            auto const &drawObjData = drawObj->objData(it->drawObjectDataReference.get());
+
+            VkPipelineLayout pipelineLayout =
+                    usingColorPipeline ? colorPipeline->layout().get() : texturePipeline->layout().get();
 
             /* The MVP matrix and texture samplers */
             VkDescriptorSet descriptorSet =
                     drawObjData->descriptorSet(descriptorSetID)->descriptorSet().get();
             vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
-                                    pipeline->layout().get(), 0, 1, &descriptorSet, 0,
+                                    pipelineLayout, 0, 1, &descriptorSet, 0,
                                     nullptr);
 
             /* indexed draw command:

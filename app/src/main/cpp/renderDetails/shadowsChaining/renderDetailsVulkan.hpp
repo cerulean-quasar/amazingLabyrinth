@@ -159,7 +159,8 @@ namespace shadowsChaining {
                 size_t descriptorSetID,
                 std::shared_ptr<renderDetails::CommonObjectData> const &commonObjectData,
                 std::shared_ptr<levelDrawer::DrawObjectTableVulkan> const &drawObjTable,
-                std::vector<levelDrawer::DrawObjReference> const &drawObjectsIndices) override;
+                std::set<levelDrawer::ZValueReference>::iterator beginZValRefs,
+                std::set<levelDrawer::ZValueReference>::iterator endZValRefs) override;
 
         std::shared_ptr<vulkan::Device> const &device() override { return m_objectWithShadowsRenderDetails->device(); }
 

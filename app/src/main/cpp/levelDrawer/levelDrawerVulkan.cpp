@@ -50,10 +50,10 @@ namespace levelDrawer {
         // add the pre main draw commands to the command buffer.
         for (auto const &rdAndCod : rdAndCodList) {
             rdAndCod.second.first->addPreRenderPassCmdsToCommandBuffer(
-                    info.cmdBuffer, 0, rdAndCodList.second.second, m_drawObjectTableList,
-                    m_drawObjectTableList[0].zValueReferences(),
-                    m_drawObjectTableList[1].zValueReferences(),
-                    m_drawObjectTableList[2].zValueReferences());
+                    info.cmdBuffer, 0, rdAndCod.second.second, m_drawObjectTableList,
+                    m_drawObjectTableList[0]->zValueReferences(),
+                    m_drawObjectTableList[1]->zValueReferences(),
+                    m_drawObjectTableList[2]->zValueReferences());
         }
 
         // begin the main render pass
@@ -79,11 +79,11 @@ namespace levelDrawer {
         vkCmdBeginRenderPass(info.cmdBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
 
         // add the commands to the command buffer for the main draw.
-        performDraw(ExexuteDraw{
+        performDraw(ExecuteDraw{
             [cmdBuffer(info.cmdBuffer)] (
-                    std::shared_ptr<typename traits::RenderDetailsType> const &rd,
-                    std::shared_ptr<CommonObjectData> const &cod,
-                    std::shared_ptr<typename traits::DrawObjectTableType> const &drawObjTable,
+                    std::shared_ptr<typename LevelDrawerVulkanTraits::RenderDetailsType> const &rd,
+                    std::shared_ptr<renderDetails::CommonObjectData> const &cod,
+                    std::shared_ptr<typename LevelDrawerVulkanTraits::DrawObjectTableType> const &drawObjTable,
                     std::set<ZValueReference>::iterator zValRefBegin,
                     std::set<ZValueReference>::iterator zValRefEnd) -> void {
                 rd->addDrawCmdsToCommandBuffer(
@@ -161,8 +161,10 @@ namespace levelDrawer {
         parameters.farthestDepth = farthestDepth;
 
         // load the render details
-        drawObjTable->loadRenderDetails(m_renderLoader->load(m_gameRequester, renderDetailsName,
-                std::make_shared<renderDetails::ParametersWithSurfaceWidthHeightAtDepthVulkan>(parameters)));
+        auto ref = m_renderLoader->load(
+                m_gameRequester, renderDetailsName,
+                std::make_shared<renderDetails::ParametersWithSurfaceWidthHeightAtDepthVulkan>(parameters));
+        drawObjTable->loadRenderDetails(ref);
 
         // add the draw objects
         size_t i = 0;
@@ -181,13 +183,12 @@ namespace levelDrawer {
         cmds.begin();
 
         // add any pre main render pass commands
-        auto rules = drawObjTable->getDrawRules();
         DrawObjectTableList drawObjTableList = {nullptr, drawObjTable, nullptr};
-        CommonObjectDataList commonObjectDataList = {nullptr, rules[0].commonObjectData, nullptr};
-        DrawObjRefsForDrawList drawObjRefsForDrawList = {std::vector<DrawObjReference>{}, rules[0].drawObjectIndices, std::vector<DrawObjReference>{}};
-        rules[0].renderDetails->addPreRenderPassCmdsToCommandBuffer(
+        CommonObjectDataList commonObjectDataList = {nullptr, ref.commonObjectData, nullptr};
+        ref.renderDetails->addPreRenderPassCmdsToCommandBuffer(
                 cmds.commandBuffer().get(), 0, commonObjectDataList, drawObjTableList,
-                drawObjRefsForDrawList);
+                std::set<ZValueReference>{}, drawObjTable->zValueReferences(),
+                std::set<ZValueReference>{});
 
         /* begin the render pass: drawing starts here*/
         VkRenderPassBeginInfo renderPassInfo = {};
@@ -202,7 +203,7 @@ namespace levelDrawer {
          * using black with 0% opacity
          */
         glm::vec4 clearColorValue = m_bgColor;
-        rules[0].renderDetails->overrideClearColor(clearColorValue);
+        ref.renderDetails->overrideClearColor(clearColorValue);
         std::array<VkClearValue, 2> clearValues = {};
         // matching what OpenGL is doing with the clear buffers.
         clearValues[0].color = {clearColorValue.r, clearColorValue.g, clearColorValue.b, clearColorValue.a};
@@ -216,8 +217,9 @@ namespace levelDrawer {
          */
         vkCmdBeginRenderPass(cmds.commandBuffer().get(), &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
 
-        rules[0].renderDetails->addDrawCmdsToCommandBuffer(cmds.commandBuffer().get(),
-                0, rules[0].commonObjectData, drawObjTable, rules[0].drawObjectIndices);
+        ref.renderDetails->addDrawCmdsToCommandBuffer(cmds.commandBuffer().get(),
+                0, ref.commonObjectData, drawObjTable, drawObjTable->zValueReferences().begin(),
+                drawObjTable->zValueReferences().end());
 
         // end the main render pass
         vkCmdEndRenderPass(cmds.commandBuffer().get());
@@ -236,7 +238,7 @@ namespace levelDrawer {
         colorImage->image()->copyImageToBuffer(buffer, m_neededForDrawing.commandPool);
         buffer.copyRawFrom(imageData.data(), imageData.size() * sizeof (float));
 
-        rules[0].renderDetails->postProcessImageBuffer(rules[0].commonObjectData, imageData, results);
+        ref.renderDetails->postProcessImageBuffer(ref.commonObjectData, imageData, results);
     }
 
     template <>
