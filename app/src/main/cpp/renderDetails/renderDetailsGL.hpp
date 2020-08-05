@@ -100,8 +100,10 @@ namespace renderDetails {
         virtual void preMainDraw(
                 uint32_t,
                 levelDrawer::CommonObjectDataList const &,
-                levelDrawer::DrawObjectTableGLList const &,
-                levelDrawer::DrawObjRefsForDrawList const &)
+                levelDrawer::DrawObjectTableGList const &,
+                std::set<levelDrawer::ZValueReference> const & /* starter */,
+                std::set<levelDrawer::ZValueReference> const & /* level */,
+                std::set<levelDrawer::ZValueReference> const & /* finisher */)
         {}
 
         virtual void reload(std::shared_ptr<GameRequester> const &,
@@ -115,7 +117,8 @@ namespace renderDetails {
                 uint32_t modelMatrixID,
                 std::shared_ptr<renderDetails::CommonObjectData> const &commonObjectData,
                 std::shared_ptr<levelDrawer::DrawObjectTableGL> const &drawObjTable,
-                std::vector<levelDrawer::DrawObjReference> const &drawObjectsIndices) = 0;
+                std::set<levelDrawer::ZValueReference>::iterator beginZValRefs,
+                std::set<levelDrawer::ZValueReference>::iterator endZValRefs) = 0;
 
         virtual bool overrideClearColor(glm::vec4 &) {
             return false;

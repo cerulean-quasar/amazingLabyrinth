@@ -120,8 +120,10 @@ namespace shadowsChaining {
         void preMainDraw(
                 uint32_t modelMatrixID,
                 levelDrawer::CommonObjectDataList const &commonObjectDataList,
-                levelDrawer::DrawObjectTableGLList const &drawObjTableList,
-                levelDrawer::DrawObjRefsForDrawList const &drawObjRefsList) override;
+                levelDrawer::DrawObjectTableGList const &drawObjTableList,
+                std::set<levelDrawer::ZValueReference> const &starterZValues,
+                std::set<levelDrawer::ZValueReference> const &levelZValues,
+                std::set<levelDrawer::ZValueReference> const &finisherZValues) override;
 
         void draw(
                 uint32_t modelMatrixID,

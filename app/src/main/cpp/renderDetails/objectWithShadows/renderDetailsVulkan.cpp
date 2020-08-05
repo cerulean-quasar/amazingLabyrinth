@@ -402,7 +402,8 @@ namespace objectWithShadows {
             size_t descriptorSetID,
             std::shared_ptr<renderDetails::CommonObjectData> const &,
             std::shared_ptr<levelDrawer::DrawObjectTableVulkan> const &drawObjTable,
-            std::vector<levelDrawer::DrawObjReference> const &drawObjRefs)
+            std::set<levelDrawer::ZValueReference>::iterator beginZValRefs,
+            std::set<levelDrawer::ZValueReference>::iterator endZValRefs)
     {
         // Objects with texture
         if (checkForObjects(DrawIfHasTexture::ONLY_IF_TEXTURE, drawObjTable,

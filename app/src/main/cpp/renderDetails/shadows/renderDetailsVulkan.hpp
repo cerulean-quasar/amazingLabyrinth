@@ -237,7 +237,8 @@ namespace shadows {
                 size_t descriptorSetID,
                 std::shared_ptr<renderDetails::CommonObjectData> const &commonObjectData,
                 std::shared_ptr<levelDrawer::DrawObjectTableVulkan> const &drawObjTable,
-                std::vector<levelDrawer::DrawObjReference> const &drawObjectsIndices) override;
+                std::set<levelDrawer::ZValueReference>::iterator beginZValRefs,
+                std::set<levelDrawer::ZValueReference>::iterator endZValRefs) override;
 
         void reload(
                 std::shared_ptr<GameRequester> const &gameRequester,

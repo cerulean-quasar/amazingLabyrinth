@@ -82,7 +82,8 @@ namespace renderDetails {
         std::shared_ptr<vulkan::Pipeline> const &pipeline,
         VkCommandBuffer const &commandBuffer,
         std::shared_ptr<DrawObjectTableVulkan> const &drawObjectTable,
-        std::vector<DrawObjReference> const &drawObjRefs,
+        std::set<levelDrawer::ZValueReference>::iterator beginZValRefs,
+        std::set<levelDrawer::ZValueReference>::iterator endZValRefs,
         bool useVertexNormals)
     {
         if (!drawObjectTable || drawObjRefs.empty()) {
@@ -141,4 +142,97 @@ namespace renderDetails {
         }
     }
 
+    void RenderDetailsVulkan::initializeCommandBufferDrawObjects(
+            VkCommandBuffer const &commandBuffer,
+            size_t descriptorSetID,
+            std::shared_ptr<vulkan::Pipeline> const &colorPipeline,
+            std::shared_ptr<vulkan::Pipeline> const &texturePipeline,
+            std::shared_ptr<DrawObjectTableVulkan> const &drawObjectTable,
+            std::set<levelDrawer::ZValueReference>::iterator beginZValRefs,
+            std::set<levelDrawer::ZValueReference>::iterator endZValRefs,
+            bool useVertexNormals)
+    {
+        if (!drawObjectTable || drawObjRefs.empty()) {
+            return;
+        }
+
+        VkDeviceSize offsets[1] = {0};
+
+        std::pair<levelDrawer::DrawObjReference, levelDrawer::DrawObjDataReference> prev;
+        uint32_t nbrIndices = 0;
+        bool usingColorPipeline = true;
+        for (auto it = beginZValRefs; it != endZValRefs; it++) {
+            auto const &drawObj = drawObjectTable->drawObject(it->drawObjectReference);
+            if (nbrIndices == 0 ||
+                it->drawObjectReference != prev.first || it->drawObjectDataReference != prev.second)
+            {
+                auto const &modelData = drawObj->modelData();
+                auto const &textureData = drawObj->textureData();
+
+                if (nbrIndices == 0) {
+                    /* bind the graphics pipeline to the command buffer, the second parameter tells Vulkan
+                     * that we are binding to a graphics pipeline.
+                     */
+                    if (texturePipeline && textureData) {
+                        vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
+                                          texturePipeline->pipeline().get());
+                        usingColorPipeline = false;
+                    } else {
+                        vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
+                                          colorPipeline->pipeline().get());
+                        usingColorPipeline = true;
+                    }
+                } else if (texturePipeline && textureData && usingColorPipeline) {
+                    vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
+                                      texturePipeline->pipeline().get());
+                    usingColorPipeline = false;
+                } else if (texturePipeline && !textureData && !usingColorPipeline) {
+                    // if we have a texture pipeline, we need to check to see if we should switch
+                    // to the color pipeline.  If we only have one pipeline (the color pipeline),
+                    // then we are already bound to it (when nbrIndices was 0), so no need to bind
+                    // here again.
+                    vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
+                                      colorPipeline->pipeline().get());
+                    usingColorPipeline = true;
+                }
+
+                VkBuffer vertexBuffer = useVertexNormals ?
+                                        modelData->vertexBufferWithVertexNormals()->cbuffer() :
+                                        modelData->vertexBuffer()->cbuffer();
+
+                VkBuffer indexBuffer = useVertexNormals ?
+                                       modelData->indexBufferWithVertexNormals()->cbuffer() :
+                                       modelData->indexBuffer()->cbuffer();
+
+                nbrIndices = useVertexNormals ?
+                                      modelData->numberIndicesWithVertexNormals() :
+                                      modelData->numberIndices();
+
+                vkCmdBindVertexBuffers(commandBuffer, 0, 1, &vertexBuffer, offsets);
+                vkCmdBindIndexBuffer(commandBuffer, indexBuffer, 0, VK_INDEX_TYPE_UINT32);
+
+                prev.first = it->drawObjectReference;
+                prev.second = it->drawObjectDataReference;
+            }
+
+            auto const &drawObjData = drawObj->objData(it->drawObjectDataReference);
+
+            /* The MVP matrix and texture samplers */
+            VkDescriptorSet descriptorSet =
+                    drawObjData->descriptorSet(descriptorSetID)->descriptorSet().get();
+            vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
+                                    pipeline->layout().get(), 0, 1, &descriptorSet, 0,
+                                    nullptr);
+
+            /* indexed draw command:
+             * parameter 1 - Command buffer for the draw command
+             * parameter 2 - the number of indices (the vertex count)
+             * parameter 3 - the instance count, use 1 because we are not using instanced rendering
+             * parameter 4 - offset into the index buffer
+             * parameter 5 - offset to add to the indices in the index buffer
+             * parameter 6 - offset for instance rendering
+             */
+            vkCmdDrawIndexed(commandBuffer, nbrIndices, 1, 0, 0, 0);
+        }
+    }
 }

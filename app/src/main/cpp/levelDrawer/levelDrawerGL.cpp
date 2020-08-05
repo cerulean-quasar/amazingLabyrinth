@@ -28,12 +28,15 @@ namespace levelDrawer {
     void LevelDrawerGraphics<LevelDrawerGLTraits>::draw(
             LevelDrawerGLTraits::DrawArgumentType const &info)
     {
-        auto rulesList = getDrawRules();
+        auto rdAndCodList = getRenderDetailsAndCODList();
 
-        // add the pre main draw commands to the command buffer.
-        for (auto const &rule : rulesList) {
-            rule.renderDetails->preMainDraw(0, rule.commonObjectData,
-                    m_drawObjectTableList, rule.drawObjRefs);
+        // execute the pre main draw commands.
+        for (auto const &rdAndCod : rdAndCodList) {
+            rdAndCod.second.first->preMainDraw(
+                    0, rdAndCod.second.second, m_drawObjectTableList,
+                    m_drawObjectTableList[0].zValueReferences(),
+                    m_drawObjectTableList[1].zValueReferences(),
+                    m_drawObjectTableList[2].zValueReferences());
         }
 
         glViewport(0, 0, info.width, info.height);
@@ -50,17 +53,16 @@ namespace levelDrawer {
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         checkGraphicsError();
 
-        // add the commands to the command buffer for the main draw.
-        for (auto index : std::vector<ObjectType>{LEVEL, STARTER, FINISHER}) {
-            for (auto const &rule : rulesList) {
-                if (rule.commonObjectData[index] == nullptr || rule.drawObjRefs[index].empty()) {
-                    continue;
-                }
-                rule.renderDetails->draw(
-                        0, rule.commonObjectData[index], m_drawObjectTableList[index],
-                        rule.drawObjRefs[index]);
+        // execute the commands for the main draw.
+        performDraw(ExexuteDraw{
+            [] (std::shared_ptr<typename traits::RenderDetailsType> const &rd,
+                    std::shared_ptr<CommonObjectData> const &cod,
+                    std::shared_ptr<typename traits::DrawObjectTableType> const &drawObjTable,
+                    std::set<ZValueReference>::iterator zValRefBegin,
+                    std::set<ZValueReference>::iterator zValRefEnd) -> void {
+                rd->draw(0, cod, drawObjTable, zValRefBegin, zValRefEnd);
             }
-        }
+        });
     }
 
     template <>

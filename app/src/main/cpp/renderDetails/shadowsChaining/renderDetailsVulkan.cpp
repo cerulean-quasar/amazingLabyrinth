@@ -120,7 +120,9 @@ namespace shadowsChaining {
             size_t /* descriptor set ID, not used */,
             levelDrawer::CommonObjectDataList const &commonObjectDataList,
             levelDrawer::DrawObjectTableVulkanList const &drawObjTableList,
-            levelDrawer::DrawObjRefsForDrawList const &DrawObjRefsList)
+            std::set<levelDrawer::ZValueReference> const &/* starter Z Value references - unused */,
+            std::set<levelDrawer::ZValueReference> const &levelZValues,
+            std::set<levelDrawer::ZValueReference> const &/* finisher Z Value references - unused */)
     {
         // The shadows rendering needs to occur before the main render pass.
 
@@ -153,10 +155,10 @@ namespace shadowsChaining {
         // only do shadows for the level itself
         m_shadowsRenderDetails->addDrawCmdsToCommandBuffer(
                 commandBuffer,
-                1 /* shadows ID */,
+                renderDetails::MODEL_MATRIX_ID_SHADOWS /* shadows ID */,
                 commonObjectDataList[levelDrawer::ObjectType::LEVEL],
                 drawObjTableList[levelDrawer::ObjectType::LEVEL],
-                DrawObjRefsList[levelDrawer::ObjectType::LEVEL]);
+                levelZValues);
 
         vkCmdEndRenderPass(commandBuffer);
     }
@@ -166,11 +168,12 @@ namespace shadowsChaining {
             size_t /* unused descriptor set ID */,
             std::shared_ptr<renderDetails::CommonObjectData> const &commonObjectData,
             std::shared_ptr<levelDrawer::DrawObjectTableVulkan> const &drawObjTable,
-            std::vector<levelDrawer::DrawObjReference> const &drawObjRefs)
+            std::set<levelDrawer::ZValueReference>::iterator beginZValRefs,
+            std::set<levelDrawer::ZValueReference>::iterator endZValRefs
     {
         m_objectWithShadowsRenderDetails->addDrawCmdsToCommandBuffer(
-                commandBuffer, 0 /* main render details ID */, commonObjectData,
-                drawObjTable, drawObjRefs);
+                commandBuffer, renderDetails::MODEL_MATRIX_ID_MAIN /* main render details ID */,
+                commonObjectData, drawObjTable, beginZValRefs, endZValRefs);
     }
 
     renderDetails::ReferenceVulkan RenderDetailsVulkan::createReference(

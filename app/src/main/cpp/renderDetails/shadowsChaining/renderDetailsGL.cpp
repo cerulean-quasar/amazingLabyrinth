@@ -151,8 +151,10 @@ namespace shadowsChaining {
     void RenderDetailsGL::preMainDraw(
             uint32_t /* unused matrix ID */,
             levelDrawer::CommonObjectDataList const &commonObjectDataList,
-            levelDrawer::DrawObjectTableGLList const &drawObjTableList,
-            levelDrawer::DrawObjRefsForDrawList const &drawObjectsIndicesList)
+            levelDrawer::DrawObjectTableGList const &drawObjTableList,
+            std::set<levelDrawer::ZValueReference> const &starterZValues,
+            std::set<levelDrawer::ZValueReference> const &levelZValues,
+            std::set<levelDrawer::ZValueReference> const &finisherZValues)
     {
         // get the shadows common object data
         auto codLevel = dynamic_cast<CommonObjectDataGL*>(
@@ -168,10 +170,10 @@ namespace shadowsChaining {
         checkGraphicsError();
 
         m_shadowsRenderDetails->draw(
-                MODEL_MATRIX_ID_SHADOWS,
+                renderDetails::MODEL_MATRIX_ID_SHADOWS,
                 codLevel->shadowsCOD(),
                 drawObjTableList[levelDrawer::ObjectType::LEVEL],
-                drawObjectsIndicesList[levelDrawer::ObjectType::LEVEL]);
+                levelZValues);
 
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
         checkGraphicsError();

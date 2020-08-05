@@ -89,7 +89,7 @@ namespace levelDrawer {
                 rd->addDrawCmdsToCommandBuffer(
                         cmdBuffer, 0, cod, drawObjTable, zValRefBegin, zValRefEnd);
             }
-        }
+        });
 
         // end the main render pass
         vkCmdEndRenderPass(info.cmdBuffer);

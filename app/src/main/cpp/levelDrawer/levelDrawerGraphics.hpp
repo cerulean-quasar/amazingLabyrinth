@@ -268,22 +268,23 @@ namespace levelDrawer {
 
         auto getRenderDetailsAndCODList()
         {
-            std::unordered_map<std::string, std::pair<std::shared_ptr<typename traits::RenderDetailsType>, std::array<std::shared_ptr<CommonObjectData>, nbrDrawObjectTables>>> ret;
+            std::unordered_map<std::string, std::pair<std::shared_ptr<typename traits::RenderDetailsType>, std::array<std::shared_ptr<renderDetails::CommonObjectData>, nbrDrawObjectTables>>> ret;
             std::pair<std::shared_ptr<typename traits::RenderDetailsType>, std::array<std::shared_ptr<CommonObjectData>, nbrDrawObjectTables>> value;
             for (size_t i = 0; i < nbrDrawObjectTables; i++) {
                 auto &ref = m_drawObjectTableList[i]->renderDetailsReference();
                 auto result = ret.emplace(ref.renderDetails->nameString(), value);
                 if (result.second) {
-                    result.first->first = ref.renderDetails;
-                    result.first->second[i] = ref.commonObjectData;
+                    result.first->second.first = ref.renderDetails;
                 }
-                for (auto const &index : m_drawObjectTableList[i].objsIndicesWithOverridingRenderDetails()) {
+                result.first->second.second[i] = ref.commonObjectData;
+
+                for (auto const &index : m_drawObjectTableList[i]->objsIndicesWithOverridingRenderDetails()) {
                     auto &ref2 = m_drawObjectTableList[i]->renderDetailsReference(index);
                     auto result2 = ret.emplace(ref.renderDetails->nameString(), value);
                     if (result2.second) {
-                        result2.first->first = ref.renderDetails;
-                        result2.first->second[i] = ref.commonObjectData;
+                        result2.first->second.first = ref.renderDetails;
                     }
+                    result2.first->second.second[i] = ref.commonObjectData;
                 }
             }
 

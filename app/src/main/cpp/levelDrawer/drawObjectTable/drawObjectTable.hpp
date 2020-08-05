@@ -201,13 +201,11 @@ namespace levelDrawer {
 
         std::set<ZValueReference> const &zValueReferences() { return m_zValueReferernces; }
 
-        // todo: remove?
         std::vector<DrawObjReference> objsIndicesWithOverridingRenderDetails() {
             return std::vector<DrawObjReference>(m_objsIndicesWithOverridingRenderDetails.begin(),
                     m_objsIndicesWithOverridingRenderDetails.end());
         }
 
-        // todo: remove?
         std::vector<DrawObjReference> objsIndicesWithGlobalRenderDetails() {
             return std::vector<DrawObjReference>(m_objsIndicesWithGlobalRenderDetails.begin(),
                     m_objsIndicesWithGlobalRenderDetails.end());
@@ -230,10 +228,8 @@ namespace levelDrawer {
             return m_renderDetailsReference;
         }
 
-        // todo: remove?
         size_t numberObjects() { return m_drawObjects.size(); }
 
-        // todo: remove?
         size_t numberObjectsDataForObject(DrawObjReference drawObjRef) {
             auto it = m_drawObjects.find(drawObjRef);
             if (it == m_drawObjects.end()) {

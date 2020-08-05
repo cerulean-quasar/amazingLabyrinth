@@ -23,6 +23,7 @@
 
 #include <memory>
 #include <vector>
+#include <set>
 #include <glm/glm.hpp>
 
 #include "../graphicsVulkan.hpp"
@@ -30,6 +31,7 @@
 #include "renderDetails.hpp"
 #include "../levelDrawer/drawObjectTable/drawObjectTable.hpp"
 #include "../levelDrawer/drawObjectTable/drawObjectTableVulkan.hpp"
+#include "../levelDrawer/common.hpp"
 
 class RenderLoaderVulkan;
 namespace renderDetails {
@@ -84,7 +86,9 @@ namespace renderDetails {
                 size_t /* descriptor set ID, not used */,
                 CommonObjectDataList const &/* common object data */,
                 DrawObjectTableVulkanList const &/* draw object table */,
-                DrawObjRefsForDrawList const &/* draw indices */)
+                std::set<levelDrawer::ZValueReference> const & /* starter */,
+                std::set<levelDrawer::ZValueReference> const & /* level */,
+                std::set<levelDrawer::ZValueReference> const & /* finisher */)
         {}
 
         // For postprocessing results written to an image buffer whose contents are put in input.
@@ -105,8 +109,9 @@ namespace renderDetails {
                 VkCommandBuffer const &commandBuffer,
                 size_t descriptorSetID,
                 std::shared_ptr<CommonObjectData> const &commonObjectData,
-                std::shared_ptr<DrawObjectTableVulkan> const &drawObjTable,
-                std::vector<DrawObjReference> const &drawObjectRefs) = 0;
+                std::shared_ptr<levelDrawer::DrawObjectTableVulkan> const &drawObjTable,
+                std::set<levelDrawer::ZValueReference>::iterator beginZValRefs,
+                std::set<levelDrawer::ZValueReference>::iterator endZValRefs) = 0;
 
         enum DrawIfHasTexture {
             ONLY_IF_NO_TEXTURE,
@@ -115,13 +120,14 @@ namespace renderDetails {
         };
 
         void initializeCommandBufferDrawObjects(
-            DrawIfHasTexture drawIf,
-            size_t descriptorSetID,
-            std::shared_ptr<vulkan::Pipeline> const &pipeline,
-             VkCommandBuffer const &commandBuffer,
-            std::shared_ptr<DrawObjectTableVulkan> const &drawObjectTable,
-            std::vector<size_t> const &drawObjectsIndices,
-            bool useVertexNormals = false);
+                VkCommandBuffer const &commandBuffer,
+                size_t descriptorSetID,
+                std::shared_ptr<vulkan::Pipeline> const &colorPipeline,
+                std::shared_ptr<vulkan::Pipeline> const &texturePipeline,
+                std::shared_ptr<DrawObjectTableVulkan> const &drawObjectTable,
+                std::set<levelDrawer::ZValueReference>::iterator beginZValRefs,
+                std::set<levelDrawer::ZValueReference>::iterator endZValRefs,
+                bool useVertexNormals);
 
         virtual bool overrideClearColor(glm::vec4 &) {
             return false;

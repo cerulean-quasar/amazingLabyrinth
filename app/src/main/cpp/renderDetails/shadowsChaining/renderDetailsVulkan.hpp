@@ -150,7 +150,9 @@ namespace shadowsChaining {
                 size_t /* descriptor set ID, not used */,
                 levelDrawer::CommonObjectDataList const &commonObjectDataList,
                 levelDrawer::DrawObjectTableVulkanList const &drawObjTableList,
-                levelDrawer::DrawObjRefsForDrawList const &drawObjectsIndicesList) override;
+                std::set<levelDrawer::ZValueReference> const &starterZValues,
+                std::set<levelDrawer::ZValueReference> const &levelZValues,
+                std::set<levelDrawer::ZValueReference> const &finisherZValues) override;
 
         void addDrawCmdsToCommandBuffer(
                 VkCommandBuffer const &commandBuffer,
