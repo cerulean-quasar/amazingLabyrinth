@@ -221,8 +221,8 @@ namespace levelDrawer {
                 throw std::runtime_error("Invalid draw object reference on finding the number of draw object data.");
             }
 
-            if (it->hasOverridingRenderDetailsReference()) {
-                return it->renderDetailsReferernce();
+            if (it->second->hasOverridingRenderDetailsReference()) {
+                return it->second->renderDetailsReference();
             }
 
             return m_renderDetailsReference;
@@ -254,7 +254,7 @@ namespace levelDrawer {
                 throw std::runtime_error("Invalid draw object reference on add object data");
             }
 
-            auto objDataRef = it->addObjectData(std::move(objData));
+            auto objDataRef = it->second->addObjectData(std::move(objData));
             m_zValueReferernces.emplace(zValue(objData), drawObjRef, objDataRef);
 
             return objDataRef;
@@ -277,7 +277,6 @@ namespace levelDrawer {
             {
                 // object is of the same render details, it is ok to move.
                 std::shared_ptr<typename traits::DrawObjectDataType> objData = it1->second->objData(objDataRef);
-                it1->second->removeObjectData(objDataRef);
                 bool succeeded = false;
                 if (it1->second->hasOverridingRenderDetailsReference()) {
                     succeeded = objData->updateTextureData(
@@ -290,14 +289,12 @@ namespace levelDrawer {
                 }
 
                 if (succeeded) {
+                    it1->second->removeObjectData(objDataRef);
+
                     auto objDataRefNew = it2->second->addObjectData(objData);
                     m_zValueReferernces.erase(ZValueReference(boost::none, objRef1, objDataRef));
                     m_zValueReferernces.emplace(zValue(objData), objRef2, objDataRefNew);
                     return boost::optional<DrawObjDataReference>(objDataRefNew);
-                } else {
-                    // reinsert the draw object data reference so that it can be moved in
-                    // some other way.
-                    it1->second->addObjectData(objDataRef);
                 }
             }
 
@@ -326,40 +323,6 @@ namespace levelDrawer {
 
         void loadRenderDetails(typename traits::RenderDetailsReferenceType ref) {
             m_renderDetailsReference = std::move(ref);
-        }
-
-        // todo: remove?
-        std::vector<DrawRule> getDrawRules() {
-            // a null render details may mean that no one requested a general render details.
-            // this probably means that this table is for the level starter and a level starter was
-            // not needed.
-            if (m_renderDetailsReference.renderDetails == nullptr) {
-                return std::vector<DrawRule>{};
-            }
-
-            std::vector<DrawRule> rules;
-            rules.emplace_back(DrawRule{m_renderDetailsReference.renderDetails,
-                    m_renderDetailsReference.commonObjectData,
-                    std::vector<DrawObjReference>(m_objsIndicesWithGlobalRenderDetails.begin(),
-                            m_objsIndicesWithGlobalRenderDetails.end())});
-
-            std::map<std::string, DrawRule> alreadyAdded;
-            for (auto drawObjRef : m_objsIndicesWithOverridingRenderDetails) {
-                auto it = m_drawObjects.find(drawObjRef);
-                if (it == m_drawObjects.end()) {
-                    throw std::runtime_error("Invalid draw object reference in get draw rules");
-                }
-                auto const &ref = it->second->renderDetailsReference();
-                auto ret = alreadyAdded.emplace(ref.renderDetails->nameString(),
-                        DrawRule{ref.renderDetails, ref.commonObjectData, std::vector<DrawObjReference>{}});
-                ret.first->second.drawObjectIndices.push_back(drawObjRef);
-            }
-
-            for (auto item : alreadyAdded) {
-                rules.push_back(item.second);
-            }
-
-            return std::move(rules);
         }
 
         DrawObjectTable()

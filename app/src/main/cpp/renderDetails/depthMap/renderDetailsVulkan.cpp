@@ -87,17 +87,12 @@ namespace depthMap {
             size_t descriptorSetID,
             std::shared_ptr<renderDetails::CommonObjectData> const &,
             std::shared_ptr<levelDrawer::DrawObjectTableVulkan> const &drawObjTable,
-            std::vector<levelDrawer::DrawObjReference> const &drawObjRefs)
+            std::set<levelDrawer::ZValueReference>::iterator beginZValRefs,
+            std::set<levelDrawer::ZValueReference>::iterator endZValRefs)
     {
-        /* bind the graphics pipeline to the command buffer, the second parameter tells Vulkan
-         * that we are binding to a graphics pipeline.
-         */
-        vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
-                          m_pipeline->pipeline().get());
-
         initializeCommandBufferDrawObjects(
-                DrawIfHasTexture::BOTH, descriptorSetID, m_pipeline,
-                commandBuffer, drawObjTable, drawObjRefs);
+                commandBuffer, descriptorSetID, m_pipeline, nullptr,
+                drawObjTable, beginZValRefs, endZValRefs);
     }
 
     renderDetails::ReferenceVulkan RenderDetailsVulkan::createReference(

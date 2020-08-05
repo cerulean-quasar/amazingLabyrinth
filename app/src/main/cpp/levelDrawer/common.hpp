@@ -21,6 +21,11 @@
 #define AMAZING_LABYRINTH_LEVEL_DRAWER_COMMON_HPP
 
 #include <memory>
+#include <boost/optional.hpp>
+
+namespace renderDetails {
+    class CommonObjectData;
+}
 
 namespace levelDrawer {
     template<typename BaseClass>
@@ -54,13 +59,9 @@ namespace levelDrawer {
     using DrawObjReference = uint64_t;
     using DrawObjDataReference = uint64_t;
 
-    class CommonObjectData;
     static size_t constexpr const nbrDrawObjectTables = 3;
 
-    // todo: remove?
-    using DrawObjRefsForDrawList = std::array<std::vector<DrawObjReference>, nbrDrawObjectTables>;
-
-    using CommonObjectDataList = std::array<std::shared_ptr<CommonObjectData>, nbrDrawObjectTables>;
+    using CommonObjectDataList = std::array<std::shared_ptr<renderDetails::CommonObjectData>, nbrDrawObjectTables>;
 
     template <typename traits> class DrawObjectTable;
 
@@ -91,7 +92,11 @@ namespace levelDrawer {
         ZValueReference(ZValueReference &&other) = default;
         ZValueReference &operator=(ZValueReference &other) = default;
 
-        bool operator <(ZValueReference const &other) {
+        bool operator ==(ZValueReference const &other) const {
+            return !(*this < other) && !(other < *this);
+        }
+
+        bool operator <(ZValueReference const &other) const {
             if (z != boost::none && other.z != boost::none &&
                (z.get() > other.z.get() + errVal || z.get() < other.z.get() - errVal))
             {

@@ -112,20 +112,14 @@ namespace depthMap {
             uint32_t modelMatrixID,
             std::shared_ptr<renderDetails::CommonObjectData> const &commonObjectData,
             std::shared_ptr<levelDrawer::DrawObjectTableGL> const &drawObjTable,
-            std::vector<levelDrawer::DrawObjReference> const &drawObjRefs)
+            std::set<levelDrawer::ZValueReference>::iterator beginZValRefs,
+            std::set<levelDrawer::ZValueReference>::iterator endZValRefs)
     {
         // set the shader to use
         glUseProgram(m_depthProgramID);
         checkGraphicsError();
         glCullFace(GL_BACK);
         checkGraphicsError();
-
-        if (drawObjRefs.empty() ||
-            drawObjTable == nullptr ||
-            commonObjectData == nullptr)
-        {
-            return;
-        }
 
         auto projView = commonObjectData->getProjViewForLevel();
 
@@ -156,19 +150,17 @@ namespace depthMap {
         MatrixID = glGetUniformLocation(m_depthProgramID, "model");
         checkGraphicsError();
 
-        for (auto const &drawObjRef : drawObjRefs) {
-            auto drawObj = drawObjTable->drawObject(drawObjRef);
+        for (auto it = beginZValRefs; it != endZValRefs; it++) {
+            auto drawObj = drawObjTable->drawObject(it->drawObjectReference);
             auto modelData = drawObj->modelData();
 
-            for (auto const &i : drawObj->drawObjDataRefs()) {
-                auto objData = drawObj->objData(i);
-                auto modelMatrix = objData->modelMatrix(modelMatrixID);
+            auto objData = drawObj->objData(it->drawObjectDataReference.get());
+            auto modelMatrix = objData->modelMatrix(modelMatrixID);
 
-                glUniformMatrix4fv(MatrixID, 1, GL_FALSE, &modelMatrix[0][0]);
-                checkGraphicsError();
+            glUniformMatrix4fv(MatrixID, 1, GL_FALSE, &modelMatrix[0][0]);
+            checkGraphicsError();
 
-                drawVertices(m_depthProgramID, modelData);
-            }
+            drawVertices(m_depthProgramID, modelData);
         }
     }
 

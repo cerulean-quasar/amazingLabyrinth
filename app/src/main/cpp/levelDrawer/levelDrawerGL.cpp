@@ -34,9 +34,9 @@ namespace levelDrawer {
         for (auto const &rdAndCod : rdAndCodList) {
             rdAndCod.second.first->preMainDraw(
                     0, rdAndCod.second.second, m_drawObjectTableList,
-                    m_drawObjectTableList[0].zValueReferences(),
-                    m_drawObjectTableList[1].zValueReferences(),
-                    m_drawObjectTableList[2].zValueReferences());
+                    m_drawObjectTableList[0]->zValueReferences(),
+                    m_drawObjectTableList[1]->zValueReferences(),
+                    m_drawObjectTableList[2]->zValueReferences());
         }
 
         glViewport(0, 0, info.width, info.height);
@@ -54,10 +54,10 @@ namespace levelDrawer {
         checkGraphicsError();
 
         // execute the commands for the main draw.
-        performDraw(ExexuteDraw{
-            [] (std::shared_ptr<typename traits::RenderDetailsType> const &rd,
-                    std::shared_ptr<CommonObjectData> const &cod,
-                    std::shared_ptr<typename traits::DrawObjectTableType> const &drawObjTable,
+        performDraw(ExecuteDraw{
+            [] (std::shared_ptr<LevelDrawerGLTraits::RenderDetailsType> const &rd,
+                    std::shared_ptr<renderDetails::CommonObjectData> const &cod,
+                    std::shared_ptr<LevelDrawerGLTraits::DrawObjectTableType> const &drawObjTable,
                     std::set<ZValueReference>::iterator zValRefBegin,
                     std::set<ZValueReference>::iterator zValRefEnd) -> void {
                 rd->draw(0, cod, drawObjTable, zValRefBegin, zValRefEnd);
@@ -113,12 +113,11 @@ namespace levelDrawer {
         }
 
         // perform the commands to be executed before the main draw.
-        auto rules = drawObjTable->getDrawRules();
         DrawObjectTableList drawObjTableList = {nullptr, drawObjTable, nullptr};
-        CommonObjectDataList commonObjectDataList = {nullptr, rules[0].commonObjectData, nullptr};
-        DrawObjRefsForDrawList refsForDrawList = {std::vector<DrawObjReference>{}, rules[0].drawObjectIndices, std::vector<DrawObjReference>{}};
-        rules[0].renderDetails->preMainDraw(
-                0, commonObjectDataList, drawObjTableList, refsForDrawList);
+        CommonObjectDataList commonObjectDataList = {nullptr, ref.commonObjectData, nullptr};
+        ref.renderDetails->preMainDraw(
+                0, commonObjectDataList, drawObjTableList, std::set<ZValueReference>{},
+                drawObjTable->zValueReferences(), std::set<ZValueReference>{});
 
         graphicsGL::Framebuffer::ColorImageFormat colorImageFormat{GL_RGBA32UI, GL_RGBA_INTEGER,
                                                                    GL_UNSIGNED_INT};
@@ -139,13 +138,14 @@ namespace levelDrawer {
         checkGraphicsError();
 
         glm::vec4 clearColor = m_bgColor;
-        rules[0].renderDetails->overrideClearColor(clearColor);
+        ref.renderDetails->overrideClearColor(clearColor);
         glClearColor(clearColor.r, clearColor.g, clearColor.b, clearColor.a);
         checkGraphicsError();
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         checkGraphicsError();
 
-        rules[0].renderDetails->draw(0, rules[0].commonObjectData, drawObjTable, rules[0].drawObjectIndices);
+        ref.renderDetails->draw(0, ref.commonObjectData, drawObjTable,
+                drawObjTable->zValueReferences().begin(), drawObjTable->zValueReferences().end());
 
         glFinish();
         checkGraphicsError();
@@ -168,7 +168,7 @@ namespace levelDrawer {
             checkGraphicsError();
             dataVariant = std::move(data);
         }
-        rules[0].renderDetails->postProcessImageBuffer(rules[0].commonObjectData, dataVariant, results);
+        ref.renderDetails->postProcessImageBuffer(ref.commonObjectData, dataVariant, results);
 
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
         checkGraphicsError();

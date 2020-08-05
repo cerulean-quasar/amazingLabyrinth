@@ -113,12 +113,6 @@ namespace renderDetails {
                 std::set<levelDrawer::ZValueReference>::iterator beginZValRefs,
                 std::set<levelDrawer::ZValueReference>::iterator endZValRefs) = 0;
 
-        enum DrawIfHasTexture {
-            ONLY_IF_NO_TEXTURE,
-            ONLY_IF_TEXTURE,
-            BOTH
-        };
-
         void initializeCommandBufferDrawObjects(
                 VkCommandBuffer const &commandBuffer,
                 size_t descriptorSetID,
@@ -127,7 +121,7 @@ namespace renderDetails {
                 std::shared_ptr<DrawObjectTableVulkan> const &drawObjectTable,
                 std::set<levelDrawer::ZValueReference>::iterator beginZValRefs,
                 std::set<levelDrawer::ZValueReference>::iterator endZValRefs,
-                bool useVertexNormals);
+                bool useVertexNormals = false);
 
         virtual bool overrideClearColor(glm::vec4 &) {
             return false;

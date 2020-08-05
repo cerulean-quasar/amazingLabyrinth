@@ -373,30 +373,6 @@ namespace objectWithShadows {
         return std::move(ref);
     }
 
-    bool checkForObjects(renderDetails::RenderDetailsVulkan::DrawIfHasTexture condition,
-            std::shared_ptr<renderDetails::DrawObjectTableVulkan> const &table,
-            std::vector<renderDetails::DrawObjReference> const &objRefs)
-    {
-        if (objRefs.size() == 0) {
-            return false;
-        }
-
-        if (condition == renderDetails::RenderDetailsVulkan::DrawIfHasTexture::BOTH) {
-            return true;
-        }
-
-        for (auto const &objRef : objRefs) {
-            auto const &drawObj = table->drawObject(objRef);
-
-            if ((condition == renderDetails::RenderDetailsVulkan::DrawIfHasTexture::ONLY_IF_TEXTURE && drawObj->textureData()) ||
-                (condition == renderDetails::RenderDetailsVulkan::DrawIfHasTexture::ONLY_IF_NO_TEXTURE && !drawObj->textureData()))
-            {
-                return true;
-            }
-        }
-        return false;
-    }
-
     void RenderDetailsVulkan::addDrawCmdsToCommandBuffer(
             VkCommandBuffer const &commandBuffer,
             size_t descriptorSetID,
@@ -405,32 +381,9 @@ namespace objectWithShadows {
             std::set<levelDrawer::ZValueReference>::iterator beginZValRefs,
             std::set<levelDrawer::ZValueReference>::iterator endZValRefs)
     {
-        // Objects with texture
-        if (checkForObjects(DrawIfHasTexture::ONLY_IF_TEXTURE, drawObjTable,
-                            drawObjRefs))
-        {
-            /* bind the graphics pipeline to the command buffer, the second parameter tells Vulkan
-             * that we are binding to a graphics pipeline.
-             */
-            vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
-                              m_pipelineTexture->pipeline().get());
-
-            initializeCommandBufferDrawObjects(
-                    DrawIfHasTexture::ONLY_IF_TEXTURE, descriptorSetID, m_pipelineTexture,
-                    commandBuffer, drawObjTable, drawObjRefs);
-        }
-
-        // Objects that just use vertex color.
-        if (checkForObjects(DrawIfHasTexture::ONLY_IF_NO_TEXTURE, drawObjTable,
-                            drawObjRefs))
-        {
-            vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
-                              m_pipelineColor->pipeline().get());
-
-            initializeCommandBufferDrawObjects(
-                    DrawIfHasTexture::ONLY_IF_NO_TEXTURE, descriptorSetID, m_pipelineTexture,
-                    commandBuffer, drawObjTable, drawObjRefs);
-        }
+        initializeCommandBufferDrawObjects(
+                commandBuffer, descriptorSetID, m_pipelineColor,
+                m_pipelineTexture, drawObjTable, beginZValRefs, endZValRefs);
     }
 
     void RenderDetailsVulkan::reload(

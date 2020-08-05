@@ -124,12 +124,6 @@ namespace shadows {
             std::set<levelDrawer::ZValueReference>::iterator beginZValRefs,
             std::set<levelDrawer::ZValueReference>::iterator endZValRefs)
     {
-        /* bind the graphics pipeline to the command buffer, the second parameter tells Vulkan
-         * that we are binding to a graphics pipeline.
-         */
-        vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
-                          m_pipeline->pipeline().get());
-
         initializeCommandBufferDrawObjects(
                 commandBuffer, descriptorSetID, m_pipeline, nullptr,
                 drawObjTable, beginZValRefs, endZValRefs);

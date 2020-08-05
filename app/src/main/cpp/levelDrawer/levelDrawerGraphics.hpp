@@ -194,16 +194,10 @@ namespace levelDrawer {
     private:
         using ExecuteDraw = std::function<void(
                 std::shared_ptr<typename traits::RenderDetailsType> const &,
-                CommonObjectData const &,
-                typename traits::DrawObjectTableType const &,
+                std::shared_ptr<renderDetails::CommonObjectData> const &,
+                std::shared_ptr<typename traits::DrawObjectTableType> const &,
                 std::set<ZValueReference>::iterator,
                 std::set<ZValueReference>::iterator)>;
-
-        struct DrawRules {
-            std::shared_ptr<typename traits::RenderDetailsType> renderDetails;
-            CommonObjectDataList commonObjectDatalist;
-            DrawObjectOrderTable drawOrder;
-        };
 
         typename traits::ModelTableType m_modelTable;
         typename traits::TextureTableType m_textureTable;
@@ -238,38 +232,13 @@ namespace levelDrawer {
                 objData = ref.createDrawObjectData(nullptr, textureData, modelMatrix);
             }
 
-            return drawObjTable->addObjectData(objReference, objData);
-        }
-
-        // todo: remove?
-        std::vector<DrawRules> getDrawRules() {
-            std::map<std::string, DrawRules> rulesGroup{};
-            for (size_t i = 0; i < m_numberDrawObjectTables; i++) {
-                auto rules = m_drawObjectTableList[i]->getDrawRules();
-
-                for (auto const &rule : rules) {
-                    std::array<std::shared_ptr<renderDetails::CommonObjectData>, m_numberDrawObjectTables> codList{};
-                    std::array<std::vector<DrawObjReference>, m_numberDrawObjectTables> indicesList{};
-                    auto insertResult = rulesGroup.emplace(rule.renderDetails->nameString(),
-                            DrawRules{rule.renderDetails, codList, indicesList});
-
-                    insertResult.first->second.commonObjectData[i] = rule.commonObjectData;
-                    insertResult.first->second.drawObjRefs[i] = rule.drawObjectIndices;
-                }
-            }
-
-            std::vector<DrawRules> regroupedRules;
-            for (auto const &item : rulesGroup) {
-                regroupedRules.push_back(item.second);
-            }
-
-            return std::move(regroupedRules);
+            return drawObjTable->addDrawObjData(objReference, objData);
         }
 
         auto getRenderDetailsAndCODList()
         {
             std::unordered_map<std::string, std::pair<std::shared_ptr<typename traits::RenderDetailsType>, std::array<std::shared_ptr<renderDetails::CommonObjectData>, nbrDrawObjectTables>>> ret;
-            std::pair<std::shared_ptr<typename traits::RenderDetailsType>, std::array<std::shared_ptr<CommonObjectData>, nbrDrawObjectTables>> value;
+            std::pair<std::shared_ptr<typename traits::RenderDetailsType>, std::array<std::shared_ptr<renderDetails::CommonObjectData>, nbrDrawObjectTables>> value;
             for (size_t i = 0; i < nbrDrawObjectTables; i++) {
                 auto &ref = m_drawObjectTableList[i]->renderDetailsReference();
                 auto result = ret.emplace(ref.renderDetails->nameString(), value);
@@ -295,11 +264,11 @@ namespace levelDrawer {
         {
             for (auto table : std::vector<ObjectType>{LEVEL, STARTER, FINISHER}) {
                 typename traits::RenderDetailsReferenceType currentRenderDetails =
-                        m_drawObjectTableList[table].renderDetailsReference();
-                std::string defaultRenderDetailsName = currentRenderDetails.renderDetails.nameString();
+                        m_drawObjectTableList[table]->renderDetailsReference();
+                std::string defaultRenderDetailsName = currentRenderDetails.renderDetails->nameString();
                 bool isDefaultRenderDetailsReference = true;
-                auto tableEnd = m_drawObjectTableList[table].zValueReferences().end();
-                auto itBegin = m_drawObjectTableList[table].zValueReferences().begin();
+                auto tableEnd = m_drawObjectTableList[table]->zValueReferences().end();
+                auto itBegin = m_drawObjectTableList[table]->zValueReferences().begin();
                 auto itEnd = itBegin;
                 while (true) {
                     if (itEnd == tableEnd) {
@@ -312,13 +281,13 @@ namespace levelDrawer {
                         break;
                     }
 
-                    auto const &drawObj = m_drawObjectTableList[table].drawObject(itEnd->objReference.get());
-                    if (isDefaultRenderDetailsReference && !drawObj.hasOverridingRenderDetails()) {
+                    auto const &drawObj = m_drawObjectTableList[table]->drawObject(itEnd->drawObjectReference.get());
+                    if (isDefaultRenderDetailsReference && !drawObj->hasOverridingRenderDetails()) {
                         itEnd++;
                         continue;
                     }
 
-                    auto renderDetailsRef = drawObj.renderDetailsReference(itEnd->objReference.get());
+                    auto renderDetailsRef = drawObj.renderDetailsReference(itEnd->objReference().get());
                     if (renderDetailsRef.renderDetails->nameString() == currentRenderDetails.renderDetails->nameString()) {
                         itEnd++;
                         continue;

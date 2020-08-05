@@ -152,9 +152,9 @@ namespace shadowsChaining {
             uint32_t /* unused matrix ID */,
             levelDrawer::CommonObjectDataList const &commonObjectDataList,
             levelDrawer::DrawObjectTableGList const &drawObjTableList,
-            std::set<levelDrawer::ZValueReference> const &starterZValues,
+            std::set<levelDrawer::ZValueReference> const &,
             std::set<levelDrawer::ZValueReference> const &levelZValues,
-            std::set<levelDrawer::ZValueReference> const &finisherZValues)
+            std::set<levelDrawer::ZValueReference> const &)
     {
         // get the shadows common object data
         auto codLevel = dynamic_cast<CommonObjectDataGL*>(
@@ -173,7 +173,7 @@ namespace shadowsChaining {
                 renderDetails::MODEL_MATRIX_ID_SHADOWS,
                 codLevel->shadowsCOD(),
                 drawObjTableList[levelDrawer::ObjectType::LEVEL],
-                levelZValues);
+                levelZValues.begin(), levelZValues.end());
 
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
         checkGraphicsError();
@@ -182,14 +182,15 @@ namespace shadowsChaining {
     void RenderDetailsGL::draw(
             uint32_t /* unused model matrix ID */,
             std::shared_ptr<renderDetails::CommonObjectData> const &commonObjectData,
-            std::shared_ptr<renderDetails::DrawObjectTableGL> const &drawObjTable,
-            std::vector<renderDetails::DrawObjReference> const &drawObjectsIndices)
+            std::shared_ptr<levelDrawer::DrawObjectTableGL> const &drawObjTable,
+            std::set<levelDrawer::ZValueReference>::iterator beginZValRefs,
+            std::set<levelDrawer::ZValueReference>::iterator endZValRefs)
     {
         // get the shadows common object data
         auto cod = dynamic_cast<CommonObjectDataGL*>(commonObjectData.get());
 
-        m_objectWithShadowsRenderDetails->draw(MODEL_MATRIX_ID_MAIN,
-                cod->objectWithShadowsCOD(), drawObjTable, drawObjectsIndices);
+        m_objectWithShadowsRenderDetails->draw(renderDetails::MODEL_MATRIX_ID_MAIN,
+                cod->objectWithShadowsCOD(), drawObjTable, beginZValRefs, endZValRefs);
     }
 
     RegisterGL<renderDetails::RenderDetailsGL, RenderDetailsGL, Config> registerGL;

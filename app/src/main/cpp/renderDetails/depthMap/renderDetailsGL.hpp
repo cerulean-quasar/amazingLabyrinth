@@ -136,7 +136,8 @@ namespace depthMap {
                 uint32_t modelMatrixID,
                 std::shared_ptr<renderDetails::CommonObjectData> const &commonObjectData,
                 std::shared_ptr<levelDrawer::DrawObjectTableGL> const &drawObjTable,
-                std::vector<levelDrawer::DrawObjReference> const &drawObjRefs) override;
+                std::set<levelDrawer::ZValueReference>::iterator beginZValRefs,
+                std::set<levelDrawer::ZValueReference>::iterator endZValRefs) override;
 
         void postProcessImageBuffer(
                 std::shared_ptr<renderDetails::CommonObjectData> const &commonObjectData,
