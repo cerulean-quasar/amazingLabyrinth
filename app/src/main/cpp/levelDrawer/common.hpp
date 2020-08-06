@@ -103,8 +103,8 @@ namespace levelDrawer {
                 return z.get() < other.z.get();
             }
 
-            if (drawObjectReference < other.drawObjectReference) {
-                return true;
+            if (drawObjectReference != other.drawObjectReference) {
+                return drawObjectReference < other.drawObjectReference;
             }
 
             if (drawObjectDataReference != boost::none && other.drawObjectDataReference != boost::none) {

@@ -297,8 +297,9 @@ namespace levelDrawer {
                     it1->second->removeObjectData(objDataRef);
 
                     auto objDataRefNew = it2->second->addObjectData(objData);
-                    m_zValueReferernces.erase(ZValueReference(boost::none, objRef1, objDataRef));
-                    m_zValueReferernces.emplace(zValue(objData), objRef2, objDataRefNew);
+                    float oldZ = zValue(objData);
+                    m_zValueReferernces.erase(ZValueReference(oldZ, objRef1, objDataRef));
+                    m_zValueReferernces.emplace(oldZ, objRef2, objDataRefNew);
                     return boost::optional<DrawObjDataReference>(objDataRefNew);
                 }
             }
@@ -311,9 +312,14 @@ namespace levelDrawer {
             if (it == m_drawObjects.end()) {
                 throw std::runtime_error("Invalid draw object reference on update");
             }
+            float oldZ = zValue(it->second->objData(objDataRef)->modelMatrix(0));
             it->second->updateObjectData(objDataRef, modelMatrix);
 
-            m_zValueReferernces.erase(ZValueReference(boost::none, objRef, objDataRef));
+            size_t nbrRemoved = m_zValueReferernces.erase(ZValueReference(oldZ, objRef, objDataRef));
+            if (nbrRemoved != 1) {
+                throw std::runtime_error("Unexpected number of items removed!");
+            }
+
             m_zValueReferernces.emplace(zValue(modelMatrix), objRef, objDataRef);
         }
 
@@ -322,8 +328,9 @@ namespace levelDrawer {
             if (it == m_drawObjects.end()) {
                 throw std::runtime_error("Invalid draw object reference on remove");
             }
+            float oldZ = zValue(it->second->objData(objDataRef)->modelMatrix(0));
             it->second->removeObjectData(objDataRef);
-            size_t nbrRemoved = m_zValueReferernces.erase(ZValueReference(boost::none, objRef, objDataRef));
+            size_t nbrRemoved = m_zValueReferernces.erase(ZValueReference(oldZ, objRef, objDataRef));
             if (nbrRemoved != 1) {
                 throw std::runtime_error("Unexpected number of items removed!");
             }
@@ -343,8 +350,7 @@ namespace levelDrawer {
         }
 
         float zValue(glm::mat4 const &modelMatrix) {
-            glm::vec4 zVec = modelMatrix * glm::vec4{0.0f, 0.0f, 1.0f, 1.0f};
-
+            glm::vec4 zVec = modelMatrix * glm::vec4{0.0f, 0.0f, 0.0f, 1.0f};
             return zVec.z / zVec.w;
         }
 
