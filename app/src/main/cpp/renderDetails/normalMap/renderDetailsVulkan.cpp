@@ -28,20 +28,29 @@ namespace normalMap {
 
     /* for accessing data other than the vertices from the shaders */
     void DescriptorSetLayout::createDescriptorSetLayout() {
-        /* MVP matrix */
-        VkDescriptorSetLayoutBinding uboLayoutBinding = {};
-        uboLayoutBinding.binding = 0;
-        uboLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-        uboLayoutBinding.descriptorCount = 1;
+        std::array<VkDescriptorSetLayoutBinding, 2> layoutBinding = {};
+        // the Common Object Data
+        layoutBinding[0].binding = 0;
+        layoutBinding[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+        layoutBinding[0].descriptorCount = 1;
 
-        /* only accessing the MVP matrix from the vertex shader */
-        uboLayoutBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
-        uboLayoutBinding.pImmutableSamplers = nullptr; // Optional
+        /* only accessing the VP matrix from the vertex shader */
+        layoutBinding[0].stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
+        layoutBinding[0].pImmutableSamplers = nullptr; // Optional
+
+        // the model matrix
+        layoutBinding[1].binding = 1;
+        layoutBinding[1].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+        layoutBinding[1].descriptorCount = 1;
+
+        /* only accessing the model matrix from the vertex shader */
+        layoutBinding[1].stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
+        layoutBinding[1].pImmutableSamplers = nullptr; // Optional
 
         VkDescriptorSetLayoutCreateInfo layoutInfo = {};
         layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
-        layoutInfo.bindingCount = 1;
-        layoutInfo.pBindings = &uboLayoutBinding;
+        layoutInfo.bindingCount = layoutBinding.size();
+        layoutInfo.pBindings = layoutBinding.data();
 
         VkDescriptorSetLayout descriptorSetLayoutRaw;
         if (vkCreateDescriptorSetLayout(m_device->logicalDevice().get(), &layoutInfo, nullptr,
@@ -60,26 +69,43 @@ namespace normalMap {
     /* descriptor set for the MVP matrix and texture samplers */
     void
     DrawObjectDataVulkan::updateDescriptorSet(std::shared_ptr<vulkan::Device> const &inDevice,
-                                              std::shared_ptr<CommonObjectDataVulkan> const &)
+                                              std::shared_ptr<CommonObjectDataVulkan> const &cod)
     {
+        VkDescriptorBufferInfo bufferInfoCOD = {};
+        bufferInfoCOD.buffer = cod->cameraBuffer()->buffer();
+        bufferInfoCOD.offset = 0;
+        bufferInfoCOD.range = cod->cameraBufferSize();
+
+        std::array<VkWriteDescriptorSet, 2> descriptorWrite = {};
+        descriptorWrite[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+        descriptorWrite[0].dstSet = m_descriptorSet->descriptorSet().get();
+        descriptorWrite[0].dstBinding = 0;
+        descriptorWrite[0].dstArrayElement = 0;
+        descriptorWrite[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+        descriptorWrite[0].descriptorCount = 1;
+        descriptorWrite[0].pBufferInfo = &bufferInfoCOD;
+        descriptorWrite[0].pNext = nullptr;
+        descriptorWrite[0].pImageInfo = nullptr; // Optional
+        descriptorWrite[0].pTexelBufferView = nullptr; // Optional
+
         VkDescriptorBufferInfo bufferInfo = {};
         bufferInfo.buffer = m_uniformBuffer->buffer();
         bufferInfo.offset = 0;
         bufferInfo.range = sizeof (PerObjectUBO);
 
-        VkWriteDescriptorSet descriptorWrite = {};
-        descriptorWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-        descriptorWrite.dstSet = m_descriptorSet->descriptorSet().get();
-        descriptorWrite.dstBinding = 0;
-        descriptorWrite.dstArrayElement = 0;
-        descriptorWrite.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-        descriptorWrite.descriptorCount = 1;
-        descriptorWrite.pBufferInfo = &bufferInfo;
-        descriptorWrite.pNext = nullptr;
-        descriptorWrite.pImageInfo = nullptr; // Optional
-        descriptorWrite.pTexelBufferView = nullptr; // Optional
+        descriptorWrite[1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+        descriptorWrite[1].dstSet = m_descriptorSet->descriptorSet().get();
+        descriptorWrite[1].dstBinding = 1;
+        descriptorWrite[1].dstArrayElement = 0;
+        descriptorWrite[1].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+        descriptorWrite[1].descriptorCount = 1;
+        descriptorWrite[1].pBufferInfo = &bufferInfo;
+        descriptorWrite[1].pNext = nullptr;
+        descriptorWrite[1].pImageInfo = nullptr; // Optional
+        descriptorWrite[1].pTexelBufferView = nullptr; // Optional
 
-        vkUpdateDescriptorSets(inDevice->logicalDevice().get(), 1, &descriptorWrite, 0, nullptr);
+        vkUpdateDescriptorSets(inDevice->logicalDevice().get(), descriptorWrite.size(),
+                descriptorWrite.data(), 0, nullptr);
     }
 
     void RenderDetailsVulkan::addDrawCmdsToCommandBuffer(
@@ -114,8 +140,6 @@ namespace normalMap {
                         modelMatrixBuffer = renderDetails::createUniformBuffer(rd->device(),
                                                                 sizeof (DrawObjectDataVulkan::PerObjectUBO));
                         DrawObjectDataVulkan::PerObjectUBO perObjectUbo{};
-                        auto projView = cod->getProjViewForRender();
-                        perObjectUbo.mvp = projView.first * projView.second * modelMatrix;
                         perObjectUbo.modelMatrix = modelMatrix;
                         modelMatrixBuffer->copyRawTo(&perObjectUbo,
                                                      sizeof(DrawObjectDataVulkan::PerObjectUBO));

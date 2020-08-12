@@ -70,7 +70,10 @@ namespace renderDetails {
             return false;
         }
 
+        // used to update the model matrix but not the buffer.  This function will be used if
+        // the buffer is shared with another DrawObjectData (as in objectWithShadows and shadows).
         virtual void updateModelMatrixNoBufferUpdate(glm::mat4 const &modelMatrix) = 0;
+
         virtual std::shared_ptr<vulkan::Buffer> const &bufferModelMatrix() = 0;
         virtual std::shared_ptr<vulkan::DescriptorSet> const &descriptorSet(uint32_t id) = 0;
 

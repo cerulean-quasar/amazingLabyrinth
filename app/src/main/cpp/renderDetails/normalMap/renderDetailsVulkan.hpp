@@ -60,69 +60,56 @@ namespace normalMap {
             return view();
         }
 
-        float nearestDepth() { return m_nearestDepth; }
-        float farthestDepth() { return m_farthestDepth; }
-
-        /*
         std::shared_ptr<vulkan::Buffer> const &cameraBuffer() { return m_camera; }
 
         uint32_t cameraBufferSize() { return sizeof(CommonUBO); }
-        */
 
         CommonObjectDataVulkan(
-                //std::shared_ptr<vulkan::Buffer> buffer,
+                std::shared_ptr<vulkan::Buffer> buffer,
                 glm::mat4 preTransform,
-                float inNearestDepth,
-                float inFarthestDepth,
                 Config config,
                 float width,
                 float height)
                 : renderDetails::CommonObjectDataOrtho(-width/2, width/2, -height/2, height/2,
                                                        config.nearPlane, config.farPlane, config.viewPoint, config.lookAt, config.up),
-                /*m_camera{std::move(buffer)},
-                  */
-                  m_preTransform{preTransform},
-                  m_nearestDepth{inNearestDepth},
-                  m_farthestDepth{inFarthestDepth}
-        {}
+                  m_camera{std::move(buffer)},
+                  m_preTransform{preTransform}
+        {
+            doUpdate();
+        }
 
         ~CommonObjectDataVulkan() override = default;
 
     protected:
         void update() override {
-            /*
-            CommonUBO commonUbo;
-            commonUbo.proj = m_preTransform *
-                             getPerspectiveMatrix(m_viewAngle, m_aspectRatio, m_nearPlane, m_farPlane, true, true);
+            doUpdate();
+        }
 
-            // eye at the m_viewPoint, looking at the m_lookAt position, pointing up is m_up.
-            commonUbo.view = view();
+        void doUpdate() {
+            CommonUBO commonUbo;
+            commonUbo.projView =
+                    m_preTransform *
+                    getOrthoMatrix(m_minusX, m_plusX, m_minusY, m_plusY,
+                                   m_nearPlane, m_farPlane, true, true) *
+                    view();
 
             m_camera->copyRawTo(&commonUbo, sizeof(commonUbo));
-            */
         }
 
     private:
-        /*
         struct CommonUBO {
-            glm::mat4 proj;
-            glm::mat4 view;
+            glm::mat4 projView;
         };
 
         std::shared_ptr<vulkan::Buffer> m_camera;
-        */
+
         glm::mat4 m_preTransform;
-        float m_nearestDepth;
-        float m_farthestDepth;
     };
 
     /* for passing data other than the vertex data to the vertex shader */
     class DrawObjectDataVulkan : public renderDetails::DrawObjectDataVulkan {
         friend RenderDetailsVulkan;
     public:
-        // todo: fix this.  This function should not be called, but if it were it would do the wrong thing.
-        // the correct thing to do is to separate the data that comes from the CommonObjectData into
-        // a separate buffer.
         void update(glm::mat4 const &modelMatrix) override {
             PerObjectUBO ubo{};
             ubo.modelMatrix = modelMatrix;
@@ -155,7 +142,6 @@ namespace normalMap {
 
     private:
         struct PerObjectUBO {
-            glm::mat4 mvp;
             glm::mat4 modelMatrix;
         };
 
@@ -174,6 +160,8 @@ namespace normalMap {
         {
             m_poolSizes[0].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
             m_poolSizes[0].descriptorCount = 1;
+            m_poolSizes[1].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+            m_poolSizes[1].descriptorCount = 1;
             m_poolInfo = {};
             m_poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
             m_poolInfo.poolSizeCount = static_cast<uint32_t>(m_poolSizes.size());
@@ -198,7 +186,7 @@ namespace normalMap {
         std::shared_ptr<vulkan::Device> m_device;
         std::shared_ptr<VkDescriptorSetLayout_T> m_descriptorSetLayout;
         VkDescriptorPoolCreateInfo m_poolInfo;
-        std::array<VkDescriptorPoolSize, 1> m_poolSizes;
+        std::array<VkDescriptorPoolSize, 2> m_poolSizes;
 
         void createDescriptorSetLayout();
     };
@@ -314,14 +302,15 @@ namespace normalMap {
                 std::shared_ptr<RenderDetailsVulkan> rd,
                 std::shared_ptr<CommonObjectDataVulkan> cod);
 
-        static std::shared_ptr<CommonObjectDataVulkan> createCommonObjectData(
+        std::shared_ptr<CommonObjectDataVulkan> createCommonObjectData(
                 renderDetails::ParametersWithSurfaceWidthHeightAtDepthVulkan const *parameters,
                 Config const &config)
         {
+            auto buffer = renderDetails::createUniformBuffer(
+                    m_device, sizeof (CommonObjectDataVulkan::CommonUBO));
             return std::make_shared<CommonObjectDataVulkan>(
+                    std::move(buffer),
                     parameters->preTransform,
-                    parameters->nearestDepth,
-                    parameters->farthestDepth,
                     config,
                     parameters->widthAtDepth,
                     parameters->heightAtDepth);

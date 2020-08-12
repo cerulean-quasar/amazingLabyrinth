@@ -20,11 +20,14 @@
 #version 450
 #extension GL_ARB_separate_shader_objects : enable
 
-layout(set = 0, binding = 0) uniform UniformBufferObject {
-    mat4 mvp;
-    mat4 model;
-    float farthestDepth;
+layout(set = 0, binding = 0) uniform CommonUniformBufferObject {
+    mat4 projView;
     float nearestDepth;
+    float farthestDepth;
+} cubo;
+
+layout(set = 0, binding = 1) uniform UniformBufferObject {
+    mat4 model;
 } ubo;
 
 layout(location = 0) in vec3 inPosition;
@@ -39,10 +42,10 @@ out gl_PerVertex {
 };
 
 void main() {
-    gl_Position = ubo.mvp * vec4(inPosition, 1.0);
+    gl_Position = cubo.projView * ubo.model * vec4(inPosition, 1.0);
     gl_Position.z = 1.0 - gl_Position.z;
     vec4 pos = ubo.model * vec4(inPosition, 1.0);
-    float z = (pos.z/pos.w - ubo.farthestDepth)/(ubo.nearestDepth - ubo.farthestDepth);
+    float z = (pos.z/pos.w - cubo.farthestDepth)/(cubo.nearestDepth - cubo.farthestDepth);
     if (z > 1.0) {
         z = 1.0;
     } else if (z < 0.0) {

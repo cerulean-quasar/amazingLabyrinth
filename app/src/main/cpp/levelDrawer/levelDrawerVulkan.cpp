@@ -150,6 +150,8 @@ namespace levelDrawer {
                 m_neededForDrawing.device, renderPass, attachments, imageWidth, imageHeight);
 
         // parameters
+        // todo: what if we are requesting a different render details other than depthMap or normalMap
+        // then we would need a different parameters type.
         renderDetails::ParametersWithSurfaceWidthHeightAtDepthVulkan parameters{};
         parameters.renderPass = renderPass;
         parameters.width = imageWidth;

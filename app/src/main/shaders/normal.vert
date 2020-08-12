@@ -20,8 +20,11 @@
 #version 450
 #extension GL_ARB_separate_shader_objects : enable
 
-layout(set = 0, binding = 0) uniform UniformBufferObject {
-    mat4 mvp;
+layout(set = 0, binding = 0) uniform CommonUniformBufferObject {
+    mat4 projView;
+} cubo;
+
+layout(set = 0, binding = 1) uniform UniformBufferObject {
     mat4 model;
 } ubo;
 
@@ -37,7 +40,7 @@ out gl_PerVertex {
 };
 
 void main() {
-    vec4 pos = ubo.mvp * vec4(inPosition, 1.0);
+    vec4 pos = cubo.projView * ubo.model * vec4(inPosition, 1.0);
     vec4 normalVec = transpose(inverse(ubo.model)) * vec4(normalize(inNormal), 1.0);
     if (normalVec.z/normalVec.w < 0.0) {
         gl_Position = vec4(pos.x, pos.y, pos.w, pos.w);

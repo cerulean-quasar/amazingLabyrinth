@@ -198,8 +198,13 @@ namespace renderDetails {
 
     class DrawObjectData {
     public:
+        // this function is required in vulkan as well because it is used to determine the z-order
+        // of objects so that they can be drawn farthest to nearest.  (We obtain the z value from
+        // the model matrix.)
         virtual glm::mat4 modelMatrix(uint32_t) = 0;
+
         virtual void update(glm::mat4 const &) = 0;
+
         virtual ~DrawObjectData() = default;
     };
 

@@ -64,14 +64,12 @@ namespace depthMap {
         float nearestDepth() { return m_nearestDepth; }
         float farthestDepth() { return m_farthestDepth; }
 
-        /*
-        std::shared_ptr<vulkan::Buffer> const &cameraBuffer() { return m_camera; }
+        std::shared_ptr<vulkan::Buffer> const &buffer() { return m_buffer; }
 
-        uint32_t cameraBufferSize() { return sizeof(CommonUBO); }
-        */
+        uint32_t bufferSize() { return sizeof(CommonUBO); }
 
         CommonObjectDataVulkan(
-                //std::shared_ptr<vulkan::Buffer> buffer,
+                std::shared_ptr<vulkan::Buffer> inBuffer,
                 glm::mat4 preTransform,
                 float inNearestDepth,
                 float inFarthestDepth,
@@ -80,38 +78,42 @@ namespace depthMap {
                 float height)
                 : renderDetails::CommonObjectDataOrtho(-width/2, width/2, -height/2, height/2,
                                                        config.nearPlane, config.farPlane, config.viewPoint, config.lookAt, config.up),
-                /*m_camera{std::move(buffer)},
-                  */
+                  m_buffer{std::move(inBuffer)},
                   m_preTransform{preTransform},
                   m_nearestDepth{inNearestDepth},
                   m_farthestDepth{inFarthestDepth}
-        {}
+        {
+            doUpdate();
+        }
 
         ~CommonObjectDataVulkan() override = default;
 
     protected:
         void update() override {
-            /*
+            doUpdate();
+        }
+
+        void doUpdate() {
             CommonUBO commonUbo;
-            commonUbo.proj = m_preTransform *
-                             getPerspectiveMatrix(m_viewAngle, m_aspectRatio, m_nearPlane, m_farPlane, true, true);
+            commonUbo.projView = m_preTransform *
+                    getOrthoMatrix(m_minusX, m_plusX, m_minusY, m_plusY,
+                                   m_nearPlane, m_farPlane, true, true) *
+                    view();
 
-            // eye at the m_viewPoint, looking at the m_lookAt position, pointing up is m_up.
-            commonUbo.view = view();
+            commonUbo.nearestDepth = m_nearestDepth;
+            commonUbo.farthestDepth = m_farthestDepth;
 
-            m_camera->copyRawTo(&commonUbo, sizeof(commonUbo));
-            */
+            m_buffer->copyRawTo(&commonUbo, sizeof(commonUbo));
         }
 
     private:
-        /*
         struct CommonUBO {
-            glm::mat4 proj;
-            glm::mat4 view;
+            glm::mat4 projView;
+            float nearestDepth;
+            float farthestDepth;
         };
 
-        std::shared_ptr<vulkan::Buffer> m_camera;
-        */
+        std::shared_ptr<vulkan::Buffer> m_buffer;
         glm::mat4 m_preTransform;
         float m_nearestDepth;
         float m_farthestDepth;
@@ -121,9 +123,6 @@ namespace depthMap {
     class DrawObjectDataVulkan : public renderDetails::DrawObjectDataVulkan {
         friend RenderDetailsVulkan;
     public:
-        // todo: fix this.  This function should not be called, but if it were it would do the wrong thing.
-        // the correct thing to do is to separate the data that comes from the CommonObjectData into
-        // a separate buffer.
         void update(glm::mat4 const &inModelMatrix) override {
             PerObjectUBO ubo{};
             ubo.modelMatrix = inModelMatrix;
@@ -156,10 +155,7 @@ namespace depthMap {
 
     private:
         struct PerObjectUBO {
-            glm::mat4 mvp;
             glm::mat4 modelMatrix;
-            float farthestDepth;
-            float nearestDepth;
         };
 
         std::shared_ptr<vulkan::DescriptorSet> m_descriptorSet;
@@ -177,6 +173,9 @@ namespace depthMap {
         {
             m_poolSizes[0].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
             m_poolSizes[0].descriptorCount = 1;
+            m_poolSizes[1].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+            m_poolSizes[1].descriptorCount = 1;
+
             m_poolInfo = {};
             m_poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
             m_poolInfo.poolSizeCount = static_cast<uint32_t>(m_poolSizes.size());
@@ -186,13 +185,17 @@ namespace depthMap {
 
             createDescriptorSetLayout();
         }
+
         std::shared_ptr<VkDescriptorSetLayout_T> const &descriptorSetLayout() override {
             return m_descriptorSetLayout;
         }
+
         uint32_t numberOfDescriptors() override { return m_numberOfDescriptorSetsInPool; }
+
         VkDescriptorPoolCreateInfo const &poolCreateInfo() override {
             return m_poolInfo;
         }
+
         virtual ~DescriptorSetLayout() {}
 
     private:
@@ -201,7 +204,7 @@ namespace depthMap {
         std::shared_ptr<vulkan::Device> m_device;
         std::shared_ptr<VkDescriptorSetLayout_T> m_descriptorSetLayout;
         VkDescriptorPoolCreateInfo m_poolInfo;
-        std::array<VkDescriptorPoolSize, 1> m_poolSizes;
+        std::array<VkDescriptorPoolSize, 2> m_poolSizes;
 
         void createDescriptorSetLayout();
     };
@@ -324,11 +327,14 @@ namespace depthMap {
                 std::shared_ptr<RenderDetailsVulkan> rd,
                 std::shared_ptr<CommonObjectDataVulkan> cod);
 
-        static std::shared_ptr<CommonObjectDataVulkan> createCommonObjectData(
+        std::shared_ptr<CommonObjectDataVulkan> createCommonObjectData(
                 renderDetails::ParametersWithSurfaceWidthHeightAtDepthVulkan const *parameters,
                 Config const &config)
         {
+            auto buffer = renderDetails::createUniformBuffer(
+                    m_device, sizeof (CommonObjectDataVulkan::CommonUBO));
             return std::make_shared<CommonObjectDataVulkan>(
+                    std::move(buffer),
                     parameters->preTransform,
                     parameters->nearestDepth,
                     parameters->farthestDepth,
