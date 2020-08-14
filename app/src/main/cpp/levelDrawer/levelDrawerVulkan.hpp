@@ -68,6 +68,7 @@ namespace levelDrawer {
         using DrawObjectTableType = DrawObjectTableVulkan;
         using DrawArgumentType = DrawArgumentVulkan;
         using NeededForDrawingType = NeededForDrawingVulkan;
+        using SurfaceDetailsType = vulkan::SurfaceDetails;
     };
 
     using LevelDrawerVulkan = LevelDrawerGraphics<LevelDrawerVulkanTraits>;
@@ -91,6 +92,7 @@ namespace levelDrawer {
     template <>
     LevelDrawerGraphics<LevelDrawerVulkanTraits>::LevelDrawerGraphics(
             LevelDrawerVulkanTraits::NeededForDrawingType neededForDrawing,
+            std::shared_ptr<LevelDrawerVulkanTraits::SurfaceDetailsType> inSurfaceDetails,
             std::shared_ptr<LevelDrawerVulkanTraits::RenderLoaderType> inRenderLoader,
             std::shared_ptr<GameRequester> inGameRequester);
 }

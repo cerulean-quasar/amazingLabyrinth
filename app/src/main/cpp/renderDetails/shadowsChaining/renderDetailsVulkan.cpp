@@ -27,14 +27,10 @@ namespace shadowsChaining {
             std::shared_ptr<GameRequester> const &gameRequester,
             std::shared_ptr<RenderLoaderVulkan> const &renderLoader,
             std::shared_ptr<vulkan::Device> const &inDevice,
-            std::shared_ptr<renderDetails::Parameters> const &parametersBase,
+            std::shared_ptr<vulkan::SurfaceDetails> const &surfaceDetails,
+            std::shared_ptr<renderDetails::Parameters> const &,
             Config const &)
     {
-        auto parameters = dynamic_cast<renderDetails::ParametersVulkan*>(parametersBase.get());
-        if (parameters == nullptr) {
-            throw std::runtime_error("Invalid render details parameter type.");
-        }
-
         // initialize main render details
         auto rd = std::make_shared<RenderDetailsVulkan>(parameters->width, parameters->height);
         rd->m_device = inDevice;
@@ -54,9 +50,12 @@ namespace shadowsChaining {
                                                                 rd->m_depthImageViewShadows},
                 shadowParameters->width, shadowParameters->height);
 
+        renderDetails::ParametersWithShadowsVulkan parameters{rd->m_samplerShadows};
+
         // main render details
         auto refMain = renderLoader->load(
-                gameRequester, objectWithShadows::RenderDetailsVulkan::name(), parametersBase);
+                gameRequester, objectWithShadows::RenderDetailsVulkan::name(),
+                surfaceDetails, parameters);
 
         rd->m_objectWithShadowsRenderDetails = refMain.renderDetails;
         rd->m_shadowsRenderDetails = refShadows.renderDetails;

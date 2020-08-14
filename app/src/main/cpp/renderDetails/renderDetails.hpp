@@ -38,13 +38,6 @@ namespace renderDetails {
         MODEL_MATRIX_ID_SHADOWS
     };
 
-    struct Parameters {
-        uint32_t width;
-        uint32_t height;
-
-        virtual ~Parameters() = default;
-    };
-
     class CommonObjectData {
     public:
         virtual std::pair<glm::mat4, glm::mat4> getProjViewForLevel() = 0;

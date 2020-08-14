@@ -221,7 +221,7 @@ GameSendChannel &gameFromGuiChannel();
 class GameWorker {
 public:
     GameWorker(std::shared_ptr<WindowType> inSurface,
-               GameRequesterCreator inRequesterCreator,
+               std::shared_ptr<GameRequester> inGameRequester,
                bool inUseGravity,
                bool inUseLegacy,
                float rotationAngle)
@@ -238,7 +238,7 @@ public:
             }
         }
 
-        std::string error = std::move(initGraphics(std::move(inSurface), inRequesterCreator, rotationAngle));
+        std::string error = std::move(initGraphics(std::move(inSurface), std::move(inGameRequester), rotationAngle));
         m_graphics->sendGraphicsDescription(whichSensors.test(Sensors::ACCELEROMETER_SENSOR), error);
     }
 
@@ -251,7 +251,9 @@ private:
     std::unique_ptr<Graphics> m_graphics;
     static uint32_t constexpr m_maxIterationsIdle = 20000;
 
-    std::string initGraphics(std::shared_ptr<WindowType> surface, GameRequesterCreator requesterCreator,
+    std::string initGraphics(
+            std::shared_ptr<WindowType> surface,
+            std::shared_ptr<GameRequester> gameRequester,
             float rotationAngle);
 };
 

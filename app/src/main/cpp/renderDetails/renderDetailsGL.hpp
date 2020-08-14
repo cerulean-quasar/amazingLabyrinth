@@ -34,25 +34,10 @@
 
 class RenderLoaderGL;
 namespace renderDetails {
-    struct ParametersGL : public Parameters {
-        bool useIntTexture;
-
-        virtual ~ParametersGL() = default;
-    };
-
-    struct ParametersWithShadowsGL : public ParametersGL {
+    struct ParametersWithShadowsGL : public Parameters {
         std::shared_ptr<graphicsGL::Framebuffer> shadowsFB;
 
         ~ParametersWithShadowsGL() override = default;
-    };
-
-    struct ParametersWithWidthHeightAtDepthGL : public ParametersGL {
-        float widthAtDepth;
-        float heightAtDepth;
-        float nearestDepth;
-        float farthestDepth;
-
-        ~ParametersWithWidthHeightAtDepthGL() override = default;
     };
 
     class DrawObjectDataGL : public DrawObjectData {

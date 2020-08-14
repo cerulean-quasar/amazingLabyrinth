@@ -131,6 +131,11 @@ namespace graphicsGL {
         std::vector<GLuint> m_colorImage;
     };
 
+    struct SurfaceDetails {
+        uint32_t surfaceWidth;
+        uint32_t surfaceHeight;
+        bool useIntTexture;
+    };
 } /* namespace graphicsGL */
 
 #endif

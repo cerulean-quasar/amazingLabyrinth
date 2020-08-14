@@ -28,9 +28,9 @@
 class GraphicsVulkan : public Graphics {
 public:
     GraphicsVulkan(std::shared_ptr<WindowType> window,
-            GameRequesterCreator inRequesterCreator,
+            std::shared_ptr<GameRequester> inGameRequester,
             float rotationAngle)
-            : Graphics{inRequesterCreator, rotationAngle},
+            : Graphics{std::move(inGameRequester), rotationAngle},
               m_instance{new vulkan::Instance(std::move(window))},
               m_device{new vulkan::Device{m_instance}},
               m_swapChain{new vulkan::SwapChain{m_device}},

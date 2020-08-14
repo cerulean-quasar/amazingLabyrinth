@@ -187,6 +187,7 @@ namespace levelDrawer {
             std::vector<float> &results) override;
 
         LevelDrawerGraphics(typename traits::NeededForDrawingType neededForDrawing,
+                            std::shared_ptr<typename traits::SurfaceDetailsType> inSurfaceDetails,
                             std::shared_ptr<typename traits::RenderLoaderType> inRenderLoader,
                             std::shared_ptr<GameRequester> inGameRequester);
 
@@ -205,6 +206,7 @@ namespace levelDrawer {
         std::shared_ptr<typename traits::RenderLoaderType> m_renderLoader;
         std::shared_ptr<GameRequester> m_gameRequester;
         typename traits::NeededForDrawingType m_neededForDrawing;
+        std::shared_ptr<typename traits::SurfaceDetailsType> m_surfaceDetails;
         glm::vec4 m_bgColor;
 
         DrawObjReference addModelMatrixToDrawObjTable(

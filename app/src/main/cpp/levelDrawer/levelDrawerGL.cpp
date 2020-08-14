@@ -177,6 +177,7 @@ namespace levelDrawer {
     template <>
     LevelDrawerGraphics<LevelDrawerGLTraits>::LevelDrawerGraphics(
             LevelDrawerGLTraits::NeededForDrawingType neededForDrawing,
+            std::shared_ptr<LevelDrawerGLTraits::SurfaceDetailsType> inSurfaceDetails,
             std::shared_ptr<LevelDrawerGLTraits::RenderLoaderType> inRenderLoader,
             std::shared_ptr<GameRequester> inGameRequester)
             : m_modelTable{},
@@ -188,6 +189,7 @@ namespace levelDrawer {
             m_renderLoader{std::move(inRenderLoader)},
             m_gameRequester{std::move(inGameRequester)},
             m_neededForDrawing{neededForDrawing},
+            m_surfaceDetails{inSurfaceDetails},
             m_bgColor{0.0f, 0.0f, 0.0f, 1.0f}
     {}
 }

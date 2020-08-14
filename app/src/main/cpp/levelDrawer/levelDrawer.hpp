@@ -24,8 +24,7 @@
 #include <string>
 #include <boost/optional.hpp>
 
-#include "modelTable/modelLoader.hpp"
-#include "textureTable/textureLoader.hpp"
+#include "common.hpp"
 
 namespace levelDrawer {
     class LevelDrawer {

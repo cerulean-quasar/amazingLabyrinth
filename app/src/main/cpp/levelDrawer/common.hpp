@@ -25,6 +25,29 @@
 
 namespace renderDetails {
     class CommonObjectData;
+
+    // extra Parameters for render details.  Only some render details require these and the
+    // requester of the render details (i.e. the level) needs to know what these are and what
+    // to put in them.
+    struct Parameters {
+        virtual ~Parameters() = default;
+    };
+
+    struct ParametersDepthMap : public Parameters {
+        float widthAtDepth;
+        float heightAtDepth;
+        float nearestDepth;
+        float farthestDepth;
+
+        ~ParametersDepthMap() override = default;
+    };
+
+    struct ParametersNormalMap : public Parameters {
+        float widthAtDepth;
+        float heightAtDepth;
+
+        ~ParametersNormalMap() override = default;
+    };
 }
 
 namespace levelDrawer {

@@ -60,16 +60,11 @@ Java_com_quasar_cerulean_amazinglabyrinth_Draw_startGame(
         return;
     }
 
-    GameRequesterCreator requesterCreator([env, jReturnChannel, saveDataFile, manager]
-        (Graphics *inGraphics) -> std::shared_ptr<GameRequester> {
-        return std::make_shared<JGameRequester>(env, jReturnChannel, saveDataFile, manager,
-                inGraphics);
-    });
+    auto gameRequester = std::make_shared<JGameRequester>(env, jReturnChannel, saveDataFile, manager);
 
     ANativeWindow *window = ANativeWindow_fromSurface(env, jdrawingSurface);
     if (window == nullptr) {
-        JGameRequester requester(env, jReturnChannel, saveDataFile, manager, nullptr);
-        requester.sendError("Unable to create window from surface.");
+        gameRequester->sendError("Unable to create window from surface.");
         return;
     }
     auto deleter = [](ANativeWindow *windowRaw) {
@@ -81,12 +76,10 @@ Java_com_quasar_cerulean_amazinglabyrinth_Draw_startGame(
     std::shared_ptr<WindowType> surface(window, deleter);
 
     try {
-        GameWorker worker{surface, requesterCreator, true, /* useLegacy */ false, jrotationAngle};
+        GameWorker worker{surface, gameRequester, true, /* useLegacy */ false, jrotationAngle};
         worker.drawingLoop();
     } catch (std::runtime_error &e) {
-        // TODO: manage exception handling in Graphics.
-        JGameRequester requester(env, jReturnChannel, saveDataFile, manager, nullptr);
-        requester.sendError(e.what());
+        gameRequester->sendError(e.what());
     }
 }
 

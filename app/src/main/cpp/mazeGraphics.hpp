@@ -167,9 +167,6 @@ public:
 
     virtual GraphicsDescription graphicsDescription() = 0;
 
-    virtual std::shared_ptr<renderDetails::Parameters> getParametersForRenderDetailsName(
-            char const *renderDetailsName) = 0;
-
     void sendGraphicsDescription(bool hasAccelerometer, std::string vulkanError) {
         GraphicsDescription info = graphicsDescription();
         if (!vulkanError.empty()) {
@@ -200,9 +197,10 @@ public:
 
     virtual void cleanupThread()=0;
 
-    explicit Graphics(GameRequesterCreator inRequesterCreator,
+    Graphics(
+            std::shared_ptr<GameRequester> inGameRequester,
             float inRotationAngle)
-        : m_gameRequester{inRequesterCreator(this)},
+        : m_gameRequester{std::move(inGameRequester)},
         m_levelSequence{},
         m_rotationAngle{inRotationAngle}
     {}

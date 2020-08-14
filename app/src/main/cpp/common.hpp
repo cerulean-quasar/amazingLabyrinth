@@ -25,8 +25,6 @@
 #include <memory>
 #include <streambuf>
 
-class Graphics;
-
 char constexpr const *shadowsChainingRenderDetailsName = "shadowsChaining";
 char constexpr const *shadowsRenderDetailsName = "shadows";
 char constexpr const *objectWithShadowsRenderDetailsName = "objectWithShadows";
@@ -50,17 +48,6 @@ public:
     }
 };
 
-namespace renderDetails {
-    class Parameters;
-}
-
-class GraphicsRequester {
-public:
-    virtual std::shared_ptr<renderDetails::Parameters> getParametersForRenderDetailsName(
-            char const *renderDetailsName) = 0;
-    virtual ~GraphicsRequester() = default;
-};
-
 class FileRequester {
 public:
     virtual std::unique_ptr<std::streambuf> getAssetStream(std::string const &file) = 0;
@@ -81,12 +68,10 @@ public:
     virtual ~JRequester() = default;
 };
 
-class GameRequester :public FileRequester, public JRequester, public GraphicsRequester {
+class GameRequester :public FileRequester, public JRequester {
 public:
     ~GameRequester() override = default;
 };
-
-using GameRequesterCreator = std::function<std::shared_ptr<GameRequester>(Graphics *)>;
 
 std::vector<char> readFile(std::shared_ptr<FileRequester> const &requester, std::string const &filename);
 void checkGraphicsError();

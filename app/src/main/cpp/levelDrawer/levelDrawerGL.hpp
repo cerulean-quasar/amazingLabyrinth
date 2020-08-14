@@ -65,6 +65,7 @@ namespace levelDrawer {
         using DrawObjectTableType = DrawObjectTableGL;
         using NeededForDrawingType = NeededForDrawingGL;
         using DrawArgumentType = DrawArgumentGL;
+        using SurfaceDetailsType = graphicsGL::SurfaceDetails;
     };
 
     using LevelDrawerGL = LevelDrawerGraphics<LevelDrawerGLTraits>;
@@ -88,6 +89,7 @@ namespace levelDrawer {
     template <>
     LevelDrawerGraphics<LevelDrawerGLTraits>::LevelDrawerGraphics(
             LevelDrawerGLTraits::NeededForDrawingType neededForDrawing,
+            std::shared_ptr<LevelDrawerGLTraits::SurfaceDetailsType> inSurfaceDetails,
             std::shared_ptr<LevelDrawerGLTraits::RenderLoaderType> inRenderLoader,
             std::shared_ptr<GameRequester> inGameRequester);
 

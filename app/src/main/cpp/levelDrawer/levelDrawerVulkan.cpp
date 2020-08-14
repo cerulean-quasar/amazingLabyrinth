@@ -246,6 +246,7 @@ namespace levelDrawer {
     template <>
     LevelDrawerGraphics<LevelDrawerVulkanTraits>::LevelDrawerGraphics(
             LevelDrawerVulkanTraits::NeededForDrawingType neededForDrawing,
+            std::shared_ptr<LevelDrawerVulkanTraits::SurfaceDetailsType> inSurfaceDetails,
             std::shared_ptr<LevelDrawerVulkanTraits::RenderLoaderType> inRenderLoader,
             std::shared_ptr<GameRequester> inGameRequester)
             : m_modelTable(neededForDrawing.device, neededForDrawing.commandPool),
@@ -254,9 +255,10 @@ namespace levelDrawer {
                 std::make_shared<LevelDrawerVulkanTraits::DrawObjectTableType>(),
                 std::make_shared<LevelDrawerVulkanTraits::DrawObjectTableType>(),
                 std::make_shared<LevelDrawerVulkanTraits::DrawObjectTableType>()},
-            m_renderLoader(std::move(inRenderLoader)),
-            m_gameRequester(std::move(inGameRequester)),
-            m_neededForDrawing(std::move(neededForDrawing)),
+            m_renderLoader{std::move(inRenderLoader)},
+            m_gameRequester{std::move(inGameRequester)},
+            m_neededForDrawing{std::move(neededForDrawing)},
+            m_surfaceDetails{std::move(inSurfaceDetails)},
             m_bgColor{0.0f, 0.0f, 0.0f, 1.0f}
     {}
 }

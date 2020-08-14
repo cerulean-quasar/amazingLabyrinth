@@ -38,20 +38,10 @@ namespace renderDetails {
     std::shared_ptr<vulkan::Buffer> createUniformBuffer(
             std::shared_ptr<vulkan::Device> const &device, size_t bufferSize);
 
-    struct ParametersVulkan : public Parameters {
-        std::shared_ptr<vulkan::RenderPass> renderPass;
-        glm::mat4 preTransform;
+    struct ParametersWithShadowsVulkan : public Parameters {
+        std::shared_ptr<vulkan::ImageSampler> shadowsSampler;
 
-        virtual ~ParametersVulkan() = default;
-    };
-
-    struct ParametersWithSurfaceWidthHeightAtDepthVulkan : public ParametersVulkan {
-        float widthAtDepth;
-        float heightAtDepth;
-        float nearestDepth;
-        float farthestDepth;
-
-        ~ParametersWithSurfaceWidthHeightAtDepthVulkan() override = default;
+        virtual ~ParametersWithShadowsVulkan() = default;
     };
 
     class DrawObjectDataVulkan : public DrawObjectData {

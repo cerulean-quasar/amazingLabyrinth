@@ -1054,6 +1054,12 @@ namespace vulkan {
                              std::vector<uint32_t> const &indices,
                              Buffer &buffer);
 
+    struct SurfaceDetails {
+        std::shared_ptr<vulkan::RenderPass> renderPass;
+        glm::mat4 preTransform;
+        uint32_t surfaceWidth;
+        uint32_t surfaceHeight;
+    };
 } /* namespace vulkan */
 #endif
 

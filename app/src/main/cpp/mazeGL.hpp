@@ -32,9 +32,9 @@
 class GraphicsGL : public Graphics {
 public:
     GraphicsGL(std::shared_ptr<WindowType> window,
-               GameRequesterCreator inRequesterCreator,
+               std::shared_ptr<GameRequester> inGameRequester,
                float rotationAngle)
-            : Graphics{inRequesterCreator, rotationAngle},
+            : Graphics{std::move(inGameRequester), rotationAngle},
               m_surface{std::make_shared<graphicsGL::Surface>(std::move(window))},
               m_useIntTexture{true},
               m_renderLoader{std::make_shared<RenderLoaderGL>()},
