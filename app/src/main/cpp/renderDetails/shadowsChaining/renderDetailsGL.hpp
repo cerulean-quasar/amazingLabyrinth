@@ -107,6 +107,7 @@ namespace shadowsChaining {
         static renderDetails::ReferenceGL loadNew(
                 std::shared_ptr<GameRequester> const &gameRequester,
                 std::shared_ptr<RenderLoaderGL> const &renderLoader,
+                std::shared_ptr<graphicsGL::SurfaceDetails> const &surfaceDetails,
                 std::shared_ptr<renderDetails::Parameters> const &parameters,
                 Config const &config);
 
@@ -114,6 +115,7 @@ namespace shadowsChaining {
                 std::shared_ptr<GameRequester> const &gameRequester,
                 std::shared_ptr<RenderLoaderGL> const &renderLoader,
                 std::shared_ptr<renderDetails::RenderDetailsGL> rdBase,
+                std::shared_ptr<graphicsGL::SurfaceDetails> const &surfaceDetails,
                 std::shared_ptr<renderDetails::Parameters> const &parameters,
                 Config const &config);
 
@@ -135,7 +137,9 @@ namespace shadowsChaining {
         RenderDetailsGL(bool useIntTexture, uint32_t inWidth, uint32_t inHeight)
                 : renderDetails::RenderDetailsGL{inWidth, inHeight},
                   m_useIntTexture(useIntTexture)
-        {}
+        {
+            createFramebuffer();
+        }
 
         ~RenderDetailsGL() override = default;
 
@@ -151,7 +155,7 @@ namespace shadowsChaining {
                 renderDetails::ReferenceGL const &refShadows);
 
         // Initialize framebuffer for shadow mapping.
-        static void createFramebuffer(RenderDetailsGL *rd);
+        void createFramebuffer();
     };
 }
 #endif // AMAZING_LABYRINTH_OBJECTWITHSHADOWS_RENDER_DETAILS_GL_HPP

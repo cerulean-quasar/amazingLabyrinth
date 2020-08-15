@@ -35,12 +35,14 @@ struct RenderDetailsVulkanRetrieveFcns {
         std::shared_ptr<GameRequester> const &,
         std::shared_ptr<RenderLoaderVulkan> const &,
         std::shared_ptr<vulkan::Device>,
+        std::shared_ptr<vulkan::SurfaceDetails> const &,
         std::shared_ptr<renderDetails::Parameters> const &)>;
 
     using RenderDetailsLoadExistingFcn = std::function<renderDetails::ReferenceVulkan(
         std::shared_ptr<GameRequester> const &,
         std::shared_ptr<RenderLoaderVulkan> const &,
         std::shared_ptr<renderDetails::RenderDetailsVulkan> const &,
+        std::shared_ptr<vulkan::SurfaceDetails> const &,
         std::shared_ptr<renderDetails::Parameters> const &)>;
 
     RenderDetailsLoadNewFcn renderDetailsLoadNewFcn;
@@ -67,20 +69,22 @@ public:
                     fcns.renderDetailsLoadNewFcn = RenderDetailsVulkanRetrieveFcns::RenderDetailsLoadNewFcn (
                             [config] (std::shared_ptr<GameRequester> const &gameRequester,
                                       std::shared_ptr<RenderLoaderVulkan> const &renderLoader,
-                                      std::shared_ptr<vulkan::Device> inDevice,
+                                      std::shared_ptr<vulkan::Device> const &inDevice,
+                                      std::shared_ptr<vulkan::SurfaceDetails> const &surfaceDetails,
                                       std::shared_ptr<renderDetails::Parameters> const &parameters) -> RenderDetailsVulkanRetrieveFcns::RenderDetailsReferenceVulkan
                             {
                                 return RenderDetailsType::loadNew(gameRequester, renderLoader,
-                                        inDevice, parameters, config);
+                                        inDevice, surfaceDetails, parameters, config);
                             });
                     fcns.renderDetailsLoadExistingFcn = RenderDetailsVulkanRetrieveFcns::RenderDetailsLoadExistingFcn (
                             [config] (std::shared_ptr<GameRequester> const &gameRequester,
                                       std::shared_ptr<RenderLoaderVulkan> const &renderLoader,
                                       std::shared_ptr<RenderDetailsBaseType> const &renderDetails,
+                                      std::shared_ptr<vulkan::SurfaceDetails> const &surfaceDetails,
                                       std::shared_ptr<renderDetails::Parameters> const &parameters) -> RenderDetailsVulkanRetrieveFcns::RenderDetailsReferenceVulkan
                             {
                                 return RenderDetailsType::loadExisting(gameRequester, renderLoader,
-                                        renderDetails, parameters, config);
+                                        renderDetails, surfaceDetails, parameters, config);
                             });
                     return std::move(fcns);
                 }

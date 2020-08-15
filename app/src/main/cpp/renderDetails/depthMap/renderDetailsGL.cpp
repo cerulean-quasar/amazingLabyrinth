@@ -39,17 +39,18 @@ namespace depthMap {
     renderDetails::ReferenceGL RenderDetailsGL::loadNew(
             std::shared_ptr<GameRequester> const &gameRequester,
             std::shared_ptr<RenderLoaderGL> const &,
+            std::shared_ptr<graphicsGL::SurfaceDetails> const &surfaceDetails,
             std::shared_ptr<renderDetails::Parameters> const &parametersBase,
             Config const &config)
     {
         auto parameters =
-            dynamic_cast<renderDetails::ParametersWithWidthHeightAtDepthGL*>(parametersBase.get());
+            dynamic_cast<renderDetails::ParametersDepthMap*>(parametersBase.get());
         if (parameters == nullptr) {
             throw std::runtime_error("Invalid render details parameter type.");
         }
 
-        auto rd = std::make_shared<RenderDetailsGL>(gameRequester, parameters->width,
-                                                    parameters->height);
+        auto rd = std::make_shared<RenderDetailsGL>(gameRequester, surfaceDetails->surfaceWidth,
+                                                    surfaceDetails->surfaceHeight);
 
         auto cod = std::make_shared<CommonObjectDataGL>(
                 parameters->nearestDepth,
@@ -65,11 +66,12 @@ namespace depthMap {
             std::shared_ptr<GameRequester> const &,
             std::shared_ptr<RenderLoaderGL> const &,
             std::shared_ptr<renderDetails::RenderDetailsGL> rdBase,
+            std::shared_ptr<graphicsGL::SurfaceDetails> const &surfaceDetails,
             std::shared_ptr<renderDetails::Parameters> const &parametersBase,
             Config const &config)
     {
         auto parameters =
-                dynamic_cast<renderDetails::ParametersWithWidthHeightAtDepthGL*>(parametersBase.get());
+                dynamic_cast<renderDetails::ParametersDepthMap*>(parametersBase.get());
         if (parameters == nullptr) {
             throw std::runtime_error("Invalid render details parameter type.");
         }

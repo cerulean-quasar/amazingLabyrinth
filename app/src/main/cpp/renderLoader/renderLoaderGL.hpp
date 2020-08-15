@@ -35,6 +35,7 @@ struct RenderLoaderGLTraits {
     using RenderDetailsReferenceType = renderDetails::ReferenceGL;
     using RenderDetailsParameterType = renderDetails::ParametersGL;
     using RetrieveFcns = RenderDetailsGLRetrieveFcns;
+    using SurfaceDetailsType = graphicsGL::SurfaceDetails;
     static RenderDetailsGLRetrieveMap &getRenderDetailsMap() {
         return getRenderDetailsGLMap();
     }
@@ -52,26 +53,29 @@ protected:
     RenderLoaderGLTraits::RenderDetailsReferenceType loadNew(
             RenderLoaderGLTraits::RetrieveFcns const &fcns,
             std::shared_ptr<GameRequester> const &gameRequester,
+            std::shared_ptr<RenderLoaderGLTraits::SurfaceDetailsType> const &surfaceDetails,
             std::shared_ptr<renderDetails::Parameters> const &parameters) override
     {
-        return fcns.renderDetailsLoadNewFcn(gameRequester, shared_from_this(), parameters);
+        return fcns.renderDetailsLoadNewFcn(gameRequester, shared_from_this(), surfaceDetails, parameters);
     }
 
     void reload(
             std::shared_ptr<GameRequester> const &gameRequester,
             std::shared_ptr<RenderLoaderGLTraits::RenderDetailsType> const &renderDetails,
-            std::shared_ptr<renderDetails::Parameters> const &parameters) override
+            std::shared_ptr<RenderLoaderGLTraits::SurfaceDetailsType> const &surfaceDetails) override
     {
-        renderDetails->reload(gameRequester, shared_from_this(), parameters);
+        renderDetails->reload(gameRequester, shared_from_this(), surfaceDetails);
     }
 
     RenderLoaderGLTraits::RenderDetailsReferenceType loadExisting(
             RenderLoaderGLTraits::RetrieveFcns const &fcns,
             std::shared_ptr<GameRequester> const &gameRequester,
             std::shared_ptr<RenderLoaderGLTraits::RenderDetailsType> const &renderDetails,
+            std::shared_ptr<RenderLoaderGLTraits::SurfaceDetailsType> const &surfaceDetails,
             std::shared_ptr<renderDetails::Parameters> const &parameters) override
     {
-        return fcns.renderDetailsLoadExistingFcn(gameRequester, shared_from_this(), renderDetails, parameters);
+        return fcns.renderDetailsLoadExistingFcn(gameRequester, shared_from_this(), renderDetails,
+                surfaceDetails, parameters);
     }
 private:
 };

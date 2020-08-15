@@ -35,6 +35,7 @@ struct RenderLoaderVulkanTraits {
     using CommonObjectDataType = renderDetails::CommonObjectData;
     using RenderDetailsReferenceType = renderDetails::ReferenceVulkan;
     using RetrieveFcns = RenderDetailsVulkanRetrieveFcns;
+    using SurfaceDetailsType = vulkan::SurfaceDetails;
     static RenderDetailsVulkanRetrieveMap &getRenderDetailsMap() {
         return getRenderDetailsVulkanMap();
     }

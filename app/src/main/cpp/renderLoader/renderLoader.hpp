@@ -32,16 +32,17 @@ public:
     typename traits::RenderDetailsReferenceType load(
             std::shared_ptr<GameRequester> const &gameRequester,
             std::string const &name,
+            std::shared_ptr<typename traits::SurfaceDetailsType> const &surfaceDetails,
             std::shared_ptr<renderDetails::Parameters> const &parameters)
     {
         typename traits::RetrieveFcns fcns = getFcns(name);
         for (auto it = m_loadedRenderDetails.begin(); it != m_loadedRenderDetails.end(); it++) {
             if ((*it)->nameString() == name) {
                 auto renderDetails = *it;
-                if (renderDetails->width() != parameters->width ||
-                    renderDetails->height() != parameters->height)
+                if (renderDetails->width() != surfaceDetails->surfaceWidth ||
+                    renderDetails->height() != surfaceDetails->surfaceHeight)
                 {
-                    reload(gameRequester, renderDetails, parameters);
+                    reload(gameRequester, renderDetails, surfaceDetails, parameters);
                 }
 
                 if (m_loadedRenderDetails.size() > m_nbrRenderDetailsToKeep/2) {
@@ -49,7 +50,7 @@ public:
                     m_loadedRenderDetails.push_front(renderDetails);
                 }
 
-                return loadExisting(fcns, gameRequester, renderDetails, parameters);
+                return loadExisting(fcns, gameRequester, renderDetails, surfaceDetails, parameters);
             }
         }
 
@@ -72,15 +73,17 @@ protected:
     virtual typename traits::RenderDetailsReferenceType loadNew(
             typename traits::RetrieveFcns const &fcns,
             std::shared_ptr<GameRequester> const &gameRequester,
+            std::shared_ptr<typename traits::SurfaceDetailsType> const &surfaceDetails,
             std::shared_ptr<renderDetails::Parameters> const &parameters) = 0;
     virtual void reload(
             std::shared_ptr<GameRequester> const &gameRequester,
             std::shared_ptr<typename traits::RenderDetailsType> const &renderDetails,
-            std::shared_ptr<renderDetails::Parameters> const &parameters) = 0;
+            std::shared_ptr<typename traits::SurfaceDetailsType> const &surfaceDetails) = 0;
     virtual typename traits::RenderDetailsReferenceType loadExisting(
             typename traits::RetrieveFcns const &fcns,
             std::shared_ptr<GameRequester> const &gameRequester,
             std::shared_ptr<typename traits::RenderDetailsType> const &renderDetails,
+            std::shared_ptr<typename traits::SurfaceDetailsType> const &surfaceDetails,
             std::shared_ptr<renderDetails::Parameters> const &parameters) = 0;
 private:
     typename traits::RetrieveFcns getFcns(std::string const &name) {
