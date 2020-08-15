@@ -36,17 +36,9 @@
 namespace objectWithShadows {
     class RenderDetailsVulkan;
 
-    struct ParametersVulkan : public renderDetails::ParametersVulkan {
-        std::shared_ptr<vulkan::ImageSampler> shadowsSampler;
-    };
-
     class CommonObjectDataVulkan : public renderDetails::CommonObjectDataPerspective {
         friend RenderDetailsVulkan;
     public:
-        void setShadowsImageSampler(std::shared_ptr<vulkan::ImageSampler> shadowsImageSampler) {
-            m_shadowsSampler = std::move(shadowsImageSampler);
-        }
-
         std::shared_ptr<vulkan::Buffer> const &cameraBuffer() { return m_cameraBuffer; }
         uint32_t cameraBufferSize() { return sizeof (CommonVertexUBO); }
         std::shared_ptr<vulkan::Buffer> const &lightingBuffer() { return m_lightingSourceBuffer; }
@@ -72,6 +64,7 @@ namespace objectWithShadows {
         CommonObjectDataVulkan(
                 std::shared_ptr<vulkan::Buffer> cameraBuffer,
                 std::shared_ptr<vulkan::Buffer> lightingSourceBuffer,
+                std::shared_ptr<vulkan::ImageSampler> sampler,
                 glm::mat4 const &preTransform,
                 float aspectRatio,
                 Config const &config)
@@ -81,7 +74,8 @@ namespace objectWithShadows {
                   m_preTransform{preTransform},
                   m_lightingSource{config.lightingSource},
                   m_cameraBuffer{std::move(cameraBuffer)},
-                  m_lightingSourceBuffer{std::move(lightingSourceBuffer)}
+                  m_lightingSourceBuffer{std::move(lightingSourceBuffer)},
+                  m_shadowsSampler{std::move(sampler)}
         {
             doUpdate();
         }
@@ -312,18 +306,19 @@ namespace objectWithShadows {
                 std::shared_ptr<GameRequester> const &gameRequester,
                 std::shared_ptr<RenderLoaderVulkan> const &,
                 std::shared_ptr<vulkan::Device> const &inDevice,
+                std::shared_ptr<vulkan::SurfaceDetails> const &surfaceDetails,
                 std::shared_ptr<renderDetails::Parameters> const &parametersBase,
                 Config const &config)
         {
-            auto parameters = dynamic_cast<renderDetails::ParametersVulkan*>(parametersBase.get());
+            auto parameters = dynamic_cast<renderDetails::ParametersWithShadowsVulkan*>(parametersBase.get());
             if (parameters == nullptr) {
                 throw std::runtime_error("Invalid render details parameter type.");
             }
 
             auto rd = std::make_shared<RenderDetailsVulkan>(
-                    gameRequester, inDevice, nullptr, parameters);
+                    gameRequester, inDevice, nullptr, surfaceDetails, parameters);
 
-            auto cod = rd->createCommonObjectData(parameters->preTransform, config);
+            auto cod = rd->createCommonObjectData(surfaceDetails->preTransform, parameters->shadowsSampler, config);
 
             return createReference(std::move(rd), std::move(cod));
         }
@@ -331,11 +326,12 @@ namespace objectWithShadows {
         static renderDetails::ReferenceVulkan loadExisting(
                 std::shared_ptr<GameRequester> const &,
                 std::shared_ptr<RenderLoaderVulkan> const &,
-                std::shared_ptr<renderDetails::RenderDetailsVulkan> rdBase,
+                std::shared_ptr<renderDetails::RenderDetailsVulkan> const &rdBase,
+                std::shared_ptr<vulkan::SurfaceDetails> const &surfaceDetails,
                 std::shared_ptr<renderDetails::Parameters> const &parametersBase,
                 Config const &config)
         {
-            auto parameters = dynamic_cast<renderDetails::ParametersVulkan*>(parametersBase.get());
+            auto parameters = dynamic_cast<renderDetails::ParametersWithShadowsVulkan*>(parametersBase.get());
             if (parameters == nullptr) {
                 throw std::runtime_error("Invalid render details parameter type.");
             }
@@ -345,7 +341,7 @@ namespace objectWithShadows {
                 throw std::runtime_error("Invalid render details type.");
             }
 
-            auto cod = rd->createCommonObjectData(parameters->preTransform, config);
+            auto cod = rd->createCommonObjectData(surfaceDetails->preTransform, parameters->shadowsSampler, config);
 
             return createReference(std::move(rd), std::move(cod));
         }
@@ -361,7 +357,7 @@ namespace objectWithShadows {
         void reload(
                 std::shared_ptr<GameRequester> const &gameRequester,
                 std::shared_ptr<RenderLoaderVulkan> const &renderLoader,
-                std::shared_ptr<renderDetails::Parameters> const &parameters) override;
+                std::shared_ptr<vulkan::SurfaceDetails> const &surfaceDetails) override;
 
         std::shared_ptr<vulkan::Device> const &device() override { return m_device; }
 
@@ -411,6 +407,7 @@ namespace objectWithShadows {
 
         std::shared_ptr<CommonObjectDataVulkan> createCommonObjectData(
                 glm::mat4 const &preTransform,
+                std::shared_ptr<vulkan::ImageSampler> sampler,
                 Config const &config)
         {
             auto vertexUbo = renderDetails::createUniformBuffer(
@@ -419,7 +416,7 @@ namespace objectWithShadows {
                     m_device, sizeof (CommonObjectDataVulkan::CommonFragmentUBO));
 
             return std::make_shared<CommonObjectDataVulkan>(
-                    vertexUbo, fragUbo, preTransform,
+                    vertexUbo, fragUbo, std::move(sampler), preTransform,
                     m_surfaceWidth/static_cast<float>(m_surfaceHeight), config);
         }
 

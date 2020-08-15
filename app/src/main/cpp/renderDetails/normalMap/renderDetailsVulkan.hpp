@@ -200,19 +200,19 @@ namespace normalMap {
                 std::shared_ptr<GameRequester> const &gameRequester,
                 std::shared_ptr<RenderLoaderVulkan> const &,
                 std::shared_ptr<vulkan::Device> const &inDevice,
+                std::shared_ptr<vulkan::SurfaceDetails> const &surfaceDetails,
                 std::shared_ptr<renderDetails::Parameters> const &parametersBase,
                 Config const &config)
         {
-            auto parameters =
-                    dynamic_cast<renderDetails::ParametersWithSurfaceWidthHeightAtDepthVulkan*>(parametersBase.get());
+            auto parameters = dynamic_cast<renderDetails::ParametersNormalMap*>(parametersBase.get());
             if (parameters == nullptr) {
                 throw std::runtime_error("Invalid render details parameter type.");
             }
 
             auto rd = std::make_shared<RenderDetailsVulkan>(
-                    gameRequester, inDevice, nullptr, parameters);
+                    gameRequester, inDevice, nullptr, surfaceDetails);
 
-            auto cod = rd->createCommonObjectData(parameters, config);
+            auto cod = rd->createCommonObjectData(surfaceDetails->preTransform, parameters, config);
 
             return createReference(std::move(rd), std::move(cod));
         }
@@ -221,11 +221,11 @@ namespace normalMap {
                 std::shared_ptr<GameRequester> const &,
                 std::shared_ptr<RenderLoaderVulkan> const &,
                 std::shared_ptr<renderDetails::RenderDetailsVulkan> const &rdBase,
+                std::shared_ptr<vulkan::SurfaceDetails> const &surfaceDetails,
                 std::shared_ptr<renderDetails::Parameters> const &parametersBase,
                 Config const &config)
         {
-            auto parameters =
-                    dynamic_cast<renderDetails::ParametersWithSurfaceWidthHeightAtDepthVulkan*>(parametersBase.get());
+            auto parameters = dynamic_cast<renderDetails::ParametersNormalMap*>(parametersBase.get());
             if (parameters == nullptr) {
                 throw std::runtime_error("Invalid render details parameter type.");
             }
@@ -235,7 +235,7 @@ namespace normalMap {
                 throw std::runtime_error("Invalid render details type.");
             }
 
-            auto cod = rd->createCommonObjectData(parameters, config);
+            auto cod = rd->createCommonObjectData(surfaceDetails->preTransform, parameters, config);
 
             return createReference(std::move(rd), std::move(cod));
         }
@@ -259,7 +259,7 @@ namespace normalMap {
         void reload(
                 std::shared_ptr<GameRequester> const &gameRequester,
                 std::shared_ptr<RenderLoaderVulkan> const &renderLoader,
-                std::shared_ptr<renderDetails::Parameters> const &parameters) override;
+                std::shared_ptr<vulkan::SurfaceDetails> const &surfaceDetails) override;
 
         std::shared_ptr<vulkan::Device> const &device() override { return m_device; }
         std::shared_ptr<vulkan::DescriptorPools> const &descriptorPools() { return m_descriptorPools; }
@@ -273,8 +273,8 @@ namespace normalMap {
                 std::shared_ptr<GameRequester> const &gameRequester,
                 std::shared_ptr<vulkan::Device> const &inDevice,
                 std::shared_ptr<vulkan::Pipeline> const &basePipeline,
-                renderDetails::ParametersVulkan const *parameters)
-                : renderDetails::RenderDetailsVulkan{parameters->width, parameters->height},
+                std::shared_ptr<vulkan::SurfaceDetails> const &surfaceDetails)
+                : renderDetails::RenderDetailsVulkan{surfaceDetails->surfaceWidth, surfaceDetails->surfaceHeight},
                   m_device{inDevice},
                   m_descriptorSetLayout{std::make_shared<DescriptorSetLayout>(m_device)},
                   m_descriptorPools{std::make_shared<vulkan::DescriptorPools>(m_device, m_descriptorSetLayout)},
@@ -303,14 +303,15 @@ namespace normalMap {
                 std::shared_ptr<CommonObjectDataVulkan> cod);
 
         std::shared_ptr<CommonObjectDataVulkan> createCommonObjectData(
-                renderDetails::ParametersWithSurfaceWidthHeightAtDepthVulkan const *parameters,
+                glm::mat4 const &preTransform,
+                renderDetails::ParametersNormalMap const *parameters,
                 Config const &config)
         {
             auto buffer = renderDetails::createUniformBuffer(
                     m_device, sizeof (CommonObjectDataVulkan::CommonUBO));
             return std::make_shared<CommonObjectDataVulkan>(
                     std::move(buffer),
-                    parameters->preTransform,
+                    preTransform,
                     config,
                     parameters->widthAtDepth,
                     parameters->heightAtDepth);

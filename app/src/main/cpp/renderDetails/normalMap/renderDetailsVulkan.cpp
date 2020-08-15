@@ -165,18 +165,12 @@ namespace normalMap {
     void RenderDetailsVulkan::reload(
             std::shared_ptr<GameRequester> const &gameRequester,
             std::shared_ptr<RenderLoaderVulkan> const &,
-            std::shared_ptr<renderDetails::Parameters> const &parametersBase)
+            std::shared_ptr<vulkan::SurfaceDetails> const &surfaceDetails)
     {
-        auto parameters =
-                dynamic_cast<renderDetails::ParametersWithSurfaceWidthHeightAtDepthVulkan*>(parametersBase.get());
-        if (parameters == nullptr) {
-            throw std::runtime_error("Invalid render details parameter type.");
-        }
-
         m_pipeline.reset();
 
-        m_surfaceWidth = parameters->width;
-        m_surfaceHeight = parameters->height;
+        m_surfaceWidth = parameters->surfaceWidth;
+        m_surfaceHeight = parameters->surfaceHeight;
 
         m_pipeline = std::make_shared<vulkan::Pipeline>(
                 gameRequester, m_device,

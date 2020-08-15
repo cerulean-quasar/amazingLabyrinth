@@ -167,10 +167,13 @@ namespace shadowsChaining {
         std::shared_ptr<vulkan::Device> const &device() override { return m_objectWithShadowsRenderDetails->device(); }
 
         RenderDetailsVulkan(
-                uint32_t inWidth,
-                uint32_t inHeight)
-                : renderDetails::RenderDetailsVulkan{inWidth, inHeight}
-        {}
+                std::shared_ptr<vulkan::Device> const &inDevice,
+                std::shared_ptr<vulkan::SurfaceDetails> const &surfaceDetails)
+                : renderDetails::RenderDetailsVulkan{surfaceDetails->surfaceWidth, surfaceDetails->surfaceHeight},
+                m_device{inDevice}
+        {
+            createShadowResources(surfaceDetails);
+        }
 
         ~RenderDetailsVulkan() override = default;
 
@@ -197,19 +200,18 @@ namespace shadowsChaining {
                 renderDetails::ReferenceVulkan const &refShadows,
                 renderDetails::ReferenceVulkan const &refObjectWithShadows);
 
-        static std::shared_ptr<renderDetails::Parameters> createShadowParameters(
-                RenderDetailsVulkan const *rd,
-                renderDetails::ParametersVulkan const *parameters)
+        std::shared_ptr<vulkan::SurfaceDetails> createShadowSurfaceDetails(
+                std::shared_ptr<vulkan::SurfaceDetails> const &surfaceDetails)
         {
-            renderDetails::ParametersVulkan shadowParameters;
-            shadowParameters.width = getShadowsFramebufferDimension(parameters->width);
-            shadowParameters.height = getShadowsFramebufferDimension(parameters->height);
-            shadowParameters.preTransform = parameters->preTransform;
-            shadowParameters.renderPass = rd->m_renderPassShadows;
-            return std::make_shared<renderDetails::ParametersVulkan>(shadowParameters);
+            vulkan::SurfaceDetails shadowSurface{};
+            shadowSurface.width = getShadowsFramebufferDimension(surfaceDetails->surfaceWidth);
+            shadowSurface.height = getShadowsFramebufferDimension(surfaceDetails->surfaceHeight);
+            shadowSurface.preTransform = surfaceDetails->preTransform;
+            shadowSurface.renderPass = m_renderPassShadows;
+            return std::make_shared<surfaceDetails>(std::move(shadowSurface));
         }
 
-        void createShadowResources(renderDetails::ParametersVulkan const *parameters);
+        void createShadowResources(std::shared_ptr<vulkan::SurfaceDetails> const &surfaceDetails);
     };
 }
 

@@ -194,18 +194,14 @@ namespace shadows {
                 std::shared_ptr<GameRequester> const &gameRequester,
                 std::shared_ptr<RenderLoaderVulkan> const &,
                 std::shared_ptr<vulkan::Device> const &inDevice,
-                std::shared_ptr<renderDetails::Parameters> const &parametersBase,
+                std::shared_ptr<vulkan::SurfaceDetails> const &surfaceDetails,
+                std::shared_ptr<renderDetails::Parameters> const &,
                 Config const &config)
         {
-            auto parameters = dynamic_cast<renderDetails::ParametersVulkan*>(parametersBase.get());
-            if (parameters == nullptr) {
-                throw std::runtime_error("Invalid render details parameter type.");
-            }
-
             auto rd = std::make_shared<RenderDetailsVulkan>(
-                    gameRequester, inDevice, nullptr, parameters);
+                    gameRequester, inDevice, nullptr, surfaceDetails);
 
-            auto cod = rd->createCommonObjectData(parameters->preTransform, config);
+            auto cod = rd->createCommonObjectData(surfaceDetails->preTransform, config);
 
             return createReference(std::move(rd), std::move(cod));
         }
@@ -254,8 +250,8 @@ namespace shadows {
                 std::shared_ptr<GameRequester> const &gameRequester,
                 std::shared_ptr<vulkan::Device> const &inDevice,
                 std::shared_ptr<vulkan::Pipeline> const &basePipeline,
-                renderDetails::ParametersVulkan const *parameters)
-                : renderDetails::RenderDetailsVulkan{parameters->width, parameters->height},
+                std::shared_ptr<vulkan::SurfaceDetails> const &surfaceDetails)
+                : renderDetails::RenderDetailsVulkan{surfaceDetails->surfaceWidth, surfaceDetails->surfaceHeight},
                   m_device{inDevice},
                   m_descriptorSetLayout{std::make_shared<DescriptorSetLayout>(m_device)},
                   m_descriptorPools{std::make_shared<vulkan::DescriptorPools>(m_device, m_descriptorSetLayout)},
@@ -267,7 +263,7 @@ namespace shadows {
             m_pipeline = std::make_shared<vulkan::Pipeline>(
                     gameRequester, m_device,
                     extent,
-                    parameters->renderPass, m_descriptorPools, getBindingDescription(),
+                    surfaceDetails->renderPass, m_descriptorPools, getBindingDescription(),
                     getAttributeDescriptions(),
                     vertFile, fragFile,
                     basePipeline, VK_CULL_MODE_FRONT_BIT);
