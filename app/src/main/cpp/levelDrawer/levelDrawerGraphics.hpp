@@ -97,10 +97,7 @@ namespace levelDrawer {
             }
 
             return m_drawObjectTableList[type]->addObject(
-                m_renderLoader->load(
-                        m_gameRequester,
-                        renderDetailsName,
-                        m_gameRequester->getParametersForRenderDetailsName(renderDetailsName.c_str())),
+                m_renderLoader->load(m_gameRequester, renderDetailsName, m_surfaceDetails, nullptr),
                 modelData,
                 textureData);
         }
@@ -153,8 +150,7 @@ namespace levelDrawer {
 
         void requestRenderDetails(ObjectType type, std::string const &name) override {
             m_drawObjectTableList[type]->loadRenderDetails(
-                    m_renderLoader->load(m_gameRequester, name,
-                        m_gameRequester->getParametersForRenderDetailsName(name.c_str())));
+                    m_renderLoader->load(m_gameRequester, name, m_surfaceDetails, nullptr));
         }
 
         std::pair<glm::mat4, glm::mat4> getProjectionView(ObjectType type) override {
@@ -182,8 +178,7 @@ namespace levelDrawer {
             float width,
             float height,
             uint32_t nbrSamplesForWidth,
-            float farthestDepth,
-            float nearestDepth,
+            std::shared_ptr<renderDetails::Parameters> const &parameters,
             std::vector<float> &results) override;
 
         LevelDrawerGraphics(typename traits::NeededForDrawingType neededForDrawing,

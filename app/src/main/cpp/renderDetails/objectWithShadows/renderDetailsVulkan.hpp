@@ -316,7 +316,7 @@ namespace objectWithShadows {
             }
 
             auto rd = std::make_shared<RenderDetailsVulkan>(
-                    gameRequester, inDevice, nullptr, surfaceDetails, parameters);
+                    gameRequester, inDevice, nullptr, surfaceDetails);
 
             auto cod = rd->createCommonObjectData(surfaceDetails->preTransform, parameters->shadowsSampler, config);
 
@@ -365,14 +365,14 @@ namespace objectWithShadows {
                 std::shared_ptr<GameRequester> const &gameRequester,
                 std::shared_ptr<vulkan::Device> const &inDevice,
                 std::shared_ptr<vulkan::Pipeline> const &basePipeline,
-                renderDetails::ParametersVulkan const *parameters)
-                : renderDetails::RenderDetailsVulkan{parameters->width, parameters->height},
+                std::shared_ptr<vulkan::SurfaceDetails> const &surfaceDetails)
+                : renderDetails::RenderDetailsVulkan{surfaceDetails->surfaceWidth, surfaceDetails->surfaceHeight},
                   m_device{inDevice},
                   m_descriptorSetLayoutTexture{std::make_shared<TextureDescriptorSetLayout>(m_device)},
                   m_descriptorPoolsTexture{std::make_shared<vulkan::DescriptorPools>(m_device, m_descriptorSetLayoutTexture)},
                   m_pipelineTexture{std::make_shared<vulkan::Pipeline>(
                           gameRequester, m_device, VkExtent2D{m_surfaceWidth, m_surfaceHeight},
-                          parameters->renderPass, m_descriptorPoolsTexture,
+                          surfaceDetails->renderPass, m_descriptorPoolsTexture,
                           getBindingDescription(),
                           getAttributeDescriptions(),
                           SHADER_VERT_FILE, TEXTURE_SHADER_FRAG_FILE, basePipeline)},
@@ -380,7 +380,7 @@ namespace objectWithShadows {
                   m_descriptorPoolsColor{std::make_shared<vulkan::DescriptorPools>(m_device, m_descriptorSetLayoutColor)},
                   m_pipelineColor{std::make_shared<vulkan::Pipeline>(
                           gameRequester, m_device, VkExtent2D{m_surfaceWidth, m_surfaceHeight},
-                          parameters->renderPass, m_descriptorPoolsColor,
+                          surfaceDetails->renderPass, m_descriptorPoolsColor,
                           getBindingDescription(),
                           getAttributeDescriptions(),
                           SHADER_VERT_FILE, COLOR_SHADER_FRAG_FILE, m_pipelineTexture)}

@@ -59,7 +59,7 @@ namespace levelDrawer {
         // begin the main render pass
         VkRenderPassBeginInfo renderPassInfo = {};
         renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-        renderPassInfo.renderPass = info.renderPass->renderPass().get();
+        renderPassInfo.renderPass = m_surfaceDetails->renderPass->renderPass().get();
         renderPassInfo.framebuffer = info.framebuffer;
         /* size of the render area */
         renderPassInfo.renderArea.offset = {0, 0};
@@ -108,8 +108,7 @@ namespace levelDrawer {
             float width,
             float height,
             uint32_t nbrSamplesForWidth,
-            float farthestDepth,
-            float nearestDepth,
+            std::shared_ptr<renderDetails::Parameters> const &parameters,
             std::vector<float> &results)
     {
         auto drawObjTable = std::make_shared<DrawObjectTableVulkan>();
@@ -150,22 +149,16 @@ namespace levelDrawer {
                 m_neededForDrawing.device, renderPass, attachments, imageWidth, imageHeight);
 
         // parameters
-        // todo: what if we are requesting a different render details other than depthMap or normalMap
-        // then we would need a different parameters type.
-        renderDetails::ParametersWithSurfaceWidthHeightAtDepthVulkan parameters{};
-        parameters.renderPass = renderPass;
-        parameters.width = imageWidth;
-        parameters.height = imageHeight;
-        parameters.preTransform = glm::mat4(1.0f);
-        parameters.widthAtDepth = width;
-        parameters.heightAtDepth = height;
-        parameters.nearestDepth = nearestDepth;
-        parameters.farthestDepth = farthestDepth;
+        vulkan::SurfaceDetails surfaceDetails{};
+        surfaceDetails.renderPass = renderPass;
+        surfaceDetails.surfaceWidth = imageWidth;
+        surfaceDetails.surfaceHeight = imageHeight;
+        surfaceDetails.preTransform = glm::mat4(1.0f);
 
         // load the render details
         auto ref = m_renderLoader->load(
                 m_gameRequester, renderDetailsName,
-                std::make_shared<renderDetails::ParametersWithSurfaceWidthHeightAtDepthVulkan>(parameters));
+                std::make_shared<vulkan::SurfaceDetails>(surfaceDetails), parameters);
         drawObjTable->loadRenderDetails(ref);
 
         // add the draw objects

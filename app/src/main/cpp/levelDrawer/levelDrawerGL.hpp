@@ -40,7 +40,6 @@ namespace renderDetails {
 class RenderLoaderGL;
 namespace levelDrawer {
     struct NeededForDrawingGL {
-        bool useIntegerSurface;
     };
 
     struct DrawArgumentGL {
@@ -82,8 +81,7 @@ namespace levelDrawer {
             float width,
             float height,
             uint32_t nbrSamplesForWidth,
-            float farthestDepth,
-            float nearestDepth,
+            std::shared_ptr<renderDetails::Parameters> const &parameters,
             std::vector<float> &results);
 
     template <>

@@ -210,20 +210,16 @@ namespace shadows {
                 std::shared_ptr<GameRequester> const &,
                 std::shared_ptr<RenderLoaderVulkan> const &,
                 std::shared_ptr<renderDetails::RenderDetailsVulkan> rdBase,
-                std::shared_ptr<renderDetails::Parameters> const &parametersBase,
+                std::shared_ptr<vulkan::SurfaceDetails> const &surfaceDetails,
+                std::shared_ptr<renderDetails::Parameters> const &,
                 Config const &config)
         {
-            auto parameters = dynamic_cast<renderDetails::ParametersVulkan*>(parametersBase.get());
-            if (parameters == nullptr) {
-                throw std::runtime_error("Invalid render details parameter type.");
-            }
-
             auto rd = std::dynamic_pointer_cast<RenderDetailsVulkan>(rdBase);
             if (rd == nullptr) {
                 throw std::runtime_error("Invalid render details type.");
             }
 
-            auto cod = rd->createCommonObjectData(parameters->preTransform, config);
+            auto cod = rd->createCommonObjectData(surfaceDetails->preTransform, config);
 
             return createReference(std::move(rd), std::move(cod));
         }
@@ -239,7 +235,7 @@ namespace shadows {
         void reload(
                 std::shared_ptr<GameRequester> const &gameRequester,
                 std::shared_ptr<RenderLoaderVulkan> const &renderLoader,
-                std::shared_ptr<renderDetails::Parameters> const &parameters) override;
+                std::shared_ptr<vulkan::SurfaceDetails> const &surfaceDetails) override;
 
         std::shared_ptr<vulkan::Device> const &device() override { return m_device; }
         std::shared_ptr<vulkan::DescriptorPools> const &descriptorPools() {

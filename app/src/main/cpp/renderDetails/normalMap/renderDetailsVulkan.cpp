@@ -169,13 +169,13 @@ namespace normalMap {
     {
         m_pipeline.reset();
 
-        m_surfaceWidth = parameters->surfaceWidth;
-        m_surfaceHeight = parameters->surfaceHeight;
+        m_surfaceWidth = surfaceDetails->surfaceWidth;
+        m_surfaceHeight = surfaceDetails->surfaceHeight;
 
         m_pipeline = std::make_shared<vulkan::Pipeline>(
                 gameRequester, m_device,
                 VkExtent2D{m_surfaceWidth, m_surfaceHeight},
-                parameters->renderPass, m_descriptorPools, getBindingDescription(),
+                surfaceDetails->renderPass, m_descriptorPools, getBindingDescription(),
                 getAttributeDescriptions(),
                 SHADER_NORMAL_VERT_FILE, SHADER_SIMPLE_FRAG_FILE, nullptr);
     }

@@ -34,14 +34,15 @@ namespace shadowsChaining {
         // initialize main render details
         auto rd = std::make_shared<RenderDetailsVulkan>(inDevice, surfaceDetails);
 
-        auto shadowsSurfaceDetails = rd->createShadowSurfaceDetails(parameters);
+        auto shadowsSurfaceDetails = rd->createShadowSurfaceDetails(surfaceDetails);
 
         // shadows render details
         auto refShadows = renderLoader->load(
                 gameRequester, shadows::RenderDetailsVulkan::name(), shadowsSurfaceDetails, nullptr);
 
-        auto parameters = std::make_shared<renderDetails::ParametersWithShadowsVulkan>(
-                renderDetails::ParametersWithShadowsVulkan{rd->m_samplerShadows});
+        renderDetails::ParametersWithShadowsVulkan params{};
+        params.shadowsSampler = rd->m_samplerShadows;
+        auto parameters = std::make_shared<renderDetails::ParametersWithShadowsVulkan>(params);
 
         // main render details
         auto refMain = renderLoader->load(
@@ -72,8 +73,9 @@ namespace shadowsChaining {
         auto refShadows = renderLoader->load(
             gameRequester, shadows::RenderDetailsVulkan::name(), shadowSurfaceDetails, nullptr);
 
-        auto parameters = std::make_shared<renderDetails::ParametersWithShadowsVulkan>(
-                renderDetails::ParametersWithShadowsVulkan{rd->m_samplerShadows});
+        renderDetails::ParametersWithShadowsVulkan params{};
+        params.shadowsSampler = rd->m_samplerShadows;
+        auto parameters = std::make_shared<renderDetails::ParametersWithShadowsVulkan>(params);
 
         // object with shadows render details
         auto refObjectWithShadows = renderLoader->load(
@@ -180,9 +182,6 @@ namespace shadowsChaining {
             throw std::runtime_error("Invalid common object data");
         }
 
-        // set the shadows image sampler
-        cod->m_objectWithShadowsCOD->setShadowsImageSampler(rd->m_samplerShadows);
-
         renderDetails::ReferenceVulkan ref;
         ref.renderDetails = rd;
         ref.commonObjectData = cod;
@@ -219,8 +218,8 @@ namespace shadowsChaining {
         m_shadowsColorAttachment.reset();
         m_depthImageViewShadows.reset();
 
-        auto width = getShadowsFramebufferDimension(surfaceDetails->width);
-        auto height = getShadowsFramebufferDimension(surfaceDetails->height);
+        auto width = getShadowsFramebufferDimension(surfaceDetails->surfaceWidth);
+        auto height = getShadowsFramebufferDimension(surfaceDetails->surfaceHeight);
 
         // shadow resources
         m_depthImageViewShadows = std::make_shared<vulkan::ImageView>(
@@ -256,7 +255,7 @@ namespace shadowsChaining {
 
         // shadows framebuffer
         m_framebufferShadows = std::make_shared<vulkan::Framebuffer>(
-                inDevice, m_renderPassShadows,
+                m_device, m_renderPassShadows,
                 std::vector<std::shared_ptr<vulkan::ImageView>>{m_shadowsColorAttachment,
                                                                 m_depthImageViewShadows},
                 width, height);

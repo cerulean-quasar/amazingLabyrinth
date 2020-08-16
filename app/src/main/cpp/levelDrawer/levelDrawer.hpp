@@ -92,8 +92,7 @@ namespace levelDrawer {
                 float width,
                 float height,
                 uint32_t nbrSamplesForWidth,
-                float farthestDepth,
-                float nearestDepth,
+                std::shared_ptr<renderDetails::Parameters> const &parameters,
                 std::vector<float> &results) = 0;
 
         virtual ~LevelDrawer() = default;
@@ -183,12 +182,11 @@ namespace levelDrawer {
                 float width,
                 float height,
                 uint32_t nbrSamplesForWidth,
-                float farthestDepth,
-                float nearestDepth,
+                std::shared_ptr<renderDetails::Parameters> const &parameters,
                 std::vector<float> &results)
         {
             m_levelDrawer->drawToBuffer(renderDetailsName, modelsTextures, modelMatrix, width, height,
-                    nbrSamplesForWidth, farthestDepth, nearestDepth, results);
+                    nbrSamplesForWidth, parameters, results);
         }
 
     private:

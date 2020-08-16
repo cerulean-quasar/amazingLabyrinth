@@ -34,15 +34,18 @@ public:
               m_instance{new vulkan::Instance(std::move(window))},
               m_device{new vulkan::Device{m_instance}},
               m_swapChain{new vulkan::SwapChain{m_device}},
-              m_renderPass{vulkan::RenderPass::createRenderPass(m_device, m_swapChain)},
+              m_surfaceDetails{std::make_shared<vulkan::SurfaceDetails>(
+                      vulkan::SurfaceDetails{vulkan::RenderPass::createRenderPass(m_device, m_swapChain),
+                      preTransform(), m_swapChain->extent().width, m_swapChain->extent().height})},
               m_commandPool{new vulkan::CommandPool{m_device}},
               m_depthImageView{new vulkan::ImageView{vulkan::ImageFactory::createDepthImage(m_swapChain),
                                                      VK_IMAGE_ASPECT_DEPTH_BIT}},
-              m_swapChainCommands{new vulkan::SwapChainCommands{m_swapChain, m_commandPool, m_renderPass, m_depthImageView}},
+              m_swapChainCommands{new vulkan::SwapChainCommands{m_swapChain, m_commandPool, m_surfaceDetails->renderPass, m_depthImageView}},
               m_imageAvailableSemaphore{m_device},
               m_renderFinishedSemaphore{m_device},
               m_renderLoader{std::make_shared<RenderLoaderVulkan>(m_device)},
-              m_levelDrawer{std::make_shared<levelDrawer::LevelDrawerVulkan>(levelDrawer::NeededForDrawingVulkan{m_device, m_commandPool}, m_renderLoader, m_gameRequester)}
+              m_levelDrawer{std::make_shared<levelDrawer::LevelDrawerVulkan>(levelDrawer::NeededForDrawingVulkan{m_device, m_commandPool},
+                      m_surfaceDetails, m_renderLoader, m_gameRequester)}
     {
         prepareDepthResources();
 
@@ -62,9 +65,6 @@ public:
     bool updateData(bool alwaysUpdateDynObjs) override { return m_levelSequence->updateData(alwaysUpdateDynObjs); }
 
     void drawFrame() override;
-
-    std::shared_ptr<renderDetails::Parameters> getParametersForRenderDetailsName(
-            char const *renderDetailsName) override;
 
     void recreateSwapChain(uint32_t width, uint32_t height) override ;
 
@@ -88,7 +88,7 @@ private:
     std::shared_ptr<vulkan::Instance> m_instance;
     std::shared_ptr<vulkan::Device> m_device;
     std::shared_ptr<vulkan::SwapChain> m_swapChain;
-    std::shared_ptr<vulkan::RenderPass> m_renderPass;
+    std::shared_ptr<vulkan::SurfaceDetails> m_surfaceDetails;
     std::shared_ptr<vulkan::CommandPool> m_commandPool;
     std::shared_ptr<vulkan::ImageView> m_depthImageView;
     std::shared_ptr<vulkan::SwapChainCommands> m_swapChainCommands;

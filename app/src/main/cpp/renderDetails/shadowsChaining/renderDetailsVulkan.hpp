@@ -204,11 +204,11 @@ namespace shadowsChaining {
                 std::shared_ptr<vulkan::SurfaceDetails> const &surfaceDetails)
         {
             vulkan::SurfaceDetails shadowSurface{};
-            shadowSurface.width = getShadowsFramebufferDimension(surfaceDetails->surfaceWidth);
-            shadowSurface.height = getShadowsFramebufferDimension(surfaceDetails->surfaceHeight);
+            shadowSurface.surfaceWidth = getShadowsFramebufferDimension(surfaceDetails->surfaceWidth);
+            shadowSurface.surfaceHeight = getShadowsFramebufferDimension(surfaceDetails->surfaceHeight);
             shadowSurface.preTransform = surfaceDetails->preTransform;
             shadowSurface.renderPass = m_renderPassShadows;
-            return std::make_shared<surfaceDetails>(std::move(shadowSurface));
+            return std::make_shared<vulkan::SurfaceDetails>(std::move(shadowSurface));
         }
 
         void createShadowResources(std::shared_ptr<vulkan::SurfaceDetails> const &surfaceDetails);

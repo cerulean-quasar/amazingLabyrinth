@@ -93,7 +93,7 @@ namespace renderDetails {
 
         virtual void reload(std::shared_ptr<GameRequester> const &,
                             std::shared_ptr<RenderLoaderGL> const &,
-                            std::shared_ptr<renderDetails::Parameters> const &)
+                            std::shared_ptr<graphicsGL::SurfaceDetails> const &)
         {
             // do nothing.  For GL, we need to dump all render details and reload everything.
         }

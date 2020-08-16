@@ -61,6 +61,18 @@ namespace shadows {
             std::shared_ptr<renderDetails::Parameters> const &,
             Config const &config)
     {
+        auto rd = dynamic_cast<RenderDetailsGL*>(rdBase.get());
+        if (rd == nullptr) {
+            throw std::runtime_error("Invalid render details type.");
+        }
+
+        if (rd->m_surfaceWidth != surfaceDetails->surfaceWidth ||
+            rd->m_surfaceHeight != surfaceDetails->surfaceHeight)
+        {
+            rd->m_surfaceWidth = surfaceDetails->surfaceWidth;
+            rd->m_surfaceHeight = surfaceDetails->surfaceHeight;
+        }
+
         auto cod = std::make_shared<CommonObjectDataGL>(
                 surfaceDetails->surfaceWidth / static_cast<float>(surfaceDetails->surfaceHeight), config);
 

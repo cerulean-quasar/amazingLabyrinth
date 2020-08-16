@@ -27,6 +27,7 @@
 
 #include "../graphicsVulkan.hpp"
 #include "../renderDetails/renderDetailsVulkan.hpp"
+#include "../graphicsVulkan.hpp"
 
 // Register RenderDetailsVulkan types
 struct RenderDetailsVulkanRetrieveFcns {

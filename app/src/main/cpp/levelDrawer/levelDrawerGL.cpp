@@ -73,8 +73,7 @@ namespace levelDrawer {
             float width,
             float height,
             uint32_t nbrSamplesForWidth,
-            float farthestDepth,
-            float nearestDepth,
+            std::shared_ptr<renderDetails::Parameters> const &parameters,
             std::vector<float> &results)
     {
         if (modelsTextures.size() != modelMatrix.size()) {
@@ -86,17 +85,14 @@ namespace levelDrawer {
         uint32_t imageWidth = nbrSamplesForWidth;
         uint32_t imageHeight = static_cast<uint32_t>(std::floor((imageWidth * height)/width));
 
-        renderDetails::ParametersWithWidthHeightAtDepthGL parameters{};
-        parameters.width = imageWidth;
-        parameters.height = imageHeight;
-        parameters.widthAtDepth = width;
-        parameters.heightAtDepth = height;
-        parameters.nearestDepth = nearestDepth;
-        parameters.farthestDepth = farthestDepth;
+        graphicsGL::SurfaceDetails surfaceDetails{};
+        surfaceDetails.surfaceWidth = imageWidth;
+        surfaceDetails.surfaceHeight = imageHeight;
+        surfaceDetails.useIntTexture = m_surfaceDetails->useIntTexture;
 
         // load the render details.
         auto ref = m_renderLoader->load(m_gameRequester, renderDetailsName,
-                std::make_shared<renderDetails::ParametersWithWidthHeightAtDepthGL>(parameters));
+                std::make_shared<graphicsGL::SurfaceDetails>(surfaceDetails), parameters);
 
         drawObjTable->loadRenderDetails(ref);
 
@@ -121,7 +117,7 @@ namespace levelDrawer {
 
         graphicsGL::Framebuffer::ColorImageFormat colorImageFormat{GL_RGBA32UI, GL_RGBA_INTEGER,
                                                                    GL_UNSIGNED_INT};
-        if (!m_neededForDrawing.useIntegerSurface) {
+        if (!m_surfaceDetails->useIntTexture) {
             colorImageFormat = {GL_RGBA8, GL_RGBA, GL_UNSIGNED_BYTE};
             //graphicsGL::Framebuffer::ColorImageFormat colorImageFormat{GL_RGBA, GL_RGBA, GL_UNSIGNED_BYTE};
 
@@ -151,7 +147,7 @@ namespace levelDrawer {
         checkGraphicsError();
 
         boost::variant<std::vector<float>, std::vector<uint8_t>> dataVariant;
-        if (m_neededForDrawing.useIntegerSurface) {
+        if (m_surfaceDetails->useIntTexture) {
             /* width * height * 4 color values each a char in size. */
             std::vector<float> data(static_cast<size_t>(imageWidth * imageHeight * 4), 0.0f);
             glReadBuffer(GL_COLOR_ATTACHMENT0);
@@ -189,7 +185,7 @@ namespace levelDrawer {
             m_renderLoader{std::move(inRenderLoader)},
             m_gameRequester{std::move(inGameRequester)},
             m_neededForDrawing{neededForDrawing},
-            m_surfaceDetails{inSurfaceDetails},
+            m_surfaceDetails{std::move(inSurfaceDetails)},
             m_bgColor{0.0f, 0.0f, 0.0f, 1.0f}
     {}
 }

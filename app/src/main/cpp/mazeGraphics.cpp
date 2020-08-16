@@ -19,6 +19,7 @@
  */
 
 #include "mazeGraphics.hpp"
+#include "levelDrawer/modelTable/modelLoader.hpp"
 
 void LevelSequence::notifySurfaceChanged(
         uint32_t surfaceWidth,
@@ -161,9 +162,16 @@ bool Graphics::testDepthTexture(levelDrawer::Adaptor inLevelDrawer) {
     glm::mat4 modelMatrix =
             glm::scale(glm::mat4(1.0f), glm::vec3{1.0f, 1.0f, 1.0f});
 
+    renderDetails::ParametersDepthMap depthParameters{};
+    depthParameters.nearestDepth = 1.0f;
+    depthParameters.farthestDepth = -1.0f;
+    depthParameters.widthAtDepth = 2.0f;
+    depthParameters.heightAtDepth = 2.0f;
     std::vector<float> depthMap;
     inLevelDrawer.drawToBuffer(depthMapRenderDetailsName, modelsTextures, {modelMatrix},
-            2.0f, 2.0f, 200, -1.0f, 1.0f, depthMap);
+            2.0f, 2.0f, 200,
+            std::make_shared<renderDetails::ParametersDepthMap>(depthParameters),
+            depthMap);
 
     /*
     glm::vec3 normal{0.5f, 0.5f, 0.5f};

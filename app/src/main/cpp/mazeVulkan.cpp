@@ -79,8 +79,8 @@ void GraphicsVulkan::recreateSwapChain(uint32_t width, uint32_t height) {
     m_depthImageView = std::make_shared<vulkan::ImageView>(vulkan::ImageFactory::createDepthImage(m_swapChain),
                                                  VK_IMAGE_ASPECT_DEPTH_BIT);
     prepareDepthResources();
-    m_renderPass = vulkan::RenderPass::createRenderPass(m_device, m_swapChain);
-    m_swapChainCommands = std::make_shared<vulkan::SwapChainCommands>(m_swapChain, m_commandPool, m_renderPass, m_depthImageView);
+    m_surfaceDetails->renderPass = vulkan::RenderPass::createRenderPass(m_device, m_swapChain);
+    m_swapChainCommands = std::make_shared<vulkan::SwapChainCommands>(m_swapChain, m_commandPool, m_surfaceDetails->renderPass, m_depthImageView);
 
     extent = m_swapChain->extent();
     m_levelSequence->notifySurfaceChanged(extent.width, extent.height);
@@ -95,7 +95,7 @@ void GraphicsVulkan::cleanupSwapChain() {
 
     m_swapChainCommands.reset();
 
-    m_renderPass.reset();
+    m_surfaceDetails->renderPass.reset();
 
     m_depthImageView.reset();
 
@@ -116,7 +116,6 @@ void GraphicsVulkan::initializeCommandBuffer(uint32_t cmdBufferIndex) {
     levelDrawer::DrawArgumentVulkan info;
     info.cmdBuffer = commandBuffer;
     info.framebuffer = framebuffer;
-    info.renderPass = m_renderPass;
     info.extent = m_swapChain->extent();
 
     m_levelDrawer->draw(info);
@@ -231,17 +230,4 @@ void GraphicsVulkan::prepareDepthResources() {
 
     m_depthImageView->image()->transitionImageLayout(VK_IMAGE_LAYOUT_UNDEFINED,
                                                      VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL, m_commandPool);
-}
-
-std::shared_ptr<renderDetails::Parameters> GraphicsVulkan::getParametersForRenderDetailsName(
-        char const */* unused renderDetailsName - reserved for future use */)
-{
-    auto extent = m_swapChain->extent();
-    renderDetails::ParametersVulkan parameters;
-    parameters.width = extent.width;
-    parameters.height = extent.height;
-    parameters.preTransform = preTransform();
-    parameters.renderPass = m_renderPass;
-
-    return std::make_shared<renderDetails::ParametersVulkan>(parameters);
 }

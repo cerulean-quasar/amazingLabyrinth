@@ -32,6 +32,8 @@
 #include "../../levelTracker/types.hpp"
 #include "../../mathGraphics.hpp"
 #include "../../levelDrawer/levelDrawer.hpp"
+#include "../../levelDrawer/modelTable/modelLoader.hpp"
+#include "../../levelDrawer/textureTable/textureLoader.hpp"
 
 namespace basic {
     class Level {

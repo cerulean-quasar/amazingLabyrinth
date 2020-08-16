@@ -36,9 +36,12 @@ public:
                float rotationAngle)
             : Graphics{std::move(inGameRequester), rotationAngle},
               m_surface{std::make_shared<graphicsGL::Surface>(std::move(window))},
-              m_useIntTexture{true},
+              m_surfaceDetails{std::make_shared<graphicsGL::SurfaceDetails>(graphicsGL::SurfaceDetails{m_surface->width(), m_surface->height(), true})},
               m_renderLoader{std::make_shared<RenderLoaderGL>()},
-              m_levelDrawer{std::make_shared<levelDrawer::LevelDrawerGL>(levelDrawer::NeededForDrawingGL{m_useIntTexture}, m_renderLoader, m_gameRequester)}
+              m_levelDrawer{std::make_shared<levelDrawer::LevelDrawerGL>(
+                      levelDrawer::NeededForDrawingGL{},
+                      m_surfaceDetails,
+                      m_renderLoader, m_gameRequester)}
     {
         initPipeline();
 
@@ -58,13 +61,10 @@ public:
         eglSwapBuffers(m_surface->display(), m_surface->surface());
     }
 
-    std::shared_ptr<renderDetails::Parameters> getParametersForRenderDetailsName(
-            char const *renderDetailsName) override;
-
     void recreateSwapChain(uint32_t width, uint32_t height) override;
 
     std::vector<std::string> getBugList() {
-        if (m_useIntTexture) {
+        if (m_surfaceDetails->useIntTexture) {
             return std::vector<std::string>();
         } else {
             return std::vector<std::string>{"OpenGL implementation does not support integer surfaces."};
@@ -85,7 +85,7 @@ public:
     }
 private:
     std::shared_ptr<graphicsGL::Surface> m_surface;
-    bool m_useIntTexture;
+    std::shared_ptr<graphicsGL::SurfaceDetails> m_surfaceDetails;
     std::shared_ptr<RenderLoaderGL> m_renderLoader;
     std::shared_ptr<levelDrawer::LevelDrawerGL> m_levelDrawer;
 

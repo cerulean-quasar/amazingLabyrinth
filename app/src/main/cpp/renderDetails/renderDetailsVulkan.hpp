@@ -123,7 +123,7 @@ namespace renderDetails {
         virtual void reload(
                 std::shared_ptr<GameRequester> const &gameRequester,
                 std::shared_ptr<RenderLoaderVulkan> const &renderLoader,
-                std::shared_ptr<renderDetails::Parameters> const &parameters) = 0;
+                std::shared_ptr<vulkan::SurfaceDetails> const &surfaceDetails) = 0;
 
         virtual std::shared_ptr<vulkan::Device> const &device() = 0;
 

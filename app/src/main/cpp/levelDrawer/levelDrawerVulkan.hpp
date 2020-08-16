@@ -49,7 +49,6 @@ namespace levelDrawer {
     struct DrawArgumentVulkan {
         VkCommandBuffer cmdBuffer;
         VkFramebuffer framebuffer;
-        std::shared_ptr<vulkan::RenderPass> renderPass;
         VkExtent2D extent;
     };
 
@@ -85,8 +84,7 @@ namespace levelDrawer {
             float width,
             float height,
             uint32_t nbrSamplesForWidth,
-            float farthestDepth,
-            float nearestDepth,
+            std::shared_ptr<renderDetails::Parameters> const &parameters,
             std::vector<float> &results);
 
     template <>

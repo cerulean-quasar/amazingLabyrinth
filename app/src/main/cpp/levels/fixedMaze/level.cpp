@@ -536,24 +536,35 @@ namespace fixedMaze {
 
         auto floorModelDesc =
                 std::make_shared<levelDrawer::ModelDescriptionPath>(m_floorModel, true);
+
         // The model is a square.  Get the whole depth and normal maps (without stretching.  Then
         // find the hole and cut the model so that the hole appears in the center if possible, otherwise
         // on the side.  So we pass in m_height for the width and height.
+        renderDetails::ParametersDepthMap depthParameters{};
+        depthParameters.nearestDepth = m_mazeFloorZ + MODEL_MAXZ;
+        depthParameters.farthestDepth = m_mazeFloorZ - MODEL_MAXZ;
+        depthParameters.widthAtDepth = m_height;
+        depthParameters.heightAtDepth = m_height;
         m_levelDrawer.drawToBuffer(
                 depthMapRenderDetailsName,
                 levelDrawer::ModelsTextures{std::make_pair(floorModelDesc,
                         std::shared_ptr<levelDrawer::TextureDescription>())},
                 std::vector<glm::mat4>{floorModelMatrix},
-                m_height, m_height, m_rowHeight, m_mazeFloorZ - MODEL_MAXZ, m_mazeFloorZ + MODEL_MAXZ,
+                m_height, m_height, m_rowHeight,
+                std::make_shared<renderDetails::ParametersDepthMap>(depthParameters),
                 depthMap);
 
+        renderDetails::ParametersNormalMap normalParameters{};
+        normalParameters.widthAtDepth = m_height;
+        normalParameters.heightAtDepth = m_height;
         std::vector<float> normalMapFlat;
         m_levelDrawer.drawToBuffer(
                 normalMapRenderDetailsName,
                 levelDrawer::ModelsTextures{std::make_pair(floorModelDesc,
                         std::shared_ptr<levelDrawer::TextureDescription>())},
                 std::vector<glm::mat4>{floorModelMatrix},
-                m_height, m_height, m_rowHeight, m_mazeFloorZ - MODEL_MAXZ, m_mazeFloorZ + MODEL_MAXZ,
+                m_height, m_height, m_rowHeight,
+                std::make_shared<renderDetails::ParametersNormalMap>(normalParameters),
                 normalMapFlat);
         unFlattenMap(normalMapFlat, normalMap);
 

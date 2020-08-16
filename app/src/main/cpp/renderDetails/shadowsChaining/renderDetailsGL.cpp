@@ -60,7 +60,12 @@ namespace shadowsChaining {
             throw std::runtime_error("Invalid render details type.");
         }
 
-        if (surfaceDetails->useIntTexture != rd->m_useIntTexture) {
+        if (surfaceDetails->useIntTexture != rd->m_useIntTexture ||
+            rd->m_surfaceWidth != surfaceDetails->surfaceWidth ||
+            rd->m_surfaceHeight != surfaceDetails->surfaceHeight)
+        {
+            rd->m_surfaceWidth = surfaceDetails->surfaceWidth;
+            rd->m_surfaceHeight = surfaceDetails->surfaceHeight;
             rd->m_useIntTexture = surfaceDetails->useIntTexture;
             rd->createFramebuffer();
         }

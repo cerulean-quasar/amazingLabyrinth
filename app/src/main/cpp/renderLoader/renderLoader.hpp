@@ -42,7 +42,7 @@ public:
                 if (renderDetails->width() != surfaceDetails->surfaceWidth ||
                     renderDetails->height() != surfaceDetails->surfaceHeight)
                 {
-                    reload(gameRequester, renderDetails, surfaceDetails, parameters);
+                    reload(gameRequester, renderDetails, surfaceDetails);
                 }
 
                 if (m_loadedRenderDetails.size() > m_nbrRenderDetailsToKeep/2) {
@@ -55,7 +55,7 @@ public:
         }
 
         typename traits::RenderDetailsReferenceType renderDetailsRef =
-                loadNew(fcns, gameRequester, parameters);
+                loadNew(fcns, gameRequester, surfaceDetails, parameters);
         m_loadedRenderDetails.push_front(renderDetailsRef.renderDetails);
         while (m_loadedRenderDetails.size() > m_nbrRenderDetailsToKeep) {
             m_loadedRenderDetails.pop_back();

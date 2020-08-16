@@ -53,27 +53,30 @@ protected:
     RenderLoaderVulkanTraits::RenderDetailsReferenceType loadNew(
         RenderLoaderVulkanTraits::RetrieveFcns const &fcns,
         std::shared_ptr<GameRequester> const &gameRequester,
+        std::shared_ptr<RenderLoaderVulkanTraits::SurfaceDetailsType> const &surfaceDetails,
         std::shared_ptr<renderDetails::Parameters> const &parameters) override
     {
-        return fcns.renderDetailsLoadNewFcn(gameRequester, shared_from_this(), m_device, parameters);
+        return fcns.renderDetailsLoadNewFcn(gameRequester, shared_from_this(), m_device, surfaceDetails, parameters);
     }
 
     void reload(
         std::shared_ptr<GameRequester> const &gameRequester,
         std::shared_ptr<RenderLoaderVulkanTraits::RenderDetailsType> const &renderDetails,
-        std::shared_ptr<renderDetails::Parameters> const &parameters) override
+        std::shared_ptr<RenderLoaderVulkanTraits::SurfaceDetailsType> const &surfaceDetails) override
     {
         vkDeviceWaitIdle(m_device->logicalDevice().get());
-        renderDetails->reload(gameRequester, shared_from_this(), parameters);
+        renderDetails->reload(gameRequester, shared_from_this(), surfaceDetails);
     }
 
     RenderLoaderVulkanTraits::RenderDetailsReferenceType loadExisting(
         RenderLoaderVulkanTraits::RetrieveFcns const &fcns,
         std::shared_ptr<GameRequester> const &gameRequester,
         std::shared_ptr<RenderLoaderVulkanTraits::RenderDetailsType> const &renderDetails,
+        std::shared_ptr<RenderLoaderVulkanTraits::SurfaceDetailsType> const &surfaceDetails,
         std::shared_ptr<renderDetails::Parameters> const &parameters) override
     {
-        return fcns.renderDetailsLoadExistingFcn(gameRequester, shared_from_this(), renderDetails, parameters);
+        return fcns.renderDetailsLoadExistingFcn(gameRequester, shared_from_this(), renderDetails,
+                surfaceDetails, parameters);
     }
 private:
     std::shared_ptr<vulkan::Device> m_device;

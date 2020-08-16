@@ -26,6 +26,7 @@
 #include "../common.hpp"
 #include "../renderDetails/renderDetails.hpp"
 #include "../levelDrawer/textureTable/textureTableGL.hpp"
+#include "../graphicsGL.hpp"
 
 namespace renderDetails {
     class RenderDetailsGL;

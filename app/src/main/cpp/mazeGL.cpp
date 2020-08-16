@@ -32,8 +32,9 @@ void GraphicsGL::initPipeline(bool testFramebuffer) {
 
     if (testFramebuffer) {
         if (!testDepthTexture(levelDrawer::Adaptor(levelDrawer::LEVEL, m_levelDrawer))) {
-            m_useIntTexture = false;
-            m_levelDrawer = std::make_shared<levelDrawer::LevelDrawerGL>(levelDrawer::NeededForDrawingGL{m_useIntTexture}, m_renderLoader, m_gameRequester);
+            m_surfaceDetails->useIntTexture = false;
+            m_levelDrawer = std::make_shared<levelDrawer::LevelDrawerGL>(
+                    levelDrawer::NeededForDrawingGL{}, m_surfaceDetails, m_renderLoader, m_gameRequester);
             if (!testDepthTexture(levelDrawer::Adaptor(levelDrawer::LEVEL, m_levelDrawer))) {
                 throw std::runtime_error(
                         "This version of OpenGL has bugs making it impossible to get the depth texture and normal map.");
@@ -57,15 +58,4 @@ void GraphicsGL::recreateSwapChain(uint32_t width, uint32_t height) {
     initPipeline(false);
 
     m_levelSequence->notifySurfaceChanged(m_surface->width(), m_surface->height());
-}
-
-std::shared_ptr<renderDetails::Parameters> GraphicsGL::getParametersForRenderDetailsName(
-        char const */* unused renderDetailsName - reserved for future use */)
-{
-    renderDetails::ParametersGL parameters;
-    parameters.width = m_surface->width();
-    parameters.height = m_surface->height();
-    parameters.useIntTexture = m_useIntTexture;
-
-    return std::make_shared<renderDetails::ParametersGL>(parameters);
 }

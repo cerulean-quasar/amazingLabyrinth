@@ -22,6 +22,9 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include "types.hpp"
 #include "../../common.hpp"
+#include "../../levelDrawer/common.hpp"
+#include "../../levelDrawer/modelTable/modelLoader.hpp"
+#include "../../levelDrawer/textureTable/textureLoader.hpp"
 
 namespace manyQuadsCoverUp {
     char constexpr const *LevelFinisher::m_name;
