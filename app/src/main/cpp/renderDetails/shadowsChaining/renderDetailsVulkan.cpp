@@ -79,7 +79,7 @@ namespace shadowsChaining {
 
         // object with shadows render details
         auto refObjectWithShadows = renderLoader->load(
-            gameRequester, objectWithShadows::RenderDetailsVulkan::name(), shadowSurfaceDetails,
+            gameRequester, objectWithShadows::RenderDetailsVulkan::name(), surfaceDetails,
             parameters);
 
         rd->m_objectWithShadowsRenderDetails = refObjectWithShadows.renderDetails;
