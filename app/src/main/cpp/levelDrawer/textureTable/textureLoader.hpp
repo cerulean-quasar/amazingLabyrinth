@@ -46,26 +46,6 @@ namespace levelDrawer {
         virtual ~TextureDescription() = default;
     };
 
-// TODO: can remove, testing
-/*
-class TextureDescriptionDummy : public TextureDescription {
-private:
-protected:
-    bool compareLess(TextureDescription *other) override {
-        return false;
-    }
-public:
-    TextureDescriptionDummy()
-        : TextureDescription()
-        {}
-    virtual std::vector<char> getData(std::shared_ptr<GameRequester> gameRequester,
-            uint32_t &texWidth, uint32_t &texHeight, uint32_t &texChannels)
-    {
-        return std::vector<char>();
-    }
-};
- */
-
     class TextureDescriptionPath : public TextureDescription {
     private:
         std::string imagePath;

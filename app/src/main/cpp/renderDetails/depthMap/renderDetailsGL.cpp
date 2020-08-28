@@ -31,10 +31,28 @@ namespace depthMap {
     glm::vec3 constexpr const Config::up;
 
     RenderDetailsGL::RenderDetailsGL(std::shared_ptr<GameRequester> const &inGameRequester,
-                                             uint32_t inWidth, uint32_t inHeight)
+                                             uint32_t inWidth, uint32_t inHeight, bool useIntSurface)
             : renderDetails::RenderDetailsGL(inWidth, inHeight),
-              m_depthProgramID{loadShaders(inGameRequester, LINEAR_DEPTH_VERT_FILE, SIMPLE_FRAG_FILE)}
-    {}
+              m_depthProgramID{0},
+              m_isIntSurface{useIntSurface}
+    {
+        loadPipeline(inGameRequester);
+    }
+
+    void RenderDetailsGL::loadPipeline(std::shared_ptr<GameRequester> const &inGameRequester) {
+        if (m_depthProgramID != 0) {
+            glDeleteProgram(m_depthProgramID);
+            checkGraphicsError();
+        }
+
+        if (m_isIntSurface) {
+            m_depthProgramID = loadShaders(inGameRequester, LINEAR_DEPTH3_VERT_FILE,
+                                           SIMPLE3_FRAG_FILE);
+        } else {
+            m_depthProgramID = loadShaders(inGameRequester, LINEAR_DEPTH_VERT_FILE,
+                                           SIMPLE_FRAG_FILE);
+        }
+    }
 
     renderDetails::ReferenceGL RenderDetailsGL::loadNew(
             std::shared_ptr<GameRequester> const &gameRequester,
@@ -49,8 +67,9 @@ namespace depthMap {
             throw std::runtime_error("Invalid render details parameter type.");
         }
 
-        auto rd = std::make_shared<RenderDetailsGL>(gameRequester, surfaceDetails->surfaceWidth,
-                                                    surfaceDetails->surfaceHeight);
+        auto rd = std::make_shared<RenderDetailsGL>(
+                gameRequester, surfaceDetails->surfaceWidth, surfaceDetails->surfaceHeight,
+                surfaceDetails->useIntTexture);
 
         auto cod = std::make_shared<CommonObjectDataGL>(
                 parameters->nearestDepth,
@@ -63,7 +82,7 @@ namespace depthMap {
     }
 
     renderDetails::ReferenceGL RenderDetailsGL::loadExisting(
-            std::shared_ptr<GameRequester> const &,
+            std::shared_ptr<GameRequester> const &inGameRequester,
             std::shared_ptr<RenderLoaderGL> const &,
             std::shared_ptr<renderDetails::RenderDetailsGL> rdBase,
             std::shared_ptr<graphicsGL::SurfaceDetails> const &surfaceDetails,
@@ -80,6 +99,11 @@ namespace depthMap {
         {
             rd->m_surfaceWidth = surfaceDetails->surfaceWidth;
             rd->m_surfaceHeight = surfaceDetails->surfaceHeight;
+        }
+
+        if (rd->m_isIntSurface != surfaceDetails->useIntTexture) {
+            rd->m_isIntSurface = surfaceDetails->useIntTexture;
+            rd->loadPipeline(inGameRequester);
         }
 
         auto parameters =

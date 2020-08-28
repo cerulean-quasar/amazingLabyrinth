@@ -20,6 +20,7 @@
 
 #include <native_window.h>
 #include <string.h>
+#include <array>
 
 #include "graphicsGL.hpp"
 #include "android.hpp"
@@ -34,13 +35,13 @@ namespace graphicsGL {
                 EGL_NONE
         };
          */
-        const EGLint attribute_list[] = {
+
+        std::array<EGLint, 21> attribute_list = {
                 EGL_RENDERABLE_TYPE, EGL_OPENGL_ES2_BIT,
                 EGL_CONFORMANT, EGL_OPENGL_ES2_BIT,
                 EGL_SURFACE_TYPE, EGL_WINDOW_BIT,
                 EGL_COLOR_BUFFER_TYPE, EGL_RGB_BUFFER,
-                EGL_BLUE_SIZE, 8, EGL_GREEN_SIZE, 8, EGL_RED_SIZE, 8,
-                EGL_ALPHA_SIZE, 8,
+                EGL_BLUE_SIZE, 8, EGL_GREEN_SIZE, 8, EGL_RED_SIZE, 8, EGL_ALPHA_SIZE, 8,
                 EGL_DEPTH_SIZE, 24,
                 EGL_NONE};
 
@@ -58,7 +59,7 @@ namespace graphicsGL {
         }
 
         EGLint nbr_config;
-        if (!eglChooseConfig(m_display, attribute_list, &m_config, 1, &nbr_config)) {
+        if (!eglChooseConfig(m_display, attribute_list.data(), &m_config, 1, &nbr_config)) {
             destroyWindow();
             throw std::runtime_error("Could not get config");
         }
@@ -81,11 +82,20 @@ namespace graphicsGL {
             throw std::runtime_error("Could not create surface");
         }
 
-        EGLint contextAttributes[] = {EGL_CONTEXT_CLIENT_VERSION, 2, EGL_NONE};
-        if ((m_context = eglCreateContext(m_display, m_config, EGL_NO_CONTEXT, contextAttributes)) ==
-            EGL_NO_CONTEXT) {
-            destroyWindow();
-            throw std::runtime_error("Could not create context");
+        m_glVersion = GL_GRAPHICS_VERSION_3;
+        std::array<EGLint, 3> contextAttributes = {EGL_CONTEXT_CLIENT_VERSION, m_glVersion, EGL_NONE};
+        if ((m_context = eglCreateContext(
+                m_display, m_config, EGL_NO_CONTEXT, contextAttributes.data())) ==
+            EGL_NO_CONTEXT)
+        {
+            contextAttributes[1] = m_glVersion = GL_GRAPHICS_VERSION_2;
+            if ((m_context = eglCreateContext(
+                    m_display, m_config, EGL_NO_CONTEXT, contextAttributes.data())) ==
+                EGL_NO_CONTEXT)
+            {
+                destroyWindow();
+                throw std::runtime_error("Could not create context");
+            }
         }
 
         if (!eglMakeCurrent(m_display, m_surface, m_surface, m_context)) {

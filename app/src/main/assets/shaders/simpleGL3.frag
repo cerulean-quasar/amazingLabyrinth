@@ -1,5 +1,6 @@
-#version 100
+#version 300 es
 precision highp float;
+precision highp int;
 
 /**
  * Copyright 2020 Cerulean Quasar. All Rights Reserved.
@@ -21,8 +22,15 @@ precision highp float;
  *
  */
 
-varying vec3 fragColor;
+in vec3 fragColor;
+layout(location = 0) out uvec4 fragColorOut;
 
 void main() {
-    gl_FragColor = vec4(fragColor, 1.0);
+    float maxUint = 4294967295.0;
+    fragColorOut = uvec4(
+        //25040000,
+        uint(fragColor.r * maxUint),
+        uint(fragColor.g * maxUint),
+        uint(fragColor.b * maxUint),
+        uint(maxUint));
 }

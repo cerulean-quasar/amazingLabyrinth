@@ -133,12 +133,14 @@ namespace normalMap {
 
         void postProcessImageBuffer(
                 std::shared_ptr<renderDetails::CommonObjectData> const &,
-                boost::variant<std::vector<float>, std::vector<uint8_t>> &input,
+                renderDetails::PostprocessingDataInputGL const &input,
                 std::vector<float> &results) override
         {
             PostProcessNormalsVisitor postProcessNormalsVisitor(m_surfaceWidth, m_surfaceHeight);
             results = boost::apply_visitor(postProcessNormalsVisitor, input);
         }
+
+        void loadPipeline(std::shared_ptr<GameRequester> const &inGameRequester);
 
         RenderDetailsGL(std::shared_ptr<GameRequester> const &inGameRequester,
                         uint32_t inWidth, uint32_t inHeight, bool isIntSurface);
@@ -150,6 +152,8 @@ namespace normalMap {
     private:
         static char constexpr const *NORMAL_VERT_FILE ="shaders/normalGL.vert";
         static char constexpr const *SIMPLE_FRAG_FILE = "shaders/simpleGL.frag";
+        static char constexpr const *NORMAL3_VERT_FILE ="shaders/normalGL3.vert";
+        static char constexpr const *SIMPLE3_FRAG_FILE = "shaders/simpleGL3.frag";
 
         GLuint m_programID;
         bool m_isIntSurface;

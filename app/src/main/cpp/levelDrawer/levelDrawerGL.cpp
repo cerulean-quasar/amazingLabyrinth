@@ -135,10 +135,22 @@ namespace levelDrawer {
 
         glm::vec4 clearColor = m_bgColor;
         ref.renderDetails->overrideClearColor(clearColor);
-        glClearColor(clearColor.r, clearColor.g, clearColor.b, clearColor.a);
-        checkGraphicsError();
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-        checkGraphicsError();
+        if (m_surfaceDetails->useIntTexture) {
+            auto convert = [](float color) -> GLuint {
+                return static_cast<GLuint>(std::round(color * std::numeric_limits<GLuint>::max()));
+            };
+            std::array<GLuint, 4> color = {convert(clearColor.r), convert(clearColor.g), convert(clearColor.b), convert(clearColor.a)};
+            glClearBufferuiv(GL_COLOR, 0, color.data());
+            checkGraphicsError();
+            GLfloat depthBufferClearValue = 1.0f;
+            glClearBufferfv(GL_DEPTH, 0, &depthBufferClearValue);
+            checkGraphicsError();
+        } else {
+            glClearColor(clearColor.r, clearColor.g, clearColor.b, clearColor.a);
+            checkGraphicsError();
+            glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+            checkGraphicsError();
+        }
 
         ref.renderDetails->draw(0, ref.commonObjectData, drawObjTable,
                 drawObjTable->zValueReferences().begin(), drawObjTable->zValueReferences().end());
@@ -146,10 +158,10 @@ namespace levelDrawer {
         glFinish();
         checkGraphicsError();
 
-        boost::variant<std::vector<float>, std::vector<uint8_t>> dataVariant;
+        renderDetails::PostprocessingDataInputGL dataVariant;
         if (m_surfaceDetails->useIntTexture) {
-            /* width * height * 4 color values each a char in size. */
-            std::vector<float> data(static_cast<size_t>(imageWidth * imageHeight * 4), 0.0f);
+            /* width * height * 4 color values each a uint32_t in size. */
+            std::vector<uint32_t> data(static_cast<size_t>(imageWidth * imageHeight * 4), 0.0f);
             glReadBuffer(GL_COLOR_ATTACHMENT0);
             checkGraphicsError();
             glReadPixels(0, 0, imageWidth, imageHeight, colorImageFormat.format, colorImageFormat.type, data.data());

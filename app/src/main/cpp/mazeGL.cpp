@@ -31,7 +31,7 @@ void GraphicsGL::initPipeline(bool testFramebuffer) {
     glViewport(0, 0, m_surface->width(), m_surface->height());
 
     if (testFramebuffer) {
-        if (!testDepthTexture(levelDrawer::Adaptor(levelDrawer::LEVEL, m_levelDrawer))) {
+        if (!m_surfaceDetails->useIntTexture || !testDepthTexture(levelDrawer::Adaptor(levelDrawer::LEVEL, m_levelDrawer))) {
             m_surfaceDetails->useIntTexture = false;
             m_levelDrawer = std::make_shared<levelDrawer::LevelDrawerGL>(
                     levelDrawer::NeededForDrawingGL{}, m_surfaceDetails, m_renderLoader, m_gameRequester);

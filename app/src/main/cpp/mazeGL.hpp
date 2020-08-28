@@ -36,7 +36,9 @@ public:
                float rotationAngle)
             : Graphics{std::move(inGameRequester), rotationAngle},
               m_surface{std::make_shared<graphicsGL::Surface>(std::move(window))},
-              m_surfaceDetails{std::make_shared<graphicsGL::SurfaceDetails>(graphicsGL::SurfaceDetails{m_surface->width(), m_surface->height(), true})},
+              m_surfaceDetails{std::make_shared<graphicsGL::SurfaceDetails>(
+                      graphicsGL::SurfaceDetails{m_surface->width(), m_surface->height(),
+                                                 m_surface->glVersion() == graphicsGL::Surface::GL_GRAPHICS_VERSION_3})},
               m_renderLoader{std::make_shared<RenderLoaderGL>()},
               m_levelDrawer{std::make_shared<levelDrawer::LevelDrawerGL>(
                       levelDrawer::NeededForDrawingGL{},
@@ -45,8 +47,9 @@ public:
     {
         initPipeline();
 
-        m_levelSequence = std::make_shared<LevelSequence>(m_gameRequester, m_levelDrawer, static_cast<uint32_t>(m_surface->width()),
-                                                          static_cast<uint32_t >(m_surface->height()));
+        m_levelSequence = std::make_shared<LevelSequence>(
+                m_gameRequester, m_levelDrawer, static_cast<uint32_t>(m_surface->width()),
+                static_cast<uint32_t >(m_surface->height()));
     }
 
     void initThread() override { m_surface->initThread(); }
@@ -73,7 +76,7 @@ public:
 
     GraphicsDescription graphicsDescription() override {
         return GraphicsDescription{
-            "OpenGLES",
+            "OpenGL ES",
             reinterpret_cast<char const *>(glGetString(GL_VERSION)),
             std::string(reinterpret_cast<char const *>(glGetString(GL_VENDOR))) + " " +
                 std::string(reinterpret_cast<char const*>(glGetString(GL_RENDERER))),

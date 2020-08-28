@@ -30,6 +30,7 @@
 #include "../renderDetails.hpp"
 #include "config.hpp"
 #include "../../levelDrawer/textureTable/textureLoader.hpp"
+#include "../../levelDrawer/common.hpp"
 #include "../../renderLoader/renderLoaderGL.hpp"
 
 namespace depthMap {
@@ -143,7 +144,7 @@ namespace depthMap {
 
         void postProcessImageBuffer(
                 std::shared_ptr<renderDetails::CommonObjectData> const &commonObjectData,
-                boost::variant<std::vector<float>, std::vector<uint8_t>> &input,
+                renderDetails::PostprocessingDataInputGL const &input,
                 std::vector<float> &results) override
         {
             auto cod = dynamic_cast<CommonObjectDataGL*>(commonObjectData.get());
@@ -157,7 +158,7 @@ namespace depthMap {
         }
 
         RenderDetailsGL(std::shared_ptr<GameRequester> const &inGameRequester,
-                        uint32_t inWidth, uint32_t inHeight);
+                        uint32_t inWidth, uint32_t inHeight, bool useIntSurface);
 
         ~RenderDetailsGL() override {
             glDeleteProgram(m_depthProgramID);
@@ -165,13 +166,18 @@ namespace depthMap {
 
     private:
         static char constexpr const *LINEAR_DEPTH_VERT_FILE ="shaders/linearDepthGL.vert";
+        static char constexpr const *LINEAR_DEPTH3_VERT_FILE ="shaders/linearDepthGL3.vert";
         static char constexpr const *SIMPLE_FRAG_FILE = "shaders/simpleGL.frag";
+        static char constexpr const *SIMPLE3_FRAG_FILE = "shaders/simpleGL3.frag";
 
         GLuint m_depthProgramID;
+        bool m_isIntSurface;
 
         static renderDetails::ReferenceGL createReference(
                 std::shared_ptr<renderDetails::RenderDetailsGL> rd,
                 std::shared_ptr<CommonObjectDataGL> cod);
+
+        void loadPipeline(std::shared_ptr<GameRequester> const &inGameRequester);
     };
 }
 #endif // AMAZING_LABYRINTH_DEPTHMAP_RENDER_DETAILS_GL_HPP

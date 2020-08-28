@@ -31,6 +31,9 @@
 namespace graphicsGL {
     class Surface {
     public:
+        static int constexpr GL_GRAPHICS_VERSION_3 = 3;
+        static int constexpr GL_GRAPHICS_VERSION_2 = 2;
+
         Surface(std::shared_ptr<WindowType> window)
                 : m_window{std::move(window)},
                   m_context{EGL_NO_CONTEXT},
@@ -51,6 +54,7 @@ namespace graphicsGL {
         inline EGLSurface surface() { return m_surface; }
         inline EGLDisplay display() { return m_display; }
         inline std::shared_ptr<WindowType> window() { return m_window; }
+        inline int glVersion() { return m_glVersion; }
 
         ~Surface() {
             destroyWindow();
@@ -65,6 +69,7 @@ namespace graphicsGL {
 
         int m_width;
         int m_height;
+        int m_glVersion;
 
         void createSurface();
         void destroyWindow();

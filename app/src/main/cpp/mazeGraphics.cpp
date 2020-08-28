@@ -152,6 +152,40 @@ bool testMap(
     return true;
 }
 
+class ModelDescriptionTestQuad : public levelDrawer::ModelDescriptionQuad {
+public:
+    ModelDescriptionTestQuad()
+        : levelDrawer::ModelDescriptionQuad()
+    {}
+
+    bool shouldLoadVertexNormals() override { return true; }
+    std::pair<levelDrawer::ModelVertices, levelDrawer::ModelVertices> getDataWithVertexNormalsAlso(
+            std::shared_ptr<GameRequester> const &gameRequester) override
+    {
+        auto v = getData(gameRequester);
+        return std::make_pair(v, v);
+    }
+
+    levelDrawer::ModelVertices getData(std::shared_ptr<GameRequester> const &gameRequester) override
+    {
+        levelDrawer::ModelVertices obj = levelDrawer::ModelDescriptionQuad::getData(gameRequester);
+        // set normal to bogus value that is different from the clear color.
+        for (auto &vertex : obj.first) {
+            vertex.normal = getNormal3Vec();
+        }
+
+        return std::move(obj);
+    }
+
+    static glm::vec3 getNormal3Vec() {
+        return glm::vec3{0.5f, 0.5f, 0.5f};
+    }
+
+    static glm::vec4 getNormal4Vec() {
+        return glm::vec4{getNormal3Vec(), 1.0f};
+    }
+};
+
 bool Graphics::testDepthTexture(levelDrawer::Adaptor inLevelDrawer) {
     levelDrawer::ModelsTextures modelsTextures{
         std::make_pair<std::shared_ptr<levelDrawer::ModelDescription>, std::shared_ptr<levelDrawer::TextureDescription>>(
@@ -159,8 +193,7 @@ bool Graphics::testDepthTexture(levelDrawer::Adaptor inLevelDrawer) {
             std::shared_ptr<levelDrawer::TextureDescription>())};
 
     // just request something to be drawn that is definitely bigger than the screen
-    glm::mat4 modelMatrix =
-            glm::scale(glm::mat4(1.0f), glm::vec3{1.0f, 1.0f, 1.0f});
+    glm::mat4 modelMatrix = glm::mat4(1.0f);
 
     renderDetails::ParametersDepthMap depthParameters{};
     depthParameters.nearestDepth = 1.0f;
@@ -173,43 +206,40 @@ bool Graphics::testDepthTexture(levelDrawer::Adaptor inLevelDrawer) {
             std::make_shared<renderDetails::ParametersDepthMap>(depthParameters),
             depthMap);
 
-    /*
-    glm::vec3 normal{0.5f, 0.5f, 0.5f};
-    // set normal to bogus value that is different from the clear color.
-    for (auto &vertex : obj->vertices) {
-        vertex.normal = normal;
-    }
+    levelDrawer::ModelsTextures modelsTextures1{
+            std::make_pair<std::shared_ptr<levelDrawer::ModelDescription>, std::shared_ptr<levelDrawer::TextureDescription>>(
+                    std::make_shared<ModelDescriptionTestQuad>(),
+                    std::shared_ptr<levelDrawer::TextureDescription>())};
 
-    obj->modelMatrices.push_back(modelMatrix);
-    obj->texture = nullptr;
-
-    DrawObjectTable drawObjsData;
-    drawObjsData.emplace_back(obj, nullptr);
-    std::vector<float> depthMap;
+    renderDetails::ParametersNormalMap normalParameters{};
+    normalParameters.widthAtDepth = 2.0f;
+    normalParameters.heightAtDepth = 2.0f;
+    std::vector<float> rawNormalMap;
+    inLevelDrawer.drawToBuffer(normalMapRenderDetailsName, modelsTextures1, {modelMatrix},
+                               2.0f, 2.0f, 200,
+                               std::make_shared<renderDetails::ParametersNormalMap>(normalParameters),
+                               rawNormalMap);
     std::vector<glm::vec3> normalMap;
-    getDepthTexture(drawObjsData, widthHeight.first, widthHeight.second, 200, -1.0f, 1.0f, depthMap, normalMap);
-     */
+    unFlattenMap(rawNormalMap, normalMap);
 
     float errVal = 0.01f;
     auto cmpDepth = std::function<bool(float, float)>([errVal](float v1, float v2) -> bool {
         return v1 < v2 + errVal && v1 > v2 - errVal;
     });
 
-    /*
     auto cmpNormal = std::function<bool(glm::vec3, glm::vec3)>([errVal](glm::vec3 v1, glm::vec3 v2) -> bool {
         return v1.x < v2.x + errVal && v1.x > v2.x - errVal &&
                 v1.y < v2.y + errVal && v1.y > v2.y - errVal &&
                 v1.z < v2.z + errVal && v1.z > v2.z - errVal;
     });
 
-    glm::vec4 expectedNormal4 = glm::transpose(glm::inverse(modelMatrix)) *
-            glm::vec4{normal.x, normal.y, normal.z, 1.0f};
+    glm::vec4 expectedNormal4 = glm::transpose(glm::inverse(modelMatrix)) * ModelDescriptionTestQuad::getNormal4Vec();
     glm::vec3 expectedNormal = glm::normalize(glm::vec3{expectedNormal4.x/expectedNormal4.w,
                                                         expectedNormal4.y/expectedNormal4.w,
                                                         expectedNormal4.z/expectedNormal4.w});
+
     return testMap<float>(0.0f, depthMap, cmpDepth) &&
             testMap<glm::vec3>(expectedNormal, normalMap, cmpNormal);
-            */
 
-    return testMap<float>(0.0f, depthMap, cmpDepth);
+    //return testMap<float>(0.0f, depthMap, cmpDepth);
 }

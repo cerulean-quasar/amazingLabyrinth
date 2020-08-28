@@ -28,9 +28,6 @@
 
 class GameRequester;
 namespace levelDrawer {
-// todo: use getCube instead
-    static std::string const MODEL_WALL("models/wall.modelcbor");
-
     char constexpr const *KeyVertices = "V";
     char constexpr const *KeyTexCoords = "TX";
     char constexpr const *KeyNormals = "N";

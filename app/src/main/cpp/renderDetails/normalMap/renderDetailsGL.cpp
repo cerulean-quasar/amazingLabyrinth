@@ -34,9 +34,26 @@ namespace normalMap {
                                              uint32_t inWidth, uint32_t inHeight,
                                              bool isIntSurface)
             : renderDetails::RenderDetailsGL(inWidth, inHeight),
-              m_programID{loadShaders(inGameRequester, NORMAL_VERT_FILE, SIMPLE_FRAG_FILE)},
+              m_programID{0},
               m_isIntSurface{isIntSurface}
-    {}
+    {
+        loadPipeline(inGameRequester);
+    }
+
+    void RenderDetailsGL::loadPipeline(std::shared_ptr<GameRequester> const &inGameRequester) {
+        if (m_programID != 0) {
+            glDeleteProgram(m_programID);
+            checkGraphicsError();
+        }
+
+        if (m_isIntSurface) {
+            m_programID = loadShaders(inGameRequester, NORMAL3_VERT_FILE,
+                                           SIMPLE3_FRAG_FILE);
+        } else {
+            m_programID = loadShaders(inGameRequester, NORMAL_VERT_FILE,
+                                           SIMPLE_FRAG_FILE);
+        }
+    }
 
     renderDetails::ReferenceGL RenderDetailsGL::loadNew(
             std::shared_ptr<GameRequester> const &gameRequester,
@@ -63,7 +80,7 @@ namespace normalMap {
     }
 
     renderDetails::ReferenceGL RenderDetailsGL::loadExisting(
-            std::shared_ptr<GameRequester> const &,
+            std::shared_ptr<GameRequester> const &inGameRequester,
             std::shared_ptr<RenderLoaderGL> const &,
             std::shared_ptr<renderDetails::RenderDetailsGL> rdBase,
             std::shared_ptr<graphicsGL::SurfaceDetails> const &surfaceDetails,
@@ -80,6 +97,11 @@ namespace normalMap {
         {
             rd->m_surfaceWidth = surfaceDetails->surfaceWidth;
             rd->m_surfaceHeight = surfaceDetails->surfaceHeight;
+        }
+
+        if (rd->m_isIntSurface != surfaceDetails->useIntTexture) {
+            rd->m_isIntSurface = surfaceDetails->useIntTexture;
+            rd->loadPipeline(inGameRequester);
         }
 
         auto parameters =

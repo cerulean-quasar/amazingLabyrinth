@@ -72,7 +72,7 @@ namespace renderDetails {
         // source into the destination (probably will never be called).
         virtual void postProcessImageBuffer(
                 std::shared_ptr<renderDetails::CommonObjectData> const &,
-                boost::variant<std::vector<float>, std::vector<uint8_t>> &input,
+                PostprocessingDataInputGL const &input,
                 std::vector<float> &results)
         {
             DoNothingVisitor doNothing;

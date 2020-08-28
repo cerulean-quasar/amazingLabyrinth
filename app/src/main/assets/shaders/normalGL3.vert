@@ -1,4 +1,4 @@
-#version 100
+#version 300 es
 precision highp float;
 
 /**
@@ -21,8 +21,25 @@ precision highp float;
  *
  */
 
-varying vec3 fragColor;
+uniform mat4 model;
+uniform mat4 view;
+uniform mat4 proj;
+uniform mat4 normalMatrix;
+
+layout(location = 0) in vec3 inPosition;
+layout(location = 1) in vec3 inColor;
+layout(location = 2) in vec2 inTexCoord;
+layout(location = 3) in vec3 inNormal;
+
+out vec3 fragColor;
 
 void main() {
-    gl_FragColor = vec4(fragColor, 1.0);
+    vec4 pos = proj * view * model * vec4(inPosition, 1.0);
+    vec4 normalVec = normalMatrix * vec4(normalize(inNormal), 1.0);
+    if (normalVec.z/normalVec.w < 0.0) {
+        gl_Position = vec4(pos.x, pos.y, pos.w, pos.w);
+    } else {
+        gl_Position = vec4(pos.x * normalVec.w, pos.y * normalVec.w, normalVec.z * pos.w, normalVec.w * pos.w);
+    }
+    fragColor = normalize(normalVec.xyz/normalVec.w) * 0.5 + vec3(0.5, 0.5, 0.5);
 }

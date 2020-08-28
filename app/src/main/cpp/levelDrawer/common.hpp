@@ -22,6 +22,7 @@
 
 #include <memory>
 #include <boost/optional.hpp>
+#include <boost/variant.hpp>
 
 namespace renderDetails {
     class CommonObjectData;
@@ -48,6 +49,8 @@ namespace renderDetails {
 
         ~ParametersNormalMap() override = default;
     };
+
+    using PostprocessingDataInputGL = boost::variant<std::vector<uint32_t>, std::vector<uint8_t>>;
 }
 
 namespace levelDrawer {
