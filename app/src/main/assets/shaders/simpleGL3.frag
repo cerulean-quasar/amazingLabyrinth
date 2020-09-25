@@ -1,6 +1,6 @@
 #version 300 es
-precision highp float;
-precision highp int;
+precision mediump int;
+precision mediump float;
 
 /**
  * Copyright 2020 Cerulean Quasar. All Rights Reserved.
@@ -26,11 +26,14 @@ in vec3 fragColor;
 layout(location = 0) out uvec4 fragColorOut;
 
 void main() {
-    float maxUint = 4294967295.0;
+    // 2^14 the highest value for mediump float. -1 because uint only goes to 2^16-1, see below
+    float maxUint = 16383.0;
     fragColorOut = uvec4(
-        //25040000,
         uint(fragColor.r * maxUint),
         uint(fragColor.g * maxUint),
         uint(fragColor.b * maxUint),
-        uint(maxUint));
+        16383u);
+
+    // mediump uint goes from 0 to 2^16-1
+    fragColorOut =  fragColorOut << 2;
 }

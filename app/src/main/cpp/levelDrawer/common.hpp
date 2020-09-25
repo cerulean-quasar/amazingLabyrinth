@@ -50,7 +50,7 @@ namespace renderDetails {
         ~ParametersNormalMap() override = default;
     };
 
-    using PostprocessingDataInputGL = boost::variant<std::vector<uint32_t>, std::vector<uint8_t>>;
+    using PostprocessingDataInputGL = boost::variant<std::vector<uint16_t>, std::vector<uint8_t>>;
 }
 
 namespace levelDrawer {

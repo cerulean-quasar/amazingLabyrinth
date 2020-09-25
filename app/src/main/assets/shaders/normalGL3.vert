@@ -31,7 +31,7 @@ layout(location = 1) in vec3 inColor;
 layout(location = 2) in vec2 inTexCoord;
 layout(location = 3) in vec3 inNormal;
 
-out vec3 fragColor;
+out mediump vec3 fragColor;
 
 void main() {
     vec4 pos = proj * view * model * vec4(inPosition, 1.0);

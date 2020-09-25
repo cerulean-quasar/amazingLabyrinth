@@ -32,7 +32,7 @@ layout(location = 1) in vec3 inColor;
 layout(location = 2) in vec2 inTexCoord;
 layout(location = 3) in vec3 inNormal;
 
-out vec3 fragColor;
+out mediump vec3 fragColor;
 
 void main() {
     gl_Position = proj * view * model * vec4(inPosition, 1.0);

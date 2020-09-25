@@ -115,8 +115,10 @@ namespace levelDrawer {
                 0, commonObjectDataList, drawObjTableList, std::set<ZValueReference>{},
                 drawObjTable->zValueReferences(), std::set<ZValueReference>{});
 
-        graphicsGL::Framebuffer::ColorImageFormat colorImageFormat{GL_RGBA32UI, GL_RGBA_INTEGER,
-                                                                   GL_UNSIGNED_INT};
+        //graphicsGL::Framebuffer::ColorImageFormat colorImageFormat{GL_RGBA32UI, GL_RGBA_INTEGER,
+        //                                                           GL_UNSIGNED_INT};
+        graphicsGL::Framebuffer::ColorImageFormat colorImageFormat{GL_RGBA16UI, GL_RGBA_INTEGER,
+                                                                   GL_UNSIGNED_SHORT};
         if (!m_surfaceDetails->useIntTexture) {
             colorImageFormat = {GL_RGBA8, GL_RGBA, GL_UNSIGNED_BYTE};
             //graphicsGL::Framebuffer::ColorImageFormat colorImageFormat{GL_RGBA, GL_RGBA, GL_UNSIGNED_BYTE};
@@ -137,7 +139,7 @@ namespace levelDrawer {
         ref.renderDetails->overrideClearColor(clearColor);
         if (m_surfaceDetails->useIntTexture) {
             auto convert = [](float color) -> GLuint {
-                return static_cast<GLuint>(std::round(color * std::numeric_limits<GLuint>::max()));
+                return static_cast<GLuint>(std::round(color * std::numeric_limits<uint16_t>::max()));
             };
             std::array<GLuint, 4> color = {convert(clearColor.r), convert(clearColor.g), convert(clearColor.b), convert(clearColor.a)};
             glClearBufferuiv(GL_COLOR, 0, color.data());
@@ -160,8 +162,8 @@ namespace levelDrawer {
 
         renderDetails::PostprocessingDataInputGL dataVariant;
         if (m_surfaceDetails->useIntTexture) {
-            /* width * height * 4 color values each a uint32_t in size. */
-            std::vector<uint32_t> data(static_cast<size_t>(imageWidth * imageHeight * 4), 0.0f);
+            /* width * height * 4 color values each a uint16_t in size. */
+            std::vector<uint16_t> data(static_cast<size_t>(imageWidth * imageHeight * 4), 0.0f);
             glReadBuffer(GL_COLOR_ATTACHMENT0);
             checkGraphicsError();
             glReadPixels(0, 0, imageWidth, imageHeight, colorImageFormat.format, colorImageFormat.type, data.data());
