@@ -165,13 +165,12 @@ namespace depthMap {
         }
 
     private:
-        static char constexpr const *LINEAR_DEPTH_VERT_FILE ="shaders/linearDepthGL.vert";
-        static char constexpr const *LINEAR_DEPTH3_VERT_FILE ="shaders/linearDepthGL3.vert";
+        static char constexpr const *LINEAR_DEPTH_VERT_FILE = "shaders/linearDepthGL.vert";
+        static char constexpr const *LINEAR_DEPTH3_VERT_FILE = "shaders/linearDepthGL3.vert";
         static char constexpr const *SIMPLE_FRAG_FILE = "shaders/simpleGL.frag";
         static char constexpr const *SIMPLE3_FRAG_FILE = "shaders/simpleGL3.frag";
 
         GLuint m_depthProgramID;
-        bool m_isIntSurface;
 
         static renderDetails::ReferenceGL createReference(
                 std::shared_ptr<renderDetails::RenderDetailsGL> rd,

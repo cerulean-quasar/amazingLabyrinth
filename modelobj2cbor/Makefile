@@ -1,9 +1,10 @@
 TINY_OBJ_LOADER_INCLUDE_PATH = /opt/tinyobjloader/include
 JSON_INCLUDE_PATH = /opt/jsonforcpp
 GLM_INCLUDE_PATH = /opt/glm-0.9.9.5/glm
+BOOST_PATH=/opt/boost_1_70_0
 AMAZING_LABYRINTH = ../app/src/main/cpp
 
-CPPFLAGS := -Wall -Werror -std=c++14 -I$(JSON_INCLUDE_PATH) -I$(AMAZING_LABYRINTH) -I$(GLM_INCLUDE_PATH) -I$(TINY_OBJ_LOADER_INCLUDE_PATH)
+CPPFLAGS := -Wall -Werror -std=c++14 -I$(JSON_INCLUDE_PATH) -I$(AMAZING_LABYRINTH) -I$(GLM_INCLUDE_PATH) -I$(TINY_OBJ_LOADER_INCLUDE_PATH) -D"BOOST_ROOT="$(BOOST_PATH) -I$(BOOST_PATH)
 DBGFLAGS = -ggdb
 NDBGFLAGS = -O3
 OBJS = model2cbor.o modelLoader.o
@@ -26,7 +27,7 @@ CONFIGRESULTFILES=$(foreach file,$(CONFIGFILES),$(subst $(CONFIG_DIR),$(CONFIGRE
 
 all: model2cbor cbor2json json2cbor $(MODELRESULTFILES) $(IMAGERESULTFILES) $(CONFIGRESULTFILES) $(CONFIGRESULTS_DIR)/../levels.json
 
-modelLoader.o : $(AMAZING_LABYRINTH)/modelLoader.cpp
+modelLoader.o : $(AMAZING_LABYRINTH)/levelDrawer/modelTable/modelLoader.cpp
 	g++ $(CPPFLAGS) $(DBGFLAGS) -c -o $@ $<
 
 %.o: %.c

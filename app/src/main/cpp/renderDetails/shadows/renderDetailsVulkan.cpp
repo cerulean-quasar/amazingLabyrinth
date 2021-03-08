@@ -171,7 +171,6 @@ namespace shadows {
 
     void RenderDetailsVulkan::reload(
             std::shared_ptr<GameRequester> const &gameRequester,
-            std::shared_ptr<RenderLoaderVulkan> const &,
             std::shared_ptr<vulkan::SurfaceDetails> const &surfaceDetails)
     {
         m_pipeline.reset();

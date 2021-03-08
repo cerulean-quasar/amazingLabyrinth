@@ -49,6 +49,8 @@ namespace levelDrawer {
     struct DrawArgumentVulkan {
         VkCommandBuffer cmdBuffer;
         VkFramebuffer framebuffer;
+
+        // todo: can remove extent? it is in surface details
         VkExtent2D extent;
     };
 

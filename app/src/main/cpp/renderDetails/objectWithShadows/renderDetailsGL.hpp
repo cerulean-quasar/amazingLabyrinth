@@ -118,7 +118,7 @@ namespace objectWithShadows {
                 std::set<levelDrawer::ZValueReference>::iterator endZValRefs) override;
 
         RenderDetailsGL(std::shared_ptr<GameRequester> const &inGameRequester,
-                        uint32_t inWidth, uint32_t inHeight);
+                        uint32_t inWidth, uint32_t inHeight, bool usesIntSurface);
 
         ~RenderDetailsGL() override {
             glDeleteShader(m_textureProgramID);

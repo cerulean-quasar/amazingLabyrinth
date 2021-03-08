@@ -38,7 +38,7 @@ public:
               m_surface{std::make_shared<graphicsGL::Surface>(std::move(window))},
               m_surfaceDetails{std::make_shared<graphicsGL::SurfaceDetails>(
                       graphicsGL::SurfaceDetails{m_surface->width(), m_surface->height(),
-                                                 m_surface->glVersion() == graphicsGL::Surface::GL_GRAPHICS_VERSION_3})},
+                                                 /*m_surface->glVersion() == graphicsGL::Surface::GL_GRAPHICS_VERSION_3*/ false})},
               m_renderLoader{std::make_shared<RenderLoaderGL>()},
               m_levelDrawer{std::make_shared<levelDrawer::LevelDrawerGL>(
                       levelDrawer::NeededForDrawingGL{},

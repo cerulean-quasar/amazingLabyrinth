@@ -324,7 +324,7 @@ namespace objectWithShadows {
         }
 
         static renderDetails::ReferenceVulkan loadExisting(
-                std::shared_ptr<GameRequester> const &,
+                std::shared_ptr<GameRequester> const &gameRequester,
                 std::shared_ptr<RenderLoaderVulkan> const &,
                 std::shared_ptr<renderDetails::RenderDetailsVulkan> const &rdBase,
                 std::shared_ptr<vulkan::SurfaceDetails> const &surfaceDetails,
@@ -341,6 +341,10 @@ namespace objectWithShadows {
                 throw std::runtime_error("Invalid render details type.");
             }
 
+            if (rd->structuralChangeNeeded(surfaceDetails)) {
+                rd->reload(gameRequester, surfaceDetails);
+            }
+
             auto cod = rd->createCommonObjectData(surfaceDetails->preTransform, parameters->shadowsSampler, config);
 
             return createReference(std::move(rd), std::move(cod));
@@ -354,10 +358,17 @@ namespace objectWithShadows {
                 std::set<levelDrawer::ZValueReference>::iterator beginZValRefs,
                 std::set<levelDrawer::ZValueReference>::iterator endZValRefs) override;
 
+        bool structuralChangeNeeded(
+                std::shared_ptr<vulkan::SurfaceDetails> const &surfaceDetails) override
+        {
+            // Texture and Color pipelines share a render pass so they will give the same answer,
+            // just pick one.
+            return structuralChangeNeededHelper(surfaceDetails, m_pipelineTexture->renderPass());
+        }
+
         void reload(
                 std::shared_ptr<GameRequester> const &gameRequester,
-                std::shared_ptr<RenderLoaderVulkan> const &renderLoader,
-                std::shared_ptr<vulkan::SurfaceDetails> const &surfaceDetails) override;
+                std::shared_ptr<vulkan::SurfaceDetails> const &surfaceDetails);
 
         std::shared_ptr<vulkan::Device> const &device() override { return m_device; }
 

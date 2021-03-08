@@ -69,7 +69,7 @@
             "NumberPlacements": 2
         },
         "TJunction": {
-            "Model": "models/movablePassage/crossjunction.modelcbor",
+            "Model": "models/movablePassage/tjunction.modelcbor",
             "Texture": "textures/gopher/dirt.png",
             "NumberPlacements": 2
         },

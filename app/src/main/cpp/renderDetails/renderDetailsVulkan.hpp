@@ -120,9 +120,23 @@ namespace renderDetails {
             return false;
         }
 
-        virtual void reload(
-                std::shared_ptr<GameRequester> const &gameRequester,
-                std::shared_ptr<RenderLoaderVulkan> const &renderLoader,
+        bool structuralChangeNeededHelper(
+                std::shared_ptr<vulkan::SurfaceDetails> const &surfaceDetails,
+                std::shared_ptr<vulkan::RenderPass> const &existingRenderPass)
+        {
+            if (surfaceDetails->surfaceWidth != m_surfaceWidth ||
+                surfaceDetails->surfaceHeight != m_surfaceHeight) {
+                return true;
+            }
+
+            if (existingRenderPass.get() == surfaceDetails->renderPass.get()) {
+                return false;
+            }
+
+            return surfaceDetails->renderPass->isCompatible(existingRenderPass);
+        }
+
+        virtual bool structuralChangeNeeded(
                 std::shared_ptr<vulkan::SurfaceDetails> const &surfaceDetails) = 0;
 
         virtual std::shared_ptr<vulkan::Device> const &device() = 0;

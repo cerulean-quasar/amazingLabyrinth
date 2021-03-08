@@ -142,10 +142,14 @@ namespace shadowsChaining {
             std::shared_ptr<renderDetails::Parameters> const &parameters,
             Config const &config);
 
-        void reload(
-                std::shared_ptr<GameRequester> const &gameRequester,
-                std::shared_ptr<RenderLoaderVulkan> const &renderLoader,
-                std::shared_ptr<vulkan::SurfaceDetails> const &surfaceDetails) override;
+        bool structuralChangeNeeded(std::shared_ptr<vulkan::SurfaceDetails> const &surfaceDetails) override
+        {
+            // only check object with shadows because the shadows render details is going to
+            // give the same answer as object with shadows with regards to the size.  The render
+            // pass attachments are always the same for the shadows render pass that would be
+            // stored in this render details.
+            return m_objectWithShadowsRenderDetails->structuralChangeNeeded(surfaceDetails);
+        }
 
         void addPreRenderPassCmdsToCommandBuffer(
                 VkCommandBuffer const &commandBuffer,

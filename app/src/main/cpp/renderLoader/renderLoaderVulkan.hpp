@@ -59,13 +59,11 @@ protected:
         return fcns.renderDetailsLoadNewFcn(gameRequester, shared_from_this(), m_device, surfaceDetails, parameters);
     }
 
-    void reload(
-        std::shared_ptr<GameRequester> const &gameRequester,
-        std::shared_ptr<RenderLoaderVulkanTraits::RenderDetailsType> const &renderDetails,
-        std::shared_ptr<RenderLoaderVulkanTraits::SurfaceDetailsType> const &surfaceDetails) override
+    bool structuralChangeNeeded(
+            std::shared_ptr<RenderLoaderVulkanTraits::RenderDetailsType> const &renderDetails,
+            std::shared_ptr<RenderLoaderVulkanTraits::SurfaceDetailsType> const &surfaceDetails) override
     {
-        vkDeviceWaitIdle(m_device->logicalDevice().get());
-        renderDetails->reload(gameRequester, shared_from_this(), surfaceDetails);
+        return renderDetails->structuralChangeNeeded(surfaceDetails);
     }
 
     RenderLoaderVulkanTraits::RenderDetailsReferenceType loadExisting(

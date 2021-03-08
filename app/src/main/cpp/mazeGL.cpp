@@ -44,9 +44,13 @@ void GraphicsGL::initPipeline(bool testFramebuffer) {
 }
 
 void GraphicsGL::recreateSwapChain(uint32_t width, uint32_t height) {
+    // needs to be called before clean up level data
+    bool levelStarterNeeded = m_levelSequence->levelStarterRequired();
+
     if (m_surface->width() == width && m_surface->height() == height) {
         return;
     }
+
     m_levelSequence->cleanupLevelData();
     destroyResources();
 
@@ -55,7 +59,11 @@ void GraphicsGL::recreateSwapChain(uint32_t width, uint32_t height) {
 
     m_surface = std::make_shared<graphicsGL::Surface>(window);
 
+    m_surfaceDetails->surfaceWidth = width;
+    m_surfaceDetails->surfaceHeight = height;
+
     initPipeline(false);
 
-    m_levelSequence->notifySurfaceChanged(m_surface->width(), m_surface->height());
+    m_levelSequence->notifySurfaceChanged(m_surface->width(), m_surface->height(),
+            levelStarterNeeded);
 }

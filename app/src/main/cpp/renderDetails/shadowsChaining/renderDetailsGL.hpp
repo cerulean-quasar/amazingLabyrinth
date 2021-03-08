@@ -134,9 +134,8 @@ namespace shadowsChaining {
                 std::set<levelDrawer::ZValueReference>::iterator beginZValRefs,
                 std::set<levelDrawer::ZValueReference>::iterator endZValRefs) override;
 
-        RenderDetailsGL(bool useIntTexture, uint32_t inWidth, uint32_t inHeight)
-                : renderDetails::RenderDetailsGL{inWidth, inHeight},
-                  m_useIntTexture(useIntTexture)
+        RenderDetailsGL(bool useIntSurface, uint32_t inWidth, uint32_t inHeight)
+                : renderDetails::RenderDetailsGL{inWidth, inHeight, useIntSurface}
         {
             createFramebuffer();
         }
@@ -144,7 +143,6 @@ namespace shadowsChaining {
         ~RenderDetailsGL() override = default;
 
     private:
-        bool m_useIntTexture;
         std::shared_ptr<graphicsGL::Framebuffer> m_framebufferShadows;
         std::shared_ptr<renderDetails::RenderDetailsGL> m_shadowsRenderDetails;
         std::shared_ptr<renderDetails::RenderDetailsGL> m_objectWithShadowsRenderDetails;

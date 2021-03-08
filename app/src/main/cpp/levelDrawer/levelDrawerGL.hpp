@@ -43,6 +43,7 @@ namespace levelDrawer {
     };
 
     struct DrawArgumentGL {
+        // todo: can remove width, height? they are in surface details.
         uint32_t width;
         uint32_t height;
     };

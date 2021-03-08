@@ -91,6 +91,14 @@ namespace renderDetails {
                 std::set<levelDrawer::ZValueReference> const & /* finisher */)
         {}
 
+        virtual bool structuralChangeNeeded(
+            std::shared_ptr<graphicsGL::SurfaceDetails> const &surfaceDetails)
+        {
+            return surfaceDetails->useIntTexture != m_usesIntSurface ||
+                surfaceDetails->surfaceWidth != m_surfaceWidth ||
+                surfaceDetails->surfaceHeight != m_surfaceHeight;
+        }
+
         virtual void reload(std::shared_ptr<GameRequester> const &,
                             std::shared_ptr<RenderLoaderGL> const &,
                             std::shared_ptr<graphicsGL::SurfaceDetails> const &)
@@ -109,8 +117,9 @@ namespace renderDetails {
             return false;
         }
 
-        RenderDetailsGL(uint32_t inWidth, uint32_t inHeight)
-            : RenderDetails{inWidth, inHeight}
+        RenderDetailsGL(uint32_t inWidth, uint32_t inHeight, bool usesIntSurface)
+            : RenderDetails{inWidth, inHeight},
+            m_usesIntSurface{usesIntSurface}
         {}
 
         ~RenderDetailsGL() override  = default;
@@ -122,6 +131,8 @@ namespace renderDetails {
 
         static GLuint loadShaders(std::shared_ptr<GameRequester> const &gameRequester,
                            std::string const &vertexShaderFile, std::string const &fragmentShaderFile);
+
+        bool m_usesIntSurface;
     };
 
     using ReferenceGL = Reference<RenderDetailsGL, levelDrawer::TextureDataGL, DrawObjectDataGL>;

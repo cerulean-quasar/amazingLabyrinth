@@ -156,7 +156,6 @@ namespace normalMap {
         static char constexpr const *SIMPLE3_FRAG_FILE = "shaders/simpleGL3.frag";
 
         GLuint m_programID;
-        bool m_isIntSurface;
 
         static renderDetails::ReferenceGL createReference(
                 std::shared_ptr<renderDetails::RenderDetailsGL> rd,

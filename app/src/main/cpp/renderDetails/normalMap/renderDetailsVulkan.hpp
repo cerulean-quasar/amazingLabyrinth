@@ -218,7 +218,7 @@ namespace normalMap {
         }
 
         static renderDetails::ReferenceVulkan loadExisting(
-                std::shared_ptr<GameRequester> const &,
+                std::shared_ptr<GameRequester> const &gameRequester,
                 std::shared_ptr<RenderLoaderVulkan> const &,
                 std::shared_ptr<renderDetails::RenderDetailsVulkan> const &rdBase,
                 std::shared_ptr<vulkan::SurfaceDetails> const &surfaceDetails,
@@ -233,6 +233,10 @@ namespace normalMap {
             auto rd = std::dynamic_pointer_cast<RenderDetailsVulkan>(rdBase);
             if (rd == nullptr) {
                 throw std::runtime_error("Invalid render details type.");
+            }
+
+            if (rd->structuralChangeNeeded(surfaceDetails)) {
+                rd->reload(gameRequester, surfaceDetails);
             }
 
             auto cod = rd->createCommonObjectData(surfaceDetails->preTransform, parameters, config);
@@ -256,10 +260,15 @@ namespace normalMap {
                 std::set<levelDrawer::ZValueReference>::iterator beginZValRefs,
                 std::set<levelDrawer::ZValueReference>::iterator endZValRefs) override;
 
+        bool structuralChangeNeeded(
+                std::shared_ptr<vulkan::SurfaceDetails> const &surfaceDetails) override
+        {
+            return structuralChangeNeededHelper(surfaceDetails, m_pipeline->renderPass());
+        }
+
         void reload(
                 std::shared_ptr<GameRequester> const &gameRequester,
-                std::shared_ptr<RenderLoaderVulkan> const &renderLoader,
-                std::shared_ptr<vulkan::SurfaceDetails> const &surfaceDetails) override;
+                std::shared_ptr<vulkan::SurfaceDetails> const &surfaceDetails);
 
         std::shared_ptr<vulkan::Device> const &device() override { return m_device; }
         std::shared_ptr<vulkan::DescriptorPools> const &descriptorPools() { return m_descriptorPools; }

@@ -657,6 +657,8 @@ namespace vulkan {
         /* images to be presented in the swap chain */
         colorAttachment.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
 
+        m_colorAttachmentFormats.push_back(colorAttachment.format);
+
         /* subpasses and attachment references:
          * a render pass may consist of many subpasses. For example, post processing tasks.
          */
@@ -688,6 +690,9 @@ namespace vulkan {
         depthAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
 
         depthAttachment.finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+
+        m_hasDepthAttachment = true;
+        m_depthAttachmentFormat = depthAttachment.format;
 
         VkAttachmentReference depthAttachmentRef = {};
         depthAttachmentRef.attachment = 1;
@@ -781,6 +786,9 @@ namespace vulkan {
 
             /* images to be presented in the swap chain */
             colorAttachment.finalLayout = colorInfo.finalLayout;
+
+            m_colorAttachmentFormats.push_back(colorInfo.format);
+
             attachments.push_back(colorAttachment);
 
             /* subpasses and attachment references:
@@ -814,6 +822,9 @@ namespace vulkan {
 
             depthAttachmentRef.attachment = i;
             depthAttachmentRef.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+
+            m_hasDepthAttachment = true;
+            m_depthAttachmentFormat = depthAttachment.format;
         }
 
         /* render subpass */

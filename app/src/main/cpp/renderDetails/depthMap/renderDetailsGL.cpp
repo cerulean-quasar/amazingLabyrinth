@@ -32,9 +32,8 @@ namespace depthMap {
 
     RenderDetailsGL::RenderDetailsGL(std::shared_ptr<GameRequester> const &inGameRequester,
                                              uint32_t inWidth, uint32_t inHeight, bool useIntSurface)
-            : renderDetails::RenderDetailsGL(inWidth, inHeight),
-              m_depthProgramID{0},
-              m_isIntSurface{useIntSurface}
+            : renderDetails::RenderDetailsGL(inWidth, inHeight, useIntSurface),
+              m_depthProgramID{0}
     {
         loadPipeline(inGameRequester);
     }
@@ -45,7 +44,7 @@ namespace depthMap {
             checkGraphicsError();
         }
 
-        if (m_isIntSurface) {
+        if (m_usesIntSurface) {
             m_depthProgramID = loadShaders(inGameRequester, LINEAR_DEPTH3_VERT_FILE,
                                            SIMPLE3_FRAG_FILE);
         } else {
@@ -101,8 +100,8 @@ namespace depthMap {
             rd->m_surfaceHeight = surfaceDetails->surfaceHeight;
         }
 
-        if (rd->m_isIntSurface != surfaceDetails->useIntTexture) {
-            rd->m_isIntSurface = surfaceDetails->useIntTexture;
+        if (rd->m_usesIntSurface != surfaceDetails->useIntTexture) {
+            rd->m_usesIntSurface = surfaceDetails->useIntTexture;
             rd->loadPipeline(inGameRequester);
         }
 

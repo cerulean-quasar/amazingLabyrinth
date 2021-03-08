@@ -60,13 +60,13 @@ namespace shadowsChaining {
             throw std::runtime_error("Invalid render details type.");
         }
 
-        if (surfaceDetails->useIntTexture != rd->m_useIntTexture ||
+        if (surfaceDetails->useIntTexture != rd->m_usesIntSurface ||
             rd->m_surfaceWidth != surfaceDetails->surfaceWidth ||
             rd->m_surfaceHeight != surfaceDetails->surfaceHeight)
         {
             rd->m_surfaceWidth = surfaceDetails->surfaceWidth;
             rd->m_surfaceHeight = surfaceDetails->surfaceHeight;
-            rd->m_useIntTexture = surfaceDetails->useIntTexture;
+            rd->m_usesIntSurface = surfaceDetails->useIntTexture;
             rd->createFramebuffer();
         }
 
@@ -90,7 +90,7 @@ namespace shadowsChaining {
     {
         std::vector<graphicsGL::Framebuffer::ColorImageFormat> colorImageFormats;
 
-        if (m_useIntTexture) {
+        if (m_usesIntSurface) {
             colorImageFormats.emplace_back(GL_RGBA32UI, GL_RGBA_INTEGER, GL_UNSIGNED_INT);
         } else {
             colorImageFormats.emplace_back(GL_RGBA8, GL_RGBA, GL_UNSIGNED_BYTE);

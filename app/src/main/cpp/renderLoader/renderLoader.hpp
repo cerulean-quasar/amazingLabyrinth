@@ -38,13 +38,15 @@ public:
         typename traits::RetrieveFcns fcns = getFcns(name);
         for (auto it = m_loadedRenderDetails.begin(); it != m_loadedRenderDetails.end(); it++) {
             if ((*it)->nameString() == name) {
-                auto renderDetails = *it;
-                if (renderDetails->width() != surfaceDetails->surfaceWidth ||
-                    renderDetails->height() != surfaceDetails->surfaceHeight)
+                if (structuralChangeNeeded(*it, surfaceDetails))
                 {
-                    reload(gameRequester, renderDetails, surfaceDetails);
+                    // There was a structural change to the render details.  Just get rid of it
+                    // in the cache and load a new one.
+                    m_loadedRenderDetails.erase(it);
+                    break;
                 }
 
+                auto renderDetails = *it;
                 if (m_loadedRenderDetails.size() > m_nbrRenderDetailsToKeep/2) {
                     m_loadedRenderDetails.erase(it);
                     m_loadedRenderDetails.push_front(renderDetails);
@@ -75,8 +77,7 @@ protected:
             std::shared_ptr<GameRequester> const &gameRequester,
             std::shared_ptr<typename traits::SurfaceDetailsType> const &surfaceDetails,
             std::shared_ptr<renderDetails::Parameters> const &parameters) = 0;
-    virtual void reload(
-            std::shared_ptr<GameRequester> const &gameRequester,
+    virtual bool structuralChangeNeeded(
             std::shared_ptr<typename traits::RenderDetailsType> const &renderDetails,
             std::shared_ptr<typename traits::SurfaceDetailsType> const &surfaceDetails) = 0;
     virtual typename traits::RenderDetailsReferenceType loadExisting(

@@ -23,7 +23,8 @@
 
 void LevelSequence::notifySurfaceChanged(
         uint32_t surfaceWidth,
-        uint32_t surfaceHeight)
+        uint32_t surfaceHeight,
+        bool levelStarterRequired)
 {
     m_surfaceWidth = surfaceWidth;
     m_surfaceHeight = surfaceHeight;
@@ -32,7 +33,7 @@ void LevelSequence::notifySurfaceChanged(
     m_levelGroupFcns = m_levelTracker->getLevelGroupFcns(m_surfaceWidth, m_surfaceHeight);
 
     // need to regenerate the maze if the width/height of the surface changed.
-    if (m_levelStarter) {
+    if (levelStarterRequired) {
         m_levelStarter = m_levelGroupFcns.getStarterFcn(
                 levelDrawer::Adaptor(levelDrawer::STARTER, m_levelDrawer));
     }

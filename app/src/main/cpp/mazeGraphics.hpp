@@ -33,6 +33,7 @@ public:
     inline uint32_t surfaceWidth() { return m_surfaceWidth; }
     inline uint32_t surfaceHeight() { return m_surfaceHeight; }
     bool needFinisherObjs() { return m_level->isFinished() || m_levelFinisher->isUnveiling(); }
+    bool levelStarterRequired() { return m_levelStarter != nullptr; }
 
     void saveLevelData() {
         levelTracker::saveGameData(m_gameRequester, m_surfaceWidth, m_surfaceHeight,
@@ -90,7 +91,7 @@ public:
         m_levelDrawer->clearDrawObjectTable(levelDrawer::FINISHER);
     }
 
-    void notifySurfaceChanged(uint32_t surfaceWidth, uint32_t surfaceHeight);
+    void notifySurfaceChanged(uint32_t surfaceWidth, uint32_t surfaceHeight, bool isStarterRequired);
 
     LevelSequence(
             std::shared_ptr<GameRequester> inGameRequester,

@@ -32,8 +32,8 @@ namespace shadows {
     glm::vec3 constexpr const Config::up;
 
     RenderDetailsGL::RenderDetailsGL(std::shared_ptr<GameRequester> const &inGameRequester,
-                                             uint32_t inWidth, uint32_t inHeight)
-            : renderDetails::RenderDetailsGL(inWidth, inHeight),
+                                             uint32_t inWidth, uint32_t inHeight, bool usesIntSurface)
+            : renderDetails::RenderDetailsGL(inWidth, inHeight, usesIntSurface),
               m_depthProgramID{loadShaders(inGameRequester, DEPTH_VERT_FILE, SIMPLE_FRAG_FILE)}
     {}
 
@@ -44,8 +44,9 @@ namespace shadows {
             std::shared_ptr<renderDetails::Parameters> const &,
             Config const &config)
     {
-        auto rd = std::make_shared<RenderDetailsGL>(gameRequester, surfaceDetails->surfaceWidth,
-                                                    surfaceDetails->surfaceHeight);
+        auto rd = std::make_shared<RenderDetailsGL>(
+                gameRequester, surfaceDetails->surfaceWidth, surfaceDetails->surfaceHeight,
+                surfaceDetails->useIntTexture);
 
         auto cod = std::make_shared<CommonObjectDataGL>(
                 surfaceDetails->surfaceWidth / static_cast<float>(surfaceDetails->surfaceHeight), config);

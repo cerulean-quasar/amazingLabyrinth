@@ -47,8 +47,9 @@ namespace objectWithShadows {
             throw std::runtime_error("Invalid render details parameter type.");
         }
 
-        auto rd = std::make_shared<RenderDetailsGL>(gameRequester, surfaceDetails->surfaceWidth,
-                                                    surfaceDetails->surfaceHeight);
+        auto rd = std::make_shared<RenderDetailsGL>(
+                gameRequester, surfaceDetails->surfaceWidth, surfaceDetails->surfaceHeight,
+                surfaceDetails->useIntTexture);
 
         auto cod = std::make_shared<CommonObjectDataGL>(parameters->shadowsFB,
                 surfaceDetails->surfaceWidth / static_cast<float>(surfaceDetails->surfaceHeight), config);
@@ -216,8 +217,8 @@ namespace objectWithShadows {
 
     RenderDetailsGL::RenderDetailsGL(
             std::shared_ptr<GameRequester> const &inGameRequester,
-            uint32_t inWidth, uint32_t inHeight)
-        : renderDetails::RenderDetailsGL(inWidth, inHeight),
+            uint32_t inWidth, uint32_t inHeight, bool usesIntSurface)
+        : renderDetails::RenderDetailsGL(inWidth, inHeight, usesIntSurface),
         m_textureProgramID{loadShaders(inGameRequester, SHADER_VERT_FILE, TEXTURE_SHADER_FRAG_FILE)},
         m_colorProgramID{loadShaders(inGameRequester, SHADER_VERT_FILE, COLOR_SHADER_FRAG_FILE)}
     {}

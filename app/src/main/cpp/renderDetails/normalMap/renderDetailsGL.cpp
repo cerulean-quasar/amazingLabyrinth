@@ -33,9 +33,8 @@ namespace normalMap {
     RenderDetailsGL::RenderDetailsGL(std::shared_ptr<GameRequester> const &inGameRequester,
                                              uint32_t inWidth, uint32_t inHeight,
                                              bool isIntSurface)
-            : renderDetails::RenderDetailsGL(inWidth, inHeight),
-              m_programID{0},
-              m_isIntSurface{isIntSurface}
+            : renderDetails::RenderDetailsGL(inWidth, inHeight, isIntSurface),
+              m_programID{0}
     {
         loadPipeline(inGameRequester);
     }
@@ -46,7 +45,7 @@ namespace normalMap {
             checkGraphicsError();
         }
 
-        if (m_isIntSurface) {
+        if (m_usesIntSurface) {
             m_programID = loadShaders(inGameRequester, NORMAL3_VERT_FILE,
                                            SIMPLE3_FRAG_FILE);
         } else {
@@ -99,8 +98,8 @@ namespace normalMap {
             rd->m_surfaceHeight = surfaceDetails->surfaceHeight;
         }
 
-        if (rd->m_isIntSurface != surfaceDetails->useIntTexture) {
-            rd->m_isIntSurface = surfaceDetails->useIntTexture;
+        if (rd->m_usesIntSurface != surfaceDetails->useIntTexture) {
+            rd->m_usesIntSurface = surfaceDetails->useIntTexture;
             rd->loadPipeline(inGameRequester);
         }
 

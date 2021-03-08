@@ -59,12 +59,11 @@ protected:
         return fcns.renderDetailsLoadNewFcn(gameRequester, shared_from_this(), surfaceDetails, parameters);
     }
 
-    void reload(
-            std::shared_ptr<GameRequester> const &gameRequester,
+    bool structuralChangeNeeded(
             std::shared_ptr<RenderLoaderGLTraits::RenderDetailsType> const &renderDetails,
             std::shared_ptr<RenderLoaderGLTraits::SurfaceDetailsType> const &surfaceDetails) override
     {
-        renderDetails->reload(gameRequester, shared_from_this(), surfaceDetails);
+        return renderDetails->structuralChangeNeeded(surfaceDetails);
     }
 
     RenderLoaderGLTraits::RenderDetailsReferenceType loadExisting(

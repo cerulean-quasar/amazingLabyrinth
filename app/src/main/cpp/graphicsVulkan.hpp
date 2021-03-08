@@ -325,7 +325,7 @@ namespace vulkan {
             {}
         };
         inline std::shared_ptr<VkRenderPass_T> const &renderPass() { return m_renderPass; }
-        inline size_t numberColorAttachments() { return m_nbrColorAttachments; }
+        inline size_t numberColorAttachments() { return m_colorAttachmentFormats.size(); }
 
         // For a normal render pass that includes a color and depth attachment
         static std::shared_ptr<RenderPass> createRenderPass(std::shared_ptr<Device> const &inDevice,
@@ -342,12 +342,34 @@ namespace vulkan {
         {
             return std::shared_ptr<RenderPass>{new RenderPass(inDevice, info, depthInfo)};
         }
+
+        bool isCompatible(std::shared_ptr<RenderPass> const &other) {
+            if (other->m_hasDepthAttachment != m_hasDepthAttachment) {
+                return false;
+            }
+
+            if (m_hasDepthAttachment && (other->m_depthAttachmentFormat != m_depthAttachmentFormat)) {
+                return false;
+            }
+
+            // its ok if the number of attachments don't match up, just the matching pairs have
+            // to be of the same format.
+            for (size_t i = 0;
+                 i < m_colorAttachmentFormats.size() && i < other->m_colorAttachmentFormats.size();
+                 i++)
+            {
+                if (m_colorAttachmentFormats[i] != other->m_colorAttachmentFormats[i]) {
+                    return false;
+                }
+            }
+
+            return true;
+        }
     private:
         // for creating a render pass that uses a color and depth attachment (i.e. the normal render pass)
         RenderPass(std::shared_ptr<Device> const &inDevice, std::shared_ptr<SwapChain> const &swapChain)
                 : m_device{inDevice},
-                  m_renderPass{},
-                  m_nbrColorAttachments{1}
+                  m_renderPass{}
         {
             createRenderPass(swapChain);
         }
@@ -357,8 +379,7 @@ namespace vulkan {
                 std::vector<ImageAttachmentInfo> const &colorImageInfo,
                 std::shared_ptr<ImageAttachmentInfo> const &depthInfo)
                 : m_device{inDevice},
-                  m_renderPass{},
-                  m_nbrColorAttachments{colorImageInfo.size()}
+                  m_renderPass{}
         {
             createRenderPassDepthTexture(colorImageInfo, depthInfo);
         }
@@ -366,6 +387,9 @@ namespace vulkan {
         std::shared_ptr<Device> m_device;
         std::shared_ptr<VkRenderPass_T> m_renderPass;
         size_t m_nbrColorAttachments;
+        std::vector<VkFormat> m_colorAttachmentFormats;
+        VkFormat m_depthAttachmentFormat;
+        bool m_hasDepthAttachment;
 
         void createRenderPass(std::shared_ptr<SwapChain> const &swapChain);
         void createRenderPassDepthTexture(std::vector<ImageAttachmentInfo> const &colorImageInfo,

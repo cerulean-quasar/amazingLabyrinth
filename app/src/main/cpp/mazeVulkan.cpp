@@ -80,10 +80,13 @@ void GraphicsVulkan::recreateSwapChain(uint32_t width, uint32_t height) {
                                                  VK_IMAGE_ASPECT_DEPTH_BIT);
     prepareDepthResources();
     m_surfaceDetails->renderPass = vulkan::RenderPass::createRenderPass(m_device, m_swapChain);
+    m_surfaceDetails->surfaceWidth = width;
+    m_surfaceDetails->surfaceHeight = height;
+    m_surfaceDetails->preTransform = preTransform();
     m_swapChainCommands = std::make_shared<vulkan::SwapChainCommands>(m_swapChain, m_commandPool, m_surfaceDetails->renderPass, m_depthImageView);
 
     extent = m_swapChain->extent();
-    m_levelSequence->notifySurfaceChanged(extent.width, extent.height);
+    m_levelSequence->notifySurfaceChanged(extent.width, extent.height, m_levelSequence->levelStarterRequired());
 }
 
 void GraphicsVulkan::cleanupSwapChain() {

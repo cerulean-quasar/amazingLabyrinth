@@ -67,6 +67,11 @@ namespace shadowsChaining {
         if (rd == nullptr) {
             throw std::runtime_error("Invalid render details type.");
         }
+
+        if (rd->structuralChangeNeeded(surfaceDetails)) {
+            rd->createShadowResources(surfaceDetails);
+        }
+
         auto shadowSurfaceDetails = rd->createShadowSurfaceDetails(surfaceDetails);
 
         // shadows render details
@@ -86,23 +91,6 @@ namespace shadowsChaining {
         rd->m_shadowsRenderDetails = refShadows.renderDetails;
 
         return createReference(std::move(rd), refShadows, refObjectWithShadows);
-    }
-
-    void RenderDetailsVulkan::reload(
-            std::shared_ptr<GameRequester> const &gameRequester,
-            std::shared_ptr<RenderLoaderVulkan> const &renderLoader,
-            std::shared_ptr<vulkan::SurfaceDetails> const &surfaceDetails)
-    {
-        // todo: check this code
-
-        m_surfaceWidth = surfaceDetails->surfaceWidth;
-        m_surfaceHeight = surfaceDetails->surfaceHeight;
-
-        createShadowResources(surfaceDetails);
-
-        auto shadowSurfaceDetails = createShadowSurfaceDetails(surfaceDetails);
-        m_shadowsRenderDetails->reload(gameRequester, renderLoader, surfaceDetails);
-        m_objectWithShadowsRenderDetails->reload(gameRequester, renderLoader, surfaceDetails);
     }
 
     void RenderDetailsVulkan::addPreRenderPassCmdsToCommandBuffer(
