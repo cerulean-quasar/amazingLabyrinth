@@ -3,7 +3,7 @@
 
 # Sets the minimum version of CMake required to build the native library.
 
-cmake_minimum_required(VERSION 3.4.1)
+cmake_minimum_required(VERSION 3.10.2)
 
 set (platform64_files)
 if ((NOT ${CMAKE_ANDROID_ARCH_ABI} STREQUAL x86) AND (NOT ${CMAKE_ANDROID_ARCH_ABI} STREQUAL armeabi-v7a))
@@ -125,7 +125,7 @@ find_library( # Sets the name of the path variable.
               # you want CMake to locate.
               log )
 
-include_directories(${ANDROID_NDK}/sysroot/usr/include/android)
+#include_directories(${ANDROID_NDK}/sysroot/usr/include/android)
 include_directories(${ANDROID_NDK}/sources/third_party/vulkan/src/libs)
 include_directories(${ANDROID_NDK}/sources/third_party/vulkan/src/common)
 include_directories(APP_GLUE_DIR ${ANDROID_NDK}/sources/android/native_app_glue)

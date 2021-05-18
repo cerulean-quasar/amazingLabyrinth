@@ -69,8 +69,8 @@ float Random::getFloat(float lowerBound, float upperBound) {
         throw std::runtime_error("Could not read enough random data.");
     }
 
-    unsigned int random = get<unsigned int>();
-    float rc = random;
+    auto random = get<unsigned int>();
+    double rc = random;
     rc = rc / std::numeric_limits<unsigned int>::max() * range + lowerBound;
-    return rc;
+    return static_cast<float>(rc);
 }

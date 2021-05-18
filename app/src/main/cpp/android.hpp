@@ -20,11 +20,11 @@
 #ifndef AMAZING_LABYRINTH_ANDROID_HPP
 #define AMAZING_LABYRINTH_ANDROID_HPP
 
-#include <native_window.h>
-#include <asset_manager.h>
-#include <asset_manager_jni.h>
-#include <looper.h>
-#include <sensor.h>
+#include <android/native_window.h>
+#include <android/asset_manager.h>
+#include <android/asset_manager_jni.h>
+#include <android/looper.h>
+#include <android/sensor.h>
 #include <memory>
 #include <streambuf>
 #include <bitset>

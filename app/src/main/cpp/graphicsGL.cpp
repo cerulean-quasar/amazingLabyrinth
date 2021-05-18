@@ -18,8 +18,8 @@
  *
  */
 
-#include <native_window.h>
-#include <string.h>
+#include <android/native_window.h>
+#include <cstring>
 #include <array>
 
 #include "graphicsGL.hpp"

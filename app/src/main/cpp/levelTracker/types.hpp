@@ -33,7 +33,6 @@ struct Point {
 
     Point<CoordType>() : x{0}, y{0} {}
     Point<CoordType>(CoordType x_, CoordType y_) : x{x_}, y{y_} {}
-    Point<CoordType>(Point<CoordType> const &other) : x{other.x}, y{other.y} {}
     bool operator==(Point<CoordType> const &other) const {
         return x == other.x && y == other.y;
     }

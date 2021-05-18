@@ -19,8 +19,8 @@
  */
 
 #include <jni.h>
-#include <native_window.h>
-#include <native_window_jni.h>
+#include <android/native_window.h>
+#include <android/native_window_jni.h>
 #include "levelTracker/levelTracker.hpp"
 #include "drawer.hpp"
 #include "android.hpp"
