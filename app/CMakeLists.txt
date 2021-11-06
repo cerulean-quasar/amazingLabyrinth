@@ -5,6 +5,10 @@
 
 cmake_minimum_required(VERSION 3.10.2)
 
+# Declares and names the project.
+
+project("native-lib")
+
 set (platform64_files)
 if ((NOT ${CMAKE_ANDROID_ARCH_ABI} STREQUAL x86) AND (NOT ${CMAKE_ANDROID_ARCH_ABI} STREQUAL armeabi-v7a))
     list(APPEND platform64_files
