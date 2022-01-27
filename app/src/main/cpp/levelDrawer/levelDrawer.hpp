@@ -74,10 +74,10 @@ namespace levelDrawer {
                 DrawObjDataReference objDataRef,
                 DrawObjReference toObjRef) = 0;
 
-            virtual void removeObjectData(
-                ObjectType type,
-                DrawObjReference drawObjReference,
-                DrawObjDataReference objDataReference) = 0;
+        virtual void removeObjectData(
+            ObjectType type,
+            DrawObjReference drawObjReference,
+            DrawObjDataReference objDataReference) = 0;
 
         virtual size_t numberObjectsDataForObject(ObjectType type, DrawObjReference drawObjReference) = 0;
 
