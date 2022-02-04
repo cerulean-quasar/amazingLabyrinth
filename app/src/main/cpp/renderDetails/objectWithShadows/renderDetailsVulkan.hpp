@@ -1,5 +1,5 @@
 /**
- * Copyright 2020 Cerulean Quasar. All Rights Reserved.
+ * Copyright 2022 Cerulean Quasar. All Rights Reserved.
  *
  *  This file is part of AmazingLabyrinth.
  *
@@ -88,9 +88,8 @@ namespace objectWithShadows {
 
     private:
         struct CommonVertexUBO {
-            glm::mat4 proj;
-            glm::mat4 view;
-            glm::mat4 lightViewMatrix;
+            glm::mat4 projView;
+            glm::mat4 projLightView;
         };
 
         struct CommonFragmentUBO {
@@ -105,12 +104,12 @@ namespace objectWithShadows {
 
         void doUpdate() {
             CommonVertexUBO commonUbo;
-            commonUbo.proj = m_preTransform *
+            glm::mat4 proj = m_preTransform *
                              getPerspectiveMatrix(m_viewAngle, m_aspectRatio, m_nearPlane, m_farPlane, true, true);
 
             // eye at the m_viewPoint, looking at the m_lookAt position, pointing up is m_up.
-            commonUbo.view = glm::lookAt(m_viewPoint, m_lookAt, m_up);
-            commonUbo.lightViewMatrix = glm::lookAt(m_lightingSource, m_lookAt, m_up);
+            commonUbo.projView = proj * glm::lookAt(m_viewPoint, m_lookAt, m_up);
+            commonUbo.projLightView = proj * glm::lookAt(m_lightingSource, m_lookAt, m_up);
 
             m_cameraBuffer->copyRawTo(&commonUbo, sizeof(commonUbo));
 

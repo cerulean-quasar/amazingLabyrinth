@@ -1,5 +1,5 @@
 /**
- * Copyright 2020 Cerulean Quasar. All Rights Reserved.
+ * Copyright 2022 Cerulean Quasar. All Rights Reserved.
  *
  *  This file is part of AmazingLabyrinth.
  *
@@ -25,9 +25,8 @@ layout(set = 0, binding = 0) uniform UniformBufferObject {
 } ubo;
 
 layout(set = 0, binding = 1) uniform CommonUBO {
-    mat4 proj;
-    mat4 view;
-    mat4 viewLightMatrix;
+    mat4 projView;
+    mat4 projViewLight;
 } cubo;
 
 layout(location = 0) in vec3 inPosition;
@@ -47,11 +46,11 @@ out gl_PerVertex {
 };
 
 void main() {
-    gl_Position = cubo.proj * cubo.view * ubo.model * vec4(inPosition, 1.0);
+    gl_Position = cubo.projView * ubo.model * vec4(inPosition, 1.0);
     
     fragColor = inColor;
     fragTexCoord = inTexCoord;
     fragNormal = normalize(mat3(transpose(inverse(ubo.model))) * inNormal);
     fragPosition = vec3(ubo.model * vec4(inPosition, 1.0));
-    fragPosLightSpace = cubo.proj * cubo.viewLightMatrix * ubo.model * vec4(inPosition, 1.0);
+    fragPosLightSpace = cubo.projViewLight * ubo.model * vec4(inPosition, 1.0);
 }

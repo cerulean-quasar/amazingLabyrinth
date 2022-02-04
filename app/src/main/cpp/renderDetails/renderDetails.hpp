@@ -1,5 +1,5 @@
 /**
- * Copyright 2020 Cerulean Quasar. All Rights Reserved.
+ * Copyright 2022 Cerulean Quasar. All Rights Reserved.
  *
  *  This file is part of AmazingLabyrinth.
  *
@@ -65,6 +65,7 @@ namespace renderDetails {
     class CommonObjectDataView : public CommonObjectData {
     public:
         glm::mat4 view() {
+            // eye at the m_viewPoint, looking at the m_lookAt position, pointing up is m_up.
             return glm::lookAt(m_viewPoint, m_lookAt, m_up);
         }
 

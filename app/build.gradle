@@ -1,7 +1,7 @@
 apply plugin: 'com.android.application'
 
 android {
-    compileSdkVersion 30
+    compileSdkVersion 32
     ndkVersion "22.0.7026061"
     //ndkVersion "21.3.6528147"
     //ndkVersion "21.0.6113669"
@@ -9,7 +9,7 @@ android {
     defaultConfig {
         applicationId "com.quasar.cerulean.amazinglabyrinth"
         minSdkVersion 21
-        targetSdkVersion 30
+        targetSdkVersion 32
         versionCode 1
         versionName "1.0"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
@@ -19,7 +19,7 @@ android {
 
         externalNativeBuild {
             cmake {
-                cppFlags "-std=c++14 -frtti -fexceptions"
+                cppFlags "-std=c++17 -frtti -fexceptions"
             }
         }
     }
@@ -50,10 +50,10 @@ android {
 
 dependencies {
     implementation fileTree(dir: 'libs', include: ['*.jar'])
-    implementation 'androidx.appcompat:appcompat:1.1.0'
-    implementation 'androidx.constraintlayout:constraintlayout:1.1.3'
-    implementation 'androidx.recyclerview:recyclerview:1.1.0'
+    implementation 'androidx.appcompat:appcompat:1.4.1'
+    implementation 'androidx.constraintlayout:constraintlayout:2.1.3'
+    implementation 'androidx.recyclerview:recyclerview:1.2.1'
     testImplementation 'junit:junit:4.12'
-    androidTestImplementation 'androidx.test:runner:1.2.0'
-    androidTestImplementation 'androidx.test.espresso:espresso-core:3.2.0'
+    androidTestImplementation 'androidx.test:runner:1.4.0'
+    androidTestImplementation 'androidx.test.espresso:espresso-core:3.4.0'
 }

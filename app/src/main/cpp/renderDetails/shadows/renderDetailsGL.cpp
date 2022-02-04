@@ -1,5 +1,5 @@
 /**
- * Copyright 2020 Cerulean Quasar. All Rights Reserved.
+ * Copyright 2022 Cerulean Quasar. All Rights Reserved.
  *
  *  This file is part of AmazingLabyrinth.
  *
@@ -121,16 +121,11 @@ namespace shadows {
 
         GLint MatrixID;
 
-        // the projection matrix
-        MatrixID = glGetUniformLocation(m_depthProgramID, "proj");
+        // the projection matrix * the view matrix
+        glm::mat4 projTimesView = projView.first * projView.second;
+        MatrixID = glGetUniformLocation(m_depthProgramID, "projView");
         checkGraphicsError();
-        glUniformMatrix4fv(MatrixID, 1, GL_FALSE, &(projView.first)[0][0]);
-        checkGraphicsError();
-
-        // the view matrix
-        MatrixID = glGetUniformLocation(m_depthProgramID, "view");
-        checkGraphicsError();
-        glUniformMatrix4fv(MatrixID, 1, GL_FALSE, &(projView.second)[0][0]);
+        glUniformMatrix4fv(MatrixID, 1, GL_FALSE, &projTimesView[0][0]);
         checkGraphicsError();
 
         MatrixID = glGetUniformLocation(m_depthProgramID, "model");

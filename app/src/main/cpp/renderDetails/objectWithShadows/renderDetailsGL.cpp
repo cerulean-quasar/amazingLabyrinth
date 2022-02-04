@@ -1,5 +1,5 @@
 /**
- * Copyright 2020 Cerulean Quasar. All Rights Reserved.
+ * Copyright 2022 Cerulean Quasar. All Rights Reserved.
  *
  *  This file is part of AmazingLabyrinth.
  *
@@ -140,23 +140,18 @@ namespace objectWithShadows {
 
                 auto projView = commonObjectData->getProjViewForLevel();
 
-                // the projection matrix
-                MatrixID = glGetUniformLocation(programID, "proj");
+                // the projection matrix * the view matrix
+                MatrixID = glGetUniformLocation(programID, "projView");
                 checkGraphicsError();
-                glUniformMatrix4fv(MatrixID, 1, GL_FALSE, &(projView.first)[0][0]);
-                checkGraphicsError();
-
-                // the view matrix
-                MatrixID = glGetUniformLocation(programID, "view");
-                checkGraphicsError();
-                glUniformMatrix4fv(MatrixID, 1, GL_FALSE, &(projView.second)[0][0]);
+                glm::mat4 projTimesView = projView.first * projView.second;
+                glUniformMatrix4fv(MatrixID, 1, GL_FALSE, &projTimesView[0][0]);
                 checkGraphicsError();
 
-                // the view matrix from the light source point of view
-                auto lightSpaceMatrix = commonObjectData->getViewLightSource();
-                MatrixID = glGetUniformLocation(programID, "lightSpaceMatrix");
+                // the projection matrix * the view matrix from the light source point of view
+                auto projViewLight = projView.first * commonObjectData->getViewLightSource();
+                MatrixID = glGetUniformLocation(programID, "projViewLight");
                 checkGraphicsError();
-                glUniformMatrix4fv(MatrixID, 1, GL_FALSE, &lightSpaceMatrix[0][0]);
+                glUniformMatrix4fv(MatrixID, 1, GL_FALSE, &projViewLight[0][0]);
                 checkGraphicsError();
 
                 GLint lightPosID = glGetUniformLocation(programID, "lightPos");
