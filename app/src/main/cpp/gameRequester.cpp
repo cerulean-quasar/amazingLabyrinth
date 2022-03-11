@@ -1,5 +1,5 @@
 /**
- * Copyright 2020 Cerulean Quasar. All Rights Reserved.
+ * Copyright 2022 Cerulean Quasar. All Rights Reserved.
  *
  *  This file is part of AmazingLabyrinth.
  *
@@ -355,13 +355,14 @@ void JGameRequester::sendKeepAliveEnabled(bool keepAliveEnabled) {
 }
 
 void JGameRequester::sendGraphicsDescription(GraphicsDescription const &description,
-                                           bool hasAccelerometer) {
+                                           bool hasAccelerometer, bool isVulkanImplementation) {
     auto bundle = createBundle();
     bundle->putDatum<std::string>(KeyGraphicsName, description.m_graphicsName);
     bundle->putDatum<std::string>(KeyVersionName, description.m_version);
     bundle->putDatum<std::string>(KeyDeviceName, description.m_deviceName);
     bundle->putDatum<std::vector<std::string>>(KeyBugInfo, description.m_extraInfo);
     bundle->putDatum<bool>(KeyHasAccelerometer, hasAccelerometer);
+    bundle->putDatum<bool>(KeyIsVulkanImplementation, isVulkanImplementation);
     JNIEnv *lenv = m_env;
     auto deleter = [lenv](jobject obj) {
         lenv->DeleteLocalRef(obj);

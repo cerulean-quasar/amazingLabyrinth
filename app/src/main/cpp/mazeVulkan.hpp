@@ -1,5 +1,5 @@
 /**
- * Copyright 2020 Cerulean Quasar. All Rights Reserved.
+ * Copyright 2022 Cerulean Quasar. All Rights Reserved.
  *
  *  This file is part of AmazingLabyrinth.
  *
@@ -65,6 +65,8 @@ public:
     bool updateData(bool alwaysUpdateDynObjs) override { return m_levelSequence->updateData(alwaysUpdateDynObjs); }
 
     void drawFrame() override;
+
+    bool isVulkanImplementation() override { return true; }
 
     void recreateSwapChain(uint32_t width, uint32_t height) override ;
 

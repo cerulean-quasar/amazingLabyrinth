@@ -1,5 +1,5 @@
 /**
- * Copyright 2020 Cerulean Quasar. All Rights Reserved.
+ * Copyright 2022 Cerulean Quasar. All Rights Reserved.
  *
  *  This file is part of AmazingLabyrinth.
  *
@@ -63,6 +63,8 @@ public:
 
         eglSwapBuffers(m_surface->display(), m_surface->surface());
     }
+
+    bool isVulkanImplementation() override { return false; }
 
     void recreateSwapChain(uint32_t width, uint32_t height) override;
 

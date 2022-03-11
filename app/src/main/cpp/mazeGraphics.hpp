@@ -1,5 +1,5 @@
 /**
- * Copyright 2020 Cerulean Quasar. All Rights Reserved.
+ * Copyright 2022 Cerulean Quasar. All Rights Reserved.
  *
  *  This file is part of AmazingLabyrinth.
  *
@@ -168,12 +168,14 @@ public:
 
     virtual GraphicsDescription graphicsDescription() = 0;
 
+    virtual bool isVulkanImplementation() = 0;
+
     void sendGraphicsDescription(bool hasAccelerometer, std::string vulkanError) {
         GraphicsDescription info = graphicsDescription();
         if (!vulkanError.empty()) {
             info.m_extraInfo.push_back(vulkanError);
         }
-        m_gameRequester->sendGraphicsDescription(info, hasAccelerometer);
+        m_gameRequester->sendGraphicsDescription(info, hasAccelerometer, isVulkanImplementation());
     }
 
     void sendKeepAliveEnabled(bool keepAliveEnabled) {

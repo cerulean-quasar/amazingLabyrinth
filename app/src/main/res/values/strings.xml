@@ -10,6 +10,7 @@
     <string name="yes">Yes</string>
     <string name="no">No</string>
     <string name="done">Done</string>
+    <string name="save">Save</string>
 
     <string name="gameInfo">Game Information</string>
     <string name="gameName">Game:</string>
@@ -43,4 +44,7 @@
     <string name="thirdPartyBlender">Blender</string>
     <string name="thirdPartyPngquant">pngquant</string>
     <string name="thirdPartyXcf2png">xcf2png</string>
+
+    <string name="settings">Settings</string>
+    <string name="tryVulkan">Try Vulkan if available</string>
 </resources>

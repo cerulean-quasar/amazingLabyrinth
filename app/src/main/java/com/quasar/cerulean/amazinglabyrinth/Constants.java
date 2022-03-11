@@ -1,5 +1,5 @@
 /**
- * Copyright 2020 Cerulean Quasar. All Rights Reserved.
+ * Copyright 2022 Cerulean Quasar. All Rights Reserved.
  *
  *  This file is part of AmazingLabyrinth.
  *
@@ -31,6 +31,9 @@ public class Constants {
     public static final String KeyVersionName = "versionName";
     public static final String KeyHasAccelerometer = "hasAccelerometer";
     public static final String KeyBugInfo = "bugInfo";
+
+    // for Settings
+    public static final String keyIsVulkan = "isVulkan";
 
     // for Show License Activity
     public static final int AMAZING_LABYRINTH_LICENSE_ACTIVITY = 2;

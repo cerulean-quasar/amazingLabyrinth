@@ -1,5 +1,5 @@
 /**
- * Copyright 2020 Cerulean Quasar. All Rights Reserved.
+ * Copyright 2022 Cerulean Quasar. All Rights Reserved.
  *
  *  This file is part of AmazingLabyrinth.
  *
@@ -22,6 +22,10 @@ package com.quasar.cerulean.amazinglabyrinth;
 import android.content.Intent;
 import android.graphics.PixelFormat;
 
+import androidx.activity.result.ActivityResult;
+import androidx.activity.result.ActivityResultCallback;
+import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.appcompat.app.ActionBar;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
@@ -42,28 +46,88 @@ import android.widget.Button;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.OutputStreamWriter;
 import java.util.ArrayList;
 
 public class MainActivity extends AppCompatActivity implements AdapterView.OnItemSelectedListener {
-    String m_graphicsName;
-    String m_version;
-    String m_deviceName;
-    boolean m_hasAccelerometer;
-    ArrayList<String> m_driverBugInfo;
-
     // Used to load the 'native-lib' library on application startup.
     static {
         System.loadLibrary("native-lib");
     }
 
+    private static final String m_settingsFile = "gameSettings";
+
+    private String m_graphicsName;
+    private String m_version;
+    private String m_deviceName;
+    private boolean m_hasAccelerometer;
+    private ArrayList<String> m_driverBugInfo;
+    private ActivityResultLauncher<Intent> m_selectLevelLauncher;
+    private ActivityResultLauncher<Intent> m_settingsActivityLauncher;
+    private Settings m_settings;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
+        // Don't sleep the app if inactive since to android, the app may seem inactive because the
+        // user isn't doing anything.  In actuality the user is doing something.  They are tilting
+        // the device to roll the ball.  Note: this will get turned off if the user does not tilt
+        // the screen within a timeout period.  It will get turned back on if they start tilting the
+        // screen again.
         keepAppAlive(true);
 
         setContentView(R.layout.activity_main);
 
+        // setup activity launchers
+        m_selectLevelLauncher = registerForActivityResult(new ActivityResultContracts.StartActivityForResult(),
+                new ActivityResultCallback<ActivityResult>() {
+                    @Override
+                    public void onActivityResult(ActivityResult result) {
+                        if (result.getResultCode() == RESULT_OK)
+                        {
+                            Intent data = result.getData();
+                            if (data == null) {
+                                return;
+                            }
+
+                            String level = data.getStringExtra(Constants.KeySelectedLevel);
+                            if (level != null) {
+                                Draw.switchLevel(level);
+                            }
+                        }
+                    }
+                });
+
+        m_settingsActivityLauncher = registerForActivityResult(new ActivityResultContracts.StartActivityForResult(),
+                new ActivityResultCallback<ActivityResult>() {
+                    @Override
+                    public void onActivityResult(ActivityResult result) {
+                        if (result.getResultCode() == RESULT_OK) {
+                            Intent intent = result.getData();
+                            if (intent != null) {
+                                m_settings.overrideFromIntent(intent);
+                                saveSettingsToFile();
+                            }
+                        }
+                    }
+                });
+
+        // retrieve settings
+        m_settings = new Settings();
+        try {
+            FileInputStream in = new FileInputStream(getFilesDir() + "/" + m_settingsFile);
+            m_settings.new File().open(in);
+            in.close();
+        } catch (IOException e) {
+            // do nothing (means use default values).
+        }
+
+        // setup surface
         SurfaceView drawSurfaceView = findViewById(R.id.mainDrawingSurface);
         drawSurfaceView.setZOrderOnTop(true);
         SurfaceHolder drawSurfaceHolder = drawSurfaceView.getHolder();
@@ -119,22 +183,14 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
 
     public void onSelectLevel(MenuItem item) {
         Intent intent = new Intent(this, ChooseLevelActivity.class);
-        startActivityForResult(intent, Constants.AMAZING_LABYRINTH_CHOOSE_LEVEL_ACTIVITY);
+        m_selectLevelLauncher.launch(intent);
     }
 
-    @Override
-    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
-        super.onActivityResult(requestCode, resultCode, data);
-        if (requestCode == Constants.AMAZING_LABYRINTH_CHOOSE_LEVEL_ACTIVITY &&
-            resultCode == RESULT_OK)
-        {
-            String level = data.getStringExtra(Constants.KeySelectedLevel);
-            if (level != null) {
-                Draw.switchLevel(level);
-            }
-        }
+    public void onSettings(MenuItem item) {
+        Intent intent = new Intent(this, SettingsActivity.class);
+        m_settings.addToIntent(intent);
+        m_settingsActivityLauncher.launch(intent);
     }
-
     public void onAbout(MenuItem item) {
         Intent intent = new Intent(this, AboutActivity.class);
         intent.putExtra(Constants.KeyHasAccelerometer, m_hasAccelerometer);
@@ -144,7 +200,7 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
         if (m_driverBugInfo != null) {
             intent.putExtra(Constants.KeyBugInfo, m_driverBugInfo);
         }
-        startActivityForResult(intent, Constants.AMAZING_LABYRINTH_ABOUT_ACTIVITY);
+        startActivity(intent);
     }
 
     public void publishError(String err) {
@@ -173,6 +229,7 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
             String version,
             String deviceName,
             boolean hasAccelerometer,
+            boolean isVulkanImplementation,
             ArrayList<String> driverBugInfo)
     {
         m_graphicsName = graphicsName;
@@ -180,11 +237,20 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
         m_deviceName = deviceName;
         m_hasAccelerometer = hasAccelerometer;
         m_driverBugInfo = driverBugInfo;
+
+        if (m_settings.getTryVulkan() && !isVulkanImplementation) {
+            m_settings.setTryVulkan(false);
+            saveSettingsToFile();
+        }
     }
 
     public int getRotation() {
         SurfaceView drawSurfaceView = findViewById(R.id.mainDrawingSurface);
         return drawSurfaceView.getDisplay().getRotation();
+    }
+
+    public Settings getSettings() {
+        return m_settings;
     }
 
     public void keepAppAlive(boolean keepAlive) {
@@ -193,6 +259,17 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
             getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
         } else {
             getWindow().clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+        }
+    }
+
+    private void saveSettingsToFile() {
+        try {
+            Settings.File file = m_settings.new File();
+            FileOutputStream out = new FileOutputStream(getFilesDir() + "/" + m_settingsFile);
+            file.save(out);
+            out.close();
+        } catch (IOException e) {
+            // nothing to do
         }
     }
 }

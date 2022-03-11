@@ -1,5 +1,5 @@
 /**
- * Copyright 2020 Cerulean Quasar. All Rights Reserved.
+ * Copyright 2022 Cerulean Quasar. All Rights Reserved.
  *
  *  This file is part of AmazingLabyrinth.
  *
@@ -60,7 +60,9 @@ public class MySurfaceCallback implements SurfaceHolder.Callback {
         if (m_game == null) {
             m_app.keepAppAlive(true);
             Handler notify = new Handler(new GameErrorHandler());
-            m_game = new Thread(new Draw(notify, drawSurface, m_app.getAssets(), m_app.getFilesDir().toString(), getRotation()));
+            Settings settings = m_app.getSettings();
+            m_game = new Thread(new Draw(notify, drawSurface, m_app.getAssets(),
+                    m_app.getFilesDir().toString(), getRotation(), settings.getTryVulkan()));
             m_game.start();
         }
     }
@@ -71,6 +73,7 @@ public class MySurfaceCallback implements SurfaceHolder.Callback {
             try {
                 m_game.join();
             } catch (InterruptedException e) {
+                // nothing to do
             }
             m_game = null;
         }
@@ -113,6 +116,7 @@ public class MySurfaceCallback implements SurfaceHolder.Callback {
                 String version = data.getString(Constants.KeyVersionName, m_app.getString(R.string.unknown));
                 String deviceName = data.getString(Constants.KeyDeviceName, m_app.getString(R.string.unknown));
                 boolean hasAccelerometer = data.getBoolean(Constants.KeyHasAccelerometer, false);
+                boolean isVulkanImplementation = data.getBoolean(Constants.keyIsVulkan, false);
                 ArrayList<String> driverBugInfo = null;
                 String str = null;
                 int i = 0;
@@ -128,7 +132,7 @@ public class MySurfaceCallback implements SurfaceHolder.Callback {
                 } while (str != null);
 
                 MySurfaceCallback.this.m_app.setDeviceInfo(graphicsName, version, deviceName,
-                        hasAccelerometer, driverBugInfo);
+                        hasAccelerometer, isVulkanImplementation, driverBugInfo);
                 return true;
             }
 

@@ -1,5 +1,5 @@
 /**
- * Copyright 2020 Cerulean Quasar. All Rights Reserved.
+ * Copyright 2022 Cerulean Quasar. All Rights Reserved.
  *
  *  This file is part of AmazingLabyrinth.
  *
@@ -117,7 +117,7 @@ public class AboutActivity extends AppCompatActivity {
     private void loadLicense(String filename) {
         Intent intent = new Intent(this, LicenseViewerActivity.class);
         intent.putExtra(Constants.KeyLicenseFile, filename);
-        startActivityForResult(intent, Constants.AMAZING_LABYRINTH_LICENSE_ACTIVITY);
+        startActivity(intent);
     }
 
     public void onMitGlm(View v) {

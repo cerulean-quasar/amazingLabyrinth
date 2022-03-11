@@ -7,6 +7,9 @@
         android:onClick="onSelectLevel"
         />
     <item
+        android:title="@string/settings"
+        android:onClick="onSettings"/>
+    <item
         android:title="@string/about"
         android:onClick="onAbout"
         />

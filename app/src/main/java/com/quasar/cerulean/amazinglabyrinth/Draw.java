@@ -1,5 +1,5 @@
 /**
- * Copyright 2020 Cerulean Quasar. All Rights Reserved.
+ * Copyright 2022 Cerulean Quasar. All Rights Reserved.
  *
  *  This file is part of AmazingLabyrinth.
  *
@@ -31,22 +31,26 @@ public class Draw implements Runnable {
     public static final float ROTATION_180 = 180;
     public static final float ROTATION_270 = 270;
 
-    private Handler m_notify;
-    private Surface m_drawingSurface;
-    private AssetManager m_assetManager;
-    private String m_saveGameDir;
-    private float m_rotaation;
+    private final Handler m_notify;
+    private final Surface m_drawingSurface;
+    private final AssetManager m_assetManager;
+    private final String m_saveGameDir;
+    private final float m_rotaation;
+    private final boolean m_tryVulkan;
 
-    public Draw(Handler inNotify, Surface inDrawingSurface, AssetManager inAssetManager, String inSaveGameDir, float inRotation) {
+    public Draw(Handler inNotify, Surface inDrawingSurface, AssetManager inAssetManager,
+                String inSaveGameDir, float inRotation, boolean inTryVulkan) {
         m_notify = inNotify;
         m_drawingSurface = inDrawingSurface;
         m_assetManager = inAssetManager;
         m_saveGameDir = inSaveGameDir;
         m_rotaation = inRotation;
+        m_tryVulkan = inTryVulkan;
     }
 
     public void run() {
-        startGame(m_drawingSurface, m_assetManager, m_saveGameDir, new GameReturnChannel(m_notify), m_rotaation);
+        startGame(m_drawingSurface, m_assetManager, m_saveGameDir, new GameReturnChannel(m_notify),
+                m_rotaation, m_tryVulkan);
     }
 
     public static void switchLevel(String level) {
@@ -84,5 +88,5 @@ public class Draw implements Runnable {
     private static native void tellDrawerStop();
 
     private native void startGame(Surface drawingSurface, AssetManager manager, String saveData,
-                                    GameReturnChannel notify, float rotationAngle);
+                                    GameReturnChannel notify, float rotationAngle, boolean tryVulkan);
 }

@@ -1,5 +1,5 @@
 /**
- * Copyright 2020 Cerulean Quasar. All Rights Reserved.
+ * Copyright 2022 Cerulean Quasar. All Rights Reserved.
  *
  *  This file is part of AmazingLabyrinth.
  *
@@ -37,7 +37,8 @@ Java_com_quasar_cerulean_amazinglabyrinth_Draw_startGame(
         jobject jassetManager,
         jstring jsaveDataDir,
         jobject jReturnChannel,
-        jfloat jrotationAngle)
+        jfloat jrotationAngle,
+        jboolean jtryVulkan)
 {
     std::string saveDataFile;
     try {
@@ -76,7 +77,7 @@ Java_com_quasar_cerulean_amazinglabyrinth_Draw_startGame(
     std::shared_ptr<WindowType> surface(window, deleter);
 
     try {
-        GameWorker worker{surface, gameRequester, true, /* useLegacy */ false, jrotationAngle};
+        GameWorker worker{surface, gameRequester, true, jtryVulkan != 0, jrotationAngle};
         worker.drawingLoop();
     } catch (std::runtime_error &e) {
         gameRequester->sendError(e.what());

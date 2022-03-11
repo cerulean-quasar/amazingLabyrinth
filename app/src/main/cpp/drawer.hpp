@@ -1,5 +1,5 @@
 /**
- * Copyright 2020 Cerulean Quasar. All Rights Reserved.
+ * Copyright 2022 Cerulean Quasar. All Rights Reserved.
  *
  *  This file is part of Amazing Labyrinth.
  *
@@ -223,10 +223,10 @@ public:
     GameWorker(std::shared_ptr<WindowType> inSurface,
                std::shared_ptr<GameRequester> inGameRequester,
                bool inUseGravity,
-               bool inUseLegacy,
+               bool inTryVulkan,
                float rotationAngle)
             : m_whichSensors{},
-              m_tryVulkan{!inUseLegacy},
+              m_tryVulkan{inTryVulkan},
               m_graphics{}
     {
         std::bitset<3> whichSensors = Sensors::hasWhichSensors();

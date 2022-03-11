@@ -1,5 +1,5 @@
 /**
- * Copyright 2020 Cerulean Quasar. All Rights Reserved.
+ * Copyright 2022 Cerulean Quasar. All Rights Reserved.
  *
  *  This file is part of AmazingLabyrinth.
  *
@@ -34,6 +34,7 @@ std::string const KeyVersionName = "versionName";
 std::string const KeyDeviceName = "deviceName";
 std::string const KeyBugInfo = "bugInfo";
 std::string const KeyHasAccelerometer = "hasAccelerometer";
+std::string const KeyIsVulkanImplementation = "isVulkan";
 
 void handleJNIException(JNIEnv *env);
 
@@ -44,7 +45,7 @@ class JGameRequester : public std::enable_shared_from_this<JGameRequester>, publ
 public:
     void sendError(std::string const &error) override;
     void sendError(char const *error) override;
-    void sendGraphicsDescription(GraphicsDescription const &description, bool hasAccelerometer) override;
+    void sendGraphicsDescription(GraphicsDescription const &description, bool hasAccelerometer, bool isVulkanImplementation) override;
     void sendKeepAliveEnabled(bool keepAliveEnabled) override;
     std::vector<char> getTextImage(std::string text, uint32_t &width, uint32_t &height,
         uint32_t &channels) override;

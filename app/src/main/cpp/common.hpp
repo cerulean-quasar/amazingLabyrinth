@@ -1,5 +1,5 @@
 /**
- * Copyright 2020 Cerulean Quasar. All Rights Reserved.
+ * Copyright 2022 Cerulean Quasar. All Rights Reserved.
  *
  *  This file is part of AmazingLabyrinth.
  *
@@ -60,7 +60,8 @@ class JRequester {
 public:
     virtual void sendError(std::string const &error) = 0;
     virtual void sendError(char const *error) = 0;
-    virtual void sendGraphicsDescription(GraphicsDescription const &description, bool hasAccelerometer) = 0;
+    virtual void sendGraphicsDescription(GraphicsDescription const &description,
+                                         bool hasAccelerometer, bool isVulkanImplementation) = 0;
     virtual void sendKeepAliveEnabled(bool keepAliveEnabled) = 0;
     virtual std::vector<char> getTextImage(std::string text, uint32_t &width, uint32_t &height,
             uint32_t &channels) = 0;
