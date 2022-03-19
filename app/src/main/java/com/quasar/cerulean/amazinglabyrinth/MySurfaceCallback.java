@@ -117,6 +117,7 @@ public class MySurfaceCallback implements SurfaceHolder.Callback {
                 String deviceName = data.getString(Constants.KeyDeviceName, m_app.getString(R.string.unknown));
                 boolean hasAccelerometer = data.getBoolean(Constants.KeyHasAccelerometer, false);
                 boolean isVulkanImplementation = data.getBoolean(Constants.keyIsVulkan, false);
+                boolean is64Bit = data.getBoolean(Constants.KeyIs64Bit, true);
                 ArrayList<String> driverBugInfo = null;
                 String str = null;
                 int i = 0;
@@ -132,7 +133,7 @@ public class MySurfaceCallback implements SurfaceHolder.Callback {
                 } while (str != null);
 
                 MySurfaceCallback.this.m_app.setDeviceInfo(graphicsName, version, deviceName,
-                        hasAccelerometer, isVulkanImplementation, driverBugInfo);
+                        hasAccelerometer, isVulkanImplementation, is64Bit, driverBugInfo);
                 return true;
             }
 

@@ -363,6 +363,7 @@ void JGameRequester::sendGraphicsDescription(GraphicsDescription const &descript
     bundle->putDatum<std::vector<std::string>>(KeyBugInfo, description.m_extraInfo);
     bundle->putDatum<bool>(KeyHasAccelerometer, hasAccelerometer);
     bundle->putDatum<bool>(KeyIsVulkanImplementation, isVulkanImplementation);
+    bundle->putDatum<bool>(KeyIs64Bit, sizeof (void*) == 8);
     JNIEnv *lenv = m_env;
     auto deleter = [lenv](jobject obj) {
         lenv->DeleteLocalRef(obj);

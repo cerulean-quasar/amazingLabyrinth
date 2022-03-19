@@ -35,6 +35,7 @@ std::string const KeyDeviceName = "deviceName";
 std::string const KeyBugInfo = "bugInfo";
 std::string const KeyHasAccelerometer = "hasAccelerometer";
 std::string const KeyIsVulkanImplementation = "isVulkan";
+std::string const KeyIs64Bit = "is64Bit";
 
 void handleJNIException(JNIEnv *env);
 

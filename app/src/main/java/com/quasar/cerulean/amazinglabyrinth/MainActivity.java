@@ -61,10 +61,11 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
 
     private static final String m_settingsFile = "gameSettings";
 
-    private String m_graphicsName;
-    private String m_version;
-    private String m_deviceName;
-    private boolean m_hasAccelerometer;
+    private String m_graphicsName = "";
+    private String m_version = "";
+    private String m_deviceName = "";
+    private boolean m_hasAccelerometer = true;
+    private boolean m_is64Bit = true;
     private ArrayList<String> m_driverBugInfo;
     private ActivityResultLauncher<Intent> m_selectLevelLauncher;
     private ActivityResultLauncher<Intent> m_settingsActivityLauncher;
@@ -197,6 +198,7 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
         intent.putExtra(Constants.KeyGraphicsName, m_graphicsName);
         intent.putExtra(Constants.KeyDeviceName, m_deviceName);
         intent.putExtra(Constants.KeyVersionName, m_version);
+        intent.putExtra(Constants.KeyIs64Bit, m_is64Bit);
         if (m_driverBugInfo != null) {
             intent.putExtra(Constants.KeyBugInfo, m_driverBugInfo);
         }
@@ -230,12 +232,14 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
             String deviceName,
             boolean hasAccelerometer,
             boolean isVulkanImplementation,
+            boolean is64Bit,
             ArrayList<String> driverBugInfo)
     {
         m_graphicsName = graphicsName;
         m_version = version;
         m_deviceName = deviceName;
         m_hasAccelerometer = hasAccelerometer;
+        m_is64Bit = is64Bit;
         m_driverBugInfo = driverBugInfo;
 
         if (m_settings.getTryVulkan() && !isVulkanImplementation) {

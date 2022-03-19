@@ -78,6 +78,14 @@ public class AboutActivity extends AppCompatActivity {
         view = findViewById(R.id.graphicsDriverInfo);
         view.setText(text);
 
+        boolean is64Bit = intent.getBooleanExtra(Constants.KeyIs64Bit, true);
+        view = findViewById(R.id.cpuType);
+        if (is64Bit) {
+            view.setText(getString(R.string.cpuType64Bit));
+        } else {
+            view.setText(getString(R.string.cpuType32Bit));
+        }
+
         ArrayList<String> infos = intent.getStringArrayListExtra(Constants.KeyBugInfo);
         if (infos == null) {
             LinearLayout infosLayout = findViewById(R.id.listOfIssues);

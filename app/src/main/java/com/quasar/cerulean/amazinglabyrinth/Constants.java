@@ -31,6 +31,7 @@ public class Constants {
     public static final String KeyVersionName = "versionName";
     public static final String KeyHasAccelerometer = "hasAccelerometer";
     public static final String KeyBugInfo = "bugInfo";
+    public static final String KeyIs64Bit = "is64Bit";
 
     // for Settings
     public static final String keyIsVulkan = "isVulkan";

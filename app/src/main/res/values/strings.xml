@@ -23,6 +23,9 @@
     <string name="graphicsDriverKnownIssues">Driver known issues:</string>
     <string name="accelerometer">Accelerometer:</string>
     <string name="hasAccelerometer">Device has Accelerometer:</string>
+    <string name="cpu">CPU type:</string>
+    <string name="cpuType32Bit">32 Bit</string>
+    <string name="cpuType64Bit">64 Bit</string>
 
     <string name="thirdPartyThanks">Many thanks to the following third party libraries this project uses:</string>
     <string name="thirdPartyGlm">GLM</string>
