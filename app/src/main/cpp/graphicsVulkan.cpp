@@ -1,5 +1,5 @@
 /**
- * Copyright 2020 Cerulean Quasar. All Rights Reserved.
+ * Copyright 2022 Cerulean Quasar. All Rights Reserved.
  *
  *  This file is part of AmazingLabyrinth.
  *
@@ -21,11 +21,97 @@
 #include "graphicsVulkan.hpp"
 
 namespace vulkan {
-/**
- * Call used to allocate a debug report callback so that you can get error
- * messages from Vulkan. This Vulkan function is from an extension, so you
- * need to get the function pointer to make the call.
- */
+
+    // define Vulkan creators
+    CQ_DEFINE_VULKAN_CREATOR(VkSurfaceKHR)
+    CQ_DEFINE_VULKAN_CREATOR(VkDebugReportCallbackEXT)
+    CQ_DEFINE_VULKAN_CREATOR(VkSwapchainKHR)
+    CQ_DEFINE_VULKAN_CREATOR(VkRenderPass)
+    CQ_DEFINE_VULKAN_CREATOR(VkShaderModule)
+    CQ_DEFINE_VULKAN_CREATOR(VkPipelineLayout)
+    CQ_DEFINE_VULKAN_CREATOR(VkPipeline)
+    CQ_DEFINE_VULKAN_CREATOR(VkCommandPool)
+    CQ_DEFINE_VULKAN_CREATOR(VkSemaphore)
+    CQ_DEFINE_VULKAN_CREATOR(VkImageView)
+    CQ_DEFINE_VULKAN_CREATOR(VkSampler)
+
+    // define Vulkan deleters
+
+    // surface
+    inline void deleteVkSurfaceKHR_CQ(std::shared_ptr<VkInstance_T> const &instance, VkSurfaceKHR_CQ *surface) {
+        vkDestroySurfaceKHR(instance.get(), getVkType<>(surface), nullptr);
+        deleteIfNecessary(surface);
+    }
+
+    // Debug Callback
+    inline void deleteVkDebugReportCallbackEXT_CQ(std::shared_ptr<VkInstance_T> const &instance,
+                                               void (destroyDebugCallback)(VkInstance instance,
+                                                       VkDebugReportCallbackEXT callback,
+                                                       const VkAllocationCallbacks *pAllocator),
+                                               VkDebugReportCallbackEXT_CQ *callback) {
+        destroyDebugCallback(instance.get(), getVkType<>(callback), nullptr);
+        deleteIfNecessary(callback);
+    }
+
+    // swapchain
+    inline void deleteVkSwapchainKHR_CQ(std::shared_ptr<Device> const &device, VkSwapchainKHR_CQ *swapchain) {
+        vkDestroySwapchainKHR(device->logicalDevice().get(), getVkType<>(swapchain), nullptr);
+        deleteIfNecessary(swapchain);
+    }
+
+    // render pass
+    inline void deleteVkRenderPass_CQ(std::shared_ptr<Device> const &device, VkRenderPass_CQ *renderPass) {
+        vkDestroyRenderPass(device->logicalDevice().get(), getVkType<>(renderPass), nullptr);
+        deleteIfNecessary(renderPass);
+    }
+
+    // shader module
+    inline void deleteVkShaderModule_CQ(std::shared_ptr<Device> const &inDevice, VkShaderModule_CQ *shaderModule) {
+        vkDestroyShaderModule(inDevice->logicalDevice().get(), getVkType<>(shaderModule), nullptr);
+        deleteIfNecessary(shaderModule);
+    }
+
+    // pipeline layout
+    inline void deleteVkPipelineLayout_CQ(std::shared_ptr<Device> const &inDevice, VkPipelineLayout_CQ *pipelineLayout) {
+        vkDestroyPipelineLayout(inDevice->logicalDevice().get(), getVkType<>(pipelineLayout), nullptr);
+        deleteIfNecessary(pipelineLayout);
+    }
+
+    // pipeline
+    inline void deleteVkPipeline_CQ(std::shared_ptr<Device> const &inDevice, VkPipeline_CQ *pipeline) {
+        vkDestroyPipeline(inDevice->logicalDevice().get(), getVkType<>(pipeline), nullptr);
+        deleteIfNecessary(pipeline);
+    }
+
+    // Command pool
+    inline void deleteVkCommandPool_CQ(std::shared_ptr<Device> const &inDevice, VkCommandPool_CQ *commandPool) {
+        vkDestroyCommandPool(inDevice->logicalDevice().get(), getVkType<>(commandPool), nullptr);
+        deleteIfNecessary(commandPool);
+    }
+
+    // Semaphores
+    inline void deleteVkSemaphore_CQ(std::shared_ptr<Device> const &inDevice, VkSemaphore_CQ *inSemaphore) {
+        vkDestroySemaphore(inDevice->logicalDevice().get(), getVkType<>(inSemaphore), nullptr);
+        deleteIfNecessary(inSemaphore);
+    }
+
+    // Image View
+    inline void deleteVkImageView_CQ(std::shared_ptr<Device> const &inDevice, VkImageView_CQ *imageView) {
+        vkDestroyImageView(inDevice->logicalDevice().get(), getVkType<>(imageView), nullptr);
+        deleteIfNecessary(imageView);
+    }
+
+    // Sampler
+    inline void deleteVkSampler_CQ(std::shared_ptr<Device> const &inDevice, VkSampler_CQ *sampler) {
+        vkDestroySampler(inDevice->logicalDevice().get(), getVkType<>(sampler), nullptr);
+        deleteIfNecessary(sampler);
+    }
+
+    /**
+     * Call used to allocate a debug report callback so that you can get error
+     * messages from Vulkan. This Vulkan function is from an extension, so you
+     * need to get the function pointer to make the call.
+     */
     VkResult CreateDebugReportCallbackEXT(VkInstance instance,
                                           const VkDebugReportCallbackCreateInfoEXT *pCreateInfo,
                                           const VkAllocationCallbacks *pAllocator,
@@ -53,11 +139,11 @@ namespace vulkan {
         // the surface requires the window, so, pass it into the deleter.
         std::shared_ptr<VkInstance_T> const &capInstance = m_instance;
         std::shared_ptr<WindowType> const &capWindow = m_window;
-        auto deleter = [capInstance, capWindow](VkSurfaceKHR surfaceRaw) {
-            vkDestroySurfaceKHR(capInstance.get(), surfaceRaw, nullptr);
+        auto deleter = [capInstance, capWindow](VkSurfaceKHR_CQ *surfaceRaw) {
+            deleteVkSurfaceKHR_CQ(capInstance, surfaceRaw);
         };
 
-        m_surface.reset(surfaceRaw, deleter);
+        m_surface.reset(createVkSurfaceKHR_CQ(surfaceRaw), deleter);
     }
 
     void Instance::setupDebugCallback() {
@@ -78,11 +164,11 @@ namespace vulkan {
 
         auto &capInstance = m_instance;
         auto capDestroyDebugCallback = destroyDebugReportCallbackEXT;
-        auto deleter = [capInstance, capDestroyDebugCallback](VkDebugReportCallbackEXT callbackRaw) {
-            capDestroyDebugCallback(capInstance.get(), callbackRaw, nullptr);
+        auto deleter = [capInstance, capDestroyDebugCallback](VkDebugReportCallbackEXT_CQ *callbackRaw) {
+            deleteVkDebugReportCallbackEXT_CQ(capInstance, capDestroyDebugCallback, callbackRaw);
         };
 
-        m_callback.reset(callbackRaw, deleter);
+        m_callback.reset(createVkDebugReportCallbackEXT_CQ(callbackRaw), deleter);
     }
 
     void Instance::createInstance() {
@@ -279,7 +365,8 @@ namespace vulkan {
         int i = 0;
         for (const auto &queueFamily : queueFamilies) {
             VkBool32 presentSupport = false;
-            vkGetPhysicalDeviceSurfaceSupportKHR(device, i, m_instance->surface().get(),
+            vkGetPhysicalDeviceSurfaceSupportKHR(device, i,
+                                                 getVkType<>(m_instance->surface().get()),
                                                  &presentSupport);
             if (queueFamily.queueCount > 0 && presentSupport) {
                 indices.presentFamily = i;
@@ -302,24 +389,31 @@ namespace vulkan {
     Device::SwapChainSupportDetails Device::querySwapChainSupport(VkPhysicalDevice device) {
         Device::SwapChainSupportDetails details;
 
-        vkGetPhysicalDeviceSurfaceCapabilitiesKHR(device, m_instance->surface().get(),
+        vkGetPhysicalDeviceSurfaceCapabilitiesKHR(device,
+                                                  getVkType<>(m_instance->surface().get()),
                                                   &details.capabilities);
 
         uint32_t formatCount;
-        vkGetPhysicalDeviceSurfaceFormatsKHR(device, m_instance->surface().get(), &formatCount,
-                                             nullptr);
+        vkGetPhysicalDeviceSurfaceFormatsKHR(
+                device,
+                getVkType<>(m_instance->surface().get()),
+                &formatCount,
+                nullptr);
         if (formatCount != 0) {
             details.formats.resize(formatCount);
-            vkGetPhysicalDeviceSurfaceFormatsKHR(device, m_instance->surface().get(), &formatCount,
-                                                 details.formats.data());
+            vkGetPhysicalDeviceSurfaceFormatsKHR(
+                    device,
+                    getVkType<>(m_instance->surface().get()),
+                    &formatCount,
+                    details.formats.data());
         }
 
         uint32_t presentModeCount;
-        vkGetPhysicalDeviceSurfacePresentModesKHR(device, m_instance->surface().get(),
+        vkGetPhysicalDeviceSurfacePresentModesKHR(device, getVkType<>(m_instance->surface().get()),
                                                   &presentModeCount, nullptr);
         if (presentModeCount != 0) {
             details.presentModes.resize(presentModeCount);
-            vkGetPhysicalDeviceSurfacePresentModesKHR(device, m_instance->surface().get(),
+            vkGetPhysicalDeviceSurfacePresentModesKHR(device, getVkType<>(m_instance->surface().get()),
                                                       &presentModeCount,
                                                       details.presentModes.data());
         }
@@ -502,7 +596,7 @@ namespace vulkan {
         /* set the create structure up. */
         VkSwapchainCreateInfoKHR createInfo = {};
         createInfo.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
-        createInfo.surface = m_device->instance()->surface().get();
+        createInfo.surface = getVkType<>(m_device->instance()->surface().get());
         createInfo.minImageCount = imageCount;
         createInfo.imageFormat = surfaceFormat.format;
         createInfo.imageColorSpace = surfaceFormat.colorSpace;
@@ -563,11 +657,11 @@ namespace vulkan {
         }
 
         auto const &capDevice = m_device;
-        auto deleter = [capDevice](VkSwapchainKHR swapChainRaw) {
-            vkDestroySwapchainKHR(capDevice->logicalDevice().get(), swapChainRaw, nullptr);
+        auto deleter = [capDevice](VkSwapchainKHR_CQ *swapChainRaw) {
+            deleteVkSwapchainKHR_CQ(capDevice, swapChainRaw);
         };
 
-        m_swapChain.reset(swapChainRaw, deleter);
+        m_swapChain.reset(createVkSwapchainKHR_CQ(swapChainRaw), deleter);
 
         m_imageFormat = surfaceFormat.format;
         m_extent = extent;
@@ -706,7 +800,7 @@ namespace vulkan {
         subpass.pColorAttachments = &colorAttachmentRef;
         subpass.pDepthStencilAttachment = &depthAttachmentRef;
 
-        /* create a render subbass dependency because we need the render pass to wait for the
+        /* create a render subpass dependency because we need the render pass to wait for the
          * VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT stage of the graphics pipeline
          */
         VkSubpassDependency dependency = {};
@@ -750,11 +844,11 @@ namespace vulkan {
         }
 
         auto const &capDevice = m_device;
-        auto deleter = [capDevice](VkRenderPass renderPassRaw) {
-            vkDestroyRenderPass(capDevice->logicalDevice().get(), renderPassRaw, nullptr);
+        auto deleter = [capDevice](VkRenderPass_CQ *renderPassCq) {
+            deleteVkRenderPass_CQ(capDevice, renderPassCq);
         };
 
-        m_renderPass.reset(renderPassRaw, deleter);
+        m_renderPass.reset(createVkRenderPass_CQ(renderPassRaw), deleter);
     }
 
     void RenderPass::createRenderPassDepthTexture(
@@ -882,16 +976,16 @@ namespace vulkan {
         }
 
         auto const &capDevice = m_device;
-        auto deleter = [capDevice](VkRenderPass renderPassRaw) {
-            vkDestroyRenderPass(capDevice->logicalDevice().get(), renderPassRaw, nullptr);
+        auto deleter = [capDevice](VkRenderPass_CQ *renderPassCq) {
+            deleteVkRenderPass_CQ(capDevice, renderPassCq);
         };
 
-        m_renderPass.reset(renderPassRaw, deleter);
+        m_renderPass.reset(createVkRenderPass_CQ(renderPassRaw), deleter);
     }
 
     void Shader::createShaderModule(std::shared_ptr<FileRequester> const &requester,
             std::string const &codeFile) {
-        auto code = readFile(requester, codeFile.c_str());
+        auto code = readFile(requester, codeFile);
 
         VkShaderModuleCreateInfo createInfo = {};
         createInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
@@ -907,11 +1001,11 @@ namespace vulkan {
         }
 
         auto const &capDevice = m_device;
-        auto deleter = [capDevice](VkShaderModule shaderModule) {
-            vkDestroyShaderModule(capDevice->logicalDevice().get(), shaderModule, nullptr);
+        auto deleter = [capDevice](VkShaderModule_CQ *shaderModule) {
+            deleteVkShaderModule_CQ(capDevice, shaderModule);
         };
 
-        m_shaderModule.reset(shaderModuleRaw, deleter);
+        m_shaderModule.reset(createVkShaderModule_CQ(shaderModuleRaw), deleter);
     }
 
     void Pipeline::createGraphicsPipeline(
@@ -933,7 +1027,7 @@ namespace vulkan {
             VkPipelineShaderStageCreateInfo vertShaderStageInfo = {};
             vertShaderStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
             vertShaderStageInfo.stage = VK_SHADER_STAGE_VERTEX_BIT;
-            vertShaderStageInfo.module = vertShaderModule->shader().get();
+            vertShaderStageInfo.module = getVkType<>(vertShaderModule->shader().get());
             vertShaderStageInfo.pName = "main";
             /* can also use pSpecializationInfo to set constants used by the shader.  This allows
              * the usage of one shader module to be configured in different ways at pipeline creation,
@@ -949,7 +1043,7 @@ namespace vulkan {
             VkPipelineShaderStageCreateInfo fragShaderStageInfo = {};
             fragShaderStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
             fragShaderStageInfo.stage = VK_SHADER_STAGE_FRAGMENT_BIT;
-            fragShaderStageInfo.module = fragShaderModule->shader().get();
+            fragShaderStageInfo.module = getVkType<>(fragShaderModule->shader().get());
             fragShaderStageInfo.pName = "main";
             fragShaderStageInfo.pSpecializationInfo = nullptr;
             shaderStages.push_back(fragShaderStageInfo);
@@ -1135,11 +1229,11 @@ namespace vulkan {
 
         /* the descriptor set layout for the MVP matrix */
         pipelineLayoutInfo.setLayoutCount = 1;
-        VkDescriptorSetLayout descriptorSetLayout = m_descriptorPools->descriptorSetLayout().get();
+        VkDescriptorSetLayout descriptorSetLayout = getVkType<>(m_descriptorPools->descriptorSetLayout().get());
         pipelineLayoutInfo.pSetLayouts = &descriptorSetLayout;
 
         pipelineLayoutInfo.pushConstantRangeCount = 0; // Optional
-        pipelineLayoutInfo.pPushConstantRanges = 0; // Optional
+        pipelineLayoutInfo.pPushConstantRanges = nullptr; // Optional
 
         VkPipelineLayout pipelineLayoutRaw;
         if (vkCreatePipelineLayout(m_device->logicalDevice().get(), &pipelineLayoutInfo, nullptr,
@@ -1148,11 +1242,11 @@ namespace vulkan {
         }
 
         auto const &capDevice = m_device;
-        auto layoutDeleter = [capDevice](VkPipelineLayout pipelineLayoutRaw) {
-            vkDestroyPipelineLayout(capDevice->logicalDevice().get(), pipelineLayoutRaw, nullptr);
+        auto layoutDeleter = [capDevice](VkPipelineLayout_CQ *pipelineLayoutRaw) {
+            deleteVkPipelineLayout_CQ(capDevice, pipelineLayoutRaw);
         };
 
-        m_pipelineLayout.reset(pipelineLayoutRaw, layoutDeleter);
+        m_pipelineLayout.reset(createVkPipelineLayout_CQ(pipelineLayoutRaw), layoutDeleter);
 
         VkGraphicsPipelineCreateInfo pipelineInfo = {};
         pipelineInfo.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
@@ -1165,8 +1259,8 @@ namespace vulkan {
         pipelineInfo.pMultisampleState = &multisampling;
         pipelineInfo.pDepthStencilState = &depthStencil;
         pipelineInfo.pColorBlendState = &colorBlending;
-        pipelineInfo.layout = m_pipelineLayout.get();
-        pipelineInfo.renderPass = m_renderPass->renderPass().get();
+        pipelineInfo.layout = getVkType<>(m_pipelineLayout.get());
+        pipelineInfo.renderPass = getVkType<>(m_renderPass->renderPass().get());
         pipelineInfo.subpass = 0; // index of the subpass
 
         /* if you want to create a pipeline from an already existing pipeline use these.
@@ -1177,7 +1271,7 @@ namespace vulkan {
             pipelineInfo.basePipelineHandle = VK_NULL_HANDLE; // Optional
         } else {
             pipelineInfo.flags = VK_PIPELINE_CREATE_DERIVATIVE_BIT;
-            pipelineInfo.basePipelineHandle = derivedPipeline->pipeline().get();
+            pipelineInfo.basePipelineHandle = getVkType<>(derivedPipeline->pipeline().get());
         }
 
         // Can use index or handle to refer to the base pipeline.  We use the handle so, set this to -1.
@@ -1189,11 +1283,11 @@ namespace vulkan {
             throw std::runtime_error("failed to create graphics pipeline!");
         }
 
-        auto pipelineDeleter = [capDevice](VkPipeline pipelineRaw) {
-            vkDestroyPipeline(capDevice->logicalDevice().get(), pipelineRaw, nullptr);
+        auto pipelineDeleter = [capDevice](VkPipeline_CQ *pipelineRaw) {
+            deleteVkPipeline_CQ(capDevice, pipelineRaw);
         };
 
-        m_pipeline.reset(pipelineRaw, pipelineDeleter);
+        m_pipeline.reset(createVkPipeline_CQ(pipelineRaw), pipelineDeleter);
     }
 
 /* command pools are used to retrieve command buffers.  Command buffers is where the drawing
@@ -1224,18 +1318,18 @@ namespace vulkan {
         }
 
         auto const &capDevice = m_device;
-        auto deleter = [capDevice](VkCommandPool commandsRaw) {
-            vkDestroyCommandPool(capDevice->logicalDevice().get(), commandsRaw, nullptr);
+        auto deleter = [capDevice](VkCommandPool_CQ *commandsRaw) {
+            deleteVkCommandPool_CQ(capDevice, commandsRaw);
         };
 
-        m_commandPool.reset(commandsRaw, deleter);
+        m_commandPool.reset(createVkCommandPool_CQ(commandsRaw), deleter);
     }
 
     void CommandBuffer::create() {
         VkCommandBufferAllocateInfo allocInfo = {};
         allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
         allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-        allocInfo.commandPool = m_pool->commandPool().get();
+        allocInfo.commandPool = getVkType<>(m_pool->commandPool().get());
         allocInfo.commandBufferCount = 1;
 
         VkCommandBuffer commandBufferRaw;
@@ -1249,7 +1343,7 @@ namespace vulkan {
         auto const &capCommandPool = m_pool;
         auto deleter = [capDevice, capCommandPool](VkCommandBuffer commandBufferRaw) {
             vkFreeCommandBuffers(capDevice->logicalDevice().get(),
-                                 capCommandPool->commandPool().get(), 1, &commandBufferRaw);
+                                 getVkType<>(capCommandPool->commandPool().get()), 1, &commandBufferRaw);
         };
 
         m_commandBuffer.reset(commandBufferRaw, deleter);
@@ -1274,13 +1368,13 @@ namespace vulkan {
         submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
         submitInfo.commandBufferCount = 1;
 
-        VkSemaphore waitSemaphores[] = {waitSemaphore.semaphore().get()};
+        VkSemaphore waitSemaphores[] = {getVkType<>(waitSemaphore.semaphore().get())};
         VkPipelineStageFlags waitStages[] = {pipelineStage};
         submitInfo.waitSemaphoreCount = 1;
         submitInfo.pWaitSemaphores = waitSemaphores;
         submitInfo.pWaitDstStageMask = waitStages;
 
-        VkSemaphore signalSemaphores[] = {signalSemaphore.semaphore().get()};
+        VkSemaphore signalSemaphores[] = {getVkType<>(signalSemaphore.semaphore().get())};
         submitInfo.signalSemaphoreCount = 1;
         submitInfo.pSignalSemaphores = signalSemaphores;
 
@@ -1304,7 +1398,7 @@ namespace vulkan {
         submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
         submitInfo.commandBufferCount = 1;
 
-        VkSemaphore signalSemaphores[] = {signalSemaphore.semaphore().get()};
+        VkSemaphore signalSemaphores[] = {getVkType<>(signalSemaphore.semaphore().get())};
         submitInfo.signalSemaphoreCount = 1;
         submitInfo.pSignalSemaphores = signalSemaphores;
 
@@ -1410,11 +1504,11 @@ namespace vulkan {
         }
 
         auto const &capDevice = m_device;
-        auto deleter = [capDevice](VkSemaphore semaphoreRaw) {
-            vkDestroySemaphore(capDevice->logicalDevice().get(), semaphoreRaw, nullptr);
+        auto deleter = [capDevice](VkSemaphore_CQ *semaphoreRaw) {
+            deleteVkSemaphore_CQ(capDevice, semaphoreRaw);
         };
 
-        m_semaphore.reset(semaphoreRaw, deleter);
+        m_semaphore.reset(createVkSemaphore_CQ(semaphoreRaw), deleter);
     }
 
     void Image::createImage(VkFormat format, VkImageTiling tiling,
@@ -1674,11 +1768,11 @@ namespace vulkan {
         }
 
         auto const &capImage = m_image;
-        auto deleter = [capImage] (VkImageView imageViewRaw) {
-            vkDestroyImageView(capImage->device()->logicalDevice().get(), imageViewRaw, nullptr);
+        auto deleter = [capImage] (VkImageView_CQ *imageViewRaw) {
+            deleteVkImageView_CQ(capImage->device(), imageViewRaw);
         };
 
-        m_imageView.reset(imageViewRaw, deleter);
+        m_imageView.reset(createVkImageView_CQ(imageViewRaw), deleter);
     }
 
     std::shared_ptr<Image> ImageFactory::createTextureImage(std::shared_ptr<Device> const &device,
@@ -1786,19 +1880,19 @@ namespace vulkan {
         }
 
         auto const &capDevice = m_device;
-        auto deleter = [capDevice](VkSampler textureSamplerRaw) {
-            vkDestroySampler(capDevice->logicalDevice().get(), textureSamplerRaw, nullptr);
+        auto deleter = [capDevice](VkSampler_CQ *textureSamplerRaw) {
+            deleteVkSampler_CQ(capDevice, textureSamplerRaw);
         };
 
-        m_sampler.reset(textureSamplerRaw, deleter);
+        m_sampler.reset(createVkSampler_CQ(textureSamplerRaw), deleter);
     }
 
     void SwapChainCommands::createFramebuffers(std::shared_ptr<RenderPass> &renderPass,
                                                std::shared_ptr<ImageView> &depthImage) {
         for (size_t i = 0; i < m_imageViews.size(); i++) {
             std::vector<VkImageView> attachments = {
-                    m_imageViews[i].imageView().get(),
-                    depthImage->imageView().get()
+                    getVkType<>(m_imageViews[i].imageView().get()),
+                    getVkType<>(depthImage->imageView().get())
             };
             m_framebuffers.push_back(Framebuffer::createRawFramebuffer(m_swapChain->device(),
                     renderPass, attachments, m_swapChain->extent().width, m_swapChain->extent().height));
@@ -1814,7 +1908,7 @@ namespace vulkan {
          */
         VkCommandBufferAllocateInfo allocInfo = {};
         allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
-        allocInfo.commandPool = m_pool->commandPool().get();
+        allocInfo.commandPool = getVkType<>(m_pool->commandPool().get());
         allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
         allocInfo.commandBufferCount = (uint32_t) m_commandBuffers.size();
 

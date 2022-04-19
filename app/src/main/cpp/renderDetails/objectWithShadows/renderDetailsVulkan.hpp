@@ -121,7 +121,7 @@ namespace objectWithShadows {
 
     class TextureDescriptorSetLayout : public vulkan::DescriptorSetLayout {
     public:
-        std::shared_ptr<VkDescriptorSetLayout_T> const &descriptorSetLayout() override {
+        std::shared_ptr<VkDescriptorSetLayout_CQ> const &descriptorSetLayout() override {
             return m_descriptorSetLayout;
         }
 
@@ -159,7 +159,7 @@ namespace objectWithShadows {
         static uint32_t constexpr m_numberOfDescriptorSetsInPool = 1024;
 
         std::shared_ptr<vulkan::Device> m_device;
-        std::shared_ptr<VkDescriptorSetLayout_T> m_descriptorSetLayout;
+        std::shared_ptr<VkDescriptorSetLayout_CQ> m_descriptorSetLayout;
         VkDescriptorPoolCreateInfo m_poolInfo;
         std::array<VkDescriptorPoolSize, 5> m_poolSizes;
 
@@ -168,7 +168,7 @@ namespace objectWithShadows {
 
     class ColorDescriptorSetLayout : public vulkan::DescriptorSetLayout {
     public:
-        std::shared_ptr<VkDescriptorSetLayout_T> const &descriptorSetLayout() override {
+        std::shared_ptr<VkDescriptorSetLayout_CQ> const &descriptorSetLayout() override {
             return m_descriptorSetLayout;
         }
 
@@ -204,7 +204,7 @@ namespace objectWithShadows {
         static uint32_t constexpr m_numberOfDescriptorSetsInPool = 1024;
 
         std::shared_ptr<vulkan::Device> m_device;
-        std::shared_ptr<VkDescriptorSetLayout_T> m_descriptorSetLayout;
+        std::shared_ptr<VkDescriptorSetLayout_CQ> m_descriptorSetLayout;
         VkDescriptorPoolCreateInfo m_poolInfo;
         std::array<VkDescriptorPoolSize, 4> m_poolSizes;
 

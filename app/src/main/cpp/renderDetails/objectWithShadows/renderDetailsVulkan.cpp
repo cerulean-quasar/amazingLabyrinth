@@ -1,5 +1,5 @@
 /**
- * Copyright 2020 Cerulean Quasar. All Rights Reserved.
+ * Copyright 2022 Cerulean Quasar. All Rights Reserved.
  *
  *  This file is part of AmazingLabyrinth.
  *
@@ -40,7 +40,7 @@ namespace objectWithShadows {
 
         std::array<VkWriteDescriptorSet, 5> descriptorWrites = {};
         descriptorWrites[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-        descriptorWrites[0].dstSet = m_descriptorSet->descriptorSet().get();
+        descriptorWrites[0].dstSet = getVkType<>(m_descriptorSet->descriptorSet().get());
 
         /* must be the same as the binding in the vertex shader */
         descriptorWrites[0].dstBinding = 0;
@@ -67,7 +67,7 @@ namespace objectWithShadows {
         commonInfo.range = cod->cameraBufferSize();
 
         descriptorWrites[1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-        descriptorWrites[1].dstSet = m_descriptorSet->descriptorSet().get();
+        descriptorWrites[1].dstSet = getVkType<>(m_descriptorSet->descriptorSet().get());
         descriptorWrites[1].dstBinding = 1;
         descriptorWrites[1].dstArrayElement = 0;
         descriptorWrites[1].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
@@ -80,7 +80,7 @@ namespace objectWithShadows {
         bufferLightingSource.range = cod->lightingBufferSize();
 
         descriptorWrites[2].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-        descriptorWrites[2].dstSet = m_descriptorSet->descriptorSet().get();
+        descriptorWrites[2].dstSet = getVkType<>(m_descriptorSet->descriptorSet().get());
         descriptorWrites[2].dstBinding = 2;
         descriptorWrites[2].dstArrayElement = 0;
         descriptorWrites[2].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
@@ -89,11 +89,11 @@ namespace objectWithShadows {
 
         VkDescriptorImageInfo shadowInfo = {};
         shadowInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-        shadowInfo.imageView = cod->shadowsSampler()->imageView()->imageView().get();
-        shadowInfo.sampler = cod->shadowsSampler()->sampler().get();
+        shadowInfo.imageView = getVkType<>(cod->shadowsSampler()->imageView()->imageView().get());
+        shadowInfo.sampler = getVkType<>(cod->shadowsSampler()->sampler().get());
 
         descriptorWrites[3].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-        descriptorWrites[3].dstSet = m_descriptorSet->descriptorSet().get();
+        descriptorWrites[3].dstSet = getVkType<>(m_descriptorSet->descriptorSet().get());
         descriptorWrites[3].dstBinding = 3;
         descriptorWrites[3].dstArrayElement = 0;
         descriptorWrites[3].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
@@ -118,7 +118,7 @@ namespace objectWithShadows {
 
         std::array<VkWriteDescriptorSet, 5> descriptorWrites = {};
         descriptorWrites[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-        descriptorWrites[0].dstSet = m_descriptorSet->descriptorSet().get();
+        descriptorWrites[0].dstSet = getVkType<>(m_descriptorSet->descriptorSet().get());
 
         /* must be the same as the binding in the vertex shader */
         descriptorWrites[0].dstBinding = 0;
@@ -145,7 +145,7 @@ namespace objectWithShadows {
         commonInfo.range = cod->cameraBufferSize();
 
         descriptorWrites[1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-        descriptorWrites[1].dstSet = m_descriptorSet->descriptorSet().get();
+        descriptorWrites[1].dstSet = getVkType<>(m_descriptorSet->descriptorSet().get());
         descriptorWrites[1].dstBinding = 1;
         descriptorWrites[1].dstArrayElement = 0;
         descriptorWrites[1].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
@@ -154,11 +154,11 @@ namespace objectWithShadows {
 
         VkDescriptorImageInfo imageInfo = {};
         imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-        imageInfo.imageView = textureData->sampler()->imageView()->imageView().get();
-        imageInfo.sampler = textureData->sampler()->sampler().get();
+        imageInfo.imageView = getVkType<>(textureData->sampler()->imageView()->imageView().get());
+        imageInfo.sampler = getVkType<>(textureData->sampler()->sampler().get());
 
         descriptorWrites[2].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-        descriptorWrites[2].dstSet = m_descriptorSet->descriptorSet().get();
+        descriptorWrites[2].dstSet = getVkType<>(m_descriptorSet->descriptorSet().get());
         descriptorWrites[2].dstBinding = 2;
         descriptorWrites[2].dstArrayElement = 0;
         descriptorWrites[2].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
@@ -171,7 +171,7 @@ namespace objectWithShadows {
         bufferLightingSource.range = cod->lightingBufferSize();
 
         descriptorWrites[3].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-        descriptorWrites[3].dstSet = m_descriptorSet->descriptorSet().get();
+        descriptorWrites[3].dstSet = getVkType<>(m_descriptorSet->descriptorSet().get());
         descriptorWrites[3].dstBinding = 3;
         descriptorWrites[3].dstArrayElement = 0;
         descriptorWrites[3].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
@@ -180,11 +180,11 @@ namespace objectWithShadows {
 
         VkDescriptorImageInfo shadowInfo = {};
         shadowInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-        shadowInfo.imageView = cod->shadowsSampler()->imageView()->imageView().get();
-        shadowInfo.sampler = cod->shadowsSampler()->sampler().get();
+        shadowInfo.imageView = getVkType<>(cod->shadowsSampler()->imageView()->imageView().get());
+        shadowInfo.sampler = getVkType<>(cod->shadowsSampler()->sampler().get());
 
         descriptorWrites[4].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-        descriptorWrites[4].dstSet = m_descriptorSet->descriptorSet().get();
+        descriptorWrites[4].dstSet = getVkType<>(m_descriptorSet->descriptorSet().get());
         descriptorWrites[4].dstBinding = 4;
         descriptorWrites[4].dstArrayElement = 0;
         descriptorWrites[4].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
@@ -256,12 +256,11 @@ namespace objectWithShadows {
         }
 
         auto const &capDevice = m_device;
-        auto deleter = [capDevice](VkDescriptorSetLayout descriptorSetLayoutRaw) {
-            vkDestroyDescriptorSetLayout(capDevice->logicalDevice().get(), descriptorSetLayoutRaw,
-                                         nullptr);
+        auto deleter = [capDevice](VkDescriptorSetLayout_CQ *descriptorSetLayoutRaw) {
+            vulkan::deleteVkDescriptorSetLayout_CQ(capDevice, descriptorSetLayoutRaw);
         };
 
-        m_descriptorSetLayout.reset(descriptorSetLayoutRaw, deleter);
+        m_descriptorSetLayout.reset(vulkan::createVkDescriptorSetLayout_CQ(descriptorSetLayoutRaw), deleter);
     }
 
     /* for accessing data other than the vertices from the shaders */
@@ -315,12 +314,11 @@ namespace objectWithShadows {
         }
 
         auto const &capDevice = m_device;
-        auto deleter = [capDevice](VkDescriptorSetLayout descriptorSetLayoutRaw) {
-            vkDestroyDescriptorSetLayout(capDevice->logicalDevice().get(), descriptorSetLayoutRaw,
-                                         nullptr);
+        auto deleter = [capDevice](VkDescriptorSetLayout_CQ *descriptorSetLayoutRaw) {
+            vulkan::deleteVkDescriptorSetLayout_CQ(capDevice, descriptorSetLayoutRaw);
         };
 
-        m_descriptorSetLayout.reset(descriptorSetLayoutRaw, deleter);
+        m_descriptorSetLayout.reset(vulkan::createVkDescriptorSetLayout_CQ(descriptorSetLayoutRaw), deleter);
     }
 
     renderDetails::ReferenceVulkan RenderDetailsVulkan::createReference(

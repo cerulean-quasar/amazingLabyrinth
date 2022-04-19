@@ -1,5 +1,5 @@
 /**
- * Copyright 2020 Cerulean Quasar. All Rights Reserved.
+ * Copyright 2022 Cerulean Quasar. All Rights Reserved.
  *
  *  This file is part of AmazingLabyrinth.
  *
@@ -134,8 +134,8 @@ void GraphicsVulkan::drawFrame() {
      * an error from this function does not necessarily mean that we need to terminate
      * the program
      */
-    VkResult result = vkAcquireNextImageKHR(m_device->logicalDevice().get(), m_swapChain->swapChain().get(),
-                                            std::numeric_limits<uint64_t>::max(), m_imageAvailableSemaphore.semaphore().get(),
+    VkResult result = vkAcquireNextImageKHR(m_device->logicalDevice().get(), getVkType<>(m_swapChain->swapChain().get()),
+                                            std::numeric_limits<uint64_t>::max(), getVkType<>(m_imageAvailableSemaphore.semaphore().get()),
                                             VK_NULL_HANDLE, &imageIndex);
 
     //if (maze->isFinished() || levelFinisher->isUnveiling() || texturesChanged) {
@@ -164,7 +164,7 @@ void GraphicsVulkan::drawFrame() {
     /* wait for the semaphore before writing to the color attachment.  This means that we
      * could start executing the vertex shader before the image is available.
      */
-    VkSemaphore waitSemaphores[] = {m_imageAvailableSemaphore.semaphore().get()/*, m_shadowsAvailableForRead.semaphore().get() */};
+    VkSemaphore waitSemaphores[] = {getVkType<>(m_imageAvailableSemaphore.semaphore().get())/*, m_shadowsAvailableForRead.semaphore().get() */};
     VkPipelineStageFlags waitStages[] = {VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT /*, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT */};
     submitInfo.waitSemaphoreCount = 1;//2;
     submitInfo.pWaitSemaphores = waitSemaphores;
@@ -176,7 +176,7 @@ void GraphicsVulkan::drawFrame() {
     submitInfo.pCommandBuffers = &commandBuffer;
 
     /* indicate which semaphore to signal when execution is done */
-    VkSemaphore signalSemaphores[] = {m_renderFinishedSemaphore.semaphore().get()/*, m_shadowsAvailableForWrite.semaphore().get()*/};
+    VkSemaphore signalSemaphores[] = {getVkType<>(m_renderFinishedSemaphore.semaphore().get())/*, m_shadowsAvailableForWrite.semaphore().get()*/};
     submitInfo.signalSemaphoreCount = 1;//2;
     submitInfo.pSignalSemaphores = signalSemaphores;
 
@@ -198,7 +198,7 @@ void GraphicsVulkan::drawFrame() {
     /* which swap chains to present the image to and the index of the image for
      * each swap chain
      */
-    VkSwapchainKHR swapChains[] = {m_swapChain->swapChain().get()};
+    VkSwapchainKHR swapChains[] = {getVkType<>(m_swapChain->swapChain().get())};
     presentInfo.swapchainCount = 1;
     presentInfo.pSwapchains = swapChains;
     presentInfo.pImageIndices = &imageIndex;

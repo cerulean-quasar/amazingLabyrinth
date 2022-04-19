@@ -1,5 +1,5 @@
 /**
- * Copyright 2020 Cerulean Quasar. All Rights Reserved.
+ * Copyright 2022 Cerulean Quasar. All Rights Reserved.
  *
  *  This file is part of AmazingLabyrinth.
  *
@@ -58,12 +58,11 @@ namespace shadows {
         }
 
         auto const &capDevice = m_device;
-        auto deleter = [capDevice](VkDescriptorSetLayout descriptorSetLayoutRaw) {
-            vkDestroyDescriptorSetLayout(capDevice->logicalDevice().get(), descriptorSetLayoutRaw,
-                                         nullptr);
+        auto deleter = [capDevice](VkDescriptorSetLayout_CQ *descriptorSetLayoutRaw) {
+            vulkan::deleteVkDescriptorSetLayout_CQ(capDevice, descriptorSetLayoutRaw);
         };
 
-        m_descriptorSetLayout.reset(descriptorSetLayoutRaw, deleter);
+        m_descriptorSetLayout.reset(vulkan::createVkDescriptorSetLayout_CQ(descriptorSetLayoutRaw), deleter);
     }
 
     /* descriptor set for the MVP matrix and texture samplers */
@@ -78,7 +77,7 @@ namespace shadows {
 
         std::array<VkWriteDescriptorSet, 2> descriptorWrites = {};
         descriptorWrites[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-        descriptorWrites[0].dstSet = m_descriptorSet->descriptorSet().get();
+        descriptorWrites[0].dstSet = getVkType<>(m_descriptorSet->descriptorSet().get());
 
         /* must be the same as the binding in the vertex shader */
         descriptorWrites[0].dstBinding = 0;
@@ -105,7 +104,7 @@ namespace shadows {
         commonInfo.range = inCommonObjectData->cameraBufferSize();
 
         descriptorWrites[1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-        descriptorWrites[1].dstSet = m_descriptorSet->descriptorSet().get();
+        descriptorWrites[1].dstSet = getVkType<>(m_descriptorSet->descriptorSet().get());
         descriptorWrites[1].dstBinding = 1;
         descriptorWrites[1].dstArrayElement = 0;
         descriptorWrites[1].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;

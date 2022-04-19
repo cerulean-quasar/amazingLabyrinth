@@ -1,5 +1,5 @@
 /**
- * Copyright 2020 Cerulean Quasar. All Rights Reserved.
+ * Copyright 2022 Cerulean Quasar. All Rights Reserved.
  *
  *  This file is part of AmazingLabyrinth.
  *
@@ -60,11 +60,11 @@ namespace depthMap {
         }
 
         auto const &capDevice = m_device;
-        auto deleter = [capDevice](VkDescriptorSetLayout descriptorSetLayoutRaw) {
-            vkDestroyDescriptorSetLayout(capDevice->logicalDevice().get(), descriptorSetLayoutRaw, nullptr);
+        auto deleter = [capDevice](VkDescriptorSetLayout_CQ *descriptorSetLayoutRaw) {
+            vulkan::deleteVkDescriptorSetLayout_CQ(capDevice, descriptorSetLayoutRaw);
         };
 
-        m_descriptorSetLayout.reset(descriptorSetLayoutRaw, deleter);
+        m_descriptorSetLayout.reset(vulkan::createVkDescriptorSetLayout_CQ(descriptorSetLayoutRaw), deleter);
     }
 
     /* descriptor set for the MVP matrix and texture samplers */
@@ -79,7 +79,7 @@ namespace depthMap {
 
         std::array<VkWriteDescriptorSet, 2> descriptorWrite = {};
         descriptorWrite[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-        descriptorWrite[0].dstSet = m_descriptorSet->descriptorSet().get();
+        descriptorWrite[0].dstSet = getVkType<>(m_descriptorSet->descriptorSet().get());
         descriptorWrite[0].dstBinding = 0;
         descriptorWrite[0].dstArrayElement = 0;
         descriptorWrite[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
@@ -95,7 +95,7 @@ namespace depthMap {
         bufferInfo.range = sizeof (PerObjectUBO);
 
         descriptorWrite[1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-        descriptorWrite[1].dstSet = m_descriptorSet->descriptorSet().get();
+        descriptorWrite[1].dstSet = getVkType<>(m_descriptorSet->descriptorSet().get());
         descriptorWrite[1].dstBinding = 1;
         descriptorWrite[1].dstArrayElement = 0;
         descriptorWrite[1].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;

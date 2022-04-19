@@ -1,5 +1,5 @@
 /**
- * Copyright 2020 Cerulean Quasar. All Rights Reserved.
+ * Copyright 2022 Cerulean Quasar. All Rights Reserved.
  *
  *  This file is part of AmazingLabyrinth.
  *
@@ -59,7 +59,7 @@ namespace levelDrawer {
         // begin the main render pass
         VkRenderPassBeginInfo renderPassInfo = {};
         renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-        renderPassInfo.renderPass = m_surfaceDetails->renderPass->renderPass().get();
+        renderPassInfo.renderPass = getVkType<>(m_surfaceDetails->renderPass->renderPass().get());
         renderPassInfo.framebuffer = info.framebuffer;
         /* size of the render area */
         renderPassInfo.renderArea.offset = {0, 0};
@@ -188,8 +188,8 @@ namespace levelDrawer {
         /* begin the render pass: drawing starts here*/
         VkRenderPassBeginInfo renderPassInfo = {};
         renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-        renderPassInfo.renderPass = renderPass->renderPass().get();
-        renderPassInfo.framebuffer = frameBuffer->framebuffer().get();
+        renderPassInfo.renderPass = getVkType<>(renderPass->renderPass().get());
+        renderPassInfo.framebuffer = getVkType<>(frameBuffer->framebuffer().get());
         /* size of the render area */
         renderPassInfo.renderArea.offset = {0, 0};
         renderPassInfo.renderArea.extent = {imageWidth, imageHeight};

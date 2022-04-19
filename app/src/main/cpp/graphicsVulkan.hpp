@@ -1,5 +1,5 @@
 /**
- * Copyright 2020 Cerulean Quasar. All Rights Reserved.
+ * Copyright 2022 Cerulean Quasar. All Rights Reserved.
  *
  *  This file is part of AmazingLabyrinth.
  *
@@ -44,6 +44,7 @@
 #include <glm/glm.hpp>
 #include <map>
 
+#include "graphicsCpuArch.hpp"
 #include "android.hpp"
 #include "levels/finisher/types.hpp"
 #include "levelTracker/levelTracker.hpp"
@@ -93,16 +94,16 @@ namespace vulkan {
 
         inline std::shared_ptr<VkInstance_T> const &instance() { return m_instance; }
 
-        inline std::shared_ptr<VkSurfaceKHR_T> const &surface() { return m_surface; }
+        inline std::shared_ptr<VkSurfaceKHR_CQ> const &surface() { return m_surface; }
 
-        inline std::shared_ptr<VkDebugReportCallbackEXT_T> const &callback() { return m_callback; }
+        inline std::shared_ptr<VkDebugReportCallbackEXT_CQ> const &callback() { return m_callback; }
 
     private:
         VulkanLibrary m_loader;
         std::shared_ptr<WindowType> m_window;
         std::shared_ptr<VkInstance_T> m_instance;
-        std::shared_ptr<VkDebugReportCallbackEXT_T> m_callback;
-        std::shared_ptr<VkSurfaceKHR_T> m_surface;
+        std::shared_ptr<VkDebugReportCallbackEXT_CQ> m_callback;
+        std::shared_ptr<VkSurfaceKHR_CQ> m_surface;
 
         static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(
                 VkDebugReportFlagsEXT,
@@ -263,13 +264,13 @@ namespace vulkan {
         }
 
         inline std::shared_ptr<Device> const &device() { return m_device; }
-        inline std::shared_ptr<VkSwapchainKHR_T> const &swapChain() {return m_swapChain; }
+        inline std::shared_ptr<VkSwapchainKHR_CQ> const &swapChain() {return m_swapChain; }
         inline VkFormat imageFormat() { return m_imageFormat; }
         inline VkExtent2D extent() { return m_extent; }
         inline VkSurfaceTransformFlagsKHR preTransform() { return m_preTransform; }
     private:
         std::shared_ptr<Device> m_device;
-        std::shared_ptr<VkSwapchainKHR_T> m_swapChain;
+        std::shared_ptr<VkSwapchainKHR_CQ> m_swapChain;
         VkFormat m_imageFormat;
         VkExtent2D m_extent;
         VkSurfaceTransformFlagsKHR m_preTransform;
@@ -324,7 +325,7 @@ namespace vulkan {
                   finalLayout{other.finalLayout}
             {}
         };
-        inline std::shared_ptr<VkRenderPass_T> const &renderPass() { return m_renderPass; }
+        inline std::shared_ptr<VkRenderPass_CQ> const &renderPass() { return m_renderPass; }
         inline size_t numberColorAttachments() { return m_colorAttachmentFormats.size(); }
 
         // For a normal render pass that includes a color and depth attachment
@@ -385,7 +386,7 @@ namespace vulkan {
         }
 
         std::shared_ptr<Device> m_device;
-        std::shared_ptr<VkRenderPass_T> m_renderPass;
+        std::shared_ptr<VkRenderPass_CQ> m_renderPass;
         size_t m_nbrColorAttachments;
         std::vector<VkFormat> m_colorAttachmentFormats;
         VkFormat m_depthAttachmentFormat;
@@ -398,35 +399,48 @@ namespace vulkan {
 
     class DescriptorPools;
 
+    CQ_DEFINE_VULKAN_CREATOR(VkDescriptorSet)
     class DescriptorSet {
         friend DescriptorPools;
     private:
         std::shared_ptr<DescriptorPools> m_descriptorPools;
-        std::shared_ptr<VkDescriptorSet_T> m_descriptorSet;
+        std::shared_ptr<VkDescriptorSet_CQ> m_descriptorSet;
 
         DescriptorSet(std::shared_ptr<DescriptorPools> inDescriptorPools,
-                      std::shared_ptr<VkDescriptorSet_T> const &inDsc)
+                      std::shared_ptr<VkDescriptorSet_CQ> const &inDsc)
                 : m_descriptorPools{inDescriptorPools},
                   m_descriptorSet{inDsc} {
         }
 
     public:
-        inline std::shared_ptr<VkDescriptorSet_T> const &descriptorSet() { return m_descriptorSet; }
+        inline std::shared_ptr<VkDescriptorSet_CQ> const &descriptorSet() { return m_descriptorSet; }
     };
+
+    // Descriptor Set Layout creators and deleters used by render details files, so declare them here
+    CQ_DEFINE_VULKAN_CREATOR(VkDescriptorSetLayout)
+    inline void deleteVkDescriptorSetLayout_CQ(std::shared_ptr<Device> const &inDevice, VkDescriptorSetLayout_CQ *layout) {
+        vkDestroyDescriptorSetLayout(inDevice->logicalDevice().get(), getVkType<>(layout), nullptr);
+        deleteIfNecessary(layout);
+    }
 
     class DescriptorSetLayout {
     public:
-        virtual std::shared_ptr<VkDescriptorSetLayout_T> const &descriptorSetLayout() = 0;
+        virtual std::shared_ptr<VkDescriptorSetLayout_CQ> const &descriptorSetLayout() = 0;
         virtual uint32_t numberOfDescriptors() = 0;
         virtual VkDescriptorPoolCreateInfo const &poolCreateInfo() = 0;
         virtual ~DescriptorSetLayout() {}
     };
 
+    CQ_DEFINE_VULKAN_CREATOR(VkDescriptorPool)
+    inline void deleteVkDescriptorPool_CQ(std::shared_ptr<Device> const &inDevice, VkDescriptorPool_CQ *pool) {
+        vkDestroyDescriptorPool(inDevice->logicalDevice().get(), getVkType<>(pool), nullptr);
+        deleteIfNecessary(pool);
+    }
     class DescriptorPool {
         friend DescriptorPools;
     private:
         std::shared_ptr<Device> m_device;
-        std::shared_ptr<VkDescriptorPool_T> m_descriptorPool;
+        std::shared_ptr<VkDescriptorPool_CQ> m_descriptorPool;
         uint32_t m_totalDescriptorsInPool;
         uint32_t m_totalDescriptorsAllocated;
 
@@ -444,22 +458,22 @@ namespace vulkan {
                 throw std::runtime_error("failed to create descriptor pool!");
             }
 
-            auto deleter = [inDevice](VkDescriptorPool descriptorPoolRaw) {
-                vkDestroyDescriptorPool(inDevice->logicalDevice().get(), descriptorPoolRaw, nullptr);
+            auto deleter = [inDevice](VkDescriptorPool_CQ *pool) {
+                deleteVkDescriptorPool_CQ(inDevice, pool);
             };
 
-            m_descriptorPool.reset(descriptorPoolRaw, deleter);
+            m_descriptorPool.reset(createVkDescriptorPool_CQ(descriptorPoolRaw), deleter);
         }
 
-        VkDescriptorSet allocateDescriptor(std::shared_ptr<DescriptorSetLayout> const &layout) {
+        VkDescriptorSet_CQ *allocateDescriptor(std::shared_ptr<DescriptorSetLayout> const &layout) {
             if (m_totalDescriptorsAllocated == m_totalDescriptorsInPool) {
-                return VK_NULL_HANDLE;
+                return createVkDescriptorSet_CQ(VK_NULL_HANDLE);
             } else {
                 VkDescriptorSet descriptorSet;
-                VkDescriptorSetLayout layouts[] = {layout->descriptorSetLayout().get()};
+                VkDescriptorSetLayout layouts[] = {getVkType<>(layout->descriptorSetLayout().get())};
                 VkDescriptorSetAllocateInfo allocInfo = {};
                 allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
-                allocInfo.descriptorPool = m_descriptorPool.get();
+                allocInfo.descriptorPool = getVkType<>(m_descriptorPool.get());
                 allocInfo.descriptorSetCount = 1;
                 allocInfo.pSetLayouts = layouts;
 
@@ -472,7 +486,7 @@ namespace vulkan {
                     throw std::runtime_error("failed to allocate descriptor set!");
                 }
                 m_totalDescriptorsAllocated++;
-                return descriptorSet;
+                return createVkDescriptorSet_CQ(descriptorSet);
             }
         }
 
@@ -492,7 +506,7 @@ namespace vulkan {
         std::shared_ptr<Device> m_device;
         std::shared_ptr<DescriptorSetLayout> m_descriptorSetLayout;
         std::vector<DescriptorPool> m_descriptorPools;
-        std::vector<VkDescriptorSet> m_unusedDescriptors;
+        std::vector<VkDescriptorSet_CQ*> m_unusedDescriptors;
 
     public:
         DescriptorPools(std::shared_ptr<Device> const &inDevice,
@@ -503,33 +517,33 @@ namespace vulkan {
                   m_unusedDescriptors{} {
         }
 
-        inline std::shared_ptr<VkDescriptorSetLayout_T> const &descriptorSetLayout() {
+        inline std::shared_ptr<VkDescriptorSetLayout_CQ> const &descriptorSetLayout() {
             return m_descriptorSetLayout->descriptorSetLayout();
         }
 
         std::shared_ptr<DescriptorSet> allocateDescriptor() {
-            if (m_descriptorSetLayout == VK_NULL_HANDLE) {
+            if (m_descriptorSetLayout == nullptr) {
                 throw (std::runtime_error(
                         "DescriptorPool::allocateDescriptor - no descriptor set layout"));
             }
 
-            auto deleter = [this](VkDescriptorSet descSet) {
+            auto deleter = [this](VkDescriptorSet_CQ *descSet) {
                 m_unusedDescriptors.push_back(descSet);
             };
 
             if (m_unusedDescriptors.size() > 0) {
-                VkDescriptorSet descriptorSet = m_unusedDescriptors.back();
+                VkDescriptorSet_CQ *descriptorSet = m_unusedDescriptors.back();
                 m_unusedDescriptors.pop_back();
 
                 return std::shared_ptr<DescriptorSet>{new DescriptorSet{shared_from_this(),
-                                                                        std::shared_ptr<VkDescriptorSet_T>{descriptorSet, deleter}}};
+                                                                        std::shared_ptr<VkDescriptorSet_CQ>{descriptorSet, deleter}}};
             } else {
                 for (auto &&descriptorPool : m_descriptorPools) {
                     if (descriptorPool.hasAvailableDescriptorSets()) {
-                        VkDescriptorSet descriptorSet = descriptorPool.allocateDescriptor(
+                        VkDescriptorSet_CQ *descriptorSet = descriptorPool.allocateDescriptor(
                                 m_descriptorSetLayout);
                         return std::shared_ptr<DescriptorSet>{new DescriptorSet{shared_from_this(),
-                                std::shared_ptr<VkDescriptorSet_T>{descriptorSet, deleter}}};
+                                std::shared_ptr<VkDescriptorSet_CQ>{descriptorSet, deleter}}};
                     }
                 }
 
@@ -537,10 +551,10 @@ namespace vulkan {
                 DescriptorPool newDescriptorPool(m_device, m_descriptorSetLayout->numberOfDescriptors(),
                     m_descriptorSetLayout->poolCreateInfo());
                 m_descriptorPools.push_back(newDescriptorPool);
-                VkDescriptorSet descriptorSet = newDescriptorPool.allocateDescriptor(
+                VkDescriptorSet_CQ *descriptorSet = newDescriptorPool.allocateDescriptor(
                         m_descriptorSetLayout);
                 return std::shared_ptr<DescriptorSet>(new DescriptorSet(shared_from_this(),
-                        std::shared_ptr<VkDescriptorSet_T>(descriptorSet, deleter)));
+                        std::shared_ptr<VkDescriptorSet_CQ>(descriptorSet, deleter)));
             }
         }
     };
@@ -548,7 +562,7 @@ namespace vulkan {
     class Shader {
         std::shared_ptr<Device> m_device;
 
-        std::shared_ptr<VkShaderModule_T> m_shaderModule;
+        std::shared_ptr<VkShaderModule_CQ> m_shaderModule;
 
         void createShaderModule(std::shared_ptr<FileRequester> const &inRequester, std::string const &codeFile);
 
@@ -560,7 +574,7 @@ namespace vulkan {
             createShaderModule(inRequester, codeFile);
         }
 
-        inline std::shared_ptr<VkShaderModule_T> const &shader() { return m_shaderModule; }
+        inline std::shared_ptr<VkShaderModule_CQ> const &shader() { return m_shaderModule; }
     };
 
     class Pipeline {
@@ -588,8 +602,8 @@ namespace vulkan {
 
         inline std::shared_ptr<RenderPass> const &renderPass() { return m_renderPass; }
         inline std::shared_ptr<DescriptorPools> const &descriptorPools() { return m_descriptorPools; }
-        inline std::shared_ptr<VkPipeline_T> const &pipeline() { return m_pipeline; }
-        inline std::shared_ptr<VkPipelineLayout_T> const &layout() { return m_pipelineLayout; }
+        inline std::shared_ptr<VkPipeline_CQ> const &pipeline() { return m_pipeline; }
+        inline std::shared_ptr<VkPipelineLayout_CQ> const &layout() { return m_pipelineLayout; }
         inline VkExtent2D extent() { return m_extent; }
 
         ~Pipeline() {
@@ -603,8 +617,8 @@ namespace vulkan {
         std::shared_ptr<DescriptorPools> m_descriptorPools;
         VkExtent2D m_extent;
 
-        std::shared_ptr<VkPipelineLayout_T> m_pipelineLayout;
-        std::shared_ptr<VkPipeline_T> m_pipeline;
+        std::shared_ptr<VkPipelineLayout_CQ> m_pipelineLayout;
+        std::shared_ptr<VkPipeline_CQ> m_pipeline;
 
         void createGraphicsPipeline(std::shared_ptr<FileRequester> const &requester,
                 VkVertexInputBindingDescription const &bindingDescription,
@@ -623,12 +637,12 @@ namespace vulkan {
             createCommandPool();
         }
 
-        inline std::shared_ptr<VkCommandPool_T> const &commandPool() { return m_commandPool; }
+        inline std::shared_ptr<VkCommandPool_CQ> const &commandPool() { return m_commandPool; }
         inline std::shared_ptr<Device> const &device() { return m_device; }
 
     private:
         std::shared_ptr<Device> m_device;
-        std::shared_ptr<VkCommandPool_T> m_commandPool;
+        std::shared_ptr<VkCommandPool_CQ> m_commandPool;
 
         void createCommandPool();
     };
@@ -636,7 +650,7 @@ namespace vulkan {
     class Semaphore {
         std::shared_ptr<Device> m_device;
 
-        std::shared_ptr<VkSemaphore_T> m_semaphore;
+        std::shared_ptr<VkSemaphore_CQ> m_semaphore;
 
         void createSemaphore();
 
@@ -647,7 +661,7 @@ namespace vulkan {
             createSemaphore();
         }
 
-        inline std::shared_ptr<VkSemaphore_T> const &semaphore() { return m_semaphore; }
+        inline std::shared_ptr<VkSemaphore_CQ> const &semaphore() { return m_semaphore; }
     };
 
     class CommandBuffer {
@@ -817,12 +831,12 @@ namespace vulkan {
             createImageView(inImage->format(), aspectFlags);
         }
 
-        inline std::shared_ptr<VkImageView_T> const &imageView() { return m_imageView; }
+        inline std::shared_ptr<VkImageView_CQ> const &imageView() { return m_imageView; }
         inline std::shared_ptr<Image> const &image() { return m_image; }
 
     protected:
         std::shared_ptr<Image> m_image;
-        std::shared_ptr<VkImageView_T> m_imageView;
+        std::shared_ptr<VkImageView_CQ> m_imageView;
 
     private:
         inline VkDevice logicalDevice() { return m_image->device()->logicalDevice().get(); }
@@ -903,7 +917,7 @@ namespace vulkan {
             createTextureSampler(beyondBorderSampling, borderColor);
         }
 
-        inline std::shared_ptr<VkSampler_T> const &sampler() { return m_sampler; }
+        inline std::shared_ptr<VkSampler_CQ> const &sampler() { return m_sampler; }
         inline std::shared_ptr<Image> const &image() { return m_image; }
         inline std::shared_ptr<ImageView> const &imageView() { return m_imageView; }
 
@@ -915,16 +929,26 @@ namespace vulkan {
         std::shared_ptr<Device> m_device;
         std::shared_ptr<Image> m_image;
         std::shared_ptr<ImageView> m_imageView;
-        std::shared_ptr<VkSampler_T> m_sampler;
+        std::shared_ptr<VkSampler_CQ> m_sampler;
 
         void createTextureSampler(
                 VkSamplerAddressMode beyondBorderSampling,
                 VkBorderColor borderColor);
     };
 
+
+    // creators
+    CQ_DEFINE_VULKAN_CREATOR(VkFramebuffer)
+
+    // deleters
+    inline void deleteVkFramebuffer_CQ(std::shared_ptr<Device> const &inDevice, VkFramebuffer_CQ *frameBuffer) {
+        vkDestroyFramebuffer(inDevice->logicalDevice().get(), getVkType<>(frameBuffer), nullptr);
+        deleteIfNecessary(frameBuffer);
+    }
+
     class Framebuffer {
     public:
-        static std::shared_ptr<VkFramebuffer_T> createRawFramebuffer(
+        static std::shared_ptr<VkFramebuffer_CQ> createRawFramebuffer(
                 std::shared_ptr<Device> const &inDevice,
                 std::shared_ptr<RenderPass> const &inRenderPass,
                 std::vector<std::shared_ptr<ImageView>> inAttachments,
@@ -934,12 +958,12 @@ namespace vulkan {
             std::vector<VkImageView> attachments;
             attachments.reserve(inAttachments.size());
             for (auto const &attachment : inAttachments) {
-                attachments.push_back(attachment->imageView().get());
+                attachments.push_back(getVkType<>(attachment->imageView().get()));
             }
             return createRawFramebuffer(inDevice, inRenderPass, attachments, width, height);
         }
 
-        static std::shared_ptr<VkFramebuffer_T> createRawFramebuffer(
+        static std::shared_ptr<VkFramebuffer_CQ> createRawFramebuffer(
                 std::shared_ptr<Device> const &inDevice,
                 std::shared_ptr<RenderPass> const &inRenderPass,
                 std::vector<VkImageView> inAttachments,
@@ -948,7 +972,7 @@ namespace vulkan {
         {
             VkFramebufferCreateInfo framebufferInfo = {};
             framebufferInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
-            framebufferInfo.renderPass = inRenderPass->renderPass().get();
+            framebufferInfo.renderPass = getVkType<>(inRenderPass->renderPass().get());
             framebufferInfo.attachmentCount = static_cast<uint32_t>(inAttachments.size());
             framebufferInfo.pAttachments = inAttachments.data();
             framebufferInfo.width = width;
@@ -961,11 +985,11 @@ namespace vulkan {
                 throw std::runtime_error("failed to create framebuffer!");
             }
 
-            auto deleter = [inDevice](VkFramebuffer frameBuf) {
-                vkDestroyFramebuffer(inDevice->logicalDevice().get(), frameBuf, nullptr);
+            auto deleter = [inDevice](VkFramebuffer_CQ *frameBuf) {
+                deleteVkFramebuffer_CQ(inDevice, frameBuf);
             };
 
-            std::shared_ptr<VkFramebuffer_T> framebuffer(framebuf, deleter);
+            std::shared_ptr<VkFramebuffer_CQ> framebuffer(createVkFramebuffer_CQ(framebuf), deleter);
 
             return framebuffer;
         }
@@ -982,10 +1006,10 @@ namespace vulkan {
               {}
         inline VkExtent2D extent() { return VkExtent2D{m_width, m_height}; }
         inline std::shared_ptr<Device> const &device() { return m_device; }
-        inline std::shared_ptr<VkFramebuffer_T> const &framebuffer() { return m_framebuffer; }
+        inline std::shared_ptr<VkFramebuffer_CQ> const &framebuffer() { return m_framebuffer; }
     private:
         std::shared_ptr<Device> m_device;
-        std::shared_ptr<VkFramebuffer_T> m_framebuffer;
+        std::shared_ptr<VkFramebuffer_CQ> m_framebuffer;
         uint32_t m_width;
         uint32_t m_height;
     };
@@ -1009,10 +1033,10 @@ namespace vulkan {
              * so we have to requery the image count here.
              */
             uint32_t imageCount;
-            vkGetSwapchainImagesKHR(m_swapChain->device()->logicalDevice().get(), m_swapChain->swapChain().get(),
+            vkGetSwapchainImagesKHR(m_swapChain->device()->logicalDevice().get(), getVkType<>(m_swapChain->swapChain().get()),
                                     &imageCount, nullptr);
             m_images.resize(imageCount);
-            vkGetSwapchainImagesKHR(m_swapChain->device()->logicalDevice().get(), m_swapChain->swapChain().get(),
+            vkGetSwapchainImagesKHR(m_swapChain->device()->logicalDevice().get(), getVkType<>(m_swapChain->swapChain().get()),
                                     &imageCount, m_images.data());
 
 
@@ -1028,11 +1052,11 @@ namespace vulkan {
         }
 
         inline size_t size() { return m_images.size(); }
-        inline VkFramebuffer frameBuffer(size_t index) { return m_framebuffers[index].get(); }
+        inline VkFramebuffer frameBuffer(size_t index) { return getVkType<>(m_framebuffers[index].get()); }
         inline VkCommandBuffer commandBuffer(size_t index) { return m_commandBuffers[index]; }
 
         ~SwapChainCommands() {
-            vkFreeCommandBuffers(m_swapChain->device()->logicalDevice().get(), m_pool->commandPool().get(),
+            vkFreeCommandBuffers(m_swapChain->device()->logicalDevice().get(), getVkType(m_pool->commandPool().get()),
                                  m_commandBuffers.size(), m_commandBuffers.data());
             m_commandBuffers.clear();
             m_framebuffers.clear();
@@ -1047,7 +1071,7 @@ namespace vulkan {
 
         std::vector<VkImage> m_images;
         std::vector<ImageView> m_imageViews;
-        std::vector<std::shared_ptr<VkFramebuffer_T>> m_framebuffers;
+        std::vector<std::shared_ptr<VkFramebuffer_CQ>> m_framebuffers;
         std::vector<VkCommandBuffer> m_commandBuffers;
 
         void createFramebuffers(std::shared_ptr<RenderPass> &renderPass,

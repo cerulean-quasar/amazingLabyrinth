@@ -1,5 +1,5 @@
 /**
- * Copyright 2020 Cerulean Quasar. All Rights Reserved.
+ * Copyright 2022 Cerulean Quasar. All Rights Reserved.
  *
  *  This file is part of Amazing Labyrinth.
  *
@@ -22,9 +22,7 @@
 #include "gameRequester.hpp"
 #include "mazeGL.hpp"
 
-#ifdef CQ_ENABLE_VULKAN
 #include "mazeVulkan.hpp"
-#endif
 
 std::shared_ptr<DrawEvent> GameSendChannel::getEventNoWait() {
     // critical section
@@ -102,7 +100,6 @@ std::string GameWorker::initGraphics(std::shared_ptr<WindowType> surface,
         float rotationAngle)
 {
     std::string error;
-#ifdef CQ_ENABLE_VULKAN
     if (m_tryVulkan) {
         try {
             m_graphics = std::make_unique<GraphicsVulkan>(surface, inGameRequester, rotationAngle);
@@ -111,9 +108,6 @@ std::string GameWorker::initGraphics(std::shared_ptr<WindowType> surface,
             m_tryVulkan = false;
         }
     }
-#else
-    m_tryVulkan = false;
-#endif
 
     if (!m_tryVulkan) {
         m_graphics = std::make_unique<GraphicsGL>(std::move(surface), std::move(inGameRequester),

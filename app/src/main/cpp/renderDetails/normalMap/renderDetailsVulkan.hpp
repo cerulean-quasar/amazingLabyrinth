@@ -1,5 +1,5 @@
 /**
- * Copyright 2020 Cerulean Quasar. All Rights Reserved.
+ * Copyright 2022 Cerulean Quasar. All Rights Reserved.
  *
  *  This file is part of AmazingLabyrinth.
  *
@@ -171,7 +171,7 @@ namespace normalMap {
 
             createDescriptorSetLayout();
         }
-        std::shared_ptr<VkDescriptorSetLayout_T> const &descriptorSetLayout() override {
+        std::shared_ptr<VkDescriptorSetLayout_CQ> const &descriptorSetLayout() override {
             return m_descriptorSetLayout;
         }
         uint32_t numberOfDescriptors() override { return m_numberOfDescriptorSetsInPool; }
@@ -184,7 +184,7 @@ namespace normalMap {
         static uint32_t constexpr m_numberOfDescriptorSetsInPool = 1024;
 
         std::shared_ptr<vulkan::Device> m_device;
-        std::shared_ptr<VkDescriptorSetLayout_T> m_descriptorSetLayout;
+        std::shared_ptr<VkDescriptorSetLayout_CQ> m_descriptorSetLayout;
         VkDescriptorPoolCreateInfo m_poolInfo;
         std::array<VkDescriptorPoolSize, 2> m_poolSizes;
 

@@ -1,5 +1,5 @@
 /**
- * Copyright 2020 Cerulean Quasar. All Rights Reserved.
+ * Copyright 2022 Cerulean Quasar. All Rights Reserved.
  *
  *  This file is part of AmazingLabyrinth.
  *
@@ -109,16 +109,16 @@ namespace renderDetails {
                      */
                     if (texturePipeline && textureData) {
                         vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
-                                          texturePipeline->pipeline().get());
+                                          getVkType<>(texturePipeline->pipeline().get()));
                         usingColorPipeline = false;
                     } else {
                         vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
-                                          colorPipeline->pipeline().get());
+                                          getVkType<>(colorPipeline->pipeline().get()));
                         usingColorPipeline = true;
                     }
                 } else if (texturePipeline && textureData && usingColorPipeline) {
                     vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
-                                      texturePipeline->pipeline().get());
+                                      getVkType<>(texturePipeline->pipeline().get()));
                     usingColorPipeline = false;
                 } else if (texturePipeline && !textureData && !usingColorPipeline) {
                     // if we have a texture pipeline, we need to check to see if we should switch
@@ -126,7 +126,7 @@ namespace renderDetails {
                     // then we are already bound to it (when nbrIndices was 0), so no need to bind
                     // here again.
                     vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
-                                      colorPipeline->pipeline().get());
+                                      getVkType<>(colorPipeline->pipeline().get()));
                     usingColorPipeline = true;
                 }
 
@@ -152,11 +152,11 @@ namespace renderDetails {
             auto const &drawObjData = drawObj->objData(it->drawObjectDataReference.get());
 
             VkPipelineLayout pipelineLayout =
-                    usingColorPipeline ? colorPipeline->layout().get() : texturePipeline->layout().get();
+                    usingColorPipeline ? getVkType<>(colorPipeline->layout().get()) : getVkType<>(texturePipeline->layout().get());
 
             /* The MVP matrix and texture samplers */
             VkDescriptorSet descriptorSet =
-                    drawObjData->descriptorSet(descriptorSetID)->descriptorSet().get();
+                    getVkType<>(drawObjData->descriptorSet(descriptorSetID)->descriptorSet().get());
             vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
                                     pipelineLayout, 0, 1, &descriptorSet, 0,
                                     nullptr);

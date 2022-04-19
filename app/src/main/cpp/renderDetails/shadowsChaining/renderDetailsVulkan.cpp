@@ -1,5 +1,5 @@
 /**
- * Copyright 2020 Cerulean Quasar. All Rights Reserved.
+ * Copyright 2022 Cerulean Quasar. All Rights Reserved.
  *
  *  This file is part of AmazingLabyrinth.
  *
@@ -107,8 +107,8 @@ namespace shadowsChaining {
         /* begin the shadows render pass */
         VkRenderPassBeginInfo renderPassInfo = {};
         renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-        renderPassInfo.renderPass = m_renderPassShadows->renderPass().get();
-        renderPassInfo.framebuffer = m_framebufferShadows->framebuffer().get();
+        renderPassInfo.renderPass = getVkType<>(m_renderPassShadows->renderPass().get());
+        renderPassInfo.framebuffer = getVkType<>(m_framebufferShadows->framebuffer().get());
         /* size of the render area */
         renderPassInfo.renderArea.offset = {0, 0};
         renderPassInfo.renderArea.extent = VkExtent2D{getShadowsFramebufferDimension(m_surfaceWidth),
