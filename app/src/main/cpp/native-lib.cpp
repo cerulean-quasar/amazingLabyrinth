@@ -38,7 +38,8 @@ Java_com_quasar_cerulean_amazinglabyrinth_Draw_startGame(
         jstring jsaveDataDir,
         jobject jReturnChannel,
         jfloat jrotationAngle,
-        jboolean jtryVulkan)
+        jboolean jtryVulkan,
+        jboolean jtryVulkanReadFromFile)
 {
     std::string saveDataFile;
     try {
@@ -77,7 +78,15 @@ Java_com_quasar_cerulean_amazinglabyrinth_Draw_startGame(
     std::shared_ptr<WindowType> surface(window, deleter);
 
     try {
-        GameWorker worker{surface, gameRequester, true, jtryVulkan != 0, jrotationAngle};
+        bool tryVulkan = jtryVulkan != 0;
+        if (sizeof (void*) != 8 && jtryVulkanReadFromFile == 0) {
+            // Disable trying Vulkan for 32 bit installs if they are new installs and try Vulkan
+            // will be set to false after this first run after installing.  This is so only if you
+            // really intend it, will Vulkan be tried on a 32 bit system.  There are currently no
+            // devices to test it on...
+            tryVulkan = false;
+        }
+        GameWorker worker{surface, gameRequester, true, tryVulkan, jrotationAngle};
         worker.drawingLoop();
     } catch (std::runtime_error &e) {
         gameRequester->sendError(e.what());

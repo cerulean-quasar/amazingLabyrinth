@@ -61,8 +61,10 @@ public class MySurfaceCallback implements SurfaceHolder.Callback {
             m_app.keepAppAlive(true);
             Handler notify = new Handler(new GameErrorHandler());
             Settings settings = m_app.getSettings();
+            boolean tryVulkan = settings.getTryVulkan();
+            boolean tryVulkanReadFromFile = settings.isTryVulkanReadFromFile();
             m_game = new Thread(new Draw(notify, drawSurface, m_app.getAssets(),
-                    m_app.getFilesDir().toString(), getRotation(), settings.getTryVulkan()));
+                    m_app.getFilesDir().toString(), getRotation(), tryVulkan, tryVulkanReadFromFile));
             m_game.start();
         }
     }

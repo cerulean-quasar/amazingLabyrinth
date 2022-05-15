@@ -32,7 +32,6 @@ import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.nio.charset.StandardCharsets;
-import java.util.Set;
 
 public class Settings extends BaseObservable {
     private static final String m_keyTryVulkan = "tryVulkan";
@@ -73,6 +72,7 @@ public class Settings extends BaseObservable {
                 String name = reader.nextName();
                 if (name.equals(m_keyTryVulkan)) {
                     m_tryVulkan = reader.nextBoolean();
+                    m_tryVulkanReadFromFile = true;
                 } else {
                     reader.skipValue();
                 }
@@ -82,19 +82,24 @@ public class Settings extends BaseObservable {
     }
 
     private boolean m_changesMade;
+    private boolean m_tryVulkanReadFromFile;
     private boolean m_tryVulkan;
 
     public Settings() {
         m_changesMade = false;
+        m_tryVulkanReadFromFile = false;
         m_tryVulkan = m_tryVulkanDefault;
     }
-    public Settings(boolean tryVulkan) {
+
+    public Settings(boolean inTryVulkan) {
         m_changesMade = false;
-        m_tryVulkan = tryVulkan;
+        m_tryVulkanReadFromFile = false;
+        m_tryVulkan = inTryVulkan;
     }
 
     public Settings(Intent intent) {
         m_changesMade = false;
+        m_tryVulkanReadFromFile = false;
         m_tryVulkan = intent.getBooleanExtra(m_keyTryVulkan, true);
     }
 
@@ -108,6 +113,10 @@ public class Settings extends BaseObservable {
 
     public void addToIntent(Intent intent) {
         intent.putExtra(m_keyTryVulkan, m_tryVulkan);
+    }
+
+    public boolean isTryVulkanReadFromFile() {
+        return m_tryVulkanReadFromFile;
     }
 
     @Bindable
