@@ -1,5 +1,5 @@
 /**
- * Copyright 2020 Cerulean Quasar. All Rights Reserved.
+ * Copyright 2022 Cerulean Quasar. All Rights Reserved.
  *
  *  This file is part of AmazingLabyrinth.
  *
@@ -273,6 +273,8 @@ namespace levelDrawer {
                 auto tableEnd = m_drawObjectTableList[table]->zValueReferences().end();
                 auto itBegin = m_drawObjectTableList[table]->zValueReferences().begin();
                 auto itEnd = itBegin;
+                // find a continuous set of draw objects that use the same render details and call
+                // execute draw on them.  Also, draw back to front.
                 while (true) {
                     if (itEnd == tableEnd) {
                         if (itBegin != itEnd) {

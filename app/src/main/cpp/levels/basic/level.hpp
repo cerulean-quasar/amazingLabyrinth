@@ -1,5 +1,5 @@
 /**
- * Copyright 2020 Cerulean Quasar. All Rights Reserved.
+ * Copyright 2022 Cerulean Quasar. All Rights Reserved.
  *
  *  This file is part of AmazingLabyrinth.
  *
@@ -153,7 +153,8 @@ namespace basic {
                 levelDrawer::Adaptor inLevelDrawer,
                 std::shared_ptr<LevelConfigData> const &lcd,
                 float mazeFloorZ,
-                bool ignoreZMovement)
+                bool ignoreZMovement,
+                std::string const &renderDetailsName = shadowsChainingRenderDetailsName)
                 : m_levelDrawer{std::move(inLevelDrawer)},
                   m_finished(false),
                   m_mazeFloorZ{mazeFloorZ},
@@ -166,7 +167,7 @@ namespace basic {
                 throw (std::runtime_error("Level Configuration missing"));
             }
 
-            m_levelDrawer.requestRenderDetails(shadowsChainingRenderDetailsName);
+            m_levelDrawer.requestRenderDetails(renderDetailsName);
 
             auto projView = m_levelDrawer.getProjectionView();
             auto wh = getWidthHeight(mazeFloorZ, projView.first, projView.second);
@@ -178,7 +179,7 @@ namespace basic {
             m_ball.acceleration = {0.0f, 0.0f, 0.0f};
             m_ball.velocity = {0.0f, 0.0f, 0.0f};
 
-            // put am out of bounds previous position so that we are sure to draw on the first
+            // put an out of bounds previous position so that we are sure to draw on the first
             // draw cycle.
             m_ball.prevPosition = {-10.0f, 0.0f, 0.0f};
 

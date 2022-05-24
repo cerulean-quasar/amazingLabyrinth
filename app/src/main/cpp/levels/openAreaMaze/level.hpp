@@ -1,5 +1,5 @@
 /**
- * Copyright 2020 Cerulean Quasar. All Rights Reserved.
+ * Copyright 2022 Cerulean Quasar. All Rights Reserved.
  *
  *  This file is part of AmazingLabyrinth.
  *
@@ -51,9 +51,11 @@ namespace openAreaMaze {
         Level(levelDrawer::Adaptor inLevelDrawer,
                 std::shared_ptr<generatedMaze::LevelConfigData> const &lcd,
                 std::shared_ptr<generatedMaze::LevelSaveData> const &sd,
-                float maxZ)
+                float maxZ,
+                std::string const &renderDetailsName = shadowsChainingRenderDetailsName)
                 : generatedMaze::Level(
                         std::move(inLevelDrawer), lcd, sd, maxZ,
+                        renderDetailsName,
                         getMazeWallModelMatricesGenerator())
                 {}
 

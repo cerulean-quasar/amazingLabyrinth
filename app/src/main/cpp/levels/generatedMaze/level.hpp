@@ -1,5 +1,5 @@
 /**
- * Copyright 2020 Cerulean Quasar. All Rights Reserved.
+ * Copyright 2022 Cerulean Quasar. All Rights Reserved.
  *
  *  This file is part of AmazingLabyrinth.
  *
@@ -118,8 +118,9 @@ namespace generatedMaze {
              std::shared_ptr<LevelConfigData> const &lcd,
              std::shared_ptr<LevelSaveData> const &sd,
              float floorZ,
+             std::string const &renderDetailsName = shadowsChainingRenderDetailsName,
              MazeWallModelMatrixGeneratorFcn wallModelMatrixGeneratorFcn = getMazeWallModelMatricesGenerator())
-                : basic::Level(std::move(inLevelDrawer), lcd, floorZ, true),
+                : basic::Level(std::move(inLevelDrawer), lcd, floorZ, true, renderDetailsName),
                   wallTextures{lcd->wallTextureNames},
                   floorTexture{lcd->mazeFloorTexture},
                   holeTexture{lcd->holeTexture},

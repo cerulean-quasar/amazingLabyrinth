@@ -1,5 +1,5 @@
 /**
- * Copyright 2020 Cerulean Quasar. All Rights Reserved.
+ * Copyright 2022 Cerulean Quasar. All Rights Reserved.
  *
  *  This file is part of AmazingLabyrinth.
  *
@@ -141,6 +141,9 @@ namespace levelDrawer {
                 std::shared_ptr<typename traits::ModelDataType> modelData,
                 std::shared_ptr<typename traits::TextureDataType> textureData)
         {
+            if (m_renderDetailsReference.renderDetails == nullptr) {
+                throw std::runtime_error("Default render details must be requested before adding a draw object that uses the default render details.");
+            }
             DrawObjReference objRef = m_nextDrawObjReference++;
             m_drawObjects.emplace(objRef, std::make_shared<DrawObject<traits>>(
                     std::move(modelData), std::move(textureData)));
@@ -164,13 +167,16 @@ namespace levelDrawer {
                         std::make_shared<DrawObject<traits>>(
                             std::move(renderDetailsReference), std::move(modelData),
                             std::move(textureData)));
-            } else {
+            } else if (m_renderDetailsReference.renderDetails != nullptr) {
                 m_objsIndicesWithGlobalRenderDetails.insert(objRef);
                 m_drawObjects.emplace(
                         objRef,
                         std::make_shared<DrawObject<traits>>(
                             std::move(modelData), std::move(textureData)));
+            } else {
+                throw std::runtime_error("Default render details must be requested before adding a draw object that uses the default render details.");
             }
+
 
 
             return objRef;
