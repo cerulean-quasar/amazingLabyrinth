@@ -1,5 +1,5 @@
 /**
- * Copyright 2020 Cerulean Quasar. All Rights Reserved.
+ * Copyright 2022 Cerulean Quasar. All Rights Reserved.
  *
  *  This file is part of AmazingLabyrinth.
  *
@@ -28,7 +28,6 @@
 
 #include "../renderDetailsGL.hpp"
 #include "../renderDetails.hpp"
-#include "config.hpp"
 #include "../../levelDrawer/textureTable/textureLoader.hpp"
 #include "../../levelDrawer/common.hpp"
 #include "../../renderLoader/renderLoaderGL.hpp"
@@ -54,17 +53,12 @@ namespace depthMap {
         float nearestDepth() { return m_nearestDepth; }
         float farthestDepth() { return m_farthestDepth; }
 
-        CommonObjectDataGL(
-                float inNearestDepth,
-                float inFarthestDepth,
-                Config config,
-                float width,
-                float height)
+        CommonObjectDataGL(renderDetails::ParametersDepthMap const *parameters)
                 : CommonObjectDataOrtho(
-                -width/2, width/2, -height/2, height/2,
-                config.nearPlane, config.farPlane, config.viewPoint, config.lookAt, config.up),
-                  m_nearestDepth{inNearestDepth},
-                  m_farthestDepth{inFarthestDepth}
+                -parameters->widthAtDepth/2, parameters->widthAtDepth/2, -parameters->heightAtDepth/2, parameters->heightAtDepth/2,
+                parameters->nearPlane, parameters->farPlane, parameters->viewPoint, parameters->lookAt, parameters->up),
+                  m_nearestDepth{parameters->nearestDepth},
+                  m_farthestDepth{parameters->farthestDepth}
         {}
 
         ~CommonObjectDataGL() override = default;
@@ -124,16 +118,14 @@ namespace depthMap {
                 std::shared_ptr<GameRequester> const &gameRequester,
                 std::shared_ptr<RenderLoaderGL> const &renderLoader,
                 std::shared_ptr<graphicsGL::SurfaceDetails> const &surfaceDetails,
-                std::shared_ptr<renderDetails::Parameters> const &parameters,
-                Config const &config);
+                std::shared_ptr<renderDetails::Parameters> const &parameters);
 
         static renderDetails::ReferenceGL loadExisting(
                 std::shared_ptr<GameRequester> const &gameRequester,
                 std::shared_ptr<RenderLoaderGL> const &renderLoader,
                 std::shared_ptr<renderDetails::RenderDetailsGL> rdBase,
                 std::shared_ptr<graphicsGL::SurfaceDetails> const &surfaceDetails,
-                std::shared_ptr<renderDetails::Parameters> const &parameters,
-                Config const &config);
+                std::shared_ptr<renderDetails::Parameters> const &parameters);
 
         void draw(
                 uint32_t modelMatrixID,

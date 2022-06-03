@@ -1,5 +1,5 @@
 /**
- * Copyright 2020 Cerulean Quasar. All Rights Reserved.
+ * Copyright 2022 Cerulean Quasar. All Rights Reserved.
  *
  *  This file is part of AmazingLabyrinth.
  *
@@ -25,6 +25,7 @@
 #include <vector>
 #include <list>
 #include <chrono>
+#include "../basic/config.hpp"
 #include "../../mathGraphics.hpp"
 #include "../../random.hpp"
 #include "../../common.hpp"
@@ -52,7 +53,16 @@ namespace finisher {
                   shouldUnveil(false),
                   finished(false)
         {
-            m_levelDrawer.requestRenderDetails(shadowsChainingRenderDetailsName);
+            auto parameters = std::make_shared<renderDetails::ParametersObjectWithShadows>();
+            parameters->lookAt = basic::DefaultConfig::lookAt;
+            parameters->up = basic::DefaultConfig::up;
+            parameters->viewPoint = basic::DefaultConfig::viewPoint;
+            parameters->viewAngle = basic::DefaultConfig::viewAngle;
+            parameters->nearPlane = basic::DefaultConfig::nearPlane;
+            parameters->farPlane = basic::DefaultConfig::farPlane;
+            parameters->lightingSource = basic::DefaultConfig::lightingSource;
+
+            m_levelDrawer.requestRenderDetails(shadowsChainingRenderDetailsName, parameters);
 
             auto projView = m_levelDrawer.getProjectionView();
             auto wh = getWidthHeight(maxZ, projView.first, projView.second);

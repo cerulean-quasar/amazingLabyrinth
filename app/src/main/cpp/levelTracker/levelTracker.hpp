@@ -1,5 +1,5 @@
 /**
- * Copyright 2020 Cerulean Quasar. All Rights Reserved.
+ * Copyright 2022 Cerulean Quasar. All Rights Reserved.
  *
  *  This file is part of AmazingLabyrinth.
  *
@@ -67,10 +67,6 @@ namespace levelTracker {
 
     class Loader {
     public:
-        static float constexpr m_maxZLevel = -1.0f;
-        static float constexpr m_maxZLevelStarter = 0.0f;
-        static float constexpr m_maxZLevelFinisher = 0.5f;
-
         void gotoNextLevel();
 
         bool setLevel(std::string levelName) {

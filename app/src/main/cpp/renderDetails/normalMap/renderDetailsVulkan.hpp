@@ -30,8 +30,6 @@
 #include "../renderDetails.hpp"
 #include "../renderDetailsVulkan.hpp"
 
-#include "config.hpp"
-
 namespace normalMap {
     class RenderDetailsVulkan;
 
@@ -67,11 +65,11 @@ namespace normalMap {
         CommonObjectDataVulkan(
                 std::shared_ptr<vulkan::Buffer> buffer,
                 glm::mat4 preTransform,
-                Config config,
-                float width,
-                float height)
-                : renderDetails::CommonObjectDataOrtho(-width/2, width/2, -height/2, height/2,
-                                                       config.nearPlane, config.farPlane, config.viewPoint, config.lookAt, config.up),
+                renderDetails::ParametersNormalMap const *parameters)
+                : renderDetails::CommonObjectDataOrtho(-parameters->widthAtDepth/2, parameters->widthAtDepth/2,
+                                                       -parameters->heightAtDepth/2, parameters->heightAtDepth/2,
+                                                       parameters->nearPlane, parameters->farPlane,
+                                                       parameters->viewPoint, parameters->lookAt, parameters->up),
                   m_camera{std::move(buffer)},
                   m_preTransform{preTransform}
         {
@@ -201,8 +199,7 @@ namespace normalMap {
                 std::shared_ptr<RenderLoaderVulkan> const &,
                 std::shared_ptr<vulkan::Device> const &inDevice,
                 std::shared_ptr<vulkan::SurfaceDetails> const &surfaceDetails,
-                std::shared_ptr<renderDetails::Parameters> const &parametersBase,
-                Config const &config)
+                std::shared_ptr<renderDetails::Parameters> const &parametersBase)
         {
             auto parameters = dynamic_cast<renderDetails::ParametersNormalMap*>(parametersBase.get());
             if (parameters == nullptr) {
@@ -212,7 +209,7 @@ namespace normalMap {
             auto rd = std::make_shared<RenderDetailsVulkan>(
                     gameRequester, inDevice, nullptr, surfaceDetails);
 
-            auto cod = rd->createCommonObjectData(surfaceDetails->preTransform, parameters, config);
+            auto cod = rd->createCommonObjectData(surfaceDetails->preTransform, parameters);
 
             return createReference(std::move(rd), std::move(cod));
         }
@@ -220,10 +217,9 @@ namespace normalMap {
         static renderDetails::ReferenceVulkan loadExisting(
                 std::shared_ptr<GameRequester> const &gameRequester,
                 std::shared_ptr<RenderLoaderVulkan> const &,
-                std::shared_ptr<renderDetails::RenderDetailsVulkan> const &rdBase,
+                std::shared_ptr<renderDetails::RenderDetailsVulkan> rdBase,
                 std::shared_ptr<vulkan::SurfaceDetails> const &surfaceDetails,
-                std::shared_ptr<renderDetails::Parameters> const &parametersBase,
-                Config const &config)
+                std::shared_ptr<renderDetails::Parameters> const &parametersBase)
         {
             auto parameters = dynamic_cast<renderDetails::ParametersNormalMap*>(parametersBase.get());
             if (parameters == nullptr) {
@@ -239,7 +235,7 @@ namespace normalMap {
                 rd->reload(gameRequester, surfaceDetails);
             }
 
-            auto cod = rd->createCommonObjectData(surfaceDetails->preTransform, parameters, config);
+            auto cod = rd->createCommonObjectData(surfaceDetails->preTransform, parameters);
 
             return createReference(std::move(rd), std::move(cod));
         }
@@ -313,17 +309,14 @@ namespace normalMap {
 
         std::shared_ptr<CommonObjectDataVulkan> createCommonObjectData(
                 glm::mat4 const &preTransform,
-                renderDetails::ParametersNormalMap const *parameters,
-                Config const &config)
+                renderDetails::ParametersNormalMap const *parameters)
         {
             auto buffer = renderDetails::createUniformBuffer(
                     m_device, sizeof (CommonObjectDataVulkan::CommonUBO));
             return std::make_shared<CommonObjectDataVulkan>(
                     std::move(buffer),
                     preTransform,
-                    config,
-                    parameters->widthAtDepth,
-                    parameters->heightAtDepth);
+                    parameters);
         }
     };
 }

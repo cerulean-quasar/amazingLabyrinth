@@ -1,5 +1,5 @@
 /**
- * Copyright 2020 Cerulean Quasar. All Rights Reserved.
+ * Copyright 2022 Cerulean Quasar. All Rights Reserved.
  *
  *  This file is part of AmazingLabyrinth.
  *
@@ -28,7 +28,6 @@
 
 #include "../renderDetailsGL.hpp"
 #include "../renderDetails.hpp"
-#include "config.hpp"
 #include "../../levelDrawer/textureTable/textureLoader.hpp"
 #include "../../renderLoader/renderLoaderGL.hpp"
 
@@ -55,9 +54,9 @@ namespace shadows {
             return view();
         }
 
-        CommonObjectDataGL(float aspectRatio, Config const &config)
-                : CommonObjectDataPerspective(config.viewAngle, aspectRatio, config.nearPlane, config.farPlane,
-                                              config.lightingSource, config.lookAt, config.up)
+        CommonObjectDataGL(float aspectRatio, renderDetails::ParametersShadows const *parameters)
+                : CommonObjectDataPerspective(parameters->viewAngle, aspectRatio, parameters->nearPlane, parameters->farPlane,
+                                              parameters->lightingSource, parameters->lookAt, parameters->up)
         {}
 
         ~CommonObjectDataGL() override = default;
@@ -89,16 +88,14 @@ namespace shadows {
                 std::shared_ptr<GameRequester> const &gameRequester,
                 std::shared_ptr<RenderLoaderGL> const &renderLoader,
                 std::shared_ptr<graphicsGL::SurfaceDetails> const &surfaceDetails,
-                std::shared_ptr<renderDetails::Parameters> const &parameters,
-                Config const &config);
+                std::shared_ptr<renderDetails::Parameters> const &parameters);
 
         static renderDetails::ReferenceGL loadExisting(
                 std::shared_ptr<GameRequester> const &gameRequester,
                 std::shared_ptr<RenderLoaderGL> const &renderLoader,
                 std::shared_ptr<renderDetails::RenderDetailsGL> rdBase,
                 std::shared_ptr<graphicsGL::SurfaceDetails> const &surfaceDetails,
-                std::shared_ptr<renderDetails::Parameters> const &parameters,
-                Config const &config);
+                std::shared_ptr<renderDetails::Parameters> const &parameters);
 
         void draw(
                 uint32_t modelMatrixID,

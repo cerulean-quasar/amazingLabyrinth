@@ -1,5 +1,5 @@
 /**
- * Copyright 2020 Cerulean Quasar. All Rights Reserved.
+ * Copyright 2022 Cerulean Quasar. All Rights Reserved.
  *
  *  This file is part of AmazingLabyrinth.
  *
@@ -61,10 +61,6 @@ namespace levelTracker {
         char constexpr const *Level = "Level";
         char constexpr const *Finisher = "Finisher";
     }
-
-    float constexpr Loader::m_maxZLevelStarter;
-    float constexpr Loader::m_maxZLevel;
-    float constexpr Loader::m_maxZLevelFinisher;
 
     LevelMapTable &starterTable() {
         static LevelMapTable map;

@@ -29,8 +29,6 @@
 #include "../renderDetails.hpp"
 #include "../renderDetailsVulkan.hpp"
 
-#include "config.hpp"
-
 namespace shadows {
     class RenderDetailsVulkan;
 
@@ -59,10 +57,10 @@ namespace shadows {
                 std::shared_ptr<vulkan::Buffer> buffer,
                 glm::mat4 preTransform,
                 float aspectRatio,
-                Config const &config)
+                renderDetails::ParametersShadows const *parameters)
                 : renderDetails::CommonObjectDataPerspective(
-                    config.viewAngle, aspectRatio, config.nearPlane, config.farPlane,
-                    config.lightingSource, config.lookAt, config.up),
+                    parameters->viewAngle, aspectRatio, parameters->nearPlane, parameters->farPlane,
+                    parameters->lightingSource, parameters->lookAt, parameters->up),
                 m_camera{std::move(buffer)},
                 m_preTransform{preTransform}
         {
@@ -192,13 +190,17 @@ namespace shadows {
                 std::shared_ptr<RenderLoaderVulkan> const &,
                 std::shared_ptr<vulkan::Device> const &inDevice,
                 std::shared_ptr<vulkan::SurfaceDetails> const &surfaceDetails,
-                std::shared_ptr<renderDetails::Parameters> const &,
-                Config const &config)
+                std::shared_ptr<renderDetails::Parameters> const &parametersBase)
         {
+            auto parameters = dynamic_cast<renderDetails::ParametersShadows*>(parametersBase.get());
+            if (parameters == nullptr) {
+                throw std::runtime_error("Invalid render details parameter type.");
+            }
+
             auto rd = std::make_shared<RenderDetailsVulkan>(
                     gameRequester, inDevice, nullptr, surfaceDetails);
 
-            auto cod = rd->createCommonObjectData(surfaceDetails->preTransform, config);
+            auto cod = rd->createCommonObjectData(surfaceDetails->preTransform, parameters);
 
             return createReference(std::move(rd), std::move(cod));
         }
@@ -208,9 +210,13 @@ namespace shadows {
                 std::shared_ptr<RenderLoaderVulkan> const &,
                 std::shared_ptr<renderDetails::RenderDetailsVulkan> rdBase,
                 std::shared_ptr<vulkan::SurfaceDetails> const &surfaceDetails,
-                std::shared_ptr<renderDetails::Parameters> const &,
-                Config const &config)
+                std::shared_ptr<renderDetails::Parameters> const &parametersBase)
         {
+            auto parameters = dynamic_cast<renderDetails::ParametersShadows*>(parametersBase.get());
+            if (parameters == nullptr) {
+                throw std::runtime_error("Invalid render details parameter type.");
+            }
+
             auto rd = std::dynamic_pointer_cast<RenderDetailsVulkan>(rdBase);
             if (rd == nullptr) {
                 throw std::runtime_error("Invalid render details type.");
@@ -220,7 +226,7 @@ namespace shadows {
                 rd->reload(gameRequester, surfaceDetails);
             }
 
-            auto cod = rd->createCommonObjectData(surfaceDetails->preTransform, config);
+            auto cod = rd->createCommonObjectData(surfaceDetails->preTransform, parameters);
 
             return createReference(std::move(rd), std::move(cod));
         }
@@ -288,12 +294,12 @@ namespace shadows {
 
         std::shared_ptr<CommonObjectDataVulkan> createCommonObjectData(
                 glm::mat4 const &preTransform,
-                Config const &config)
+                renderDetails::ParametersShadows const *parameters)
         {
             auto buffer = renderDetails::createUniformBuffer(m_device, sizeof (CommonObjectDataVulkan::CommonUBO));
             return std::make_shared<CommonObjectDataVulkan>(
                     buffer, preTransform,
-                    m_surfaceWidth/ static_cast<float>(m_surfaceHeight), config);
+                    m_surfaceWidth/ static_cast<float>(m_surfaceHeight), parameters);
         }
     };
 }

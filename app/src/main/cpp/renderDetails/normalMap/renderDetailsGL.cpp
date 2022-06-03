@@ -1,5 +1,5 @@
 /**
- * Copyright 2020 Cerulean Quasar. All Rights Reserved.
+ * Copyright 2022 Cerulean Quasar. All Rights Reserved.
  *
  *  This file is part of AmazingLabyrinth.
  *
@@ -21,15 +21,8 @@
 
 #include "../renderDetailsGL.hpp"
 #include "renderDetailsGL.hpp"
-#include "config.hpp"
 
 namespace normalMap {
-    float constexpr const Config::nearPlane;
-    float constexpr const Config::farPlane;
-    glm::vec3 constexpr const Config::viewPoint;
-    glm::vec3 constexpr const Config::lookAt;
-    glm::vec3 constexpr const Config::up;
-
     RenderDetailsGL::RenderDetailsGL(std::shared_ptr<GameRequester> const &inGameRequester,
                                              uint32_t inWidth, uint32_t inHeight,
                                              bool isIntSurface)
@@ -58,8 +51,7 @@ namespace normalMap {
             std::shared_ptr<GameRequester> const &gameRequester,
             std::shared_ptr<RenderLoaderGL> const &,
             std::shared_ptr<graphicsGL::SurfaceDetails> const &surfaceDetails,
-            std::shared_ptr<renderDetails::Parameters> const &parametersBase,
-            Config const &config)
+            std::shared_ptr<renderDetails::Parameters> const &parametersBase)
     {
         auto parameters =
                 dynamic_cast<renderDetails::ParametersNormalMap*>(parametersBase.get());
@@ -70,10 +62,7 @@ namespace normalMap {
         auto rd = std::make_shared<RenderDetailsGL>(gameRequester, surfaceDetails->surfaceWidth,
                                                     surfaceDetails->surfaceHeight, surfaceDetails->useIntTexture);
 
-        auto cod = std::make_shared<CommonObjectDataGL>(
-                config,
-                parameters->widthAtDepth,
-                parameters->heightAtDepth);
+        auto cod = std::make_shared<CommonObjectDataGL>(parameters);
 
         return createReference(rd, cod);
     }
@@ -83,8 +72,7 @@ namespace normalMap {
             std::shared_ptr<RenderLoaderGL> const &,
             std::shared_ptr<renderDetails::RenderDetailsGL> rdBase,
             std::shared_ptr<graphicsGL::SurfaceDetails> const &surfaceDetails,
-            std::shared_ptr<renderDetails::Parameters> const &parametersBase,
-            Config const &config)
+            std::shared_ptr<renderDetails::Parameters> const &parametersBase)
     {
         auto rd = dynamic_cast<RenderDetailsGL*>(rdBase.get());
         if (rd == nullptr) {
@@ -109,10 +97,7 @@ namespace normalMap {
             throw std::runtime_error("Invalid render details parameter type.");
         }
 
-        auto cod = std::make_shared<CommonObjectDataGL>(
-                config,
-                parameters->widthAtDepth,
-                parameters->heightAtDepth);
+        auto cod = std::make_shared<CommonObjectDataGL>(parameters);
 
         return createReference(std::move(rdBase), std::move(cod));
     }
@@ -196,6 +181,6 @@ namespace normalMap {
         }
     }
 
-    RegisterGL<renderDetails::RenderDetailsGL, RenderDetailsGL, Config> registerGL;
+    RegisterGL<renderDetails::RenderDetailsGL, RenderDetailsGL> registerGL;
 
 } // namespace normalMap

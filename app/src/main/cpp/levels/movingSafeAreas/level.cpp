@@ -1,5 +1,5 @@
 /**
- * Copyright 2020 Cerulean Quasar. All Rights Reserved.
+ * Copyright 2022 Cerulean Quasar. All Rights Reserved.
  *
  *  This file is part of AmazingLabyrinth.
  *
@@ -123,6 +123,8 @@ namespace movingSafeAreas {
 
         if (!isOnQuads) {
             m_ball.position = m_startPosition;
+            m_ball.velocity = {0.0, 0.0, 0.0};
+            m_ball.acceleration = {0.0, 0.0, 0.0};
         }
 
         // Move the moving quads.

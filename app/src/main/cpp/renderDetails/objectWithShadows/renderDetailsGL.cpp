@@ -26,23 +26,15 @@
 #include "../../graphicsGL.hpp"
 
 namespace objectWithShadows {
-    float constexpr const Config::viewAngle;
-    float constexpr const Config::nearPlane;
-    float constexpr const Config::farPlane;
-    glm::vec3 constexpr const Config::viewPoint;
-    glm::vec3 constexpr const Config::lightingSource;
-    glm::vec3 constexpr const Config::lookAt;
-    glm::vec3 constexpr const Config::up;
 
     renderDetails::ReferenceGL RenderDetailsGL::loadNew(
             std::shared_ptr<GameRequester> const &gameRequester,
             std::shared_ptr<RenderLoaderGL> const &,
             std::shared_ptr<graphicsGL::SurfaceDetails> const &surfaceDetails,
-            std::shared_ptr<renderDetails::Parameters> const &parametersBase,
-            Config const &config)
+            std::shared_ptr<renderDetails::Parameters> const &parametersBase)
     {
         auto parameters =
-                dynamic_cast<renderDetails::ParametersWithShadowsGL*>(parametersBase.get());
+                dynamic_cast<renderDetails::ParametersObjectWithShadowsGL*>(parametersBase.get());
         if (parameters == nullptr) {
             throw std::runtime_error("Invalid render details parameter type.");
         }
@@ -51,8 +43,9 @@ namespace objectWithShadows {
                 gameRequester, surfaceDetails->surfaceWidth, surfaceDetails->surfaceHeight,
                 surfaceDetails->useIntTexture);
 
-        auto cod = std::make_shared<CommonObjectDataGL>(parameters->shadowsFB,
-                surfaceDetails->surfaceWidth / static_cast<float>(surfaceDetails->surfaceHeight), config);
+        auto cod = std::make_shared<CommonObjectDataGL>(
+                surfaceDetails->surfaceWidth / static_cast<float>(surfaceDetails->surfaceHeight),
+                parameters);
 
         return createReference(std::move(rd), std::move(cod));
     }
@@ -62,8 +55,7 @@ namespace objectWithShadows {
             std::shared_ptr<RenderLoaderGL> const &,
             std::shared_ptr<renderDetails::RenderDetailsGL> rdBase,
             std::shared_ptr<graphicsGL::SurfaceDetails> const &surfaceDetails,
-            std::shared_ptr<renderDetails::Parameters> const &parametersBase,
-            Config const &config)
+            std::shared_ptr<renderDetails::Parameters> const &parametersBase)
     {
         auto rd = dynamic_cast<RenderDetailsGL*>(rdBase.get());
         if (rd == nullptr) {
@@ -78,13 +70,13 @@ namespace objectWithShadows {
         }
 
         auto parameters =
-                dynamic_cast<renderDetails::ParametersWithShadowsGL*>(parametersBase.get());
+                dynamic_cast<renderDetails::ParametersObjectWithShadowsGL*>(parametersBase.get());
         if (parameters == nullptr) {
             throw std::runtime_error("Invalid render details parameter type.");
         }
 
-        auto cod = std::make_shared<CommonObjectDataGL>(parameters->shadowsFB,
-                surfaceDetails->surfaceWidth / static_cast<float>(surfaceDetails->surfaceHeight), config);
+        auto cod = std::make_shared<CommonObjectDataGL>(
+                surfaceDetails->surfaceWidth / static_cast<float>(surfaceDetails->surfaceHeight), parameters);
 
         return createReference(std::move(rdBase), std::move(cod));
     }
@@ -218,5 +210,5 @@ namespace objectWithShadows {
         m_colorProgramID{loadShaders(inGameRequester, SHADER_VERT_FILE, COLOR_SHADER_FRAG_FILE)}
     {}
 
-    RegisterGL<renderDetails::RenderDetailsGL, RenderDetailsGL, Config> registerGL;
+    RegisterGL<renderDetails::RenderDetailsGL, RenderDetailsGL> registerGL;
 } // objectWithShados

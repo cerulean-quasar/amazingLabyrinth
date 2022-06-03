@@ -1,5 +1,5 @@
 /**
- * Copyright 2020 Cerulean Quasar. All Rights Reserved.
+ * Copyright 2022 Cerulean Quasar. All Rights Reserved.
  *
  *  This file is part of AmazingLabyrinth.
  *
@@ -34,10 +34,13 @@
 
 class RenderLoaderGL;
 namespace renderDetails {
-    struct ParametersWithShadowsGL : public Parameters {
+    struct ParametersObjectWithShadowsGL : public ParametersObjectWithShadows {
         std::shared_ptr<graphicsGL::Framebuffer> shadowsFB;
 
-        ~ParametersWithShadowsGL() override = default;
+        ParametersObjectWithShadowsGL(ParametersObjectWithShadows const *parameters, std::shared_ptr<graphicsGL::Framebuffer> fb)
+        : ParametersObjectWithShadows(*parameters), shadowsFB(fb) {}
+
+        ~ParametersObjectWithShadowsGL() override = default;
     };
 
     class DrawObjectDataGL : public DrawObjectData {

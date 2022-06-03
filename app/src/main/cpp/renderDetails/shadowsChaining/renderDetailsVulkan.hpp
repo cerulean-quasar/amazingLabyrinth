@@ -1,5 +1,5 @@
 /**
- * Copyright 2020 Cerulean Quasar. All Rights Reserved.
+ * Copyright 2022 Cerulean Quasar. All Rights Reserved.
  *
  *  This file is part of AmazingLabyrinth.
  *
@@ -31,7 +31,6 @@
 #include "../renderDetailsVulkan.hpp"
 #include "../../levelDrawer/drawObjectTable/drawObjectTableVulkan.hpp"
 #include "../../levelDrawer/common.hpp"
-#include "config.hpp"
 
 namespace shadowsChaining {
     class RenderDetailsVulkan;
@@ -131,16 +130,14 @@ namespace shadowsChaining {
             std::shared_ptr<RenderLoaderVulkan> const &renderLoader,
             std::shared_ptr<vulkan::Device> const &inDevice,
             std::shared_ptr<vulkan::SurfaceDetails> const &surfaceDetails,
-            std::shared_ptr<renderDetails::Parameters> const &parameters,
-            Config const &config);
+            std::shared_ptr<renderDetails::Parameters> const &parameters);
 
         static renderDetails::ReferenceVulkan loadExisting(
             std::shared_ptr<GameRequester> const &gameRequester,
             std::shared_ptr<RenderLoaderVulkan> const &renderLoader,
             std::shared_ptr<renderDetails::RenderDetailsVulkan> rdBase,
             std::shared_ptr<vulkan::SurfaceDetails> const &surfaceDetails,
-            std::shared_ptr<renderDetails::Parameters> const &parameters,
-            Config const &config);
+            std::shared_ptr<renderDetails::Parameters> const &parameters);
 
         bool structuralChangeNeeded(std::shared_ptr<vulkan::SurfaceDetails> const &surfaceDetails) override
         {

@@ -1,5 +1,5 @@
 /**
- * Copyright 2020 Cerulean Quasar. All Rights Reserved.
+ * Copyright 2022 Cerulean Quasar. All Rights Reserved.
  *
  *  This file is part of AmazingLabyrinth.
  *
@@ -23,6 +23,7 @@
 #include <memory>
 #include <boost/optional.hpp>
 #include <boost/variant.hpp>
+#include <glm/glm.hpp>
 
 namespace renderDetails {
     class CommonObjectData;
@@ -31,7 +32,23 @@ namespace renderDetails {
     // requester of the render details (i.e. the level) needs to know what these are and what
     // to put in them.
     struct Parameters {
+        float nearPlane;
+        float farPlane;
+        glm::vec3 lookAt;
+        glm::vec3 up;
         virtual ~Parameters() = default;
+    };
+
+    struct ParametersShadows : public Parameters {
+        float viewAngle;
+        glm::vec3 lightingSource;
+        ~ParametersShadows() override = default;
+    };
+
+    struct ParametersObjectWithShadows : public ParametersShadows {
+        glm::vec3 viewPoint;
+
+        ~ParametersObjectWithShadows() override = default;
     };
 
     struct ParametersDepthMap : public Parameters {
@@ -39,6 +56,7 @@ namespace renderDetails {
         float heightAtDepth;
         float nearestDepth;
         float farthestDepth;
+        glm::vec3 viewPoint;
 
         ~ParametersDepthMap() override = default;
     };
@@ -46,6 +64,7 @@ namespace renderDetails {
     struct ParametersNormalMap : public Parameters {
         float widthAtDepth;
         float heightAtDepth;
+        glm::vec3 viewPoint;
 
         ~ParametersNormalMap() override = default;
     };
@@ -140,5 +159,11 @@ namespace levelDrawer {
             return false;
         }
     };
+}
+
+namespace levelTracker {
+    static float constexpr m_maxZLevel = -1.0f;
+    static float constexpr m_maxZLevelStarter = 0.0f;
+    static float constexpr m_maxZLevelFinisher = 0.5f;
 }
 #endif // AMAZING_LABYRINTH_LEVEL_DRAWER_COMMON_HPP

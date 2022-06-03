@@ -1,5 +1,5 @@
 /**
- * Copyright 2020 Cerulean Quasar. All Rights Reserved.
+ * Copyright 2022 Cerulean Quasar. All Rights Reserved.
  *
  *  This file is part of AmazingLabyrinth.
  *
@@ -81,7 +81,7 @@ namespace levelDrawer {
 
         virtual size_t numberObjectsDataForObject(ObjectType type, DrawObjReference drawObjReference) = 0;
 
-        virtual void requestRenderDetails(ObjectType type, std::string const &name) = 0;
+        virtual void requestRenderDetails(ObjectType type, std::string const &name, std::shared_ptr<renderDetails::Parameters> const &parameters) = 0;
 
         virtual std::pair<glm::mat4, glm::mat4> getProjectionView(ObjectType type) = 0;
 
@@ -166,8 +166,8 @@ namespace levelDrawer {
 
         // request a global render details for this level.  Can be overridden by particular
         // objects.
-        void requestRenderDetails(std::string const &name) {
-            return m_levelDrawer->requestRenderDetails(m_type, name);
+        void requestRenderDetails(std::string const &name, std::shared_ptr<renderDetails::Parameters> const &parameters) {
+            return m_levelDrawer->requestRenderDetails(m_type, name, parameters);
         }
 
         // get the projection and view matrices for the level global render details.

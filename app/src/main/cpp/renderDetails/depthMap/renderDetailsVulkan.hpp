@@ -30,9 +30,6 @@
 #include "../renderDetails.hpp"
 #include "../renderDetailsVulkan.hpp"
 
-#include "config.hpp"
-#include "../../../../../../../../Android/Sdk/ndk/21.3.6528147/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/include/vulkan/vulkan_core.h"
-
 namespace depthMap {
     class RenderDetailsVulkan;
 
@@ -71,17 +68,15 @@ namespace depthMap {
         CommonObjectDataVulkan(
                 std::shared_ptr<vulkan::Buffer> inBuffer,
                 glm::mat4 preTransform,
-                float inNearestDepth,
-                float inFarthestDepth,
-                Config config,
-                float width,
-                float height)
-                : renderDetails::CommonObjectDataOrtho(-width/2, width/2, -height/2, height/2,
-                                                       config.nearPlane, config.farPlane, config.viewPoint, config.lookAt, config.up),
+                renderDetails::ParametersDepthMap const *parameters)
+                : renderDetails::CommonObjectDataOrtho(-parameters->widthAtDepth/2, parameters->widthAtDepth/2,
+                                                       -parameters->heightAtDepth/2, parameters->heightAtDepth/2,
+                                                       parameters->nearPlane, parameters->farPlane, parameters->viewPoint,
+                                                       parameters->lookAt, parameters->up),
                   m_buffer{std::move(inBuffer)},
                   m_preTransform{preTransform},
-                  m_nearestDepth{inNearestDepth},
-                  m_farthestDepth{inFarthestDepth}
+                  m_nearestDepth{parameters->nearestDepth},
+                  m_farthestDepth{parameters->farthestDepth}
         {
             doUpdate();
         }
@@ -219,8 +214,7 @@ namespace depthMap {
                 std::shared_ptr<RenderLoaderVulkan> const &,
                 std::shared_ptr<vulkan::Device> const &inDevice,
                 std::shared_ptr<vulkan::SurfaceDetails> const &surfaceDetails,
-                std::shared_ptr<renderDetails::Parameters> const &parametersBase,
-                Config const &config)
+                std::shared_ptr<renderDetails::Parameters> const &parametersBase)
         {
             auto parameters =
                     dynamic_cast<renderDetails::ParametersDepthMap*>(parametersBase.get());
@@ -231,7 +225,7 @@ namespace depthMap {
             auto rd = std::make_shared<RenderDetailsVulkan>(
                     gameRequester, inDevice, nullptr, surfaceDetails);
 
-            auto cod = rd->createCommonObjectData(surfaceDetails->preTransform, parameters, config);
+            auto cod = rd->createCommonObjectData(surfaceDetails->preTransform, parameters);
 
             return createReference(std::move(rd), std::move(cod));
         }
@@ -239,10 +233,9 @@ namespace depthMap {
         static renderDetails::ReferenceVulkan loadExisting(
                 std::shared_ptr<GameRequester> const &gameRequester,
                 std::shared_ptr<RenderLoaderVulkan> const &,
-                std::shared_ptr<renderDetails::RenderDetailsVulkan> const &rdBase,
+                std::shared_ptr<renderDetails::RenderDetailsVulkan> rdBase,
                 std::shared_ptr<vulkan::SurfaceDetails> const &surfaceDetails,
-                std::shared_ptr<renderDetails::Parameters> const &parametersBase,
-                Config const &config)
+                std::shared_ptr<renderDetails::Parameters> const &parametersBase)
         {
             auto parameters =
                     dynamic_cast<renderDetails::ParametersDepthMap*>(parametersBase.get());
@@ -259,7 +252,7 @@ namespace depthMap {
                 rd->reload(gameRequester, surfaceDetails);
             }
 
-            auto cod = rd->createCommonObjectData(surfaceDetails->preTransform, parameters, config);
+            auto cod = rd->createCommonObjectData(surfaceDetails->preTransform, parameters);
 
             return createReference(std::move(rd), std::move(cod));
         }
@@ -340,19 +333,14 @@ namespace depthMap {
 
         std::shared_ptr<CommonObjectDataVulkan> createCommonObjectData(
                 glm::mat4 const &preTransform,
-                renderDetails::ParametersDepthMap const *parameters,
-                Config const &config)
+                renderDetails::ParametersDepthMap const *parameters)
         {
             auto buffer = renderDetails::createUniformBuffer(
                     m_device, sizeof (CommonObjectDataVulkan::CommonUBO));
             return std::make_shared<CommonObjectDataVulkan>(
                     std::move(buffer),
                     preTransform,
-                    parameters->nearestDepth,
-                    parameters->farthestDepth,
-                    config,
-                    parameters->widthAtDepth,
-                    parameters->heightAtDepth);
+                    parameters);
         }
     };
 }

@@ -1,5 +1,5 @@
 /**
- * Copyright 2020 Cerulean Quasar. All Rights Reserved.
+ * Copyright 2022 Cerulean Quasar. All Rights Reserved.
  *
  *  This file is part of AmazingLabyrinth.
  *
@@ -38,10 +38,14 @@ namespace renderDetails {
     std::shared_ptr<vulkan::Buffer> createUniformBuffer(
             std::shared_ptr<vulkan::Device> const &device, size_t bufferSize);
 
-    struct ParametersWithShadowsVulkan : public Parameters {
+    struct ParametersObjectWithShadowsVulkan : public ParametersObjectWithShadows {
         std::shared_ptr<vulkan::ImageSampler> shadowsSampler;
 
-        virtual ~ParametersWithShadowsVulkan() = default;
+        ParametersObjectWithShadowsVulkan(ParametersObjectWithShadows const *parameters, std::shared_ptr<vulkan::ImageSampler> sampler)
+            : ParametersObjectWithShadows(*parameters),
+            shadowsSampler(std::move(sampler)) {
+        }
+        virtual ~ParametersObjectWithShadowsVulkan() = default;
     };
 
     class DrawObjectDataVulkan : public DrawObjectData {

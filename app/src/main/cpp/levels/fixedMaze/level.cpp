@@ -22,6 +22,7 @@
 
 #include "level.hpp"
 #include "../basic/level.hpp"
+#include "../basic/config.hpp"
 
 namespace fixedMaze {
     char constexpr const *Level::m_name;
@@ -545,6 +546,12 @@ namespace fixedMaze {
         depthParameters.farthestDepth = m_mazeFloorZ - MODEL_MAXZ;
         depthParameters.widthAtDepth = m_height;
         depthParameters.heightAtDepth = m_height;
+        depthParameters.lookAt = basic::DefaultConfig::lookAt;
+        depthParameters.up = basic::DefaultConfig::up;
+        depthParameters.viewPoint = basic::DefaultConfig::viewPoint;
+        depthParameters.nearPlane = basic::DefaultConfig::nearPlane;
+        depthParameters.farPlane = basic::DefaultConfig::farPlane;
+
         m_levelDrawer.drawToBuffer(
                 depthMapRenderDetailsName,
                 levelDrawer::ModelsTextures{std::make_pair(floorModelDesc,
@@ -557,6 +564,11 @@ namespace fixedMaze {
         renderDetails::ParametersNormalMap normalParameters{};
         normalParameters.widthAtDepth = m_height;
         normalParameters.heightAtDepth = m_height;
+        normalParameters.lookAt = basic::DefaultConfig::lookAt;
+        normalParameters.up = basic::DefaultConfig::up;
+        normalParameters.viewPoint = basic::DefaultConfig::viewPoint;
+        normalParameters.nearPlane = basic::DefaultConfig::nearPlane;
+        normalParameters.farPlane = basic::DefaultConfig::farPlane;
         std::vector<float> normalMapFlat;
         m_levelDrawer.drawToBuffer(
                 normalMapRenderDetailsName,

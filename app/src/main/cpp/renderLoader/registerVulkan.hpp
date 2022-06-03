@@ -1,5 +1,5 @@
 /**
- * Copyright 2020 Cerulean Quasar. All Rights Reserved.
+ * Copyright 2022 Cerulean Quasar. All Rights Reserved.
  *
  *  This file is part of AmazingLabyrinth.
  *
@@ -57,7 +57,7 @@ RenderDetailsVulkanRetrieveMap &getRenderDetailsVulkanMap();
 
 class RenderLoaderVulkan;
 
-template <typename RenderDetailsBaseType, typename RenderDetailsType, typename ConfigType>
+template <typename RenderDetailsBaseType, typename RenderDetailsType>
 class RegisterVulkan {
 public:
     RegisterVulkan() {
@@ -66,26 +66,25 @@ public:
             std::function<RenderDetailsVulkanRetrieveFcns()> (
                 []() -> RenderDetailsVulkanRetrieveFcns {
                     RenderDetailsVulkanRetrieveFcns fcns;
-                    ConfigType config;
                     fcns.renderDetailsLoadNewFcn = RenderDetailsVulkanRetrieveFcns::RenderDetailsLoadNewFcn (
-                            [config] (std::shared_ptr<GameRequester> const &gameRequester,
+                            [] (std::shared_ptr<GameRequester> const &gameRequester,
                                       std::shared_ptr<RenderLoaderVulkan> const &renderLoader,
                                       std::shared_ptr<vulkan::Device> const &inDevice,
                                       std::shared_ptr<vulkan::SurfaceDetails> const &surfaceDetails,
                                       std::shared_ptr<renderDetails::Parameters> const &parameters) -> RenderDetailsVulkanRetrieveFcns::RenderDetailsReferenceVulkan
                             {
                                 return RenderDetailsType::loadNew(gameRequester, renderLoader,
-                                        inDevice, surfaceDetails, parameters, config);
+                                        inDevice, surfaceDetails, parameters);
                             });
                     fcns.renderDetailsLoadExistingFcn = RenderDetailsVulkanRetrieveFcns::RenderDetailsLoadExistingFcn (
-                            [config] (std::shared_ptr<GameRequester> const &gameRequester,
+                            [] (std::shared_ptr<GameRequester> const &gameRequester,
                                       std::shared_ptr<RenderLoaderVulkan> const &renderLoader,
                                       std::shared_ptr<RenderDetailsBaseType> const &renderDetails,
                                       std::shared_ptr<vulkan::SurfaceDetails> const &surfaceDetails,
                                       std::shared_ptr<renderDetails::Parameters> const &parameters) -> RenderDetailsVulkanRetrieveFcns::RenderDetailsReferenceVulkan
                             {
                                 return RenderDetailsType::loadExisting(gameRequester, renderLoader,
-                                        renderDetails, surfaceDetails, parameters, config);
+                                        renderDetails, surfaceDetails, parameters);
                             });
                     return std::move(fcns);
                 }

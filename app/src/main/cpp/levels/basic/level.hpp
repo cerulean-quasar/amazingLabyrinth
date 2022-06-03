@@ -34,6 +34,7 @@
 #include "../../levelDrawer/levelDrawer.hpp"
 #include "../../levelDrawer/modelTable/modelLoader.hpp"
 #include "../../levelDrawer/textureTable/textureLoader.hpp"
+#include "config.hpp"
 
 namespace basic {
     class Level {
@@ -154,7 +155,8 @@ namespace basic {
                 std::shared_ptr<LevelConfigData> const &lcd,
                 float mazeFloorZ,
                 bool ignoreZMovement,
-                std::string const &renderDetailsName = shadowsChainingRenderDetailsName)
+                std::string const &renderDetailsName = shadowsChainingRenderDetailsName,
+                std::shared_ptr<renderDetails::Parameters> parameters = nullptr)
                 : m_levelDrawer{std::move(inLevelDrawer)},
                   m_finished(false),
                   m_mazeFloorZ{mazeFloorZ},
@@ -167,7 +169,22 @@ namespace basic {
                 throw (std::runtime_error("Level Configuration missing"));
             }
 
-            m_levelDrawer.requestRenderDetails(renderDetailsName);
+            if (parameters == nullptr) {
+                if (renderDetailsName != shadowsChainingRenderDetailsName) {
+                    throw std::runtime_error("Invalid parameters for render details");
+                }
+                auto parametersOWS = std::make_shared<renderDetails::ParametersObjectWithShadows>();
+                parametersOWS->lookAt = DefaultConfig::lookAt;
+                parametersOWS->up = DefaultConfig::up;
+                parametersOWS->viewPoint = DefaultConfig::viewPoint;
+                parametersOWS->viewAngle = DefaultConfig::viewAngle;
+                parametersOWS->nearPlane = DefaultConfig::nearPlane;
+                parametersOWS->farPlane = DefaultConfig::farPlane;
+                parametersOWS->lightingSource = DefaultConfig::lightingSource;
+
+                parameters = parametersOWS;
+            }
+            m_levelDrawer.requestRenderDetails(renderDetailsName, parameters);
 
             auto projView = m_levelDrawer.getProjectionView();
             auto wh = getWidthHeight(mazeFloorZ, projView.first, projView.second);

@@ -148,9 +148,9 @@ namespace levelDrawer {
             return m_drawObjectTableList[type]->numberObjectsDataForObject(drawObjReference);
         }
 
-        void requestRenderDetails(ObjectType type, std::string const &name) override {
+        void requestRenderDetails(ObjectType type, std::string const &name, std::shared_ptr<renderDetails::Parameters> const &parameters) override {
             m_drawObjectTableList[type]->loadRenderDetails(
-                    m_renderLoader->load(m_gameRequester, name, m_surfaceDetails, nullptr));
+                    m_renderLoader->load(m_gameRequester, name, m_surfaceDetails, parameters));
         }
 
         std::pair<glm::mat4, glm::mat4> getProjectionView(ObjectType type) override {

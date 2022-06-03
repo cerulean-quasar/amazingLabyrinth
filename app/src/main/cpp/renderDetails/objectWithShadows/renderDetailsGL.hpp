@@ -1,5 +1,5 @@
 /**
- * Copyright 2020 Cerulean Quasar. All Rights Reserved.
+ * Copyright 2022 Cerulean Quasar. All Rights Reserved.
  *
  *  This file is part of AmazingLabyrinth.
  *
@@ -17,8 +17,8 @@
  *  along with AmazingLabyrinth.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
-#ifndef AMAZING_LABYRINTH_TEXTUREWITHSHADOWS_RENDER_DETAILS_GL_HPP
-#define AMAZING_LABYRINTH_TEXTUREWITHSHADOWS_RENDER_DETAILS_GL_HPP
+#ifndef AMAZING_LABYRINTH_OBJECTWITHSHADOWS_RENDER_DETAILS_GL_HPP
+#define AMAZING_LABYRINTH_OBJECTWITHSHADOWS_RENDER_DETAILS_GL_HPP
 
 #include <memory>
 
@@ -28,7 +28,6 @@
 
 #include "../renderDetailsGL.hpp"
 #include "../renderDetails.hpp"
-#include "config.hpp"
 #include "../../levelDrawer/textureTable/textureLoader.hpp"
 #include "../../graphicsGL.hpp"
 #include "../../renderLoader/renderLoaderGL.hpp"
@@ -54,14 +53,11 @@ namespace objectWithShadows {
 
         std::shared_ptr<graphicsGL::Framebuffer> const &shadowsFramebuffer() {return m_shadowsFramebuffer;}
 
-        CommonObjectDataGL(
-                std::shared_ptr<graphicsGL::Framebuffer> shadowsFramebuffer,
-                float aspectRatio,
-                Config const &config)
-                : renderDetails::CommonObjectDataPerspective(config.viewAngle, aspectRatio, config.nearPlane, config.farPlane,
-                                              config.viewPoint, config.lookAt, config.up),
-                  m_shadowsFramebuffer(std::move(shadowsFramebuffer)),
-                  m_lightingSource{config.lightingSource}
+        CommonObjectDataGL(float aspectRatio, renderDetails::ParametersObjectWithShadowsGL const *parameters)
+                : renderDetails::CommonObjectDataPerspective(parameters->viewAngle, aspectRatio, parameters->nearPlane, parameters->farPlane,
+                                                             parameters->viewPoint, parameters->lookAt, parameters->up),
+                  m_shadowsFramebuffer(parameters->shadowsFB),
+                  m_lightingSource{parameters->lightingSource}
         {}
 
         ~CommonObjectDataGL() override = default;
@@ -99,16 +95,14 @@ namespace objectWithShadows {
                 std::shared_ptr<GameRequester> const &gameRequester,
                 std::shared_ptr<RenderLoaderGL> const &renderLoader,
                 std::shared_ptr<graphicsGL::SurfaceDetails> const &surfaceDetails,
-                std::shared_ptr<renderDetails::Parameters> const &parameters,
-                Config const &config);
+                std::shared_ptr<renderDetails::Parameters> const &parameters);
 
         static renderDetails::ReferenceGL loadExisting(
                 std::shared_ptr<GameRequester> const &gameRequester,
                 std::shared_ptr<RenderLoaderGL> const &renderLoader,
                 std::shared_ptr<renderDetails::RenderDetailsGL> rdBase,
                 std::shared_ptr<graphicsGL::SurfaceDetails> const &surfaceDetails,
-                std::shared_ptr<renderDetails::Parameters> const &parameters,
-                Config const &config);
+                std::shared_ptr<renderDetails::Parameters> const &parameters);
 
         void draw(
                 uint32_t modelMatrixID,
@@ -140,4 +134,4 @@ namespace objectWithShadows {
     };
 }
 
-#endif // AMAZING_LABYRINTH_TEXTUREWITHSHADOWS_RENDER_DETAILS_GL_HPP
+#endif // AMAZING_LABYRINTH_OBJECTWITHSHADOWS_RENDER_DETAILS_GL_HPP

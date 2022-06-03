@@ -1,5 +1,5 @@
 /**
- * Copyright 2020 Cerulean Quasar. All Rights Reserved.
+ * Copyright 2022 Cerulean Quasar. All Rights Reserved.
  *
  *  This file is part of AmazingLabyrinth.
  *
@@ -17,23 +17,24 @@
  *  along with AmazingLabyrinth.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
-#ifndef AMAZING_LABYRINTH_DEPTHMAP_CONFIG_HPP
-#define AMAZING_LABYRINTH_DEPTHMAP_CONFIG_HPP
+#ifndef AMAZING_LABYRINTH_BASIC_LEVEL_CONFIG_HPP
+#define AMAZING_LABYRINTH_BASIC_LEVEL_CONFIG_HPP
 
 #include <glm/glm.hpp>
 
-#include "../../levelTracker/levelTracker.hpp"
+#include "../../levelDrawer/common.hpp"
 
-namespace depthMap {
+namespace basic {
     // todo: get these constants from a config file.
-    struct Config {
+    struct DefaultConfig {
+        static float constexpr const viewAngle = 3.1415926f/4.0f;
         static float constexpr const nearPlane = 0.5f;
         static float constexpr const farPlane = 5.0f;
         static glm::vec3 constexpr const viewPoint{0.0f, 0.0f, 1.0f};
-        static glm::vec3 constexpr const lookAt{0.0f, 0.0f, levelTracker::Loader::m_maxZLevel};
+        static glm::vec3 constexpr const lightingSource{1.0f, 1.0f, 1.5f};
+        static glm::vec3 constexpr const lookAt{0.0f, 0.0f, levelTracker::m_maxZLevel};
         static glm::vec3 constexpr const up{0.0f, 1.0f, 0.0f};
     };
-
 }
 
-#endif // AMAZING_LABYRINTH_DEPTHMAP_CONFIG_HPP
+#endif // AMAZING_LABYRINTH_BASIC_LEVEL_CONFIG_HPP
