@@ -22,7 +22,6 @@
 
 #include "level.hpp"
 #include "../basic/level.hpp"
-#include "../basic/config.hpp"
 
 namespace fixedMaze {
     char constexpr const *Level::m_name;
@@ -546,11 +545,11 @@ namespace fixedMaze {
         depthParameters.farthestDepth = m_mazeFloorZ - MODEL_MAXZ;
         depthParameters.widthAtDepth = m_height;
         depthParameters.heightAtDepth = m_height;
-        depthParameters.lookAt = basic::DefaultConfig::lookAt;
-        depthParameters.up = basic::DefaultConfig::up;
-        depthParameters.viewPoint = basic::DefaultConfig::viewPoint;
-        depthParameters.nearPlane = basic::DefaultConfig::nearPlane;
-        depthParameters.farPlane = basic::DefaultConfig::farPlane;
+        depthParameters.lookAt = levelDrawer::DefaultConfig::lookAt;
+        depthParameters.up = levelDrawer::DefaultConfig::up;
+        depthParameters.viewPoint = levelDrawer::DefaultConfig::viewPoint;
+        depthParameters.nearPlane = levelDrawer::DefaultConfig::nearPlane;
+        depthParameters.farPlane = levelDrawer::DefaultConfig::farPlane;
 
         m_levelDrawer.drawToBuffer(
                 depthMapRenderDetailsName,
@@ -564,11 +563,11 @@ namespace fixedMaze {
         renderDetails::ParametersNormalMap normalParameters{};
         normalParameters.widthAtDepth = m_height;
         normalParameters.heightAtDepth = m_height;
-        normalParameters.lookAt = basic::DefaultConfig::lookAt;
-        normalParameters.up = basic::DefaultConfig::up;
-        normalParameters.viewPoint = basic::DefaultConfig::viewPoint;
-        normalParameters.nearPlane = basic::DefaultConfig::nearPlane;
-        normalParameters.farPlane = basic::DefaultConfig::farPlane;
+        normalParameters.lookAt = levelDrawer::DefaultConfig::lookAt;
+        normalParameters.up = levelDrawer::DefaultConfig::up;
+        normalParameters.viewPoint = levelDrawer::DefaultConfig::viewPoint;
+        normalParameters.nearPlane = levelDrawer::DefaultConfig::nearPlane;
+        normalParameters.farPlane = levelDrawer::DefaultConfig::farPlane;
         std::vector<float> normalMapFlat;
         m_levelDrawer.drawToBuffer(
                 normalMapRenderDetailsName,

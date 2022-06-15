@@ -171,6 +171,20 @@ namespace levelDrawer {
 
         void draw(typename traits::DrawArgumentType const &info);
 
+        char const *getDefaultRenderDetailsName() override { return shadowsChainingRenderDetailsName; }
+
+        std::shared_ptr<renderDetails::Parameters> getDefaultParameters() override {
+                auto parametersDefault = std::make_shared<renderDetails::ParametersObject>();
+                parametersDefault->lookAt = DefaultConfig::lookAt;
+                parametersDefault->up = DefaultConfig::up;
+                parametersDefault->viewPoint = DefaultConfig::viewPoint;
+                parametersDefault->viewAngle = DefaultConfig::viewAngle;
+                parametersDefault->nearPlane = DefaultConfig::nearPlane;
+                parametersDefault->farPlane = DefaultConfig::farPlane;
+                parametersDefault->lightingSource = DefaultConfig::lightingSource;
+                return parametersDefault;
+        }
+
         void drawToBuffer(
             std::string const &renderDetailsName,
             ModelsTextures const &modelsTextures,

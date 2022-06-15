@@ -25,6 +25,12 @@
 #include <boost/variant.hpp>
 #include <glm/glm.hpp>
 
+namespace levelTracker {
+    static float constexpr m_maxZLevel = -1.0f;
+    static float constexpr m_maxZLevelStarter = 0.0f;
+    static float constexpr m_maxZLevelFinisher = 0.5f;
+}
+
 namespace renderDetails {
     class CommonObjectData;
 
@@ -73,6 +79,16 @@ namespace renderDetails {
 }
 
 namespace levelDrawer {
+    struct DefaultConfig {
+        static float constexpr const viewAngle = 3.1415926f/4.0f;
+        static float constexpr const nearPlane = 0.5f;
+        static float constexpr const farPlane = 5.0f;
+        static glm::vec3 constexpr const viewPoint{0.0f, 0.0f, 1.0f};
+        static glm::vec3 constexpr const lightingSource{1.0f, 1.0f, 1.5f};
+        static glm::vec3 constexpr const lookAt{0.0f, 0.0f, levelTracker::m_maxZLevel};
+        static glm::vec3 constexpr const up{0.0f, 1.0f, 0.0f};
+    };
+
     template<typename BaseClass>
     class BaseClassPtrLess {
     public:
@@ -159,11 +175,5 @@ namespace levelDrawer {
             return false;
         }
     };
-}
-
-namespace levelTracker {
-    static float constexpr m_maxZLevel = -1.0f;
-    static float constexpr m_maxZLevelStarter = 0.0f;
-    static float constexpr m_maxZLevelFinisher = 0.5f;
 }
 #endif // AMAZING_LABYRINTH_LEVEL_DRAWER_COMMON_HPP

@@ -25,7 +25,6 @@
 #include <vector>
 #include <list>
 #include <chrono>
-#include "../basic/config.hpp"
 #include "../../mathGraphics.hpp"
 #include "../../random.hpp"
 #include "../../common.hpp"
@@ -53,16 +52,8 @@ namespace finisher {
                   shouldUnveil(false),
                   finished(false)
         {
-            auto parameters = std::make_shared<renderDetails::ParametersObject>();
-            parameters->lookAt = basic::DefaultConfig::lookAt;
-            parameters->up = basic::DefaultConfig::up;
-            parameters->viewPoint = basic::DefaultConfig::viewPoint;
-            parameters->viewAngle = basic::DefaultConfig::viewAngle;
-            parameters->nearPlane = basic::DefaultConfig::nearPlane;
-            parameters->farPlane = basic::DefaultConfig::farPlane;
-            parameters->lightingSource = basic::DefaultConfig::lightingSource;
 
-            m_levelDrawer.requestRenderDetails(objectNoShadowsRenderDetailsName, parameters);
+            m_levelDrawer.requestRenderDetails(objectNoShadowsRenderDetailsName, m_levelDrawer.getDefaultParameters());
 
             auto projView = m_levelDrawer.getProjectionView();
             auto wh = getWidthHeight(maxZ, projView.first, projView.second);

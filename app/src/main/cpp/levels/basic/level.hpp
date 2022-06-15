@@ -34,7 +34,6 @@
 #include "../../levelDrawer/levelDrawer.hpp"
 #include "../../levelDrawer/modelTable/modelLoader.hpp"
 #include "../../levelDrawer/textureTable/textureLoader.hpp"
-#include "config.hpp"
 
 namespace basic {
     class Level {
@@ -54,7 +53,6 @@ namespace basic {
         static float constexpr m_lengthTooSmallToNormalize = 0.001f;
         static float constexpr m_modelSize = 2.0f;
 
-        std::shared_ptr<GameRequester> m_gameRequester;
         levelDrawer::Adaptor m_levelDrawer;
         bool m_finished;
         float m_width;
@@ -155,7 +153,7 @@ namespace basic {
                 std::shared_ptr<LevelConfigData> const &lcd,
                 float mazeFloorZ,
                 bool ignoreZMovement,
-                std::string const &renderDetailsName = objectNoShadowsRenderDetailsName,
+                std::string const &renderDetailsName = "",
                 std::shared_ptr<renderDetails::Parameters> parameters = nullptr)
                 : m_levelDrawer{std::move(inLevelDrawer)},
                   m_finished(false),
@@ -169,22 +167,12 @@ namespace basic {
                 throw (std::runtime_error("Level Configuration missing"));
             }
 
-            if (parameters == nullptr) {
-                if (renderDetailsName != objectNoShadowsRenderDetailsName) {
-                    throw std::runtime_error("Invalid parameters for render details");
-                }
-                auto parametersOWS = std::make_shared<renderDetails::ParametersObject>();
-                parametersOWS->lookAt = DefaultConfig::lookAt;
-                parametersOWS->up = DefaultConfig::up;
-                parametersOWS->viewPoint = DefaultConfig::viewPoint;
-                parametersOWS->viewAngle = DefaultConfig::viewAngle;
-                parametersOWS->nearPlane = DefaultConfig::nearPlane;
-                parametersOWS->farPlane = DefaultConfig::farPlane;
-                parametersOWS->lightingSource = DefaultConfig::lightingSource;
-
-                parameters = parametersOWS;
+            if (parameters == nullptr || renderDetailsName.length() == 0) {
+                m_levelDrawer.requestRenderDetails(m_levelDrawer.getDefaultRenderDetailsName(),
+                                                   m_levelDrawer.getDefaultParameters());
+            } else {
+                m_levelDrawer.requestRenderDetails(renderDetailsName, parameters);
             }
-            m_levelDrawer.requestRenderDetails(renderDetailsName, parameters);
 
             auto projView = m_levelDrawer.getProjectionView();
             auto wh = getWidthHeight(mazeFloorZ, projView.first, projView.second);

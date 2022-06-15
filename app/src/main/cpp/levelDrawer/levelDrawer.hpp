@@ -95,6 +95,10 @@ namespace levelDrawer {
                 std::shared_ptr<renderDetails::Parameters> const &parameters,
                 std::vector<float> &results) = 0;
 
+        virtual char const *getDefaultRenderDetailsName() = 0;
+
+        virtual std::shared_ptr<renderDetails::Parameters> getDefaultParameters() = 0;
+
         virtual ~LevelDrawer() = default;
     };
 
@@ -187,6 +191,14 @@ namespace levelDrawer {
         {
             m_levelDrawer->drawToBuffer(renderDetailsName, modelsTextures, modelMatrix, width, height,
                     nbrSamplesForWidth, parameters, results);
+        }
+
+        char const *getDefaultRenderDetailsName() {
+            return m_levelDrawer->getDefaultRenderDetailsName();
+        }
+
+        std::shared_ptr<renderDetails::Parameters> getDefaultParameters() {
+            return m_levelDrawer->getDefaultParameters();
         }
 
     private:

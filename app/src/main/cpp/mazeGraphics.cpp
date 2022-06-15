@@ -20,7 +20,6 @@
 
 #include "mazeGraphics.hpp"
 #include "levelDrawer/modelTable/modelLoader.hpp"
-#include "levels/basic/config.hpp"
 
 void LevelSequence::notifySurfaceChanged(
         uint32_t surfaceWidth,
@@ -198,11 +197,11 @@ bool Graphics::testDepthTexture(levelDrawer::Adaptor inLevelDrawer) {
     glm::mat4 modelMatrix = glm::mat4(1.0f);
 
     renderDetails::ParametersDepthMap depthParameters{};
-    depthParameters.lookAt = basic::DefaultConfig::lookAt;
-    depthParameters.up = basic::DefaultConfig::up;
-    depthParameters.viewPoint = basic::DefaultConfig::viewPoint;
-    depthParameters.nearPlane = basic::DefaultConfig::nearPlane;
-    depthParameters.farPlane = basic::DefaultConfig::farPlane;
+    depthParameters.lookAt = levelDrawer::DefaultConfig::lookAt;
+    depthParameters.up = levelDrawer::DefaultConfig::up;
+    depthParameters.viewPoint = levelDrawer::DefaultConfig::viewPoint;
+    depthParameters.nearPlane = levelDrawer::DefaultConfig::nearPlane;
+    depthParameters.farPlane = levelDrawer::DefaultConfig::farPlane;
     depthParameters.nearestDepth = 1.0f;
     depthParameters.farthestDepth = -1.0f;
     depthParameters.widthAtDepth = 2.0f;
@@ -219,11 +218,11 @@ bool Graphics::testDepthTexture(levelDrawer::Adaptor inLevelDrawer) {
                     std::shared_ptr<levelDrawer::TextureDescription>())};
 
     renderDetails::ParametersNormalMap normalParameters{};
-    normalParameters.lookAt = basic::DefaultConfig::lookAt;
-    normalParameters.up = basic::DefaultConfig::up;
-    normalParameters.viewPoint = basic::DefaultConfig::viewPoint;
-    normalParameters.nearPlane = basic::DefaultConfig::nearPlane;
-    normalParameters.farPlane = basic::DefaultConfig::farPlane;
+    normalParameters.lookAt = levelDrawer::DefaultConfig::lookAt;
+    normalParameters.up = levelDrawer::DefaultConfig::up;
+    normalParameters.viewPoint = levelDrawer::DefaultConfig::viewPoint;
+    normalParameters.nearPlane = levelDrawer::DefaultConfig::nearPlane;
+    normalParameters.farPlane = levelDrawer::DefaultConfig::farPlane;
     normalParameters.widthAtDepth = 2.0f;
     normalParameters.heightAtDepth = 2.0f;
     std::vector<float> rawNormalMap;
