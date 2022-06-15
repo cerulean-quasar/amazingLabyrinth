@@ -34,11 +34,11 @@
 
 class RenderLoaderGL;
 namespace renderDetails {
-    struct ParametersObjectWithShadowsGL : public ParametersObjectWithShadows {
+    struct ParametersObjectWithShadowsGL : public ParametersObject {
         std::shared_ptr<graphicsGL::Framebuffer> shadowsFB;
 
-        ParametersObjectWithShadowsGL(ParametersObjectWithShadows const *parameters, std::shared_ptr<graphicsGL::Framebuffer> fb)
-        : ParametersObjectWithShadows(*parameters), shadowsFB(fb) {}
+        ParametersObjectWithShadowsGL(ParametersObject const *parameters, std::shared_ptr<graphicsGL::Framebuffer> fb)
+        : ParametersObject(*parameters), shadowsFB(fb) {}
 
         ~ParametersObjectWithShadowsGL() override = default;
     };

@@ -23,7 +23,7 @@
 #include "renderDetailsVulkan.hpp"
 #include "../../renderLoader/registerVulkan.hpp"
 
-namespace objectWithShadows {
+namespace objectNoShadows {
     char constexpr const *RenderDetailsVulkan::SHADER_VERT_FILE;
     char constexpr const *RenderDetailsVulkan::TEXTURE_SHADER_FRAG_FILE;
     char constexpr const *RenderDetailsVulkan::COLOR_SHADER_FRAG_FILE;
@@ -38,7 +38,7 @@ namespace objectWithShadows {
         bufferInfo.offset = 0;
         bufferInfo.range = sizeof (PerObjectUBO);
 
-        std::array<VkWriteDescriptorSet, 4> descriptorWrites = {};
+        std::array<VkWriteDescriptorSet, 3> descriptorWrites = {};
         descriptorWrites[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
         descriptorWrites[0].dstSet = getVkType<>(m_descriptorSet->descriptorSet().get());
 
@@ -87,19 +87,6 @@ namespace objectWithShadows {
         descriptorWrites[2].descriptorCount = 1;
         descriptorWrites[2].pBufferInfo = &bufferLightingSource;
 
-        VkDescriptorImageInfo shadowInfo = {};
-        shadowInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-        shadowInfo.imageView = getVkType<>(cod->shadowsSampler()->imageView()->imageView().get());
-        shadowInfo.sampler = getVkType<>(cod->shadowsSampler()->sampler().get());
-
-        descriptorWrites[3].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-        descriptorWrites[3].dstSet = getVkType<>(m_descriptorSet->descriptorSet().get());
-        descriptorWrites[3].dstBinding = 3;
-        descriptorWrites[3].dstArrayElement = 0;
-        descriptorWrites[3].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-        descriptorWrites[3].descriptorCount = 1;
-        descriptorWrites[3].pImageInfo = &shadowInfo;
-
         vkUpdateDescriptorSets(inDevice->logicalDevice().get(),
                                static_cast<uint32_t>(descriptorWrites.size()),
                                descriptorWrites.data(), 0, nullptr);
@@ -116,7 +103,7 @@ namespace objectWithShadows {
         bufferInfo.offset = 0;
         bufferInfo.range = sizeof (PerObjectUBO);
 
-        std::array<VkWriteDescriptorSet, 5> descriptorWrites = {};
+        std::array<VkWriteDescriptorSet, 4> descriptorWrites = {};
         descriptorWrites[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
         descriptorWrites[0].dstSet = getVkType<>(m_descriptorSet->descriptorSet().get());
 
@@ -178,19 +165,6 @@ namespace objectWithShadows {
         descriptorWrites[3].descriptorCount = 1;
         descriptorWrites[3].pBufferInfo = &bufferLightingSource;
 
-        VkDescriptorImageInfo shadowInfo = {};
-        shadowInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-        shadowInfo.imageView = getVkType<>(cod->shadowsSampler()->imageView()->imageView().get());
-        shadowInfo.sampler = getVkType<>(cod->shadowsSampler()->sampler().get());
-
-        descriptorWrites[4].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-        descriptorWrites[4].dstSet = getVkType<>(m_descriptorSet->descriptorSet().get());
-        descriptorWrites[4].dstBinding = 4;
-        descriptorWrites[4].dstArrayElement = 0;
-        descriptorWrites[4].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-        descriptorWrites[4].descriptorCount = 1;
-        descriptorWrites[4].pImageInfo = &shadowInfo;
-
         vkUpdateDescriptorSets(inDevice->logicalDevice().get(),
                                static_cast<uint32_t>(descriptorWrites.size()),
                                descriptorWrites.data(), 0, nullptr);
@@ -231,18 +205,10 @@ namespace objectWithShadows {
         lightingSourceBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
         lightingSourceBinding.pImmutableSamplers = nullptr;
 
-        VkDescriptorSetLayoutBinding samplerShadows = {};
-        samplerShadows.binding = 4;
-        samplerShadows.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-        samplerShadows.descriptorCount = 1;
-        samplerShadows.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
-        samplerShadows.pImmutableSamplers = nullptr;
-
-        std::array<VkDescriptorSetLayoutBinding, 5> bindings = {modelMatrixBinding,
+        std::array<VkDescriptorSetLayoutBinding, 4> bindings = {modelMatrixBinding,
                                                                 commonDataBinding,
                                                                 samplerLayoutBinding,
-                                                                lightingSourceBinding,
-                                                                samplerShadows};
+                                                                lightingSourceBinding};
 
         VkDescriptorSetLayoutCreateInfo layoutInfo = {};
         layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
@@ -290,17 +256,9 @@ namespace objectWithShadows {
         lightingSourceBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
         lightingSourceBinding.pImmutableSamplers = nullptr;
 
-        VkDescriptorSetLayoutBinding samplerShadows = {};
-        samplerShadows.binding = 3;
-        samplerShadows.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-        samplerShadows.descriptorCount = 1;
-        samplerShadows.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
-        samplerShadows.pImmutableSamplers = nullptr;
-
-        std::array<VkDescriptorSetLayoutBinding, 4> bindings = {modelMatrixBinding,
+        std::array<VkDescriptorSetLayoutBinding, 3> bindings = {modelMatrixBinding,
                                                                 commonDataBinding,
-                                                                lightingSourceBinding,
-                                                                samplerShadows};
+                                                                lightingSourceBinding};
 
         VkDescriptorSetLayoutCreateInfo layoutInfo = {};
         layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;

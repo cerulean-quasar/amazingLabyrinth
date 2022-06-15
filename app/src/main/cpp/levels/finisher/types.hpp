@@ -53,7 +53,7 @@ namespace finisher {
                   shouldUnveil(false),
                   finished(false)
         {
-            auto parameters = std::make_shared<renderDetails::ParametersObjectWithShadows>();
+            auto parameters = std::make_shared<renderDetails::ParametersObject>();
             parameters->lookAt = basic::DefaultConfig::lookAt;
             parameters->up = basic::DefaultConfig::up;
             parameters->viewPoint = basic::DefaultConfig::viewPoint;
@@ -62,7 +62,7 @@ namespace finisher {
             parameters->farPlane = basic::DefaultConfig::farPlane;
             parameters->lightingSource = basic::DefaultConfig::lightingSource;
 
-            m_levelDrawer.requestRenderDetails(shadowsChainingRenderDetailsName, parameters);
+            m_levelDrawer.requestRenderDetails(objectNoShadowsRenderDetailsName, parameters);
 
             auto projView = m_levelDrawer.getProjectionView();
             auto wh = getWidthHeight(maxZ, projView.first, projView.second);

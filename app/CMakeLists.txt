@@ -25,14 +25,6 @@ add_library( # Sets the name of the library.
         src/main/cpp/graphicsVulkan.cpp
         src/main/cpp/mazeVulkan.cpp
         src/main/cpp/vk_mem_alloc.cpp
-        src/main/cpp/levelDrawer/levelDrawerVulkan.cpp
-        src/main/cpp/renderDetails/renderDetailsVulkan.cpp
-        src/main/cpp/renderDetails/depthMap/renderDetailsVulkan.cpp
-        src/main/cpp/renderDetails/normalMap/renderDetailsVulkan.cpp
-        src/main/cpp/renderDetails/objectWithShadows/renderDetailsVulkan.cpp
-        src/main/cpp/renderDetails/shadows/renderDetailsVulkan.cpp
-        src/main/cpp/renderDetails/shadowsChaining/renderDetailsVulkan.cpp
-        src/main/cpp/renderLoader/renderLoaderVulkan.cpp
         src/main/cpp/native-lib.cpp
         src/main/cpp/gameRequester.cpp
         src/main/cpp/android.cpp
@@ -45,16 +37,26 @@ add_library( # Sets the name of the library.
         src/main/cpp/common.cpp
         src/main/cpp/commonGL.cpp
         src/main/cpp/renderDetails/renderDetailsGL.cpp
+        src/main/cpp/renderDetails/renderDetailsVulkan.cpp
         src/main/cpp/renderDetails/depthMap/renderDetailsGL.cpp
+        src/main/cpp/renderDetails/depthMap/renderDetailsVulkan.cpp
         src/main/cpp/renderDetails/normalMap/renderDetailsGL.cpp
+        src/main/cpp/renderDetails/normalMap/renderDetailsVulkan.cpp
+        src/main/cpp/renderDetails/objectNoShadows/renderDetailsGL.cpp
+        src/main/cpp/renderDetails/objectNoShadows/renderDetailsVulkan.cpp
         src/main/cpp/renderDetails/objectWithShadows/renderDetailsGL.cpp
+        src/main/cpp/renderDetails/objectWithShadows/renderDetailsVulkan.cpp
         src/main/cpp/renderDetails/shadows/renderDetailsGL.cpp
+        src/main/cpp/renderDetails/shadows/renderDetailsVulkan.cpp
         src/main/cpp/renderDetails/shadowsChaining/renderDetailsGL.cpp
+        src/main/cpp/renderDetails/shadowsChaining/renderDetailsVulkan.cpp
         src/main/cpp/renderLoader/renderLoaderGL.cpp
+        src/main/cpp/renderLoader/renderLoaderVulkan.cpp
         src/main/cpp/levelDrawer/modelTable/modelLoader.cpp
         src/main/cpp/levelDrawer/textureTable/textureTableGL.cpp
         src/main/cpp/levelDrawer/textureTable/textureLoader.cpp
         src/main/cpp/levelDrawer/levelDrawerGL.cpp
+        src/main/cpp/levelDrawer/levelDrawerVulkan.cpp
         src/main/cpp/levels/finisher/types.cpp
         src/main/cpp/levels/finisher/serializer.cpp
         src/main/cpp/levels/generatedMazeAlgorithms.cpp

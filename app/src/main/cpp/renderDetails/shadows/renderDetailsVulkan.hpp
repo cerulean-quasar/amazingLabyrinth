@@ -57,7 +57,7 @@ namespace shadows {
                 std::shared_ptr<vulkan::Buffer> buffer,
                 glm::mat4 preTransform,
                 float aspectRatio,
-                renderDetails::ParametersShadows const *parameters)
+                renderDetails::ParametersLightSource const *parameters)
                 : renderDetails::CommonObjectDataPerspective(
                     parameters->viewAngle, aspectRatio, parameters->nearPlane, parameters->farPlane,
                     parameters->lightingSource, parameters->lookAt, parameters->up),
@@ -192,7 +192,7 @@ namespace shadows {
                 std::shared_ptr<vulkan::SurfaceDetails> const &surfaceDetails,
                 std::shared_ptr<renderDetails::Parameters> const &parametersBase)
         {
-            auto parameters = dynamic_cast<renderDetails::ParametersShadows*>(parametersBase.get());
+            auto parameters = dynamic_cast<renderDetails::ParametersLightSource*>(parametersBase.get());
             if (parameters == nullptr) {
                 throw std::runtime_error("Invalid render details parameter type.");
             }
@@ -212,7 +212,7 @@ namespace shadows {
                 std::shared_ptr<vulkan::SurfaceDetails> const &surfaceDetails,
                 std::shared_ptr<renderDetails::Parameters> const &parametersBase)
         {
-            auto parameters = dynamic_cast<renderDetails::ParametersShadows*>(parametersBase.get());
+            auto parameters = dynamic_cast<renderDetails::ParametersLightSource*>(parametersBase.get());
             if (parameters == nullptr) {
                 throw std::runtime_error("Invalid render details parameter type.");
             }
@@ -294,7 +294,7 @@ namespace shadows {
 
         std::shared_ptr<CommonObjectDataVulkan> createCommonObjectData(
                 glm::mat4 const &preTransform,
-                renderDetails::ParametersShadows const *parameters)
+                renderDetails::ParametersLightSource const *parameters)
         {
             auto buffer = renderDetails::createUniformBuffer(m_device, sizeof (CommonObjectDataVulkan::CommonUBO));
             return std::make_shared<CommonObjectDataVulkan>(

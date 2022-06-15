@@ -30,7 +30,7 @@ namespace shadowsChaining {
             std::shared_ptr<vulkan::SurfaceDetails> const &surfaceDetails,
             std::shared_ptr<renderDetails::Parameters> const &parametersBase)
     {
-        auto parameters = dynamic_cast<renderDetails::ParametersObjectWithShadows*>(parametersBase.get());
+        auto parameters = dynamic_cast<renderDetails::ParametersObject*>(parametersBase.get());
         if (parameters == nullptr) {
             throw std::runtime_error("Invalid render details parameter type.");
         }
@@ -40,7 +40,7 @@ namespace shadowsChaining {
 
         auto shadowsSurfaceDetails = rd->createShadowSurfaceDetails(surfaceDetails);
 
-        auto parametersShadows = std::make_shared<renderDetails::ParametersShadows>(*((renderDetails::ParametersShadows*)parameters));
+        auto parametersShadows = std::make_shared<renderDetails::ParametersLightSource>(*((renderDetails::ParametersLightSource*)parameters));
 
         // shadows render details
         auto refShadows = renderLoader->load(
@@ -66,7 +66,7 @@ namespace shadowsChaining {
             std::shared_ptr<vulkan::SurfaceDetails> const &surfaceDetails,
             std::shared_ptr<renderDetails::Parameters> const &parametersBase)
     {
-        auto parameters = dynamic_cast<renderDetails::ParametersObjectWithShadows*>(parametersBase.get());
+        auto parameters = dynamic_cast<renderDetails::ParametersObject*>(parametersBase.get());
         if (parameters == nullptr) {
             throw std::runtime_error("Invalid render details parameter type.");
         }
@@ -82,7 +82,7 @@ namespace shadowsChaining {
 
         auto shadowSurfaceDetails = rd->createShadowSurfaceDetails(surfaceDetails);
 
-        auto parametersShadows = std::make_shared<renderDetails::ParametersShadows>(*((renderDetails::ParametersShadows*)parameters));
+        auto parametersShadows = std::make_shared<renderDetails::ParametersLightSource>(*((renderDetails::ParametersLightSource*)parameters));
 
         // shadows render details
         auto refShadows = renderLoader->load(

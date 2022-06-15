@@ -155,7 +155,7 @@ namespace basic {
                 std::shared_ptr<LevelConfigData> const &lcd,
                 float mazeFloorZ,
                 bool ignoreZMovement,
-                std::string const &renderDetailsName = shadowsChainingRenderDetailsName,
+                std::string const &renderDetailsName = objectNoShadowsRenderDetailsName,
                 std::shared_ptr<renderDetails::Parameters> parameters = nullptr)
                 : m_levelDrawer{std::move(inLevelDrawer)},
                   m_finished(false),
@@ -170,10 +170,10 @@ namespace basic {
             }
 
             if (parameters == nullptr) {
-                if (renderDetailsName != shadowsChainingRenderDetailsName) {
+                if (renderDetailsName != objectNoShadowsRenderDetailsName) {
                     throw std::runtime_error("Invalid parameters for render details");
                 }
-                auto parametersOWS = std::make_shared<renderDetails::ParametersObjectWithShadows>();
+                auto parametersOWS = std::make_shared<renderDetails::ParametersObject>();
                 parametersOWS->lookAt = DefaultConfig::lookAt;
                 parametersOWS->up = DefaultConfig::up;
                 parametersOWS->viewPoint = DefaultConfig::viewPoint;

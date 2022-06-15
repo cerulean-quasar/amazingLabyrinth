@@ -17,8 +17,8 @@
  *  along with AmazingLabyrinth.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
-#ifndef AMAZING_LABYRINTH_SHADOWS_RENDER_DETAILS_GL_HPP
-#define AMAZING_LABYRINTH_SHADOWS_RENDER_DETAILS_GL_HPP
+#ifndef AMAZING_LABYRINTH_OBJECTNOSHADOWS_RENDER_DETAILS_GL_HPP
+#define AMAZING_LABYRINTH_OBJECTNOSHADOWS_RENDER_DETAILS_GL_HPP
 
 #include <memory>
 
@@ -29,12 +29,11 @@
 #include "../renderDetailsGL.hpp"
 #include "../renderDetails.hpp"
 #include "../../levelDrawer/textureTable/textureLoader.hpp"
+#include "../../graphicsGL.hpp"
 #include "../../renderLoader/renderLoaderGL.hpp"
 
-namespace shadows {
-    class RenderDetailsGL;
+namespace objectNoShadows {
     class CommonObjectDataGL : public renderDetails::CommonObjectDataPerspective {
-        friend RenderDetailsGL;
     public:
         std::pair<glm::mat4, glm::mat4> getProjViewForLevel() override {
             /* perspective matrix: takes the perspective projection, the aspect ratio, near and far
@@ -42,36 +41,41 @@ namespace shadows {
              */
             return std::make_pair<glm::mat4, glm::mat4>(
                     getPerspectiveMatrix(m_viewAngle, m_aspectRatio, m_nearPlane, m_farPlane,
-                                        false, false),
+                                         false, false),
                     view());
         }
 
-        glm::vec3 getLightSource() override {
-            return viewPoint();
-        }
+        glm::vec3 getLightSource() override { return m_lightingSource;}
 
         glm::mat4 getViewLightSource() override {
-            return view();
+            return glm::lookAt(m_lightingSource, m_lookAt, m_up);
         }
 
-        CommonObjectDataGL(float aspectRatio, renderDetails::ParametersLightSource const *parameters)
-                : CommonObjectDataPerspective(parameters->viewAngle, aspectRatio, parameters->nearPlane, parameters->farPlane,
-                                              parameters->lightingSource, parameters->lookAt, parameters->up)
+        CommonObjectDataGL(float aspectRatio, renderDetails::ParametersObject const *parameters)
+                : renderDetails::CommonObjectDataPerspective(parameters->viewAngle, aspectRatio, parameters->nearPlane, parameters->farPlane,
+                                                             parameters->viewPoint, parameters->lookAt, parameters->up),
+                  m_lightingSource{parameters->lightingSource}
         {}
 
         ~CommonObjectDataGL() override = default;
+    private:
+        glm::vec3 m_lightingSource;
     };
 
     class DrawObjectDataGL : public renderDetails::DrawObjectDataGL {
     public:
-        glm::mat4 modelMatrix(uint32_t) override { return m_modelMatrix; }
+        glm::mat4 modelMatrix(uint32_t) override {
+            return m_modelMatrix;
+        }
 
         void update(glm::mat4 const &modelMatrix) override {
             m_modelMatrix = modelMatrix;
         }
 
-        DrawObjectDataGL(glm::mat4 const &inModelMatrix)
-                : m_modelMatrix{inModelMatrix}
+        DrawObjectDataGL(
+                glm::mat4 inModelMatrix)
+                : renderDetails::DrawObjectDataGL{},
+                  m_modelMatrix{std::move(inModelMatrix)}
         {}
 
         ~DrawObjectDataGL() override = default;
@@ -82,8 +86,7 @@ namespace shadows {
     class RenderDetailsGL : public renderDetails::RenderDetailsGL {
     public:
         std::string nameString() override { return name(); }
-        static char const *name() { return shadowsRenderDetailsName; }
-
+        static char const *name() { return objectNoShadowsRenderDetailsName; }
         static renderDetails::ReferenceGL loadNew(
                 std::shared_ptr<GameRequester> const &gameRequester,
                 std::shared_ptr<RenderLoaderGL> const &renderLoader,
@@ -108,18 +111,23 @@ namespace shadows {
                         uint32_t inWidth, uint32_t inHeight, bool usesIntSurface);
 
         ~RenderDetailsGL() override {
-            glDeleteShader(m_depthProgramID);
+            glDeleteShader(m_textureProgramID);
+            glDeleteProgram(m_colorProgramID);
         }
 
     private:
-        static char constexpr const *DEPTH_VERT_FILE = "shaders/depthShaderGL.vert";
-        static char constexpr const *SIMPLE_FRAG_FILE = "shaders/simpleGL.frag";
+        static char constexpr const *SHADER_VERT_FILE = "shaders/shaderNoShadowsGL.vert";
+        static char constexpr const *TEXTURE_SHADER_FRAG_FILE = "shaders/shaderNoShadowsGL.frag";
+        static char constexpr const *COLOR_SHADER_FRAG_FILE = "shaders/colorNoShadowsGL.frag";
 
-        GLuint m_depthProgramID;
+        GLuint m_textureProgramID;
+        GLuint m_colorProgramID;
 
         static renderDetails::ReferenceGL createReference(
                 std::shared_ptr<renderDetails::RenderDetailsGL> rd,
                 std::shared_ptr<CommonObjectDataGL> cod);
+
     };
 }
-#endif // AMAZING_LABYRINTH_SHADOWS_RENDER_DETAILS_GL_HPP
+
+#endif // AMAZING_LABYRINTH_OBJECTNOSHADOWS_RENDER_DETAILS_GL_HPP

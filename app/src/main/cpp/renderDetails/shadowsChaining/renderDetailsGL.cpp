@@ -27,7 +27,7 @@ namespace shadowsChaining {
             std::shared_ptr<graphicsGL::SurfaceDetails> const &surfaceDetails,
             std::shared_ptr<renderDetails::Parameters> const &parametersBase)
     {
-        auto parameters = dynamic_cast<renderDetails::ParametersObjectWithShadows*>(parametersBase.get());
+        auto parameters = dynamic_cast<renderDetails::ParametersObject*>(parametersBase.get());
         if (parameters == nullptr) {
             throw std::runtime_error("Invalid render details parameter type.");
         }
@@ -35,7 +35,7 @@ namespace shadowsChaining {
         auto rd = std::make_shared<RenderDetailsGL>(
                 surfaceDetails->useIntTexture, surfaceDetails->surfaceWidth, surfaceDetails->surfaceHeight);
 
-        auto parametersShadows = std::make_shared<renderDetails::ParametersShadows>(*((renderDetails::ParametersShadows*)parameters));
+        auto parametersShadows = std::make_shared<renderDetails::ParametersLightSource>(*((renderDetails::ParametersLightSource*)parameters));
         auto refShadows = renderLoader->load(
                 gameRequester, shadows::RenderDetailsGL::name(), surfaceDetails, parametersShadows);
 
@@ -62,7 +62,7 @@ namespace shadowsChaining {
             throw std::runtime_error("Invalid render details type.");
         }
 
-        auto parameters = dynamic_cast<renderDetails::ParametersObjectWithShadows*>(parametersBase.get());
+        auto parameters = dynamic_cast<renderDetails::ParametersObject*>(parametersBase.get());
         if (parameters == nullptr) {
             throw std::runtime_error("Invalid render details parameter type.");
         }
@@ -77,7 +77,7 @@ namespace shadowsChaining {
             rd->createFramebuffer();
         }
 
-        auto parametersShadows = std::make_shared<renderDetails::ParametersShadows>(*((renderDetails::ParametersShadows*)parameters));
+        auto parametersShadows = std::make_shared<renderDetails::ParametersLightSource>(*((renderDetails::ParametersLightSource*)parameters));
         auto refShadows = renderLoader->load(
                 gameRequester, shadows::RenderDetailsGL::name(), surfaceDetails, parametersShadows);
 

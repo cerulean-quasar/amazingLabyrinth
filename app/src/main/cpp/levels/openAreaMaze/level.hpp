@@ -52,7 +52,7 @@ namespace openAreaMaze {
                 std::shared_ptr<generatedMaze::LevelConfigData> const &lcd,
                 std::shared_ptr<generatedMaze::LevelSaveData> const &sd,
                 float maxZ,
-                std::string const &renderDetailsName = shadowsChainingRenderDetailsName)
+                std::string const &renderDetailsName = objectNoShadowsRenderDetailsName)
                 : generatedMaze::Level(
                         std::move(inLevelDrawer), lcd, sd, maxZ,
                         renderDetailsName,

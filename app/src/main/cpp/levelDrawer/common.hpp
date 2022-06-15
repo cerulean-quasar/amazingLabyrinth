@@ -39,16 +39,16 @@ namespace renderDetails {
         virtual ~Parameters() = default;
     };
 
-    struct ParametersShadows : public Parameters {
+    struct ParametersLightSource : public Parameters {
         float viewAngle;
         glm::vec3 lightingSource;
-        ~ParametersShadows() override = default;
+        ~ParametersLightSource() override = default;
     };
 
-    struct ParametersObjectWithShadows : public ParametersShadows {
+    struct ParametersObject : public ParametersLightSource {
         glm::vec3 viewPoint;
 
-        ~ParametersObjectWithShadows() override = default;
+        ~ParametersObject() override = default;
     };
 
     struct ParametersDepthMap : public Parameters {

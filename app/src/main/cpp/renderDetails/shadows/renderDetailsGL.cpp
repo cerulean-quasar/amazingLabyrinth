@@ -42,7 +42,7 @@ namespace shadows {
                 surfaceDetails->useIntTexture);
 
         auto parameters =
-                dynamic_cast<renderDetails::ParametersShadows*>(parametersBase.get());
+                dynamic_cast<renderDetails::ParametersLightSource*>(parametersBase.get());
         if (parameters == nullptr) {
             throw std::runtime_error("Invalid render details parameter type.");
         }
@@ -66,7 +66,7 @@ namespace shadows {
         }
 
         auto parameters =
-                dynamic_cast<renderDetails::ParametersShadows*>(parametersBase.get());
+                dynamic_cast<renderDetails::ParametersLightSource*>(parametersBase.get());
         if (parameters == nullptr) {
             throw std::runtime_error("Invalid render details parameter type.");
         }

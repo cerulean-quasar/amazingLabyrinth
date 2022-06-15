@@ -118,7 +118,7 @@ namespace generatedMaze {
              std::shared_ptr<LevelConfigData> const &lcd,
              std::shared_ptr<LevelSaveData> const &sd,
              float floorZ,
-             std::string const &renderDetailsName = shadowsChainingRenderDetailsName,
+             std::string const &renderDetailsName = objectNoShadowsRenderDetailsName,
              MazeWallModelMatrixGeneratorFcn wallModelMatrixGeneratorFcn = getMazeWallModelMatricesGenerator())
                 : basic::Level(std::move(inLevelDrawer), lcd, floorZ, true, renderDetailsName),
                   wallTextures{lcd->wallTextureNames},

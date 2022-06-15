@@ -38,11 +38,11 @@ namespace renderDetails {
     std::shared_ptr<vulkan::Buffer> createUniformBuffer(
             std::shared_ptr<vulkan::Device> const &device, size_t bufferSize);
 
-    struct ParametersObjectWithShadowsVulkan : public ParametersObjectWithShadows {
+    struct ParametersObjectWithShadowsVulkan : public ParametersObject {
         std::shared_ptr<vulkan::ImageSampler> shadowsSampler;
 
-        ParametersObjectWithShadowsVulkan(ParametersObjectWithShadows const *parameters, std::shared_ptr<vulkan::ImageSampler> sampler)
-            : ParametersObjectWithShadows(*parameters),
+        ParametersObjectWithShadowsVulkan(ParametersObject const *parameters, std::shared_ptr<vulkan::ImageSampler> sampler)
+            : ParametersObject(*parameters),
             shadowsSampler(std::move(sampler)) {
         }
         virtual ~ParametersObjectWithShadowsVulkan() = default;
