@@ -1,5 +1,5 @@
 /**
- * Copyright 2020 Cerulean Quasar. All Rights Reserved.
+ * Copyright 2022 Cerulean Quasar. All Rights Reserved.
  *
  *  This file is part of AmazingLabyrinth.
  *
@@ -189,6 +189,7 @@ namespace levelDrawer {
             LevelDrawerGLTraits::NeededForDrawingType neededForDrawing,
             std::shared_ptr<LevelDrawerGLTraits::SurfaceDetailsType> inSurfaceDetails,
             std::shared_ptr<LevelDrawerGLTraits::RenderLoaderType> inRenderLoader,
+            char const *defaultRenderDetailsName,
             std::shared_ptr<GameRequester> inGameRequester)
             : m_modelTable{},
             m_textureTable{},
@@ -200,6 +201,7 @@ namespace levelDrawer {
             m_gameRequester{std::move(inGameRequester)},
             m_neededForDrawing{neededForDrawing},
             m_surfaceDetails{std::move(inSurfaceDetails)},
-            m_bgColor{0.0f, 0.0f, 0.0f, 1.0f}
+            m_bgColor{0.0f, 0.0f, 0.0f, 1.0f},
+            m_defaultRenderDetailsName{defaultRenderDetailsName}
     {}
 }

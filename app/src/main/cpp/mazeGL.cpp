@@ -1,5 +1,5 @@
 /**
- * Copyright 2020 Cerulean Quasar. All Rights Reserved.
+ * Copyright 2022 Cerulean Quasar. All Rights Reserved.
  *
  *  This file is part of AmazingLabyrinth.
  *
@@ -27,14 +27,16 @@
 #include "mazeGL.hpp"
 #include "mathGraphics.hpp"
 
-void GraphicsGL::initPipeline(bool testFramebuffer) {
+void GraphicsGL::initPipeline(bool enableShadows, bool testFramebuffer) {
     glViewport(0, 0, m_surface->width(), m_surface->height());
 
     if (testFramebuffer) {
         if (!m_surfaceDetails->useIntTexture || !testDepthTexture(levelDrawer::Adaptor(levelDrawer::LEVEL, m_levelDrawer))) {
             m_surfaceDetails->useIntTexture = false;
             m_levelDrawer = std::make_shared<levelDrawer::LevelDrawerGL>(
-                    levelDrawer::NeededForDrawingGL{}, m_surfaceDetails, m_renderLoader, m_gameRequester);
+                    levelDrawer::NeededForDrawingGL{}, m_surfaceDetails, m_renderLoader,
+                    enableShadows ? shadowsChainingRenderDetailsName : objectNoShadowsRenderDetailsName,
+                    m_gameRequester);
             if (!testDepthTexture(levelDrawer::Adaptor(levelDrawer::LEVEL, m_levelDrawer))) {
                 throw std::runtime_error(
                         "This version of OpenGL has bugs making it impossible to get the depth texture and normal map.");

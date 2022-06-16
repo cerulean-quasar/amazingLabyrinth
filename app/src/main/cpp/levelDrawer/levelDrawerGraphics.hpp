@@ -171,7 +171,7 @@ namespace levelDrawer {
 
         void draw(typename traits::DrawArgumentType const &info);
 
-        char const *getDefaultRenderDetailsName() override { return shadowsChainingRenderDetailsName; }
+        char const *getDefaultRenderDetailsName() override { return m_defaultRenderDetailsName; }
 
         std::shared_ptr<renderDetails::Parameters> getDefaultParameters() override {
                 auto parametersDefault = std::make_shared<renderDetails::ParametersObject>();
@@ -198,6 +198,7 @@ namespace levelDrawer {
         LevelDrawerGraphics(typename traits::NeededForDrawingType neededForDrawing,
                             std::shared_ptr<typename traits::SurfaceDetailsType> inSurfaceDetails,
                             std::shared_ptr<typename traits::RenderLoaderType> inRenderLoader,
+                            char const *defaultRenderDetailsName,
                             std::shared_ptr<GameRequester> inGameRequester);
 
         ~LevelDrawerGraphics() override = default;
@@ -217,6 +218,7 @@ namespace levelDrawer {
         typename traits::NeededForDrawingType m_neededForDrawing;
         std::shared_ptr<typename traits::SurfaceDetailsType> m_surfaceDetails;
         glm::vec4 m_bgColor;
+        char const *m_defaultRenderDetailsName;
 
         DrawObjReference addModelMatrixToDrawObjTable(
                 std::shared_ptr<typename traits::DrawObjectTableType> const &drawObjTable,

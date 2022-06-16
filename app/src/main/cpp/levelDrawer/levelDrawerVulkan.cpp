@@ -241,6 +241,7 @@ namespace levelDrawer {
             LevelDrawerVulkanTraits::NeededForDrawingType neededForDrawing,
             std::shared_ptr<LevelDrawerVulkanTraits::SurfaceDetailsType> inSurfaceDetails,
             std::shared_ptr<LevelDrawerVulkanTraits::RenderLoaderType> inRenderLoader,
+            char const *defaultRenderDetailsName,
             std::shared_ptr<GameRequester> inGameRequester)
             : m_modelTable(neededForDrawing.device, neededForDrawing.commandPool),
             m_textureTable(neededForDrawing.device, neededForDrawing.commandPool),
@@ -252,6 +253,7 @@ namespace levelDrawer {
             m_gameRequester{std::move(inGameRequester)},
             m_neededForDrawing{std::move(neededForDrawing)},
             m_surfaceDetails{std::move(inSurfaceDetails)},
-            m_bgColor{0.0f, 0.0f, 0.0f, 1.0f}
+            m_bgColor{0.0f, 0.0f, 0.0f, 1.0f},
+            m_defaultRenderDetailsName{defaultRenderDetailsName}
     {}
 }

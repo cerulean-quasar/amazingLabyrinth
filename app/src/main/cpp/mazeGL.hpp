@@ -32,6 +32,7 @@
 class GraphicsGL : public Graphics {
 public:
     GraphicsGL(std::shared_ptr<WindowType> window,
+               bool shadowsEnabled,
                std::shared_ptr<GameRequester> inGameRequester,
                float rotationAngle)
             : Graphics{std::move(inGameRequester), rotationAngle},
@@ -42,10 +43,11 @@ public:
               m_renderLoader{std::make_shared<RenderLoaderGL>()},
               m_levelDrawer{std::make_shared<levelDrawer::LevelDrawerGL>(
                       levelDrawer::NeededForDrawingGL{},
-                      m_surfaceDetails,
-                      m_renderLoader, m_gameRequester)}
+                      m_surfaceDetails, m_renderLoader,
+                      shadowsEnabled ? shadowsChainingRenderDetailsName : objectNoShadowsRenderDetailsName,
+                      m_gameRequester)}
     {
-        initPipeline();
+        initPipeline(shadowsEnabled);
 
         m_levelSequence = std::make_shared<LevelSequence>(
                 m_gameRequester, m_levelDrawer, static_cast<uint32_t>(m_surface->width()),
@@ -94,7 +96,7 @@ private:
     std::shared_ptr<RenderLoaderGL> m_renderLoader;
     std::shared_ptr<levelDrawer::LevelDrawerGL> m_levelDrawer;
 
-    void initPipeline(bool testFramebuffer = true);
+    void initPipeline(bool enableShadows, bool testFramebuffer = true);
 
     void destroyResources() {
         m_renderLoader->clearRenderDetails();

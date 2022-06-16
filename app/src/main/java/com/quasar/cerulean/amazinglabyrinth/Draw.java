@@ -38,10 +38,11 @@ public class Draw implements Runnable {
     private final float m_rotaation;
     private final boolean m_tryVulkan;
     private final boolean m_tryVulkanReadFromFile;
+    private final boolean m_useShadows;
 
     public Draw(Handler inNotify, Surface inDrawingSurface, AssetManager inAssetManager,
                 String inSaveGameDir, float inRotation, boolean inTryVulkan,
-                boolean inTryVulkanReadFromFile) {
+                boolean inTryVulkanReadFromFile, boolean inUseShadows) {
         m_notify = inNotify;
         m_drawingSurface = inDrawingSurface;
         m_assetManager = inAssetManager;
@@ -49,11 +50,12 @@ public class Draw implements Runnable {
         m_rotaation = inRotation;
         m_tryVulkan = inTryVulkan;
         m_tryVulkanReadFromFile = inTryVulkanReadFromFile;
+        m_useShadows = inUseShadows;
     }
 
     public void run() {
         startGame(m_drawingSurface, m_assetManager, m_saveGameDir, new GameReturnChannel(m_notify),
-                  m_rotaation, m_tryVulkan, m_tryVulkanReadFromFile);
+                  m_rotaation, m_tryVulkan, m_tryVulkanReadFromFile, m_useShadows);
     }
 
     public static void switchLevel(String level) {
@@ -92,5 +94,5 @@ public class Draw implements Runnable {
 
     private native void startGame(Surface drawingSurface, AssetManager manager, String saveData,
                                   GameReturnChannel notify, float rotationAngle, boolean tryVulkan,
-                                  boolean tryVulkanReadFromFile);
+                                  boolean tryVulkanReadFromFile, boolean useShadows);
 }

@@ -28,6 +28,7 @@
 class GraphicsVulkan : public Graphics {
 public:
     GraphicsVulkan(std::shared_ptr<WindowType> window,
+            bool shadowsEnabled,
             std::shared_ptr<GameRequester> inGameRequester,
             float rotationAngle)
             : Graphics{std::move(inGameRequester), rotationAngle},
@@ -45,7 +46,9 @@ public:
               m_renderFinishedSemaphore{m_device},
               m_renderLoader{std::make_shared<RenderLoaderVulkan>(m_device)},
               m_levelDrawer{std::make_shared<levelDrawer::LevelDrawerVulkan>(levelDrawer::NeededForDrawingVulkan{m_device, m_commandPool},
-                      m_surfaceDetails, m_renderLoader, m_gameRequester)}
+                      m_surfaceDetails, m_renderLoader,
+                      shadowsEnabled ? shadowsChainingRenderDetailsName : objectNoShadowsRenderDetailsName,
+                      m_gameRequester)}
     {
         prepareDepthResources();
 

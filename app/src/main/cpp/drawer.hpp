@@ -224,6 +224,7 @@ public:
                std::shared_ptr<GameRequester> inGameRequester,
                bool inUseGravity,
                bool inTryVulkan,
+               bool useShadows,
                float rotationAngle)
             : m_whichSensors{},
               m_tryVulkan{inTryVulkan},
@@ -238,7 +239,7 @@ public:
             }
         }
 
-        std::string error = std::move(initGraphics(std::move(inSurface), std::move(inGameRequester), rotationAngle));
+        std::string error = std::move(initGraphics(std::move(inSurface), useShadows, std::move(inGameRequester), rotationAngle));
         m_graphics->sendGraphicsDescription(whichSensors.test(Sensors::ACCELEROMETER_SENSOR), error);
     }
 
@@ -253,6 +254,7 @@ private:
 
     std::string initGraphics(
             std::shared_ptr<WindowType> surface,
+            bool useShadows,
             std::shared_ptr<GameRequester> gameRequester,
             float rotationAngle);
 };

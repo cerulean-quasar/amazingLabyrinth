@@ -35,8 +35,10 @@ import java.nio.charset.StandardCharsets;
 
 public class Settings extends BaseObservable {
     private static final String m_keyTryVulkan = "tryVulkan";
+    private static final String m_keyUseShadows = "useShadows";
 
     private static final boolean m_tryVulkanDefault = true;
+    private static final boolean m_useShadowsDefault = true;
 
     public class File {
         public void save(OutputStream file) {
@@ -63,6 +65,7 @@ public class Settings extends BaseObservable {
         private void writeSettings(JsonWriter writer) throws IOException {
             writer.beginObject();
             writer.name(m_keyTryVulkan).value(m_tryVulkan);
+            writer.name(m_keyUseShadows).value(m_useShadows);
             writer.endObject();
         }
 
@@ -73,6 +76,8 @@ public class Settings extends BaseObservable {
                 if (name.equals(m_keyTryVulkan)) {
                     m_tryVulkan = reader.nextBoolean();
                     m_tryVulkanReadFromFile = true;
+                } else if (name.equals(m_keyUseShadows)) {
+                    m_useShadows = reader.nextBoolean();
                 } else {
                     reader.skipValue();
                 }
@@ -84,27 +89,32 @@ public class Settings extends BaseObservable {
     private boolean m_changesMade;
     private boolean m_tryVulkanReadFromFile;
     private boolean m_tryVulkan;
+    private boolean m_useShadows;
 
     public Settings() {
         m_changesMade = false;
         m_tryVulkanReadFromFile = false;
         m_tryVulkan = m_tryVulkanDefault;
+        m_useShadows = m_useShadowsDefault;
     }
 
-    public Settings(boolean inTryVulkan) {
+    public Settings(boolean inTryVulkan, boolean inUseShadows) {
         m_changesMade = false;
         m_tryVulkanReadFromFile = false;
         m_tryVulkan = inTryVulkan;
+        m_useShadows = inUseShadows;
     }
 
     public Settings(Intent intent) {
         m_changesMade = false;
         m_tryVulkanReadFromFile = false;
-        m_tryVulkan = intent.getBooleanExtra(m_keyTryVulkan, true);
+        m_tryVulkan = intent.getBooleanExtra(m_keyTryVulkan, m_tryVulkanDefault);
+        m_useShadows = intent.getBooleanExtra(m_keyUseShadows, m_useShadowsDefault);
     }
 
     public void overrideFromIntent(Intent intent) {
-        m_tryVulkan = intent.getBooleanExtra(m_keyTryVulkan, true);
+        m_tryVulkan = intent.getBooleanExtra(m_keyTryVulkan, m_tryVulkanDefault);
+        m_useShadows = intent.getBooleanExtra(m_keyUseShadows, m_useShadowsDefault);
     }
 
     public boolean haveChangesBeenMade() {
@@ -113,6 +123,7 @@ public class Settings extends BaseObservable {
 
     public void addToIntent(Intent intent) {
         intent.putExtra(m_keyTryVulkan, m_tryVulkan);
+        intent.putExtra(m_keyUseShadows, m_useShadows);
     }
 
     public boolean isTryVulkanReadFromFile() {
@@ -127,5 +138,13 @@ public class Settings extends BaseObservable {
     public void setTryVulkan(Boolean inTryVulkan) {
         m_changesMade = true;
         m_tryVulkan = inTryVulkan;
+    }
+
+    @Bindable
+    public  Boolean getUseShadows() { return m_useShadows; }
+
+    public void setUseShadows(Boolean inUseShadows) {
+        m_changesMade = true;
+        m_useShadows = inUseShadows;
     }
 }
