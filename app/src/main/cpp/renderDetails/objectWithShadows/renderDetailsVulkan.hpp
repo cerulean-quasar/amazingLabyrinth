@@ -54,36 +54,25 @@ namespace objectWithShadows {
                     view());
         }
 
-        glm::mat4 getViewLightSource() override {
-            return glm::lookAt(m_lightingSource, m_lookAt, m_up);
-        }
-
-        glm::vec3 getLightSource() override { return m_lightingSource;}
-
         CommonObjectDataVulkan(
                 std::shared_ptr<vulkan::Buffer> cameraBuffer,
                 std::shared_ptr<vulkan::Buffer> lightingSourceBuffer,
                 glm::mat4 const &preTransform,
                 float aspectRatio,
-                renderDetails::ParametersObjectWithShadowsVulkan const *parameters)
-                : renderDetails::CommonObjectDataPerspective(
-                parameters->viewAngle, aspectRatio, parameters->nearPlane, parameters->farPlane,
-                parameters->viewPoint, parameters->lookAt, parameters->up),
+                renderDetails::ParametersObjectWithShadowsVulkan const &parameters)
+                : renderDetails::CommonObjectDataPerspective(parameters, aspectRatio),
                   m_preTransform{preTransform},
-                  m_lightingSource{parameters->lightingSource},
                   m_cameraBuffer{std::move(cameraBuffer)},
                   m_lightingSourceBuffer{std::move(lightingSourceBuffer)},
-                  m_shadowsSampler{parameters->shadowsSampler}
+                  m_shadowsSampler{parameters.shadowsSampler}
         {
+            if (m_lightSources.size() > 1) {
+                throw std::runtime_error("Incorrect number of light sources for render details.");
+            }
             doUpdate();
         }
 
         ~CommonObjectDataVulkan() override = default;
-    protected:
-        void update() override {
-            doUpdate();
-        }
-
     private:
         struct CommonVertexUBO {
             glm::mat4 projView;
@@ -95,7 +84,6 @@ namespace objectWithShadows {
         };
 
         glm::mat4 m_preTransform;
-        glm::vec3 m_lightingSource;
         std::shared_ptr<vulkan::Buffer> m_cameraBuffer;
         std::shared_ptr<vulkan::Buffer> m_lightingSourceBuffer;
         std::shared_ptr<vulkan::ImageSampler> m_shadowsSampler;
@@ -107,12 +95,12 @@ namespace objectWithShadows {
 
             // eye at the m_viewPoint, looking at the m_lookAt position, pointing up is m_up.
             commonUbo.projView = proj * glm::lookAt(m_viewPoint, m_lookAt, m_up);
-            commonUbo.projLightView = proj * glm::lookAt(m_lightingSource, m_lookAt, m_up);
+            commonUbo.projLightView = proj * glm::lookAt(m_lightSources[0], m_lookAt, m_up);
 
             m_cameraBuffer->copyRawTo(&commonUbo, sizeof(commonUbo));
 
             CommonFragmentUBO commonFragmentUbo;
-            commonFragmentUbo.lightingSource = m_lightingSource;
+            commonFragmentUbo.lightingSource = m_lightSources[0];
             m_lightingSourceBuffer->copyRawTo(&commonFragmentUbo, sizeof(commonFragmentUbo));
         }
     };
@@ -351,7 +339,8 @@ namespace objectWithShadows {
                 std::shared_ptr<renderDetails::CommonObjectData> const &commonObjectData,
                 std::shared_ptr<levelDrawer::DrawObjectTableVulkan> const &drawObjTable,
                 std::set<levelDrawer::ZValueReference>::iterator beginZValRefs,
-                std::set<levelDrawer::ZValueReference>::iterator endZValRefs) override;
+                std::set<levelDrawer::ZValueReference>::iterator endZValRefs,
+                std::string const &renderDetailsName) override;
 
         bool structuralChangeNeeded(
                 std::shared_ptr<vulkan::SurfaceDetails> const &surfaceDetails) override
@@ -422,7 +411,7 @@ namespace objectWithShadows {
 
             return std::make_shared<CommonObjectDataVulkan>(
                     vertexUbo, fragUbo, preTransform,
-                    m_surfaceWidth/static_cast<float>(m_surfaceHeight), parameters);
+                    m_surfaceWidth/static_cast<float>(m_surfaceHeight), *parameters);
         }
 
         static renderDetails::ReferenceVulkan createReference(

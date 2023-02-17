@@ -42,23 +42,13 @@ namespace depthMap {
                     view());
         }
 
-        glm::vec3 getLightSource() override {
-            return viewPoint();
-        }
-
-        glm::mat4 getViewLightSource() override {
-            return view();
-        }
-
         float nearestDepth() { return m_nearestDepth; }
         float farthestDepth() { return m_farthestDepth; }
 
-        CommonObjectDataGL(renderDetails::ParametersDepthMap const *parameters)
-                : CommonObjectDataOrtho(
-                -parameters->widthAtDepth/2, parameters->widthAtDepth/2, -parameters->heightAtDepth/2, parameters->heightAtDepth/2,
-                parameters->nearPlane, parameters->farPlane, parameters->viewPoint, parameters->lookAt, parameters->up),
-                  m_nearestDepth{parameters->nearestDepth},
-                  m_farthestDepth{parameters->farthestDepth}
+        CommonObjectDataGL(renderDetails::ParametersDepthMap const &parameters)
+                : CommonObjectDataOrtho(parameters.toOrtho()),
+                  m_nearestDepth{parameters.nearestDepth},
+                  m_farthestDepth{parameters.farthestDepth}
         {}
 
         ~CommonObjectDataGL() override = default;

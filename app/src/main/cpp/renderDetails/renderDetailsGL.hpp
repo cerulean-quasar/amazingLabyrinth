@@ -34,13 +34,23 @@
 
 class RenderLoaderGL;
 namespace renderDetails {
-    struct ParametersObjectWithShadowsGL : public ParametersObject {
+    struct ParametersObjectWithShadowsGL : public ParametersPerspective {
         std::shared_ptr<graphicsGL::Framebuffer> shadowsFB;
 
-        ParametersObjectWithShadowsGL(ParametersObject const *parameters, std::shared_ptr<graphicsGL::Framebuffer> fb)
-        : ParametersObject(*parameters), shadowsFB(fb) {}
+        ParametersObjectWithShadowsGL(ParametersPerspective const &parameters, std::shared_ptr<graphicsGL::Framebuffer> fb)
+        : ParametersPerspective(parameters), shadowsFB{std::move(fb)} {}
 
         ~ParametersObjectWithShadowsGL() override = default;
+    };
+
+    struct ParametersDarkObjectGL : public ParametersPerspective {
+        std::array<std::shared_ptr<graphicsGL::Framebuffer>, renderDetails::numberOfShadowMapsDarkMaze> darkFramebuffers;
+
+        ParametersDarkObjectGL(ParametersPerspective const &parameters,
+                               std::array<std::shared_ptr<graphicsGL::Framebuffer>, renderDetails::numberOfShadowMapsDarkMaze> fbs)
+                : ParametersPerspective(parameters), darkFramebuffers(std::move(fbs)) {}
+
+        ~ParametersDarkObjectGL() override = default;
     };
 
     class DrawObjectDataGL : public DrawObjectData {

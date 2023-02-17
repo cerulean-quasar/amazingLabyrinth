@@ -42,13 +42,13 @@ namespace shadows {
                 surfaceDetails->useIntTexture);
 
         auto parameters =
-                dynamic_cast<renderDetails::ParametersLightSource*>(parametersBase.get());
+                dynamic_cast<renderDetails::ParametersPerspective*>(parametersBase.get());
         if (parameters == nullptr) {
             throw std::runtime_error("Invalid render details parameter type.");
         }
 
-        auto cod = std::make_shared<CommonObjectDataGL>(
-                surfaceDetails->surfaceWidth / static_cast<float>(surfaceDetails->surfaceHeight), parameters);
+        auto cod = std::make_shared<CommonObjectDataGL>(*parameters,
+                surfaceDetails->surfaceWidth / static_cast<float>(surfaceDetails->surfaceHeight));
 
         return createReference(rd, cod);
     }
@@ -66,7 +66,7 @@ namespace shadows {
         }
 
         auto parameters =
-                dynamic_cast<renderDetails::ParametersLightSource*>(parametersBase.get());
+                dynamic_cast<renderDetails::ParametersPerspective*>(parametersBase.get());
         if (parameters == nullptr) {
             throw std::runtime_error("Invalid render details parameter type.");
         }
@@ -78,8 +78,8 @@ namespace shadows {
             rd->m_surfaceHeight = surfaceDetails->surfaceHeight;
         }
 
-        auto cod = std::make_shared<CommonObjectDataGL>(
-                surfaceDetails->surfaceWidth / static_cast<float>(surfaceDetails->surfaceHeight), parameters);
+        auto cod = std::make_shared<CommonObjectDataGL>(*parameters,
+                surfaceDetails->surfaceWidth / static_cast<float>(surfaceDetails->surfaceHeight));
 
         return createReference(std::move(rdBase), std::move(cod));
     }
@@ -115,13 +115,18 @@ namespace shadows {
             std::set<levelDrawer::ZValueReference>::iterator beginZValRefs,
             std::set<levelDrawer::ZValueReference>::iterator endZValRefs)
     {
+        auto cod = dynamic_cast<CommonObjectDataGL *>(commonObjectData.get());
+        if (!cod) {
+            throw std::runtime_error("Invalid common object data type");
+        }
+
         // set the shader to use
         glUseProgram(m_depthProgramID);
         checkGraphicsError();
         glCullFace(GL_FRONT);
         checkGraphicsError();
 
-        auto projView = commonObjectData->getProjViewForLevel();
+        auto projView = cod->getProjViewForLevel();
 
         GLint MatrixID;
 

@@ -25,12 +25,16 @@
 #include <memory>
 #include <streambuf>
 
+// TODO: switch from register/request with name to request with registration object.
 char constexpr const *shadowsChainingRenderDetailsName = "shadowsChaining";
 char constexpr const *shadowsRenderDetailsName = "shadows";
 char constexpr const *objectWithShadowsRenderDetailsName = "objectWithShadows";
 char constexpr const *depthMapRenderDetailsName = "depthMap";
 char constexpr const *normalMapRenderDetailsName = "normalMap";
 char constexpr const *objectNoShadowsRenderDetailsName = "objectNoShadows";
+char constexpr const *darkObjectRenderDetailsName = "darkObjectRenderDetailsName";
+char constexpr const *darkChainingRenderDetailsName = "darkChainingRenderDetailsName";
+
 
 struct GraphicsDescription {
 public:

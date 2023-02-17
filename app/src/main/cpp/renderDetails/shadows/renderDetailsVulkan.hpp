@@ -45,10 +45,6 @@ namespace shadows {
                     view());
         }
 
-        glm::mat4 getViewLightSource() override { return view(); }
-
-        glm::vec3 getLightSource() override { return viewPoint(); }
-
         std::shared_ptr<vulkan::Buffer> const &cameraBuffer() { return m_camera; }
 
         uint32_t cameraBufferSize() { return sizeof(CommonUBO); }
@@ -57,24 +53,28 @@ namespace shadows {
                 std::shared_ptr<vulkan::Buffer> buffer,
                 glm::mat4 preTransform,
                 float aspectRatio,
-                renderDetails::ParametersLightSource const *parameters)
-                : renderDetails::CommonObjectDataPerspective(
-                    parameters->viewAngle, aspectRatio, parameters->nearPlane, parameters->farPlane,
-                    parameters->lightingSource, parameters->lookAt, parameters->up),
-                m_camera{std::move(buffer)},
-                m_preTransform{preTransform}
+                renderDetails::ParametersPerspective const &parameters)
+                : renderDetails::CommonObjectDataPerspective(parameters, aspectRatio),
+                  m_camera{std::move(buffer)},
+                  m_preTransform{preTransform},
+                  m_aspectRatio{aspectRatio}
         {
-            doUpdate();
+            update();
         }
 
         ~CommonObjectDataVulkan() override = default;
 
-    protected:
-        void update() override {
-            doUpdate();
+        void update(renderDetails::Parameters const &parametersBase) override {
+            auto parameters = dynamic_cast<renderDetails::ParametersPerspective const &>(parametersBase);
+            updateShadows(parameters);
         }
 
-        void doUpdate() {
+        void updateShadows(renderDetails::ParametersPerspective const &parameters) {
+            renderDetails::CommonObjectDataPerspective::update(parameters);
+            update();
+        }
+
+        void update() {
             CommonUBO commonUbo;
             commonUbo.projView = m_preTransform *
                              getPerspectiveMatrix(m_viewAngle, m_aspectRatio, m_nearPlane, m_farPlane, true, true) *
@@ -90,6 +90,7 @@ namespace shadows {
 
         std::shared_ptr<vulkan::Buffer> m_camera;
         glm::mat4 m_preTransform;
+        float m_aspectRatio;
     };
 
     /* for passing data other than the vertex data to the vertex shader */
@@ -192,7 +193,7 @@ namespace shadows {
                 std::shared_ptr<vulkan::SurfaceDetails> const &surfaceDetails,
                 std::shared_ptr<renderDetails::Parameters> const &parametersBase)
         {
-            auto parameters = dynamic_cast<renderDetails::ParametersLightSource*>(parametersBase.get());
+            auto parameters = dynamic_cast<renderDetails::ParametersPerspective*>(parametersBase.get());
             if (parameters == nullptr) {
                 throw std::runtime_error("Invalid render details parameter type.");
             }
@@ -212,7 +213,7 @@ namespace shadows {
                 std::shared_ptr<vulkan::SurfaceDetails> const &surfaceDetails,
                 std::shared_ptr<renderDetails::Parameters> const &parametersBase)
         {
-            auto parameters = dynamic_cast<renderDetails::ParametersLightSource*>(parametersBase.get());
+            auto parameters = dynamic_cast<renderDetails::ParametersPerspective*>(parametersBase.get());
             if (parameters == nullptr) {
                 throw std::runtime_error("Invalid render details parameter type.");
             }
@@ -237,7 +238,8 @@ namespace shadows {
                 std::shared_ptr<renderDetails::CommonObjectData> const &commonObjectData,
                 std::shared_ptr<levelDrawer::DrawObjectTableVulkan> const &drawObjTable,
                 std::set<levelDrawer::ZValueReference>::iterator beginZValRefs,
-                std::set<levelDrawer::ZValueReference>::iterator endZValRefs) override;
+                std::set<levelDrawer::ZValueReference>::iterator endZValRefs,
+                std::string const &renderDetailsName) override;
 
         bool structuralChangeNeeded(
                 std::shared_ptr<vulkan::SurfaceDetails> const &surfaceDetails) override
@@ -294,12 +296,12 @@ namespace shadows {
 
         std::shared_ptr<CommonObjectDataVulkan> createCommonObjectData(
                 glm::mat4 const &preTransform,
-                renderDetails::ParametersLightSource const *parameters)
+                renderDetails::ParametersPerspective const *parameters)
         {
             auto buffer = renderDetails::createUniformBuffer(m_device, sizeof (CommonObjectDataVulkan::CommonUBO));
             return std::make_shared<CommonObjectDataVulkan>(
                     buffer, preTransform,
-                    m_surfaceWidth/ static_cast<float>(m_surfaceHeight), parameters);
+                    m_surfaceWidth/ static_cast<float>(m_surfaceHeight), *parameters);
         }
     };
 }

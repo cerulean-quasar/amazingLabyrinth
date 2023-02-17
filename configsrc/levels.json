@@ -10,6 +10,7 @@
         { "Name": "bunny", "File": "configs/levels/bunny.cbor", "Description": "The bunny" },
         { "Name": "frog", "File": "configs/levels/frog.cbor", "Description": "The frog" },
         { "Name": "gopher", "File": "configs/levels/gopher.cbor", "Description": "The gopher" },
-        { "Name": "mouse", "File": "configs/levels/mouse.cbor", "Description": "The mouse" }
+        { "Name": "mouse", "File": "configs/levels/mouse.cbor", "Description": "The mouse" },
+        { "Name": "firefly", "File": "configs/levels/firefly.cbor", "Description": "The firefly" }
     ]
 }

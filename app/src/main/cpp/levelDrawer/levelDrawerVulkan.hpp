@@ -65,6 +65,7 @@ namespace levelDrawer {
         using ModelTableType = ModelTableVulkan;
         using TextureDataType = TextureDataVulkan;
         using TextureTableType = TextureTableVulkan;
+        using DrawObjectType = DrawObject<DrawObjectVulkanTraits>;
         using DrawObjectDataType = renderDetails::DrawObjectDataVulkan;
         using DrawObjectTableType = DrawObjectTableVulkan;
         using DrawArgumentType = DrawArgumentVulkan;

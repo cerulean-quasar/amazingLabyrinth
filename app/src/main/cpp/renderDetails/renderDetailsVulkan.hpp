@@ -38,14 +38,26 @@ namespace renderDetails {
     std::shared_ptr<vulkan::Buffer> createUniformBuffer(
             std::shared_ptr<vulkan::Device> const &device, size_t bufferSize);
 
-    struct ParametersObjectWithShadowsVulkan : public ParametersObject {
+    struct ParametersObjectWithShadowsVulkan : public ParametersPerspective {
         std::shared_ptr<vulkan::ImageSampler> shadowsSampler;
 
-        ParametersObjectWithShadowsVulkan(ParametersObject const *parameters, std::shared_ptr<vulkan::ImageSampler> sampler)
-            : ParametersObject(*parameters),
+        ParametersObjectWithShadowsVulkan(ParametersPerspective const &parameters,
+                                          std::shared_ptr<vulkan::ImageSampler> sampler)
+            : ParametersPerspective(parameters),
             shadowsSampler(std::move(sampler)) {
         }
         virtual ~ParametersObjectWithShadowsVulkan() = default;
+    };
+
+    struct ParametersDarkObjectVulkan : public ParametersPerspective {
+        std::array<std::shared_ptr<vulkan::ImageSampler>, numberOfShadowMapsDarkMaze> darkSamplers;
+
+        ParametersDarkObjectVulkan(ParametersPerspective const &parameters,
+                                   std::array<std::shared_ptr<vulkan::ImageSampler>, numberOfShadowMapsDarkMaze> const &samplers)
+                : ParametersPerspective(parameters),
+                  darkSamplers{samplers} {
+        }
+        virtual ~ParametersDarkObjectVulkan() = default;
     };
 
     class DrawObjectDataVulkan : public DrawObjectData {
@@ -62,6 +74,13 @@ namespace renderDetails {
             // in texture possible without reallocating the descriptor or reallocating the memory
             // for the uniform buffers used.
             return false;
+        }
+
+        virtual void updateCommonObjectData(
+                std::shared_ptr<renderDetails::CommonObjectData> const &) {
+            // most render details do nothing for this function.  This function is only if you
+            // want to update the COD (data that gets passed to the shaders that is not the vertices
+            // or indices.
         }
 
         // used to update the model matrix but not the buffer.  This function will be used if
@@ -108,8 +127,19 @@ namespace renderDetails {
                 std::shared_ptr<CommonObjectData> const &commonObjectData,
                 std::shared_ptr<levelDrawer::DrawObjectTableVulkan> const &drawObjTable,
                 std::set<levelDrawer::ZValueReference>::iterator beginZValRefs,
-                std::set<levelDrawer::ZValueReference>::iterator endZValRefs) = 0;
+                std::set<levelDrawer::ZValueReference>::iterator endZValRefs,
+                std::string const &renderDetailsName = "") = 0;
 
+        /*
+         * renderDetailsName is left empty for most cases.  It is used to cast out any objects
+         * not using renderDetailsName for their draw.  In most cases, this is handled by the
+         * level drawer so that all objects already use the same render details.  But in a few cases
+         * like executing the pre-draw commands for the dark chaining and shadows chaining, all
+         * objects must be set up to be drawn with the same initializeCommandBufferDrawObjects call...
+         * so, they must all use the same render details.  This says that having dark chaining and
+         * shadows chaining in the same maze is not possible.  But one can use either of these with
+         * object no shadows.
+         */
         void initializeCommandBufferDrawObjects(
                 VkCommandBuffer const &commandBuffer,
                 size_t descriptorSetID,
@@ -118,7 +148,8 @@ namespace renderDetails {
                 std::shared_ptr<levelDrawer::DrawObjectTableVulkan> const &drawObjectTable,
                 std::set<levelDrawer::ZValueReference>::iterator beginZValRefs,
                 std::set<levelDrawer::ZValueReference>::iterator endZValRefs,
-                bool useVertexNormals = false);
+                bool useVertexNormals = false,
+                std::string const &renderDetailsName = "");
 
         virtual bool overrideClearColor(glm::vec4 &) {
             return false;

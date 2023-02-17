@@ -62,7 +62,7 @@ namespace depthMap {
                 gameRequester, surfaceDetails->surfaceWidth, surfaceDetails->surfaceHeight,
                 surfaceDetails->useIntTexture);
 
-        auto cod = std::make_shared<CommonObjectDataGL>(parameters);
+        auto cod = std::make_shared<CommonObjectDataGL>(*parameters);
 
         return createReference(rd, cod);
     }
@@ -97,7 +97,7 @@ namespace depthMap {
             throw std::runtime_error("Invalid render details parameter type.");
         }
 
-        auto cod = std::make_shared<CommonObjectDataGL>(parameters);
+        auto cod = std::make_shared<CommonObjectDataGL>(*parameters);
 
         return createReference(std::move(rdBase), std::move(cod));
     }
@@ -133,15 +133,18 @@ namespace depthMap {
             std::set<levelDrawer::ZValueReference>::iterator beginZValRefs,
             std::set<levelDrawer::ZValueReference>::iterator endZValRefs)
     {
+        auto cod = dynamic_cast<CommonObjectDataGL*>(commonObjectData.get());
+        if (!cod) {
+            throw std::runtime_error("Invalid common object data type");
+        }
+
         // set the shader to use
         glUseProgram(m_depthProgramID);
         checkGraphicsError();
         glCullFace(GL_BACK);
         checkGraphicsError();
 
-        auto projView = commonObjectData->getProjViewForLevel();
-
-        auto cod = dynamic_cast<CommonObjectDataGL*>(commonObjectData.get());
+        auto projView = cod->getProjViewForLevel();
 
         GLint MatrixID;
 

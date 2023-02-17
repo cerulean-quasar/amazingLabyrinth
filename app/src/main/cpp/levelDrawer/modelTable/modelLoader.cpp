@@ -313,7 +313,7 @@ namespace levelDrawer {
     ModelDescriptionPath::getData(std::shared_ptr<GameRequester> const &gameRequester) {
         ModelVertices vertices;
         loadModel(gameRequester->getAssetStream(m_path), vertices);
-        return std::move(vertices);
+        return vertices;
     }
 
     bool ModelDescriptionPath::loadModel(
@@ -365,7 +365,7 @@ namespace levelDrawer {
         vertices.second.push_back(2);
         vertices.second.push_back(3);
 
-        return std::move(vertices);
+        return vertices;
     }
 
 // creates a cube with each side length 2.0f.
@@ -554,6 +554,6 @@ namespace levelDrawer {
         vertices.second.push_back(i + 2);
         vertices.second.push_back(i + 3);
 
-        return std::move(vertices);
+        return vertices;
     }
 }

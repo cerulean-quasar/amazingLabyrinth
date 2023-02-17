@@ -25,6 +25,8 @@
 #include <boost/variant.hpp>
 #include <glm/glm.hpp>
 
+#include "../common.hpp"
+
 namespace levelTracker {
     static float constexpr m_maxZLevel = -1.0f;
     static float constexpr m_maxZLevelStarter = 0.0f;
@@ -40,21 +42,31 @@ namespace renderDetails {
     struct Parameters {
         float nearPlane;
         float farPlane;
-        glm::vec3 lookAt;
-        glm::vec3 up;
         virtual ~Parameters() = default;
     };
 
-    struct ParametersLightSource : public Parameters {
-        float viewAngle;
-        glm::vec3 lightingSource;
-        ~ParametersLightSource() override = default;
+    struct ParametersLightSources : public Parameters {
+        std::vector<glm::vec3> lightingSources;
+        ~ParametersLightSources() override = default;
     };
 
-    struct ParametersObject : public ParametersLightSource {
+    struct ParametersView : public ParametersLightSources {
         glm::vec3 viewPoint;
+        glm::vec3 lookAt;
+        glm::vec3 up;
 
-        ~ParametersObject() override = default;
+        ~ParametersView() override = default;
+    };
+
+    struct ParametersPerspective : public ParametersView {
+        float viewAngle;
+    };
+
+    struct ParametersOrtho : public ParametersView {
+        float minusX;
+        float plusX;
+        float minusY;
+        float plusY;
     };
 
     struct ParametersDepthMap : public Parameters {
@@ -62,18 +74,83 @@ namespace renderDetails {
         float heightAtDepth;
         float nearestDepth;
         float farthestDepth;
+        glm::vec3 lookAt;
+        glm::vec3 up;
         glm::vec3 viewPoint;
 
+        ParametersOrtho toOrtho() const {
+            ParametersOrtho ortho{};
+
+            ortho.nearPlane = nearPlane;
+            ortho.farPlane = farPlane;
+            ortho.lookAt = lookAt;
+            ortho.up = up;
+            ortho.viewPoint = viewPoint;
+            ortho.minusX = -widthAtDepth/2;
+            ortho.plusX = widthAtDepth/2;
+            ortho.minusY = -heightAtDepth/2;
+            ortho.plusY = heightAtDepth/2;
+
+            return ortho;
+        }
         ~ParametersDepthMap() override = default;
     };
 
     struct ParametersNormalMap : public Parameters {
         float widthAtDepth;
         float heightAtDepth;
+        glm::vec3 lookAt;
+        glm::vec3 up;
         glm::vec3 viewPoint;
 
+        ParametersOrtho toOrtho() const {
+            ParametersOrtho ortho{};
+
+            ortho.nearPlane = nearPlane;
+            ortho.farPlane = farPlane;
+            ortho.lookAt = lookAt;
+            ortho.up = up;
+            ortho.viewPoint = viewPoint;
+            ortho.minusX = -widthAtDepth/2;
+            ortho.plusX = widthAtDepth/2;
+            ortho.minusY = -heightAtDepth/2;
+            ortho.plusY = heightAtDepth/2;
+
+            return ortho;
+        }
         ~ParametersNormalMap() override = default;
     };
+
+    size_t constexpr const numberOfLightSourcesDarkMaze = 2;
+    size_t constexpr const numberOfShadowMapsPerDarkObject = 4;
+    size_t constexpr const numberOfShadowMapsDarkMaze = numberOfShadowMapsPerDarkObject * numberOfLightSourcesDarkMaze;
+
+    inline void darkInitializeShadowMapParameters(ParametersPerspective &parametersShadows, ParametersPerspective const &parameters, size_t i, bool completeInitializationRequired) {
+        // shadows CODs
+        if (completeInitializationRequired) {
+            parametersShadows = parameters;
+            parametersShadows.lightingSources.resize(1);
+        }
+        parametersShadows.up = glm::vec3{0.0, 0.0, 1.0};
+
+        switch (i / parameters.lightingSources.size()) {
+            case 0:
+                parametersShadows.lookAt = glm::vec3{0.0, 1.0, 0.0};
+                break;
+            case 1:
+                parametersShadows.lookAt = glm::vec3{1.0, 0.0, 0.0};
+                break;
+            case 2:
+                parametersShadows.lookAt = glm::vec3{0.0, -1.0, 0.0};
+                break;
+            case 3:
+                parametersShadows.lookAt = glm::vec3{-1.0, 0.0, 0.0};
+        }
+
+        if (i == numberOfShadowMapsDarkMaze / parameters.lightingSources.size()) {
+            parametersShadows.lightingSources[0] = parameters.lightingSources[i/numberOfShadowMapsPerDarkObject];
+        }
+    }
 
     using PostprocessingDataInputGL = boost::variant<std::vector<uint16_t>, std::vector<uint8_t>>;
 }
@@ -87,6 +164,19 @@ namespace levelDrawer {
         static glm::vec3 constexpr const lightingSource{1.0f, 1.0f, 1.5f};
         static glm::vec3 constexpr const lookAt{0.0f, 0.0f, levelTracker::m_maxZLevel};
         static glm::vec3 constexpr const up{0.0f, 1.0f, 0.0f};
+
+        static std::shared_ptr<renderDetails::ParametersPerspective> getDefaultParameters()  {
+            auto parametersDefault = std::make_shared<renderDetails::ParametersPerspective>();
+            parametersDefault->lookAt = DefaultConfig::lookAt;
+            parametersDefault->up = DefaultConfig::up;
+            parametersDefault->viewPoint = DefaultConfig::viewPoint;
+            parametersDefault->viewAngle = DefaultConfig::viewAngle;
+            parametersDefault->nearPlane = DefaultConfig::nearPlane;
+            parametersDefault->farPlane = DefaultConfig::farPlane;
+            parametersDefault->lightingSources = std::vector<glm::vec3>{DefaultConfig::lightingSource};
+            return parametersDefault;
+        }
+
     };
 
     template<typename BaseClass>

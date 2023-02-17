@@ -34,7 +34,7 @@ namespace objectNoShadows {
             std::shared_ptr<renderDetails::Parameters> const &parametersBase)
     {
         auto parameters =
-                dynamic_cast<renderDetails::ParametersObject*>(parametersBase.get());
+                dynamic_cast<renderDetails::ParametersPerspective*>(parametersBase.get());
         if (parameters == nullptr) {
             throw std::runtime_error("Invalid render details parameter type.");
         }
@@ -43,9 +43,8 @@ namespace objectNoShadows {
                 gameRequester, surfaceDetails->surfaceWidth, surfaceDetails->surfaceHeight,
                 surfaceDetails->useIntTexture);
 
-        auto cod = std::make_shared<CommonObjectDataGL>(
-                surfaceDetails->surfaceWidth / static_cast<float>(surfaceDetails->surfaceHeight),
-                parameters);
+        auto cod = std::make_shared<CommonObjectDataGL>(*parameters,
+                surfaceDetails->surfaceWidth / static_cast<float>(surfaceDetails->surfaceHeight));
 
         return createReference(std::move(rd), std::move(cod));
     }
@@ -70,13 +69,13 @@ namespace objectNoShadows {
         }
 
         auto parameters =
-                dynamic_cast<renderDetails::ParametersObject*>(parametersBase.get());
+                dynamic_cast<renderDetails::ParametersPerspective*>(parametersBase.get());
         if (parameters == nullptr) {
             throw std::runtime_error("Invalid render details parameter type.");
         }
 
-        auto cod = std::make_shared<CommonObjectDataGL>(
-                surfaceDetails->surfaceWidth / static_cast<float>(surfaceDetails->surfaceHeight), parameters);
+        auto cod = std::make_shared<CommonObjectDataGL>(*parameters,
+                surfaceDetails->surfaceWidth / static_cast<float>(surfaceDetails->surfaceHeight));
 
         return createReference(std::move(rdBase), std::move(cod));
     }
@@ -115,10 +114,16 @@ namespace objectNoShadows {
         glCullFace(GL_BACK);
         checkGraphicsError();
 
+        auto cod = dynamic_cast<CommonObjectDataGL *>(commonObjectData.get());
+        if (!cod) {
+            throw std::runtime_error("Invalid common object data type");
+        }
+
         GLuint programID = m_textureProgramID;
         GLint MatrixID = -1;
         GLint normalMatrixID = -1;
         GLint textureID = -1;
+
         for (auto it = beginZValRefs; it != endZValRefs; it++) {
             auto &drawObj = drawObjTable->drawObject(it->drawObjectReference);
             auto &modelData = drawObj->modelData();
@@ -130,7 +135,7 @@ namespace objectNoShadows {
                 glUseProgram(programID);
                 checkGraphicsError();
 
-                auto projView = commonObjectData->getProjViewForLevel();
+                auto projView = cod->getProjViewForLevel();
 
                 // the projection matrix * the view matrix
                 MatrixID = glGetUniformLocation(programID, "projView");
@@ -141,7 +146,7 @@ namespace objectNoShadows {
 
                 GLint lightPosID = glGetUniformLocation(programID, "lightPos");
                 checkGraphicsError();
-                glm::vec3 lightPos = commonObjectData->getLightSource();
+                glm::vec3 lightPos = cod->getLightSource(0);
                 glUniform3fv(lightPosID, 1, &lightPos[0]);
                 checkGraphicsError();
 

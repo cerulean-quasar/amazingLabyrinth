@@ -74,7 +74,8 @@ namespace starter {
                      std::shared_ptr<LevelConfigData> const &lcd,
                      std::shared_ptr<LevelSaveData> const & /*sd*/,
                      float maxZ)
-                : basic::Level(std::move(inLevelDrawer), lcd, maxZ, true),
+                : basic::Level(std::move(inLevelDrawer), lcd, maxZ, true,
+                               objectNoShadowsRenderDetailsName, levelDrawer::DefaultConfig::getDefaultParameters()),
                   maxPosX(m_width / 2 - ballRadius() -
                           m_wallThickness * ballDiameter() / m_modelSize),
                   maxPosY(m_height / 2 - ballRadius() -

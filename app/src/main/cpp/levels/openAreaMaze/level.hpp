@@ -49,15 +49,24 @@ namespace openAreaMaze {
 
     public:
         Level(levelDrawer::Adaptor inLevelDrawer,
-                std::shared_ptr<generatedMaze::LevelConfigData> const &lcd,
-                std::shared_ptr<generatedMaze::LevelSaveData> const &sd,
-                float maxZ,
-                std::string const &renderDetailsName = "",
-                std::shared_ptr<renderDetails::Parameters> parameters = nullptr)
+              std::shared_ptr<generatedMaze::LevelConfigData> const &lcd,
+              std::shared_ptr<generatedMaze::LevelSaveData> const &sd,
+              float maxZ,
+              std::string const &renderDetailsName = "",
+              std::shared_ptr<renderDetails::Parameters> parameters = nullptr,
+              std::string const &renderDetailsNameBallOverride = "",
+              std::shared_ptr<renderDetails::Parameters> parametersBallOverride = nullptr,
+              std::string const &renderDetailsNameHoleOverride = "",
+              std::shared_ptr<renderDetails::Parameters> parametersHoleOverride = nullptr,
+              std::string const &renderDetailsNameFloorOverride = "",
+              std::shared_ptr<renderDetails::Parameters> parametersFloorOverride = nullptr)
                 : generatedMaze::Level(
                         std::move(inLevelDrawer), lcd, sd, maxZ,
                         renderDetailsName,
                         parameters,
+                        renderDetailsNameBallOverride, parametersBallOverride,
+                        renderDetailsNameHoleOverride, parametersHoleOverride,
+                        renderDetailsNameFloorOverride, parametersFloorOverride,
                         getMazeWallModelMatricesGenerator())
                 {}
 

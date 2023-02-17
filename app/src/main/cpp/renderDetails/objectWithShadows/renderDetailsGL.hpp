@@ -45,25 +45,16 @@ namespace objectWithShadows {
                     view());
         }
 
-        glm::vec3 getLightSource() override { return m_lightingSource;}
-
-        glm::mat4 getViewLightSource() override {
-            return glm::lookAt(m_lightingSource, m_lookAt, m_up);
-        }
-
         std::shared_ptr<graphicsGL::Framebuffer> const &shadowsFramebuffer() {return m_shadowsFramebuffer;}
 
-        CommonObjectDataGL(float aspectRatio, renderDetails::ParametersObjectWithShadowsGL const *parameters)
-                : renderDetails::CommonObjectDataPerspective(parameters->viewAngle, aspectRatio, parameters->nearPlane, parameters->farPlane,
-                                                             parameters->viewPoint, parameters->lookAt, parameters->up),
-                  m_shadowsFramebuffer(parameters->shadowsFB),
-                  m_lightingSource{parameters->lightingSource}
+        CommonObjectDataGL(renderDetails::ParametersObjectWithShadowsGL const &parameters, float aspectRatio)
+                : renderDetails::CommonObjectDataPerspective(parameters, aspectRatio),
+                  m_shadowsFramebuffer(parameters.shadowsFB)
         {}
 
         ~CommonObjectDataGL() override = default;
     private:
         std::shared_ptr<graphicsGL::Framebuffer> m_shadowsFramebuffer;
-        glm::vec3 m_lightingSource;
     };
 
     class DrawObjectDataGL : public renderDetails::DrawObjectDataGL {

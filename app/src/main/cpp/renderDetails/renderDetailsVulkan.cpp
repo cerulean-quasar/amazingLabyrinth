@@ -84,7 +84,8 @@ namespace renderDetails {
             std::shared_ptr<levelDrawer::DrawObjectTableVulkan> const &drawObjectTable,
             std::set<levelDrawer::ZValueReference>::iterator beginZValRefs,
             std::set<levelDrawer::ZValueReference>::iterator endZValRefs,
-            bool useVertexNormals)
+            bool useVertexNormals,
+            std::string const &renderDetailsName)
     {
         if (!drawObjectTable || beginZValRefs == endZValRefs) {
             return;
@@ -97,6 +98,10 @@ namespace renderDetails {
         bool usingColorPipeline = true;
         for (auto it = beginZValRefs; it != endZValRefs; it++) {
             auto const &drawObj = drawObjectTable->drawObject(it->drawObjectReference);
+            auto ref = drawObjectTable->renderDetailsReference(it->drawObjectReference);
+            if (!renderDetailsName.empty() && renderDetailsName != ref.renderDetails->nameString()) {
+                continue;
+            }
             if (nbrIndices == 0 ||
                 it->drawObjectReference != prev.first || it->drawObjectDataReference != prev.second)
             {

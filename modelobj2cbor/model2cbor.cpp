@@ -91,10 +91,10 @@ int main(int argc, char *argv[]) {
 
             if (jsonForCpp) {
                 nlohmann::json j;
-                j[KeyVertices] = v;
-                j[KeyNormals] = n;
-                j[KeyTexCoords] = tx;
-                j[KeyIndices] = in;
+                j[levelDrawer::KeyVertices] = v;
+                j[levelDrawer::KeyNormals] = n;
+                j[levelDrawer::KeyTexCoords] = tx;
+                j[levelDrawer::KeyIndices] = in;
 
                 std::vector<uint8_t> data = nlohmann::json::to_cbor(j);
 
@@ -107,7 +107,7 @@ int main(int argc, char *argv[]) {
                     cbor_array_push(array, cbor_build_float4(f));
                 }
                 cbor_map_add(cmap, (struct cbor_pair) {
-                    .key = cbor_move(cbor_build_string(KeyVertices)),
+                    .key = cbor_move(cbor_build_string(levelDrawer::KeyVertices)),
                     .value = cbor_move(array)});
 
                 cbor_item_t *array2 = cbor_new_definite_array(n.size());
@@ -115,7 +115,7 @@ int main(int argc, char *argv[]) {
                     cbor_array_push(array2, cbor_build_float4(f));
                 }
                 cbor_map_add(cmap, (struct cbor_pair) {
-                    .key = cbor_move(cbor_build_string(KeyNormals)),
+                    .key = cbor_move(cbor_build_string(levelDrawer::KeyNormals)),
                     .value = cbor_move(array2)});
 
                 cbor_item_t *array3 = cbor_new_definite_array(tx.size());
@@ -123,7 +123,7 @@ int main(int argc, char *argv[]) {
                     cbor_array_push(array3, cbor_build_float4(f));
                 }
                 cbor_map_add(cmap, (struct cbor_pair) {
-                    .key = cbor_move(cbor_build_string(KeyTexCoords)),
+                    .key = cbor_move(cbor_build_string(levelDrawer::KeyTexCoords)),
                     .value = cbor_move(array3)});
 
                 cbor_item_t *array4 = cbor_new_definite_array(in.size());
@@ -135,7 +135,7 @@ int main(int argc, char *argv[]) {
                     cbor_array_push(array4, cbor_move(array4a));
                 }
                 cbor_map_add(cmap, (struct cbor_pair) {
-                    .key = cbor_move(cbor_build_string(KeyIndices)),
+                    .key = cbor_move(cbor_build_string(levelDrawer::KeyIndices)),
                     .value = cbor_move(array4)});
 
                 size_t buffer_size = 0;

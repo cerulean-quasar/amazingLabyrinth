@@ -38,6 +38,10 @@ add_library( # Sets the name of the library.
         src/main/cpp/commonGL.cpp
         src/main/cpp/renderDetails/renderDetailsGL.cpp
         src/main/cpp/renderDetails/renderDetailsVulkan.cpp
+        src/main/cpp/renderDetails/darkChaining/renderDetailsVulkan.cpp
+        src/main/cpp/renderDetails/darkChaining/renderDetailsGL.cpp
+        src/main/cpp/renderDetails/darkObject/renderDetailsVulkan.cpp
+        src/main/cpp/renderDetails/darkObject/renderDetailsGL.cpp
         src/main/cpp/renderDetails/depthMap/renderDetailsGL.cpp
         src/main/cpp/renderDetails/depthMap/renderDetailsVulkan.cpp
         src/main/cpp/renderDetails/normalMap/renderDetailsGL.cpp
@@ -70,6 +74,8 @@ add_library( # Sets the name of the library.
         src/main/cpp/levels/basic/serializer.cpp
         src/main/cpp/levels/collectMaze/level.cpp
         src/main/cpp/levels/collectMaze/serializer.cpp
+        src/main/cpp/levels/darkMaze/level.cpp
+        src/main/cpp/levels/darkMaze/serializer.cpp
         src/main/cpp/levels/fixedMaze/level.cpp
         src/main/cpp/levels/fixedMaze/serializer.cpp
         src/main/cpp/levels/generatedMaze/level.cpp

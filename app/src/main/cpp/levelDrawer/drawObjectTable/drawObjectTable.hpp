@@ -55,7 +55,7 @@ namespace levelDrawer {
             for (auto const &objData : m_objsData) {
                 ret.push_back(objData.first);
             }
-            return ret;
+            return std::move(ret);
         }
 
         std::shared_ptr<typename traits::DrawObjectDataType> const &objData(DrawObjDataReference objDataRef) {

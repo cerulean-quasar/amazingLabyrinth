@@ -53,7 +53,7 @@ namespace finisher {
                   finished(false)
         {
 
-            m_levelDrawer.requestRenderDetails(objectNoShadowsRenderDetailsName, m_levelDrawer.getDefaultParameters());
+            m_levelDrawer.requestRenderDetails(objectNoShadowsRenderDetailsName, levelDrawer::DefaultConfig::getDefaultParameters());
 
             auto projView = m_levelDrawer.getProjectionView();
             auto wh = getWidthHeight(maxZ, projView.first, projView.second);

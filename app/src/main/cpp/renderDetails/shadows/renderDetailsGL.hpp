@@ -46,17 +46,8 @@ namespace shadows {
                     view());
         }
 
-        glm::vec3 getLightSource() override {
-            return viewPoint();
-        }
-
-        glm::mat4 getViewLightSource() override {
-            return view();
-        }
-
-        CommonObjectDataGL(float aspectRatio, renderDetails::ParametersLightSource const *parameters)
-                : CommonObjectDataPerspective(parameters->viewAngle, aspectRatio, parameters->nearPlane, parameters->farPlane,
-                                              parameters->lightingSource, parameters->lookAt, parameters->up)
+        CommonObjectDataGL(renderDetails::ParametersPerspective const &parameters, float aspectRatio)
+                : CommonObjectDataPerspective(parameters, aspectRatio)
         {}
 
         ~CommonObjectDataGL() override = default;

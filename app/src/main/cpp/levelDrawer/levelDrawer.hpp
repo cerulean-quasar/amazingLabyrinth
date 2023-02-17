@@ -48,7 +48,8 @@ namespace levelDrawer {
                 ObjectType type,
                 std::shared_ptr <ModelDescription> const &modelDescription,
                 std::shared_ptr <TextureDescription> const &textureDescription,
-                std::string const &renderDetailsName) = 0;
+                std::string const &renderDetailsName,
+                std::shared_ptr<renderDetails::Parameters> const &parameters) = 0;
 
         virtual void removeObject(
                 ObjectType type,
@@ -85,6 +86,7 @@ namespace levelDrawer {
 
         virtual std::pair<glm::mat4, glm::mat4> getProjectionView(ObjectType type) = 0;
 
+        virtual char const *getDefaultRenderDetailsName() = 0;
         virtual void drawToBuffer(
                 std::string const &renderDetailsName,
                 ModelsTextures const &modelsTextures,
@@ -95,9 +97,9 @@ namespace levelDrawer {
                 std::shared_ptr<renderDetails::Parameters> const &parameters,
                 std::vector<float> &results) = 0;
 
-        virtual char const *getDefaultRenderDetailsName() = 0;
-
-        virtual std::shared_ptr<renderDetails::Parameters> getDefaultParameters() = 0;
+        virtual void updateCommonObjectData(ObjectType type,
+                                            DrawObjReference const &objRef,
+                                            renderDetails::Parameters const &parameters) = 0;
 
         virtual ~LevelDrawer() = default;
     };
@@ -132,8 +134,9 @@ namespace levelDrawer {
         DrawObjReference addObject(
                 std::shared_ptr <ModelDescription> const &modelDescription,
                 std::shared_ptr <TextureDescription> const &textureDescription,
-                std::string const &renderDetailsName) {
-            return m_levelDrawer->addObject(m_type, modelDescription, textureDescription, renderDetailsName);
+                std::string const &renderDetailsName,
+                std::shared_ptr<renderDetails::Parameters> const &parameters) {
+            return m_levelDrawer->addObject(m_type, modelDescription, textureDescription, renderDetailsName, parameters);
         }
 
         boost::optional<DrawObjDataReference> transferObject(
@@ -179,6 +182,14 @@ namespace levelDrawer {
             return m_levelDrawer->getProjectionView(m_type);
         }
 
+        /*
+         * returns either shadowsChaining or objectNoShadows depending on whether the user enabled
+         * shadows.  Both take ParametersPerspective initialize their CommonObjectData.
+         */
+        char const *getDefaultRenderDetailsName() {
+            return m_levelDrawer->getDefaultRenderDetailsName();
+        }
+
         void drawToBuffer(
                 std::string const &renderDetailsName,
                 ModelsTextures const &modelsTextures,
@@ -193,12 +204,9 @@ namespace levelDrawer {
                     nbrSamplesForWidth, parameters, results);
         }
 
-        char const *getDefaultRenderDetailsName() {
-            return m_levelDrawer->getDefaultRenderDetailsName();
-        }
-
-        std::shared_ptr<renderDetails::Parameters> getDefaultParameters() {
-            return m_levelDrawer->getDefaultParameters();
+        void updateCommonObjectData(DrawObjReference const &drawObjRef,
+                                    renderDetails::Parameters const &parameters) {
+            return m_levelDrawer->updateCommonObjectData(m_type, drawObjRef, parameters);
         }
 
     private:

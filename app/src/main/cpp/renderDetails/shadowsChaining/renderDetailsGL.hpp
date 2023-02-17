@@ -37,16 +37,8 @@
 namespace shadowsChaining {
     class CommonObjectDataGL : public renderDetails::CommonObjectData {
     public:
-        std::pair<glm::mat4, glm::mat4> getProjViewForLevel() override {
+        std::pair<glm::mat4, glm::mat4> getProjViewForLevel() {
             return m_objectWithShadowsCOD->getProjViewForLevel();
-        }
-
-        glm::vec3 getLightSource() override {
-            return m_shadowsCOD->getLightSource();
-        }
-
-        glm::mat4 getViewLightSource() override {
-            return m_shadowsCOD->getViewLightSource();
         }
 
         std::shared_ptr<objectWithShadows::CommonObjectDataGL> const &objectWithShadowsCOD()
@@ -59,7 +51,8 @@ namespace shadowsChaining {
         CommonObjectDataGL(
                 std::shared_ptr<renderDetails::CommonObjectData> inObjectWithShadowsCOD,
                 std::shared_ptr<renderDetails::CommonObjectData> inShadowsCOD)
-                : CommonObjectData(),
+                // nearPlane and farPlane are unused in shadowsChaining COD
+                : CommonObjectData(renderDetails::Parameters{}),
                   m_objectWithShadowsCOD(std::dynamic_pointer_cast<objectWithShadows::CommonObjectDataGL>(inObjectWithShadowsCOD)),
                   m_shadowsCOD(std::dynamic_pointer_cast<shadows::CommonObjectDataGL>(inShadowsCOD))
         {}

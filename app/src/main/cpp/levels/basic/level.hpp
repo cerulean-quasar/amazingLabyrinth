@@ -169,7 +169,7 @@ namespace basic {
 
             if (parameters == nullptr || renderDetailsName.length() == 0) {
                 m_levelDrawer.requestRenderDetails(m_levelDrawer.getDefaultRenderDetailsName(),
-                                                   m_levelDrawer.getDefaultParameters());
+                                                   levelDrawer::DefaultConfig::getDefaultParameters());
             } else {
                 m_levelDrawer.requestRenderDetails(renderDetailsName, parameters);
             }

@@ -52,36 +52,40 @@ namespace objectNoShadows {
                                          false, true),
                     view());
         }
-
+/* todo: remove
+ *
         glm::mat4 getViewLightSource() override {
             return glm::lookAt(m_lightingSource, m_lookAt, m_up);
         }
 
         glm::vec3 getLightSource() override { return m_lightingSource;}
+*/
+
+        void update(renderDetails::Parameters const &parametersBase) override {
+            auto parameters = dynamic_cast<renderDetails::ParametersPerspective const &>(parametersBase);
+
+            renderDetails::CommonObjectDataPerspective::update(parameters);
+            doUpdate();
+        }
 
         CommonObjectDataVulkan(
                 std::shared_ptr<vulkan::Buffer> cameraBuffer,
                 std::shared_ptr<vulkan::Buffer> lightingSourceBuffer,
                 glm::mat4 const &preTransform,
                 float aspectRatio,
-                renderDetails::ParametersObject const *parameters)
-                : renderDetails::CommonObjectDataPerspective(
-                parameters->viewAngle, aspectRatio, parameters->nearPlane, parameters->farPlane,
-                parameters->viewPoint, parameters->lookAt, parameters->up),
+                renderDetails::ParametersPerspective const &parameters)
+                : renderDetails::CommonObjectDataPerspective(parameters, aspectRatio),
                   m_preTransform{preTransform},
-                  m_lightingSource{parameters->lightingSource},
                   m_cameraBuffer{std::move(cameraBuffer)},
                   m_lightingSourceBuffer{std::move(lightingSourceBuffer)}
         {
+            if (m_lightSources.size() > 1) {
+                throw std::runtime_error("Incorrect number of light sources for render details.");
+            }
             doUpdate();
         }
 
         ~CommonObjectDataVulkan() override = default;
-    protected:
-        void update() override {
-            doUpdate();
-        }
-
     private:
         struct CommonVertexUBO {
             glm::mat4 projView;
@@ -92,7 +96,6 @@ namespace objectNoShadows {
         };
 
         glm::mat4 m_preTransform;
-        glm::vec3 m_lightingSource;
         std::shared_ptr<vulkan::Buffer> m_cameraBuffer;
         std::shared_ptr<vulkan::Buffer> m_lightingSourceBuffer;
 
@@ -107,7 +110,7 @@ namespace objectNoShadows {
             m_cameraBuffer->copyRawTo(&commonUbo, sizeof(commonUbo));
 
             CommonFragmentUBO commonFragmentUbo;
-            commonFragmentUbo.lightingSource = m_lightingSource;
+            commonFragmentUbo.lightingSource = m_lightSources[0];
             m_lightingSourceBuffer->copyRawTo(&commonFragmentUbo, sizeof(commonFragmentUbo));
         }
     };
@@ -238,7 +241,10 @@ namespace objectNoShadows {
             return m_uniformBuffer;
         }
 
-        std::shared_ptr<vulkan::DescriptorSet> const &descriptorSet(uint32_t) override {
+        std::shared_ptr<vulkan::DescriptorSet> const &descriptorSet(uint32_t id) override {
+            if (id != renderDetails::MODEL_MATRIX_ID_MAIN) {
+                throw std::runtime_error("Invalid descriptorset id");
+            }
             return m_descriptorSet;
         }
 
@@ -297,7 +303,7 @@ namespace objectNoShadows {
                 std::shared_ptr<vulkan::SurfaceDetails> const &surfaceDetails,
                 std::shared_ptr<renderDetails::Parameters> const &parametersBase)
         {
-            auto parameters = dynamic_cast<renderDetails::ParametersObject*>(parametersBase.get());
+            auto parameters = dynamic_cast<renderDetails::ParametersPerspective*>(parametersBase.get());
             if (parameters == nullptr) {
                 throw std::runtime_error("Invalid render details parameter type.");
             }
@@ -317,7 +323,7 @@ namespace objectNoShadows {
                 std::shared_ptr<vulkan::SurfaceDetails> const &surfaceDetails,
                 std::shared_ptr<renderDetails::Parameters> const &parametersBase)
         {
-            auto parameters = dynamic_cast<renderDetails::ParametersObject*>(parametersBase.get());
+            auto parameters = dynamic_cast<renderDetails::ParametersPerspective*>(parametersBase.get());
             if (parameters == nullptr) {
                 throw std::runtime_error("Invalid render details parameter type.");
             }
@@ -342,7 +348,8 @@ namespace objectNoShadows {
                 std::shared_ptr<renderDetails::CommonObjectData> const &commonObjectData,
                 std::shared_ptr<levelDrawer::DrawObjectTableVulkan> const &drawObjTable,
                 std::set<levelDrawer::ZValueReference>::iterator beginZValRefs,
-                std::set<levelDrawer::ZValueReference>::iterator endZValRefs) override;
+                std::set<levelDrawer::ZValueReference>::iterator endZValRefs,
+                std::string const &renderDetailsName) override;
 
         bool structuralChangeNeeded(
                 std::shared_ptr<vulkan::SurfaceDetails> const &surfaceDetails) override
@@ -404,7 +411,7 @@ namespace objectNoShadows {
 
         std::shared_ptr<CommonObjectDataVulkan> createCommonObjectData(
                 glm::mat4 const &preTransform,
-                renderDetails::ParametersObject const *parameters)
+                renderDetails::ParametersPerspective const *parameters)
         {
             auto vertexUbo = renderDetails::createUniformBuffer(
                     m_device, sizeof (CommonObjectDataVulkan::CommonVertexUBO));
@@ -413,7 +420,7 @@ namespace objectNoShadows {
 
             return std::make_shared<CommonObjectDataVulkan>(
                     vertexUbo, fragUbo, preTransform,
-                    m_surfaceWidth/static_cast<float>(m_surfaceHeight), parameters);
+                    m_surfaceWidth/static_cast<float>(m_surfaceHeight), *parameters);
         }
 
         static renderDetails::ReferenceVulkan createReference(

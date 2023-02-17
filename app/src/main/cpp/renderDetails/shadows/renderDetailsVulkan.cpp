@@ -121,11 +121,12 @@ namespace shadows {
             std::shared_ptr<renderDetails::CommonObjectData> const &,
             std::shared_ptr<levelDrawer::DrawObjectTableVulkan> const &drawObjTable,
             std::set<levelDrawer::ZValueReference>::iterator beginZValRefs,
-            std::set<levelDrawer::ZValueReference>::iterator endZValRefs)
+            std::set<levelDrawer::ZValueReference>::iterator endZValRefs,
+            std::string const &renderDetailsName)
     {
         initializeCommandBufferDrawObjects(
                 commandBuffer, descriptorSetID, m_pipeline, nullptr,
-                drawObjTable, beginZValRefs, endZValRefs);
+                drawObjTable, beginZValRefs, endZValRefs, false, renderDetailsName);
     }
 
     renderDetails::ReferenceVulkan RenderDetailsVulkan::createReference(

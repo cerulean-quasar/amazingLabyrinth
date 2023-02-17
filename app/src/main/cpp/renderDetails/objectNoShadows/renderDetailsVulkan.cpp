@@ -24,9 +24,12 @@
 #include "../../renderLoader/registerVulkan.hpp"
 
 namespace objectNoShadows {
+    /* todo: remove
+     *
     char constexpr const *RenderDetailsVulkan::SHADER_VERT_FILE;
     char constexpr const *RenderDetailsVulkan::TEXTURE_SHADER_FRAG_FILE;
     char constexpr const *RenderDetailsVulkan::COLOR_SHADER_FRAG_FILE;
+*/
 
     /* descriptor set for the MVP matrix and texture samplers */
     void DrawObjectDataVulkan::colorUpdateDescriptorSet(
@@ -335,7 +338,8 @@ namespace objectNoShadows {
             std::shared_ptr<renderDetails::CommonObjectData> const &,
             std::shared_ptr<levelDrawer::DrawObjectTableVulkan> const &drawObjTable,
             std::set<levelDrawer::ZValueReference>::iterator beginZValRefs,
-            std::set<levelDrawer::ZValueReference>::iterator endZValRefs)
+            std::set<levelDrawer::ZValueReference>::iterator endZValRefs,
+            std::string const &)
     {
         initializeCommandBufferDrawObjects(
                 commandBuffer, descriptorSetID, m_pipelineColor,

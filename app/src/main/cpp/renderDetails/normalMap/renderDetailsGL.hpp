@@ -42,20 +42,9 @@ namespace normalMap {
                     view());
         }
 
-        glm::vec3 getLightSource() override {
-            return viewPoint();
-        }
-
-        glm::mat4 getViewLightSource() override {
-            return view();
-        }
-
         CommonObjectDataGL(
-                renderDetails::ParametersNormalMap const *parameters)
-                : renderDetails::CommonObjectDataOrtho(
-                -parameters->widthAtDepth/2, parameters->widthAtDepth/2,
-                -parameters->heightAtDepth/2, parameters->heightAtDepth/2,
-                parameters->nearPlane, parameters->farPlane, parameters->viewPoint, parameters->lookAt, parameters->up)
+                renderDetails::ParametersNormalMap const &parameters)
+                : renderDetails::CommonObjectDataOrtho(parameters.toOrtho())
         {}
 
         ~CommonObjectDataGL() override = default;

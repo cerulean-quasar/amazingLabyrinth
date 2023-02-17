@@ -45,21 +45,12 @@ namespace objectNoShadows {
                     view());
         }
 
-        glm::vec3 getLightSource() override { return m_lightingSource;}
-
-        glm::mat4 getViewLightSource() override {
-            return glm::lookAt(m_lightingSource, m_lookAt, m_up);
-        }
-
-        CommonObjectDataGL(float aspectRatio, renderDetails::ParametersObject const *parameters)
-                : renderDetails::CommonObjectDataPerspective(parameters->viewAngle, aspectRatio, parameters->nearPlane, parameters->farPlane,
-                                                             parameters->viewPoint, parameters->lookAt, parameters->up),
-                  m_lightingSource{parameters->lightingSource}
+        CommonObjectDataGL(renderDetails::ParametersPerspective const &parameters,
+                           float aspectRatio)
+                : renderDetails::CommonObjectDataPerspective(parameters, aspectRatio)
         {}
 
         ~CommonObjectDataGL() override = default;
-    private:
-        glm::vec3 m_lightingSource;
     };
 
     class DrawObjectDataGL : public renderDetails::DrawObjectDataGL {

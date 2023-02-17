@@ -27,7 +27,7 @@ namespace shadowsChaining {
             std::shared_ptr<graphicsGL::SurfaceDetails> const &surfaceDetails,
             std::shared_ptr<renderDetails::Parameters> const &parametersBase)
     {
-        auto parameters = dynamic_cast<renderDetails::ParametersObject*>(parametersBase.get());
+        auto parameters = dynamic_cast<renderDetails::ParametersPerspective*>(parametersBase.get());
         if (parameters == nullptr) {
             throw std::runtime_error("Invalid render details parameter type.");
         }
@@ -35,11 +35,12 @@ namespace shadowsChaining {
         auto rd = std::make_shared<RenderDetailsGL>(
                 surfaceDetails->useIntTexture, surfaceDetails->surfaceWidth, surfaceDetails->surfaceHeight);
 
-        auto parametersShadows = std::make_shared<renderDetails::ParametersLightSource>(*((renderDetails::ParametersLightSource*)parameters));
+        auto parametersShadows = std::make_shared<renderDetails::ParametersPerspective>(*parameters);
+        parametersShadows->viewPoint = parametersShadows->lightingSources[0];
         auto refShadows = renderLoader->load(
                 gameRequester, shadows::RenderDetailsGL::name(), surfaceDetails, parametersShadows);
 
-        auto parms = std::make_shared<renderDetails::ParametersObjectWithShadowsGL>(parameters, rd->m_framebufferShadows);
+        auto parms = std::make_shared<renderDetails::ParametersObjectWithShadowsGL>(*parameters, rd->m_framebufferShadows);
         auto refObjectWithShadows = renderLoader->load(
                 gameRequester, objectWithShadows::RenderDetailsGL::name(), surfaceDetails,
                 parms);
@@ -62,7 +63,7 @@ namespace shadowsChaining {
             throw std::runtime_error("Invalid render details type.");
         }
 
-        auto parameters = dynamic_cast<renderDetails::ParametersObject*>(parametersBase.get());
+        auto parameters = dynamic_cast<renderDetails::ParametersPerspective*>(parametersBase.get());
         if (parameters == nullptr) {
             throw std::runtime_error("Invalid render details parameter type.");
         }
@@ -77,11 +78,11 @@ namespace shadowsChaining {
             rd->createFramebuffer();
         }
 
-        auto parametersShadows = std::make_shared<renderDetails::ParametersLightSource>(*((renderDetails::ParametersLightSource*)parameters));
+        auto parametersShadows = std::make_shared<renderDetails::ParametersPerspective>(*parameters);
         auto refShadows = renderLoader->load(
                 gameRequester, shadows::RenderDetailsGL::name(), surfaceDetails, parametersShadows);
 
-        auto parms = std::make_shared<renderDetails::ParametersObjectWithShadowsGL>(parameters, rd->m_framebufferShadows);
+        auto parms = std::make_shared<renderDetails::ParametersObjectWithShadowsGL>(*parameters, rd->m_framebufferShadows);
         auto refObjectWithShadows = renderLoader->load(
                 gameRequester, objectWithShadows::RenderDetailsGL::name(), surfaceDetails, parms);
 
@@ -181,6 +182,9 @@ namespace shadowsChaining {
     {
         // get the shadows common object data
         auto cod = dynamic_cast<CommonObjectDataGL*>(commonObjectData.get());
+        if (!cod) {
+            throw std::runtime_error("Invalid common object data type");
+        }
 
         m_objectWithShadowsRenderDetails->draw(renderDetails::MODEL_MATRIX_ID_MAIN,
                 cod->objectWithShadowsCOD(), drawObjTable, beginZValRefs, endZValRefs);

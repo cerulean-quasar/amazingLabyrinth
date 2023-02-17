@@ -38,22 +38,31 @@ namespace shadowsChaining {
     class CommonObjectDataVulkan : public renderDetails::CommonObjectData {
         friend RenderDetailsVulkan;
     public:
-        std::pair<glm::mat4, glm::mat4> getProjViewForLevel() override {
+        std::pair<glm::mat4, glm::mat4> getProjViewForLevel() {
             return m_objectWithShadowsCOD->getProjViewForLevel();
         }
 
-        glm::mat4 getViewLightSource() override {
+        /* todo: remove
+        glm::mat4 getViewLightSource() {
             return m_shadowsCOD->view();
         }
 
-        glm::vec3 getLightSource() override {
+        glm::vec3 getLightSource() {
             return m_shadowsCOD->viewPoint();
         }
+         */
 
         std::shared_ptr<objectWithShadows::CommonObjectDataVulkan> const &objectWithShadowsCOD() {
             return m_objectWithShadowsCOD;
         }
 
+        CommonObjectDataVulkan(std::shared_ptr<objectWithShadows::CommonObjectDataVulkan> objectCOD,
+                               std::shared_ptr<shadows::CommonObjectDataVulkan> shadowsCOD)
+        // The near plane and far plane are unused for Shadows Chaining
+                               : renderDetails::CommonObjectData(renderDetails::Parameters{}),
+                               m_objectWithShadowsCOD(std::move(objectCOD)),
+                               m_shadowsCOD(std::move(shadowsCOD))
+        {}
         ~CommonObjectDataVulkan() override = default;
     private:
         std::shared_ptr<objectWithShadows::CommonObjectDataVulkan> m_objectWithShadowsCOD;
@@ -163,7 +172,8 @@ namespace shadowsChaining {
                 std::shared_ptr<renderDetails::CommonObjectData> const &commonObjectData,
                 std::shared_ptr<levelDrawer::DrawObjectTableVulkan> const &drawObjTable,
                 std::set<levelDrawer::ZValueReference>::iterator beginZValRefs,
-                std::set<levelDrawer::ZValueReference>::iterator endZValRefs) override;
+                std::set<levelDrawer::ZValueReference>::iterator endZValRefs,
+                std::string const &renderDetailsName) override;
 
         std::shared_ptr<vulkan::Device> const &device() override { return m_objectWithShadowsRenderDetails->device(); }
 

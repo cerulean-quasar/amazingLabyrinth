@@ -87,7 +87,8 @@ namespace levelDrawer {
                 ObjectType type,
                 std::shared_ptr<ModelDescription> const &modelDescription,
                 std::shared_ptr<TextureDescription> const &textureDescription,
-                std::string const &renderDetailsName) override {
+                std::string const &renderDetailsName,
+                std::shared_ptr<renderDetails::Parameters> const &parameters) override {
             std::shared_ptr<typename traits::ModelDataType> modelData = m_modelTable.addModel(
                     m_gameRequester, modelDescription);
             std::shared_ptr<typename traits::TextureDataType> textureData{};
@@ -97,7 +98,7 @@ namespace levelDrawer {
             }
 
             return m_drawObjectTableList[type]->addObject(
-                m_renderLoader->load(m_gameRequester, renderDetailsName, m_surfaceDetails, nullptr),
+                m_renderLoader->load(m_gameRequester, renderDetailsName, m_surfaceDetails, parameters),
                 modelData,
                 textureData);
         }
@@ -171,19 +172,15 @@ namespace levelDrawer {
 
         void draw(typename traits::DrawArgumentType const &info);
 
-        char const *getDefaultRenderDetailsName() override { return m_defaultRenderDetailsName; }
-
-        std::shared_ptr<renderDetails::Parameters> getDefaultParameters() override {
-                auto parametersDefault = std::make_shared<renderDetails::ParametersObject>();
-                parametersDefault->lookAt = DefaultConfig::lookAt;
-                parametersDefault->up = DefaultConfig::up;
-                parametersDefault->viewPoint = DefaultConfig::viewPoint;
-                parametersDefault->viewAngle = DefaultConfig::viewAngle;
-                parametersDefault->nearPlane = DefaultConfig::nearPlane;
-                parametersDefault->farPlane = DefaultConfig::farPlane;
-                parametersDefault->lightingSource = DefaultConfig::lightingSource;
-                return parametersDefault;
+        // all of the objects that are passed in should be using the same COD and renderDetails
+        void updateCommonObjectData(ObjectType type,
+                                  DrawObjReference const &objRef,
+                                  renderDetails::Parameters const &parameters) override {
+            auto ref = m_drawObjectTableList[type]->renderDetailsReference(objRef);
+            ref.commonObjectData->update(parameters);
         }
+
+        char const *getDefaultRenderDetailsName() override { return m_defaultRenderDetailsName; }
 
         void drawToBuffer(
             std::string const &renderDetailsName,
@@ -308,7 +305,7 @@ namespace levelDrawer {
                         continue;
                     }
 
-                    auto renderDetailsRef = drawObj->renderDetailsReference();
+                    auto renderDetailsRef = m_drawObjectTableList[table]->renderDetailsReference(itEnd->drawObjectReference);
                     if (renderDetailsRef.renderDetails->nameString() == currentRenderDetails.renderDetails->nameString()) {
                         itEnd++;
                         continue;

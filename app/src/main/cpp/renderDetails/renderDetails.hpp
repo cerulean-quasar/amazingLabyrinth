@@ -40,13 +40,192 @@ namespace renderDetails {
 
     class CommonObjectData {
     public:
-        virtual std::pair<glm::mat4, glm::mat4> getProjViewForLevel() = 0;
-        virtual glm::vec3 getLightSource() = 0;
-        virtual glm::mat4 getViewLightSource() = 0;
-        CommonObjectData() = default;
+        CommonObjectData(std::shared_ptr<Parameters> const &parameters)
+            : m_nearPlane{parameters->nearPlane},
+            m_farPlane{parameters->farPlane} {}
+
+        CommonObjectData(Parameters const &parameters)
+                : m_nearPlane{parameters.nearPlane},
+                  m_farPlane{parameters.farPlane} {}
+
+        virtual void update(renderDetails::Parameters const &parameters) {
+            m_nearPlane = parameters.nearPlane;
+            m_farPlane = parameters.farPlane;
+        }
+
         virtual ~CommonObjectData() = default;
+
     protected:
-        virtual void update() {} // todo: revisit this: only needed for Vulkan
+        float m_nearPlane;
+        float m_farPlane;
+    };
+
+    class CommonObjectDataLightSources : public CommonObjectData {
+    public:
+        glm::vec3 getLightSource(size_t i) {
+            return m_lightSources[i];
+        }
+
+        glm::mat4 getViewLightSource(size_t i, glm::vec3 const &lookAt, glm::vec3 const &up) {
+            return glm::lookAt(m_lightSources[i], lookAt, up);
+        }
+
+        void update(renderDetails::Parameters const &parametersBase) override {
+            auto const &parameters = dynamic_cast<renderDetails::ParametersLightSources const &>(parametersBase);
+
+            update(parameters);
+        }
+
+        void update(renderDetails::ParametersLightSources const &parameters)  {
+            m_lightSources = parameters.lightingSources;
+        }
+
+        CommonObjectDataLightSources(std::shared_ptr<ParametersLightSources> const &parameters)
+            : CommonObjectData{parameters},
+            m_lightSources(parameters->lightingSources) {}
+
+        CommonObjectDataLightSources(ParametersLightSources const &parameters)
+                : CommonObjectData{parameters},
+                m_lightSources(parameters.lightingSources) {}
+
+        ~CommonObjectDataLightSources() override = default;
+
+    protected:
+        std::vector<glm::vec3> m_lightSources;
+    };
+
+    class CommonObjectDataView : public CommonObjectDataLightSources {
+    public:
+        glm::mat4 view() {
+            // eye at the m_viewPoint, looking at the m_lookAt position, pointing up is m_up.
+            return glm::lookAt(m_viewPoint, m_lookAt, m_up);
+        }
+
+        glm::vec3 viewPoint() {
+            return m_viewPoint;
+        }
+
+        glm::mat4 getViewLightSource(size_t i) {
+            return glm::lookAt(m_lightSources[i], m_lookAt, m_up);
+        }
+
+        void update(renderDetails::Parameters const &parametersBase) override {
+            auto const &parameters = dynamic_cast<renderDetails::ParametersView const &>(parametersBase);
+
+            update(parameters);
+        }
+
+        void update(renderDetails::ParametersView const &parameters)  {
+            CommonObjectDataLightSources::update(parameters);
+            m_viewPoint = parameters.viewPoint;
+            m_lookAt = parameters.lookAt;
+            m_up = parameters.up;
+        }
+
+        CommonObjectDataView(std::shared_ptr<ParametersView> const &parameters)
+                : CommonObjectDataLightSources{parameters},
+                  m_viewPoint{parameters->viewPoint},
+                  m_lookAt{parameters->lookAt},
+                  m_up{parameters->up}
+        {}
+
+        CommonObjectDataView(ParametersView const &parameters)
+                : CommonObjectDataLightSources{parameters},
+                  m_viewPoint{parameters.viewPoint},
+                  m_lookAt{parameters.lookAt},
+                  m_up{parameters.up}
+        {}
+
+        ~CommonObjectDataView() override = default;
+    protected:
+        glm::vec3 m_viewPoint;
+        glm::vec3 m_lookAt;
+        glm::vec3 m_up;
+    };
+
+    class CommonObjectDataPerspective : public CommonObjectDataView {
+    public:
+        virtual std::pair<glm::mat4, glm::mat4> getProjViewForLevel() = 0;
+
+        void update(renderDetails::Parameters const &parametersBase) override {
+            auto const &parameters = dynamic_cast<renderDetails::ParametersPerspective const &>(parametersBase);
+
+            update(parameters);
+        }
+
+        void update(renderDetails::ParametersPerspective const &parameters)  {
+            CommonObjectDataView::update(parameters);
+            m_viewAngle = parameters.viewAngle;
+            m_up = parameters.up;
+        }
+
+        CommonObjectDataPerspective(
+            std::shared_ptr<ParametersPerspective> const &parameters,
+            float aspectRatio)
+            : CommonObjectDataView{parameters},
+            m_viewAngle{parameters->viewAngle},
+            m_aspectRatio{aspectRatio}
+        {}
+
+        CommonObjectDataPerspective(
+                ParametersPerspective const &parameters,
+                float aspectRatio)
+                : CommonObjectDataView{parameters},
+                  m_viewAngle{parameters.viewAngle},
+                  m_aspectRatio{aspectRatio}
+        {}
+
+        ~CommonObjectDataPerspective() override = default;
+    protected:
+        float m_viewAngle;
+        float m_aspectRatio;
+    };
+
+    class CommonObjectDataOrtho : public CommonObjectDataView {
+    public:
+        float nearPlane() { return m_nearPlane; }
+        float farPlane() { return m_farPlane; }
+
+        virtual std::pair<glm::mat4, glm::mat4> getProjViewForLevel() = 0;
+
+        void update(renderDetails::Parameters const &parametersBase) override {
+            auto const &parameters = dynamic_cast<renderDetails::ParametersOrtho const &>(parametersBase);
+
+            update(parameters);
+        }
+
+        void update(renderDetails::ParametersOrtho const &parameters)  {
+            CommonObjectDataView::update(parameters);
+            m_minusX = parameters.minusX;
+            m_plusX = parameters.plusX;
+            m_minusY = parameters.minusY;
+            m_plusY = parameters.plusY;
+        }
+
+        CommonObjectDataOrtho(
+                std::shared_ptr<ParametersOrtho> const &parameters)
+                : CommonObjectDataView{parameters},
+                  m_minusX{parameters->minusX},
+                  m_plusX{parameters->plusX},
+                  m_minusY{parameters->minusY},
+                  m_plusY{parameters->plusY}
+        {}
+
+        CommonObjectDataOrtho(
+                ParametersOrtho const &parameters)
+                : CommonObjectDataView{parameters},
+                  m_minusX{parameters.minusX},
+                  m_plusX{parameters.plusX},
+                  m_minusY{parameters.minusY},
+                  m_plusY{parameters.plusY}
+        {}
+
+        ~CommonObjectDataOrtho() override = default;
+    protected:
+        float m_minusX;
+        float m_plusX;
+        float m_minusY;
+        float m_plusY;
     };
 
     template <typename RenderDetailsType, typename TextureDataType, typename DrawObjectDataType>
@@ -60,134 +239,6 @@ namespace renderDetails {
         std::shared_ptr<CommonObjectData> commonObjectData;
         CreateDrawObjectData createDrawObjectData;
         GetProjViewForLevel getProjViewForLevel;
-    };
-
-    class CommonObjectDataView : public CommonObjectData {
-    public:
-        glm::mat4 view() {
-            // eye at the m_viewPoint, looking at the m_lookAt position, pointing up is m_up.
-            return glm::lookAt(m_viewPoint, m_lookAt, m_up);
-        }
-
-        glm::vec3 viewPoint() {
-            return m_viewPoint;
-        }
-
-        void setView(
-                glm::vec3 const &viewPoint,
-                glm::vec3 const &lookAt,
-                glm::vec3 const &up)
-        {
-            m_viewPoint = viewPoint;
-            m_lookAt = lookAt;
-            m_up = up;
-            update();
-        }
-
-        CommonObjectDataView(
-                glm::vec3 viewPoint,
-                glm::vec3 lookAt,
-                glm::vec3 up)
-                : CommonObjectData(),
-                  m_viewPoint{std::move(viewPoint)},
-                  m_lookAt{std::move(lookAt)},
-                  m_up{std::move(up)}
-        {}
-
-        ~CommonObjectDataView() override = default;
-    protected:
-        glm::vec3 m_viewPoint;
-        glm::vec3 m_lookAt;
-        glm::vec3 m_up;
-    };
-
-    class CommonObjectDataPerspective : public CommonObjectDataView {
-    public:
-        void setProjection(
-                float viewAngle,
-                float aspectRatio,
-                float nearPlane,
-                float farPlane)
-        {
-            m_viewAngle = viewAngle;
-            m_aspectRatio = aspectRatio;
-            m_nearPlane = nearPlane;
-            m_farPlane = farPlane;
-            update();
-        }
-
-        CommonObjectDataPerspective(
-            float viewAngle,
-            float aspectRatio,
-            float nearPlane,
-            float farPlane,
-            glm::vec3 viewPoint,
-            glm::vec3 lookAt,
-            glm::vec3 up)
-            : CommonObjectDataView{viewPoint, lookAt, up},
-            m_viewAngle{viewAngle},
-            m_aspectRatio{aspectRatio},
-            m_nearPlane{nearPlane},
-            m_farPlane{farPlane}
-        {}
-
-        ~CommonObjectDataPerspective() override = default;
-    protected:
-        float m_viewAngle;
-        float m_aspectRatio;
-        float m_nearPlane;
-        float m_farPlane;
-    };
-
-    class CommonObjectDataOrtho : public CommonObjectDataView {
-    public:
-        void setProjection(
-                float minusX,
-                float plusX,
-                float minusY,
-                float plusY,
-                float nearPlane,
-                float farPlane)
-        {
-            m_minusX = minusX;
-            m_plusX = plusX;
-            m_minusY = minusY;
-            m_plusY = plusY;
-            m_nearPlane = nearPlane;
-            m_farPlane = farPlane;
-            update();
-        }
-
-        float nearPlane() { return m_nearPlane; }
-        float farPlane() { return m_farPlane; }
-
-        CommonObjectDataOrtho(
-                float minusX,
-                float plusX,
-                float minusY,
-                float plusY,
-                float nearPlane,
-                float farPlane,
-                glm::vec3 viewPoint,
-                glm::vec3 lookAt,
-                glm::vec3 up)
-                : CommonObjectDataView{viewPoint, lookAt, up},
-                  m_minusX{minusX},
-                  m_plusX{plusX},
-                  m_minusY{minusY},
-                  m_plusY{plusY},
-                  m_nearPlane{nearPlane},
-                  m_farPlane{farPlane}
-        {}
-
-        ~CommonObjectDataOrtho() override = default;
-    protected:
-        float m_minusX;
-        float m_plusX;
-        float m_minusY;
-        float m_plusY;
-        float m_nearPlane;
-        float m_farPlane;
     };
 
     class DrawObjectData {

@@ -49,7 +49,8 @@ namespace depthMap {
                                    m_nearPlane, m_farPlane, true, true),
                     view());
         }
-
+/* TODO: remove
+ *
         glm::vec3 getLightSource() override {
             return viewPoint();
         }
@@ -57,7 +58,7 @@ namespace depthMap {
         glm::mat4 getViewLightSource() override {
             return view();
         }
-
+*/
         float nearestDepth() { return m_nearestDepth; }
         float farthestDepth() { return m_farthestDepth; }
 
@@ -65,41 +66,27 @@ namespace depthMap {
 
         uint32_t bufferSize() { return sizeof(CommonUBO); }
 
+        void update(renderDetails::Parameters const &parametersBase) override {
+            auto parameters = dynamic_cast<renderDetails::ParametersDepthMap const &>(parametersBase);
+
+            renderDetails::CommonObjectDataOrtho::update(parameters.toOrtho());
+            doUpdate();
+        }
+
         CommonObjectDataVulkan(
                 std::shared_ptr<vulkan::Buffer> inBuffer,
                 glm::mat4 preTransform,
-                renderDetails::ParametersDepthMap const *parameters)
-                : renderDetails::CommonObjectDataOrtho(-parameters->widthAtDepth/2, parameters->widthAtDepth/2,
-                                                       -parameters->heightAtDepth/2, parameters->heightAtDepth/2,
-                                                       parameters->nearPlane, parameters->farPlane, parameters->viewPoint,
-                                                       parameters->lookAt, parameters->up),
+                renderDetails::ParametersDepthMap const &parameters)
+                : renderDetails::CommonObjectDataOrtho(parameters.toOrtho()),
                   m_buffer{std::move(inBuffer)},
                   m_preTransform{preTransform},
-                  m_nearestDepth{parameters->nearestDepth},
-                  m_farthestDepth{parameters->farthestDepth}
+                  m_nearestDepth{parameters.nearestDepth},
+                  m_farthestDepth{parameters.farthestDepth}
         {
             doUpdate();
         }
 
         ~CommonObjectDataVulkan() override = default;
-
-    protected:
-        void update() override {
-            doUpdate();
-        }
-
-        void doUpdate() {
-            CommonUBO commonUbo;
-            commonUbo.projView = m_preTransform *
-                    getOrthoMatrix(m_minusX, m_plusX, m_minusY, m_plusY,
-                                   m_nearPlane, m_farPlane, true, true) *
-                    view();
-
-            commonUbo.nearestDepth = m_nearestDepth;
-            commonUbo.farthestDepth = m_farthestDepth;
-
-            m_buffer->copyRawTo(&commonUbo, sizeof(commonUbo));
-        }
 
     private:
         struct CommonUBO {
@@ -107,6 +94,19 @@ namespace depthMap {
             float nearestDepth;
             float farthestDepth;
         };
+
+        void doUpdate() {
+            CommonUBO commonUbo;
+            commonUbo.projView = m_preTransform *
+                                 getOrthoMatrix(m_minusX, m_plusX, m_minusY, m_plusY,
+                                                m_nearPlane, m_farPlane, true, true) *
+                                 view();
+
+            commonUbo.nearestDepth = m_nearestDepth;
+            commonUbo.farthestDepth = m_farthestDepth;
+
+            m_buffer->copyRawTo(&commonUbo, sizeof(commonUbo));
+        }
 
         std::shared_ptr<vulkan::Buffer> m_buffer;
         glm::mat4 m_preTransform;
@@ -273,7 +273,8 @@ namespace depthMap {
                 std::shared_ptr<renderDetails::CommonObjectData> const &commonObjectData,
                 std::shared_ptr<levelDrawer::DrawObjectTableVulkan> const &drawObjTable,
                 std::set<levelDrawer::ZValueReference>::iterator beginZValRefs,
-                std::set<levelDrawer::ZValueReference>::iterator endZValRefs) override;
+                std::set<levelDrawer::ZValueReference>::iterator endZValRefs,
+                std::string const &renderDetailsName) override;
 
         bool structuralChangeNeeded(
                 std::shared_ptr<vulkan::SurfaceDetails> const &surfaceDetails) override
@@ -340,7 +341,7 @@ namespace depthMap {
             return std::make_shared<CommonObjectDataVulkan>(
                     std::move(buffer),
                     preTransform,
-                    parameters);
+                    *parameters);
         }
     };
 }

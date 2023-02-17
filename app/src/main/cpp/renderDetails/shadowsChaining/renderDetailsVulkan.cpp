@@ -30,7 +30,7 @@ namespace shadowsChaining {
             std::shared_ptr<vulkan::SurfaceDetails> const &surfaceDetails,
             std::shared_ptr<renderDetails::Parameters> const &parametersBase)
     {
-        auto parameters = dynamic_cast<renderDetails::ParametersObject*>(parametersBase.get());
+        auto parameters = dynamic_cast<renderDetails::ParametersPerspective*>(parametersBase.get());
         if (parameters == nullptr) {
             throw std::runtime_error("Invalid render details parameter type.");
         }
@@ -40,13 +40,14 @@ namespace shadowsChaining {
 
         auto shadowsSurfaceDetails = rd->createShadowSurfaceDetails(surfaceDetails);
 
-        auto parametersShadows = std::make_shared<renderDetails::ParametersLightSource>(*((renderDetails::ParametersLightSource*)parameters));
+        auto parametersShadows = std::make_shared<renderDetails::ParametersPerspective>(*parameters);
+        parametersShadows->viewPoint = parameters->lightingSources[0];
 
         // shadows render details
         auto refShadows = renderLoader->load(
                 gameRequester, shadows::RenderDetailsVulkan::name(), shadowsSurfaceDetails, parametersShadows);
 
-        auto parms = std::make_shared<renderDetails::ParametersObjectWithShadowsVulkan>(parameters, rd->m_samplerShadows);
+        auto parms = std::make_shared<renderDetails::ParametersObjectWithShadowsVulkan>(*parameters, rd->m_samplerShadows);
 
         // main render details
         auto refMain = renderLoader->load(
@@ -66,7 +67,7 @@ namespace shadowsChaining {
             std::shared_ptr<vulkan::SurfaceDetails> const &surfaceDetails,
             std::shared_ptr<renderDetails::Parameters> const &parametersBase)
     {
-        auto parameters = dynamic_cast<renderDetails::ParametersObject*>(parametersBase.get());
+        auto parameters = dynamic_cast<renderDetails::ParametersPerspective*>(parametersBase.get());
         if (parameters == nullptr) {
             throw std::runtime_error("Invalid render details parameter type.");
         }
@@ -82,13 +83,14 @@ namespace shadowsChaining {
 
         auto shadowSurfaceDetails = rd->createShadowSurfaceDetails(surfaceDetails);
 
-        auto parametersShadows = std::make_shared<renderDetails::ParametersLightSource>(*((renderDetails::ParametersLightSource*)parameters));
+        auto parametersShadows = std::make_shared<renderDetails::ParametersPerspective>(*parameters);
+        parametersShadows->viewPoint = parameters->lightingSources[0];
 
         // shadows render details
         auto refShadows = renderLoader->load(
             gameRequester, shadows::RenderDetailsVulkan::name(), shadowSurfaceDetails, parametersShadows);
 
-        auto parms = std::make_shared<renderDetails::ParametersObjectWithShadowsVulkan>(parameters, rd->m_samplerShadows);
+        auto parms = std::make_shared<renderDetails::ParametersObjectWithShadowsVulkan>(*parameters, rd->m_samplerShadows);
 
         // object with shadows render details
         auto refObjectWithShadows = renderLoader->load(
@@ -143,7 +145,7 @@ namespace shadowsChaining {
                 renderDetails::MODEL_MATRIX_ID_SHADOWS /* shadows ID */,
                 commonObjectDataList[levelDrawer::ObjectType::LEVEL],
                 drawObjTableList[levelDrawer::ObjectType::LEVEL],
-                levelZValues.begin(), levelZValues.end());
+                levelZValues.begin(), levelZValues.end(), nameString());
 
         vkCmdEndRenderPass(commandBuffer);
     }
@@ -154,7 +156,8 @@ namespace shadowsChaining {
             std::shared_ptr<renderDetails::CommonObjectData> const &commonObjectData,
             std::shared_ptr<levelDrawer::DrawObjectTableVulkan> const &drawObjTable,
             std::set<levelDrawer::ZValueReference>::iterator beginZValRefs,
-            std::set<levelDrawer::ZValueReference>::iterator endZValRefs)
+            std::set<levelDrawer::ZValueReference>::iterator endZValRefs,
+            std::string const &)
     {
         m_objectWithShadowsRenderDetails->addDrawCmdsToCommandBuffer(
                 commandBuffer, renderDetails::MODEL_MATRIX_ID_MAIN /* main render details ID */,
@@ -166,16 +169,17 @@ namespace shadowsChaining {
             renderDetails::ReferenceVulkan const &refShadows,
             renderDetails::ReferenceVulkan const &refObjectWithShadows)
     {
-        auto cod = std::make_shared<CommonObjectDataVulkan>();
-        cod->m_objectWithShadowsCOD = std::dynamic_pointer_cast<objectWithShadows::CommonObjectDataVulkan>(refObjectWithShadows.commonObjectData);
-        if (cod->m_objectWithShadowsCOD == nullptr) {
+        auto objectWithShadowsCOD = std::dynamic_pointer_cast<objectWithShadows::CommonObjectDataVulkan>(refObjectWithShadows.commonObjectData);
+        if (objectWithShadowsCOD == nullptr) {
             throw std::runtime_error("Invalid common object data");
         }
 
-        cod->m_shadowsCOD = std::dynamic_pointer_cast<shadows::CommonObjectDataVulkan>(refShadows.commonObjectData);
-        if (cod->m_shadowsCOD == nullptr) {
+        auto shadowsCOD = std::dynamic_pointer_cast<shadows::CommonObjectDataVulkan>(refShadows.commonObjectData);
+        if (shadowsCOD == nullptr) {
             throw std::runtime_error("Invalid common object data");
         }
+
+        auto cod = std::make_shared<CommonObjectDataVulkan>(objectWithShadowsCOD, shadowsCOD);
 
         renderDetails::ReferenceVulkan ref;
         ref.renderDetails = rd;

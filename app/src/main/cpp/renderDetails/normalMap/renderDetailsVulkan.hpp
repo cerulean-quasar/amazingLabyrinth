@@ -50,26 +50,22 @@ namespace normalMap {
                     view());
         }
 
-        glm::vec3 getLightSource() override {
-            return viewPoint();
-        }
-
-        glm::mat4 getViewLightSource() override {
-            return view();
-        }
-
         std::shared_ptr<vulkan::Buffer> const &cameraBuffer() { return m_camera; }
 
         uint32_t cameraBufferSize() { return sizeof(CommonUBO); }
 
+        void update(renderDetails::Parameters const &parametersBase) override {
+            auto parameters = dynamic_cast<renderDetails::ParametersNormalMap const &>(parametersBase);
+
+            renderDetails::CommonObjectDataOrtho::update(parameters.toOrtho());
+            doUpdate();
+        }
+
         CommonObjectDataVulkan(
                 std::shared_ptr<vulkan::Buffer> buffer,
                 glm::mat4 preTransform,
-                renderDetails::ParametersNormalMap const *parameters)
-                : renderDetails::CommonObjectDataOrtho(-parameters->widthAtDepth/2, parameters->widthAtDepth/2,
-                                                       -parameters->heightAtDepth/2, parameters->heightAtDepth/2,
-                                                       parameters->nearPlane, parameters->farPlane,
-                                                       parameters->viewPoint, parameters->lookAt, parameters->up),
+                renderDetails::ParametersNormalMap const &parameters)
+                : renderDetails::CommonObjectDataOrtho(parameters.toOrtho()),
                   m_camera{std::move(buffer)},
                   m_preTransform{preTransform}
         {
@@ -78,10 +74,10 @@ namespace normalMap {
 
         ~CommonObjectDataVulkan() override = default;
 
-    protected:
-        void update() override {
-            doUpdate();
-        }
+    private:
+        struct CommonUBO {
+            glm::mat4 projView;
+        };
 
         void doUpdate() {
             CommonUBO commonUbo;
@@ -93,11 +89,6 @@ namespace normalMap {
 
             m_camera->copyRawTo(&commonUbo, sizeof(commonUbo));
         }
-
-    private:
-        struct CommonUBO {
-            glm::mat4 projView;
-        };
 
         std::shared_ptr<vulkan::Buffer> m_camera;
 
@@ -254,7 +245,8 @@ namespace normalMap {
                 std::shared_ptr<renderDetails::CommonObjectData> const &commonObjectData,
                 std::shared_ptr<levelDrawer::DrawObjectTableVulkan> const &drawObjTable,
                 std::set<levelDrawer::ZValueReference>::iterator beginZValRefs,
-                std::set<levelDrawer::ZValueReference>::iterator endZValRefs) override;
+                std::set<levelDrawer::ZValueReference>::iterator endZValRefs,
+                std::string const &renderDetailsName) override;
 
         bool structuralChangeNeeded(
                 std::shared_ptr<vulkan::SurfaceDetails> const &surfaceDetails) override
@@ -316,7 +308,7 @@ namespace normalMap {
             return std::make_shared<CommonObjectDataVulkan>(
                     std::move(buffer),
                     preTransform,
-                    parameters);
+                    *parameters);
         }
     };
 }

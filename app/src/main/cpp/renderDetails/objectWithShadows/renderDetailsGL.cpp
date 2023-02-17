@@ -43,9 +43,8 @@ namespace objectWithShadows {
                 gameRequester, surfaceDetails->surfaceWidth, surfaceDetails->surfaceHeight,
                 surfaceDetails->useIntTexture);
 
-        auto cod = std::make_shared<CommonObjectDataGL>(
-                surfaceDetails->surfaceWidth / static_cast<float>(surfaceDetails->surfaceHeight),
-                parameters);
+        auto cod = std::make_shared<CommonObjectDataGL>(*parameters,
+                surfaceDetails->surfaceWidth / static_cast<float>(surfaceDetails->surfaceHeight));
 
         return createReference(std::move(rd), std::move(cod));
     }
@@ -75,8 +74,8 @@ namespace objectWithShadows {
             throw std::runtime_error("Invalid render details parameter type.");
         }
 
-        auto cod = std::make_shared<CommonObjectDataGL>(
-                surfaceDetails->surfaceWidth / static_cast<float>(surfaceDetails->surfaceHeight), parameters);
+        auto cod = std::make_shared<CommonObjectDataGL>(*parameters,
+                surfaceDetails->surfaceWidth / static_cast<float>(surfaceDetails->surfaceHeight));
 
         return createReference(std::move(rdBase), std::move(cod));
     }
@@ -115,6 +114,11 @@ namespace objectWithShadows {
         glCullFace(GL_BACK);
         checkGraphicsError();
 
+        auto cod = dynamic_cast<CommonObjectDataGL *>(commonObjectData.get());
+        if (!cod) {
+            throw std::runtime_error("Invalid common object data type");
+        }
+
         GLuint programID = m_textureProgramID;
         GLint MatrixID = -1;
         GLint normalMatrixID = -1;
@@ -130,7 +134,7 @@ namespace objectWithShadows {
                 glUseProgram(programID);
                 checkGraphicsError();
 
-                auto projView = commonObjectData->getProjViewForLevel();
+                auto projView = cod->getProjViewForLevel();
 
                 // the projection matrix * the view matrix
                 MatrixID = glGetUniformLocation(programID, "projView");
@@ -140,7 +144,7 @@ namespace objectWithShadows {
                 checkGraphicsError();
 
                 // the projection matrix * the view matrix from the light source point of view
-                auto projViewLight = projView.first * commonObjectData->getViewLightSource();
+                auto projViewLight = projView.first * cod->getViewLightSource(0);
                 MatrixID = glGetUniformLocation(programID, "projViewLight");
                 checkGraphicsError();
                 glUniformMatrix4fv(MatrixID, 1, GL_FALSE, &projViewLight[0][0]);
@@ -148,14 +152,10 @@ namespace objectWithShadows {
 
                 GLint lightPosID = glGetUniformLocation(programID, "lightPos");
                 checkGraphicsError();
-                glm::vec3 lightPos = commonObjectData->getLightSource();
+                glm::vec3 lightPos = cod->getLightSource(0);
                 glUniform3fv(lightPosID, 1, &lightPos[0]);
                 checkGraphicsError();
 
-                auto cod = dynamic_cast<CommonObjectDataGL *>(commonObjectData.get());
-                if (!cod) {
-                    throw std::runtime_error("Invalid common object data type");
-                }
                 auto fb = cod->shadowsFramebuffer();
 
                 textureID = glGetUniformLocation(programID, "texShadowMap");
