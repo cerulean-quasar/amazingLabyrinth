@@ -33,8 +33,9 @@ namespace openArea {
                 currentTime - prevTime).count();
         prevTime = currentTime;
 
+        m_ball.position = getUpdatedPosition(timeDiff);
         m_ball.velocity = getUpdatedVelocity(m_ball.acceleration, timeDiff);
-        m_ball.position += m_ball.velocity * timeDiff;
+        //m_ball.position += m_ball.velocity * timeDiff;
 
         float errDistance = ballDiameter();
         if (glm::length(m_ball.position - holePosition) < errDistance) {

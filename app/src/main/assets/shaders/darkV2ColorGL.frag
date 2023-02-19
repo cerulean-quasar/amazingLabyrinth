@@ -1,3 +1,6 @@
+#version 100
+precision mediump float;
+
 /**
  * Copyright 2022 Cerulean Quasar. All Rights Reserved.
  *
@@ -17,21 +20,19 @@
  *  along with AmazingLabyrinth.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
-#include <vector>
-#include "../generatedMaze/level.hpp"
-#include "level.hpp"
 
-namespace darkMaze {
-    bool Level::updateDrawObjects() {
-        m_parameters.lightingSources[0] = m_ball.position;
-        m_levelDrawer.updateCommonObjectData(m_objRefsWalls[0], m_parameters);
-        return openAreaMaze::Level::updateDrawObjects();
-    }
+varying vec3 fragColor;
+varying vec3 fragNormal;
+varying vec3 fragPosition;
 
-    bool Level::checkFinishCondition(float) {
-        // we finished the level if the ball is in proximity to the hole.
-        return ballInProximity(getColumnCenterPosition(m_mazeBoard.colEnd()),
-                               getRowCenterPosition(m_mazeBoard.rowEnd()));
-    }
+uniform vec3 lightPos;
 
-} // namespace darkMaze
+void main() {
+    // diffuse
+    vec3 lightVector = lightPos - fragPosition;
+    vec3 lightDirection = normalize(lightVector);
+    float diff = max(dot(fragNormal, lightDirection), 0.0);
+    vec3 diffuse = diff * vec3(1.0, 1.0, 1.0);
+    float falloff = 100.0*dot(lightVector, lightVector);
+    gl_FragColor = vec4((fragColor + diffuse)/falloff, 1.0);
+}

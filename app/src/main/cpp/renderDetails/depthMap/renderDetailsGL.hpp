@@ -101,10 +101,11 @@ namespace depthMap {
 
     class RenderDetailsGL : public renderDetails::RenderDetailsGL {
     public:
-        std::string nameString() override { return name(); }
-        static char const *name() { return depthMapRenderDetailsName; }
+        std::string nameString() override { return m_renderDetailsName; }
 
         static renderDetails::ReferenceGL loadNew(
+                char const *name,
+                std::vector<char const *> const &shaders,
                 std::shared_ptr<GameRequester> const &gameRequester,
                 std::shared_ptr<RenderLoaderGL> const &renderLoader,
                 std::shared_ptr<graphicsGL::SurfaceDetails> const &surfaceDetails,
@@ -139,19 +140,25 @@ namespace depthMap {
             return true;
         }
 
-        RenderDetailsGL(std::shared_ptr<GameRequester> const &inGameRequester,
-                        uint32_t inWidth, uint32_t inHeight, bool useIntSurface);
+        RenderDetailsGL(
+                char const *name,
+                char const *linearDepthVertShader,
+                char const *linearDepthVertShader3,
+                char const *simpleFragShader,
+                char const *simpleFragShader3,
+                std::shared_ptr<GameRequester> const &inGameRequester,
+                uint32_t inWidth, uint32_t inHeight, bool useIntSurface);
 
         ~RenderDetailsGL() override {
             glDeleteProgram(m_depthProgramID);
         }
 
     private:
-        static char constexpr const *LINEAR_DEPTH_VERT_FILE = "shaders/linearDepthGL.vert";
-        static char constexpr const *LINEAR_DEPTH3_VERT_FILE = "shaders/linearDepthGL3.vert";
-        static char constexpr const *SIMPLE_FRAG_FILE = "shaders/simpleGL.frag";
-        static char constexpr const *SIMPLE3_FRAG_FILE = "shaders/simpleGL3.frag";
-
+        char const *m_renderDetailsName;
+        char const *m_linearDepthVertShader;
+        char const *m_linearDepthVertShader3;
+        char const *m_simpleFragShader;
+        char const *m_simpleFragShader3;
         GLuint m_depthProgramID;
 
         static renderDetails::ReferenceGL createReference(

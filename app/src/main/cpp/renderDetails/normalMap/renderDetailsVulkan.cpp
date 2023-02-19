@@ -23,9 +23,6 @@
 #include "../../renderLoader/registerVulkan.hpp"
 
 namespace normalMap {
-    char constexpr const *RenderDetailsVulkan::SHADER_SIMPLE_FRAG_FILE;
-    char constexpr const *RenderDetailsVulkan::SHADER_NORMAL_VERT_FILE;
-
     /* for accessing data other than the vertices from the shaders */
     void DescriptorSetLayout::createDescriptorSetLayout() {
         std::array<VkDescriptorSetLayoutBinding, 2> layoutBinding = {};
@@ -177,9 +174,13 @@ namespace normalMap {
                 VkExtent2D{m_surfaceWidth, m_surfaceHeight},
                 surfaceDetails->renderPass, m_descriptorPools, getBindingDescription(),
                 getAttributeDescriptions(),
-                SHADER_NORMAL_VERT_FILE, SHADER_SIMPLE_FRAG_FILE, nullptr);
+                m_normalShader, m_simpleFragShader, nullptr);
     }
 
-    RegisterVulkan<renderDetails::RenderDetailsVulkan, RenderDetailsVulkan> registerVulkan;
+    char constexpr const *SHADER_NORMAL_VERT_VK_FILE ="shaders/normal.vert.spv";
+    char constexpr const *SHADER_SIMPLE_FRAG_VK_FILE = "shaders/simple.frag.spv";
+    RegisterVulkan<renderDetails::RenderDetailsVulkan, RenderDetailsVulkan> registerVulkan(
+            normalMapRenderDetailsName,
+            std::vector<char const *>{SHADER_NORMAL_VERT_VK_FILE, SHADER_SIMPLE_FRAG_VK_FILE});
 
 }

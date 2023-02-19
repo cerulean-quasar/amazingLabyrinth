@@ -28,6 +28,8 @@
 namespace objectWithShadows {
 
     renderDetails::ReferenceGL RenderDetailsGL::loadNew(
+            char const *name,
+            std::vector<char const *> const &shaders,
             std::shared_ptr<GameRequester> const &gameRequester,
             std::shared_ptr<RenderLoaderGL> const &,
             std::shared_ptr<graphicsGL::SurfaceDetails> const &surfaceDetails,
@@ -39,7 +41,12 @@ namespace objectWithShadows {
             throw std::runtime_error("Invalid render details parameter type.");
         }
 
+        if (shaders.size() != 3) {
+            throw std::runtime_error("Wrong number of shaders passed to Object With Shadows Render Details.");
+        }
+
         auto rd = std::make_shared<RenderDetailsGL>(
+                name, shaders[0], shaders[1], shaders[2],
                 gameRequester, surfaceDetails->surfaceWidth, surfaceDetails->surfaceHeight,
                 surfaceDetails->useIntTexture);
 
@@ -203,12 +210,22 @@ namespace objectWithShadows {
     }
 
     RenderDetailsGL::RenderDetailsGL(
+            char const *name,
+            char const *vertShader,
+            char const *textureFragShader,
+            char const *colorFragShader,
             std::shared_ptr<GameRequester> const &inGameRequester,
             uint32_t inWidth, uint32_t inHeight, bool usesIntSurface)
         : renderDetails::RenderDetailsGL(inWidth, inHeight, usesIntSurface),
-        m_textureProgramID{loadShaders(inGameRequester, SHADER_VERT_FILE, TEXTURE_SHADER_FRAG_FILE)},
-        m_colorProgramID{loadShaders(inGameRequester, SHADER_VERT_FILE, COLOR_SHADER_FRAG_FILE)}
+        m_renderDetailsName{name},
+        m_textureProgramID{loadShaders(inGameRequester, vertShader, textureFragShader)},
+        m_colorProgramID{loadShaders(inGameRequester, vertShader, colorFragShader)}
     {}
 
-    RegisterGL<renderDetails::RenderDetailsGL, RenderDetailsGL> registerGL;
-} // objectWithShados
+    static char constexpr const *SHADER_VERT_GL_FILE = "shaders/shaderGL.vert";
+    static char constexpr const *TEXTURE_SHADER_FRAG_GL_FILE = "shaders/shaderGL.frag";
+    static char constexpr const *COLOR_SHADER_FRAG_GL_FILE = "shaders/colorGL.frag";
+    RegisterGL<renderDetails::RenderDetailsGL, RenderDetailsGL> registerGL(
+            objectWithShadowsRenderDetailsName,
+            std::vector<char const *>{SHADER_VERT_GL_FILE, TEXTURE_SHADER_FRAG_GL_FILE, COLOR_SHADER_FRAG_GL_FILE});
+} // objectWithShadows

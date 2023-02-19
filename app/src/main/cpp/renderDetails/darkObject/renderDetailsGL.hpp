@@ -108,9 +108,10 @@ namespace darkObject {
 
     class RenderDetailsGL : public renderDetails::RenderDetailsGL {
     public:
-        std::string nameString() override { return name(); }
-        static char const *name() { return darkObjectRenderDetailsName; }
+        std::string nameString() override { return m_renderDetailsName; }
         static renderDetails::ReferenceGL loadNew(
+                char const *name,
+                std::vector<char const *> const &shaders,
                 std::shared_ptr<GameRequester> const &gameRequester,
                 std::shared_ptr<RenderLoaderGL> const &renderLoader,
                 std::shared_ptr<graphicsGL::SurfaceDetails> const &surfaceDetails,
@@ -130,8 +131,13 @@ namespace darkObject {
                 std::set<levelDrawer::ZValueReference>::iterator beginZValRefs,
                 std::set<levelDrawer::ZValueReference>::iterator endZValRefs) override;
 
-        RenderDetailsGL(std::shared_ptr<GameRequester> const &inGameRequester,
-                        uint32_t inWidth, uint32_t inHeight, bool usesIntSurface);
+        RenderDetailsGL(
+                char const *name,
+                char const *vertexShader,
+                char const *textureFragShader,
+                char const *colorFragShader,
+                std::shared_ptr<GameRequester> const &inGameRequester,
+                uint32_t inWidth, uint32_t inHeight, bool usesIntSurface);
 
         ~RenderDetailsGL() override {
             glDeleteShader(m_textureProgramID);
@@ -139,10 +145,7 @@ namespace darkObject {
         }
 
     private:
-        static char constexpr const *SHADER_VERT_FILE = "shaders/darkShaderGL.vert";
-        static char constexpr const *TEXTURE_SHADER_FRAG_FILE = "shaders/darkTextureGL.frag";
-        static char constexpr const *COLOR_SHADER_FRAG_FILE = "shaders/darkColorGL.frag";
-
+        char const *m_renderDetailsName;
         GLuint m_textureProgramID;
         GLuint m_colorProgramID;
 

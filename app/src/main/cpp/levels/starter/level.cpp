@@ -1,5 +1,5 @@
 /**
- * Copyright 2020 Cerulean Quasar. All Rights Reserved.
+ * Copyright 2022 Cerulean Quasar. All Rights Reserved.
  *
  *  This file is part of AmazingLabyrinth.
  *
@@ -50,23 +50,18 @@ namespace starter {
                 currentTime - prevTime).count();
         prevTime = currentTime;
 
-        m_ball.velocity = getUpdatedVelocity(m_ball.acceleration, difftime);
+        m_ball.position = getUpdatedPosition(difftime);
+        m_ball.velocity = getUpdatedVelocity(difftime);
 
         if (isInBottomCorridor()) {
             m_ball.position.y = -maxPosY;
             m_ball.velocity.y = 0.0f;
-
-            m_ball.position.x += m_ball.velocity.x * difftime;
         } else if (isInSideCorridor()) {
             m_ball.position.x = maxPosX;
             m_ball.velocity.x = 0.0f;
-
-            m_ball.position.y += m_ball.velocity.y * difftime;
         } else { // is in top corridor
             m_ball.position.y = maxPosY;
             m_ball.velocity.y = 0.0f;
-
-            m_ball.position.x += m_ball.velocity.x * difftime;
         }
         checkBallBorders(m_ball.position, m_ball.velocity);
 

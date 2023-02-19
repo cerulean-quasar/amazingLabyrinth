@@ -24,9 +24,6 @@
 #include "../../renderLoader/registerVulkan.hpp"
 
 namespace depthMap {
-    char constexpr const *RenderDetailsVulkan::SHADER_SIMPLE_FRAG_FILE;
-    char constexpr const *RenderDetailsVulkan::SHADER_LINEAR_DEPTH_VERT_FILE;
-
     /* for accessing data other than the vertices from the shaders */
     void DescriptorSetLayout::createDescriptorSetLayout() {
         /* Common Object Data */
@@ -178,9 +175,13 @@ namespace depthMap {
                 VkExtent2D{m_surfaceWidth, m_surfaceHeight},
                 surfaceDetails->renderPass, m_descriptorPools, getBindingDescription(),
                 getAttributeDescriptions(),
-                SHADER_LINEAR_DEPTH_VERT_FILE, SHADER_SIMPLE_FRAG_FILE, nullptr);
+                m_vertShader, m_fragShader, nullptr);
     }
 
-    RegisterVulkan<renderDetails::RenderDetailsVulkan, RenderDetailsVulkan> registerVulkan;
+    char constexpr const *SHADER_SIMPLE_FRAG_VK_FILE = "shaders/simple.frag.spv";
+    char constexpr const *SHADER_LINEAR_DEPTH_VERT_VK_FILE ="shaders/linearDepth.vert.spv";
+    RegisterVulkan<renderDetails::RenderDetailsVulkan, RenderDetailsVulkan> registerVulkan{
+        depthMapRenderDetailsName,
+        std::vector<char const *>{SHADER_LINEAR_DEPTH_VERT_VK_FILE, SHADER_SIMPLE_FRAG_VK_FILE}};
 
 }

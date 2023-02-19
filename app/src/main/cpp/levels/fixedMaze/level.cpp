@@ -234,7 +234,7 @@ namespace fixedMaze {
                 break;
             }
 
-            glm::vec3 nextPos = position + velocity * timeDiff;
+            glm::vec3 nextPos = getUpdatedPosition(timeDiff, velocity, m_ball.acceleration, position);
             size_t xcell = getXCell(position.x);
             size_t ycell = getYCell(position.y);
 

@@ -58,8 +58,8 @@ namespace generatedMaze {
                 currentTime - prevTime).count();
         prevTime = currentTime;
 
-        m_ball.velocity = getUpdatedVelocity(m_ball.acceleration, difftime);
-        m_ball.position += m_ball.velocity * difftime;
+        m_ball.position = getUpdatedPosition(difftime);
+        m_ball.velocity = getUpdatedVelocity(difftime);
 
         auto cell = m_mazeBoard.getCell(m_ballCell.row, m_ballCell.col);
         float cellCenterX = getColumnCenterPosition(m_ballCell.col);
@@ -103,13 +103,14 @@ namespace generatedMaze {
         float cellHeight = m_height / (numberRows * numberBlocksPerCell + 1) * numberBlocksPerCell;
         float cellWidth = m_width / (numberColumns * numberBlocksPerCell + 1) * numberBlocksPerCell;
 
-        float delta = cellWidth / 5.0f;
+        float delta = cellWidth / 3.0f;
+
         if (m_ball.position.x > cellCenterX + delta || m_ball.position.x < cellCenterX - delta) {
             m_ball.position.y = cellCenterY;
             m_ball.velocity.y = 0.0f;
         }
 
-        delta = cellHeight / 5.0f;
+        delta = cellHeight / 3.0f;
         if (m_ball.position.y > cellCenterY + delta || m_ball.position.y < cellCenterY - delta) {
             m_ball.position.x = cellCenterX;
             m_ball.velocity.x = 0.0f;
@@ -138,13 +139,13 @@ namespace generatedMaze {
     }
 
     float Level::getRowCenterPosition(unsigned int row) {
-        return m_height / (m_mazeBoard.numberRows() * numberBlocksPerCell + 1) *
-               (row * numberBlocksPerCell + 1.5f) - m_height / 2;
+        return m_height / static_cast<float>(m_mazeBoard.numberRows() * numberBlocksPerCell + 1) *
+               (static_cast<float>(row * numberBlocksPerCell) + 1.5f) - m_height / 2;
     }
 
     float Level::getColumnCenterPosition(unsigned int col) {
-        return m_width / (m_mazeBoard.numberColumns() * numberBlocksPerCell + 1) *
-               (col * numberBlocksPerCell + 1.5f) - m_width / 2;
+        return m_width / static_cast<float>(m_mazeBoard.numberColumns() * numberBlocksPerCell + 1) *
+               (static_cast<float>(col * numberBlocksPerCell) + 1.5f) - m_width / 2;
     }
 
     float Level::getBallZPosition() {
@@ -152,9 +153,9 @@ namespace generatedMaze {
     }
 
     glm::vec3 Level::getCellCenterPosition(unsigned int row, unsigned int col) {
-        return glm::vec3(getColumnCenterPosition(col),
-                         getRowCenterPosition(row),
-                         getBallZPosition());
+        return {getColumnCenterPosition(col),
+                getRowCenterPosition(row),
+                getBallZPosition()};
     }
 
     void Level::generateMazeVector(std::vector<bool> &wallsExist) {
@@ -209,26 +210,24 @@ namespace generatedMaze {
                    unsigned int nbrRows,
                    float scaleWallZ) -> std::vector<glm::mat4> {
             std::vector<glm::mat4> matrices;
-            glm::mat4 scaleMat = glm::scale(glm::mat4(1.0f),
-                                            glm::vec3(
-                                                    width / 2 / (nbrCols * numberBlocksPerCell + 1),
-                                                    height / 2 /
-                                                    (nbrRows * numberBlocksPerCell + 1),
-                                                    scaleWallZ));
+            glm::mat4 scaleMat =
+                    glm::scale(
+                            glm::mat4(1.0f),
+                            glm::vec3(
+                                    width / 2 / static_cast<float>(nbrCols * numberBlocksPerCell + 1),
+                                    height / 2 / static_cast<float>(nbrRows * numberBlocksPerCell + 1),
+                                    scaleWallZ));
 
             // Create the model matrices for the maze walls.
             for (unsigned int i = 0; i < nbrRows * numberBlocksPerCell + 1; i++) {
                 for (unsigned int j = 0; j < nbrCols * numberBlocksPerCell + 1; j++) {
                     if (wallsExist[i * (nbrCols * numberBlocksPerCell + 1) + j]) {
-                        glm::mat4 trans = glm::translate(glm::mat4(1.0f),
-                                                         glm::vec3(width /
-                                                                   (nbrCols * numberBlocksPerCell +
-                                                                    1) * (j + 0.5) - width / 2,
-                                                                   height /
-                                                                   (nbrRows * numberBlocksPerCell +
-                                                                    1) * (i + 0.5) - height / 2,
-                                                                   maxZ - m_originalWallHeight *
-                                                                          scaleWallZ / 2.0f));
+                        glm::mat4 trans = glm::translate(
+                                glm::mat4(1.0f),
+                                glm::vec3(
+                                        width / static_cast<float>(nbrCols * numberBlocksPerCell + 1) * (j + 0.5) - width / 2,
+                                        height / static_cast<float>(nbrRows * numberBlocksPerCell + 1) * (i + 0.5) - height / 2,
+                                        maxZ - m_originalWallHeight * scaleWallZ / 2.0f));
                         matrices.push_back(trans * scaleMat);
                     }
                 }
@@ -271,8 +270,9 @@ namespace generatedMaze {
                                    glm::vec3(0.0f, 0.0f, m_mazeFloorZ - m_originalWallHeight *
                                                                                  m_scaleWallZ)) *
                            glm::scale(glm::mat4(1.0f),
-                                   glm::vec3(m_width / 2 + m_width / 2 /(numberColumns * numberBlocksPerCell),
-                                           m_height / 2 + m_height / 2 / (numberRows * numberBlocksPerCell), 1.0f));
+                                   glm::vec3(m_width / 2 + m_width / 2 /static_cast<float>(numberColumns * numberBlocksPerCell),
+                                           m_height / 2 + m_height / 2 / static_cast<float>(numberRows * numberBlocksPerCell),
+                                           1.0f));
     }
 
     bool Level::updateDrawObjects() {

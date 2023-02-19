@@ -559,6 +559,10 @@ namespace vulkan {
         allocatorInfo.physicalDevice = m_physicalDevice;
         allocatorInfo.device = m_logicalDevice.get();
         allocatorInfo.instance = m_instance->instance().get();
+        VmaVulkanFunctions vulkanFunctions = {};
+        vulkanFunctions.vkGetInstanceProcAddr = vkGetInstanceProcAddr;
+        vulkanFunctions.vkGetDeviceProcAddr = vkGetDeviceProcAddr;
+        allocatorInfo.pVulkanFunctions = &vulkanFunctions;
 
         auto deleter = [](VmaAllocator allocatorRaw) -> void {
             vmaDestroyAllocator(allocatorRaw);

@@ -131,10 +131,11 @@ namespace shadowsChaining {
 
     class RenderDetailsVulkan : public renderDetails::RenderDetailsVulkan {
     public:
-        std::string nameString() override { return name(); }
-        static char const *name() { return shadowsChainingRenderDetailsName; }
+        std::string nameString() override { return m_renderDetailsName; }
 
         static renderDetails::ReferenceVulkan loadNew(
+            char const *name,
+            std::vector<char const *> const &shaders,
             std::shared_ptr<GameRequester> const &gameRequester,
             std::shared_ptr<RenderLoaderVulkan> const &renderLoader,
             std::shared_ptr<vulkan::Device> const &inDevice,
@@ -158,30 +159,32 @@ namespace shadowsChaining {
         }
 
         void addPreRenderPassCmdsToCommandBuffer(
-                VkCommandBuffer const &commandBuffer,
-                size_t /* descriptor set ID, not used */,
-                levelDrawer::CommonObjectDataList const &commonObjectDataList,
-                levelDrawer::DrawObjectTableVulkanList const &drawObjTableList,
-                std::set<levelDrawer::ZValueReference> const &starterZValues,
-                std::set<levelDrawer::ZValueReference> const &levelZValues,
-                std::set<levelDrawer::ZValueReference> const &finisherZValues) override;
+            VkCommandBuffer const &commandBuffer,
+            size_t /* descriptor set ID, not used */,
+            levelDrawer::CommonObjectDataList const &commonObjectDataList,
+            levelDrawer::DrawObjectTableVulkanList const &drawObjTableList,
+            std::set<levelDrawer::ZValueReference> const &starterZValues,
+            std::set<levelDrawer::ZValueReference> const &levelZValues,
+            std::set<levelDrawer::ZValueReference> const &finisherZValues) override;
 
         void addDrawCmdsToCommandBuffer(
-                VkCommandBuffer const &commandBuffer,
-                size_t descriptorSetID,
-                std::shared_ptr<renderDetails::CommonObjectData> const &commonObjectData,
-                std::shared_ptr<levelDrawer::DrawObjectTableVulkan> const &drawObjTable,
-                std::set<levelDrawer::ZValueReference>::iterator beginZValRefs,
-                std::set<levelDrawer::ZValueReference>::iterator endZValRefs,
-                std::string const &renderDetailsName) override;
+            VkCommandBuffer const &commandBuffer,
+            size_t descriptorSetID,
+            std::shared_ptr<renderDetails::CommonObjectData> const &commonObjectData,
+            std::shared_ptr<levelDrawer::DrawObjectTableVulkan> const &drawObjTable,
+            std::set<levelDrawer::ZValueReference>::iterator beginZValRefs,
+            std::set<levelDrawer::ZValueReference>::iterator endZValRefs,
+            std::string const &renderDetailsName) override;
 
         std::shared_ptr<vulkan::Device> const &device() override { return m_objectWithShadowsRenderDetails->device(); }
 
         RenderDetailsVulkan(
-                std::shared_ptr<vulkan::Device> const &inDevice,
-                std::shared_ptr<vulkan::SurfaceDetails> const &surfaceDetails)
-                : renderDetails::RenderDetailsVulkan{surfaceDetails->surfaceWidth, surfaceDetails->surfaceHeight},
-                m_device{inDevice}
+            char const *name,
+            std::shared_ptr<vulkan::Device> const &inDevice,
+            std::shared_ptr<vulkan::SurfaceDetails> const &surfaceDetails)
+            : renderDetails::RenderDetailsVulkan{surfaceDetails->surfaceWidth, surfaceDetails->surfaceHeight},
+            m_renderDetailsName{name},
+            m_device{inDevice}
         {
             createShadowResources(surfaceDetails);
         }
@@ -192,6 +195,7 @@ namespace shadowsChaining {
         // use less precision for the shadow buffer
         static float constexpr shadowsSizeMultiplier = 0.5f;
 
+        char const *m_renderDetailsName;
         std::shared_ptr<vulkan::Device> m_device;
         std::shared_ptr<renderDetails::RenderDetailsVulkan> m_objectWithShadowsRenderDetails;
 

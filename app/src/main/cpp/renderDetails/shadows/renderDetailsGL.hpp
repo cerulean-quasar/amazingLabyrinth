@@ -72,10 +72,11 @@ namespace shadows {
 
     class RenderDetailsGL : public renderDetails::RenderDetailsGL {
     public:
-        std::string nameString() override { return name(); }
-        static char const *name() { return shadowsRenderDetailsName; }
+        std::string nameString() override { return m_renderDetailsName; }
 
         static renderDetails::ReferenceGL loadNew(
+                char const *name,
+                std::vector<char const *> const &shaders,
                 std::shared_ptr<GameRequester> const &gameRequester,
                 std::shared_ptr<RenderLoaderGL> const &renderLoader,
                 std::shared_ptr<graphicsGL::SurfaceDetails> const &surfaceDetails,
@@ -95,17 +96,21 @@ namespace shadows {
                 std::set<levelDrawer::ZValueReference>::iterator beginZValRefs,
                 std::set<levelDrawer::ZValueReference>::iterator endZValRefs) override;
 
-        RenderDetailsGL(std::shared_ptr<GameRequester> const &inGameRequester,
-                        uint32_t inWidth, uint32_t inHeight, bool usesIntSurface);
+        RenderDetailsGL(
+                char const *name,
+                char const *vertexShader,
+                char const *fragShader,
+                std::shared_ptr<GameRequester> const &inGameRequester,
+                uint32_t inWidth,
+                uint32_t inHeight,
+                bool usesIntSurface);
 
         ~RenderDetailsGL() override {
             glDeleteShader(m_depthProgramID);
         }
 
     private:
-        static char constexpr const *DEPTH_VERT_FILE = "shaders/depthShaderGL.vert";
-        static char constexpr const *SIMPLE_FRAG_FILE = "shaders/simpleGL.frag";
-
+        char const *m_renderDetailsName;
         GLuint m_depthProgramID;
 
         static renderDetails::ReferenceGL createReference(

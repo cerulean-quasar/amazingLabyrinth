@@ -182,10 +182,11 @@ namespace normalMap {
 
     class RenderDetailsVulkan : public renderDetails::RenderDetailsVulkan {
     public:
-        std::string nameString() override { return name(); }
-        static char const *name() { return normalMapRenderDetailsName; }
+        std::string nameString() override { return m_renderDetailsName; }
 
         static renderDetails::ReferenceVulkan loadNew(
+                char const *name,
+                std::vector<char const *> const &shaders,
                 std::shared_ptr<GameRequester> const &gameRequester,
                 std::shared_ptr<RenderLoaderVulkan> const &,
                 std::shared_ptr<vulkan::Device> const &inDevice,
@@ -197,7 +198,12 @@ namespace normalMap {
                 throw std::runtime_error("Invalid render details parameter type.");
             }
 
+            if (shaders.size() != 2) {
+                throw std::runtime_error("Wrong number of shaders for Normal Map Render Details.");
+            }
+
             auto rd = std::make_shared<RenderDetailsVulkan>(
+                    name, shaders[0], shaders[1],
                     gameRequester, inDevice, nullptr, surfaceDetails);
 
             auto cod = rd->createCommonObjectData(surfaceDetails->preTransform, parameters);
@@ -267,11 +273,17 @@ namespace normalMap {
         }
 
         RenderDetailsVulkan(
+                char const *name,
+                char const *normalShader,
+                char const *simpleFragShader,
                 std::shared_ptr<GameRequester> const &gameRequester,
                 std::shared_ptr<vulkan::Device> const &inDevice,
                 std::shared_ptr<vulkan::Pipeline> const &basePipeline,
                 std::shared_ptr<vulkan::SurfaceDetails> const &surfaceDetails)
                 : renderDetails::RenderDetailsVulkan{surfaceDetails->surfaceWidth, surfaceDetails->surfaceHeight},
+                  m_renderDetailsName{name},
+                  m_normalShader{normalShader},
+                  m_simpleFragShader{simpleFragShader},
                   m_device{inDevice},
                   m_descriptorSetLayout{std::make_shared<DescriptorSetLayout>(m_device)},
                   m_descriptorPools{std::make_shared<vulkan::DescriptorPools>(m_device, m_descriptorSetLayout)},
@@ -280,15 +292,15 @@ namespace normalMap {
                           VkExtent2D{m_surfaceWidth, m_surfaceHeight},
                           surfaceDetails->renderPass, m_descriptorPools, getBindingDescription(),
                           getAttributeDescriptions(),
-                          SHADER_NORMAL_VERT_FILE, SHADER_SIMPLE_FRAG_FILE, basePipeline)}
+                          m_normalShader, m_simpleFragShader, basePipeline)}
         {}
 
         ~RenderDetailsVulkan() override = default;
 
     private:
-        static char constexpr const *SHADER_SIMPLE_FRAG_FILE = "shaders/simple.frag.spv";
-        static char constexpr const *SHADER_NORMAL_VERT_FILE ="shaders/normal.vert.spv";
-
+        char const *m_renderDetailsName;
+        char const *m_normalShader;
+        char const *m_simpleFragShader;
         std::shared_ptr<vulkan::Device> m_device;
 
         std::shared_ptr<DescriptorSetLayout> m_descriptorSetLayout;

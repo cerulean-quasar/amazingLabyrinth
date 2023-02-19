@@ -74,7 +74,7 @@ namespace darkObject {
 
             update();
         }
-        void update(const renderDetails::Parameters &parametersBase) override {
+        void update(renderDetails::Parameters const &parametersBase) override {
             auto const &parameters = dynamic_cast<renderDetails::ParametersPerspective const &>(parametersBase);
 
             renderDetails::CommonObjectDataPerspective::update(parameters);
@@ -347,10 +347,11 @@ namespace darkObject {
 
     class RenderDetailsVulkan : public renderDetails::RenderDetailsVulkan {
     public:
-        std::string nameString() override { return name(); }
-        static char const *name() { return darkObjectRenderDetailsName; }
+        std::string nameString() override { return m_renderDetailsName; }
 
         static renderDetails::ReferenceVulkan loadNew(
+                char const *name,
+                std::vector<char const *> const &shaders,
                 std::shared_ptr<GameRequester> const &gameRequester,
                 std::shared_ptr<RenderLoaderVulkan> const &,
                 std::shared_ptr<vulkan::Device> const &inDevice,
@@ -362,7 +363,12 @@ namespace darkObject {
                 throw std::runtime_error("Invalid render details parameter type.");
             }
 
+            if (shaders.size() != 3) {
+                throw std::runtime_error("Invalid number of shaders received in load attempt of Dark Object Render details.");
+            }
+
             auto rd = std::make_shared<RenderDetailsVulkan>(
+                    name, shaders[0], shaders[1], shaders[2],
                     gameRequester, inDevice, nullptr, surfaceDetails);
 
             auto cod = rd->createCommonObjectData(surfaceDetails->preTransform, parameters);
@@ -420,11 +426,19 @@ namespace darkObject {
         std::shared_ptr<vulkan::Device> const &device() override { return m_device; }
 
         RenderDetailsVulkan(
+                char const *name,
+                char const *vertexShader,
+                char const *textureFragShader,
+                char const *colorFragShader,
                 std::shared_ptr<GameRequester> const &gameRequester,
                 std::shared_ptr<vulkan::Device> const &inDevice,
                 std::shared_ptr<vulkan::Pipeline> const &basePipeline,
                 std::shared_ptr<vulkan::SurfaceDetails> const &surfaceDetails)
                 : renderDetails::RenderDetailsVulkan{surfaceDetails->surfaceWidth, surfaceDetails->surfaceHeight},
+                  m_renderDetailsName{name},
+                  m_vertexShader{vertexShader},
+                  m_textureFragShader{textureFragShader},
+                  m_colorFragShader{colorFragShader},
                   m_device{inDevice},
                   m_descriptorSetLayoutTexture{std::make_shared<TextureDescriptorSetLayout>(m_device)},
                   m_descriptorPoolsTexture{std::make_shared<vulkan::DescriptorPools>(m_device, m_descriptorSetLayoutTexture)},
@@ -433,7 +447,7 @@ namespace darkObject {
                           surfaceDetails->renderPass, m_descriptorPoolsTexture,
                           getBindingDescription(),
                           getAttributeDescriptions(),
-                          SHADER_VERT_FILE, TEXTURE_SHADER_FRAG_FILE, basePipeline)},
+                          vertexShader, textureFragShader, basePipeline)},
                   m_descriptorSetLayoutColor{std::make_shared<ColorDescriptorSetLayout>(m_device)},
                   m_descriptorPoolsColor{std::make_shared<vulkan::DescriptorPools>(m_device, m_descriptorSetLayoutColor)},
                   m_pipelineColor{std::make_shared<vulkan::Pipeline>(
@@ -441,16 +455,16 @@ namespace darkObject {
                           surfaceDetails->renderPass, m_descriptorPoolsColor,
                           getBindingDescription(),
                           getAttributeDescriptions(),
-                          SHADER_VERT_FILE, COLOR_SHADER_FRAG_FILE, m_pipelineTexture)}
+                          vertexShader, colorFragShader, m_pipelineTexture)}
         {}
 
         ~RenderDetailsVulkan() override = default;
 
     private:
-        static char constexpr const *SHADER_VERT_FILE = "shaders/darkShader.vert.spv";
-        static char constexpr const *TEXTURE_SHADER_FRAG_FILE = "shaders/darkTexture.frag.spv";
-        static char constexpr const *COLOR_SHADER_FRAG_FILE = "shaders/darkColor.frag.spv";
-
+        char const *m_renderDetailsName;
+        char const *m_vertexShader;
+        char const *m_textureFragShader;
+        char const *m_colorFragShader;
         std::shared_ptr<vulkan::Device> m_device;
 
         /* object with texture resources */

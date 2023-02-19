@@ -22,12 +22,14 @@
 
 namespace darkChaining {
     renderDetails::ReferenceGL RenderDetailsGL::loadNew(
+            char const *name,
+            std::vector<char const *> const &,
             std::shared_ptr<GameRequester> const &gameRequester,
             std::shared_ptr<RenderLoaderGL> const &renderLoader,
             std::shared_ptr<graphicsGL::SurfaceDetails> const &surfaceDetails,
             std::shared_ptr<renderDetails::Parameters> const &parametersBase) {
 
-        auto rd = std::make_shared<RenderDetailsGL>(
+        auto rd = std::make_shared<RenderDetailsGL>(name,
                 surfaceDetails->useIntTexture, surfaceDetails->surfaceWidth,
                 surfaceDetails->surfaceHeight);
 
@@ -84,7 +86,7 @@ namespace darkChaining {
             // the next times, it is just looked up in a list, not really any work is done other than
             // creating the COD.
             refShadows = renderLoader->load(
-                    gameRequester, shadows::RenderDetailsGL::name(), shadowSurfaceDetails,
+                    gameRequester, shadowsRenderDetailsName, shadowSurfaceDetails,
                     parametersShadows);
 
             shadowsCODs[i] = refShadows.commonObjectData;
@@ -93,7 +95,7 @@ namespace darkChaining {
         auto parms = std::make_shared<renderDetails::ParametersDarkObjectGL>(*parameters,
                                                                              rd->m_framebuffersShadows);
         auto refDarkObject = renderLoader->load(
-                gameRequester, darkObject::RenderDetailsGL::name(), surfaceDetails,
+                gameRequester, darkObjectRenderDetailsName, surfaceDetails,
                 parms);
 
         rd->m_darkObjectRenderDetails = refDarkObject.renderDetails;
@@ -205,5 +207,5 @@ namespace darkChaining {
                 cod->darkObject(), drawObjTable, beginZValRefs, endZValRefs);
     }
 
-    RegisterGL<renderDetails::RenderDetailsGL, RenderDetailsGL> registerGL;
+    RegisterGL<renderDetails::RenderDetailsGL, RenderDetailsGL> registerGL(darkChainingRenderDetailsName, std::vector<char const *>{});
 }

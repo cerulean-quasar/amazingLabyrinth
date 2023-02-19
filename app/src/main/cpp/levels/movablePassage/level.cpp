@@ -1,5 +1,5 @@
 /**
- * Copyright 2020 Cerulean Quasar. All Rights Reserved.
+ * Copyright 2023 Cerulean Quasar. All Rights Reserved.
  *
  *  This file is part of AmazingLabyrinth.
  *
@@ -22,24 +22,23 @@
 #include "../basic/level.hpp"
 
 namespace movablePassage {
-    char constexpr const *Level::m_name;
 
     void Level::initSetGameBoard(
             uint32_t nbrTilesX,
             uint32_t nbrTilesY,
             uint32_t startColumn,
             uint32_t endColumn) {
-        float tileSizeX = m_width / nbrTilesX;
-        float tileSizeY = m_height / (nbrTilesY + m_nbrTileRowsForStart +
+        float tileSizeX = m_width / static_cast<float>(nbrTilesX);
+        float tileSizeY = m_height / static_cast<float>(nbrTilesY + m_nbrTileRowsForStart +
                                       m_nbrTileRowsForEnd);
         float tileSize = tileSizeX < tileSizeY ? tileSizeX : tileSizeY;
-        uint32_t nbrExtraTileRowsX = static_cast<uint32_t>(std::floor(
-                (m_width - tileSize * nbrTilesX) / tileSize));
+        auto nbrExtraTileRowsX = static_cast<uint32_t>(std::floor(
+                (m_width - tileSize * static_cast<float>(nbrTilesX)) / tileSize));
         uint32_t nbrExtraTilesX = nbrExtraTileRowsX * nbrTilesY;
 
         // minus 2 * nbrExtraTileRowsY for up tunnel components
-        uint32_t nbrExtraTileRowsY = static_cast<uint32_t>(std::floor(
-                (m_height - tileSize * (nbrTilesY +
+        auto nbrExtraTileRowsY = static_cast<uint32_t>(std::floor(
+                (m_height - tileSize * static_cast<float>(nbrTilesY +
                                         m_nbrTileRowsForEnd + m_nbrTileRowsForStart)) / tileSize));
         uint32_t nbrExtraTilesY = nbrExtraTileRowsY * nbrTilesX - 2 * nbrExtraTileRowsY;
 
@@ -50,19 +49,18 @@ namespace movablePassage {
                     m_nbrComponents - (nbrExtraTilesX + nbrExtraTilesY);
             uint32_t nbrExtraPerimeters =
                     moreExtraComponentsRequired / (2 * nbrTilesX + 2 * nbrTilesY) + 1;
-            tileSizeX = m_width / (nbrTilesX + 2 * nbrExtraPerimeters);
-            tileSizeY = m_height / (nbrTilesY + m_nbrTileRowsForStart +
+            tileSizeX = m_width / static_cast<float>(nbrTilesX + 2 * nbrExtraPerimeters);
+            tileSizeY = m_height / static_cast<float>(nbrTilesY + m_nbrTileRowsForStart +
                                     m_nbrTileRowsForEnd + 2 * nbrExtraPerimeters);
             tileSize = tileSizeX < tileSizeY ? tileSizeX : tileSizeY;
 
             nbrExtraTileRowsX = static_cast<uint32_t>(std::floor(
-                    m_width / tileSize - nbrTilesX));
+                    m_width / tileSize - static_cast<float>(nbrTilesX)));
 
             // minus 2 * nbrExtraTileRowsY for up tunnel components
             nbrExtraTileRowsY = static_cast<uint32_t>(std::floor(
-                    m_height / tileSize - (nbrTilesY +
-                                           m_nbrTileRowsForStart +
-                                           m_nbrTileRowsForEnd)));
+                    m_height / tileSize - static_cast<float>(nbrTilesY +
+                                           m_nbrTileRowsForStart + m_nbrTileRowsForEnd)));
         }
 
         m_gameBoardStartRowColumn.first = m_nbrTileRowsForStart + nbrExtraTileRowsY / 2;
@@ -350,14 +348,11 @@ namespace movablePassage {
         m_prevTime = currentTime;
 
         glm::vec3 position = m_ball.position;
-        glm::vec3 prevPosition = position;
         m_ball.velocity = getUpdatedVelocity(m_ball.acceleration, timeDiff);
         if (glm::length(m_ball.velocity) < m_floatErrorAmount) {
             return false;
         }
 
-        uint32_t nbrComputations = 0;
-        bool drawingNecessary_ = false;
         glm::vec3 posFromCenter = position - m_gameBoard.position(m_ballRow, m_ballCol);
 
         Component::checkForNextWallFunc checkforNextWall{

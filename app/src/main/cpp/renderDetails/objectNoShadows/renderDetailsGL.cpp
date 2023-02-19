@@ -28,6 +28,8 @@
 namespace objectNoShadows {
 
     renderDetails::ReferenceGL RenderDetailsGL::loadNew(
+            char const *name,
+            std::vector<char const *> const &shaders,
             std::shared_ptr<GameRequester> const &gameRequester,
             std::shared_ptr<RenderLoaderGL> const &,
             std::shared_ptr<graphicsGL::SurfaceDetails> const &surfaceDetails,
@@ -39,7 +41,12 @@ namespace objectNoShadows {
             throw std::runtime_error("Invalid render details parameter type.");
         }
 
+        if (shaders.size() != 3) {
+            throw std::runtime_error("Wrong number of shaders for Normal Map Render Details.");
+        }
+
         auto rd = std::make_shared<RenderDetailsGL>(
+                name, shaders[0], shaders[1], shaders[2],
                 gameRequester, surfaceDetails->surfaceWidth, surfaceDetails->surfaceHeight,
                 surfaceDetails->useIntTexture);
 
@@ -186,12 +193,27 @@ namespace objectNoShadows {
     }
 
     RenderDetailsGL::RenderDetailsGL(
+            char const *name,
+            char const *vertexShader,
+            char const *textureFragShader,
+            char const *colorFragShader,
             std::shared_ptr<GameRequester> const &inGameRequester,
             uint32_t inWidth, uint32_t inHeight, bool usesIntSurface)
         : renderDetails::RenderDetailsGL(inWidth, inHeight, usesIntSurface),
-        m_textureProgramID{loadShaders(inGameRequester, SHADER_VERT_FILE, TEXTURE_SHADER_FRAG_FILE)},
-        m_colorProgramID{loadShaders(inGameRequester, SHADER_VERT_FILE, COLOR_SHADER_FRAG_FILE)}
+        m_renderDetailsName{name},
+        m_textureProgramID{loadShaders(inGameRequester, vertexShader, textureFragShader)},
+        m_colorProgramID{loadShaders(inGameRequester, vertexShader, colorFragShader)}
     {}
 
-    RegisterGL<renderDetails::RenderDetailsGL, RenderDetailsGL> registerGL;
-} // objectWithShados
+    char constexpr const *SHADER_VERT_GL_FILE = "shaders/shaderNoShadowsGL.vert";
+    char constexpr const *TEXTURE_SHADER_FRAG_GL_FILE = "shaders/shaderNoShadowsGL.frag";
+    char constexpr const *COLOR_SHADER_FRAG_GL_FILE = "shaders/colorNoShadowsGL.frag";
+    char constexpr const *TEXTURE_DARK_V2_FRAG_GL_FILE = "shaders/darkV2TextureGL.frag";
+    char constexpr const *COLOR_DARK_V2_FRAG_GL_FILE = "shaders/darkV2ColorGL.frag";
+    RegisterGL<renderDetails::RenderDetailsGL, RenderDetailsGL> registerGL(
+            objectNoShadowsRenderDetailsName,
+            std::vector<char const *>{SHADER_VERT_GL_FILE, TEXTURE_SHADER_FRAG_GL_FILE, COLOR_SHADER_FRAG_GL_FILE});
+    RegisterGL<renderDetails::RenderDetailsGL, RenderDetailsGL> registerDarkV2ObjectGL(
+            darkV2ObjectRenderDetailsName,
+            std::vector<char const *>{SHADER_VERT_GL_FILE, TEXTURE_DARK_V2_FRAG_GL_FILE, COLOR_DARK_V2_FRAG_GL_FILE});
+} // objectNoWithShadows

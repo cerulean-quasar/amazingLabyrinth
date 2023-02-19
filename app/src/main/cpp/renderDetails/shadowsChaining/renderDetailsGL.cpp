@@ -22,6 +22,8 @@
 
 namespace shadowsChaining {
     renderDetails::ReferenceGL RenderDetailsGL::loadNew(
+            char const *name,
+            std::vector<char const *> const &shaders,
             std::shared_ptr<GameRequester> const &gameRequester,
             std::shared_ptr<RenderLoaderGL> const &renderLoader,
             std::shared_ptr<graphicsGL::SurfaceDetails> const &surfaceDetails,
@@ -32,17 +34,21 @@ namespace shadowsChaining {
             throw std::runtime_error("Invalid render details parameter type.");
         }
 
-        auto rd = std::make_shared<RenderDetailsGL>(
+        if (!shaders.empty()) {
+            throw std::runtime_error("Invalid number of shaders for render details.");
+        }
+
+        auto rd = std::make_shared<RenderDetailsGL>(name,
                 surfaceDetails->useIntTexture, surfaceDetails->surfaceWidth, surfaceDetails->surfaceHeight);
 
         auto parametersShadows = std::make_shared<renderDetails::ParametersPerspective>(*parameters);
         parametersShadows->viewPoint = parametersShadows->lightingSources[0];
         auto refShadows = renderLoader->load(
-                gameRequester, shadows::RenderDetailsGL::name(), surfaceDetails, parametersShadows);
+                gameRequester, shadowsRenderDetailsName, surfaceDetails, parametersShadows);
 
         auto parms = std::make_shared<renderDetails::ParametersObjectWithShadowsGL>(*parameters, rd->m_framebufferShadows);
         auto refObjectWithShadows = renderLoader->load(
-                gameRequester, objectWithShadows::RenderDetailsGL::name(), surfaceDetails,
+                gameRequester, objectWithShadowsRenderDetailsName, surfaceDetails,
                 parms);
 
         rd->m_shadowsRenderDetails = refShadows.renderDetails;
@@ -80,11 +86,11 @@ namespace shadowsChaining {
 
         auto parametersShadows = std::make_shared<renderDetails::ParametersPerspective>(*parameters);
         auto refShadows = renderLoader->load(
-                gameRequester, shadows::RenderDetailsGL::name(), surfaceDetails, parametersShadows);
+                gameRequester, shadowsRenderDetailsName, surfaceDetails, parametersShadows);
 
         auto parms = std::make_shared<renderDetails::ParametersObjectWithShadowsGL>(*parameters, rd->m_framebufferShadows);
         auto refObjectWithShadows = renderLoader->load(
-                gameRequester, objectWithShadows::RenderDetailsGL::name(), surfaceDetails, parms);
+                gameRequester, objectWithShadowsRenderDetailsName, surfaceDetails, parms);
 
         rd->m_shadowsRenderDetails = refShadows.renderDetails;
         rd->m_objectWithShadowsRenderDetails = refObjectWithShadows.renderDetails;
@@ -190,5 +196,6 @@ namespace shadowsChaining {
                 cod->objectWithShadowsCOD(), drawObjTable, beginZValRefs, endZValRefs);
     }
 
-    RegisterGL<renderDetails::RenderDetailsGL, RenderDetailsGL> registerGL;
+    RegisterGL<renderDetails::RenderDetailsGL, RenderDetailsGL> registerGL(
+            shadowsChainingRenderDetailsName, std::vector<char const *>{});
 }

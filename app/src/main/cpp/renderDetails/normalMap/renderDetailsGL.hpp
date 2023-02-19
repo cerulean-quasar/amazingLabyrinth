@@ -88,10 +88,11 @@ namespace normalMap {
 
     class RenderDetailsGL : public renderDetails::RenderDetailsGL {
     public:
-        std::string nameString() override { return name(); }
-        static char const *name() { return normalMapRenderDetailsName; }
+        std::string nameString() override { return m_renderDetailsName; }
 
         static renderDetails::ReferenceGL loadNew(
+                char const *name,
+                std::vector<char const *> const &shaders,
                 std::shared_ptr<GameRequester> const &gameRequester,
                 std::shared_ptr<RenderLoaderGL> const &renderLoader,
                 std::shared_ptr<graphicsGL::SurfaceDetails> const &surfaceDetails,
@@ -127,19 +128,25 @@ namespace normalMap {
 
         void loadPipeline(std::shared_ptr<GameRequester> const &inGameRequester);
 
-        RenderDetailsGL(std::shared_ptr<GameRequester> const &inGameRequester,
-                        uint32_t inWidth, uint32_t inHeight, bool isIntSurface);
+        RenderDetailsGL(
+                char const *name,
+                char const *normalShader,
+                char const *normalShader3,
+                char const *simpleFragShader,
+                char const *simpleFragShader3,
+                std::shared_ptr<GameRequester> const &inGameRequester,
+                uint32_t inWidth, uint32_t inHeight, bool isIntSurface);
 
         ~RenderDetailsGL() override {
             glDeleteShader(m_programID);
         }
 
     private:
-        static char constexpr const *NORMAL_VERT_FILE ="shaders/normalGL.vert";
-        static char constexpr const *SIMPLE_FRAG_FILE = "shaders/simpleGL.frag";
-        static char constexpr const *NORMAL3_VERT_FILE ="shaders/normalGL3.vert";
-        static char constexpr const *SIMPLE3_FRAG_FILE = "shaders/simpleGL3.frag";
-
+        char const *m_renderDetailsName;
+        char const *m_normalShader;
+        char const *m_normalShader3;
+        char const *m_simpleFragShader;
+        char const *m_simpleFragShader3;
         GLuint m_programID;
 
         static renderDetails::ReferenceGL createReference(

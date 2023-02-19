@@ -99,9 +99,11 @@ namespace darkChaining {
 
     class RenderDetailsGL : public renderDetails::RenderDetailsGL {
     public:
-        std::string nameString() override { return name(); }
-        static char const *name() { return darkChainingRenderDetailsName; }
+        std::string nameString() override { return renderDetailsName; }
+
         static renderDetails::ReferenceGL loadNew(
+                char const *name,
+                std::vector<char const *> const &shaders,
                 std::shared_ptr<GameRequester> const &gameRequester,
                 std::shared_ptr<RenderLoaderGL> const &renderLoader,
                 std::shared_ptr<graphicsGL::SurfaceDetails> const &surfaceDetails,
@@ -129,8 +131,9 @@ namespace darkChaining {
                 std::set<levelDrawer::ZValueReference>::iterator beginZValRefs,
                 std::set<levelDrawer::ZValueReference>::iterator endZValRefs) override;
 
-        RenderDetailsGL(bool useIntSurface, uint32_t inWidth, uint32_t inHeight)
-                : renderDetails::RenderDetailsGL{inWidth, inHeight, useIntSurface}
+        RenderDetailsGL(char const *name, bool useIntSurface, uint32_t inWidth, uint32_t inHeight)
+                : renderDetails::RenderDetailsGL{inWidth, inHeight, useIntSurface},
+                renderDetailsName{name}
         {
             createFramebuffers();
         }
@@ -140,6 +143,7 @@ namespace darkChaining {
     private:
         // use less precision for the shadow buffer
         static float constexpr shadowsSizeMultiplier = 0.25f;
+        char const *renderDetailsName;
         std::array<std::shared_ptr<graphicsGL::Framebuffer>, numberShadowMaps> m_framebuffersShadows;
         std::shared_ptr<renderDetails::RenderDetailsGL> m_shadowsRenderDetails;
         std::shared_ptr<renderDetails::RenderDetailsGL> m_darkObjectRenderDetails;

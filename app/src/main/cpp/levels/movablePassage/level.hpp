@@ -1,5 +1,5 @@
 /**
- * Copyright 2022 Cerulean Quasar. All Rights Reserved.
+ * Copyright 2023 Cerulean Quasar. All Rights Reserved.
  *
  *  This file is part of AmazingLabyrinth.
  *
@@ -84,7 +84,7 @@ namespace movablePassage {
               m_zdrawTopsOfObjects{ m_mazeFloorZ },
               m_zMovingPlacement{ m_mazeFloorZ + m_scaleBall },
               m_components{
-              std::make_shared<Component>(Component::ComponentType::straight),
+                        std::make_shared<Component>(Component::ComponentType::straight),
                         std::make_shared<Component>(Component::ComponentType::tjunction),
                         std::make_shared<Component>(Component::ComponentType::crossjunction),
                         std::make_shared<Component>(Component::ComponentType::turn),
@@ -97,7 +97,6 @@ namespace movablePassage {
               },
               m_gameBoard{},
               m_nbrComponents{ 0 },
-              m_texturesChanged{ true },
               m_initDone{ false },
               m_objsIndexBall{ 0 }
         {
@@ -169,7 +168,6 @@ namespace movablePassage {
 
         GameBoard m_gameBoard;
         uint32_t m_nbrComponents;
-        bool m_texturesChanged;
         bool m_initDone;
 
         size_t m_objsIndexBall;
@@ -200,7 +198,7 @@ namespace movablePassage {
         // the column in which the end tile is located.
         uint32_t m_columnEndPosition;
 
-        // all the compoents should be added before calling this function.
+        // all the components should be added before calling this function.
         void initSetGameBoard(
                 uint32_t nbrTilesX,
                 uint32_t nbrTilesY,

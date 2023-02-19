@@ -25,27 +25,41 @@
 
 namespace shadows {
 
-    RenderDetailsGL::RenderDetailsGL(std::shared_ptr<GameRequester> const &inGameRequester,
-                                             uint32_t inWidth, uint32_t inHeight, bool usesIntSurface)
+    RenderDetailsGL::RenderDetailsGL(
+            char const *name,
+            char const *vertexShader,
+            char const *fragShader,
+            std::shared_ptr<GameRequester> const &inGameRequester,
+            uint32_t inWidth,
+            uint32_t inHeight,
+            bool usesIntSurface)
             : renderDetails::RenderDetailsGL(inWidth, inHeight, usesIntSurface),
-              m_depthProgramID{loadShaders(inGameRequester, DEPTH_VERT_FILE, SIMPLE_FRAG_FILE)}
+              m_renderDetailsName{name},
+              m_depthProgramID{loadShaders(inGameRequester, vertexShader, fragShader)}
     {}
 
     renderDetails::ReferenceGL RenderDetailsGL::loadNew(
+            char const *name,
+            std::vector<char const *> const &shaders,
             std::shared_ptr<GameRequester> const &gameRequester,
             std::shared_ptr<RenderLoaderGL> const &,
             std::shared_ptr<graphicsGL::SurfaceDetails> const &surfaceDetails,
             std::shared_ptr<renderDetails::Parameters> const &parametersBase)
     {
-        auto rd = std::make_shared<RenderDetailsGL>(
-                gameRequester, surfaceDetails->surfaceWidth, surfaceDetails->surfaceHeight,
-                surfaceDetails->useIntTexture);
-
         auto parameters =
                 dynamic_cast<renderDetails::ParametersPerspective*>(parametersBase.get());
         if (parameters == nullptr) {
             throw std::runtime_error("Invalid render details parameter type.");
         }
+
+        if (shaders.size() != 2) {
+            throw std::runtime_error("Invalid number of shaders passed into Render Details.");
+        }
+
+        auto rd = std::make_shared<RenderDetailsGL>(
+                name, shaders[0], shaders[1],
+                gameRequester, surfaceDetails->surfaceWidth, surfaceDetails->surfaceHeight,
+                surfaceDetails->useIntTexture);
 
         auto cod = std::make_shared<CommonObjectDataGL>(*parameters,
                 surfaceDetails->surfaceWidth / static_cast<float>(surfaceDetails->surfaceHeight));
@@ -154,6 +168,10 @@ namespace shadows {
         }
     }
 
-    RegisterGL<renderDetails::RenderDetailsGL, RenderDetailsGL> registerGL;
+    char constexpr const *DEPTH_VERT_FILE = "shaders/depthShaderGL.vert";
+    char constexpr const *SIMPLE_FRAG_FILE = "shaders/simpleGL.frag";
+    RegisterGL<renderDetails::RenderDetailsGL, RenderDetailsGL> registerGL(
+        shadowsRenderDetailsName,
+        std::vector<char const *>{DEPTH_VERT_FILE, SIMPLE_FRAG_FILE});
 
 } // namespace shadows

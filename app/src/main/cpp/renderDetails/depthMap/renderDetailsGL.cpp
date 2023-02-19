@@ -23,30 +23,44 @@
 #include "renderDetailsGL.hpp"
 
 namespace depthMap {
-    RenderDetailsGL::RenderDetailsGL(std::shared_ptr<GameRequester> const &inGameRequester,
-                                             uint32_t inWidth, uint32_t inHeight, bool useIntSurface)
+    RenderDetailsGL::RenderDetailsGL(
+            char const *name,
+            char const *linearDepthVertShader,
+            char const *linearDepthVertShader3,
+            char const *simpleFragShader,
+            char const *simpleFragShader3,
+            std::shared_ptr<GameRequester> const &inGameRequester,
+            uint32_t inWidth, uint32_t inHeight, bool useIntSurface)
             : renderDetails::RenderDetailsGL(inWidth, inHeight, useIntSurface),
+              m_renderDetailsName{name},
+              m_linearDepthVertShader{linearDepthVertShader},
+              m_linearDepthVertShader3{linearDepthVertShader3},
+              m_simpleFragShader{simpleFragShader},
+              m_simpleFragShader3{simpleFragShader3},
               m_depthProgramID{0}
     {
         loadPipeline(inGameRequester);
     }
 
     void RenderDetailsGL::loadPipeline(std::shared_ptr<GameRequester> const &inGameRequester) {
+
         if (m_depthProgramID != 0) {
             glDeleteProgram(m_depthProgramID);
             checkGraphicsError();
         }
 
         if (m_usesIntSurface) {
-            m_depthProgramID = loadShaders(inGameRequester, LINEAR_DEPTH3_VERT_FILE,
-                                           SIMPLE3_FRAG_FILE);
+            m_depthProgramID = loadShaders(inGameRequester, m_linearDepthVertShader3,
+                                           m_simpleFragShader3);
         } else {
-            m_depthProgramID = loadShaders(inGameRequester, LINEAR_DEPTH_VERT_FILE,
-                                           SIMPLE_FRAG_FILE);
+            m_depthProgramID = loadShaders(inGameRequester, m_linearDepthVertShader,
+                                           m_simpleFragShader);
         }
     }
 
     renderDetails::ReferenceGL RenderDetailsGL::loadNew(
+            char const *name,
+            std::vector<char const *> const &shaders,
             std::shared_ptr<GameRequester> const &gameRequester,
             std::shared_ptr<RenderLoaderGL> const &,
             std::shared_ptr<graphicsGL::SurfaceDetails> const &surfaceDetails,
@@ -58,7 +72,12 @@ namespace depthMap {
             throw std::runtime_error("Invalid render details parameter type.");
         }
 
+        if (shaders.size() != 4) {
+            throw std::runtime_error("Invalid number of shaders for the Depth Map Render Details.");
+        }
+
         auto rd = std::make_shared<RenderDetailsGL>(
+                name, shaders[0], shaders[1], shaders[2], shaders[3],
                 gameRequester, surfaceDetails->surfaceWidth, surfaceDetails->surfaceHeight,
                 surfaceDetails->useIntTexture);
 
@@ -185,6 +204,12 @@ namespace depthMap {
         }
     }
 
-    RegisterGL<renderDetails::RenderDetailsGL, RenderDetailsGL> registerGL;
+    char constexpr const *LINEAR_DEPTH_VERT_GL_FILE = "shaders/linearDepthGL.vert";
+    char constexpr const *LINEAR_DEPTH3_VERT_GL_FILE = "shaders/linearDepthGL3.vert";
+    char constexpr const *SIMPLE_FRAG_GL_FILE = "shaders/simpleGL.frag";
+    char constexpr const *SIMPLE3_FRAG_GL_FILE = "shaders/simpleGL3.frag";
+    RegisterGL<renderDetails::RenderDetailsGL, RenderDetailsGL> registerGL(
+            depthMapRenderDetailsName,
+            std::vector<char const *>{LINEAR_DEPTH_VERT_GL_FILE, LINEAR_DEPTH3_VERT_GL_FILE, SIMPLE_FRAG_GL_FILE, SIMPLE3_FRAG_GL_FILE});
 
 } // namespace depthMap

@@ -1,5 +1,5 @@
 /**
- * Copyright 2020 Cerulean Quasar. All Rights Reserved.
+ * Copyright 2022 Cerulean Quasar. All Rights Reserved.
  *
  *  This file is part of AmazingLabyrinth.
  *
@@ -109,8 +109,8 @@ namespace avoidVortexOpenArea {
                 currentTime - prevTime).count();
         prevTime = currentTime;
 
+        m_ball.position = getUpdatedPosition(timeDiff);
         m_ball.velocity = getUpdatedVelocity(m_ball.acceleration, timeDiff);
-        m_ball.position += m_ball.velocity * timeDiff;
 
         if (ballProximity(holePosition)) {
             m_finished = true;

@@ -60,20 +60,22 @@ class RenderLoaderVulkan;
 template <typename RenderDetailsBaseType, typename RenderDetailsType>
 class RegisterVulkan {
 public:
-    RegisterVulkan() {
+    RegisterVulkan(
+            char const *name,
+            std::vector<char const*> shaders) {
         getRenderDetailsVulkanMap().emplace(
-            RenderDetailsType::name(),
+            name,
             std::function<RenderDetailsVulkanRetrieveFcns()> (
-                []() -> RenderDetailsVulkanRetrieveFcns {
+                [name, shaders]() -> RenderDetailsVulkanRetrieveFcns {
                     RenderDetailsVulkanRetrieveFcns fcns;
                     fcns.renderDetailsLoadNewFcn = RenderDetailsVulkanRetrieveFcns::RenderDetailsLoadNewFcn (
-                            [] (std::shared_ptr<GameRequester> const &gameRequester,
+                            [name, shaders] (std::shared_ptr<GameRequester> const &gameRequester,
                                       std::shared_ptr<RenderLoaderVulkan> const &renderLoader,
                                       std::shared_ptr<vulkan::Device> const &inDevice,
                                       std::shared_ptr<vulkan::SurfaceDetails> const &surfaceDetails,
                                       std::shared_ptr<renderDetails::Parameters> const &parameters) -> RenderDetailsVulkanRetrieveFcns::RenderDetailsReferenceVulkan
                             {
-                                return RenderDetailsType::loadNew(gameRequester, renderLoader,
+                                return RenderDetailsType::loadNew(name, shaders, gameRequester, renderLoader,
                                         inDevice, surfaceDetails, parameters);
                             });
                     fcns.renderDetailsLoadExistingFcn = RenderDetailsVulkanRetrieveFcns::RenderDetailsLoadExistingFcn (

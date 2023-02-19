@@ -49,16 +49,7 @@ namespace depthMap {
                                    m_nearPlane, m_farPlane, true, true),
                     view());
         }
-/* TODO: remove
- *
-        glm::vec3 getLightSource() override {
-            return viewPoint();
-        }
 
-        glm::mat4 getViewLightSource() override {
-            return view();
-        }
-*/
         float nearestDepth() { return m_nearestDepth; }
         float farthestDepth() { return m_farthestDepth; }
 
@@ -206,10 +197,11 @@ namespace depthMap {
 
     class RenderDetailsVulkan : public renderDetails::RenderDetailsVulkan {
     public:
-        std::string nameString() override { return name(); }
-        static char const *name() { return depthMapRenderDetailsName; }
+        std::string nameString() override { return m_renderDetailsName; }
 
         static renderDetails::ReferenceVulkan loadNew(
+                char const *name,
+                std::vector<char const *> const &shaders,
                 std::shared_ptr<GameRequester> const &gameRequester,
                 std::shared_ptr<RenderLoaderVulkan> const &,
                 std::shared_ptr<vulkan::Device> const &inDevice,
@@ -222,7 +214,11 @@ namespace depthMap {
                 throw std::runtime_error("Invalid render details parameter type.");
             }
 
-            auto rd = std::make_shared<RenderDetailsVulkan>(
+            if (shaders.size() != 2) {
+                throw std::runtime_error("Invalid number of shaders for the Depth Map Render Details.");
+            }
+
+            auto rd = std::make_shared<RenderDetailsVulkan>(name, shaders[0], shaders[1],
                     gameRequester, inDevice, nullptr, surfaceDetails);
 
             auto cod = rd->createCommonObjectData(surfaceDetails->preTransform, parameters);
@@ -295,18 +291,24 @@ namespace depthMap {
         }
 
         RenderDetailsVulkan(
+                char const *name,
+                char const *vertShader,
+                char const *fragShader,
                 std::shared_ptr<GameRequester> const &gameRequester,
                 std::shared_ptr<vulkan::Device> const &inDevice,
                 std::shared_ptr<vulkan::Pipeline> const &basePipeline,
                 std::shared_ptr<vulkan::SurfaceDetails> const &surfaceDetails)
                 : renderDetails::RenderDetailsVulkan{surfaceDetails->surfaceWidth, surfaceDetails->surfaceHeight},
+                  m_renderDetailsName{name},
+                  m_vertShader{vertShader},
+                  m_fragShader{fragShader},
                   m_device{inDevice},
                   m_descriptorSetLayout{std::make_shared<DescriptorSetLayout>(m_device)},
                   m_descriptorPools{std::make_shared<vulkan::DescriptorPools>(m_device, m_descriptorSetLayout)},
                   m_pipeline{}
         {
-            std::string vertFile{SHADER_LINEAR_DEPTH_VERT_FILE};
-            std::string fragFile{SHADER_SIMPLE_FRAG_FILE};
+            std::string vertFile{m_vertShader};
+            std::string fragFile{m_fragShader};
             VkExtent2D extent{m_surfaceWidth, m_surfaceHeight};
             m_pipeline = std::make_shared<vulkan::Pipeline>(
                     gameRequester, m_device,
@@ -319,9 +321,9 @@ namespace depthMap {
         ~RenderDetailsVulkan() override = default;
 
     private:
-        static char constexpr const *SHADER_SIMPLE_FRAG_FILE = "shaders/simple.frag.spv";
-        static char constexpr const *SHADER_LINEAR_DEPTH_VERT_FILE ="shaders/linearDepth.vert.spv";
-
+        char const *m_renderDetailsName;
+        char const *m_vertShader;
+        char const *m_fragShader;
         std::shared_ptr<vulkan::Device> m_device;
 
         std::shared_ptr<DescriptorSetLayout> m_descriptorSetLayout;

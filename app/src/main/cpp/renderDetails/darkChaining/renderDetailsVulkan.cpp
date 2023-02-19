@@ -25,6 +25,8 @@
 namespace darkChaining {
 
     renderDetails::ReferenceVulkan RenderDetailsVulkan::loadNew(
+            char const *name,
+            std::vector<char const *> const &,
             std::shared_ptr<GameRequester> const &gameRequester,
             std::shared_ptr<RenderLoaderVulkan> const &renderLoader,
             std::shared_ptr<vulkan::Device> const &inDevice,
@@ -32,7 +34,7 @@ namespace darkChaining {
             std::shared_ptr<renderDetails::Parameters> const &parametersBase)
     {
         // initialize main render details
-        auto rd = std::make_shared<RenderDetailsVulkan>(inDevice, surfaceDetails);
+        auto rd = std::make_shared<RenderDetailsVulkan>(name, inDevice, surfaceDetails);
 
         return loadHelper(gameRequester, renderLoader, std::move(rd), surfaceDetails, parametersBase);
     }
@@ -82,7 +84,7 @@ namespace darkChaining {
             // the next times, it is just looked up in a list, not really any work is done other than
             // creating the COD.
             refShadows = renderLoader->load(
-                    gameRequester, shadows::RenderDetailsVulkan::name(), shadowsSurfaceDetails,
+                    gameRequester, shadowsRenderDetailsName, shadowsSurfaceDetails,
                     parametersShadows);
 
             shadowCODs[i] = std::dynamic_pointer_cast<shadows::CommonObjectDataVulkan>(refShadows.commonObjectData);
@@ -95,7 +97,7 @@ namespace darkChaining {
 
         // main render details
         auto refMain = renderLoader->load(
-                gameRequester, darkObject::RenderDetailsVulkan::name(),
+                gameRequester, darkObjectRenderDetailsName,
                 surfaceDetails, parms);
 
         rd->m_darkObjectRenderDetails = refMain.renderDetails;
@@ -295,5 +297,6 @@ namespace darkChaining {
 
     }
 
-    RegisterVulkan<renderDetails::RenderDetailsVulkan, RenderDetailsVulkan> registerVulkan;
+    RegisterVulkan<renderDetails::RenderDetailsVulkan, RenderDetailsVulkan> registerVulkan(
+            darkChainingRenderDetailsName, std::vector<char const *>{});
 } // namespace darkChaining

@@ -97,8 +97,8 @@ namespace movingSafeAreas {
                 currentTime - m_prevTime).count();
         m_prevTime = currentTime;
 
+        m_ball.position = getUpdatedPosition(timeDiff);
         m_ball.velocity = getUpdatedVelocity(m_ball.acceleration, timeDiff);
-        m_ball.position += m_ball.velocity * timeDiff;
 
         // if the ball is on the end quad, then the user won.
         if (ballOnQuad(m_endQuadPosition, 2 * maxX)) {

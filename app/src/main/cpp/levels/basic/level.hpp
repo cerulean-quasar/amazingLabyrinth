@@ -37,19 +37,10 @@
 
 namespace basic {
     class Level {
-    private:
-        glm::vec3 dragForce() {
-            if (glm::length(m_ball.velocity) < m_lengthTooSmallToNormalize) {
-                return glm::vec3{0.0f, 0.0f, 0.0f};
-            }
-            return -m_dragConstant * glm::dot(m_ball.velocity, m_ball.velocity) *
-                   glm::normalize(m_ball.velocity);
-        }
-
     protected:
         static float constexpr m_originalBallDiameter = 2.0f;
         static float constexpr m_dragConstant = 0.2f;
-        static float constexpr m_accelerationAdjustment = 0.25f;
+        static float constexpr m_accelerationAdjustment = 0.1f;
         static float constexpr m_lengthTooSmallToNormalize = 0.001f;
         static float constexpr m_modelSize = 2.0f;
 
@@ -83,17 +74,24 @@ namespace basic {
                                                                   m_scaleBall));
         }
 
+        glm::vec3 getUpdatedPosition(float timeDiff) {
+            return m_ball.position + m_ball.velocity * timeDiff + m_ball.acceleration * 0.5f * timeDiff * timeDiff;
+        }
+
+        glm::vec3 getUpdatedPosition(float timeDiff, glm::vec3 const &velocity, glm::vec3 const &acceleration) {
+            return m_ball.position + velocity * timeDiff + acceleration * 0.5f * timeDiff * timeDiff;
+        }
+
+        glm::vec3 getUpdatedPosition(float timeDiff, glm::vec3 const &velocity, glm::vec3 const &acceleration, glm::vec3 const &position) {
+            return position + velocity * timeDiff + acceleration * 0.5f * timeDiff * timeDiff;
+        }
+
+        glm::vec3 getUpdatedVelocity(float timeDiff) {
+            return m_ball.velocity + m_ball.acceleration * timeDiff;
+        }
+
         glm::vec3 getUpdatedVelocity(glm::vec3 const &acceleration, float timeDiff) {
-            glm::vec3 drag = dragForce();
-
-            glm::vec3 velocity = m_ball.velocity;
-            if (glm::length(velocity) < glm::length(drag * timeDiff)) {
-                velocity = acceleration * timeDiff;
-            } else {
-                velocity += acceleration * timeDiff + drag * timeDiff;
-            }
-
-            return velocity;
+            return m_ball.velocity + acceleration * timeDiff;
         }
 
         bool drawingNecessary() {

@@ -21,7 +21,7 @@ add_library( # Sets the name of the library.
         SHARED
 
         # Provides a relative path to your source file(s).
-        ${ANDROID_NDK}/sources/third_party/vulkan/src/common/vulkan_wrapper.cpp
+        /opt/Vulkan-Tools/common/vulkan_wrapper.cpp
         src/main/cpp/graphicsVulkan.cpp
         src/main/cpp/mazeVulkan.cpp
         src/main/cpp/vk_mem_alloc.cpp
@@ -111,6 +111,7 @@ find_library( # Sets the name of the path variable.
 include_directories(${ANDROID_NDK}/sources/third_party/vulkan/src/libs)
 include_directories(${ANDROID_NDK}/sources/third_party/vulkan/src/common)
 include_directories(APP_GLUE_DIR ${ANDROID_NDK}/sources/android/native_app_glue)
+include_directories(/opt/Vulkan-Tools/common)
 include_directories(/opt/glm-0.9.9.5/glm)
 include_directories(/opt/tinyobjloader/include)
 include_directories(/opt/stb/include)

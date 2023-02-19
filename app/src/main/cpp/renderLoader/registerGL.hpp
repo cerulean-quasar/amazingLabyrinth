@@ -64,20 +64,22 @@ RenderDetailsGLRetrieveMap &getRenderDetailsGLMap();
 template <typename RenderDetailsBaseType, typename RenderDetailsType>
 class RegisterGL {
 public:
-    RegisterGL() {
+    RegisterGL(
+            char const *name,
+            std::vector<char const *> shaders) {
         getRenderDetailsGLMap().emplace(
-            RenderDetailsType::name(),
+            name,
             std::function<RenderDetailsGLRetrieveFcns()> (
-                []() -> RenderDetailsGLRetrieveFcns {
+                [name, shaders]() -> RenderDetailsGLRetrieveFcns {
                     RenderDetailsGLRetrieveFcns fcns;
                     fcns.renderDetailsLoadNewFcn = RenderDetailsGLRetrieveFcns::RenderDetailsLoadNewFcn (
-                            [] (std::shared_ptr<GameRequester> const &gameRequester,
+                            [name, shaders] (std::shared_ptr<GameRequester> const &gameRequester,
                                     std::shared_ptr<RenderLoaderGL> const &renderLoader,
                                       std::shared_ptr<graphicsGL::SurfaceDetails> const &surfaceDetails,
                                       std::shared_ptr<renderDetails::Parameters> const &parameters) -> RenderDetailsGLRetrieveFcns::RenderDetailsReferenceGL
                             {
-                                return RenderDetailsType::loadNew(gameRequester, renderLoader,
-                                        surfaceDetails, parameters);
+                                return RenderDetailsType::loadNew(name, shaders,
+                                                                  gameRequester, renderLoader, surfaceDetails, parameters);
                             });
                     fcns.renderDetailsLoadExistingFcn = RenderDetailsGLRetrieveFcns::RenderDetailsLoadExistingFcn (
                             [] (std::shared_ptr<GameRequester> const &gameRequester,

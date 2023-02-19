@@ -24,6 +24,8 @@
 
 namespace shadowsChaining {
     renderDetails::ReferenceVulkan RenderDetailsVulkan::loadNew(
+            char const *name,
+            std::vector<char const *> const &shaders,
             std::shared_ptr<GameRequester> const &gameRequester,
             std::shared_ptr<RenderLoaderVulkan> const &renderLoader,
             std::shared_ptr<vulkan::Device> const &inDevice,
@@ -35,8 +37,12 @@ namespace shadowsChaining {
             throw std::runtime_error("Invalid render details parameter type.");
         }
 
+        if (!shaders.empty()) {
+            throw std::runtime_error("Invalid number of shaders for render details.");
+        }
+
         // initialize main render details
-        auto rd = std::make_shared<RenderDetailsVulkan>(inDevice, surfaceDetails);
+        auto rd = std::make_shared<RenderDetailsVulkan>(name, inDevice, surfaceDetails);
 
         auto shadowsSurfaceDetails = rd->createShadowSurfaceDetails(surfaceDetails);
 
@@ -45,13 +51,13 @@ namespace shadowsChaining {
 
         // shadows render details
         auto refShadows = renderLoader->load(
-                gameRequester, shadows::RenderDetailsVulkan::name(), shadowsSurfaceDetails, parametersShadows);
+                gameRequester, shadowsRenderDetailsName, shadowsSurfaceDetails, parametersShadows);
 
         auto parms = std::make_shared<renderDetails::ParametersObjectWithShadowsVulkan>(*parameters, rd->m_samplerShadows);
 
         // main render details
         auto refMain = renderLoader->load(
-                gameRequester, objectWithShadows::RenderDetailsVulkan::name(),
+                gameRequester, objectWithShadowsRenderDetailsName,
                 surfaceDetails, parms);
 
         rd->m_objectWithShadowsRenderDetails = refMain.renderDetails;
@@ -88,13 +94,13 @@ namespace shadowsChaining {
 
         // shadows render details
         auto refShadows = renderLoader->load(
-            gameRequester, shadows::RenderDetailsVulkan::name(), shadowSurfaceDetails, parametersShadows);
+            gameRequester, shadowsRenderDetailsName, shadowSurfaceDetails, parametersShadows);
 
         auto parms = std::make_shared<renderDetails::ParametersObjectWithShadowsVulkan>(*parameters, rd->m_samplerShadows);
 
         // object with shadows render details
         auto refObjectWithShadows = renderLoader->load(
-            gameRequester, objectWithShadows::RenderDetailsVulkan::name(), surfaceDetails,parms);
+            gameRequester, objectWithShadowsRenderDetailsName, surfaceDetails,parms);
 
         rd->m_objectWithShadowsRenderDetails = refObjectWithShadows.renderDetails;
         rd->m_shadowsRenderDetails = refShadows.renderDetails;
@@ -262,5 +268,7 @@ namespace shadowsChaining {
 
     }
 
-    RegisterVulkan<renderDetails::RenderDetailsVulkan, RenderDetailsVulkan> registerVulkan;
+    RegisterVulkan<renderDetails::RenderDetailsVulkan, RenderDetailsVulkan> registerVulkan(
+            shadowsChainingRenderDetailsName,
+            std::vector<char const *>{});
 } // namespace shadowsChaining

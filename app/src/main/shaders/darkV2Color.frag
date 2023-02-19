@@ -17,21 +17,26 @@
  *  along with AmazingLabyrinth.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
-#include <vector>
-#include "../generatedMaze/level.hpp"
-#include "level.hpp"
+#version 450
+#extension GL_ARB_separate_shader_objects : enable
 
-namespace darkMaze {
-    bool Level::updateDrawObjects() {
-        m_parameters.lightingSources[0] = m_ball.position;
-        m_levelDrawer.updateCommonObjectData(m_objRefsWalls[0], m_parameters);
-        return openAreaMaze::Level::updateDrawObjects();
-    }
+layout(location = 0) in vec3 fragColor;
+layout(location = 1) in vec2 fragTexCoord;
+layout(location = 2) in vec3 fragNormal;
+layout(location = 3) in vec3 fragPosition;
 
-    bool Level::checkFinishCondition(float) {
-        // we finished the level if the ball is in proximity to the hole.
-        return ballInProximity(getColumnCenterPosition(m_mazeBoard.colEnd()),
-                               getRowCenterPosition(m_mazeBoard.rowEnd()));
-    }
+layout(set = 0, binding = 2) uniform UniformBufferObject {
+    vec3 pos;
+    vec3 pos1;
+} light;
 
-} // namespace darkMaze
+layout(location = 0) out vec4 outColor;
+
+void main() {
+    vec3 lightVector = light.pos - fragPosition;
+    vec3 lightDirection = normalize(lightVector);
+    float diff = max(dot(fragNormal, lightDirection), 0.0);
+    vec3 diffuse = diff * vec3(1.0, 1.0, 1.0);
+    float falloff = 100*dot(lightVector, lightVector);
+    outColor = vec4((fragColor + diffuse)/falloff, 1.0);
+}

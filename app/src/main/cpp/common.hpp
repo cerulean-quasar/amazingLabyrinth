@@ -34,7 +34,7 @@ char constexpr const *normalMapRenderDetailsName = "normalMap";
 char constexpr const *objectNoShadowsRenderDetailsName = "objectNoShadows";
 char constexpr const *darkObjectRenderDetailsName = "darkObjectRenderDetailsName";
 char constexpr const *darkChainingRenderDetailsName = "darkChainingRenderDetailsName";
-
+char constexpr const *darkV2ObjectRenderDetailsName = "darkV2ObjectRenderDetailsName";
 
 struct GraphicsDescription {
 public:

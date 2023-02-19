@@ -41,7 +41,7 @@ namespace objectNoShadows {
         std::shared_ptr<vulkan::Buffer> const &cameraBuffer() { return m_cameraBuffer; }
         uint32_t cameraBufferSize() { return sizeof (CommonVertexUBO); }
         std::shared_ptr<vulkan::Buffer> const &lightingBuffer() { return m_lightingSourceBuffer; }
-        uint32_t lightingBufferSize() { return sizeof (CommonFragmentUBO); }
+        uint32_t lightingBufferSize() { return sizeof (glm::vec3) * m_lightSources.size(); }
 
         std::pair<glm::mat4, glm::mat4> getProjViewForLevel() override {
             /* perspective matrix: takes the perspective projection, the aspect ratio, near and far
@@ -52,14 +52,6 @@ namespace objectNoShadows {
                                          false, true),
                     view());
         }
-/* todo: remove
- *
-        glm::mat4 getViewLightSource() override {
-            return glm::lookAt(m_lightingSource, m_lookAt, m_up);
-        }
-
-        glm::vec3 getLightSource() override { return m_lightingSource;}
-*/
 
         void update(renderDetails::Parameters const &parametersBase) override {
             auto parameters = dynamic_cast<renderDetails::ParametersPerspective const &>(parametersBase);
@@ -79,9 +71,10 @@ namespace objectNoShadows {
                   m_cameraBuffer{std::move(cameraBuffer)},
                   m_lightingSourceBuffer{std::move(lightingSourceBuffer)}
         {
+            /* todo remove
             if (m_lightSources.size() > 1) {
                 throw std::runtime_error("Incorrect number of light sources for render details.");
-            }
+            }*/
             doUpdate();
         }
 
@@ -91,9 +84,10 @@ namespace objectNoShadows {
             glm::mat4 projView;
         };
 
+        /* todo remove
         struct CommonFragmentUBO {
             glm::vec3 lightingSource;
-        };
+        };*/
 
         glm::mat4 m_preTransform;
         std::shared_ptr<vulkan::Buffer> m_cameraBuffer;
@@ -109,9 +103,20 @@ namespace objectNoShadows {
 
             m_cameraBuffer->copyRawTo(&commonUbo, sizeof(commonUbo));
 
+            /* todo remove
             CommonFragmentUBO commonFragmentUbo;
             commonFragmentUbo.lightingSource = m_lightSources[0];
             m_lightingSourceBuffer->copyRawTo(&commonFragmentUbo, sizeof(commonFragmentUbo));
+             */
+
+            char *buffer = new char[m_lightSources.size() * sizeof (glm::vec3)];
+            size_t i = 0;
+            for (auto const &vec : m_lightSources) {
+                memcpy(buffer + i * sizeof (glm::vec3), &vec, sizeof (glm::vec3));
+                i++;
+            }
+            m_lightingSourceBuffer->copyRawTo(buffer, sizeof (glm::vec3) * m_lightSources.size());
+            delete[] (buffer);
         }
     };
 
@@ -293,10 +298,11 @@ namespace objectNoShadows {
 
     class RenderDetailsVulkan : public renderDetails::RenderDetailsVulkan {
     public:
-        std::string nameString() override { return name(); }
-        static char const *name() { return objectNoShadowsRenderDetailsName; }
+        std::string nameString() override { return m_renderDetailsName; }
 
         static renderDetails::ReferenceVulkan loadNew(
+                char const *name,
+                std::vector<char const *> const &shaders,
                 std::shared_ptr<GameRequester> const &gameRequester,
                 std::shared_ptr<RenderLoaderVulkan> const &,
                 std::shared_ptr<vulkan::Device> const &inDevice,
@@ -308,7 +314,12 @@ namespace objectNoShadows {
                 throw std::runtime_error("Invalid render details parameter type.");
             }
 
+            if (shaders.size() != 3) {
+                throw std::runtime_error("Wrong number of shaders for Normal Map Render Details.");
+            }
+
             auto rd = std::make_shared<RenderDetailsVulkan>(
+                    name, shaders[0], shaders[1], shaders[2],
                     gameRequester, inDevice, nullptr, surfaceDetails);
 
             auto cod = rd->createCommonObjectData(surfaceDetails->preTransform, parameters);
@@ -366,11 +377,19 @@ namespace objectNoShadows {
         std::shared_ptr<vulkan::Device> const &device() override { return m_device; }
 
         RenderDetailsVulkan(
+                char const *inName,
+                char const *inVertexShader,
+                char const *inTextureFragShader,
+                char const *inColorFragShader,
                 std::shared_ptr<GameRequester> const &gameRequester,
                 std::shared_ptr<vulkan::Device> const &inDevice,
                 std::shared_ptr<vulkan::Pipeline> const &basePipeline,
                 std::shared_ptr<vulkan::SurfaceDetails> const &surfaceDetails)
-                : renderDetails::RenderDetailsVulkan{surfaceDetails->surfaceWidth, surfaceDetails->surfaceHeight},
+                : m_renderDetailsName{inName},
+                  m_vertexShader{inVertexShader},
+                  m_textureFragShader{inTextureFragShader},
+                  m_colorFragShader{inColorFragShader},
+                  renderDetails::RenderDetailsVulkan{surfaceDetails->surfaceWidth, surfaceDetails->surfaceHeight},
                   m_device{inDevice},
                   m_descriptorSetLayoutTexture{std::make_shared<TextureDescriptorSetLayout>(m_device)},
                   m_descriptorPoolsTexture{std::make_shared<vulkan::DescriptorPools>(m_device, m_descriptorSetLayoutTexture)},
@@ -379,7 +398,7 @@ namespace objectNoShadows {
                           surfaceDetails->renderPass, m_descriptorPoolsTexture,
                           getBindingDescription(),
                           getAttributeDescriptions(),
-                          SHADER_VERT_FILE, TEXTURE_SHADER_FRAG_FILE, basePipeline)},
+                          m_vertexShader, m_textureFragShader, basePipeline)},
                   m_descriptorSetLayoutColor{std::make_shared<ColorDescriptorSetLayout>(m_device)},
                   m_descriptorPoolsColor{std::make_shared<vulkan::DescriptorPools>(m_device, m_descriptorSetLayoutColor)},
                   m_pipelineColor{std::make_shared<vulkan::Pipeline>(
@@ -387,15 +406,16 @@ namespace objectNoShadows {
                           surfaceDetails->renderPass, m_descriptorPoolsColor,
                           getBindingDescription(),
                           getAttributeDescriptions(),
-                          SHADER_VERT_FILE, COLOR_SHADER_FRAG_FILE, m_pipelineTexture)}
+                          m_vertexShader, m_colorFragShader, m_pipelineTexture)}
         {}
 
         ~RenderDetailsVulkan() override = default;
 
     private:
-        static char constexpr const *SHADER_VERT_FILE = "shaders/shaderNoShadows.vert.spv";
-        static char constexpr const *TEXTURE_SHADER_FRAG_FILE = "shaders/shaderNoShadows.frag.spv";
-        static char constexpr const *COLOR_SHADER_FRAG_FILE = "shaders/colorShaderNoShadows.frag.spv";
+        char const *m_renderDetailsName;
+        char const *m_vertexShader;
+        char const *m_textureFragShader;
+        char const *m_colorFragShader;
 
         std::shared_ptr<vulkan::Device> m_device;
 
@@ -416,7 +436,7 @@ namespace objectNoShadows {
             auto vertexUbo = renderDetails::createUniformBuffer(
                     m_device, sizeof (CommonObjectDataVulkan::CommonVertexUBO));
             auto fragUbo = renderDetails::createUniformBuffer(
-                    m_device, sizeof (CommonObjectDataVulkan::CommonFragmentUBO));
+                    m_device, sizeof(glm::vec3) * parameters->lightingSources.size());
 
             return std::make_shared<CommonObjectDataVulkan>(
                     vertexUbo, fragUbo, preTransform,

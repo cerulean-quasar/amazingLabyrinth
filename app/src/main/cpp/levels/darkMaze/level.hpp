@@ -39,14 +39,13 @@ namespace darkMaze {
                 float maxZ)
                 : openAreaMaze::Level(
                         std::move(inLevelDrawer), lcd, sd, maxZ,
-                        darkChainingRenderDetailsName,
+                        darkV2ObjectRenderDetailsName,
                         getParameters(),
                         objectNoShadowsRenderDetailsName,
                         levelDrawer::DefaultConfig::getDefaultParameters(),
                         objectNoShadowsRenderDetailsName,
-                        levelDrawer::DefaultConfig::getDefaultParameters(),
-                        darkChainingRenderDetailsName,
-                        getParameters())
+                        levelDrawer::DefaultConfig::getDefaultParameters()
+                        /* use the default renderDetails and parameters for the floor */)
         {
             auto parameters = getParameters();
             m_parameters = *parameters;

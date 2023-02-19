@@ -23,10 +23,21 @@
 #include "renderDetailsGL.hpp"
 
 namespace normalMap {
-    RenderDetailsGL::RenderDetailsGL(std::shared_ptr<GameRequester> const &inGameRequester,
-                                             uint32_t inWidth, uint32_t inHeight,
-                                             bool isIntSurface)
+    RenderDetailsGL::RenderDetailsGL(
+            char const *name,
+            char const *normalShader,
+            char const *normalShader3,
+            char const *simpleFragShader,
+            char const *simpleFragShader3,
+            std::shared_ptr<GameRequester> const &inGameRequester,
+            uint32_t inWidth, uint32_t inHeight,
+            bool isIntSurface)
             : renderDetails::RenderDetailsGL(inWidth, inHeight, isIntSurface),
+              m_renderDetailsName{name},
+              m_normalShader{normalShader},
+              m_normalShader3{normalShader3},
+              m_simpleFragShader{simpleFragShader},
+              m_simpleFragShader3{simpleFragShader3},
               m_programID{0}
     {
         loadPipeline(inGameRequester);
@@ -39,15 +50,17 @@ namespace normalMap {
         }
 
         if (m_usesIntSurface) {
-            m_programID = loadShaders(inGameRequester, NORMAL3_VERT_FILE,
-                                           SIMPLE3_FRAG_FILE);
+            m_programID = loadShaders(inGameRequester, m_normalShader3,
+                                           m_simpleFragShader3);
         } else {
-            m_programID = loadShaders(inGameRequester, NORMAL_VERT_FILE,
-                                           SIMPLE_FRAG_FILE);
+            m_programID = loadShaders(inGameRequester, m_normalShader,
+                                           m_simpleFragShader);
         }
     }
 
     renderDetails::ReferenceGL RenderDetailsGL::loadNew(
+            char const *name,
+            std::vector<char const *> const &shaders,
             std::shared_ptr<GameRequester> const &gameRequester,
             std::shared_ptr<RenderLoaderGL> const &,
             std::shared_ptr<graphicsGL::SurfaceDetails> const &surfaceDetails,
@@ -59,8 +72,14 @@ namespace normalMap {
             throw std::runtime_error("Invalid render details parameter type.");
         }
 
-        auto rd = std::make_shared<RenderDetailsGL>(gameRequester, surfaceDetails->surfaceWidth,
-                                                    surfaceDetails->surfaceHeight, surfaceDetails->useIntTexture);
+        if (shaders.size() != 4) {
+            throw std::runtime_error("Wrong number of shaders for Normal Map Render Details.");
+        }
+
+        auto rd = std::make_shared<RenderDetailsGL>(
+                name, shaders[0], shaders[1], shaders[2], shaders[3],
+                gameRequester, surfaceDetails->surfaceWidth,
+                surfaceDetails->surfaceHeight, surfaceDetails->useIntTexture);
 
         auto cod = std::make_shared<CommonObjectDataGL>(*parameters);
 
@@ -184,6 +203,12 @@ namespace normalMap {
         }
     }
 
-    RegisterGL<renderDetails::RenderDetailsGL, RenderDetailsGL> registerGL;
+    char constexpr const *NORMAL_VERT_GL_FILE ="shaders/normalGL.vert";
+    char constexpr const *NORMAL3_VERT_GL_FILE ="shaders/normalGL3.vert";
+    char constexpr const *SIMPLE_FRAG_GL_FILE = "shaders/simpleGL.frag";
+    char constexpr const *SIMPLE3_FRAG_GL_FILE = "shaders/simpleGL3.frag";
+    RegisterGL<renderDetails::RenderDetailsGL, RenderDetailsGL> registerGL(
+            normalMapRenderDetailsName,
+            std::vector<char const *>{NORMAL_VERT_GL_FILE, NORMAL3_VERT_GL_FILE, SIMPLE_FRAG_GL_FILE, SIMPLE3_FRAG_GL_FILE});
 
 } // namespace normalMap

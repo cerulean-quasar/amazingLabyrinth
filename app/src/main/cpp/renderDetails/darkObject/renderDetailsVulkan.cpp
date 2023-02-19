@@ -24,10 +24,6 @@
 #include "../../renderLoader/registerVulkan.hpp"
 
 namespace darkObject {
-    char constexpr const *RenderDetailsVulkan::SHADER_VERT_FILE;
-    char constexpr const *RenderDetailsVulkan::TEXTURE_SHADER_FRAG_FILE;
-    char constexpr const *RenderDetailsVulkan::COLOR_SHADER_FRAG_FILE;
-
     /* descriptor set for the MVP matrix and texture samplers */
     void DrawObjectDataVulkan::colorUpdateDescriptorSet(
             std::shared_ptr<vulkan::Device> const &inDevice,
@@ -424,15 +420,20 @@ namespace darkObject {
                 surfaceDetails->renderPass, m_descriptorPoolsTexture,
                 getBindingDescription(),
                 getAttributeDescriptions(),
-                SHADER_VERT_FILE, TEXTURE_SHADER_FRAG_FILE, nullptr);
+                m_vertexShader, m_textureFragShader, nullptr);
 
         m_pipelineColor = std::make_shared<vulkan::Pipeline>(
                 gameRequester, m_device, VkExtent2D{m_surfaceWidth, m_surfaceHeight},
                 surfaceDetails->renderPass, m_descriptorPoolsColor,
                 getBindingDescription(),
                 getAttributeDescriptions(),
-                SHADER_VERT_FILE, COLOR_SHADER_FRAG_FILE, m_pipelineTexture);
+                m_vertexShader, m_colorFragShader, m_pipelineTexture);
     }
 
-    RegisterVulkan<renderDetails::RenderDetailsVulkan, RenderDetailsVulkan> registerVulkan;
-}
+    char constexpr const *SHADER_VERT_VK_FILE = "shaders/darkShader.vert.spv";
+    char constexpr const *TEXTURE_SHADER_FRAG_VK_FILE = "shaders/darkTexture.frag.spv";
+    char constexpr const *COLOR_SHADER_FRAG_VK_FILE = "shaders/darkColor.frag.spv";
+    RegisterVulkan<renderDetails::RenderDetailsVulkan, RenderDetailsVulkan> registerVulkan(
+            darkObjectRenderDetailsName,
+            std::vector<char const *> {SHADER_VERT_VK_FILE, TEXTURE_SHADER_FRAG_VK_FILE, COLOR_SHADER_FRAG_VK_FILE});
+} // namespace darkObject
