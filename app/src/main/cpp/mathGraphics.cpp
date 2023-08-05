@@ -1,5 +1,5 @@
 /**
- * Copyright 2020 Cerulean Quasar. All Rights Reserved.
+ * Copyright 2023 Cerulean Quasar. All Rights Reserved.
  *
  *  This file is part of AmazingLabyrinth.
  *
@@ -22,6 +22,10 @@
 
 #include "mathGraphics.hpp"
 
+/* In GLM, the first subscript is the column (column-major order).
+ * So, for the matrix element: matrix[a][b], a is the column and
+ * b is the row for the element.
+ */
 glm::mat4 getDepthMinus1to1Matrix() {
     glm::mat4 matrix(1.0f);
     matrix[2][2] = 2.0f;

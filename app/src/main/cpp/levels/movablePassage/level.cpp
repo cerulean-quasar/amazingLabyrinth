@@ -99,10 +99,10 @@ namespace movablePassage {
                 m_gameBoardStartRowColumn.second + startColumn);
 
         // the fixed tunnel through the places for extra tunnel pieces at the bottom.
+        auto &comp = m_components[Component::ComponentType::straight];
         for (uint32_t k = m_nbrTileRowsForStart;
              k < m_nbrTileRowsForStart + nbrExtraTileRowsY / 2;
              k++) {
-            auto comp = m_components[Component::ComponentType::straight];
             auto pos = comp->add(k, m_gameBoardStartRowColumn.second + startColumn, 0.0f, true);
             auto &block = m_gameBoard.block(k, m_gameBoardStartRowColumn.second + startColumn);
             block.setComponent(comp, pos);
@@ -110,7 +110,6 @@ namespace movablePassage {
         }
 
         // the fixed tunnel through the places for extra tunnel pieces at the top.
-        auto &comp = m_components[Component::ComponentType::straight];
         for (uint32_t k = m_gameBoardEndRowColumn.first + 1;
              k < m_gameBoard.heightInTiles() - m_nbrTileRowsForEnd;
              k++) {

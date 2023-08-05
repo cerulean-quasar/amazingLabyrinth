@@ -86,7 +86,7 @@ void GameBoard::drawPlacements(
     }
 }
 
-// returs true if a redraw is needed.
+// returns true if a redraw is needed.
 // expects the position and distance in world space.
 // the distance is relative to the previous moved position, not relative to the start position.
 bool GameBoard::drag(
