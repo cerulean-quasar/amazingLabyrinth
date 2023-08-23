@@ -1,0 +1,29 @@
+{
+    "Components" : {
+        "Starter" : "starter",
+        "Level" : "testz",
+        "Finisher": "growingQuad"
+    },
+    "Starter" : {
+        "BallModel": "models/ball.modelcbor",
+        "BallTexture": "textures/levelStarter/ballLevelStarter.png",
+        "BounceEnabled": false,
+        "BallDiagonalRatio": 0.02,
+
+        "StartupMessages": [
+            "Test whether\ndepth is\nimplemented correctly",
+            "Two planes\nintersecting\nat x=z=0"
+        ]
+    },
+    "Level": {
+        "BallModel": "models/ball.modelcbor",
+        "BallTexture": "textures/pufferFish/floor.png",
+        "BounceEnabled": true,
+        "BallDiagonalRatio" : 0.025,
+
+        "HoleTexture": "textures/rollerBee/floor.png"
+    },
+    "Finisher": {
+        "Texture": "textures/beginning/starField.png"
+    }
+}

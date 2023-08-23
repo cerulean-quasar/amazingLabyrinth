@@ -2,7 +2,7 @@
 precision mediump float;
 
 /**
- * Copyright 2020 Cerulean Quasar. All Rights Reserved.
+ * Copyright 2023 Cerulean Quasar. All Rights Reserved.
  *
  *  This file is part of AmazingLabyrinth.
  *
@@ -57,5 +57,5 @@ void main() {
     // calculate shadows
     float shadow = ShadowCalculation(fragPosLightSpace);
 
-    gl_FragColor = vec4(fragColor + diffuse*(1.0 - shadow), 1.0);
+    gl_FragColor = vec4(vec3(0.2, 0.2, 0.2) + diffuse*(1.0 - shadow), 1.0) * vec4(fragColor, 1.0);
 }

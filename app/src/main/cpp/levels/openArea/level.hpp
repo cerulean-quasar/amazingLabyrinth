@@ -1,5 +1,5 @@
 /**
- * Copyright 2022 Cerulean Quasar. All Rights Reserved.
+ * Copyright 2023 Cerulean Quasar. All Rights Reserved.
  *
  *  This file is part of AmazingLabyrinth.
  *
@@ -94,10 +94,12 @@ namespace openArea {
 
             m_levelDrawer.setClearColor(glm::vec4{0.0f, 0.0f, 0.0f, 1.0f});
 
+            glm::vec3 ballColor{1.0f, 1.0f, 1.0f};
+
             // the ball
             m_objRefBall = m_levelDrawer.addObject(
-                    std::make_shared<levelDrawer::ModelDescriptionPath>(m_ballModel),
-                    std::make_shared<levelDrawer::TextureDescriptionPath>(m_ballTexture));
+                    std::make_shared<levelDrawer::ModelDescriptionPath>(m_ballModel, ballColor),
+                    nullptr);
 
             m_objDataRefBall = m_levelDrawer.addModelMatrixForObject(m_objRefBall, modelMatrixBall);
 

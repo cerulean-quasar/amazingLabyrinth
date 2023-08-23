@@ -1,5 +1,5 @@
 /**
- * Copyright 2022 Cerulean Quasar. All Rights Reserved.
+ * Copyright 2023 Cerulean Quasar. All Rights Reserved.
  *
  *  This file is part of AmazingLabyrinth.
  *
@@ -535,7 +535,7 @@ namespace fixedMaze {
             glm::mat4_cast(glm::angleAxis(3.1415926f / 2.0f, glm::vec3(1.0f, 0.0f, 0.0f)));
 
         auto floorModelDesc =
-                std::make_shared<levelDrawer::ModelDescriptionPath>(m_floorModel, true);
+                std::make_shared<levelDrawer::ModelDescriptionPath>(m_floorModel, glm::vec3{0.2, 0.2, 0.2}, true);
 
         // The model is a square.  Get the whole depth and normal maps (without stretching.  Then
         // find the hole and cut the model so that the hole appears in the center if possible, otherwise

@@ -1,5 +1,5 @@
 /**
- * Copyright 2020 Cerulean Quasar. All Rights Reserved.
+ * Copyright 2023 Cerulean Quasar. All Rights Reserved.
  *
  *  This file is part of AmazingLabyrinth.
  *
@@ -20,6 +20,7 @@
 
 #ifndef AMAZING_LABYRINTH_BASIC_LOAD_DATA_HPP
 #define AMAZING_LABYRINTH_BASIC_LOAD_DATA_HPP
+#include <string>
 namespace basic {
     struct LevelSaveData {
         int m_version;

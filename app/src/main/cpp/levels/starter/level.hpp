@@ -1,5 +1,5 @@
 /**
- * Copyright 2022 Cerulean Quasar. All Rights Reserved.
+ * Copyright 2023 Cerulean Quasar. All Rights Reserved.
  *
  *  This file is part of AmazingLabyrinth.
  *
@@ -104,11 +104,12 @@ namespace starter {
             glm::vec3 corridorHScale = glm::vec3{2 * (xpos - ballRadius()) / m_modelSize, size, size};
             glm::vec3 corridorVScale = glm::vec3{size, 2 * (ypos - ballRadius()) / m_modelSize, size};
             glm::vec3 zaxis = glm::vec3{0.0f, 0.0f, 1.0f};
+            glm::vec3 mazeColor = glm::vec3{0.8f, 0.8f, 0.8f};
 
             // the start of maze
             auto objIndex = m_levelDrawer.addObject(
-                    std::make_shared<levelDrawer::ModelDescriptionPath>(corridorBeginModel),
-                    std::make_shared<levelDrawer::TextureDescriptionPath>(corridorBeginImage));
+                    std::make_shared<levelDrawer::ModelDescriptionPath>(corridorBeginModel, mazeColor),
+                    nullptr);
             m_levelDrawer.addModelMatrixForObject(
                     objIndex,
                     glm::translate(glm::mat4(1.0f),
@@ -117,8 +118,8 @@ namespace starter {
 
             // the end of maze
             objIndex = m_levelDrawer.addObject(
-                    std::make_shared<levelDrawer::ModelDescriptionPath>(corridorEndModel),
-                    std::make_shared<levelDrawer::TextureDescriptionPath>(corridorEndImage));
+                    std::make_shared<levelDrawer::ModelDescriptionPath>(corridorEndModel, mazeColor),
+                    nullptr);
             m_levelDrawer.addModelMatrixForObject(
                     objIndex,
                     glm::translate(glm::mat4(1.0f),
@@ -127,8 +128,8 @@ namespace starter {
 
             // the corners of the maze
             objIndex = m_levelDrawer.addObject(
-                    std::make_shared<levelDrawer::ModelDescriptionPath>(corridorCornerModel),
-                    std::make_shared<levelDrawer::TextureDescriptionPath>(corridorCornerImage));
+                    std::make_shared<levelDrawer::ModelDescriptionPath>(corridorCornerModel, mazeColor),
+                    nullptr);
 
             // bottom corner
             m_levelDrawer.addModelMatrixForObject(
@@ -147,8 +148,8 @@ namespace starter {
 
             // the corridors of the maze
             objIndex = m_levelDrawer.addObject(
-                    std::make_shared<levelDrawer::ModelDescriptionPath>(corridorModel),
-                    std::make_shared<levelDrawer::TextureDescriptionPath>(corridorImage));
+                    std::make_shared<levelDrawer::ModelDescriptionPath>(corridorModel, mazeColor),
+                    nullptr);
 
             // bottom
             m_levelDrawer.addModelMatrixForObject(

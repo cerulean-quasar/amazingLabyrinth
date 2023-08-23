@@ -1,5 +1,5 @@
 /**
- * Copyright 2020 Cerulean Quasar. All Rights Reserved.
+ * Copyright 2023 Cerulean Quasar. All Rights Reserved.
  *
  *  This file is part of AmazingLabyrinth.
  *
@@ -73,7 +73,14 @@ namespace levelDrawer {
     class LoadModelSaxClass {
     public:
         LoadModelSaxClass()
-                : m_state{state::receivingKey} {}
+                : m_state{state::receivingKey},
+                  m_color{0.2f, 0.2f, 0.2f},
+                  m_substate{receivingArrayStart}{}
+
+        explicit LoadModelSaxClass(glm::vec3 color)
+                : m_state{state::receivingKey},
+                m_color{color},
+                m_substate{receivingArrayStart}{}
 
         void getVertices(
                 std::pair<std::vector<Vertex>, std::vector<uint32_t>> &verticesWithFaceNormals,
@@ -127,7 +134,7 @@ namespace levelDrawer {
                         vertex.texCoord = {0.0f, 0.0f};
                     }
 
-                    vertex.color = {0.2f, 0.2f, 0.2f};
+                    vertex.color = m_color;
 
                     if (verticesWithVertexNormals) {
                         Vertex vertexWithVertexNormal = vertex;
@@ -230,7 +237,7 @@ namespace levelDrawer {
             } else if (m_state == state::receivingNormals) {
                 m_normals.reserve(arrsize);
             } else if (m_state == state::receivingTexCoords) {
-                m_normals.reserve(arrsize);
+                m_texCoords.reserve(arrsize);
             }
             return true;
         }
@@ -293,6 +300,7 @@ namespace levelDrawer {
         };
 
         state m_state;
+        glm::vec3 m_color;
         substate m_substate;
         std::vector<std::vector<uint32_t>> m_indices;
         std::vector<float> m_normals;
@@ -323,7 +331,7 @@ namespace levelDrawer {
         std::istream assetIstream(modelStreamBuf.get());
 
         try {
-            LoadModelSaxClass sax;
+            LoadModelSaxClass sax{m_color};
 
             nlohmann::json j = nlohmann::json::sax_parse(assetIstream, &sax,
                                                          nlohmann::json::input_format_t::cbor);
@@ -338,7 +346,7 @@ namespace levelDrawer {
     ModelVertices ModelDescriptionQuad::getData(std::shared_ptr<GameRequester> const &) {
         ModelVertices vertices{};
         Vertex vertex = {};
-        vertex.color = {0.2f, 0.2f, 0.2f};
+        vertex.color = m_color;
         vertex.normal = {0.0f, 0.0f, 1.0f};
 
         vertex.pos = glm::vec3{-1.0f, 1.0f, 0.0f} + m_center;
@@ -372,7 +380,7 @@ namespace levelDrawer {
     ModelVertices ModelDescriptionCube::getData(std::shared_ptr<GameRequester> const &) {
         ModelVertices vertices{};
         Vertex vertex = {};
-        vertex.color = {0.2f, 0.2f, 0.2f};
+        vertex.color = m_color;
 
         std::array<glm::vec3, 8> positions = {
                 glm::vec3{-1.0f, 1.0f, 1.0f} + m_center,

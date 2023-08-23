@@ -1,5 +1,5 @@
 /**
- * Copyright 2022 Cerulean Quasar. All Rights Reserved.
+ * Copyright 2023 Cerulean Quasar. All Rights Reserved.
  *
  *  This file is part of AmazingLabyrinth.
  *
@@ -38,5 +38,5 @@ void main() {
     float diff = max(dot(fragNormal, lightDirection), 0.0);
     vec3 diffuse = diff * vec3(1.0, 1.0, 1.0);
     float falloff = 100*dot(lightVector, lightVector);
-    outColor = vec4((fragColor + diffuse)/falloff, 1.0);
+    outColor = vec4((vec3(0.2, 0.2, 0.2) + diffuse)/falloff, 1.0) * vec4(fragColor, 1.0);
 }

@@ -1,5 +1,5 @@
 /**
- * Copyright 2020 Cerulean Quasar. All Rights Reserved.
+ * Copyright 2023 Cerulean Quasar. All Rights Reserved.
  *
  *  This file is part of AmazingLabyrinth.
  *
@@ -70,8 +70,9 @@ namespace levelDrawer {
 
         ModelVertices getData(std::shared_ptr<GameRequester> const &gameRequester) override;
 
-        ModelDescriptionPath(std::string path, bool loadVertexNormalsAlso = false)
+        ModelDescriptionPath(std::string path, glm::vec3 color = glm::vec3{0.2f, 0.2f, 0.2f}, bool loadVertexNormalsAlso = false)
                 : m_path{std::move(path)},
+                m_color{color},
                 m_loadVertexNormals{loadVertexNormalsAlso}
         {}
 
@@ -83,11 +84,16 @@ namespace levelDrawer {
                 // should never happen
                 throw std::runtime_error("Comparing incompatible pointers");
             }
-            return m_path < otherPath->m_path;
+            if (m_path == otherPath->m_path) {
+                return compareLessVec3(m_color, otherPath->m_color);
+            } else {
+                return m_path < otherPath->m_path;
+            }
         }
 
     private:
         std::string m_path;
+        glm::vec3 m_color;
         bool m_loadVertexNormals;
 
         bool loadModel(
@@ -102,10 +108,12 @@ namespace levelDrawer {
         ModelVertices getData(std::shared_ptr<GameRequester> const &gameRequester) override;
 
         ModelDescriptionQuad()
-                : m_center{0.0f, 0.0f, 0.0f} {}
+                : m_center{0.0f, 0.0f, 0.0f},
+                  m_color{0.2f, 0.2f, 0.2f} {}
 
-        ModelDescriptionQuad(glm::vec3 const &center)
-                : m_center{center} {}
+        ModelDescriptionQuad(glm::vec3 const &center, glm::vec3 const &color)
+                : m_center{center},
+                  m_color{color} {}
 
     protected:
         bool compareLess(ModelDescription *other) override {
@@ -114,11 +122,18 @@ namespace levelDrawer {
                 // should never happen
                 throw std::runtime_error("Quad: Comparing incompatible pointers");
             }
-            return compareLessVec3(m_center, otherQuad->m_center);
+
+            bool ret = compareLessVec3(m_center, otherQuad->m_center);
+            if (!ret && !compareLessVec3(otherQuad->m_center, m_center)) {
+                return compareLessVec3(m_color, otherQuad->m_color);
+            } else {
+                return ret;
+            }
         }
 
     private:
         glm::vec3 m_center;
+        glm::vec3 m_color;
     };
 
     // creates a cube with each side length 2.0f and center at specified location
@@ -127,10 +142,12 @@ namespace levelDrawer {
         ModelVertices getData(std::shared_ptr<GameRequester> const &gameRequester) override;
 
         ModelDescriptionCube()
-                : m_center{0.0f, 0.0f, 0.0f} {}
+                : m_center{0.0f, 0.0f, 0.0f},
+                m_color {0.2f, 0.2f, 0.2f} {}
 
-        ModelDescriptionCube(glm::vec3 const &center)
-                : m_center{center} {}
+        ModelDescriptionCube(glm::vec3 const &center, glm::vec3 const &color)
+                : m_center{center},
+                m_color{color} {}
 
     protected:
         bool compareLess(ModelDescription *other) override {
@@ -139,11 +156,17 @@ namespace levelDrawer {
                 // should never happen
                 throw std::runtime_error("Cube: Comparing incompatible pointers");
             }
-            return compareLessVec3(m_center, otherCube->m_center);
+            bool ret = compareLessVec3(m_center, otherCube->m_center);
+            if (!ret && !compareLessVec3(otherCube->m_center, m_center)) {
+                return compareLessVec3(m_color, otherCube->m_color);
+            } else {
+                return ret;
+            }
         }
 
     private:
         glm::vec3 m_center;
+        glm::vec3 m_color;
     };
 }
 #endif /* AMAZING_LABYRINTH_MODEL_LOADER_HPP */
