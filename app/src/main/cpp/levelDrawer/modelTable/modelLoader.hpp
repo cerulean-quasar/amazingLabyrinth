@@ -40,6 +40,20 @@ namespace levelDrawer {
         glm::vec3 normal;
 
         bool operator==(const Vertex &other) const;
+        Vertex(glm::vec3 inPos,
+               glm::vec3 inColor,
+               glm::vec2 inTexCoord,
+               glm::vec3 inNormal)
+               : pos(inPos),
+                 color(inColor),
+                 texCoord(inTexCoord),
+                 normal(inNormal) {}
+        Vertex() {
+            pos = {0.0f, 0.0f, 0.0f};
+            color = { 0.0f, 0.0f, 0.0f};
+            texCoord = {0.0f, 0.0f};
+            normal = {0.0f, 0.0f, 0.0f};
+        }
     };
 
     using ModelVertices = std::pair<std::vector<Vertex>, std::vector<uint32_t>>;
@@ -60,6 +74,17 @@ namespace levelDrawer {
     protected:
         // returns true if this < other.
         virtual bool compareLess(ModelDescription *) = 0;
+    };
+
+    class ModelReader{
+    public:
+        virtual bool read(std::unique_ptr<std::streambuf> const &modelStreamBuf,
+                          ModelVertices &verticesWithFaceNormals,
+                          ModelVertices *verticesWithVertexNormals) = 0;
+
+
+        ModelReader() = default;
+        virtual ~ModelReader() = default;
     };
 
     class ModelDescriptionPath : public ModelDescription {
@@ -96,8 +121,11 @@ namespace levelDrawer {
         glm::vec3 m_color;
         bool m_loadVertexNormals;
 
-        bool loadModel(
+        std::shared_ptr<ModelReader> getReader();
+
+        static bool loadModel(
                 std::unique_ptr<std::streambuf> const &modelStreamBuf,
+                std::shared_ptr<ModelReader> &modelReader,
                 ModelVertices &verticesWithFaceNormals,
                 ModelVertices *verticesWithVertexNormals = nullptr);
     };
