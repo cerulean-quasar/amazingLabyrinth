@@ -26,13 +26,7 @@
 #include <glm/glm.hpp>
 #include "../common.hpp"
 
-class GameRequester;
 namespace levelDrawer {
-    char constexpr const *KeyVertices = "V";
-    char constexpr const *KeyTexCoords = "TX";
-    char constexpr const *KeyNormals = "N";
-    char constexpr const *KeyIndices = "I";
-
     struct Vertex {
         glm::vec3 pos;
         glm::vec3 color;
@@ -44,16 +38,72 @@ namespace levelDrawer {
                glm::vec3 inColor,
                glm::vec2 inTexCoord,
                glm::vec3 inNormal)
-               : pos(inPos),
-                 color(inColor),
-                 texCoord(inTexCoord),
-                 normal(inNormal) {}
+                : pos(inPos),
+                  color(inColor),
+                  texCoord(inTexCoord),
+                  normal(inNormal) {}
         Vertex() {
             pos = {0.0f, 0.0f, 0.0f};
             color = { 0.0f, 0.0f, 0.0f};
             texCoord = {0.0f, 0.0f};
             normal = {0.0f, 0.0f, 0.0f};
         }
+    };
+} // namespace levelDrawer
+
+namespace std {
+    template<>
+    struct hash<glm::vec4> {
+        size_t operator()(glm::vec4 const &vector) const {
+            return ((((hash<float>()(vector.r) ^
+                       (hash<float>()(vector.g) << 1)) >> 1) ^
+                     (hash<float>()(vector.b) << 1)) >> 1) ^
+                   (hash<float>()(vector.a) << 1);
+        }
+    };
+
+    template<>
+    struct hash<glm::vec3> {
+        size_t operator()(glm::vec3 const &vector) const {
+            return ((hash<float>()(vector.x) ^
+                     (hash<float>()(vector.y) << 1)) >> 1) ^
+                   (hash<float>()(vector.z) << 1);
+        }
+    };
+
+    template<>
+    struct hash<glm::vec2> {
+        size_t operator()(glm::vec2 const &vector) const {
+            return (hash<float>()(vector.x) ^ (hash<float>()(vector.y) << 1));
+        }
+    };
+
+    template<>
+    struct hash<levelDrawer::Vertex> {
+        size_t operator()(levelDrawer::Vertex const &vertex) const {
+            return ((((hash<glm::vec3>()(vertex.pos) ^ (hash<glm::vec3>()(vertex.color) << 1))
+                    >> 1) ^
+                     (hash<glm::vec2>()(vertex.texCoord) << 1)) >> 1) ^
+                   (hash<glm::vec3>()(vertex.normal) << 1);
+        }
+    };
+} // namespace std
+
+class GameRequester;
+namespace levelDrawer {
+    char constexpr const *KeyVertices = "V";
+    char constexpr const *KeyTexCoords = "TX";
+    char constexpr const *KeyFaceNormals = "N";
+    char constexpr const *KeyIndices = "I";
+    char constexpr const *KeyColors = "C";
+    char constexpr const *KeyVertexNormals = "NV";
+
+    enum AttributeTypes {
+        vertices,
+        faceNormals,
+        vertexNormals,
+        texCoords,
+        colors
     };
 
     using ModelVertices = std::pair<std::vector<Vertex>, std::vector<uint32_t>>;
@@ -123,9 +173,8 @@ namespace levelDrawer {
 
         std::shared_ptr<ModelReader> getReader();
 
-        static bool loadModel(
+        bool loadModel(
                 std::unique_ptr<std::streambuf> const &modelStreamBuf,
-                std::shared_ptr<ModelReader> &modelReader,
                 ModelVertices &verticesWithFaceNormals,
                 ModelVertices *verticesWithVertexNormals = nullptr);
     };

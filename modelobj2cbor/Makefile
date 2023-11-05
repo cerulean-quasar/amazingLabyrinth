@@ -4,10 +4,10 @@ GLM_INCLUDE_PATH = /opt/glm-0.9.9.5/glm
 BOOST_PATH=/opt/boost_1_70_0
 AMAZING_LABYRINTH = ../app/src/main/cpp
 
-CPPFLAGS := -Wall -Werror -std=c++14 -I$(JSON_INCLUDE_PATH) -I$(AMAZING_LABYRINTH) -I$(AMAZING_LABYRINTH)/levelDrawer/modelTable -I$(GLM_INCLUDE_PATH) -I$(TINY_OBJ_LOADER_INCLUDE_PATH) -D"BOOST_ROOT="$(BOOST_PATH) -I$(BOOST_PATH)
+CPPFLAGS := -Wall -Werror -std=c++17 -I$(JSON_INCLUDE_PATH) -I$(AMAZING_LABYRINTH) -I$(AMAZING_LABYRINTH)/levelDrawer/modelTable -I$(GLM_INCLUDE_PATH) -I$(TINY_OBJ_LOADER_INCLUDE_PATH) -D"BOOST_ROOT="$(BOOST_PATH) -I$(BOOST_PATH)
 DBGFLAGS = -ggdb
 NDBGFLAGS = -O3
-OBJS = model2cbor.o modelLoader.o
+OBJS = model2cbor.o modelLoader.o modelobj2cbor.o modelglb2cbor.o
 
 IMAGE_DIR=../imagesrc
 IMAGERESULTS_DIR=../app/src/main/assets/textures
@@ -15,7 +15,8 @@ IMAGEFILES=$(shell find $(IMAGE_DIR) -type f -name "*.xcf")
 
 MODEL_DIR=../modelsrc
 MODELRESULTS_DIR=../app/src/main/assets/models
-MODELFILES=$(shell find $(MODEL_DIR) -type f -name "*.obj")
+OBJFILES=$(shell find $(MODEL_DIR) -type f -name "*.obj")
+MODELFILES=$(OBJFILES) $(shell find $(MODEL_DIR) -type f -name "*.glb")
 
 CONFIG_DIR=../configsrc/levels
 CONFIGRESULTS_DIR=../app/src/main/assets/configs/levels
@@ -46,8 +47,10 @@ $(IMAGERESULTS_DIR)/%.png: $(IMAGE_DIR)/%.xcf
 	mkdir -p $(dir $@)
 	xcf2png $< -o - | pngquant --verbose --force -o $@ -
 
+$(MODELRESULTS_DIR)/%.modelcbor: $(MODEL_DIR)/%.glb model2cbor
+	./model2cbor -d $(dir $@) $<
+
 $(MODELRESULTS_DIR)/%.modelcbor: $(MODEL_DIR)/%.obj model2cbor
-	mkdir -p $(dir $@)
 	./model2cbor -d $(dir $@) $<
 
 $(CONFIGRESULTS_DIR)/%.cbor: $(CONFIG_DIR)/%.json json2cbor
