@@ -1,5 +1,5 @@
 /**
- * Copyright 2019 Cerulean Quasar. All Rights Reserved.
+ * Copyright 2023 Cerulean Quasar. All Rights Reserved.
  *
  *  This file is part of AmazingLabyrinth.
  *
@@ -119,6 +119,15 @@ namespace graphicsGL {
 
         glEnable(GL_BLEND);
         glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+        glEnable(GL_CULL_FACE);
+
+        /*
+        glDepthRangef(0.0f, 1.0f);
+        checkGraphicsError();
+        glDepthFunc(GL_LESS);
+        checkGraphicsError();
+         */
 
         /*
         GLint range[2];

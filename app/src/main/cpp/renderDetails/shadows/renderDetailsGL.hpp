@@ -1,5 +1,5 @@
 /**
- * Copyright 2022 Cerulean Quasar. All Rights Reserved.
+ * Copyright 2023 Cerulean Quasar. All Rights Reserved.
  *
  *  This file is part of AmazingLabyrinth.
  *
@@ -98,20 +98,19 @@ namespace shadows {
 
         RenderDetailsGL(
                 char const *name,
-                char const *vertexShader,
-                char const *fragShader,
+                char const *vertexShaderFile,
+                char const *fragmentShaderFile,
                 std::shared_ptr<GameRequester> const &inGameRequester,
                 uint32_t inWidth,
                 uint32_t inHeight,
                 bool usesIntSurface);
 
-        ~RenderDetailsGL() override {
-            glDeleteShader(m_depthProgramID);
-        }
+        ~RenderDetailsGL() override = default;
 
     private:
         char const *m_renderDetailsName;
-        GLuint m_depthProgramID;
+
+        std::shared_ptr<renderDetails::GLProgram> m_program;
 
         static renderDetails::ReferenceGL createReference(
                 std::shared_ptr<renderDetails::RenderDetailsGL> rd,

@@ -1,5 +1,5 @@
 /**
- * Copyright 2022 Cerulean Quasar. All Rights Reserved.
+ * Copyright 2023 Cerulean Quasar. All Rights Reserved.
  *
  *  This file is part of AmazingLabyrinth.
  *
@@ -33,14 +33,12 @@ namespace collectMaze {
         uint32_t m_numberCollectObjects;
         std::vector<std::pair<bool, glm::vec3>> m_collectionObjectLocations;
         std::deque<std::pair<uint32_t, uint32_t>> m_prevCells;
-        std::string m_collectModel;
-        std::string m_collectTexture;
-        bool m_collectObjsSameAsBall;
 
         levelDrawer::DrawObjReference m_objRefCollect;
         std::vector<levelDrawer::DrawObjDataReference> m_objDataRefCollect;
     public:
         static char constexpr const *m_name = "collectMaze";
+        static char constexpr const *ModelNameCollectObject = "CollectObject";
 
         Level(levelDrawer::Adaptor inLevelDrawer,
                 std::shared_ptr<LevelConfigData> const &lcd,
@@ -48,10 +46,7 @@ namespace collectMaze {
                 float floorZ)
                 : openAreaMaze::Level(std::move(inLevelDrawer), lcd, sd, floorZ),
                   m_numberCollectObjects{lcd->numberCollectObjects},
-                  collectBallScaleFactor{2.0f * m_scaleBall / 3.0f},
-                  m_collectModel{lcd->collectModel},
-                  m_collectTexture{lcd->collectTexture},
-                  m_collectObjsSameAsBall{m_collectModel == m_ballModel && m_collectTexture == m_ballTexture}
+                  collectBallScaleFactor{2.0f * m_scaleBall / 3.0f}
         {
             if (sd) {
                 for (size_t i = 0; i < sd->collectionObjLocations.size(); i++) {
@@ -69,12 +64,15 @@ namespace collectMaze {
                 generateCollectBallModelMatrices();
             }
 
-            if (m_collectObjsSameAsBall) {
+            auto const it = m_modelData.find(ModelNameCollectObject);
+            if (it == m_modelData.end()) {
                 m_objRefCollect = m_objRefBall;
             } else {
+                if (it->second.models.empty()) {
+                    throw std::runtime_error(std::string("Expected one model of type: ") + ModelNameCollectObject + " got zero.");
+                }
                 m_objRefCollect = m_levelDrawer.addObject(
-                        std::make_shared<levelDrawer::ModelDescriptionPath>(m_collectModel),
-                        std::make_shared<levelDrawer::TextureDescriptionPath>(m_collectTexture));
+                        it->second.models[0], getFirstTexture(it->second));
             }
 
             glm::mat4 scaleMatrix = glm::scale(glm::mat4(1.0f),

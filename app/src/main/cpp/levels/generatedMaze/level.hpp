@@ -1,5 +1,5 @@
 /**
- * Copyright 2022 Cerulean Quasar. All Rights Reserved.
+ * Copyright 2023 Cerulean Quasar. All Rights Reserved.
  *
  *  This file is part of AmazingLabyrinth.
  *
@@ -36,6 +36,8 @@
 namespace generatedMaze {
     class Level : public basic::Level {
     protected:
+        static const constexpr char *ModelNameWall = "Wall";
+
         using MazeWallModelMatrixGeneratorFcn = std::function<std::vector<glm::mat4>(
                 std::vector<bool> const &,
                 float width,
@@ -47,9 +49,6 @@ namespace generatedMaze {
         static constexpr float m_originalWallHeight = 3.0f;
         static constexpr unsigned int numberBlocksPerCell = 2;
         Random random;
-        std::vector<std::string> wallTextures;
-        std::string floorTexture;
-        std::string holeTexture;
         std::chrono::high_resolution_clock::time_point prevTime;
         bool drawHole;
         float m_scaleWallZ;
@@ -135,9 +134,6 @@ namespace generatedMaze {
               std::shared_ptr<renderDetails::Parameters> parametersFloorOverride = nullptr,
              MazeWallModelMatrixGeneratorFcn wallModelMatrixGeneratorFcn = getMazeWallModelMatricesGenerator())
                 : basic::Level(std::move(inLevelDrawer), lcd, floorZ, true, renderDetailsNameDefault, parametersDefault),
-                  wallTextures{lcd->wallTextureNames},
-                  floorTexture{lcd->mazeFloorTexture},
-                  holeTexture{lcd->holeTexture},
                   drawHole{true},
                   m_mazeBoard{lcd->numberRows,
                               static_cast<uint32_t>(std::floor((lcd->numberRows) * m_width / m_height)),
@@ -148,7 +144,8 @@ namespace generatedMaze {
             m_scaleBall = m_height / (lcd->numberRows * numberBlocksPerCell + 1) / m_originalBallDiameter;
             preGenerate();
 
-            if (wallTextures.empty()) {
+            auto const &modelWallData = findModelsAndTextures(ModelNameWall);
+            if (modelWallData.textures.empty()) {
                 throw std::runtime_error("Maze wall textures not initialized.");
             }
 
@@ -175,20 +172,19 @@ namespace generatedMaze {
                 if (m_wallTextureIndices.empty()) {
                     m_wallTextureIndices.reserve(modelMatricesMaze.size());
                     for (size_t i = 0; i < modelMatricesMaze.size(); i++) {
-                        m_wallTextureIndices.push_back(random.getUInt(0, wallTextures.size() - 1));
+                        m_wallTextureIndices.push_back(random.getUInt(0, modelWallData.textures.size() - 1));
                     }
                 }
             }
 
             // the floor
+            auto const &modelFloorData = findModelsAndTextures(ModelNameFloor);
             if (parametersFloorOverride == nullptr || renderDetailsNameFloorOverride.length() == 0) {
                 m_objRefFloor = m_levelDrawer.addObject(
-                        std::make_shared<levelDrawer::ModelDescriptionQuad>(),
-                        std::make_shared<levelDrawer::TextureDescriptionPath>(floorTexture));
+                        modelFloorData.models[0], getFirstTexture(modelFloorData));
             } else {
                 m_objRefFloor = m_levelDrawer.addObject(
-                        std::make_shared<levelDrawer::ModelDescriptionQuad>(),
-                        std::make_shared<levelDrawer::TextureDescriptionPath>(floorTexture),
+                        modelFloorData.models[0], getFirstTexture(modelFloorData),
                         renderDetailsNameFloorOverride, parametersFloorOverride);
             }
 
@@ -196,14 +192,15 @@ namespace generatedMaze {
 
             // the hole
             if (drawHole) {
+                auto const &modelHoleData = findModelsAndTextures(ModelNameHole);
                 if (parametersHoleOverride == nullptr || renderDetailsNameHoleOverride.length() == 0) {
                     m_objRefHole = m_levelDrawer.addObject(
-                            std::make_shared<levelDrawer::ModelDescriptionQuad>(),
-                            std::make_shared<levelDrawer::TextureDescriptionPath>(holeTexture));
+                            modelHoleData.models[0],
+                            getFirstTexture(modelHoleData));
                 } else {
                     m_objRefHole = m_levelDrawer.addObject(
-                            std::make_shared<levelDrawer::ModelDescriptionQuad>(),
-                            std::make_shared<levelDrawer::TextureDescriptionPath>(holeTexture),
+                            modelHoleData.models[0],
+                            getFirstTexture(modelHoleData),
                             renderDetailsNameHoleOverride, parametersHoleOverride);
                 }
             }
@@ -212,11 +209,11 @@ namespace generatedMaze {
 
             // the walls
             // always use the default renderDetails.
-            m_objRefsWalls.reserve(wallTextures.size());
-            for (auto wallTexture : wallTextures) {
+            m_objRefsWalls.reserve(modelWallData.textures.size());
+            for (auto wallTexture : modelWallData.textures) {
                 auto objIndex = m_levelDrawer.addObject(
-                        std::make_shared<levelDrawer::ModelDescriptionCube>(),
-                        std::make_shared<levelDrawer::TextureDescriptionPath>(wallTexture));
+                        modelWallData.models[0],
+                        wallTexture);
                 m_objRefsWalls.push_back(objIndex);
             }
 
@@ -229,14 +226,15 @@ namespace generatedMaze {
             }
 
             // the ball
+            auto const &modelBallData = findModelsAndTextures(ModelNameBall);
             if (parametersBallOverride == nullptr || renderDetailsNameBallOverride.length() == 0) {
                 m_objRefBall = m_levelDrawer.addObject(
-                        std::make_shared<levelDrawer::ModelDescriptionPath>(m_ballModel),
-                        std::make_shared<levelDrawer::TextureDescriptionPath>(m_ballTexture));
+                        modelBallData.models[0],
+                        getFirstTexture(modelBallData));
             } else {
                 m_objRefBall = m_levelDrawer.addObject(
-                        std::make_shared<levelDrawer::ModelDescriptionPath>(m_ballModel),
-                        std::make_shared<levelDrawer::TextureDescriptionPath>(m_ballTexture),
+                        modelBallData.models[0],
+                        getFirstTexture(modelBallData),
                         renderDetailsNameBallOverride, parametersBallOverride);
             }
 

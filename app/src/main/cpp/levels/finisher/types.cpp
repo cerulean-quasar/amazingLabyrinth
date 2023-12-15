@@ -1,5 +1,5 @@
 /**
- * Copyright 2020 Cerulean Quasar. All Rights Reserved.
+ * Copyright 2023 Cerulean Quasar. All Rights Reserved.
  *
  *  This file is part of AmazingLabyrinth.
  *
@@ -27,8 +27,6 @@
 #include "../../levelDrawer/textureTable/textureLoader.hpp"
 
 namespace manyQuadsCoverUp {
-    char constexpr const *LevelFinisher::m_name;
-
     LevelFinisher::LevelFinisher(
             levelDrawer::Adaptor inLevelDrawer, std::shared_ptr<LevelConfigData> const &lcd,
             float centerX, float centerY, float centerZ, float maxZ)
@@ -51,10 +49,10 @@ namespace manyQuadsCoverUp {
                             range / (totalNumberObjectsForSide - 1) * j - range / 2,
                             0.0f));
                 } else {
-                    translateVectors.push_back(glm::vec3(
+                    translateVectors.emplace_back(
                             m_width / (totalNumberObjectsForSide - 1) * i - m_width / 2.0f,
                             range / (totalNumberObjectsForSide - 1) * j - range / 2,
-                            0.0f));
+                            0.0f);
                 }
             }
         }
@@ -131,8 +129,6 @@ namespace manyQuadsCoverUp {
 } // namespace manyQuadsCoverUp
 
 namespace growingQuad {
-    char constexpr const *LevelFinisher::m_name;
-
     LevelFinisher::LevelFinisher(
             levelDrawer::Adaptor inLevelDrawer, std::shared_ptr<LevelConfigData> const &lcd,
             float centerX, float centerY, float centerZ, float maxZ)
@@ -140,6 +136,8 @@ namespace growingQuad {
               finalSize{1.5f * std::max(m_width, m_height)},
               minSize{0.005f * std::min(m_width, m_height)},
               imagePath{lcd->texture},
+              scaleVector{},
+              transVector{},
               m_objRef{0},
               m_objDataRef{0}
     {
@@ -147,6 +145,11 @@ namespace growingQuad {
         prevTime = std::chrono::high_resolution_clock::now();
         timeSoFar = 0.0f;
         scaleVector = {minSize, minSize, minSize};
+    }
+
+    void LevelFinisher::start() {
+        prevTime = std::chrono::high_resolution_clock::now();
+        timeSoFar = 0.0f;
         m_objRef = m_levelDrawer.addObject(
                 std::make_shared<levelDrawer::ModelDescriptionQuad>(),
                 std::make_shared<levelDrawer::TextureDescriptionPath>(imagePath));
@@ -154,11 +157,6 @@ namespace growingQuad {
                 m_objRef,
                 glm::translate(glm::mat4(1.0f), transVector) *
                 glm::scale(glm::mat4(1.0f), scaleVector));
-    }
-
-    void LevelFinisher::start() {
-        prevTime = std::chrono::high_resolution_clock::now();
-        timeSoFar = 0.0f;
     }
 
     bool

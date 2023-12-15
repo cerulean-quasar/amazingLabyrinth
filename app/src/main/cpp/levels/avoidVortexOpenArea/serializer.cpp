@@ -1,5 +1,5 @@
 /**
- * Copyright 2020 Cerulean Quasar. All Rights Reserved.
+ * Copyright 2023 Cerulean Quasar. All Rights Reserved.
  *
  *  This file is part of AmazingLabyrinth.
  *
@@ -49,21 +49,12 @@ namespace avoidVortexOpenArea {
         val.vortexes = j[Vortexes].get<std::vector<Point<float>>>();
     }
 
-    char constexpr const *HoleTexture = "HoleTexture";
-    char constexpr const *VortexTexture = "VortexTexture";
-    char constexpr const *StartVortexTexture = "StartVortexTexture";
     void to_json(nlohmann::json &j, LevelConfigData const &val) {
         to_json(j, boost::implicit_cast<basic::LevelConfigData const &>(val));
-        j[HoleTexture] = val.holeTexture;
-        j[VortexTexture] = val.vortexTexture;
-        j[StartVortexTexture] = val.startVortexTexture;
     }
 
     void from_json(nlohmann::json const &j, LevelConfigData &val) {
         from_json(j, boost::implicit_cast<basic::LevelConfigData &>(val));
-        val.holeTexture = j[HoleTexture].get<std::string>();
-        val.vortexTexture = j[VortexTexture].get<std::string>();
-        val.startVortexTexture = j[StartVortexTexture].get<std::string>();
     }
 
     std::vector<uint8_t> Level::saveData(levelTracker::GameSaveData const &gsd,

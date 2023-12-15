@@ -168,6 +168,32 @@ bool GameBoard::drag(
     return true;
 }
 
+std::set<ObjReference> addObjs(
+        levelDrawer::Adaptor &levelDrawer,
+        bool isLockedInPlaceRef,
+        std::vector<std::shared_ptr<levelDrawer::ModelDescription>> const &models,
+        std::vector<std::shared_ptr<levelDrawer::TextureDescription>> const &textures)
+{
+    std::set<ObjReference> ret;
+
+    if (models.empty()) {
+        throw std::runtime_error("Expected at least one model, got 0.");
+    }
+
+    if (textures.empty()) {
+        throw std::runtime_error("Expected at least one texture, got 0.");
+    }
+
+    for (size_t i = 0; i < std::max(models.size(), textures.size()); i++) {
+        auto objRef = levelDrawer.addObject(
+                models[i%models.size()], textures[i%textures.size()]);
+
+        ret.emplace(objRef, isLockedInPlaceRef, i % models.size(), i % textures.size());
+    }
+
+    return std::move(ret);
+}
+
 // returns true if a redraw is needed.
 // expects the position in world space.
 bool GameBoard::dragEnded(
@@ -262,9 +288,9 @@ bool GameBoard::tap(
         pos.z += blockSize()*(offBoardComponentScaleMultiplier + 1.0f/2.0f);
         scale *= offBoardComponentScaleMultiplier;
     }
-    glm::vec3 zaxis{0.0f, 0.0f, 1.0f};
+    glm::vec3 zAxis{0.0f, 0.0f, 1.0f};
     glm::mat4 modelMatrix = glm::translate(glm::mat4(1.0f), pos) *
-                            glm::rotate(glm::mat4(1.0f), placement.rotationAngle(), zaxis) *
+                            glm::rotate(glm::mat4(1.0f), placement.rotationAngle(), zAxis) *
                             glm::scale(glm::mat4(1.0f), glm::vec3{scale, scale, scale});
     levelDrawer.updateModelMatrixForObject(objRef.get().objRef.get(), objDataRef.get(), modelMatrix);
     return true;
@@ -388,7 +414,7 @@ std::pair<boost::optional<ObjReference>, boost::optional<levelDrawer::DrawObjDat
     if (!placement.movementAllowed()) {
         refs = component->objReferencesLockedComponent();
     }
-    if (refs.size() == 0) {
+    if (refs.empty()) {
         refs = component->objReferences();
     }
 
@@ -529,11 +555,11 @@ void movePlacement(
                     ref.objRef.get());
             if (newDataRef == boost::none) {
                 // transfer failed, we have to delete from the old ref and add to the new.
-                glm::vec3 zaxis{0.0f, 0.0f, 1.0f};
+                glm::vec3 zAxis{0.0f, 0.0f, 1.0f};
                 glm::vec3 pos = gameBoard.position(placement.row(), placement.col());
                 float scale = gameBoard.blockSize() / modelSize;
                 glm::mat4 modelMatrix = glm::translate(glm::mat4(1.0f), pos) *
-                                        glm::rotate(glm::mat4(1.0f), placement.rotationAngle(), zaxis) *
+                                        glm::rotate(glm::mat4(1.0f), placement.rotationAngle(), zAxis) *
                                         glm::scale(glm::mat4(1.0f), glm::vec3{scale, scale, scale});
                 levelDrawer.removeObjectData(oldRef.get().objRef.get(), dataRef.get());
                 newDataRef = levelDrawer.addModelMatrixForObject(ref.objRef.get(), modelMatrix);
@@ -570,7 +596,7 @@ void blockUnblockPlacements(
             }
         } else {
             // We encountered a loop.  Unblock the entire loop
-            std::shared_ptr<Component> nextComponent = newComponent;
+            std::shared_ptr<Component> const &nextComponent = newComponent;
             size_t index = newPlacementIndex;
             std::shared_ptr<Component> loopComponent = oldComponent;
             size_t loopIndex = oldPlacementIndex;

@@ -1,5 +1,5 @@
 /**
- * Copyright 2020 Cerulean Quasar. All Rights Reserved.
+ * Copyright 2023 Cerulean Quasar. All Rights Reserved.
  *
  *  This file is part of AmazingLabyrinth.
  *
@@ -54,5 +54,5 @@ void main() {
     float diff = max(dot(fragNormal, lightDirection), 0.0);
     vec3 diffuse = diff * vec3(1.0, 1.0, 1.0);
     float shadow = ShadowCalculation(fragPosLightSpace);
-    outColor = vec4(fragColor + diffuse*(1.0 - shadow), 1.0) * texture(texSampler, fragTexCoord);
+    outColor = vec4(diffuse*(1.0 - shadow), 1.0) * texture(texSampler, fragTexCoord);
 }

@@ -1,5 +1,5 @@
 /**
- * Copyright 2022 Cerulean Quasar. All Rights Reserved.
+ * Copyright 2023 Cerulean Quasar. All Rights Reserved.
  *
  *  This file is part of AmazingLabyrinth.
  *
@@ -126,7 +126,11 @@ namespace objectWithShadows {
             throw std::runtime_error("Invalid common object data type");
         }
 
-        GLuint programID = m_textureProgramID;
+        auto fb = cod->shadowsFramebuffer();
+
+        GLuint textureProgramID = m_textureProgram->programID();
+        GLuint colorProgramID = m_colorProgram->programID();
+        GLuint programID = textureProgramID;
         GLint MatrixID = -1;
         GLint normalMatrixID = -1;
         GLint textureID = -1;
@@ -135,9 +139,9 @@ namespace objectWithShadows {
             auto &modelData = drawObj->modelData();
             auto &textureData = drawObj->textureData();
             if (it == beginZValRefs ||
-                (programID == m_textureProgramID && !textureData) ||
-                    (programID == m_colorProgramID && textureData)) {
-                programID = textureData ? m_textureProgramID : m_colorProgramID;
+                (programID == textureProgramID && !textureData) ||
+                    (programID == colorProgramID && textureData)) {
+                programID = textureData ? textureProgramID : colorProgramID;
                 glUseProgram(programID);
                 checkGraphicsError();
 
@@ -162,8 +166,6 @@ namespace objectWithShadows {
                 glm::vec3 lightPos = cod->getLightSource(0);
                 glUniform3fv(lightPosID, 1, &lightPos[0]);
                 checkGraphicsError();
-
-                auto fb = cod->shadowsFramebuffer();
 
                 textureID = glGetUniformLocation(programID, "texShadowMap");
                 checkGraphicsError();
@@ -211,16 +213,25 @@ namespace objectWithShadows {
 
     RenderDetailsGL::RenderDetailsGL(
             char const *name,
-            char const *vertShader,
-            char const *textureFragShader,
-            char const *colorFragShader,
+            char const *vertShaderFile,
+            char const *textureFragShaderFile,
+            char const *colorFragShaderFile,
             std::shared_ptr<GameRequester> const &inGameRequester,
             uint32_t inWidth, uint32_t inHeight, bool usesIntSurface)
         : renderDetails::RenderDetailsGL(inWidth, inHeight, usesIntSurface),
         m_renderDetailsName{name},
-        m_textureProgramID{loadShaders(inGameRequester, vertShader, textureFragShader)},
-        m_colorProgramID{loadShaders(inGameRequester, vertShader, colorFragShader)}
-    {}
+        m_textureProgram{},
+        m_colorProgram{}
+    {
+        auto vertexShader = cacheShader(inGameRequester, vertShaderFile, GL_VERTEX_SHADER);
+        auto textureFragShader = cacheShader(inGameRequester, textureFragShaderFile, GL_FRAGMENT_SHADER);
+        auto colorFragShader = cacheShader(inGameRequester, colorFragShaderFile, GL_FRAGMENT_SHADER);
+
+        m_textureProgram = std::make_shared<renderDetails::GLProgram>(
+                std::vector{vertexShader, textureFragShader});
+        m_colorProgram = std::make_shared<renderDetails::GLProgram>(
+                std::vector{vertexShader, colorFragShader});
+    }
 
     static char constexpr const *SHADER_VERT_GL_FILE = "shaders/shaderGL.vert";
     static char constexpr const *TEXTURE_SHADER_FRAG_GL_FILE = "shaders/shaderGL.frag";

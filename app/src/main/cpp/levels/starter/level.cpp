@@ -1,5 +1,5 @@
 /**
- * Copyright 2022 Cerulean Quasar. All Rights Reserved.
+ * Copyright 2023 Cerulean Quasar. All Rights Reserved.
  *
  *  This file is part of AmazingLabyrinth.
  *
@@ -24,18 +24,6 @@
 #include "level.hpp"
 
 namespace starter {
-    char constexpr const *Level::corridorImage;
-    char constexpr const *Level::corridorBeginImage;
-    char constexpr const *Level::corridorEndImage;
-    char constexpr const *Level::corridorCornerImage;
-
-    char constexpr const *Level::corridorModel;
-    char constexpr const *Level::corridorBeginModel;
-    char constexpr const *Level::corridorEndModel;
-    char constexpr const *Level::corridorCornerModel;
-
-    char constexpr const *Level::m_name;
-
     void Level::clearText() {
         text.clear();
     }
@@ -122,7 +110,7 @@ namespace starter {
                     std::make_shared<levelDrawer::ModelDescriptionQuad>(),
                     std::make_shared<levelDrawer::TextureDescriptionText>(text[textIndex]));
 
-            m_objDataRefTextBox = m_levelDrawer.addModelMatrixForObject(
+            m_levelDrawer.addModelMatrixForObject(
                     m_objRefTextBox,
                     glm::translate(glm::mat4(1.0f), glm::vec3(-ballRadius(), 0.0f, m_mazeFloorZ)) *
                     glm::scale(glm::mat4(1.0f), textScale));

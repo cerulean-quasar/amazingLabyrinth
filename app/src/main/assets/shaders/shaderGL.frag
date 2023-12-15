@@ -2,7 +2,7 @@
 precision mediump float;
 
 /**
- * Copyright 2020 Cerulean Quasar. All Rights Reserved.
+ * Copyright 2023 Cerulean Quasar. All Rights Reserved.
  *
  *  This file is part of AmazingLabyrinth.
  *
@@ -35,7 +35,7 @@ float ShadowCalculation(vec4 pos) {
     /* perspective divide: transform clip space coordinates from range: [-w, w] to [-1, 1]. */
     vec3 projCoords = pos.xyz/pos.w;
 
-    /* the depth buffer is using coordinates in the range: [0, 1] */
+    /* the depth buffer is using coordinates in the range: [-1, 1] switch to coordinates between 0 and 1 */
     projCoords = projCoords * 0.5 + 0.5;
 
     if (projCoords.x > 1.0 || projCoords.x < 0.0 || projCoords.y > 1.0 || projCoords.y < 0.0 || projCoords.z > 1.0) {
@@ -59,5 +59,5 @@ void main() {
     // calculate shadows
     float shadow = ShadowCalculation(fragPosLightSpace);
 
-    gl_FragColor = vec4(fragColor + diffuse*(1.0 - shadow), 1.0) * texture2D(texSampler, fragTexCoord);
+    gl_FragColor = vec4(diffuse*(1.0 - shadow), 1.0) * texture2D(texSampler, fragTexCoord);
 }

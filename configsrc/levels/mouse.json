@@ -1,12 +1,13 @@
 {
     "Components": {
-        "Starter": "starter",
-        "Level": "rotatablePassage",
-        "Finisher": "manyQuadsCoverUp"
+        "Starter": {
+            "Name": "starter",
+            "ExtraCfgFile": "configs/levels/starterModelCfg.cbor"
+        },
+        "Level": { "Name": "rotatablePassage" },
+        "Finisher": { "Name": "manyQuadsCoverUp" }
     },
     "Starter": {
-        "BallModel": "models/ball.modelcbor",
-        "BallTexture": "textures/levelStarter/ballLevelStarter.png",
         "BounceEnabled": false,
         "BallDiagonalRatio": 0.02,
 
@@ -16,44 +17,61 @@
         ]
     },
     "Level": {
-        "BallModel": "models/mouse/mouse.modelcbor",
-        "BallTexture": "textures/mouse/mouse.png",
         "BounceEnabled": false,
         "BallDiagonalRatio": 0.0,
 
-        "HoleModel": "models/mouse/cheese.modelcbor",
-        "HoleTexture": "textures/mouse/cheese.png",
         "NumberRows": 15,
         "DfsSearch": true,
-        "BorderTextures": [ "textures/rollerBee/wallFlower1.png",
-                            "textures/rollerBee/wallFlower2.png",
-                            "textures/rollerBee/wallFlower3.png",
-                            "textures/rollerBee/wallFlower4.png" ],
-        "Straight": {
-            "Model": "models/movablePassage/straight.modelcbor",
-            "Texture": "textures/mouse/wall.png",
-            "LockedInPlaceTexture": "textures/mouse/wallWithFlower.png"
-        },
-        "Turn": {
-            "Model": "models/movablePassage/turn.modelcbor",
-            "Texture": "textures/mouse/wall.png",
-            "LockedInPlaceTexture": "textures/mouse/wallWithFlower.png"
-        },
-        "CrossJunction": {
-            "Model": "models/movablePassage/crossjunction.modelcbor",
-            "Texture": "textures/mouse/wall.png",
-            "LockedInPlaceTexture": "textures/mouse/wallWithFlower.png"
-        },
-        "TJunction": {
-            "Model": "models/movablePassage/tjunction.modelcbor",
-            "Texture": "textures/mouse/wall.png",
-            "LockedInPlaceTexture": "textures/mouse/wallWithFlower.png"
-        },
-        "DeadEnd": {
-            "Model": "models/movablePassage/deadEnd.modelcbor",
-            "Texture": "textures/mouse/wall.png",
-            "LockedInPlaceTexture": "textures/mouse/wallWithFlower.png"
-        }
+        "ModelConfigs": [
+            {
+                "Name": "Ball",
+                "Models": [ "models/mouse/mouse.modelcbor" ],
+                "Textures": [ "textures/mouse/mouse.png" ]
+            },
+            {
+                "Name": "Hole",
+                "Models": [ "models/mouse/cheese.modelcbor" ],
+                "Textures": [ "textures/mouse/cheese.png" ]
+            },
+            {
+                "Name": "Border",
+                "Type": 2,
+                "Textures": [ "textures/rollerBee/wallFlower1.png",
+                              "textures/rollerBee/wallFlower2.png",
+                              "textures/rollerBee/wallFlower3.png",
+                              "textures/rollerBee/wallFlower4.png" ]
+            },
+            {
+                "Name": "Straight",
+                "Models": [ "models/movablePassage/straight.modelcbor" ],
+                "Textures": [ "textures/mouse/wall.png" ],
+                "AlternateTextures": [ "textures/mouse/wallWithFlower.png" ]
+            },
+            {
+                "Name": "Turn",
+                "Models": [ "models/movablePassage/turn.modelcbor" ],
+                "Textures": [ "textures/mouse/wall.png" ],
+                "AlternateTextures": [ "textures/mouse/wallWithFlower.png" ]
+            },
+            {
+                "Name": "CrossJunction",
+                "Models": [ "models/movablePassage/crossjunction.modelcbor" ],
+                "Textures": [ "textures/mouse/wall.png" ],
+                "AlternateTextures": [ "textures/mouse/wallWithFlower.png" ]
+            },
+            {
+                "Name": "TJunction",
+                "Models": [ "models/movablePassage/tjunction.modelcbor" ],
+                "Textures": [ "textures/mouse/wall.png" ],
+                "AlternateTextures": [ "textures/mouse/wallWithFlower.png" ]
+            },
+            {
+                "Name": "DeadEnd",
+                "Models": [ "models/movablePassage/deadEnd.modelcbor" ],
+                "Textures": [ "textures/mouse/wall.png" ],
+                "AlternateTextures": [ "textures/mouse/wallWithFlower.png" ]
+            }
+        ]
     },
     "Finisher": {
         "Textures": [ "textures/bunny/hole.png" ]

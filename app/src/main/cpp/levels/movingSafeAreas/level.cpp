@@ -1,5 +1,5 @@
 /**
- * Copyright 2022 Cerulean Quasar. All Rights Reserved.
+ * Copyright 2023 Cerulean Quasar. All Rights Reserved.
  *
  *  This file is part of AmazingLabyrinth.
  *
@@ -25,8 +25,6 @@
 #include "loadData.hpp"
 
 namespace movingSafeAreas {
-    char constexpr const *Level::m_name;
-
     void Level::preGenerate() {
         m_quadScaleY = m_height / (numberOfMidQuadRows + 2.0f) / m_quadOriginalSize;
         m_startQuadPosition = {0.0f, -maxY + m_quadScaleY * m_quadOriginalSize / 2.0f,
@@ -50,8 +48,8 @@ namespace movingSafeAreas {
         Random randomGenerator;
         for (uint32_t i = 0; i < numberOfMidQuadRows; i++) {
             MovingQuadRow row;
-            int numberOfQuadsInRow = randomGenerator.getUInt(minQuadsInRow, maxQuadsInRow);
-            int direction = randomGenerator.getUInt(0, 1) * 2 - 1;
+            uint32_t numberOfQuadsInRow = randomGenerator.getUInt(minQuadsInRow, maxQuadsInRow);
+            uint32_t direction = randomGenerator.getUInt(0, 1) * 2 - 1;
             row.speed = direction *
                         randomGenerator.getFloat(minQuadMovingSpeed(), maxQuadMovingSpeed());
 
@@ -61,7 +59,7 @@ namespace movingSafeAreas {
             float xpos = randomGenerator.getFloat(-maxX, maxX - xscale *
                                                                 (1.5f * numberOfQuadsInRow - 0.5f) *
                                                                 m_quadOriginalSize);
-            for (int j = 0; j < numberOfQuadsInRow; j++) {
+            for (uint32_t j = 0; j < numberOfQuadsInRow; j++) {
                 /*
                 glm::vec3 pos{row.scale.x*m_quadOriginalSize*j + spaceBetweenQuadsX * j - xpos,
                               m_quadScaleY*m_quadOriginalSize*(i+1.5f)-maxY,

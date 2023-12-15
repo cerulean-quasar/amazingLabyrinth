@@ -1,5 +1,5 @@
 /**
- * Copyright 2022 Cerulean Quasar. All Rights Reserved.
+ * Copyright 2023 Cerulean Quasar. All Rights Reserved.
  *
  *  This file is part of AmazingLabyrinth.
  *
@@ -110,16 +110,13 @@ namespace objectNoShadows {
                 uint32_t inHeight,
                 bool usesIntSurface);
 
-        ~RenderDetailsGL() override {
-            glDeleteShader(m_textureProgramID);
-            glDeleteProgram(m_colorProgramID);
-        }
+        ~RenderDetailsGL() override = default;
 
     private:
         char const *m_renderDetailsName;
 
-        GLuint m_textureProgramID;
-        GLuint m_colorProgramID;
+        std::shared_ptr<renderDetails::GLProgram> m_textureProgram;
+        std::shared_ptr<renderDetails::GLProgram> m_colorProgram;
 
         static renderDetails::ReferenceGL createReference(
                 std::shared_ptr<renderDetails::RenderDetailsGL> rd,

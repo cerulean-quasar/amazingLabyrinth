@@ -37,16 +37,6 @@
 namespace starter {
     class Level : public basic::Level {
     private:
-        static char constexpr const *corridorImage = "textures/levelStarter/corridor.png";
-        static char constexpr const *corridorBeginImage = "textures/levelStarter/corridor.png";
-        static char constexpr const *corridorEndImage = "textures/levelStarter/end.png";
-        static char constexpr const *corridorCornerImage = "textures/levelStarter/corridor.png";
-
-        static char constexpr const *corridorModel = "models/levelStarter/corridor.modelcbor";
-        static char constexpr const *corridorBeginModel = "models/levelStarter/start.modelcbor";
-        static char constexpr const *corridorEndModel = "models/levelStarter/end.modelcbor";
-        static char constexpr const *corridorCornerModel = "models/levelStarter/corner.modelcbor";
-
         static float constexpr m_wallThickness = m_modelSize / 10.0f;
 
         float const maxPosX;
@@ -67,6 +57,13 @@ namespace starter {
 
         levelDrawer::DrawObjReference m_objRefTextBox;
         levelDrawer::DrawObjDataReference m_objDataRefTextBox;
+    protected:
+        static char constexpr const *ModelNameCorridor = "Corridor";
+        static char constexpr const *ModelNameMazeBegin = "Begin";
+        static char constexpr const *ModelNameMazeEnd = "End";
+        static char constexpr const *ModelNameCorridorCorner = "CorridorCorner";
+        static char constexpr const *ModelNameTextBox = "TextBox";
+
     public:
         static char constexpr const *m_name = "starter";
 
@@ -107,9 +104,8 @@ namespace starter {
             glm::vec3 mazeColor = glm::vec3{0.8f, 0.8f, 0.8f};
 
             // the start of maze
-            auto objIndex = m_levelDrawer.addObject(
-                    std::make_shared<levelDrawer::ModelDescriptionPath>(corridorBeginModel, mazeColor),
-                    nullptr);
+            auto const &modelStartMazeData = findModelsAndTextures(ModelNameMazeBegin);
+            auto objIndex = m_levelDrawer.addObject(modelStartMazeData.models[0], getFirstTexture(modelStartMazeData));
             m_levelDrawer.addModelMatrixForObject(
                     objIndex,
                     glm::translate(glm::mat4(1.0f),
@@ -117,9 +113,8 @@ namespace starter {
                     glm::scale(glm::mat4(1.0f), cornerScale));
 
             // the end of maze
-            objIndex = m_levelDrawer.addObject(
-                    std::make_shared<levelDrawer::ModelDescriptionPath>(corridorEndModel, mazeColor),
-                    nullptr);
+            auto const &modelEndMazeData = findModelsAndTextures(ModelNameMazeEnd);
+            objIndex = m_levelDrawer.addObject(modelEndMazeData.models[0], getFirstTexture(modelEndMazeData));
             m_levelDrawer.addModelMatrixForObject(
                     objIndex,
                     glm::translate(glm::mat4(1.0f),
@@ -127,9 +122,8 @@ namespace starter {
                     glm::scale(glm::mat4(1.0f), cornerScale));
 
             // the corners of the maze
-            objIndex = m_levelDrawer.addObject(
-                    std::make_shared<levelDrawer::ModelDescriptionPath>(corridorCornerModel, mazeColor),
-                    nullptr);
+            auto const &modelCornerData = findModelsAndTextures(ModelNameCorridorCorner);
+            objIndex = m_levelDrawer.addObject(modelCornerData.models[0], getFirstTexture(modelCornerData));
 
             // bottom corner
             m_levelDrawer.addModelMatrixForObject(
@@ -147,9 +141,8 @@ namespace starter {
                     glm::scale(glm::mat4(1.0f), cornerScale));
 
             // the corridors of the maze
-            objIndex = m_levelDrawer.addObject(
-                    std::make_shared<levelDrawer::ModelDescriptionPath>(corridorModel, mazeColor),
-                    nullptr);
+            auto const &modelCorridorData = findModelsAndTextures(ModelNameCorridor);
+            objIndex = m_levelDrawer.addObject(modelCorridorData.models[0], getFirstTexture(modelCorridorData));
 
             // bottom
             m_levelDrawer.addModelMatrixForObject(
@@ -175,9 +168,8 @@ namespace starter {
                     glm::rotate(glm::mat4(1.0), glm::radians(90.0f), zaxis));
 
             // ball
-            m_objRefBall = m_levelDrawer.addObject(
-                    std::make_shared<levelDrawer::ModelDescriptionPath>(m_ballModel),
-                    std::make_shared<levelDrawer::TextureDescriptionPath>(m_ballTexture));
+            auto const &modelBallData = findModelsAndTextures(ModelNameBall);
+            m_objRefBall = m_levelDrawer.addObject(modelBallData.models[0], getFirstTexture(modelBallData));
 
             glm::mat4 modelMatrix = glm::translate(glm::mat4(1.0f), m_ball.position) *
                                    glm::mat4_cast(m_ball.totalRotated) *
@@ -185,9 +177,9 @@ namespace starter {
             m_objDataRefBall = m_levelDrawer.addModelMatrixForObject(
                     m_objRefBall, modelMatrix);
 
-            // the text box
-            m_objRefTextBox = m_levelDrawer.addObject(
-                    std::make_shared<levelDrawer::ModelDescriptionQuad>(),
+            // the text box at the center of the maze
+            auto const &modelTextBoxData = findModelsAndTextures(ModelNameTextBox);
+            m_objRefTextBox = m_levelDrawer.addObject(modelTextBoxData.models[0],
                     std::make_shared<levelDrawer::TextureDescriptionText>(text[textIndex]));
 
             m_objDataRefTextBox = m_levelDrawer.addModelMatrixForObject(

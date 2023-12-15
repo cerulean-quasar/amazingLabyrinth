@@ -1,5 +1,5 @@
 /**
- * Copyright 2020 Cerulean Quasar. All Rights Reserved.
+ * Copyright 2023 Cerulean Quasar. All Rights Reserved.
  *
  *  This file is part of AmazingLabyrinth.
  *
@@ -89,42 +89,29 @@ namespace movablePassage {
         val.col = j[Col].get<uint32_t>();
     }
 
-    char constexpr const *Model = "Model";
-    char constexpr const *Texture = "Texture";
-    char constexpr const *NumberPlacements = "NumberPlacements";
-    void to_json(nlohmann::json &j, ComponentConfig const &val) {
-        j[Model] = val.model;
-        j[Texture] = val.texture;
-        j[NumberPlacements] = val.numberPlacements;
+    char constexpr const *Straight = "Straight";
+    char constexpr const *Turn = "Turn";
+    char constexpr const *CrossJunction = "CrossJunction";
+    char constexpr const *TJunction = "TJunction";
+    char constexpr const *NumberPlacementsStr = "NumberPlacements";
+    void to_json(nlohmann::json &j, NumberPlacements const &val) {
+        j[Straight] = val.straight;
+        j[Turn] = val.turn;
+        j[CrossJunction] = val.crossJunction;
+        j[TJunction] = val.tJunction;
     }
 
-    void from_json(nlohmann::json const &j, ComponentConfig &val) {
-        val.model = j[Model].get<std::string>();
-        val.texture = j[Texture].get<std::string>();
-        val.numberPlacements = j[NumberPlacements].get<uint32_t>();
+    void from_json(nlohmann::json const &j, NumberPlacements &val) {
+        val.straight = j[Straight].get<uint32_t>();
+        val.turn = j[Turn].get<uint32_t>();
+        val.crossJunction = j[CrossJunction].get<uint32_t>();
+        val.tJunction = j[TJunction].get<uint32_t>();
     }
 
     char constexpr const *NumberTilesX = "NumberTilesX";
     char constexpr const *NumberTilesY = "NumberTilesY";
     char constexpr const *StartColumn = "StartColumn";
     char constexpr const *EndColumn = "EndColumn";
-    char constexpr const *EndTexture = "EndTexture";
-    char constexpr const *EndOffBoardTexture = "EndOffBoardTexture";
-    char constexpr const *PlacementLockedInPlaceTexture = "PlacementLockedInPlaceTexture";
-    char constexpr const *RockModels = "RockModels";
-    char constexpr const *RockTextures = "RockTextures";
-    char constexpr const *DirtModels = "DirtModels";
-    char constexpr const *DirtTextures = "DirtTextures";
-    char constexpr const *BeginningSideModels = "BeginningSideModels";
-    char constexpr const *BeginningSideTextures = "BeginningSideTextures";
-    char constexpr const *BeginningOpenModels = "BeginningOpenModels";
-    char constexpr const *BeginningOpenTextures = "BeginningOpenTextures";
-    char constexpr const *BeginningCornerModels = "BeginningCornerModels";
-    char constexpr const *BeginningCornerTextures = "BeginningCornerTextures";
-    char constexpr const *Straight = "Straight";
-    char constexpr const *Turn = "Turn";
-    char constexpr const *CrossJunction = "CrossJunction";
-    char constexpr const *TJunction = "TJunction";
     char constexpr const *RockPlacements = "RockPlacements";
     void to_json(nlohmann::json &j, LevelConfigData const &val) {
         to_json(j, boost::implicit_cast<basic::LevelConfigData const &>(val));
@@ -133,27 +120,7 @@ namespace movablePassage {
         j[NumberTilesY] = val.numberTilesY;
         j[StartColumn] = val.startColumn;
         j[EndColumn] = val.endColumn;
-        j[EndTexture] = val.endTexture;
-        j[EndOffBoardTexture] = val.endOffBoardTexture;
-        j[PlacementLockedInPlaceTexture] = val.placementLockedInPlaceTexture;
-        j[RockModels] = val.rockModels;
-        j[RockTextures] = val.rockTextures;
-        j[DirtModels] = val.dirtModels;
-        j[DirtTextures] = val.dirtTextures;
-
-        j[BeginningSideModels] = val.beginningSideModels;
-        j[BeginningSideTextures] = val.beginningSideTextures;
-
-        j[BeginningOpenModels] = val.beginningOpenModels;
-        j[BeginningOpenTextures] = val.beginningOpenTextures;
-
-        j[BeginningCornerModels] = val.beginningCornerModels;
-        j[BeginningCornerTextures] = val.beginningCornerTextures;
-
-        j[Straight] = val.straight;
-        j[Turn] = val.turn;
-        j[CrossJunction] = val.crossjunction;
-        j[TJunction] = val.tjunction;
+        j[NumberPlacementsStr] = val.nbrPlacements;
         j[RockPlacements] = val.rockPlacements;
     }
 
@@ -164,27 +131,7 @@ namespace movablePassage {
         val.numberTilesY = j[NumberTilesY].get<uint32_t>();
         val.startColumn = j[StartColumn].get<uint32_t>();
         val.endColumn = j[EndColumn].get<uint32_t>();
-        val.endTexture = j[EndTexture].get<std::string>();
-        val.endOffBoardTexture = j[EndOffBoardTexture].get<std::string>();
-        val.placementLockedInPlaceTexture = j[PlacementLockedInPlaceTexture].get<std::string>();
-        val.rockModels = j[RockModels].get<std::vector<std::string>>();
-        val.rockTextures = j[RockTextures].get<std::vector<std::string>>();
-        val.dirtModels = j[DirtModels].get<std::vector<std::string>>();
-        val.dirtTextures = j[DirtTextures].get<std::vector<std::string>>();
-
-        val.beginningSideModels = j[BeginningSideModels].get<std::vector<std::string>>();
-        val.beginningSideTextures = j[BeginningSideTextures].get<std::vector<std::string>>();
-
-        val.beginningOpenModels = j[BeginningOpenModels].get<std::vector<std::string>>();
-        val.beginningOpenTextures = j[BeginningOpenTextures].get<std::vector<std::string>>();
-
-        val.beginningCornerModels = j[BeginningCornerModels].get<std::vector<std::string>>();
-        val.beginningCornerTextures = j[BeginningCornerTextures].get<std::vector<std::string>>();
-
-        val.straight = j[Straight].get<ComponentConfig>();
-        val.turn = j[Turn].get<ComponentConfig>();
-        val.crossjunction = j[CrossJunction].get<ComponentConfig>();
-        val.tjunction = j[TJunction].get<ComponentConfig>();
+        val.nbrPlacements = j[NumberPlacementsStr].get<NumberPlacements>();
         val.rockPlacements = j[RockPlacements].get<std::vector<RockPlacement>>();
     }
 

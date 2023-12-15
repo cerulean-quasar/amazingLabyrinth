@@ -1,5 +1,5 @@
 /**
- * Copyright 2020 Cerulean Quasar. All Rights Reserved.
+ * Copyright 2023 Cerulean Quasar. All Rights Reserved.
  *
  *  This file is part of AmazingLabyrinth.
  *
@@ -61,51 +61,63 @@ namespace levelDrawer {
                         : m_numberIndices{},
                         m_indexBufferWithVertexNormals{}
         {
-            std::pair<ModelVertices, ModelVertices> modelData;
-            if (model->shouldLoadVertexNormals()) {
-                modelData = model->getDataWithVertexNormalsAlso(gameRequester);
-            } else {
-                modelData.first = model->getData(gameRequester);
+            std::pair<ModelVertices, ModelVertices> modelData = model->getData(gameRequester);
+
+            ModelVertices *firstVerticesToLoad = nullptr;
+            ModelVertices *secondVerticesToLoad = nullptr;
+            switch (model->normalsToLoad()) {
+                case 0:
+                    throw std::runtime_error("ModelDescription is not loading any vertices.");
+                case levelDrawer::ModelDescription::LOAD_BOTH:
+                    secondVerticesToLoad = &modelData.second;
+                    /* continue on */
+                case levelDrawer::ModelDescription::LOAD_FACE_NORMALS:
+                    firstVerticesToLoad = &modelData.first;
+                    break;
+                case levelDrawer::ModelDescription::LOAD_VERTEX_NORMALS:
+                    firstVerticesToLoad = &modelData.second;
+                    break;
             }
 
-            if (modelData.first.first.size() == 0 || modelData.first.second.size() == 0) {
+            if (firstVerticesToLoad->first.size() == 0 || firstVerticesToLoad->second.size() == 0) {
                 throw std::runtime_error("Error: model has no vertices or indices");
             }
 
-            m_numberIndices = modelData.first.second.size();
+            m_numberIndices = firstVerticesToLoad->second.size();
 
-            m_vertexBuffer = std::make_shared<vulkan::Buffer>(inDevice, sizeof(modelData.first.first[0]) *
-                                                                        modelData.first.first.size(),
+            m_vertexBuffer = std::make_shared<vulkan::Buffer>(inDevice, sizeof(firstVerticesToLoad->first[0]) *
+                                                                        firstVerticesToLoad->first.size(),
                                                               VK_BUFFER_USAGE_TRANSFER_DST_BIT |
                                                               VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
                                                               VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
-            m_indexBuffer = std::make_shared<vulkan::Buffer>(inDevice, sizeof(modelData.first.second[0]) *
-                                                                       modelData.first.second.size(),
+            m_indexBuffer = std::make_shared<vulkan::Buffer>(inDevice, sizeof(firstVerticesToLoad->second[0]) *
+                                                                       firstVerticesToLoad->second.size(),
                                                              VK_BUFFER_USAGE_TRANSFER_DST_BIT |
                                                              VK_BUFFER_USAGE_INDEX_BUFFER_BIT,
                                                              VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 
-            copyVerticesToBuffer<Vertex>(inPool, modelData.first.first, *m_vertexBuffer);
-            vulkan::copyIndicesToBuffer(inPool, modelData.first.second, *m_indexBuffer);
+            copyVerticesToBuffer<Vertex>(inPool, firstVerticesToLoad->first, *m_vertexBuffer);
+            vulkan::copyIndicesToBuffer(inPool, firstVerticesToLoad->second, *m_indexBuffer);
 
-
-            m_numberIndicesWithVertexNormals = modelData.second.second.size();
-            if (m_numberIndicesWithVertexNormals > 0) {
+            if (secondVerticesToLoad) {
+                m_numberIndicesWithVertexNormals = modelData.second.second.size();
                 m_vertexBufferWithVertexNormals = std::make_shared<vulkan::Buffer>(inDevice,
-                                                                  sizeof(modelData.second.first[0]) *
-                                                                  modelData.second.first.size(),
-                                                                  VK_BUFFER_USAGE_TRANSFER_DST_BIT |
-                                                                  VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
-                                                                  VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+                                                                                   sizeof(secondVerticesToLoad->first[0]) *
+                                                                                   secondVerticesToLoad->first.size(),
+                                                                                   VK_BUFFER_USAGE_TRANSFER_DST_BIT |
+                                                                                   VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
+                                                                                   VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
                 m_indexBufferWithVertexNormals = std::make_shared<vulkan::Buffer>(inDevice,
-                                                                 sizeof(modelData.second.second[0]) *
-                                                                 modelData.second.second.size(),
-                                                                 VK_BUFFER_USAGE_TRANSFER_DST_BIT |
-                                                                 VK_BUFFER_USAGE_INDEX_BUFFER_BIT,
-                                                                 VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+                                                                                  sizeof(secondVerticesToLoad->second[0]) *
+                                                                                  secondVerticesToLoad->second.size(),
+                                                                                  VK_BUFFER_USAGE_TRANSFER_DST_BIT |
+                                                                                  VK_BUFFER_USAGE_INDEX_BUFFER_BIT,
+                                                                                  VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 
-                copyVerticesToBuffer<Vertex>(inPool, modelData.second.first, *m_vertexBufferWithVertexNormals);
-                vulkan::copyIndicesToBuffer(inPool, modelData.second.second, *m_indexBufferWithVertexNormals);
+                copyVerticesToBuffer<Vertex>(inPool, secondVerticesToLoad->first,
+                                             *m_vertexBufferWithVertexNormals);
+                vulkan::copyIndicesToBuffer(inPool, secondVerticesToLoad->second,
+                                            *m_indexBufferWithVertexNormals);
             }
         }
 
@@ -131,7 +143,7 @@ namespace levelDrawer {
         {
             VkDeviceSize bufferSize = sizeof(vertices[0]) * vertices.size();
 
-            /* use a staging buffer in the CPU accessable memory to copy the data into graphics card
+            /* use a staging buffer in the CPU accessible memory to copy the data into graphics card
              * memory.  Then use a copy command to copy the data into fast graphics card only memory.
              */
             vulkan::Buffer stagingBuffer(cmdpool->device(), bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT,

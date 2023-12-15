@@ -1,5 +1,5 @@
 /**
- * Copyright 2020 Cerulean Quasar. All Rights Reserved.
+ * Copyright 2023 Cerulean Quasar. All Rights Reserved.
  *
  *  This file is part of AmazingLabyrinth.
  *
@@ -44,20 +44,14 @@ namespace collectMaze {
         val.previousCells = j[PreviousCells].get<std::vector<Point<uint32_t>>>();
     }
 
-    char constexpr const *CollectModel = "CollectModel";
-    char constexpr const *CollectTexture = "CollectTexture";
     char constexpr const *NumberCollectObjects = "NumberCollectObjects";
     void to_json(nlohmann::json &j, LevelConfigData const &val) {
         to_json(j, boost::implicit_cast<generatedMaze::LevelConfigData const &>(val));
-        j[CollectModel] = val.collectModel;
-        j[CollectTexture] = val.collectTexture;
         j[NumberCollectObjects] = val.numberCollectObjects;
     }
 
     void from_json(nlohmann::json const &j, LevelConfigData &val) {
         from_json(j, boost::implicit_cast<generatedMaze::LevelConfigData &>(val));
-        val.collectModel = j[CollectModel].get<std::string>();
-        val.collectTexture = j[CollectTexture].get<std::string>();
         val.numberCollectObjects = j[NumberCollectObjects].get<uint32_t>();
     }
 

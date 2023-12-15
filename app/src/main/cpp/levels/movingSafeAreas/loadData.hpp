@@ -1,5 +1,5 @@
 /**
- * Copyright 2020 Cerulean Quasar. All Rights Reserved.
+ * Copyright 2023 Cerulean Quasar. All Rights Reserved.
  *
  *  This file is part of AmazingLabyrinth.
  *
@@ -86,25 +86,6 @@ namespace movingSafeAreas {
                   ball{ball_},
                   quadRows{std::move(quadRows_)} {
         }
-    };
-
-    struct LevelConfigData : public basic::LevelConfigData {
-        std::string startQuadTexture;
-        std::string endQuadTexture;
-        std::vector<std::string> middleQuadTextures;
-
-        LevelConfigData()
-                : basic::LevelConfigData{},
-                  startQuadTexture{},
-                  endQuadTexture{},
-                  middleQuadTextures{}
-        {}
-
-        LevelConfigData(LevelConfigData const &other) noexcept = default;
-
-        LevelConfigData(LevelConfigData &&other) noexcept = default;
-
-        LevelConfigData &operator=(LevelConfigData const &other) noexcept = default;
     };
 } // namespace movingSafeAreas
 

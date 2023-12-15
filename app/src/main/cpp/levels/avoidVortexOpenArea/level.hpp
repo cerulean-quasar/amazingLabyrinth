@@ -1,5 +1,5 @@
 /**
- * Copyright 2022 Cerulean Quasar. All Rights Reserved.
+ * Copyright 2023 Cerulean Quasar. All Rights Reserved.
  *
  *  This file is part of AmazingLabyrinth.
  *
@@ -36,6 +36,9 @@
 namespace avoidVortexOpenArea {
     class Level : public basic::Level {
     private:
+        static char const constexpr *ModelNameStartVortex = "StartVortex";
+        static char const constexpr *ModelNameVortex = "Vortex";
+
         static uint32_t constexpr numberOfVortexes = 8;
 
         float const maxX;
@@ -126,29 +129,33 @@ namespace avoidVortexOpenArea {
             postGenerate();
             generateModelMatrices();
 
+            auto const &modelDataHoleVortex = findModelsAndTextures(ModelNameHole);
             auto objRefHole = m_levelDrawer.addObject(
-                    std::make_shared<levelDrawer::ModelDescriptionQuad>(),
-                    std::make_shared<levelDrawer::TextureDescriptionPath>(lcd->holeTexture));
+                    modelDataHoleVortex.models[0],
+                    getFirstTexture(modelDataHoleVortex));
 
             m_levelDrawer.addModelMatrixForObject(objRefHole, modelMatrixHole);
 
+            auto const &modelDataVortex = findModelsAndTextures(ModelNameVortex);
             auto objRefVortex = m_levelDrawer.addObject(
-                    std::make_shared<levelDrawer::ModelDescriptionQuad>(),
-                    std::make_shared<levelDrawer::TextureDescriptionPath>(lcd->vortexTexture));
+                    modelDataVortex.models[0],
+                    getFirstTexture(modelDataVortex));
 
             for (auto const &modelMatrixVortex : modelMatrixVortexes) {
                 m_levelDrawer.addModelMatrixForObject(objRefVortex, modelMatrixVortex);
             }
 
+            auto const &modelDataStartVortex = findModelsAndTextures(ModelNameStartVortex);
             auto objRefStartVortex = m_levelDrawer.addObject(
-                    std::make_shared<levelDrawer::ModelDescriptionQuad>(),
-                    std::make_shared<levelDrawer::TextureDescriptionPath>(lcd->startVortexTexture));
+                    modelDataStartVortex.models[0],
+                    getFirstTexture(modelDataStartVortex));
 
             m_levelDrawer.addModelMatrixForObject(objRefStartVortex, modelMatrixStartVortex);
 
+            auto const &modelDataBall = findModelsAndTextures(ModelNameBall);
             m_objRefBall = m_levelDrawer.addObject(
-                    std::make_shared<levelDrawer::ModelDescriptionPath>(m_ballModel),
-                    std::make_shared<levelDrawer::TextureDescriptionPath>(m_ballTexture));
+                    modelDataBall.models[0],
+                    getFirstTexture(modelDataBall));
 
             m_objDataRefBall = m_levelDrawer.addModelMatrixForObject(m_objRefBall, modelMatrixBall);
         }

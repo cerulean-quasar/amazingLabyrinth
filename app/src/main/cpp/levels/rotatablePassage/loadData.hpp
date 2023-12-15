@@ -1,5 +1,5 @@
 /**
- * Copyright 2020 Cerulean Quasar. All Rights Reserved.
+ * Copyright 2023 Cerulean Quasar. All Rights Reserved.
  *
  *  This file is part of AmazingLabyrinth.
  *
@@ -75,23 +75,9 @@ namespace rotatablePassage {
         LevelSaveData() : basic::LevelSaveData{levelSaveDataVersion} {}
     };
 
-    struct ComponentConfig {
-        std::string model;
-        std::string texture;
-        std::string lockedInPlaceTexture;
-    };
-
     struct LevelConfigData : public basic::LevelConfigData {
-        std::string holeModel;
-        std::string holeTexture;
         uint32_t numberRows;
         bool dfsSearch;
-        std::vector<std::string> borderTextures;
-        ComponentConfig straight;
-        ComponentConfig turn;
-        ComponentConfig crossJunction;
-        ComponentConfig tJunction;
-        ComponentConfig deadEnd;
 
         LevelConfigData()
             : basic::LevelConfigData{},

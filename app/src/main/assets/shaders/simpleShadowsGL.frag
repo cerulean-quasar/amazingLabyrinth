@@ -21,19 +21,10 @@ precision mediump float;
  *
  */
 
-varying vec3 fragColor;
-varying vec2 fragTexCoord;
-varying vec3 fragNormal;
-varying vec3 fragPosition;
-
-uniform sampler2D texSampler;
-uniform vec3 lightPos;
+ /* A fragment shader that does absolutely nothing.  This shader is required for the shadow map
+  * render details on some systems because their OpenGL implementation will not let us have a
+  * vertex shader by itself.
+  */
 
 void main() {
-    // diffuse
-    vec3 lightDirection = normalize(lightPos - fragPosition);
-    float diff = max(dot(fragNormal, lightDirection), 0.0);
-    vec3 diffuse = diff * vec3(1.0, 1.0, 1.0);
-
-    gl_FragColor = vec4(diffuse, 1.0) * texture2D(texSampler, fragTexCoord);
 }

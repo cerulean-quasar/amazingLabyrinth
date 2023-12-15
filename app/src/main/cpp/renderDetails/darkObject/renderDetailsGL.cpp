@@ -1,5 +1,5 @@
 /**
- * Copyright 2022 Cerulean Quasar. All Rights Reserved.
+ * Copyright 2023 Cerulean Quasar. All Rights Reserved.
  *
  *  This file is part of AmazingLabyrinth.
  *
@@ -132,7 +132,9 @@ namespace darkObject {
         glCullFace(GL_BACK);
         checkGraphicsError();
 
-        GLuint programID = m_textureProgramID;
+        GLuint textureProgramID = m_textureProgram->programID();
+        GLuint colorProgramID = m_colorProgram->programID();
+        GLuint programID = textureProgramID;
         GLint MatrixID = -1;
         GLint normalMatrixID = -1;
         GLint textureID = -1;
@@ -147,9 +149,9 @@ namespace darkObject {
             auto &modelData = drawObj->modelData();
             auto &textureData = drawObj->textureData();
             if (it == beginZValRefs ||
-                (programID == m_textureProgramID && !textureData) ||
-                    (programID == m_colorProgramID && textureData)) {
-                programID = textureData ? m_textureProgramID : m_colorProgramID;
+                (programID == textureProgramID && !textureData) ||
+                    (programID == colorProgramID && textureData)) {
+                programID = textureData ? textureProgramID : colorProgramID;
                 glUseProgram(programID);
                 checkGraphicsError();
 
@@ -271,16 +273,25 @@ namespace darkObject {
 
     RenderDetailsGL::RenderDetailsGL(
             char const *name,
-            char const *vertexShader,
-            char const *textureFragShader,
-            char const *colorFragShader,
+            char const *vertexShaderFile,
+            char const *textureFragShaderFile,
+            char const *colorFragShaderFile,
             std::shared_ptr<GameRequester> const &inGameRequester,
             uint32_t inWidth, uint32_t inHeight, bool usesIntSurface)
         : renderDetails::RenderDetailsGL(inWidth, inHeight, usesIntSurface),
         m_renderDetailsName{name},
-        m_textureProgramID{loadShaders(inGameRequester, vertexShader, textureFragShader)},
-        m_colorProgramID{loadShaders(inGameRequester, vertexShader, colorFragShader)}
-    {}
+        m_textureProgram{},
+        m_colorProgram{}
+    {
+        auto vertexShader = cacheShader(inGameRequester, vertexShaderFile, GL_VERTEX_SHADER);
+        auto textureShader = cacheShader(inGameRequester, textureFragShaderFile, GL_FRAGMENT_SHADER);
+        auto colorShader = cacheShader(inGameRequester, colorFragShaderFile, GL_FRAGMENT_SHADER);
+
+        m_textureProgram = std::make_shared<renderDetails::GLProgram>(
+                std::vector{vertexShader, std::move(textureShader)});
+        m_colorProgram = std::make_shared<renderDetails::GLProgram>(
+                std::vector{vertexShader, std::move(colorShader)});
+    }
 
     char constexpr const *SHADER_VERT_GL_FILE = "shaders/darkShaderGL.vert";
     char constexpr const *TEXTURE_SHADER_FRAG_GL_FILE = "shaders/darkTextureGL.frag";

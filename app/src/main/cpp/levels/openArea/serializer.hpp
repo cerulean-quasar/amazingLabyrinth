@@ -1,5 +1,5 @@
 /**
- * Copyright 2020 Cerulean Quasar. All Rights Reserved.
+ * Copyright 2023 Cerulean Quasar. All Rights Reserved.
  *
  *  This file is part of AmazingLabyrinth.
  *
@@ -28,10 +28,6 @@ namespace openArea {
     void to_json(nlohmann::json &j, LevelSaveData const &val);
 
     void from_json(nlohmann::json const &j, LevelSaveData &val);
-
-    void to_json(nlohmann::json &j, LevelConfigData const &val);
-
-    void from_json(nlohmann::json const &j, LevelConfigData &val);
 } // namespace openArea
 
 #endif // AMAZING_LABYRINTH_OPEN_AREA_SERIALIZER_HPP

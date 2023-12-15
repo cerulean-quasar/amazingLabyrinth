@@ -1,8 +1,11 @@
 {
     "Components" : {
-        "Starter": "starter",
-        "Level": "generatedMaze",
-        "Finisher": "manyQuadsCoverUp"
+        "Starter": {
+            "Name": "starter",
+            "ExtraCfgFile": "configs/levels/starterModelCfg.cbor"
+        },
+        "Level": { "Name": "generatedMaze" },
+        "Finisher": { "Name": "manyQuadsCoverUp" }
     },
     "Starter" : {
         "BallModel": "models/ball.modelcbor",
@@ -16,17 +19,33 @@
         ]
     },
     "Level": {
-        "BallModel": "models/ball.modelcbor",
-        "BallTexture": "textures/pufferFish/ballFish.png",
+        "ModelConfigs": [
+            {
+                "Name": "Ball",
+                "Models": [ "models/ball.modelcbor" ],
+                "Textures": [ "textures/pufferFish/ballFish.png" ]
+            },
+            {
+                "Name": "Wall",
+                "Type": 2,
+                "Textures": [ "textures/pufferFish/wallIce1.png",
+                                  "textures/pufferFish/wallIce2.png",
+                                  "textures/pufferFish/wallIce3.png",
+                                  "textures/pufferFish/wallIce4.png" ]
+            },
+            {
+                "Name": "Floor",
+                "Type": 1,
+                "Textures": [ "textures/pufferFish/floor.png" ]
+            },
+            {
+                "Name": "Hole",
+                "Type": 1,
+                "Textures": [ "textures/pufferFish/hole.png" ]
+            }
+        ],
         "BounceEnabled": false,
         "BallDiagonalRatio" : 0.0,
-
-        "WallTextureNames": [ "textures/pufferFish/wallIce1.png",
-                          "textures/pufferFish/wallIce2.png",
-                          "textures/pufferFish/wallIce3.png",
-                          "textures/pufferFish/wallIce4.png" ],
-        "MazeFloorTexture": "textures/pufferFish/floor.png",
-        "HoleTexture": "textures/pufferFish/hole.png",
         "NumberRows": 15,
         "DfsSearch": false
     },

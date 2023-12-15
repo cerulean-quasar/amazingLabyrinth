@@ -1,5 +1,5 @@
 /**
- * Copyright 2022 Cerulean Quasar. All Rights Reserved.
+ * Copyright 2023 Cerulean Quasar. All Rights Reserved.
  *
  *  This file is part of AmazingLabyrinth.
  *
@@ -22,8 +22,6 @@
 #include "level.hpp"
 
 namespace avoidVortexOpenArea {
-    char constexpr const *Level::m_name;
-
     void Level::preGenerate() {
         m_ball.position.z = m_mazeFloorZ + ballRadius();
         holePosition.z = m_mazeFloorZ;

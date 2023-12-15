@@ -1,5 +1,5 @@
 /**
- * Copyright 2022 Cerulean Quasar. All Rights Reserved.
+ * Copyright 2023 Cerulean Quasar. All Rights Reserved.
  *
  *  This file is part of AmazingLabyrinth.
  *
@@ -37,24 +37,22 @@ namespace depthMap {
               m_linearDepthVertShader3{linearDepthVertShader3},
               m_simpleFragShader{simpleFragShader},
               m_simpleFragShader3{simpleFragShader3},
-              m_depthProgramID{0}
+              m_depthProgram{}
     {
         loadPipeline(inGameRequester);
     }
 
     void RenderDetailsGL::loadPipeline(std::shared_ptr<GameRequester> const &inGameRequester) {
-
-        if (m_depthProgramID != 0) {
-            glDeleteProgram(m_depthProgramID);
-            checkGraphicsError();
-        }
-
         if (m_usesIntSurface) {
-            m_depthProgramID = loadShaders(inGameRequester, m_linearDepthVertShader3,
-                                           m_simpleFragShader3);
+            auto vertexShader = cacheShader(inGameRequester, m_linearDepthVertShader3, GL_VERTEX_SHADER);
+            auto fragmentShader = cacheShader(inGameRequester, m_simpleFragShader3, GL_FRAGMENT_SHADER);
+            m_depthProgram = std::make_shared<renderDetails::GLProgram>(
+                    std::vector{std::move(vertexShader), std::move(fragmentShader)});
         } else {
-            m_depthProgramID = loadShaders(inGameRequester, m_linearDepthVertShader,
-                                           m_simpleFragShader);
+            auto vertexShader = cacheShader(inGameRequester, m_linearDepthVertShader, GL_VERTEX_SHADER);
+            auto fragmentShader = cacheShader(inGameRequester, m_simpleFragShader, GL_FRAGMENT_SHADER);
+            m_depthProgram = std::make_shared<renderDetails::GLProgram>(
+                    std::vector{std::move(vertexShader), std::move(fragmentShader)});
         }
     }
 
@@ -158,7 +156,8 @@ namespace depthMap {
         }
 
         // set the shader to use
-        glUseProgram(m_depthProgramID);
+        GLuint programID = m_depthProgram->programID();
+        glUseProgram(programID);
         checkGraphicsError();
         glCullFace(GL_BACK);
         checkGraphicsError();
@@ -168,26 +167,26 @@ namespace depthMap {
         GLint MatrixID;
 
         // the projection matrix
-        MatrixID = glGetUniformLocation(m_depthProgramID, "proj");
+        MatrixID = glGetUniformLocation(programID, "proj");
         checkGraphicsError();
         glUniformMatrix4fv(MatrixID, 1, GL_FALSE, &(projView.first)[0][0]);
         checkGraphicsError();
 
         // the view matrix
-        MatrixID = glGetUniformLocation(m_depthProgramID, "view");
+        MatrixID = glGetUniformLocation(programID, "view");
         checkGraphicsError();
         glUniformMatrix4fv(MatrixID, 1, GL_FALSE, &(projView.second)[0][0]);
         checkGraphicsError();
 
-        GLint loc = glGetUniformLocation(m_depthProgramID, "nearestDepth");
+        GLint loc = glGetUniformLocation(programID, "nearestDepth");
         glUniform1f(loc, cod->nearestDepth());
         checkGraphicsError();
 
-        loc = glGetUniformLocation(m_depthProgramID, "farthestDepth");
+        loc = glGetUniformLocation(programID, "farthestDepth");
         glUniform1f(loc, cod->farthestDepth());
         checkGraphicsError();
 
-        MatrixID = glGetUniformLocation(m_depthProgramID, "model");
+        MatrixID = glGetUniformLocation(programID, "model");
         checkGraphicsError();
 
         for (auto it = beginZValRefs; it != endZValRefs; it++) {
@@ -200,7 +199,7 @@ namespace depthMap {
             glUniformMatrix4fv(MatrixID, 1, GL_FALSE, &modelMatrix[0][0]);
             checkGraphicsError();
 
-            drawVertices(m_depthProgramID, modelData);
+            drawVertices(programID, modelData);
         }
     }
 

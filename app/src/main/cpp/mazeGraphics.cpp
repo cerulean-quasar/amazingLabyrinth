@@ -1,5 +1,5 @@
 /**
- * Copyright 2022 Cerulean Quasar. All Rights Reserved.
+ * Copyright 2023 Cerulean Quasar. All Rights Reserved.
  *
  *  This file is part of AmazingLabyrinth.
  *
@@ -144,37 +144,35 @@ bool testMap(
     std::vector<data_type> const &valueMap,
     std::function<bool(data_type, data_type)> cmp)
 {
-    for (auto value : valueMap) {
-        if (!cmp(expected, value)) {
-            return false;
-        }
-    }
-
-    return true;
+    auto checkResult = [&expected, cmp](data_type const &data) -> bool {
+        return cmp(expected, data);
+    };
+    return std::all_of(valueMap.begin(), valueMap.end(), checkResult);
 }
 
-class ModelDescriptionTestQuad : public levelDrawer::ModelDescriptionQuad {
+class ModelDescriptionTestQuad : public levelDrawer::ModelDescription {
+private:
+    uint8_t m_whichNormalsToLoad;
 public:
-    ModelDescriptionTestQuad()
-        : levelDrawer::ModelDescriptionQuad()
+    explicit ModelDescriptionTestQuad(uint8_t const &whichNormalsToLoad)
+        : levelDrawer::ModelDescription(),
+        m_whichNormalsToLoad{whichNormalsToLoad}
     {}
 
-    bool shouldLoadVertexNormals() override { return true; }
-    std::pair<levelDrawer::ModelVertices, levelDrawer::ModelVertices> getDataWithVertexNormalsAlso(
-            std::shared_ptr<GameRequester> const &gameRequester) override
-    {
-        auto v = getData(gameRequester);
-        return std::make_pair(v, v);
-    }
+    uint8_t normalsToLoad() override { return m_whichNormalsToLoad; }
 
-    levelDrawer::ModelVertices getData(std::shared_ptr<GameRequester> const &gameRequester) override
+    std::pair<levelDrawer::ModelVertices, levelDrawer::ModelVertices> getData(std::shared_ptr<GameRequester> const &gameRequester) override
     {
-        levelDrawer::ModelVertices obj = levelDrawer::ModelDescriptionQuad::getData(gameRequester);
+        levelDrawer::ModelDescriptionQuad quad;
+        auto obj = quad.getData(gameRequester);
         // set normal to bogus value that is different from the clear color.
-        for (auto &vertex : obj.first) {
+        for (auto &vertex : obj.first.first) {
             vertex.normal = getNormal3Vec();
         }
 
+        if (m_whichNormalsToLoad & LOAD_VERTEX_NORMALS) {
+            obj.second = obj.first;
+        }
         return std::move(obj);
     }
 
@@ -184,6 +182,16 @@ public:
 
     static glm::vec4 getNormal4Vec() {
         return glm::vec4{getNormal3Vec(), 1.0f};
+    }
+
+    bool compareLess(ModelDescription *other) override {
+        auto otherQuad = dynamic_cast<ModelDescriptionTestQuad *>(other);
+        if (otherQuad == nullptr) {
+            // should never happen
+            throw std::runtime_error("Quad: Comparing incompatible pointers");
+        }
+
+        return false;
     }
 };
 
@@ -214,7 +222,7 @@ bool Graphics::testDepthTexture(levelDrawer::Adaptor inLevelDrawer) {
 
     levelDrawer::ModelsTextures modelsTextures1{
             std::make_pair<std::shared_ptr<levelDrawer::ModelDescription>, std::shared_ptr<levelDrawer::TextureDescription>>(
-                    std::make_shared<ModelDescriptionTestQuad>(),
+                    std::make_shared<ModelDescriptionTestQuad>(levelDrawer::ModelDescription::LOAD_BOTH),
                     std::shared_ptr<levelDrawer::TextureDescription>())};
 
     renderDetails::ParametersNormalMap normalParameters{};

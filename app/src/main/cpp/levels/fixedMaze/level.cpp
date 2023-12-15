@@ -24,8 +24,6 @@
 #include "../basic/level.hpp"
 
 namespace fixedMaze {
-    char constexpr const *Level::m_name;
-
     bool notValid(glm::vec3 const &v) {
         if (v.x != v.x || v.y != v.y || v.z != v.z) {
             return true;
@@ -41,12 +39,12 @@ namespace fixedMaze {
         }
 
         if (cell > static_cast<int32_t>(size) - 1) {
-            cell = size - 1;
+            cell = static_cast<int32_t>(size) - 1;
         }
     }
 
     size_t Level::getXCell(float x) {
-        int32_t xcell = static_cast<int32_t>(std::floor((x + m_width / 2) / m_width * m_rowWidth));
+        auto xcell = static_cast<int32_t>(std::floor((x + m_width / 2) / m_width * m_rowWidth));
 
         // deal with floating point errors.
         if ((xcell * m_width / m_rowWidth - m_width / 2.0f - x) > 0) {
@@ -60,7 +58,7 @@ namespace fixedMaze {
     }
 
     size_t Level::getYCell(float y) {
-        int32_t ycell = static_cast<size_t>(std::floor(
+        auto ycell = static_cast<int32_t>(std::floor(
                 (y + m_height / 2) / m_height * m_rowHeight));
 
         // deal with floating point errors.
@@ -453,13 +451,13 @@ namespace fixedMaze {
             std::shared_ptr<LevelSaveData> const &,
             float mazeFloorZ)
             : basic::Level{std::move(inLevelDrawer), lcd, mazeFloorZ, false},
-              m_floorModel{lcd->mazeFloorModel},
-              m_floorTexture{lcd->mazeFloorTexture},
               m_rowWidth{}, // initialized by init()
               m_rowHeight{200},
               m_extraBounce{1.0f + lcd->extraBounce * m_diagonal},
               m_minSpeedOnObjBounce{lcd->minSpeedOnBounce * m_diagonal},
-              m_speedLimit{m_diagonal / 4.0f}
+              m_speedLimit{m_diagonal / 4.0f},
+              m_objRefBall{},
+              m_objDataRefBall{}
     {
         init();
     }
@@ -488,14 +486,14 @@ namespace fixedMaze {
         size_t column = i % rowWidth;
         size_t row = i / rowWidth;
 
-        size_t viewPortWidth = static_cast<size_t>(std::ceil(rowWidth / m_height * m_width));
+        auto viewPortWidth = static_cast<size_t>(std::ceil(rowWidth / m_height * m_width));
         if (viewPortWidth > rowWidth) {
             viewPortWidth = rowWidth;
         }
 
         size_t beginColumn;
-        size_t mapBallWidth = static_cast<size_t>(std::floor(
-                m_scaleBall * m_originalBallDiameter / 2.0f / m_width * viewPortWidth));
+//        auto mapBallWidth = static_cast<size_t>(std::floor(
+//                m_scaleBall * m_originalBallDiameter / 2.0f / m_width * float(viewPortWidth)));
         if (column > rowWidth - viewPortWidth) {
             beginColumn = rowWidth - viewPortWidth;
         } else if (column < viewPortWidth) {
@@ -534,8 +532,7 @@ namespace fixedMaze {
             glm::scale(glm::mat4(1.0f),glm::vec3{m_height / m_modelSize, m_height / m_modelSize, 1.0f}) *
             glm::mat4_cast(glm::angleAxis(3.1415926f / 2.0f, glm::vec3(1.0f, 0.0f, 0.0f)));
 
-        auto floorModelDesc =
-                std::make_shared<levelDrawer::ModelDescriptionPath>(m_floorModel, glm::vec3{0.2, 0.2, 0.2}, true);
+        auto const &floorDetails = findModelsAndTextures(ModelNameFloor);
 
         // The model is a square.  Get the whole depth and normal maps (without stretching.  Then
         // find the hole and cut the model so that the hole appears in the center if possible, otherwise
@@ -553,7 +550,7 @@ namespace fixedMaze {
 
         m_levelDrawer.drawToBuffer(
                 depthMapRenderDetailsName,
-                levelDrawer::ModelsTextures{std::make_pair(floorModelDesc,
+                levelDrawer::ModelsTextures{std::make_pair(floorDetails.models[0],
                         std::shared_ptr<levelDrawer::TextureDescription>())},
                 std::vector<glm::mat4>{floorModelMatrix},
                 m_height, m_height, m_rowHeight,
@@ -571,7 +568,7 @@ namespace fixedMaze {
         std::vector<float> normalMapFlat;
         m_levelDrawer.drawToBuffer(
                 normalMapRenderDetailsName,
-                levelDrawer::ModelsTextures{std::make_pair(floorModelDesc,
+                levelDrawer::ModelsTextures{std::make_pair(floorDetails.models[0],
                         std::shared_ptr<levelDrawer::TextureDescription>())},
                 std::vector<glm::mat4>{floorModelMatrix},
                 m_height, m_height, m_rowHeight,
@@ -602,9 +599,9 @@ namespace fixedMaze {
         m_ball.position.z += ballRadius();
 
         // add the ball object
-        m_objRefBall = m_levelDrawer.addObject(
-                std::make_shared<levelDrawer::ModelDescriptionPath>(m_ballModel),
-                std::make_shared<levelDrawer::TextureDescriptionPath>(m_ballTexture));
+        auto const &modelDataBall = findModelsAndTextures(ModelNameBall);
+        m_objRefBall = m_levelDrawer.addObject(modelDataBall.models[0],
+                                               getFirstTexture(modelDataBall));
 
         m_objDataRefBall = m_levelDrawer.addModelMatrixForObject(
                 m_objRefBall,
@@ -615,8 +612,8 @@ namespace fixedMaze {
 
         // the maze floor
         auto objRef = m_levelDrawer.addObject(
-                floorModelDesc,
-                std::make_shared<levelDrawer::TextureDescriptionPath>(m_floorTexture));
+                floorDetails.models[0],
+                getFirstTexture(floorDetails));
 
         floorModelMatrix = trans *
                            glm::scale(glm::mat4(1.0f),glm::vec3{m_height / m_modelSize, m_height / m_modelSize, 1.0f}) *

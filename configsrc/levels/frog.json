@@ -1,12 +1,13 @@
 {
     "Components" : {
-        "Starter": "starter",
-        "Level": "fixedMaze",
-        "Finisher": "manyQuadsCoverUp"
+        "Starter": {
+            "Name": "starter",
+            "ExtraCfgFile": "configs/levels/starterModelCfg.cbor"
+        },
+        "Level": { "Name": "fixedMaze" },
+        "Finisher": { "Name": "manyQuadsCoverUp" }
     },
     "Starter" : {
-        "BallModel": "models/ball.modelcbor",
-        "BallTexture": "textures/levelStarter/ballLevelStarter.png",
         "BounceEnabled": false,
         "BallDiagonalRatio": 0.02,
 
@@ -16,13 +17,22 @@
         ]
     },
     "Level": {
-        "BallModel": "models/frog/frog.modelcbor",
-        "BallTexture": "textures/frog/frog.png",
+        "ModelConfigs": [
+            {
+                "Name": "Ball",
+                "Models": [ "models/frog/frog.modelcbor" ],
+                "Textures": [ "textures/frog/frog.png" ]
+            },
+            {
+                "Name": "Floor",
+                "Models": [ "models/frog/frogFloor.modelcbor" ],
+                "Textures": [ "textures/frog/frogFloor.png" ],
+                "LoadVertexNormals": true,
+                "LoadFaceNormals": true
+            }
+        ],
         "BounceEnabled": true,
         "BallDiagonalRatio" : 0.02,
-
-        "MazeFloorModel": "models/frog/frogFloor.modelcbor",
-        "MazeFloorTexture": "textures/frog/frogFloor.png",
         "ExtraBounce": 0.05,
         "MinSpeedOnBounce": 0.02
     },

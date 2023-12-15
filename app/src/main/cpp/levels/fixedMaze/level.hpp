@@ -1,5 +1,5 @@
 /**
- * Copyright 2020 Cerulean Quasar. All Rights Reserved.
+ * Copyright 2023 Cerulean Quasar. All Rights Reserved.
  *
  *  This file is part of AmazingLabyrinth.
  *
@@ -67,8 +67,6 @@ namespace fixedMaze {
         float const m_speedLimit;
 
         std::chrono::high_resolution_clock::time_point m_prevTime;
-        std::string m_floorModel;
-        std::string m_floorTexture;
 
         size_t m_rowWidth;
         size_t m_rowHeight;

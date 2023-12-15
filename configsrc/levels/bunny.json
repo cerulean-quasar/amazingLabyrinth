@@ -1,12 +1,13 @@
 {
     "Components" : {
-        "Starter": "starter",
-        "Level": "avoidVortexMaze",
-        "Finisher": "manyQuadsCoverUp"
+        "Starter": {
+            "Name": "starter",
+            "ExtraCfgFile": "configs/levels/starterModelCfg.cbor"
+        },
+        "Level": { "Name": "avoidVortexMaze" },
+        "Finisher": { "Name": "manyQuadsCoverUp" }
     },
     "Starter" : {
-        "BallModel": "models/ball.modelcbor",
-        "BallTexture": "textures/levelStarter/ballLevelStarter.png",
         "BounceEnabled": false,
         "BallDiagonalRatio": 0.02,
 
@@ -16,20 +17,43 @@
         ]
     },
     "Level": {
-        "BallModel": "models/ball.modelcbor",
-        "BallTexture": "textures/bunny/ball.png",
+        "ModelConfigs": [
+            {
+                "Name": "Ball",
+                "Models": [ "models/ball.modelcbor" ],
+                "Textures": [ "textures/bunny/ball.png" ],
+                "LoadVertexNormals": true,
+                "LoadFaceNormals": false
+            },
+            {
+                "Name": "Wall",
+                "Type": 2,
+                "Textures": [ "textures/bunny/wall1.png",
+                              "textures/bunny/wall2.png",
+                              "textures/bunny/wall3.png" ]
+            },
+            {
+                "Name": "Floor",
+                "Type": 1,
+                "Textures": [ "textures/bunny/floor.png" ]
+            },
+            {
+                "Name": "Hole",
+                "Type": 1,
+                "Textures": [ "textures/bunny/hole.png" ]
+            },
+            {
+                "Name": "Vortex",
+                "Type": 1,
+                "Textures": [ "textures/bunny/avoid.png" ]
+            }
+        ],
         "BounceEnabled": false,
         "BallDiagonalRatio" : 0.0,
 
-        "WallTextureNames": [ "textures/bunny/wall1.png",
-                          "textures/bunny/wall2.png",
-                          "textures/bunny/wall3.png" ],
-        "MazeFloorTexture": "textures/bunny/floor.png",
-        "HoleTexture": "textures/bunny/hole.png",
         "NumberRows": 10,
         "DfsSearch": true,
 
-        "AvoidTexture": "textures/bunny/avoid.png",
         "NumberAvoidObjects": 5
     },
     "Finisher": {

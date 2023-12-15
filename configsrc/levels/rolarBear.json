@@ -1,12 +1,13 @@
 {
-    "Components" : {
-        "Starter" : "starter",
-        "Level" : "movingSafeAreas",
-        "Finisher": "manyQuadsCoverUp"
+    "Components": {
+        "Starter": {
+            "Name": "starter",
+            "ExtraCfgFile": "configs/levels/starterModelCfg.cbor"
+        },
+        "Level": { "Name": "movingSafeAreas" },
+        "Finisher": { "Name": "manyQuadsCoverUp" }
     },
     "Starter" : {
-        "BallModel": "models/ball.modelcbor",
-        "BallTexture": "textures/levelStarter/ballLevelStarter.png",
         "BounceEnabled": false,
         "BallDiagonalRatio": 0.02,
 
@@ -16,18 +17,36 @@
         ]
     },
     "Level": {
-        "BallModel": "models/ball.modelcbor",
-        "BallTexture": "textures/rolarBear/ballRolarBear.png",
+        "ModelConfigs": [
+            {
+                "Name": "Ball",
+                "Models": [ "models/ball.modelcbor" ],
+                "Textures": [ "textures/rolarBear/ballRolarBear.png" ],
+                "LoadVertexNormals": true,
+                "LoadFaceNormals": false
+            },
+            {
+                "Name": "StartingArea",
+                "Type": 1,
+                "Textures": [ "textures/rolarBear/rolarBearStartQuad.png" ]
+            },
+            {
+                "Name": "EndingArea",
+                "Type": 1,
+                "Textures": [ "textures/rolarBear/rolarBearEndQuad.png" ]
+            },
+            {
+                "Name": "MiddleArea",
+                "Type": 1,
+                "Textures": [
+                    "textures/rolarBear/movingQuadRolarBear1.png",
+                    "textures/rolarBear/movingQuadRolarBear2.png",
+                    "textures/rolarBear/movingQuadRolarBear3.png",
+                    "textures/rolarBear/movingQuadRolarBear4.png" ]
+            }
+        ],
         "BounceEnabled": true,
-        "BallDiagonalRatio" : 0.0333333,
-
-        "StartQuadTexture": "textures/rolarBear/rolarBearStartQuad.png",
-        "EndQuadTexture": "textures/rolarBear/rolarBearEndQuad.png",
-        "MiddleQuadTextures": [
-            "textures/rolarBear/movingQuadRolarBear1.png",
-            "textures/rolarBear/movingQuadRolarBear2.png",
-            "textures/rolarBear/movingQuadRolarBear3.png",
-            "textures/rolarBear/movingQuadRolarBear4.png" ]
+        "BallDiagonalRatio" : 0.0333333
     },
     "Finisher": {
         "Textures": [ "textures/rolarBear/rolarBearSmiley1.png" ]

@@ -1,5 +1,5 @@
 /**
- * Copyright 2022 Cerulean Quasar. All Rights Reserved.
+ * Copyright 2023 Cerulean Quasar. All Rights Reserved.
  *
  *  This file is part of AmazingLabyrinth.
  *
@@ -56,6 +56,7 @@ namespace levelTracker {
         char constexpr const *Levels = "Levels";
         char constexpr const *Name = "Name";
         char constexpr const *File = "File";
+        char constexpr const *ExtraCfgFile = "ExtraCfgFile";
         char constexpr const *Components = "Components";
         char constexpr const *Starter = "Starter";
         char constexpr const *Level = "Level";
@@ -82,10 +83,17 @@ namespace levelTracker {
         val.fileName = j[DataVariables::File].get<std::string>();
     }
 
+    struct Component {
+        std::string name;
+        std::string extraCfgFile;
+
+        Component() noexcept = default;
+    };
+
     struct Components {
-        std::string starter;
-        std::string level;
-        std::string finisher;
+        Component starter;
+        Component level;
+        Component finisher;
 
         Components() = default;
 
@@ -96,10 +104,17 @@ namespace levelTracker {
         {}
     };
 
+    void from_json(nlohmann::json const &j, Component &val) {
+        val.name = j[DataVariables::Name].get<std::string>();
+        if (j.contains(DataVariables::ExtraCfgFile)) {
+            val.extraCfgFile = j[DataVariables::ExtraCfgFile].get<std::string>();
+        }
+    }
+
     void from_json(nlohmann::json const &j, Components &val) {
-        val.starter = j[DataVariables::Starter].get<std::string>();
-        val.level = j[DataVariables::Level].get<std::string>();
-        val.finisher = j[DataVariables::Finisher].get<std::string>();
+        val.starter = j[DataVariables::Starter].get<Component>();
+        val.level = j[DataVariables::Level].get<Component>();
+        val.finisher = j[DataVariables::Finisher].get<Component>();
     }
 
     void from_json(nlohmann::json const &j, GameSaveData &val) {
@@ -184,37 +199,69 @@ namespace levelTracker {
             }
         }
         nlohmann::json j = nlohmann::json::from_cbor(getDataFromFile(m_gameRequester->getAssetStream(m_levelTable[m_currentLevel.get()].fileName)));
-        Components components = j[DataVariables::Components].get<Components>();
+        auto components = j[DataVariables::Components].get<Components>();
+
+        auto mergeJson = [gameRequester = m_gameRequester, loader = this](nlohmann::json &j, std::string const &filename) -> void {
+            auto cborFileData = loader->getDataFromFile(gameRequester->getAssetStream(filename));
+            if (cborFileData.empty()) {
+                return;
+            }
+            nlohmann::json j1 = nlohmann::json::from_cbor(cborFileData);
+            if (j1.empty()) {
+                return;
+            }
+
+            try {
+                j.insert(j1.begin(), j1.end());
+            } catch (nlohmann::json::exception &e) {
+                throw std::runtime_error(std::string("JSON parse error in loading the level. ") + e.what());
+            }
+        };
 
         LevelGroup group;
-        auto starterIt = starterTable().find(components.starter);
+        auto starterIt = starterTable().find(components.starter.name);
         if (starterIt == starterTable().end()) {
             throw std::runtime_error("Invalid level starter.");
         }
 
         if (needsLevelStarter) {
-            group.getStarterFcn = starterIt->second(j[DataVariables::Starter], nullptr,
-                                                    m_maxZLevelStarter);
+            if (components.starter.extraCfgFile.empty()) {
+                group.getStarterFcn = starterIt->second(j[DataVariables::Starter], nullptr,
+                                                        m_maxZLevelStarter);
+            } else {
+                mergeJson(j[DataVariables::Starter], components.starter.extraCfgFile);
+                group.getStarterFcn = starterIt->second(j[DataVariables::Starter], nullptr, m_maxZLevelStarter);
+            }
         } else {
             group.getStarterFcn = GenerateLevelFcn(
-                    [](levelDrawer::Adaptor) -> std::shared_ptr<basic::Level> {
+                    [](levelDrawer::Adaptor const &) -> std::shared_ptr<basic::Level> {
                         return nullptr;
                     });
         }
 
-        auto levelIt = levelTable().find(components.level);
+        auto levelIt = levelTable().find(components.level.name);
         if (levelIt == levelTable().end()) {
             throw std::runtime_error("Invalid level");
         }
 
-        group.getLevelFcn = levelIt->second(j[DataVariables::Level], pjsdLevel, m_maxZLevel);
+        if (components.level.extraCfgFile.empty()) {
+            group.getLevelFcn = levelIt->second(j[DataVariables::Level], pjsdLevel, m_maxZLevel);
+        } else {
+            mergeJson(j[DataVariables::Level], components.level.extraCfgFile);
+            group.getLevelFcn = levelIt->second(j[DataVariables::Level], pjsdLevel, m_maxZLevel);
+        }
 
-        auto finisherIt = finisherTable().find(components.finisher);
+        auto finisherIt = finisherTable().find(components.finisher.name);
         if (finisherIt == finisherTable().end()) {
             throw std::runtime_error("Invalid finisher");
         }
 
-        group.getFinisherFcn = finisherIt->second(j[DataVariables::Finisher], m_maxZLevelFinisher);
+        if (components.finisher.extraCfgFile.empty()) {
+            group.getFinisherFcn = finisherIt->second(j[DataVariables::Finisher], m_maxZLevelFinisher);
+        } else {
+            mergeJson(j[DataVariables::Finisher], components.finisher.extraCfgFile);
+            group.getFinisherFcn = finisherIt->second(j[DataVariables::Finisher], m_maxZLevelFinisher);
+        }
 
         return group;
     }

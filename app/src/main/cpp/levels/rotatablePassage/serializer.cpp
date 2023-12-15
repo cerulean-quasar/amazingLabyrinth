@@ -1,5 +1,5 @@
 /**
- * Copyright 2020 Cerulean Quasar. All Rights Reserved.
+ * Copyright 2023 Cerulean Quasar. All Rights Reserved.
  *
  *  This file is part of AmazingLabyrinth.
  *
@@ -72,57 +72,18 @@ namespace rotatablePassage {
         val.ballPosition = j[BallPosition].get<Point<float>>();
     }
 
-    char constexpr const *Model = "Model";
-    char constexpr const *Texture = "Texture";
-    char constexpr const *LockedInPlaceTexture = "LockedInPlaceTexture";
-    void to_json(nlohmann::json &j, ComponentConfig const &val) {
-        j[Model] = val.model;
-        j[Texture] = val.texture;
-        j[LockedInPlaceTexture] = val.lockedInPlaceTexture;
-    }
-
-    void from_json(nlohmann::json const &j, ComponentConfig &val) {
-        val.model = j[Model].get<std::string>();
-        val.texture = j[Texture].get<std::string>();
-        val.lockedInPlaceTexture = j[LockedInPlaceTexture].get<std::string>();
-    }
-
-    char constexpr const *HoleModel = "HoleModel";
-    char constexpr const *HoleTexture ="HoleTexture";
     char constexpr const *NumberRows = "NumberRows";
     char constexpr const *DfsSearch = "DfsSearch";
-    char constexpr const *BorderTextures ="BorderTextures";
-    char constexpr const *Straight = "Straight";
-    char constexpr const *Turn = "Turn";
-    char constexpr const *CrossJunction = "CrossJunction";
-    char constexpr const *TJunction = "TJunction";
-    char constexpr const *DeadEnd = "DeadEnd";
     void to_json(nlohmann::json &j, LevelConfigData const &val) {
         to_json(j, boost::implicit_cast<basic::LevelConfigData const &>(val));
-        j[HoleModel] = val.holeModel;
-        j[HoleTexture] = val.holeTexture;
         j[NumberRows] = val.numberRows;
         j[DfsSearch] = val.dfsSearch;
-        j[BorderTextures] = val.borderTextures;
-        j[Straight] = val.straight;
-        j[Turn] = val.turn;
-        j[CrossJunction] = val.crossJunction;
-        j[TJunction] = val.tJunction;
-        j[DeadEnd] = val.deadEnd;
     }
 
     void from_json(nlohmann::json const &j, LevelConfigData &val) {
         from_json(j, boost::implicit_cast<basic::LevelConfigData &>(val));
-        val.holeModel = j[HoleModel].get<std::string>();
-        val.holeTexture = j[HoleTexture].get<std::string>();
         val.numberRows = j[NumberRows].get<uint32_t>();
         val.dfsSearch = j[DfsSearch].get<bool>();
-        val.borderTextures = j[BorderTextures].get<std::vector<std::string>>();
-        val.straight = j[Straight].get<ComponentConfig>();
-        val.turn = j[Turn].get<ComponentConfig>();
-        val.crossJunction = j[CrossJunction].get<ComponentConfig>();
-        val.tJunction = j[TJunction].get<ComponentConfig>();
-        val.deadEnd = j[DeadEnd].get<ComponentConfig>();
     }
 
     std::vector<uint8_t> Level::saveData(levelTracker::GameSaveData const &gsd,

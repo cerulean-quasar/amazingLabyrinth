@@ -1,5 +1,5 @@
 /**
- * Copyright 2022 Cerulean Quasar. All Rights Reserved.
+ * Copyright 2023 Cerulean Quasar. All Rights Reserved.
  *
  *  This file is part of AmazingLabyrinth.
  *
@@ -85,6 +85,7 @@ namespace shadowsChaining {
         }
 
         auto parametersShadows = std::make_shared<renderDetails::ParametersPerspective>(*parameters);
+        parametersShadows->viewPoint = parametersShadows->lightingSources[0];
         auto refShadows = renderLoader->load(
                 gameRequester, shadowsRenderDetailsName, surfaceDetails, parametersShadows);
 
@@ -100,7 +101,7 @@ namespace shadowsChaining {
 
     void RenderDetailsGL::createFramebuffer()
     {
-        std::vector<graphicsGL::Framebuffer::ColorImageFormat> colorImageFormats;
+        std::vector<graphicsGL::Framebuffer::ColorImageFormat> colorImageFormats{};
 
         if (m_usesIntSurface) {
             colorImageFormats.emplace_back(GL_RGBA32UI, GL_RGBA_INTEGER, GL_UNSIGNED_INT);

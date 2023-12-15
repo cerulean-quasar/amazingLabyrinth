@@ -1,5 +1,5 @@
 /**
- * Copyright 2022 Cerulean Quasar. All Rights Reserved.
+ * Copyright 2023 Cerulean Quasar. All Rights Reserved.
  *
  *  This file is part of AmazingLabyrinth.
  *
@@ -77,6 +77,109 @@ namespace renderDetails {
         }
     };
 
+    class Shader {
+    public:
+        inline GLuint shaderID() const { return m_shaderID; }
+
+        Shader(
+                std::shared_ptr<GameRequester> const &gameRequester,
+                std::string const &shaderFile,
+                GLenum shaderType)
+                : m_shaderID{0}
+        {
+            std::vector<char> shader = readFile(gameRequester, shaderFile);
+
+            // Create the shaders
+            m_shaderID = glCreateShader(shaderType);
+
+            // Compile the Shader
+            char const *sourcePointer = shader.data();
+            GLint shaderLength = shader.size();
+            glShaderSource(m_shaderID, 1, &sourcePointer, &shaderLength);
+            glCompileShader(m_shaderID);
+
+            // Check the Shader
+            GLint Result = GL_TRUE;
+            glGetShaderiv(m_shaderID, GL_COMPILE_STATUS, &Result);
+            if (Result == GL_FALSE) {
+                GLint InfoLogLength = 0;
+                glGetShaderiv(m_shaderID, GL_INFO_LOG_LENGTH, &InfoLogLength);
+                if (InfoLogLength > 0) {
+                    std::vector<char> shaderErrorMessage(InfoLogLength + 1);
+                    glGetShaderInfoLog(m_shaderID, InfoLogLength, &InfoLogLength,
+                                       shaderErrorMessage.data());
+                    glDeleteShader(m_shaderID);
+                    if (shaderErrorMessage[0] == '\0') {
+                        throw std::runtime_error("shader: " + shaderFile + " compile error.");
+                    } else {
+                        throw std::runtime_error(std::string("shader: ") + shaderFile + " compile error: " +
+                                                 shaderErrorMessage.data());
+                    }
+                } else {
+                    throw std::runtime_error("shader: " + shaderFile + " compile error.");
+                }
+            }
+        }
+
+        ~Shader() {
+            glDeleteShader(m_shaderID);
+        }
+    private:
+        GLuint m_shaderID;
+    };
+
+    class GLProgram {
+    public:
+        GLuint programID() { return m_programID; }
+
+        GLProgram(
+                std::vector<std::shared_ptr<Shader>> shaders)
+                : m_programID{}
+        {
+            if (shaders.empty()) {
+                throw std::runtime_error("A shader was incorrectly initialized when loading the GL program.");
+            }
+
+            // Create the program
+            m_programID = glCreateProgram();
+
+            for (auto const &shader : shaders) {
+                glAttachShader(m_programID, shader->shaderID());
+            }
+
+            glLinkProgram(m_programID);
+
+            // glLinkProgram doc pages state that once the link step is done, programs can be
+            // detached, deleted, etc.
+            for (auto const &shader : shaders) {
+                glDetachShader(m_programID, shader->shaderID());
+            }
+
+            // Check the program
+            GLint Result = GL_TRUE;
+            glGetProgramiv(m_programID, GL_LINK_STATUS, &Result);
+
+            if (Result == GL_FALSE) {
+                GLint InfoLogLength = 0;
+                glGetProgramiv(m_programID, GL_INFO_LOG_LENGTH, &InfoLogLength);
+                if (InfoLogLength > 0) {
+                    std::vector<char> ProgramErrorMessage(InfoLogLength + 1, 0);
+                    glGetProgramInfoLog(m_programID, InfoLogLength, nullptr, ProgramErrorMessage.data());
+                    throw std::runtime_error(ProgramErrorMessage.data());
+                } else {
+                    throw std::runtime_error("glLinkProgram error.");
+                }
+            }
+        }
+
+        ~GLProgram() {
+            glDeleteProgram(m_programID);
+        }
+
+    private:
+        GLuint m_programID;
+    };
+
     class RenderDetailsGL : public RenderDetails {
     public:
         // For postprocessing results written to an image buffer whose contents are put in input.
@@ -130,22 +233,67 @@ namespace renderDetails {
             return false;
         }
 
-        RenderDetailsGL(uint32_t inWidth, uint32_t inHeight, bool usesIntSurface)
+        RenderDetailsGL(
+            uint32_t inWidth,
+            uint32_t inHeight,
+            bool usesIntSurface)
             : RenderDetails{inWidth, inHeight},
             m_usesIntSurface{usesIntSurface}
         {}
 
-        ~RenderDetailsGL() override  = default;
+        ~RenderDetailsGL() override = default;
+
     protected:
         static void drawVertices(
                 GLuint programID,
                 std::shared_ptr<levelDrawer::ModelDataGL> const &modelData,
                 bool useVertexNormals = false);
 
-        static GLuint loadShaders(std::shared_ptr<GameRequester> const &gameRequester,
-                           std::string const &vertexShaderFile, std::string const &fragmentShaderFile);
+        std::shared_ptr<Shader> cacheShader(
+                std::shared_ptr<GameRequester> const &inGameRequester,
+                char const *shaderFileName,
+                GLenum shaderType)
+        {
+            /* Todo: fix this so that caching works or shader compilation and linking is done at program startup
+            std::shared_ptr<Shader> shader;
+            auto it = m_shaders.emplace(shaderFileName, std::weak_ptr<Shader>());
+            if (it.second || it.first->second.expired()) {
+                shader = std::make_shared<Shader>(inGameRequester, shaderFileName,
+                                                  shaderType);
+                it.first->second = shader;
+            } else {
+                shader = it.first->second.lock();
+            }
+
+            pruneDeadShaders();
+            */
+            return std::make_shared<Shader>(inGameRequester, shaderFileName,
+                                            shaderType);
+        }
+        /*
+        void pruneDeadShaders() {
+            if (m_timesTillPrune != 0) {
+                return;
+            }
+            m_timesTillPrune = m_shaderCacheCallsBeforePruning;
+            for (auto it = m_shaders.begin(); it != m_shaders.end(); ) {
+                if (it->second.expired()) {
+                    it = m_shaders.erase(it);
+                } else {
+                    it++;
+                }
+            }
+        }
+        */
 
         bool m_usesIntSurface;
+
+    private:
+        static size_t const constexpr m_shaderCacheCallsBeforePruning = 8;
+
+        static std::unordered_map<std::string, std::weak_ptr<Shader>> m_shaders;
+
+        static size_t m_timesTillPrune;
     };
 
     using ReferenceGL = Reference<RenderDetailsGL, levelDrawer::TextureDataGL, DrawObjectDataGL>;

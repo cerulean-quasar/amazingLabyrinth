@@ -1,12 +1,13 @@
 {
     "Components" : {
-        "Starter" : "starter",
-        "Level" : "movablePassage",
-        "Finisher": "manyQuadsCoverUp"
+        "Starter": {
+            "Name": "starter",
+            "ExtraCfgFile": "configs/levels/starterModelCfg.cbor"
+        },
+        "Level": { "Name": "movablePassage" },
+        "Finisher": { "Name": "manyQuadsCoverUp" }
     },
     "Starter" : {
-        "BallModel": "models/ball.modelcbor",
-        "BallTexture": "textures/levelStarter/ballLevelStarter.png",
         "BounceEnabled": false,
         "BallDiagonalRatio": 0.02,
 
@@ -16,8 +17,6 @@
         ]
     },
     "Level": {
-        "BallModel": "models/gopher/gopher.modelcbor",
-        "BallTexture": "textures/gopher/gopher.png",
         "BounceEnabled": false,
         "BallDiagonalRatio" : 0.0,
 
@@ -25,53 +24,94 @@
         "NumberTilesY": 8,
         "StartColumn": 1,
         "EndColumn": 6,
-        "EndTexture": "textures/gopher/end.png",
-        "EndOffBoardTexture": "textures/gopher/endOffBoard.png",
-        "PlacementLockedInPlaceTexture": "textures/gopher/dirt1.png",
-        "RockModels": [ "models/gopher/rock1.modelcbor",
-                        "models/gopher/rock2.modelcbor",
-                        "models/gopher/rock3.modelcbor",
-                        "models/gopher/rock4.modelcbor" ],
-        "RockTextures": [ "textures/gopher/rock.png" ],
-        "DirtModels": [],
-        "DirtTextures": [ "textures/gopher/dirt1.png",
-                          "textures/gopher/dirt2.png",
-                          "textures/gopher/dirt3.png",
-                          "textures/gopher/dirt4.png" ],
-        "BeginningSideModels": [ "models/movablePassage/startSide.modelcbor" ],
-        "BeginningSideTextures": [ "textures/gopher/dirt1.png",
-                          "textures/gopher/dirt2.png",
-                          "textures/gopher/dirt3.png",
-                          "textures/gopher/dirt4.png" ],
-        "BeginningOpenModels": [ "models/movablePassage/startOpen.modelcbor" ],
-        "BeginningOpenTextures": [ "textures/gopher/dirt1.png",
-                          "textures/gopher/dirt2.png",
-                          "textures/gopher/dirt3.png",
-                          "textures/gopher/dirt4.png" ],
-        "BeginningCornerModels": [ "models/movablePassage/startCorner.modelcbor" ],
-        "BeginningCornerTextures": [ "textures/gopher/dirt1.png",
-                          "textures/gopher/dirt2.png",
-                          "textures/gopher/dirt3.png",
-                          "textures/gopher/dirt4.png" ],
-        "Straight": {
-            "Model": "models/movablePassage/straight.modelcbor",
-            "Texture": "textures/gopher/dirt.png",
-            "NumberPlacements": 3
-        },
-        "Turn": {
-            "Model": "models/movablePassage/turn.modelcbor",
-            "Texture": "textures/gopher/dirt.png",
-            "NumberPlacements": 10
-        },
-        "CrossJunction": {
-            "Model": "models/movablePassage/crossjunction.modelcbor",
-            "Texture": "textures/gopher/dirt.png",
-            "NumberPlacements": 2
-        },
-        "TJunction": {
-            "Model": "models/movablePassage/tjunction.modelcbor",
-            "Texture": "textures/gopher/dirt.png",
-            "NumberPlacements": 2
+        "ModelConfigs": [
+            {
+                "Name": "Ball",
+                "Models": [ "models/gopher/gopher.modelcbor" ],
+                "Textures": [ "textures/gopher/gopher.png" ]
+            },
+            {
+                "Name": "End",
+                "Type": 1,
+                "Textures": [ "textures/gopher/end.png" ]
+            },
+            {
+                "Name": "EndOffBoard",
+                "Type": 1,
+                "Textures": [ "textures/gopher/endOffBoard.png" ]
+            },
+            {
+                "Name": "Rock",
+                "Models": [ "models/gopher/rock1.modelcbor",
+                                "models/gopher/rock2.modelcbor",
+                                "models/gopher/rock3.modelcbor",
+                                "models/gopher/rock4.modelcbor" ],
+                "Textures": [ "textures/gopher/rock.png" ]
+            },
+            {
+                "Name": "Dirt",
+                "Type": 1,
+                "Textures": [ "textures/gopher/dirt1.png",
+                                  "textures/gopher/dirt2.png",
+                                  "textures/gopher/dirt3.png",
+                                  "textures/gopher/dirt4.png" ]
+            },
+            {
+                "Name": "StartSide",
+                "Models": [ "models/movablePassage/startSide.modelcbor" ],
+                "Textures": [ "textures/gopher/dirt1.png",
+                                  "textures/gopher/dirt2.png",
+                                  "textures/gopher/dirt3.png",
+                                  "textures/gopher/dirt4.png" ]
+            },
+            {
+                "Name": "StartCenter",
+                "Models": [ "models/movablePassage/startOpen.modelcbor" ],
+                "Textures": [ "textures/gopher/dirt1.png",
+                                  "textures/gopher/dirt2.png",
+                                  "textures/gopher/dirt3.png",
+                                  "textures/gopher/dirt4.png" ]
+            },
+            {
+                "Name": "StartCorner",
+                "Models": [ "models/movablePassage/startCorner.modelcbor" ],
+                "Textures": [ "textures/gopher/dirt1.png",
+                                  "textures/gopher/dirt2.png",
+                                  "textures/gopher/dirt3.png",
+                                  "textures/gopher/dirt4.png" ]
+            },
+            {
+                "Name": "Straight",
+                "Models": [ "models/movablePassage/straight.modelcbor" ],
+                "Textures": [ "textures/gopher/dirt.png" ],
+                "AlternateTextures": [ "textures/gopher/dirt1.png" ]
+            },
+            {
+                "Name": "Turn",
+                "Models": [ "models/movablePassage/turn.modelcbor" ],
+                "Textures": [ "textures/gopher/dirt.png" ],
+                "AlternateTextures": [ "textures/gopher/dirt1.png" ]
+ 
+            },
+            {
+                "Name": "CrossJunction",
+                "Models": [ "models/movablePassage/crossjunction.modelcbor" ],
+                "Textures": [ "textures/gopher/dirt.png" ],
+                "AlternateTextures": [ "textures/gopher/dirt1.png" ]
+ 
+            },
+            {
+                "Name": "TJunction",
+                "Models": [ "models/movablePassage/tjunction.modelcbor" ],
+                "Textures": [ "textures/gopher/dirt.png" ],
+                "AlternateTextures": [ "textures/gopher/dirt1.png" ]
+            }
+        ],
+        "NumberPlacements": {
+            "Straight": 3,
+            "Turn": 10,
+            "CrossJunction": 2,
+            "TJunction": 2
         },
         "RockPlacements": [
             { "Row": 1, "Col": 1 },

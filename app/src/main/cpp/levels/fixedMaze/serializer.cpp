@@ -1,5 +1,5 @@
 /**
- * Copyright 2020 Cerulean Quasar. All Rights Reserved.
+ * Copyright 2023 Cerulean Quasar. All Rights Reserved.
  *
  *  This file is part of AmazingLabyrinth.
  *
@@ -39,22 +39,16 @@ namespace fixedMaze {
         from_json(j, boost::implicit_cast<basic::LevelSaveData &>(val));
     }
 
-    char constexpr const *MazeFloorModel = "MazeFloorModel";
-    char constexpr const *MazeFloorTexture = "MazeFloorTexture";
     char constexpr const *ExtraBounce = "ExtraBounce";
     char constexpr const *MinSpeedOnBounce = "MinSpeedOnBounce";
     void to_json(nlohmann::json &j, LevelConfigData const &val) {
         to_json(j, boost::implicit_cast<basic::LevelConfigData const &>(val));
-        j[MazeFloorModel] = val.mazeFloorModel;
-        j[MazeFloorTexture] = val.mazeFloorTexture;
         j[ExtraBounce] = val.extraBounce;
         j[MinSpeedOnBounce] = val.minSpeedOnBounce;
     }
 
     void from_json(nlohmann::json const &j, LevelConfigData &val) {
         from_json(j, boost::implicit_cast<basic::LevelConfigData &>(val));
-        val.mazeFloorModel = j[MazeFloorModel].get<std::string>();
-        val.mazeFloorTexture = j[MazeFloorTexture].get<std::string>();
         val.extraBounce = j[ExtraBounce].get<float>();
         val.minSpeedOnBounce = j[MinSpeedOnBounce].get<float>();
     }

@@ -1,5 +1,5 @@
 /**
- * Copyright 2020 Cerulean Quasar. All Rights Reserved.
+ * Copyright 2023 Cerulean Quasar. All Rights Reserved.
  *
  *  This file is part of AmazingLabyrinth.
  *
@@ -23,8 +23,6 @@
 #include "level.hpp"
 
 namespace collectMaze {
-    char constexpr const *Level::m_name;
-
     bool Level::checkFinishCondition(float timeDiff) {
         uint32_t nbrItemsCollected = 0;
 

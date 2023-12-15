@@ -113,42 +113,29 @@ namespace levelDrawer {
     class ModelDescription {
         friend BaseClassPtrLess<ModelDescription>;
     public:
-        virtual bool shouldLoadVertexNormals() { return false; }
-        virtual std::pair<ModelVertices, ModelVertices> getDataWithVertexNormalsAlso(
-                std::shared_ptr<GameRequester> const &)
-        {
-            throw std::runtime_error("Requesting vertex normals does not apply for this object.");
-        }
-        virtual ModelVertices getData(std::shared_ptr<GameRequester> const &gameRequester) = 0;
+        static uint8_t const constexpr LOAD_VERTEX_NORMALS = 0x1;
+        static uint8_t const constexpr LOAD_FACE_NORMALS = 0x2;
+        static uint8_t const constexpr LOAD_BOTH = 0x3;
+
+        virtual uint8_t normalsToLoad() { return LOAD_FACE_NORMALS; }
+        virtual std::pair<ModelVertices, ModelVertices> getData(
+                std::shared_ptr<GameRequester> const &) = 0;
 
     protected:
         // returns true if this < other.
         virtual bool compareLess(ModelDescription *) = 0;
     };
 
-    class ModelReader{
-    public:
-        virtual bool read(std::unique_ptr<std::streambuf> const &modelStreamBuf,
-                          ModelVertices &verticesWithFaceNormals,
-                          ModelVertices *verticesWithVertexNormals) = 0;
-
-
-        ModelReader() = default;
-        virtual ~ModelReader() = default;
-    };
-
     class ModelDescriptionPath : public ModelDescription {
     public:
-        bool shouldLoadVertexNormals() override { return m_loadVertexNormals; }
-        std::pair<ModelVertices, ModelVertices> getDataWithVertexNormalsAlso(
-                std::shared_ptr<GameRequester> const &gameRequester) override;
+        uint8_t normalsToLoad() override { return m_normalsToLoad; }
+        std::pair<ModelVertices, ModelVertices> getData(std::shared_ptr<GameRequester> const &gameRequester) override;
 
-        ModelVertices getData(std::shared_ptr<GameRequester> const &gameRequester) override;
-
-        ModelDescriptionPath(std::string path, glm::vec3 color = glm::vec3{0.2f, 0.2f, 0.2f}, bool loadVertexNormalsAlso = false)
+        ModelDescriptionPath(std::string path, glm::vec3 color = glm::vec3{0.2f, 0.2f, 0.2f}, uint8_t normalsToLoad = LOAD_FACE_NORMALS)
                 : m_path{std::move(path)},
+                m_usingDefaultColor{true},
                 m_color{color},
-                m_loadVertexNormals{loadVertexNormalsAlso}
+                m_normalsToLoad{normalsToLoad}
         {}
 
     protected:
@@ -160,7 +147,15 @@ namespace levelDrawer {
                 throw std::runtime_error("Comparing incompatible pointers");
             }
             if (m_path == otherPath->m_path) {
-                return compareLessVec3(m_color, otherPath->m_color);
+                if (m_normalsToLoad == otherPath->m_normalsToLoad) {
+                    if (m_usingDefaultColor && otherPath->m_usingDefaultColor) {
+                        return compareLessVec3(m_color, otherPath->m_color);
+                    } else {
+                        return m_usingDefaultColor < otherPath->m_usingDefaultColor;
+                    }
+                } else {
+                    return m_normalsToLoad < otherPath->m_normalsToLoad;
+                }
             } else {
                 return m_path < otherPath->m_path;
             }
@@ -168,21 +163,20 @@ namespace levelDrawer {
 
     private:
         std::string m_path;
+        bool m_usingDefaultColor;
         glm::vec3 m_color;
-        bool m_loadVertexNormals;
-
-        std::shared_ptr<ModelReader> getReader();
+        uint8_t m_normalsToLoad;
 
         bool loadModel(
                 std::unique_ptr<std::streambuf> const &modelStreamBuf,
-                ModelVertices &verticesWithFaceNormals,
+                ModelVertices *verticesWithFaceNormals,
                 ModelVertices *verticesWithVertexNormals = nullptr);
     };
 
 // creates a quad with each side length 2.0f and center at specified location.
     class ModelDescriptionQuad : public ModelDescription {
     public:
-        ModelVertices getData(std::shared_ptr<GameRequester> const &gameRequester) override;
+        std::pair<ModelVertices, ModelVertices> getData(std::shared_ptr<GameRequester> const &gameRequester) override;
 
         ModelDescriptionQuad()
                 : m_center{0.0f, 0.0f, 0.0f},
@@ -216,7 +210,7 @@ namespace levelDrawer {
     // creates a cube with each side length 2.0f and center at specified location
     class ModelDescriptionCube : public ModelDescription {
     public:
-        ModelVertices getData(std::shared_ptr<GameRequester> const &gameRequester) override;
+        std::pair<ModelVertices, ModelVertices> getData(std::shared_ptr<GameRequester> const &gameRequester) override;
 
         ModelDescriptionCube()
                 : m_center{0.0f, 0.0f, 0.0f},

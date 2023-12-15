@@ -1,5 +1,5 @@
 /**
- * Copyright 2022 Cerulean Quasar. All Rights Reserved.
+ * Copyright 2023 Cerulean Quasar. All Rights Reserved.
  *
  *  This file is part of AmazingLabyrinth.
  *
@@ -38,6 +38,65 @@
 namespace basic {
     class Level {
     protected:
+        struct ModelDatum {
+            std::vector<std::shared_ptr<levelDrawer::ModelDescription>> models;
+            std::vector<std::shared_ptr<levelDrawer::TextureDescription>> textures;
+            std::vector<std::shared_ptr<levelDrawer::TextureDescription>> alternateTextures;
+        };
+
+        using LoadedModelData = std::map<std::string, ModelDatum>;
+
+        LoadedModelData m_modelData;
+
+    private:
+        LoadedModelData loadModels(std::vector<ModelConfigData> const &configData) {
+            LoadedModelData finalData;
+            for (auto const &configDatum : configData) {
+                ModelDatum modelDatum;
+                glm::vec3 defaultColor{configDatum.defaultColor[0], configDatum.defaultColor[1],
+                                       configDatum.defaultColor[2]};
+                if (!configDatum.modelFiles.empty()) {
+                    uint8_t normalsToLoad = 0;
+                    if (configDatum.loadFaceNormals) {
+                        normalsToLoad |= levelDrawer::ModelDescription::LOAD_FACE_NORMALS;
+                    }
+                    if (configDatum.loadVertexNormals) {
+                        normalsToLoad |= levelDrawer::ModelDescription::LOAD_VERTEX_NORMALS;
+                    }
+                    for (auto const &modelFile : configDatum.modelFiles) {
+                        modelDatum.models.emplace_back(std::make_shared<levelDrawer::ModelDescriptionPath>(
+                                modelFile, defaultColor, normalsToLoad));
+                    }
+                } else if (configDatum.modelType == modelTypeCube) {
+                    modelDatum.models.emplace_back(std::make_shared<levelDrawer::ModelDescriptionCube>(glm::vec3{0.0f, 0.0f, 0.0f}, defaultColor));
+                } else if (configDatum.modelType == modelTypeSquare) {
+                    modelDatum.models.emplace_back(std::make_shared<levelDrawer::ModelDescriptionQuad>(glm::vec3{0.0f, 0.0f, 0.0f}, defaultColor));
+                } else {
+                    throw std::runtime_error("Loading Models: Invalid model type specified.");
+                }
+
+                for (auto const &textureFile : configDatum.textures) {
+                    modelDatum.textures.push_back(std::make_shared<levelDrawer::TextureDescriptionPath>(
+                            textureFile));
+                }
+
+                for (auto const &textureFile : configDatum.alternateTextures) {
+                    modelDatum.alternateTextures.push_back(std::make_shared<levelDrawer::TextureDescriptionPath>(
+                            textureFile));
+                }
+
+                finalData.emplace(configDatum.modelName, modelDatum);
+            }
+
+            return finalData;
+        }
+
+    protected:
+        /* Names of models that we know in basic */
+        static char constexpr const *ModelNameBall = "Ball";
+        static char constexpr const *ModelNameHole = "Hole";
+        static char constexpr const *ModelNameFloor = "Floor";
+
         static float constexpr m_originalBallDiameter = 2.0f;
         static float constexpr m_dragConstant = 0.2f;
         static float constexpr m_accelerationAdjustment = 0.1f;
@@ -53,8 +112,6 @@ namespace basic {
         bool const m_ignoreZMovement;
         float m_scaleBall;
         bool m_bounce;
-        std::string m_ballModel;
-        std::string m_ballTexture;
 
         // data on where the ball is, how fast it is moving, etc.
         struct {
@@ -64,6 +121,54 @@ namespace basic {
             glm::vec3 acceleration;
             glm::quat totalRotated;
         } m_ball;
+
+        /**
+         * Find the model entry in the list of model info in the config file.
+         * @param modelName Name of the model (if no models for this name are found, an exception
+         *        will be thrown.
+         * @param nbrOfMinAllowedTextures Minimum number of textures expected. If the number of
+         *        textures is less than this value, an exception is thrown.
+         * @return The entry of the model config loaded from the config file.
+         */
+        auto const &findModelsAndTextures(std::string const &modelName, size_t nbrOfMinAllowedTextures = 0) {
+            auto const it = m_modelData.find(modelName);
+            if (it == m_modelData.end()) {
+                throw std::runtime_error("Model data for: " + modelName + " not found in config file.");
+            }
+
+            if (it->second.models.empty()) {
+                throw std::runtime_error("No models loaded for model: " + modelName);
+            }
+
+            if (it->second.textures.size() < nbrOfMinAllowedTextures) {
+                throw std::runtime_error("Not enough textures for model: " +
+                modelName + ". Expecting at least " + std::to_string(nbrOfMinAllowedTextures));
+            }
+
+            return it->second;
+        }
+
+        /**
+         * Find the first texture in the model table entry.
+         * @param modelDatum the table entry to get the texture from.
+         * @param noneOk if true, then a null pointer will be returned if there are no textures,
+         * if false, then an exception is thrown
+         * @param returnAlternateTextures if true, return the first texture from the alternate
+         * textures, otherwise use the non alternate textures.
+         * @return a pointer to the texture.
+         */
+        auto getFirstTexture(ModelDatum const &modelDatum, bool noneOk = true, bool returnAlternateTextures = false) {
+            auto const &textures = returnAlternateTextures ? modelDatum.alternateTextures : modelDatum.textures;
+            if (textures.empty()) {
+                if (noneOk) {
+                    return std::shared_ptr<levelDrawer::TextureDescription>();
+                } else {
+                    throw std::runtime_error("Texture expected, however none configured for this model");
+                }
+            } else {
+                return textures[0];
+            }
+        }
 
         float ballRadius() { return m_originalBallDiameter * m_scaleBall / 2.0f; }
 
@@ -158,12 +263,13 @@ namespace basic {
                   m_mazeFloorZ{mazeFloorZ},
                   m_ignoreZMovement{ignoreZMovement},
                   m_bounce{lcd->bounceEnabled},
-                  m_ballModel{lcd->ballModel},
-                  m_ballTexture{lcd->ballTexture}
+                  m_modelData{}
         {
             if (!lcd) {
                 throw (std::runtime_error("Level Configuration missing"));
             }
+
+            m_modelData = loadModels(lcd->models);
 
             if (parameters == nullptr || renderDetailsName.length() == 0) {
                 m_levelDrawer.requestRenderDetails(m_levelDrawer.getDefaultRenderDetailsName(),

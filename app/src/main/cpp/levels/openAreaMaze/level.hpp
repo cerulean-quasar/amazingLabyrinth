@@ -1,5 +1,5 @@
 /**
- * Copyright 2022 Cerulean Quasar. All Rights Reserved.
+ * Copyright 2023 Cerulean Quasar. All Rights Reserved.
  *
  *  This file is part of AmazingLabyrinth.
  *
@@ -27,22 +27,22 @@ namespace openAreaMaze {
     protected:
         virtual bool checkFinishCondition(float timeDiff) = 0;
 
-        float leftWall(int col) {
+        float leftWall(uint32_t col) {
             return m_width / (m_mazeBoard.numberColumns() * numberBlocksPerCell + 1) *
                    (col * numberBlocksPerCell + 0.5f) - m_width / 2;
         }
 
-        float rightWall(int col) {
+        float rightWall(uint32_t col) {
             return m_width / (m_mazeBoard.numberColumns() * numberBlocksPerCell + 1) *
                    ((col + 1) * numberBlocksPerCell + 0.5f) - m_width / 2;
         }
 
-        float topWall(int row) {
+        float topWall(uint32_t row) {
             return m_height / (m_mazeBoard.numberRows() * numberBlocksPerCell + 1) *
                    (row * numberBlocksPerCell + 0.5f) - m_height / 2;
         }
 
-        float bottomWall(int row) {
+        float bottomWall(uint32_t row) {
             return m_height / (m_mazeBoard.numberRows() * numberBlocksPerCell + 1) *
                    ((row + 1) * numberBlocksPerCell + 0.5f) - m_height / 2;
         }

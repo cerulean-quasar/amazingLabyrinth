@@ -419,12 +419,14 @@ namespace movablePassage {
         glm::vec3 endScale = m_gameBoard.scaleEndObject();
         endScale.x /= m_modelSize;
         endScale.y /= m_modelSize;
+        auto const &modelDataEnd = findModelsAndTextures(ModelNameEnd);
         auto objIndexEnd = m_levelDrawer.addObject(
-                std::make_shared<levelDrawer::ModelDescriptionQuad>(),
-                std::make_shared<levelDrawer::TextureDescriptionPath>(m_componentTextureEnd));
+                modelDataEnd.models[0],
+               getFirstTexture(modelDataEnd));
+        auto const &modelDataEndOffBoard = findModelsAndTextures(ModelNameEndOffBoard);
         auto objIndexEndOffBoard = m_levelDrawer.addObject(
-                std::make_shared<levelDrawer::ModelDescriptionQuad>(),
-                std::make_shared<levelDrawer::TextureDescriptionPath>(m_textureEndOffBoard));
+                modelDataEndOffBoard.models[0],
+               getFirstTexture(modelDataEndOffBoard));
         for (uint32_t col = 0; col < m_gameBoard.widthInTiles(); col++) {
             glm::vec3 endPosition = m_gameBoard.position(
                     m_gameBoard.heightInTiles() - m_nbrTileRowsForEnd, col);
@@ -461,21 +463,21 @@ namespace movablePassage {
                 glm::scale(glm::mat4(1.0f), endScale));
 
         // the start: closed corner type
-        auto objRefsStartCorner = addObjs<levelDrawer::ModelDescriptionCube>(
+        auto objRefsStartCorner = addObjs(
                 m_levelDrawer,
                 false,
                 m_componentModels[Component::ComponentType::closedCorner],
                 m_componentTextures[Component::ComponentType::closedCorner]);
 
         // the start: closed bottom type
-        auto objRefsStartSide = addObjs<levelDrawer::ModelDescriptionCube>(
+        auto objRefsStartSide = addObjs(
                 m_levelDrawer,
                 false,
                 m_componentModels[Component::ComponentType::closedBottom],
                 m_componentTextures[Component::ComponentType::closedBottom]);
 
         // the start: open type
-        auto objRefsStartCenter = addObjs<levelDrawer::ModelDescriptionCube>(
+        auto objRefsStartCenter = addObjs(
                 m_levelDrawer,
                 false,
                 m_componentModels[Component::ComponentType::open],
@@ -520,7 +522,7 @@ namespace movablePassage {
         }
 
         // fill in the bottom and sides with rocks so that no bg color shows.
-        auto objRefsRock = addObjs<levelDrawer::ModelDescriptionCube>(
+        auto objRefsRock = addObjs(
                 m_levelDrawer,
                 false,
                 m_componentModels[Component::ComponentType::noMovementRock],
@@ -546,8 +548,8 @@ namespace movablePassage {
         }
 
         // on the bottom
-        // always add these because the gameboard has to be shifted up to cover up the end patch because
-        // the end is not at m_mazeFloorZ.
+        // always add these because the game board has to be shifted up to cover up the end patch
+        // because the end is not at m_mazeFloorZ.
         for (size_t i = 0; i < m_gameBoard.widthInTiles(); i++) {
             glm::vec3 pos = m_gameBoard.position(0, i);
             pos.y -= m_gameBoard.blockSize();
@@ -580,7 +582,6 @@ namespace movablePassage {
         glm::vec3 zaxis{0.0f, 0.0f, 1.0f};
         float scaleBall = m_gameBoard.blockSize() / m_modelSize / 2.0f;
 
-        std::vector<std::string> texturesLockedIntoPlace{m_textureLockedComponent};
         for (auto const &component: m_components) {
             if (component->type() == Component::ComponentType::closedBottom ||
                 component->type() == Component::ComponentType::closedCorner ||
@@ -590,18 +591,21 @@ namespace movablePassage {
                 // These components are handled as static draw objects or we have none of them
                 continue;
             }
-            auto refs = addObjs<levelDrawer::ModelDescriptionCube>(
+            auto refs = addObjs(
                     m_levelDrawer,false,m_componentModels[component->type()],
                     m_componentTextures[component->type()]);
             component->setObjReferences(refs);
 
-            // when components are locked into place and cannot be moved, use these objs.
-            // don't do this for the rocks, they are always colored the same way.
-            if (component->type() != Component::ComponentType::noMovementRock) {
-                refs = addObjs<levelDrawer::ModelDescriptionCube>(
-                        m_levelDrawer,true,
+            // when components are locked into place and cannot be moved, use these objects.
+            // don't do this for the static objects, they are always colored the same way.
+            if (component->type() == Component::ComponentType::straight ||
+                component->type() == Component::ComponentType::turn ||
+                component->type() == Component::ComponentType::tjunction ||
+                component->type() == Component::ComponentType::crossjunction) {
+                refs = addObjs(
+                        m_levelDrawer, true,
                         m_componentModels[component->type()],
-                        texturesLockedIntoPlace);
+                        m_componentTexturesLockedInPlace[component->type()]);
                 component->setObjReferencesLockedComponent(refs);
             }
 
@@ -633,9 +637,10 @@ namespace movablePassage {
         }
 
         // the ball
+        auto const &modelDescriptionBall = findModelsAndTextures(ModelNameBall);
         m_objsIndexBall = m_levelDrawer.addObject(
-                std::make_shared<levelDrawer::ModelDescriptionPath>(m_ballModel),
-                std::make_shared<levelDrawer::TextureDescriptionPath>(m_ballTexture));
+                modelDescriptionBall.models[0],
+                getFirstTexture(modelDescriptionBall));
 
         m_objDataIndexBall = m_levelDrawer.addModelMatrixForObject(
                 m_objsIndexBall,

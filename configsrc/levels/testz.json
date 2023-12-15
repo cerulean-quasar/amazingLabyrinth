@@ -1,12 +1,13 @@
 {
     "Components" : {
-        "Starter" : "starter",
-        "Level" : "testz",
-        "Finisher": "growingQuad"
+        "Starter": {
+            "Name": "starter",
+            "ExtraCfgFile": "configs/levels/starterModelCfg.cbor"
+        },
+        "Level" : { "Name": "testz" },
+        "Finisher": { "Name": "growingQuad" }
     },
     "Starter" : {
-        "BallModel": "models/ball.modelcbor",
-        "BallTexture": "textures/levelStarter/ballLevelStarter.png",
         "BounceEnabled": false,
         "BallDiagonalRatio": 0.02,
 
@@ -16,12 +17,30 @@
         ]
     },
     "Level": {
-        "BallModel": "models/ball.modelcbor",
-        "BallTexture": "textures/pufferFish/floor.png",
+        "ModelConfigs": [
+            {
+                "Name": "Ball",
+                "Models": [ "models/ball.modelcbor" ],
+                "DefaultColor": [ 0.0, 1.0, 1.0, 1.0 ]
+            },
+            {
+                "Name": "Quad1",
+                "Type": 1,
+                "DefaultColor": [ 0.0, 1.0, 0.5, 1.0 ]
+            },
+            {
+                "Name": "Quad2",
+                "Type": 1,
+                "DefaultColor": [ 0.0, 0.0, 1.0, 1.0 ]
+            },
+            {
+                "Name": "Quad3",
+                "Type": 1,
+                "DefaultColor": [ 0.0, 1.0, 0.0, 1.0 ]
+            }
+        ],
         "BounceEnabled": true,
-        "BallDiagonalRatio" : 0.025,
-
-        "HoleTexture": "textures/rollerBee/floor.png"
+        "BallDiagonalRatio" : 0.025
     },
     "Finisher": {
         "Texture": "textures/beginning/starField.png"

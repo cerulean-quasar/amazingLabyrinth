@@ -1,5 +1,5 @@
 /**
- * Copyright 2022 Cerulean Quasar. All Rights Reserved.
+ * Copyright 2023 Cerulean Quasar. All Rights Reserved.
  *
  *  This file is part of AmazingLabyrinth.
  *
@@ -149,9 +149,7 @@ namespace depthMap {
                 std::shared_ptr<GameRequester> const &inGameRequester,
                 uint32_t inWidth, uint32_t inHeight, bool useIntSurface);
 
-        ~RenderDetailsGL() override {
-            glDeleteProgram(m_depthProgramID);
-        }
+        ~RenderDetailsGL() override = default;
 
     private:
         char const *m_renderDetailsName;
@@ -159,7 +157,7 @@ namespace depthMap {
         char const *m_linearDepthVertShader3;
         char const *m_simpleFragShader;
         char const *m_simpleFragShader3;
-        GLuint m_depthProgramID;
+        std::shared_ptr<renderDetails::GLProgram> m_depthProgram;
 
         static renderDetails::ReferenceGL createReference(
                 std::shared_ptr<renderDetails::RenderDetailsGL> rd,

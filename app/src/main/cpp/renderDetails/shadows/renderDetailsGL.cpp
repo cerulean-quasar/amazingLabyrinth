@@ -1,5 +1,5 @@
 /**
- * Copyright 2022 Cerulean Quasar. All Rights Reserved.
+ * Copyright 2023 Cerulean Quasar. All Rights Reserved.
  *
  *  This file is part of AmazingLabyrinth.
  *
@@ -27,16 +27,21 @@ namespace shadows {
 
     RenderDetailsGL::RenderDetailsGL(
             char const *name,
-            char const *vertexShader,
-            char const *fragShader,
+            char const *vertexShaderFile,
+            char const *fragmentShaderFile,
             std::shared_ptr<GameRequester> const &inGameRequester,
             uint32_t inWidth,
             uint32_t inHeight,
             bool usesIntSurface)
             : renderDetails::RenderDetailsGL(inWidth, inHeight, usesIntSurface),
-              m_renderDetailsName{name},
-              m_depthProgramID{loadShaders(inGameRequester, vertexShader, fragShader)}
-    {}
+              m_renderDetailsName{name}
+    {
+        auto vertexShader = cacheShader(inGameRequester, vertexShaderFile, GL_VERTEX_SHADER);
+        auto fragmentShader = cacheShader(inGameRequester, fragmentShaderFile, GL_FRAGMENT_SHADER);
+
+        m_program = std::make_shared<renderDetails::GLProgram>(
+                std::vector{std::move(vertexShader), std::move(fragmentShader)});
+    }
 
     renderDetails::ReferenceGL RenderDetailsGL::loadNew(
             char const *name,
@@ -135,7 +140,8 @@ namespace shadows {
         }
 
         // set the shader to use
-        glUseProgram(m_depthProgramID);
+        GLuint programID = m_program->programID();
+        glUseProgram(programID);
         checkGraphicsError();
         glCullFace(GL_FRONT);
         checkGraphicsError();
@@ -146,12 +152,12 @@ namespace shadows {
 
         // the projection matrix * the view matrix
         glm::mat4 projTimesView = projView.first * projView.second;
-        MatrixID = glGetUniformLocation(m_depthProgramID, "projView");
+        MatrixID = glGetUniformLocation(programID, "projView");
         checkGraphicsError();
         glUniformMatrix4fv(MatrixID, 1, GL_FALSE, &projTimesView[0][0]);
         checkGraphicsError();
 
-        MatrixID = glGetUniformLocation(m_depthProgramID, "model");
+        MatrixID = glGetUniformLocation(programID, "model");
         checkGraphicsError();
 
         for (auto it = beginZValRefs; it != endZValRefs; it++) {
@@ -164,12 +170,12 @@ namespace shadows {
             glUniformMatrix4fv(MatrixID, 1, GL_FALSE, &modelMatrix[0][0]);
             checkGraphicsError();
 
-            drawVertices(m_depthProgramID, modelData);
+            drawVertices(programID, modelData);
         }
     }
 
     char constexpr const *DEPTH_VERT_FILE = "shaders/depthShaderGL.vert";
-    char constexpr const *SIMPLE_FRAG_FILE = "shaders/simpleGL.frag";
+    char constexpr const *SIMPLE_FRAG_FILE = "shaders/simpleShadowsGL.frag";
     RegisterGL<renderDetails::RenderDetailsGL, RenderDetailsGL> registerGL(
         shadowsRenderDetailsName,
         std::vector<char const *>{DEPTH_VERT_FILE, SIMPLE_FRAG_FILE});

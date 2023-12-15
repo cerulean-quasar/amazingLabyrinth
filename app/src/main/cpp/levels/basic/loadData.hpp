@@ -21,22 +21,42 @@
 #ifndef AMAZING_LABYRINTH_BASIC_LOAD_DATA_HPP
 #define AMAZING_LABYRINTH_BASIC_LOAD_DATA_HPP
 #include <string>
+#include <array>
+
 namespace basic {
+    uint8_t constexpr const modelTypeSquare = 1;
+    uint8_t constexpr const modelTypeCube = 2;
+    std::array<float, 4> constexpr const defaultModelColor{0.5f, 0.5f, 0.5f, 1.0f};
+
     struct LevelSaveData {
         int m_version;
     };
 
+    struct ModelConfigData {
+        std::string modelName;
+        uint8_t modelType;
+        std::vector<std::string> modelFiles;
+        std::vector<std::string> textures;
+        std::vector<std::string> alternateTextures;
+        std::array<float, 4> defaultColor;
+        bool loadFaceNormals;
+        bool loadVertexNormals;
+
+        ModelConfigData()
+            : modelType{1},
+            defaultColor{defaultModelColor}
+        {}
+    };
+
     struct LevelConfigData {
-        std::string ballModel;
-        std::string ballTexture;
+        std::vector<ModelConfigData> models;
         bool bounceEnabled;
 
         // the fraction of the diagonal that the ball should take up.
         float ballSizeDiagonalRatio;
 
         LevelConfigData()
-                : ballTexture{},
-                  ballModel{},
+                : models{},
                   bounceEnabled{false},
                   ballSizeDiagonalRatio{0.0f}
         {

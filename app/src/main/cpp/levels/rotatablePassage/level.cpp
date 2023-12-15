@@ -1,5 +1,5 @@
 /**
- * Copyright 2020 Cerulean Quasar. All Rights Reserved.
+ * Copyright 2023 Cerulean Quasar. All Rights Reserved.
  *
  *  This file is part of AmazingLabyrinth.
  *
@@ -23,10 +23,8 @@
 #include "../basic/level.hpp"
 
 namespace rotatablePassage {
-    char constexpr const *Level::m_name;
-
     void Level::initSetGameBoardFromSaveData(std::shared_ptr<LevelSaveData> const &sd) {
-        if (sd->gameBoardPlacements.size() == 0 || sd->gameBoardPlacements[0].size() == 0) {
+        if (sd->gameBoardPlacements.empty() || sd->gameBoardPlacements[0].empty()) {
             throw std::runtime_error("Unexpected maze size");
         }
 
@@ -64,7 +62,7 @@ namespace rotatablePassage {
     }
 
     void Level::initSetGameBoard(uint32_t nbrTilesY, GeneratedMazeBoard::Mode mode) {
-        uint32_t nbrTilesX = static_cast<uint32_t>(std::floor(nbrTilesY / m_height * m_width));
+        auto nbrTilesX = static_cast<uint32_t>(std::floor(nbrTilesY / m_height * m_width));
 
         m_gameBoard.initialize(m_height/nbrTilesY, glm::vec3{0.0f, 0.0f, m_mazeFloorZ}, nbrTilesY,
                                nbrTilesX, 0, 0);
@@ -206,9 +204,10 @@ namespace rotatablePassage {
     }
 
     void Level::addStaticDrawObjects() {
-        auto refs = addObjs<levelDrawer::ModelDescriptionCube>(
-                m_levelDrawer,false, std::vector<std::string>{},
-                m_borderTextures);
+        auto const &borderModelData = findModelsAndTextures(ModelNameBorder);
+        auto refs = addObjs(
+                m_levelDrawer, false, borderModelData.models,
+                borderModelData.textures);
 
         float scale = m_gameBoard.blockSize() / m_modelSize;
 
@@ -277,12 +276,9 @@ namespace rotatablePassage {
 
 
         // the hole
-        std::vector<std::string> holeModels;
-        if (!m_holeModel.empty()) {
-            holeModels.push_back(m_holeModel);
-        }
-        refs = addObjs<levelDrawer::ModelDescriptionQuad>(m_levelDrawer, false, holeModels,
-                                std::vector<std::string>{m_holeTexture});
+        auto const &holeModelData = findModelsAndTextures(ModelNameHole);
+        refs = addObjs(m_levelDrawer, false, holeModelData.models,
+                                holeModelData.textures);
         pos = m_gameBoard.position(m_endRow, m_endCol);
         addModelMatrixToObj(m_levelDrawer, m_randomNumbers, refs, nullptr, 0,
                             glm::translate(glm::mat4{1.0f}, pos) *
@@ -294,13 +290,13 @@ namespace rotatablePassage {
         float scale = m_gameBoard.blockSize() / m_modelSize;
         for (auto &component : m_components) {
             Component::ComponentType type = component->type();
-            auto refs = addObjs<levelDrawer::ModelDescriptionCube>(
+            auto refs = addObjs(
                     m_levelDrawer, false,
-                    m_componentModels[type],m_componentTextures[type]);
+                    m_componentModels[type], m_componentTextures[type]);
             component->setObjReferences(refs);
 
-            auto refsLockedInPlace = addObjs<levelDrawer::ModelDescriptionCube>(
-                    m_levelDrawer,true,
+            auto refsLockedInPlace = addObjs(
+                    m_levelDrawer, true,
                     m_componentModels[type],
                     m_componentTexturesLockedInPlace[type]);
             component->setObjReferencesLockedComponent(refsLockedInPlace);
@@ -325,9 +321,10 @@ namespace rotatablePassage {
         }
 
         // the ball
+        auto const &modelDataBall = findModelsAndTextures(ModelNameBall);
         m_objRefBall = m_levelDrawer.addObject(
-                std::make_shared<levelDrawer::ModelDescriptionPath>(m_ballModel),
-                std::make_shared<levelDrawer::TextureDescriptionPath>(m_ballTexture));
+                modelDataBall.models[0],
+                getFirstTexture(modelDataBall));
         m_objDataRefBall = m_levelDrawer.addModelMatrixForObject(
                 m_objRefBall,
                 glm::translate(glm::mat4(1.0f), m_ball.position) *

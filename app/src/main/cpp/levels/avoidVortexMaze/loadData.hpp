@@ -1,5 +1,5 @@
 /**
- * Copyright 2020 Cerulean Quasar. All Rights Reserved.
+ * Copyright 2023 Cerulean Quasar. All Rights Reserved.
  *
  *  This file is part of AmazingLabyrinth.
  *
@@ -62,12 +62,10 @@ namespace avoidVortexMaze {
     };
 
     struct LevelConfigData : public generatedMaze::LevelConfigData {
-        std::string avoidTexture;
         uint32_t numberAvoidObjects;
 
         LevelConfigData()
             : generatedMaze::LevelConfigData(),
-              avoidTexture(),
               numberAvoidObjects()
         {}
 

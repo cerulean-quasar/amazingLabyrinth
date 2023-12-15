@@ -1,12 +1,13 @@
 {
     "Components" : {
-        "Starter": "starter",
-        "Level": "generatedMaze",
-        "Finisher": "manyQuadsCoverUp"
+        "Starter": {
+            "Name": "starter",
+            "ExtraCfgFile": "configs/levels/starterModelCfg.cbor"
+        },
+        "Level": { "Name": "generatedMaze" },
+        "Finisher": { "Name": "manyQuadsCoverUp" }
     },
     "Starter" : {
-        "BallModel": "models/ball.modelcbor",
-        "BallTexture": "textures/levelStarter/ballLevelStarter.png",
         "BounceEnabled": false,
         "BallDiagonalRatio": 0.02,
 
@@ -16,17 +17,34 @@
         ]
     },
     "Level": {
-        "BallModel": "models/ball.modelcbor",
-        "BallTexture": "textures/rollerBee/ballBee.png",
+        "ModelConfigs": [
+            {
+                "Name": "Ball",
+                "Models": [ "models/ball.modelcbor" ],
+                "Textures": [ "textures/rollerBee/ballBee.png" ]
+            },
+            {
+                "Name": "Wall",
+                "Type": 2,
+                "Textures": [ "textures/rollerBee/wallFlower1.png",
+                                  "textures/rollerBee/wallFlower2.png",
+                                  "textures/rollerBee/wallFlower3.png",
+                                  "textures/rollerBee/wallFlower4.png" ]
+            },
+            {
+                "Name": "Floor",
+                "Type": 1,
+                "Textures": [ "textures/rollerBee/floor.png" ]
+            },
+            {
+                "Name": "Hole",
+                "Type": 1,
+                "Textures": [ "textures/rollerBee/hole.png" ]
+            }
+        ],
         "BounceEnabled": false,
         "BallDiagonalRatio" : 0.0,
 
-        "WallTextureNames": [ "textures/rollerBee/wallFlower1.png",
-                          "textures/rollerBee/wallFlower2.png",
-                          "textures/rollerBee/wallFlower3.png",
-                          "textures/rollerBee/wallFlower4.png" ],
-        "MazeFloorTexture": "textures/rollerBee/floor.png",
-        "HoleTexture": "textures/rollerBee/hole.png",
         "NumberRows": 15,
         "DfsSearch": true
     },

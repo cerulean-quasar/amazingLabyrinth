@@ -1,5 +1,5 @@
 /**
- * Copyright 2020 Cerulean Quasar. All Rights Reserved.
+ * Copyright 2023 Cerulean Quasar. All Rights Reserved.
  *
  *  This file is part of AmazingLabyrinth.
  *
@@ -46,21 +46,6 @@ namespace openArea {
                   ball{std::move(ball_)},
                   hole{std::move(hole_)} {
         }
-    };
-
-    struct LevelConfigData : public basic::LevelConfigData {
-        std::string holeTexture;
-
-        LevelConfigData()
-            : basic::LevelConfigData{},
-              holeTexture{}
-        {}
-
-        LevelConfigData(LevelConfigData const &other) noexcept = default;
-
-        LevelConfigData(LevelConfigData &&other) noexcept = default;
-
-        LevelConfigData &operator=(LevelConfigData const &other) noexcept = default;
     };
 } // namespace openArea
 

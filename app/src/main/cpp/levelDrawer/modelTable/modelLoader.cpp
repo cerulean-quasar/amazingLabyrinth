@@ -74,8 +74,12 @@ namespace levelDrawer {
                 m_color{color},
                 m_substate{receivingArrayStart}{}
 
+        bool usingDefaultColor() {
+            return m_colors.empty();
+        }
+
         void getVertices(
-                ModelVertices &verticesWithFaceNormals,
+                ModelVertices *verticesWithFaceNormals,
                 ModelVertices *verticesWithVertexNormals) {
 
             if (m_vertices.empty() ||
@@ -113,7 +117,11 @@ namespace levelDrawer {
             uniqueVerticesWithVertexNormals.reserve(size / inumber);
             for (auto const &indices : m_indices) {
                 for (size_t i = 0; i < indices.size() / inumber; i++) {
-                    createModelVertex(&verticesWithFaceNormals, uniqueVerticesWithFaceNormals, m_faceNormals, indices, i, inumber, iposition, ifaceNormals, itexcoord, icolor);
+                    if (verticesWithFaceNormals) {
+                        createModelVertex(verticesWithFaceNormals, uniqueVerticesWithFaceNormals,
+                                          m_faceNormals, indices, i, inumber, iposition,
+                                          ifaceNormals, itexcoord, icolor);
+                    }
                     if (verticesWithVertexNormals) {
                         createModelVertex(verticesWithVertexNormals,
                                           uniqueVerticesWithVertexNormals, m_vertexNormals, indices,
@@ -326,49 +334,25 @@ namespace levelDrawer {
         std::vector<float> m_colors;
     };
 
-    class ModelReaderCBOR : public ModelReader {
-    public:
-        bool read(std::unique_ptr<std::streambuf> const &modelStreamBuf,
-                  ModelVertices &verticesWithFaceNormals,
-                  ModelVertices *verticesWithVertexNormals) override
-        {
-            std::istream assetIstream(modelStreamBuf.get());
-
-            LoadModelSaxClass sax{m_color};
-
-            nlohmann::json j = nlohmann::json::sax_parse(assetIstream, &sax,
-                                                         nlohmann::json::input_format_t::cbor);
-            sax.getVertices(verticesWithFaceNormals, verticesWithVertexNormals);
-            return true;
-        }
-
-        explicit ModelReaderCBOR(glm::vec3 const &color)
-        : m_color{color} { }
-
-    private:
-        glm::vec3 m_color;
-    };
-
-    std::pair<ModelVertices, ModelVertices> ModelDescriptionPath::getDataWithVertexNormalsAlso(
+    std::pair<ModelVertices, ModelVertices> ModelDescriptionPath::getData(
             const std::shared_ptr<GameRequester> &gameRequester)
     {
-        ModelVertices vertices;
-        ModelVertices verticesWithVertexNormals;
-        std::shared_ptr<ModelReader> reader;
-        loadModel(gameRequester->getAssetStream(m_path), vertices, &verticesWithVertexNormals);
-        return std::make_pair(std::move(vertices), std::move(verticesWithVertexNormals));
-    }
-
-    ModelVertices
-    ModelDescriptionPath::getData(std::shared_ptr<GameRequester> const &gameRequester) {
-        ModelVertices vertices;
-        loadModel(gameRequester->getAssetStream(m_path), vertices);
+        std::pair<ModelVertices, ModelVertices> vertices;
+        ModelVertices *verticesWithFaceNormals = nullptr;
+        ModelVertices *verticesWithVertexNormals = nullptr;
+        if (m_normalsToLoad & LOAD_FACE_NORMALS) {
+            verticesWithFaceNormals = &vertices.first;
+        }
+        if (m_normalsToLoad & LOAD_VERTEX_NORMALS) {
+            verticesWithVertexNormals = &vertices.second;
+        }
+        loadModel(gameRequester->getAssetStream(m_path), verticesWithFaceNormals, verticesWithVertexNormals);
         return vertices;
     }
 
     bool ModelDescriptionPath::loadModel(
             std::unique_ptr<std::streambuf> const &modelStreamBuf,
-            ModelVertices &verticesWithFaceNormals,
+            ModelVertices *verticesWithFaceNormals,
             ModelVertices *verticesWithVertexNormals) {
 
         try {
@@ -379,6 +363,7 @@ namespace levelDrawer {
             nlohmann::json j = nlohmann::json::sax_parse(assetIstream, &sax,
                                                          nlohmann::json::input_format_t::cbor);
             sax.getVertices(verticesWithFaceNormals, verticesWithVertexNormals);
+            m_usingDefaultColor = sax.usingDefaultColor();
         } catch (...) {
             return false;
         }
@@ -386,7 +371,10 @@ namespace levelDrawer {
         return true;
     }
 
-    ModelVertices ModelDescriptionQuad::getData(std::shared_ptr<GameRequester> const &) {
+    std::pair<ModelVertices, ModelVertices> ModelDescriptionQuad::getData(std::shared_ptr<GameRequester> const &) {
+        if (normalsToLoad() & LOAD_VERTEX_NORMALS) {
+            throw std::runtime_error("Requesting vertex normals does not apply for this object.");
+        }
         ModelVertices vertices{};
         Vertex vertex = {};
         vertex.color = m_color;
@@ -416,11 +404,14 @@ namespace levelDrawer {
         vertices.second.push_back(2);
         vertices.second.push_back(3);
 
-        return vertices;
+        return std::make_pair(std::move(vertices), ModelVertices());
     }
 
 // creates a cube with each side length 2.0f.
-    ModelVertices ModelDescriptionCube::getData(std::shared_ptr<GameRequester> const &) {
+    std::pair<ModelVertices, ModelVertices> ModelDescriptionCube::getData(std::shared_ptr<GameRequester> const &) {
+        if (normalsToLoad() & LOAD_VERTEX_NORMALS) {
+            throw std::runtime_error("Requesting vertex normals does not apply for this object.");
+        }
         ModelVertices vertices{};
         Vertex vertex = {};
         vertex.color = m_color;
@@ -605,6 +596,6 @@ namespace levelDrawer {
         vertices.second.push_back(i + 2);
         vertices.second.push_back(i + 3);
 
-        return vertices;
+        return std::make_pair(std::move(vertices), ModelVertices());
     }
 }

@@ -852,34 +852,11 @@ private:
     }
 };
 
-template <typename AlternateModelDescriptionType>
 std::set<ObjReference> addObjs(
         levelDrawer::Adaptor &levelDrawer,
         bool isLockedInPlaceRef,
-        std::vector<std::string> const &models,
-        std::vector<std::string> const &textureNames)
-{
-    std::set<ObjReference> ret;
-    std::vector<std::shared_ptr<levelDrawer::ModelDescription>> v;
-    if (models.empty()) {
-        v.push_back(std::make_shared<AlternateModelDescriptionType>());
-    } else {
-        for (size_t i = 0; i < models.size(); i++) {
-            v.push_back(std::make_shared<levelDrawer::ModelDescriptionPath>(models[i]));
-        }
-    }
-
-    for (size_t i = 0; i < std::max(v.size(), textureNames.size()); i++) {
-        auto objRef = levelDrawer.addObject(
-                v[i%v.size()],
-                std::make_shared<levelDrawer::TextureDescriptionPath>(
-                        textureNames[i%textureNames.size()]));
-
-        ret.emplace(objRef, isLockedInPlaceRef, i % v.size(), i % textureNames.size());
-    }
-
-    return std::move(ret);
-}
+        std::vector<std::shared_ptr<levelDrawer::ModelDescription>> const &models,
+        std::vector<std::shared_ptr<levelDrawer::TextureDescription>> const &textures);
 
 std::pair<boost::optional<ObjReference>, boost::optional<levelDrawer::DrawObjDataReference>> chooseObj(
         levelDrawer::Adaptor &levelDrawer,

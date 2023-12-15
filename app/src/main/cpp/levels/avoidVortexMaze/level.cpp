@@ -1,5 +1,5 @@
 /**
- * Copyright 2020 Cerulean Quasar. All Rights Reserved.
+ * Copyright 2023 Cerulean Quasar. All Rights Reserved.
  *
  *  This file is part of AmazingLabyrinth.
  *
@@ -23,8 +23,6 @@
 #include "level.hpp"
 
 namespace avoidVortexMaze {
-    char constexpr const *Level::m_name;
-
     bool Level::checkFinishCondition(float) {
         for (auto avoidObj : m_avoidObjectLocations) {
             if (ballInProximity(avoidObj.x, avoidObj.y)) {
@@ -48,7 +46,7 @@ namespace avoidVortexMaze {
             uint32_t col = random.getUInt(0, m_mazeBoard.numberColumns() - 1);
 
             glm::vec3 pos = getCellCenterPosition(row, col);
-            int wall = random.getUInt(0, 3);
+            uint32_t wall = random.getUInt(0, 3);
             bool selected = false;
 
             std::vector<std::pair<uint32_t, uint32_t>> itemsRC;

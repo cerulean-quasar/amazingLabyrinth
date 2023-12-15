@@ -1,5 +1,5 @@
 /**
- * Copyright 2020 Cerulean Quasar. All Rights Reserved.
+ * Copyright 2023 Cerulean Quasar. All Rights Reserved.
  *
  *  This file is part of AmazingLabyrinth.
  *
@@ -20,8 +20,6 @@
 #include "level.hpp"
 
 namespace openArea {
-    char constexpr const *Level::m_name;
-
     bool Level::updateData() {
         if (m_finished) {
             // the maze is finished, do nothing and return false (drawing is not necessary).

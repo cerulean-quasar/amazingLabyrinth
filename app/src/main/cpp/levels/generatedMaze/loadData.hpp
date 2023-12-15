@@ -1,5 +1,5 @@
 /**
- * Copyright 2020 Cerulean Quasar. All Rights Reserved.
+ * Copyright 2023 Cerulean Quasar. All Rights Reserved.
  *
  *  This file is part of AmazingLabyrinth.
  *
@@ -74,17 +74,11 @@ namespace generatedMaze {
     };
 
     struct LevelConfigData : public basic::LevelConfigData {
-        std::vector<std::string> wallTextureNames;
-        std::string mazeFloorTexture;
-        std::string holeTexture;
         uint32_t numberRows;
         bool dfsSearch;
 
         LevelConfigData()
                 : basic::LevelConfigData{},
-                  wallTextureNames{},
-                  mazeFloorTexture{},
-                  holeTexture{},
                   numberRows{0},
                   dfsSearch{false}
         {}

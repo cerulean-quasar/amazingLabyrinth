@@ -1,5 +1,5 @@
 /**
- * Copyright 2020 Cerulean Quasar. All Rights Reserved.
+ * Copyright 2023 Cerulean Quasar. All Rights Reserved.
  *
  *  This file is part of AmazingLabyrinth.
  *
@@ -38,15 +38,11 @@ namespace fixedMaze {
     };
 
     struct LevelConfigData : public basic::LevelConfigData {
-        std::string mazeFloorModel;
-        std::string mazeFloorTexture;
         float extraBounce;
         float minSpeedOnBounce;
 
         LevelConfigData()
                 : basic::LevelConfigData(),
-                mazeFloorModel{},
-                mazeFloorTexture{},
                 extraBounce{0.0f},
                 minSpeedOnBounce{0.0f}
         {

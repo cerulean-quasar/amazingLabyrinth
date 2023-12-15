@@ -1,5 +1,5 @@
 /**
- * Copyright 2020 Cerulean Quasar. All Rights Reserved.
+ * Copyright 2023 Cerulean Quasar. All Rights Reserved.
  *
  *  This file is part of AmazingLabyrinth.
  *
@@ -58,23 +58,6 @@ namespace movingSafeAreas {
         val.quadRows = j[QuadRows].get<std::vector<QuadRowSaveData>>();
     }
 
-    char constexpr const *StartQuadTexture = "StartQuadTexture";
-    char constexpr const *EndQuadTexture = "EndQuadTexture";
-    char constexpr const *MiddleQuadTextures = "MiddleQuadTextures";
-    void to_json(nlohmann::json &j, LevelConfigData const &val) {
-        to_json(j, boost::implicit_cast<basic::LevelConfigData const &>(val));
-        j[StartQuadTexture] = val.startQuadTexture;
-        j[EndQuadTexture] = val.endQuadTexture;
-        j[MiddleQuadTextures] = val.middleQuadTextures;
-    }
-
-    void from_json(nlohmann::json const &j, LevelConfigData &val) {
-        from_json(j, boost::implicit_cast<basic::LevelConfigData &>(val));
-        val.startQuadTexture = j[StartQuadTexture].get<std::string>();
-        val.endQuadTexture = j[EndQuadTexture].get<std::string>();
-        val.middleQuadTextures = j[MiddleQuadTextures].get<std::vector<std::string>>();
-    }
-
     std::vector<uint8_t> Level::saveData(levelTracker::GameSaveData const &gsd,
                                   char const *saveLevelDataKey) {
         std::vector<QuadRowSaveData> quadRows;
@@ -96,5 +79,5 @@ namespace movingSafeAreas {
         return nlohmann::json::to_cbor(j);
     }
 
-    levelTracker::Register<levelTracker::LevelMapTable, levelTracker::levelTable, LevelConfigData, LevelSaveData, Level> registerLevel;
+    levelTracker::Register<levelTracker::LevelMapTable, levelTracker::levelTable, basic::LevelConfigData, LevelSaveData, Level> registerLevel;
 } // namespace movingSafeAreas

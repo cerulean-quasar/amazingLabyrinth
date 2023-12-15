@@ -17,20 +17,5 @@ namespace testZ {
         {}
     };
 
-    struct LevelConfigData : public basic::LevelConfigData {
-        std::string holeTexture;
-
-        LevelConfigData()
-                : basic::LevelConfigData{},
-                  holeTexture{}
-        {}
-
-        LevelConfigData(LevelConfigData const &other) noexcept = default;
-
-        LevelConfigData(LevelConfigData &&other) noexcept = default;
-
-        LevelConfigData &operator=(LevelConfigData const &other) noexcept = default;
-    };
-
 }
 #endif // AMAZING_LABYRINTH_TESTZ_LOAD_DATA_HPP

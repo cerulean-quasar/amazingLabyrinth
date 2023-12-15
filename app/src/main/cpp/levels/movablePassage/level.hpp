@@ -102,38 +102,38 @@ namespace movablePassage {
         {
             m_levelDrawer.setClearColor(glm::vec4{0.0f, 0.0f, 0.0f, 1.0f});
 
-            m_textureLockedComponent = lcd->placementLockedInPlaceTexture;
+            auto const &rockModels = findModelsAndTextures(ModelNameRock);
+            m_componentModels[Component::ComponentType::noMovementRock] = rockModels.models;
+            m_componentTextures[Component::ComponentType::noMovementRock] = rockModels.textures;
 
-            m_componentModels[Component::ComponentType::noMovementRock] = lcd->rockModels;
-            m_componentTextures[Component::ComponentType::noMovementRock] = lcd->rockTextures;
+            auto const &dirtModels = findModelsAndTextures(ModelNameDirt);
+            m_componentModels[Component::ComponentType::noMovementDirt] = dirtModels.models;
+            m_componentTextures[Component::ComponentType::noMovementDirt] = dirtModels.textures;
 
-            m_componentModels[Component::ComponentType::noMovementDirt] = lcd->dirtModels;
-            m_componentTextures[Component::ComponentType::noMovementDirt] = lcd->dirtTextures;
+            auto const &startModels = findModelsAndTextures(ModelNameStartCorner);
+            m_componentModels[Component::ComponentType::closedCorner] = startModels.models;
+            m_componentTextures[Component::ComponentType::closedCorner] = startModels.textures;
 
-            m_componentTextureEnd = lcd->endTexture;
-            m_textureEndOffBoard = lcd->endOffBoardTexture;
+            auto const &sideModels = findModelsAndTextures(ModelNameStartSide);
+            m_componentModels[Component::ComponentType::closedBottom] = sideModels.models;
+            m_componentTextures[Component::ComponentType::closedBottom] = sideModels.textures;
 
-            m_componentModels[Component::ComponentType::closedCorner] = lcd->beginningCornerModels;
-            m_componentTextures[Component::ComponentType::closedCorner] = lcd->beginningCornerTextures;
-
-            m_componentModels[Component::ComponentType::closedBottom] = lcd->beginningSideModels;
-            m_componentTextures[Component::ComponentType::closedBottom] = lcd->beginningSideTextures;
-
-            m_componentModels[Component::ComponentType::open] = lcd->beginningOpenModels;
-            m_componentTextures[Component::ComponentType::open] = lcd->beginningOpenTextures;
+            auto const &openModels = findModelsAndTextures(ModelNameStartCenter);
+            m_componentModels[Component::ComponentType::open] = openModels.models;
+            m_componentTextures[Component::ComponentType::open] = openModels.textures;
 
             for (auto const &rock : lcd->rockPlacements) {
                 m_addedRocks.emplace_back(rock.row, rock.col);
             }
 
-            initAddType(Component::ComponentType::straight, lcd->straight.numberPlacements,
-                               lcd->straight.model, lcd->straight.texture);
-            initAddType(Component::ComponentType::turn, lcd->turn.numberPlacements,
-                               lcd->turn.model, lcd->turn.texture);
-            initAddType(Component::ComponentType::tjunction, lcd->tjunction.numberPlacements,
-                               lcd->tjunction.model, lcd->tjunction.texture);
-            initAddType(Component::ComponentType::crossjunction, lcd->crossjunction.numberPlacements,
-                               lcd->crossjunction.model, lcd->crossjunction.texture);
+            initAddType(Component::ComponentType::straight, lcd->nbrPlacements.straight,
+                               ModelNameStraight);
+            initAddType(Component::ComponentType::turn, lcd->nbrPlacements.turn,
+                               ModelNameTurn);
+            initAddType(Component::ComponentType::tjunction, lcd->nbrPlacements.tJunction,
+                               ModelNameTJunction);
+            initAddType(Component::ComponentType::crossjunction, lcd->nbrPlacements.crossJunction,
+                               ModelNameCrossJunction);
 
             initSetGameBoard(lcd->numberTilesX, lcd->numberTilesY, lcd->startColumn, lcd->endColumn);
 
@@ -151,6 +151,19 @@ namespace movablePassage {
             addStaticDrawObjects();
             addDynamicDrawObjects();
         }
+
+    protected:
+        static char const constexpr *ModelNameStartCorner = "StartCorner";
+        static char const constexpr *ModelNameStartSide = "StartSide";
+        static char const constexpr *ModelNameStartCenter = "StartCenter";
+        static char const constexpr *ModelNameRock = "Rock";
+        static char const constexpr *ModelNameDirt = "Dirt";
+        static char const constexpr *ModelNameStraight = "Straight";
+        static char const constexpr *ModelNameTJunction = "TJunction";
+        static char const constexpr *ModelNameTurn = "Turn";
+        static char const constexpr *ModelNameCrossJunction = "CrossJunction";
+        static char const constexpr *ModelNameEnd = "End";
+        static char const constexpr *ModelNameEndOffBoard = "EndOffBoard";
 
     private:
         static float constexpr m_offBoardComponentScaleMultiplier = 2.0f/3.0f;
@@ -173,13 +186,12 @@ namespace movablePassage {
         size_t m_objsIndexBall;
         size_t m_objDataIndexBall;
 
-        std::array<std::vector<std::string>,
+        std::array<std::vector<std::shared_ptr<levelDrawer::ModelDescription>>,
                 Component::ComponentType::maxComponentType + 1> m_componentModels;
-        std::array<std::vector<std::string>,
+        std::array<std::vector<std::shared_ptr<levelDrawer::TextureDescription>>,
                 Component::ComponentType::maxComponentType + 1> m_componentTextures;
-        std::string m_componentTextureEnd;
-        std::string m_textureEndOffBoard;
-        std::string m_textureLockedComponent;
+        std::array<std::vector<std::shared_ptr<levelDrawer::TextureDescription>>,
+                Component::ComponentType::maxComponentType + 1> m_componentTexturesLockedInPlace;
 
         // rocks row and col do not consider the off game squares or the start or end.  Just
         // the middle of the game board.  (0,0) is at the bottom left part of the board.
@@ -211,14 +223,20 @@ namespace movablePassage {
         void initAddType(
                 Component::ComponentType inComponentType,
                 uint32_t nbrComponents,
-                std::string const &model,
-                std::string const &texture) {
-            if (!texture.empty()) {
-                m_componentTextures[inComponentType].push_back(texture);
-            }
-            if (!model.empty()) {
-                m_componentModels[inComponentType].push_back(model);
-            }
+                std::string const &modelName) {
+
+            auto const &modelData = findModelsAndTextures(modelName);
+
+            /* the model */
+            m_componentModels[inComponentType].push_back(modelData.models[0]);
+
+            /* the texture */
+            m_componentTextures[inComponentType].push_back(getFirstTexture(modelData, false));
+
+            /* add the locked in place texture */
+            m_componentTexturesLockedInPlace[inComponentType].push_back(
+                    getFirstTexture(modelData, false, true));
+
             for (uint32_t i = 0; i < nbrComponents; i++) {
                 m_components[inComponentType]->add();
                 m_nbrComponents++;

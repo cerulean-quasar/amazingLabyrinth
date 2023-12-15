@@ -1,5 +1,5 @@
 /**
- * Copyright 2020 Cerulean Quasar. All Rights Reserved.
+ * Copyright 2023 Cerulean Quasar. All Rights Reserved.
  *
  *  This file is part of AmazingLabyrinth.
  *
@@ -35,21 +35,37 @@ namespace levelDrawer {
     public:
         ModelDataGL(std::shared_ptr <GameRequester> const &gameRequester,
                     std::shared_ptr <ModelDescription> const &modelDescription) {
-            std::pair<ModelVertices, ModelVertices> vertices;
-            if (modelDescription->shouldLoadVertexNormals()) {
-                vertices = modelDescription->getDataWithVertexNormalsAlso(gameRequester);
-            } else {
-                vertices.first = modelDescription->getData(gameRequester);
-            }
-            m_numberIndices = vertices.first.second.size();
+            std::pair<ModelVertices, ModelVertices> vertices = modelDescription->getData(gameRequester);
 
+            ModelVertices *firstVerticesToLoad = nullptr;
+            ModelVertices *secondVerticesToLoad = nullptr;
+            switch (modelDescription->normalsToLoad()) {
+                case 0:
+                    throw std::runtime_error("ModelDescription is not loading any vertices.");
+                case levelDrawer::ModelDescription::LOAD_BOTH:
+                    secondVerticesToLoad = &vertices.second;
+                    /* continue on */
+                case levelDrawer::ModelDescription::LOAD_FACE_NORMALS:
+                    firstVerticesToLoad = &vertices.first;
+                    break;
+                case levelDrawer::ModelDescription::LOAD_VERTEX_NORMALS:
+                    firstVerticesToLoad = &vertices.second;
+                    break;
+            }
+
+            m_numberIndices = firstVerticesToLoad->second.size();
+
+            /* If either the vertex normals or the face normals (not both) were requested, then these
+             * would be the one that was requested.  If both were requested, then this would be the
+             * face normals and the vertex normals would be loaded down below.
+             */
             // the index buffer
             glGenBuffers(1, &(m_indexBuffer));
             checkGraphicsError();
             glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_indexBuffer);
             checkGraphicsError();
-            glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(uint32_t) * vertices.first.second.size(),
-                         vertices.first.second.data(), GL_STATIC_DRAW);
+            glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof (uint32_t) * firstVerticesToLoad->second.size(),
+                         firstVerticesToLoad->second.data(), GL_STATIC_DRAW);
             checkGraphicsError();
 
             // the vertex buffer
@@ -57,20 +73,23 @@ namespace levelDrawer {
             checkGraphicsError();
             glBindBuffer(GL_ARRAY_BUFFER, m_vertexBuffer);
             checkGraphicsError();
-            glBufferData(GL_ARRAY_BUFFER, sizeof (Vertex) * vertices.first.first.size(),
-                         vertices.first.first.data(), GL_STATIC_DRAW);
+            glBufferData(GL_ARRAY_BUFFER, sizeof (Vertex) * firstVerticesToLoad->first.size(),
+                         firstVerticesToLoad->first.data(), GL_STATIC_DRAW);
             checkGraphicsError();
 
-            // the vertex normals (if requested)
-            m_numberIndicesWithVertexNormals = vertices.second.second.size();
-            if (m_numberIndicesWithVertexNormals > 0) {
+            // If both the vertex normals and the face normals were requested, then these would be
+            // the vertex normals.
+            if (secondVerticesToLoad) {
+                m_numberIndicesWithVertexNormals = secondVerticesToLoad->second.size();
+
                 // the index buffer
                 glGenBuffers(1, &(m_indexBufferWithVertexNormals));
                 checkGraphicsError();
                 glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_indexBufferWithVertexNormals);
                 checkGraphicsError();
-                glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof (uint32_t) * vertices.second.second.size(),
-                             vertices.second.second.data(), GL_STATIC_DRAW);
+                glBufferData(GL_ELEMENT_ARRAY_BUFFER,
+                             sizeof (uint32_t) * secondVerticesToLoad->second.size(),
+                             secondVerticesToLoad->second.data(), GL_STATIC_DRAW);
                 checkGraphicsError();
 
                 // the vertex buffer
@@ -78,8 +97,8 @@ namespace levelDrawer {
                 checkGraphicsError();
                 glBindBuffer(GL_ARRAY_BUFFER, m_vertexBufferWithVertexNormals);
                 checkGraphicsError();
-                glBufferData(GL_ARRAY_BUFFER, sizeof (Vertex) * vertices.second.first.size(),
-                             vertices.second.first.data(), GL_STATIC_DRAW);
+                glBufferData(GL_ARRAY_BUFFER, sizeof (Vertex) * secondVerticesToLoad->first.size(),
+                             secondVerticesToLoad->first.data(), GL_STATIC_DRAW);
                 checkGraphicsError();
             }
         }

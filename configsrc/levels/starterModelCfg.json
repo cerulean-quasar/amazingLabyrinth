@@ -1,0 +1,35 @@
+{
+    "ModelConfigs": [
+        {
+            "Name": "Ball",
+            "Models": [ "models/ball.modelcbor" ],
+            "Textures": [ "textures/levelStarter/ballLevelStarter.png"],
+            "LoadVertexNormals": true,
+            "LoadFaceNormals": false
+        },
+        {
+            "Name": "Begin",
+            "Models": [ "models/levelStarter/start.modelcbor" ],
+            "DefaultColor": [0.8713664412498474, 0.8713664412498474, 0.8713664412498474, 1.0]
+        },
+        {
+            "Name": "End",
+            "Models": [ "models/levelStarter/end.modelcbor" ],
+            "DefaultColor": [0.8713664412498474, 0.8713664412498474, 0.8713664412498474, 1.0]
+        },
+        {
+            "Name": "CorridorCorner",
+            "Models": [ "models/levelStarter/corner.modelcbor" ],
+            "DefaultColor": [0.8713664412498474, 0.8713664412498474, 0.8713664412498474, 1.0]
+        },
+        {
+            "Name": "Corridor",
+            "Models": [ "models/levelStarter/corridor.modelcbor" ],
+            "DefaultColor": [0.8713664412498474, 0.8713664412498474, 0.8713664412498474, 1.0]
+        },
+        {
+            "Name": "TextBox",
+            "Type": 1
+        }
+    ]
+}

@@ -36,7 +36,7 @@ float ShadowCalculation(vec4 pos) {
     /* the depth buffer is using coordinates in the range: [0, 1] */
     projCoords = projCoords * 0.5 + 0.5;
 
-    if (projCoords.x > 1.0 || projCoords.x < 0.0 || projCoords.y > 1.0 || projCoords.y < 0.0 || projCoords.z > 1.0) {
+    if (projCoords.x > 1.0 || projCoords.x < 0.0 || projCoords.y > 1.0 || projCoords.y < 0.0 || projCoords.z > 1.0 || projCoords.z < 0.0) {
         return 0.0;
     }
     float closestDepth = texture2D(texShadowMap, projCoords.xy).r;
@@ -57,5 +57,5 @@ void main() {
     // calculate shadows
     float shadow = ShadowCalculation(fragPosLightSpace);
 
-    gl_FragColor = vec4(vec3(0.2, 0.2, 0.2) + diffuse*(1.0 - shadow), 1.0) * vec4(fragColor, 1.0);
+    gl_FragColor = vec4(diffuse*(1.0 - shadow), 1.0) * vec4(fragColor, 1.0);
 }

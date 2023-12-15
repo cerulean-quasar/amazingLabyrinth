@@ -1,5 +1,5 @@
 /**
- * Copyright 2020 Cerulean Quasar. All Rights Reserved.
+ * Copyright 2023 Cerulean Quasar. All Rights Reserved.
  *
  *  This file is part of AmazingLabyrinth.
  *
@@ -56,26 +56,17 @@ namespace generatedMaze {
         val.mazeWallsVector = j[MazeWalls].get<std::vector<uint8_t>>();
     }
 
-    char constexpr const *WallTextureNames = "WallTextureNames";
-    char constexpr const *MazeFloorTexture = "MazeFloorTexture";
-    char constexpr const *HoleTexture = "HoleTexture";
     char constexpr const *NumberRows = "NumberRows";
     char constexpr const *DfsSearch = "DfsSearch";
 
     void to_json(nlohmann::json &j, LevelConfigData const &val) {
         to_json(j, boost::implicit_cast<basic::LevelConfigData const &>(val));
-        j[WallTextureNames] = val.wallTextureNames;
-        j[MazeFloorTexture] = val.mazeFloorTexture;
-        j[HoleTexture] = val.holeTexture;
         j[NumberRows] = val.numberRows;
         j[DfsSearch] = val.dfsSearch;
     }
 
     void from_json(nlohmann::json const &j, LevelConfigData &val) {
         from_json(j, boost::implicit_cast<basic::LevelConfigData &>(val));
-        val.wallTextureNames = j[WallTextureNames].get<std::vector<std::string>>();
-        val.mazeFloorTexture = j[MazeFloorTexture].get<std::string>();
-        val.holeTexture = j[HoleTexture].get<std::string>();
         val.numberRows = j[NumberRows].get<uint32_t>();
         val.dfsSearch = j[DfsSearch].get<bool>();
     }

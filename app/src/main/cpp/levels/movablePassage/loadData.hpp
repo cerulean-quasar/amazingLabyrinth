@@ -1,5 +1,5 @@
 /**
- * Copyright 2020 Cerulean Quasar. All Rights Reserved.
+ * Copyright 2023 Cerulean Quasar. All Rights Reserved.
  *
  *  This file is part of AmazingLabyrinth.
  *
@@ -68,24 +68,26 @@ namespace movablePassage {
         LevelSaveData &operator=(LevelSaveData const &other) noexcept = default;
     };
 
-    struct ComponentConfig {
-        std::string model;
-        std::string texture;
-        uint32_t numberPlacements;
+    struct NumberPlacements {
+        uint32_t straight;
+        uint32_t turn;
+        uint32_t crossJunction;
+        uint32_t tJunction;
 
-        ComponentConfig()
-            : model{},
-              texture{},
-              numberPlacements{0}
+        NumberPlacements()
+            : straight{0},
+            turn{0},
+            crossJunction{0},
+            tJunction{0}
         {}
 
-        ComponentConfig(ComponentConfig const &other) noexcept = default;
+        NumberPlacements(NumberPlacements const &other) noexcept = default;
 
-        ComponentConfig(ComponentConfig &&other) noexcept = default;
+        NumberPlacements(NumberPlacements &&other) noexcept = default;
 
-        ComponentConfig &operator=(ComponentConfig &&other) noexcept = default;
+        NumberPlacements &operator=(NumberPlacements &&other) noexcept = default;
 
-        ComponentConfig &operator=(ComponentConfig const &other) noexcept = default;
+        NumberPlacements &operator=(NumberPlacements const &other) noexcept = default;
     };
 
     struct RockPlacement {
@@ -110,23 +112,7 @@ namespace movablePassage {
         uint32_t numberTilesY;
         uint32_t startColumn;
         uint32_t endColumn;
-        std::string endTexture;
-        std::string endOffBoardTexture;
-        std::string placementLockedInPlaceTexture;
-        std::vector<std::string> rockModels;
-        std::vector<std::string> rockTextures;
-        std::vector<std::string> dirtModels;
-        std::vector<std::string> dirtTextures;
-        std::vector<std::string> beginningSideModels;
-        std::vector<std::string> beginningSideTextures;
-        std::vector<std::string> beginningOpenModels;
-        std::vector<std::string> beginningOpenTextures;
-        std::vector<std::string> beginningCornerModels;
-        std::vector<std::string> beginningCornerTextures;
-        ComponentConfig straight;
-        ComponentConfig turn;
-        ComponentConfig crossjunction;
-        ComponentConfig tjunction;
+        NumberPlacements nbrPlacements;
         std::vector<RockPlacement> rockPlacements;
 
         LevelConfigData()

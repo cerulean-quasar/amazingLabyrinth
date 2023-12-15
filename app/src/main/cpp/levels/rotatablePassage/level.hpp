@@ -1,5 +1,5 @@
 /**
- * Copyright 2022 Cerulean Quasar. All Rights Reserved.
+ * Copyright 2023 Cerulean Quasar. All Rights Reserved.
  *
  *  This file is part of AmazingLabyrinth.
  *
@@ -91,40 +91,34 @@ namespace rotatablePassage {
               m_endRow{0},
               m_endCol{0},
               m_objRefBall{0},
-              m_objDataRefBall{0},
-              m_holeModel{lcd->holeModel},
-              m_holeTexture{lcd->holeTexture}
+              m_objDataRefBall{0}
         {
             m_levelDrawer.setClearColor(glm::vec4{0.0f, 0.0f, 0.0f, 1.0f});
 
-            m_componentModels[Component::ComponentType::straight].push_back(lcd->straight.model);
-            m_componentTextures[Component::ComponentType::straight].push_back(lcd->straight.texture);
-            m_componentTexturesLockedInPlace[Component::ComponentType::straight].push_back(
-                    lcd->straight.lockedInPlaceTexture);
+            auto const &straightModelData = findModelsAndTextures(ModelNameStraight);
+            m_componentModels[Component::ComponentType::straight] = straightModelData.models;
+            m_componentTextures[Component::ComponentType::straight] = straightModelData.textures;
+            m_componentTexturesLockedInPlace[Component::ComponentType::straight] = straightModelData.alternateTextures;
 
-            m_componentModels[Component::ComponentType::tjunction].push_back(lcd->tJunction.model);
-            m_componentTextures[Component::ComponentType::tjunction].push_back(lcd->tJunction.texture);
-            m_componentTexturesLockedInPlace[Component::ComponentType::tjunction].push_back(
-                    lcd->tJunction.lockedInPlaceTexture);
+            auto const &tJunctionModelData = findModelsAndTextures(ModelNameTJunction);
+            m_componentModels[Component::ComponentType::tjunction] = tJunctionModelData.models;
+            m_componentTextures[Component::ComponentType::tjunction] = tJunctionModelData.textures;
+            m_componentTexturesLockedInPlace[Component::ComponentType::tjunction] = tJunctionModelData.alternateTextures;
 
-            m_componentModels[Component::ComponentType::crossjunction].push_back(
-                    lcd->crossJunction.model);
-            m_componentTextures[Component::ComponentType::crossjunction].push_back(
-                    lcd->crossJunction.texture);
-            m_componentTexturesLockedInPlace[Component::ComponentType::crossjunction].push_back(
-                    lcd->crossJunction.lockedInPlaceTexture);
+            auto const &crossJunctionModelData = findModelsAndTextures(ModelNameCrossJunction);
+            m_componentModels[Component::ComponentType::crossjunction] = crossJunctionModelData.models;
+            m_componentTextures[Component::ComponentType::crossjunction] = crossJunctionModelData.textures;
+            m_componentTexturesLockedInPlace[Component::ComponentType::crossjunction] = crossJunctionModelData.alternateTextures;
 
-            m_componentModels[Component::ComponentType::turn].push_back(lcd->turn.model);
-            m_componentTextures[Component::ComponentType::turn].push_back(lcd->turn.texture);
-            m_componentTexturesLockedInPlace[Component::ComponentType::turn].push_back(
-                    lcd->turn.lockedInPlaceTexture);
+            auto const &turnModelData = findModelsAndTextures(ModelNameTurn);
+            m_componentModels[Component::ComponentType::turn] = turnModelData.models;
+            m_componentTextures[Component::ComponentType::turn] = turnModelData.textures;
+            m_componentTexturesLockedInPlace[Component::ComponentType::turn] = turnModelData.alternateTextures;
 
-            m_componentModels[Component::ComponentType::deadEnd].push_back(lcd->deadEnd.model);
-            m_componentTextures[Component::ComponentType::deadEnd].push_back(lcd->deadEnd.texture);
-            m_componentTexturesLockedInPlace[Component::ComponentType::deadEnd].push_back(
-                    lcd->deadEnd.lockedInPlaceTexture);
-
-            m_borderTextures = lcd->borderTextures;
+            auto const &deadEndModelData = findModelsAndTextures(ModelNameDeadEnd);
+            m_componentModels[Component::ComponentType::deadEnd] = deadEndModelData.models;
+            m_componentTextures[Component::ComponentType::deadEnd] = deadEndModelData.textures;
+            m_componentTexturesLockedInPlace[Component::ComponentType::deadEnd] = deadEndModelData.alternateTextures;
 
             if (sd) {
                 initSetGameBoardFromSaveData(sd);
@@ -144,6 +138,14 @@ namespace rotatablePassage {
             addStaticDrawObjects();
             addDynamicDrawObjects();
         }
+
+    protected:
+        static char const constexpr *ModelNameStraight = "Straight";
+        static char const constexpr *ModelNameTJunction = "TJunction";
+        static char const constexpr *ModelNameTurn = "Turn";
+        static char const constexpr *ModelNameCrossJunction = "CrossJunction";
+        static char const constexpr *ModelNameDeadEnd = "DeadEnd";
+        static char const constexpr *ModelNameBorder = "Border";
 
     private:
         std::chrono::high_resolution_clock::time_point m_prevTime;
@@ -167,17 +169,12 @@ namespace rotatablePassage {
         levelDrawer::DrawObjReference m_objRefBall;
         levelDrawer::DrawObjDataReference m_objDataRefBall;
 
-        std::string m_holeModel;
-        std::string m_holeTexture;
-
-        std::array<std::vector<std::string>,
+        std::array<std::vector<std::shared_ptr<levelDrawer::ModelDescription>>,
                 Component::ComponentType::maxComponentType + 1> m_componentModels;
-        std::array<std::vector<std::string>,
+        std::array<std::vector<std::shared_ptr<levelDrawer::TextureDescription>>,
                 Component::ComponentType::maxComponentType + 1> m_componentTextures;
-        std::array<std::vector<std::string>,
+        std::array<std::vector<std::shared_ptr<levelDrawer::TextureDescription>>,
                 Component::ComponentType::maxComponentType + 1> m_componentTexturesLockedInPlace;
-
-        std::vector<std::string> m_borderTextures;
 
         void initSetGameBoard(uint32_t numberRows, GeneratedMazeBoard::Mode mode);
         void initSetGameBoardFromSaveData(std::shared_ptr<LevelSaveData> const &sd);

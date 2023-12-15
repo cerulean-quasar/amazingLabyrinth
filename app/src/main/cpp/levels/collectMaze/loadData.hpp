@@ -1,5 +1,5 @@
 /**
- * Copyright 2020 Cerulean Quasar. All Rights Reserved.
+ * Copyright 2023 Cerulean Quasar. All Rights Reserved.
  *
  *  This file is part of AmazingLabyrinth.
  *
@@ -64,14 +64,10 @@ namespace collectMaze {
     };
 
     struct LevelConfigData : public generatedMaze::LevelConfigData {
-        std::string collectModel;
-        std::string collectTexture;
         uint32_t numberCollectObjects;
 
         LevelConfigData()
             : generatedMaze::LevelConfigData(),
-              collectModel{},
-              collectTexture{},
               numberCollectObjects{0}
         {}
 

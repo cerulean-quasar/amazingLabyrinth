@@ -1,5 +1,5 @@
 /**
- * Copyright 2022 Cerulean Quasar. All Rights Reserved.
+ * Copyright 2023 Cerulean Quasar. All Rights Reserved.
  *
  *  This file is part of AmazingLabyrinth.
  *
@@ -41,14 +41,9 @@ namespace movingSafeAreas {
         static uint32_t constexpr minQuadsInRow = 1;
         static uint32_t constexpr maxQuadsInRow = 3;
         static constexpr float m_quadOriginalSize = 2.0f;
-        float const spaceBetweenQuadsX;
         float const maxX;
         float const maxY;
         float timeDiffSinceLastMove;
-
-        std::string m_startQuadTexture;
-        std::string m_endQuadTexture;
-        std::vector<std::string> m_middleQuadTextures;
 
         std::chrono::high_resolution_clock::time_point m_prevTime;
 
@@ -104,6 +99,11 @@ namespace movingSafeAreas {
 
         void generate();
 
+    protected:
+        static char const constexpr *ModelNameStartingArea = "StartingArea";
+        static char const constexpr *ModelNameMiddleArea = "MiddleArea";
+        static char const constexpr *ModelNameEndingArea = "EndingArea";
+
     public:
         static char constexpr const *m_name = "movingSafeAreas";
 
@@ -127,18 +127,14 @@ namespace movingSafeAreas {
                                       char const *saveLevelDataKey) override;
 
         Level(levelDrawer::Adaptor inLevelDrawer,
-                std::shared_ptr<LevelConfigData> const &lcd,
+                std::shared_ptr<basic::LevelConfigData> const &lcd,
                 std::shared_ptr<LevelSaveData> const &saveData,
                 float maxZ)
             : basic::Level(std::move(inLevelDrawer), lcd, maxZ, true),
-              spaceBetweenQuadsX{m_width / 10.0f},
               maxX(m_width / 2),
               maxY(m_height / 2),
               m_prevTime(std::chrono::high_resolution_clock::now()),
-              timeDiffSinceLastMove{0.0f},
-              m_startQuadTexture{lcd->startQuadTexture},
-              m_endQuadTexture{lcd->endQuadTexture},
-              m_middleQuadTextures{lcd->middleQuadTextures}
+              timeDiffSinceLastMove{0.0f}
         {
             m_levelDrawer.setClearColor(glm::vec4(0.2, 0.2, 1.0, 1.0));
             preGenerate();
@@ -159,39 +155,47 @@ namespace movingSafeAreas {
                 }
             }
 
-            // the starting quad
+            // the starting area
+            auto const &startingModelData = findModelsAndTextures(ModelNameStartingArea);
             auto objIndex = m_levelDrawer.addObject(
-                    std::make_shared<levelDrawer::ModelDescriptionQuad>(),
-                    std::make_shared<levelDrawer::TextureDescriptionPath>(m_startQuadTexture));
+                    startingModelData.models[0],
+                    getFirstTexture(startingModelData));
 
             glm::mat4 scale = glm::scale(glm::mat4(1.0f), glm::vec3{2 * maxX, m_quadScaleY, 1.0f});
             m_levelDrawer.addModelMatrixForObject(
                     objIndex,
                     glm::translate(glm::mat4(1.0f), m_startQuadPosition) * scale);
 
-            // the ending quad
+            // the ending area
+            auto const &endingModelData = findModelsAndTextures(ModelNameEndingArea);
             objIndex = m_levelDrawer.addObject(
-                    std::make_shared<levelDrawer::ModelDescriptionQuad>(),
-                    std::make_shared<levelDrawer::TextureDescriptionPath>(m_endQuadTexture));
+                    endingModelData.models[0],
+                    getFirstTexture(endingModelData));
 
             m_levelDrawer.addModelMatrixForObject(
                     objIndex,
                     glm::translate(glm::mat4(1.0f), m_endQuadPosition) * scale);
 
             // next we have the moving quads
-            for (auto const &texture : m_middleQuadTextures) {
+            auto const &middleAreaModelData = findModelsAndTextures(ModelNameMiddleArea);
+            if (middleAreaModelData.textures.empty()) {
+                throw std::runtime_error(std::string("Expected at least one texture for: ") + ModelNameMiddleArea + " got zero.");
+            }
+            for (auto const &texture : middleAreaModelData.textures) {
                 objIndex = m_levelDrawer.addObject(
-                        std::make_shared<levelDrawer::ModelDescriptionQuad>(),
-                        std::make_shared<levelDrawer::TextureDescriptionPath>(texture));
+                        middleAreaModelData.models[0],
+                        texture);
                 m_objRefQuad.push_back(objIndex);
             }
-            m_objDataRefQuad.resize(m_middleQuadTextures.size());
 
-            size_t nbrRowsForTexture = m_movingQuads.size() / m_middleQuadTextures.size();
-            size_t leftover = m_movingQuads.size() % m_middleQuadTextures.size();
+            size_t nbrTextures = middleAreaModelData.textures.size();
+            m_objDataRefQuad.resize(nbrTextures);
+
+            size_t nbrRowsForTexture = m_movingQuads.size() / nbrTextures;
+            size_t leftover = m_movingQuads.size() % nbrTextures;
             size_t i = 0;
             for (auto const &movingQuadRow : m_movingQuads) {
-                size_t textureNumber = 0;
+                size_t textureNumber;
                 if (nbrRowsForTexture == 0) {
                     textureNumber = i;
                 } else if (i <= leftover * nbrRowsForTexture) {
@@ -211,9 +215,10 @@ namespace movingSafeAreas {
             }
 
             // the ball
+            auto const &ballModelData = findModelsAndTextures(ModelNameBall);
             m_objRefBall = m_levelDrawer.addObject(
-                    std::make_shared<levelDrawer::ModelDescriptionPath>(m_ballModel),
-                    std::make_shared<levelDrawer::TextureDescriptionPath>(m_ballTexture));
+                    ballModelData.models[0],
+                    getFirstTexture(ballModelData));
 
             m_objDataRefBall = m_levelDrawer.addModelMatrixForObject(
                     m_objRefBall,
@@ -226,4 +231,4 @@ namespace movingSafeAreas {
     };
 } // namespace movingSafeAreas
 
-#endif /* AMAZING_LABYRINTH_MOVING_QUADS_LEVEL_HPP */
+#endif /* AMAZING_LABYRINTH_MOVING_SAFE_AREAS_LEVEL_HPP */

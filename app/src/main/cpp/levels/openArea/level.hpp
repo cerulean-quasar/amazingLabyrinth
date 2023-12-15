@@ -77,7 +77,7 @@ namespace openArea {
         static char constexpr const *m_name = "openArea";
         Level(
                 levelDrawer::Adaptor inLevelDrawer,
-                std::shared_ptr<LevelConfigData> const &lcd,
+                std::shared_ptr<basic::LevelConfigData> const &lcd,
                 std::shared_ptr <LevelSaveData> const &levelRestoreData,
                 float maxZ)
                 : basic::Level(std::move(inLevelDrawer), lcd, maxZ, true),
@@ -97,16 +97,18 @@ namespace openArea {
             glm::vec3 ballColor{1.0f, 1.0f, 1.0f};
 
             // the ball
+            auto const &ballModelData = findModelsAndTextures(ModelNameBall);
             m_objRefBall = m_levelDrawer.addObject(
-                    std::make_shared<levelDrawer::ModelDescriptionPath>(m_ballModel, ballColor),
-                    nullptr);
+                    ballModelData.models[0],
+                    getFirstTexture(ballModelData));
 
             m_objDataRefBall = m_levelDrawer.addModelMatrixForObject(m_objRefBall, modelMatrixBall);
 
             // the hole
+            auto const &holeModelData = findModelsAndTextures(ModelNameHole);
             auto objIndexHole = m_levelDrawer.addObject(
-                    std::make_shared<levelDrawer::ModelDescriptionQuad>(),
-                    std::make_shared<levelDrawer::TextureDescriptionPath>(lcd->holeTexture));
+                    holeModelData.models[0],
+                    getFirstTexture(holeModelData));
 
             m_levelDrawer.addModelMatrixForObject(objIndexHole, modelMatrixHole);
         }

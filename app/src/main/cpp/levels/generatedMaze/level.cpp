@@ -1,5 +1,5 @@
 /**
- * Copyright 2020 Cerulean Quasar. All Rights Reserved.
+ * Copyright 2023 Cerulean Quasar. All Rights Reserved.
  *
  *  This file is part of AmazingLabyrinth.
  *
@@ -21,7 +21,7 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
-#include <stdlib.h>
+#include <cstdlib>
 #include <unistd.h>
 
 #include <limits>
@@ -40,8 +40,6 @@
 #include "../basic/level.hpp"
 
 namespace generatedMaze {
-    char constexpr const *Level::m_name;
-
     bool Level::ballInProximity(float x, float y) {
         float errDistance = ballRadius();
         return glm::length(m_ball.position - glm::vec3{x, y, m_ball.position.z}) < errDistance;

@@ -1,5 +1,5 @@
 /**
- * Copyright 2022 Cerulean Quasar. All Rights Reserved.
+ * Copyright 2023 Cerulean Quasar. All Rights Reserved.
  *
  *  This file is part of AmazingLabyrinth.
  *
@@ -36,7 +36,7 @@
 namespace avoidVortexMaze {
     class Level : public openAreaMaze::Level {
     protected:
-        std::string m_avoidObjTexture;
+        static char constexpr const *ModelNameVortex = "Vortex";
 
         bool checkFinishCondition(float timeDiff) override;
 
@@ -53,8 +53,7 @@ namespace avoidVortexMaze {
                 std::shared_ptr<LevelConfigData> const &lcd,
                 std::shared_ptr<LevelSaveData> const &sd,
                 float maxZ)
-                : openAreaMaze::Level(std::move(inLevelDrawer), lcd, sd, maxZ),
-                m_avoidObjTexture(lcd->avoidTexture)
+                : openAreaMaze::Level(std::move(inLevelDrawer), lcd, sd, maxZ)
         {
             if (sd) {
                 m_mazeBoard.setStart(sd->startRowCol.x, sd->startRowCol.y);
@@ -66,8 +65,10 @@ namespace avoidVortexMaze {
                 generateAvoidModelMatrices(lcd->numberAvoidObjects);
             }
 
-            auto objRef = m_levelDrawer.addObject(std::make_shared<levelDrawer::ModelDescriptionQuad>(),
-                    std::make_shared<levelDrawer::TextureDescriptionPath>(m_avoidObjTexture));
+            /* the vortices */
+            auto const &vortexModelData = findModelsAndTextures(ModelNameVortex);
+            auto objRef = m_levelDrawer.addObject(vortexModelData.models[0],
+                                                  getFirstTexture(vortexModelData));
 
             for (auto const &item : m_avoidObjectLocations) {
                 m_levelDrawer.addModelMatrixForObject(objRef,

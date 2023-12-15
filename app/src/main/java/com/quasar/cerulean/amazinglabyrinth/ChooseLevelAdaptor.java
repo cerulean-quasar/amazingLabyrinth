@@ -1,5 +1,5 @@
 /**
- * Copyright 2020 Cerulean Quasar. All Rights Reserved.
+ * Copyright 2023 Cerulean Quasar. All Rights Reserved.
  *
  *  This file is part of AmazingLabyrinth.
  *
@@ -27,9 +27,9 @@ import android.view.Gravity;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
-import android.widget.TextView;
 
 import androidx.annotation.NonNull;
+import androidx.core.content.res.ResourcesCompat;
 import androidx.recyclerview.widget.RecyclerView;
 
 import java.io.IOException;
@@ -108,7 +108,6 @@ public class ChooseLevelAdaptor extends RecyclerView.Adapter<RecyclerView.ViewHo
             }
             activity.setResult(Activity.RESULT_CANCELED);
             activity.finish();
-            return;
         }
     }
 
@@ -123,7 +122,7 @@ public class ChooseLevelAdaptor extends RecyclerView.Adapter<RecyclerView.ViewHo
         TypedValue value = new TypedValue();
         m_parentActivity.getTheme().resolveAttribute(R.attr.button_background, value, true);
 
-        button.setBackground(m_parentActivity.getResources().getDrawable(value.resourceId));
+        button.setBackground(ResourcesCompat.getDrawable(m_parentActivity.getResources(), value.resourceId, m_parentActivity.getTheme()));
         button.setPadding(20,20,20,20);
         button.setGravity(Gravity.CENTER_HORIZONTAL);
         return new ChooseLevelViewHolder(button);
@@ -138,13 +137,13 @@ public class ChooseLevelAdaptor extends RecyclerView.Adapter<RecyclerView.ViewHo
     public void onBindViewHolder(@NonNull RecyclerView.ViewHolder vh, final int position) {
         ChooseLevelViewHolder clvh = (ChooseLevelViewHolder) vh;
         int nbrItems = m_levels.size();
-        if (position < m_levels.size()) {
+        if (vh.getBindingAdapterPosition() < m_levels.size()) {
             clvh.m_button.setText(m_levels.get(position).description);
             clvh.m_button.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View v) {
                     Intent intent = new Intent();
-                    intent.putExtra(Constants.KeySelectedLevel, m_levels.get(position).name);
+                    intent.putExtra(Constants.KeySelectedLevel, m_levels.get(vh.getBindingAdapterPosition()).name);
                     m_parentActivity.setResult(Activity.RESULT_OK, intent);
                     m_parentActivity.finish();
                 }

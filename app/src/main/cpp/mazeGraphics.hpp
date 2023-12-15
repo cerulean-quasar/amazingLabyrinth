@@ -1,5 +1,5 @@
 /**
- * Copyright 2022 Cerulean Quasar. All Rights Reserved.
+ * Copyright 2023 Cerulean Quasar. All Rights Reserved.
  *
  *  This file is part of AmazingLabyrinth.
  *
@@ -218,7 +218,7 @@ protected:
     static float constexpr m_depthTextureNearPlane = 0.1f;
     static float constexpr m_depthTextureFarPlane = 10.0f;
 
-    bool testDepthTexture(levelDrawer::Adaptor inLevelDrawer);
+    static bool testDepthTexture(levelDrawer::Adaptor inLevelDrawer);
 };
 
 #endif // AMAZING_LABYRINTH_MAZE_GRAPHICS_HPP

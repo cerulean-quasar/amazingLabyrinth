@@ -1,5 +1,5 @@
 /**
- * Copyright 2022 Cerulean Quasar. All Rights Reserved.
+ * Copyright 2023 Cerulean Quasar. All Rights Reserved.
  *
  *  This file is part of AmazingLabyrinth.
  *
@@ -38,23 +38,22 @@ namespace normalMap {
               m_normalShader3{normalShader3},
               m_simpleFragShader{simpleFragShader},
               m_simpleFragShader3{simpleFragShader3},
-              m_programID{0}
+              m_program{}
     {
         loadPipeline(inGameRequester);
     }
 
     void RenderDetailsGL::loadPipeline(std::shared_ptr<GameRequester> const &inGameRequester) {
-        if (m_programID != 0) {
-            glDeleteProgram(m_programID);
-            checkGraphicsError();
-        }
-
         if (m_usesIntSurface) {
-            m_programID = loadShaders(inGameRequester, m_normalShader3,
-                                           m_simpleFragShader3);
+            auto vertexShader = cacheShader(inGameRequester, m_normalShader3, GL_VERTEX_SHADER);
+            auto fragmentShader = cacheShader(inGameRequester, m_simpleFragShader3, GL_FRAGMENT_SHADER);
+            m_program = std::make_shared<renderDetails::GLProgram>(
+                    std::vector{std::move(vertexShader), std::move(fragmentShader)});
         } else {
-            m_programID = loadShaders(inGameRequester, m_normalShader,
-                                           m_simpleFragShader);
+            auto vertexShader = cacheShader(inGameRequester, m_normalShader, GL_VERTEX_SHADER);
+            auto fragmentShader = cacheShader(inGameRequester, m_simpleFragShader, GL_FRAGMENT_SHADER);
+            m_program = std::make_shared<renderDetails::GLProgram>(
+                    std::vector{std::move(vertexShader), std::move(fragmentShader)});
         }
     }
 
@@ -158,7 +157,8 @@ namespace normalMap {
         }
 
         // set the shader to use
-        glUseProgram(m_programID);
+        GLuint programID = m_program->programID();
+        glUseProgram(programID);
         checkGraphicsError();
         glCullFace(GL_BACK);
         checkGraphicsError();
@@ -168,21 +168,21 @@ namespace normalMap {
         GLint MatrixID;
 
         // the projection matrix
-        MatrixID = glGetUniformLocation(m_programID, "proj");
+        MatrixID = glGetUniformLocation(programID, "proj");
         checkGraphicsError();
         glUniformMatrix4fv(MatrixID, 1, GL_FALSE, &(projView.first)[0][0]);
         checkGraphicsError();
 
         // the view matrix
-        MatrixID = glGetUniformLocation(m_programID, "view");
+        MatrixID = glGetUniformLocation(programID, "view");
         checkGraphicsError();
         glUniformMatrix4fv(MatrixID, 1, GL_FALSE, &(projView.second)[0][0]);
         checkGraphicsError();
 
-        MatrixID = glGetUniformLocation(m_programID, "model");
+        MatrixID = glGetUniformLocation(programID, "model");
         checkGraphicsError();
 
-        GLint normalMatrixID = glGetUniformLocation(m_programID, "normalMatrix");
+        GLint normalMatrixID = glGetUniformLocation(programID, "normalMatrix");
         checkGraphicsError();
 
         for (auto it = beginZValRefs; it != endZValRefs; it++) {
@@ -199,7 +199,7 @@ namespace normalMap {
             glUniformMatrix4fv(normalMatrixID, 1, GL_FALSE, &normalMatrix[0][0]);
             checkGraphicsError();
 
-            drawVertices(m_programID, modelData, true);
+            drawVertices(programID, modelData, true);
         }
     }
 

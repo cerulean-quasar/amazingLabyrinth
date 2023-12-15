@@ -1,5 +1,5 @@
 /**
- * Copyright 2020 Cerulean Quasar. All Rights Reserved.
+ * Copyright 2023 Cerulean Quasar. All Rights Reserved.
  *
  *  This file is part of AmazingLabyrinth.
  *
@@ -21,22 +21,19 @@ package com.quasar.cerulean.amazinglabyrinth;
 
 import androidx.appcompat.app.ActionBar;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.content.res.ResourcesCompat;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import android.content.res.AssetManager;
 import android.os.Bundle;
-import android.util.JsonReader;
 import android.util.TypedValue;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
 
-import org.json.JSONObject;
-
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.ArrayList;
 
 public class ChooseLevelActivity extends AppCompatActivity {
     RecyclerView m_recycler;
@@ -47,10 +44,9 @@ public class ChooseLevelActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_choose_level);
-        ArrayList<String> levels = new ArrayList<>();
         AssetManager assetManager = getAssets();
 
-        InputStream infilestream = null;
+        InputStream infilestream;
         try {
              infilestream = assetManager.open(Constants.LevelTableFileName);
         } catch (IOException e) {
@@ -66,7 +62,7 @@ public class ChooseLevelActivity extends AppCompatActivity {
 
         ActionBar actionBar = getSupportActionBar();
         if (actionBar != null) {
-            actionBar.setBackgroundDrawable(getResources().getDrawable(value.resourceId));
+            actionBar.setBackgroundDrawable(ResourcesCompat.getDrawable(getResources(), value.resourceId, getTheme()));
         }
 
         m_recycler = findViewById(R.id.recycler);

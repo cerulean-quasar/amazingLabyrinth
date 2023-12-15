@@ -1,5 +1,5 @@
 /**
- * Copyright 2020 Cerulean Quasar. All Rights Reserved.
+ * Copyright 2023 Cerulean Quasar. All Rights Reserved.
  *
  *  This file is part of AmazingLabyrinth.
  *
@@ -29,10 +29,6 @@ namespace movingSafeAreas {
     void to_json(nlohmann::json &j, LevelSaveData const &val);
 
     void from_json(nlohmann::json const &j, LevelSaveData &val);
-
-    void to_json(nlohmann::json &j, LevelConfigData const &val);
-
-    void from_json(nlohmann::json const &j, LevelConfigData &val);
 } // namespace movingSafeAreas
 
 #endif // AMAZING_LABYRINTH_MOVING_SAFE_AREAS_SERIALIZER_HPP

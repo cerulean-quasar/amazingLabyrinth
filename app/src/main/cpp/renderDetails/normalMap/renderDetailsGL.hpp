@@ -1,5 +1,5 @@
 /**
- * Copyright 2022 Cerulean Quasar. All Rights Reserved.
+ * Copyright 2023 Cerulean Quasar. All Rights Reserved.
  *
  *  This file is part of AmazingLabyrinth.
  *
@@ -137,9 +137,7 @@ namespace normalMap {
                 std::shared_ptr<GameRequester> const &inGameRequester,
                 uint32_t inWidth, uint32_t inHeight, bool isIntSurface);
 
-        ~RenderDetailsGL() override {
-            glDeleteShader(m_programID);
-        }
+        ~RenderDetailsGL() override = default;
 
     private:
         char const *m_renderDetailsName;
@@ -147,7 +145,7 @@ namespace normalMap {
         char const *m_normalShader3;
         char const *m_simpleFragShader;
         char const *m_simpleFragShader3;
-        GLuint m_programID;
+        std::shared_ptr<renderDetails::GLProgram> m_program;
 
         static renderDetails::ReferenceGL createReference(
                 std::shared_ptr<renderDetails::RenderDetailsGL> rd,

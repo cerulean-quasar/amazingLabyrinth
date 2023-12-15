@@ -1,5 +1,5 @@
 /**
- * Copyright 2020 Cerulean Quasar. All Rights Reserved.
+ * Copyright 2023 Cerulean Quasar. All Rights Reserved.
  *
  *  This file is part of AmazingLabyrinth.
  *
@@ -43,17 +43,14 @@ namespace avoidVortexMaze {
         val.startRowCol = j[BallStart].get<Point<uint32_t>>();
     }
 
-    char constexpr const *AvoidTexture = "AvoidTexture";
     char constexpr const *NumberAvoidObjects = "NumberAvoidObjects";
     void to_json(nlohmann::json &j, LevelConfigData const &val) {
         to_json(j, boost::implicit_cast<generatedMaze::LevelConfigData  const &>(val));
-        j[AvoidTexture] = val.avoidTexture;
         j[NumberAvoidObjects] = val.numberAvoidObjects;
     }
 
     void from_json(nlohmann::json const &j, LevelConfigData  &val) {
         from_json(j, boost::implicit_cast<generatedMaze::LevelConfigData  &>(val));
-        val.avoidTexture = j[AvoidTexture].get<std::string>();
         val.numberAvoidObjects = j[NumberAvoidObjects].get<uint32_t>();
     }
 
