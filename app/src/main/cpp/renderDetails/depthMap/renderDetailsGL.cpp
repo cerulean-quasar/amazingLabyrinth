@@ -44,13 +44,17 @@ namespace depthMap {
 
     void RenderDetailsGL::loadPipeline(std::shared_ptr<GameRequester> const &inGameRequester) {
         if (m_usesIntSurface) {
-            auto vertexShader = cacheShader(inGameRequester, m_linearDepthVertShader3, GL_VERTEX_SHADER);
-            auto fragmentShader = cacheShader(inGameRequester, m_simpleFragShader3, GL_FRAGMENT_SHADER);
+            auto vertexShader = std::make_shared<renderDetails::Shader>(
+                    inGameRequester, m_linearDepthVertShader3, GL_VERTEX_SHADER);
+            auto fragmentShader = std::make_shared<renderDetails::Shader>(
+                    inGameRequester, m_simpleFragShader3, GL_FRAGMENT_SHADER);
             m_depthProgram = std::make_shared<renderDetails::GLProgram>(
                     std::vector{std::move(vertexShader), std::move(fragmentShader)});
         } else {
-            auto vertexShader = cacheShader(inGameRequester, m_linearDepthVertShader, GL_VERTEX_SHADER);
-            auto fragmentShader = cacheShader(inGameRequester, m_simpleFragShader, GL_FRAGMENT_SHADER);
+            auto vertexShader = std::make_shared<renderDetails::Shader>(
+                    inGameRequester, m_linearDepthVertShader, GL_VERTEX_SHADER);
+            auto fragmentShader = std::make_shared<renderDetails::Shader>(
+                    inGameRequester, m_simpleFragShader, GL_FRAGMENT_SHADER);
             m_depthProgram = std::make_shared<renderDetails::GLProgram>(
                     std::vector{std::move(vertexShader), std::move(fragmentShader)});
         }

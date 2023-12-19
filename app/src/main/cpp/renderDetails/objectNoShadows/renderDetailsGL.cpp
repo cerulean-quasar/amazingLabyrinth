@@ -206,9 +206,12 @@ namespace objectNoShadows {
         m_textureProgram{},
         m_colorProgram{}
     {
-        auto vertexShader = cacheShader(inGameRequester, vertexShaderFile, GL_VERTEX_SHADER);
-        auto textureFragShader = cacheShader(inGameRequester, textureFragShaderFile, GL_FRAGMENT_SHADER);
-        auto colorFragShader = cacheShader(inGameRequester, colorFragShaderFile, GL_FRAGMENT_SHADER);
+        auto vertexShader = std::make_shared<renderDetails::Shader>(
+                inGameRequester, vertexShaderFile, GL_VERTEX_SHADER);
+        auto textureFragShader = std::make_shared<renderDetails::Shader>(
+                inGameRequester, textureFragShaderFile, GL_FRAGMENT_SHADER);
+        auto colorFragShader = std::make_shared<renderDetails::Shader>(
+                inGameRequester, colorFragShaderFile, GL_FRAGMENT_SHADER);
 
         m_textureProgram = std::make_shared<renderDetails::GLProgram>(
                 std::vector{vertexShader, textureFragShader});

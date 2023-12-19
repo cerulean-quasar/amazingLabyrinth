@@ -29,9 +29,6 @@
 #include "renderDetailsGL.hpp"
 
 namespace renderDetails {
-    std::unordered_map<std::string, std::weak_ptr<Shader>> RenderDetailsGL::m_shaders{};
-    size_t RenderDetailsGL::m_timesTillPrune = 0;
-
     void RenderDetailsGL::drawVertices(
             GLuint programID,
             std::shared_ptr<levelDrawer::ModelDataGL> const &modelData,

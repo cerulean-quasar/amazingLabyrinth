@@ -49,7 +49,7 @@ namespace movingSafeAreas {
         for (uint32_t i = 0; i < numberOfMidQuadRows; i++) {
             MovingQuadRow row;
             uint32_t numberOfQuadsInRow = randomGenerator.getUInt(minQuadsInRow, maxQuadsInRow);
-            uint32_t direction = randomGenerator.getUInt(0, 1) * 2 - 1;
+            int32_t direction = static_cast<int32_t>(randomGenerator.getUInt(0, 1)) * 2 - 1;
             row.speed = direction *
                         randomGenerator.getFloat(minQuadMovingSpeed(), maxQuadMovingSpeed());
 

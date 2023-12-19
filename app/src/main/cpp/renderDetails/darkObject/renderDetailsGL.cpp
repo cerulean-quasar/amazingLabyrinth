@@ -283,9 +283,12 @@ namespace darkObject {
         m_textureProgram{},
         m_colorProgram{}
     {
-        auto vertexShader = cacheShader(inGameRequester, vertexShaderFile, GL_VERTEX_SHADER);
-        auto textureShader = cacheShader(inGameRequester, textureFragShaderFile, GL_FRAGMENT_SHADER);
-        auto colorShader = cacheShader(inGameRequester, colorFragShaderFile, GL_FRAGMENT_SHADER);
+        auto vertexShader = std::make_shared<renderDetails::Shader>(
+                inGameRequester, vertexShaderFile, GL_VERTEX_SHADER);
+        auto textureShader = std::make_shared<renderDetails::Shader>(
+                inGameRequester, textureFragShaderFile, GL_FRAGMENT_SHADER);
+        auto colorShader = std::make_shared<renderDetails::Shader>(
+                inGameRequester, colorFragShaderFile, GL_FRAGMENT_SHADER);
 
         m_textureProgram = std::make_shared<renderDetails::GLProgram>(
                 std::vector{vertexShader, std::move(textureShader)});

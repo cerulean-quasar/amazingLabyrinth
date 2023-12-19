@@ -36,8 +36,10 @@ namespace shadows {
             : renderDetails::RenderDetailsGL(inWidth, inHeight, usesIntSurface),
               m_renderDetailsName{name}
     {
-        auto vertexShader = cacheShader(inGameRequester, vertexShaderFile, GL_VERTEX_SHADER);
-        auto fragmentShader = cacheShader(inGameRequester, fragmentShaderFile, GL_FRAGMENT_SHADER);
+        auto vertexShader = std::make_shared<renderDetails::Shader>(
+                inGameRequester, vertexShaderFile, GL_VERTEX_SHADER);
+        auto fragmentShader = std::make_shared<renderDetails::Shader>(
+                inGameRequester, fragmentShaderFile, GL_FRAGMENT_SHADER);
 
         m_program = std::make_shared<renderDetails::GLProgram>(
                 std::vector{std::move(vertexShader), std::move(fragmentShader)});

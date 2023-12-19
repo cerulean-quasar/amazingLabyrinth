@@ -37,8 +37,9 @@ namespace renderDetails {
     struct ParametersObjectWithShadowsGL : public ParametersPerspective {
         std::shared_ptr<graphicsGL::Framebuffer> shadowsFB;
 
-        ParametersObjectWithShadowsGL(ParametersPerspective const &parameters, std::shared_ptr<graphicsGL::Framebuffer> fb)
-        : ParametersPerspective(parameters), shadowsFB{std::move(fb)} {}
+        ParametersObjectWithShadowsGL(
+                ParametersPerspective const &parameters, std::shared_ptr<graphicsGL::Framebuffer> fb)
+                : ParametersPerspective(parameters), shadowsFB{std::move(fb)} {}
 
         ~ParametersObjectWithShadowsGL() override = default;
     };
@@ -70,7 +71,8 @@ namespace renderDetails {
     class DoNothingVisitor : public boost::static_visitor<std::vector<float>> {
     public:
         template <typename value_type>
-        std::vector<float>  operator()(std::vector<value_type> const &input) const {
+        std::vector<float> operator()(std::vector<value_type> const &input) const
+        {
             std::vector<float> results(input.size());
             std::copy(input.begin(), input.end(), results.begin());
             return std::move(results);
@@ -80,6 +82,26 @@ namespace renderDetails {
     class Shader {
     public:
         inline GLuint shaderID() const { return m_shaderID; }
+
+        Shader(Shader const &) = delete;
+
+        Shader(Shader &&other)
+                : m_shaderID{other.m_shaderID}
+        {
+            other.m_shaderID = 0;
+        }
+
+        Shader &operator=(Shader const &) = delete;
+
+        Shader &operator=(Shader &&other) {
+            if (this != &other) {
+                glDeleteShader(m_shaderID);
+                m_shaderID = 0;
+                std::swap(m_shaderID, other.m_shaderID);
+            }
+
+            return *this;
+        }
 
         Shader(
                 std::shared_ptr<GameRequester> const &gameRequester,
@@ -132,9 +154,29 @@ namespace renderDetails {
     public:
         GLuint programID() { return m_programID; }
 
+        GLProgram(GLProgram const &) = delete;
+
+        GLProgram(GLProgram &&other)
+        : m_programID{other.m_programID}
+        {
+            other.m_programID = 0;
+        }
+
+        GLProgram &operator=(GLProgram const &) = delete;
+
+        GLProgram &operator=(GLProgram &&other) {
+            if (this != &other) {
+                glDeleteProgram(m_programID);
+                m_programID = 0;
+                std::swap(m_programID, other.m_programID);
+            }
+
+            return *this;
+        }
+
         GLProgram(
-                std::vector<std::shared_ptr<Shader>> shaders)
-                : m_programID{}
+                std::vector<std::shared_ptr<Shader>> const &shaders)
+                : m_programID{0}
         {
             if (shaders.empty()) {
                 throw std::runtime_error("A shader was incorrectly initialized when loading the GL program.");
@@ -165,8 +207,10 @@ namespace renderDetails {
                 if (InfoLogLength > 0) {
                     std::vector<char> ProgramErrorMessage(InfoLogLength + 1, 0);
                     glGetProgramInfoLog(m_programID, InfoLogLength, nullptr, ProgramErrorMessage.data());
+                    glDeleteProgram(m_programID);
                     throw std::runtime_error(ProgramErrorMessage.data());
                 } else {
+                    glDeleteProgram(m_programID);
                     throw std::runtime_error("glLinkProgram error.");
                 }
             }
@@ -249,51 +293,7 @@ namespace renderDetails {
                 std::shared_ptr<levelDrawer::ModelDataGL> const &modelData,
                 bool useVertexNormals = false);
 
-        std::shared_ptr<Shader> cacheShader(
-                std::shared_ptr<GameRequester> const &inGameRequester,
-                char const *shaderFileName,
-                GLenum shaderType)
-        {
-            /* Todo: fix this so that caching works or shader compilation and linking is done at program startup
-            std::shared_ptr<Shader> shader;
-            auto it = m_shaders.emplace(shaderFileName, std::weak_ptr<Shader>());
-            if (it.second || it.first->second.expired()) {
-                shader = std::make_shared<Shader>(inGameRequester, shaderFileName,
-                                                  shaderType);
-                it.first->second = shader;
-            } else {
-                shader = it.first->second.lock();
-            }
-
-            pruneDeadShaders();
-            */
-            return std::make_shared<Shader>(inGameRequester, shaderFileName,
-                                            shaderType);
-        }
-        /*
-        void pruneDeadShaders() {
-            if (m_timesTillPrune != 0) {
-                return;
-            }
-            m_timesTillPrune = m_shaderCacheCallsBeforePruning;
-            for (auto it = m_shaders.begin(); it != m_shaders.end(); ) {
-                if (it->second.expired()) {
-                    it = m_shaders.erase(it);
-                } else {
-                    it++;
-                }
-            }
-        }
-        */
-
         bool m_usesIntSurface;
-
-    private:
-        static size_t const constexpr m_shaderCacheCallsBeforePruning = 8;
-
-        static std::unordered_map<std::string, std::weak_ptr<Shader>> m_shaders;
-
-        static size_t m_timesTillPrune;
     };
 
     using ReferenceGL = Reference<RenderDetailsGL, levelDrawer::TextureDataGL, DrawObjectDataGL>;
