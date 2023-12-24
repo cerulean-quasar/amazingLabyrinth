@@ -132,8 +132,8 @@ namespace darkObject {
         glCullFace(GL_BACK);
         checkGraphicsError();
 
-        GLuint textureProgramID = m_textureProgram->programID();
-        GLuint colorProgramID = m_colorProgram->programID();
+        GLuint textureProgramID = *m_textureProgram.get();
+        GLuint colorProgramID = *m_colorProgram.get();
         GLuint programID = textureProgramID;
         GLint MatrixID = -1;
         GLint normalMatrixID = -1;
@@ -283,16 +283,16 @@ namespace darkObject {
         m_textureProgram{},
         m_colorProgram{}
     {
-        auto vertexShader = std::make_shared<renderDetails::Shader>(
+        auto vertexShader = renderDetails::getShader(
                 inGameRequester, vertexShaderFile, GL_VERTEX_SHADER);
-        auto textureShader = std::make_shared<renderDetails::Shader>(
+        auto textureShader = renderDetails::getShader(
                 inGameRequester, textureFragShaderFile, GL_FRAGMENT_SHADER);
-        auto colorShader = std::make_shared<renderDetails::Shader>(
+        auto colorShader = renderDetails::getShader(
                 inGameRequester, colorFragShaderFile, GL_FRAGMENT_SHADER);
 
-        m_textureProgram = std::make_shared<renderDetails::GLProgram>(
+        m_textureProgram = renderDetails::getProgram(
                 std::vector{vertexShader, std::move(textureShader)});
-        m_colorProgram = std::make_shared<renderDetails::GLProgram>(
+        m_colorProgram = renderDetails::getProgram(
                 std::vector{vertexShader, std::move(colorShader)});
     }
 

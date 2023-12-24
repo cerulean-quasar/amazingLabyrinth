@@ -44,18 +44,18 @@ namespace depthMap {
 
     void RenderDetailsGL::loadPipeline(std::shared_ptr<GameRequester> const &inGameRequester) {
         if (m_usesIntSurface) {
-            auto vertexShader = std::make_shared<renderDetails::Shader>(
+            auto vertexShader = renderDetails::getShader(
                     inGameRequester, m_linearDepthVertShader3, GL_VERTEX_SHADER);
-            auto fragmentShader = std::make_shared<renderDetails::Shader>(
+            auto fragmentShader = renderDetails::getShader(
                     inGameRequester, m_simpleFragShader3, GL_FRAGMENT_SHADER);
-            m_depthProgram = std::make_shared<renderDetails::GLProgram>(
+            m_depthProgram = renderDetails::getProgram(
                     std::vector{std::move(vertexShader), std::move(fragmentShader)});
         } else {
-            auto vertexShader = std::make_shared<renderDetails::Shader>(
+            auto vertexShader = renderDetails::getShader(
                     inGameRequester, m_linearDepthVertShader, GL_VERTEX_SHADER);
-            auto fragmentShader = std::make_shared<renderDetails::Shader>(
+            auto fragmentShader = renderDetails::getShader(
                     inGameRequester, m_simpleFragShader, GL_FRAGMENT_SHADER);
-            m_depthProgram = std::make_shared<renderDetails::GLProgram>(
+            m_depthProgram = renderDetails::getProgram(
                     std::vector{std::move(vertexShader), std::move(fragmentShader)});
         }
     }
@@ -160,7 +160,7 @@ namespace depthMap {
         }
 
         // set the shader to use
-        GLuint programID = m_depthProgram->programID();
+        GLuint programID = *m_depthProgram.get();
         glUseProgram(programID);
         checkGraphicsError();
         glCullFace(GL_BACK);

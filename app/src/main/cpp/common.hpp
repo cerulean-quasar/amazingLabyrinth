@@ -1,5 +1,5 @@
 /**
- * Copyright 2022 Cerulean Quasar. All Rights Reserved.
+ * Copyright 2023 Cerulean Quasar. All Rights Reserved.
  *
  *  This file is part of AmazingLabyrinth.
  *
@@ -24,6 +24,9 @@
 #include <string>
 #include <memory>
 #include <streambuf>
+#include <functional>
+#include <atomic>
+#include <cassert>
 
 // TODO: switch from register/request with name to request with registration object.
 char constexpr const *shadowsChainingRenderDetailsName = "shadowsChaining";
@@ -81,4 +84,90 @@ public:
 
 std::vector<char> readFile(std::shared_ptr<FileRequester> const &requester, std::string const &filename);
 void checkGraphicsError();
+
+template <typename ProtectedType, typename Enable = void> class ReferenceCountedInteger;
+
+template <typename HandleObject>
+class ReferenceCountedInteger<HandleObject, typename std::enable_if<std::is_integral<HandleObject>::value>::type> {
+public:
+    using DeleterType = std::function<void(HandleObject)>;
+
+    auto const *get() const
+    {
+        if (m_data != nullptr) {
+            return &(m_data->value);
+        } else {
+            return &defaultValue;
+        }
+    }
+
+    ReferenceCountedInteger() : m_data{nullptr} { }
+
+    ReferenceCountedInteger(HandleObject value, DeleterType deleter)
+            : m_data{new Data(value, deleter)}
+    { }
+
+    ReferenceCountedInteger(ReferenceCountedInteger const &other)
+            : m_data{other.m_data}
+    {
+        if (m_data != nullptr) {
+            m_data->referenceCount++;
+        }
+    }
+
+    ReferenceCountedInteger(ReferenceCountedInteger &&other)
+        : m_data{nullptr}
+    {
+        using std::swap;
+
+        swap(m_data, other.m_data);
+    }
+
+    ReferenceCountedInteger &operator=(ReferenceCountedInteger const &other) {
+        using std::swap;
+
+        ReferenceCountedInteger tmp(other);
+
+        swap(m_data, tmp.m_data);
+
+        return *this;
+    }
+
+    ReferenceCountedInteger &operator=(ReferenceCountedInteger &&other) {
+        using std::swap;
+
+        swap(m_data, other.m_data);
+
+        return *this;
+    }
+
+    ~ReferenceCountedInteger() {
+        if (m_data == nullptr) {
+            return;
+        }
+
+        auto newCount = -- m_data->referenceCount;
+
+        assert(newCount >= 0);
+
+        if (newCount == 0) {
+            m_data->deleter(m_data->value);
+            delete m_data;
+        }
+    }
+
+private:
+    static HandleObject constexpr const defaultValue = 0;
+
+    struct Data {
+        HandleObject value;
+        DeleterType const deleter;
+        std::atomic<int> referenceCount;
+
+        Data(HandleObject value_, DeleterType deleter_) : value{value_}, deleter{deleter_}, referenceCount{1} {}
+    };
+
+    Data *m_data;
+};
+
 #endif // AMAZING_LABYRINTH_COMMON_HPP

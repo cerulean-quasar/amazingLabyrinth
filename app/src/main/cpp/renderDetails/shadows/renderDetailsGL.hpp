@@ -110,7 +110,7 @@ namespace shadows {
     private:
         char const *m_renderDetailsName;
 
-        std::shared_ptr<renderDetails::GLProgram> m_program;
+        renderDetails::Program m_program;
 
         static renderDetails::ReferenceGL createReference(
                 std::shared_ptr<renderDetails::RenderDetailsGL> rd,

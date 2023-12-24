@@ -117,8 +117,8 @@ namespace objectWithShadows {
 
     private:
         char const *m_renderDetailsName;
-        std::shared_ptr<renderDetails::GLProgram> m_textureProgram;
-        std::shared_ptr<renderDetails::GLProgram> m_colorProgram;
+        renderDetails::Program m_textureProgram;
+        renderDetails::Program m_colorProgram;
 
         static renderDetails::ReferenceGL createReference(
                 std::shared_ptr<renderDetails::RenderDetailsGL> rd,

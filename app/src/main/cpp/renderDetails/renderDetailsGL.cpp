@@ -29,6 +29,100 @@
 #include "renderDetailsGL.hpp"
 
 namespace renderDetails {
+    Shader getShader(
+            std::shared_ptr<GameRequester> const &gameRequester,
+            std::string const &shaderFile,
+            GLenum shaderType)
+    {
+        std::vector<char> shader = readFile(gameRequester, shaderFile);
+
+        // Create the shaders
+        GLuint shaderID = glCreateShader(shaderType);
+
+        // Compile the Shader
+        char const *sourcePointer = shader.data();
+        GLint shaderLength = shader.size();
+        glShaderSource(shaderID, 1, &sourcePointer, &shaderLength);
+        glCompileShader(shaderID);
+
+        // Check the Shader
+        GLint Result = GL_TRUE;
+        glGetShaderiv(shaderID, GL_COMPILE_STATUS, &Result);
+        if (Result == GL_FALSE) {
+            GLint InfoLogLength = 0;
+            glGetShaderiv(shaderID, GL_INFO_LOG_LENGTH, &InfoLogLength);
+            if (InfoLogLength > 0) {
+                std::vector<char> shaderErrorMessage(InfoLogLength + 1);
+                glGetShaderInfoLog(shaderID, InfoLogLength, &InfoLogLength,
+                                   shaderErrorMessage.data());
+                glDeleteShader(shaderID);
+                if (shaderErrorMessage[0] == '\0') {
+                    throw std::runtime_error("shader: " + shaderFile + " compile error.");
+                } else {
+                    throw std::runtime_error(std::string("shader: ") + shaderFile + " compile error: " +
+                                             shaderErrorMessage.data());
+                }
+            } else {
+                throw std::runtime_error("shader: " + shaderFile + " compile error.");
+            }
+        }
+
+        auto deleter = [](GLuint shaderID) -> void {
+            if (shaderID != 0) {
+                glDeleteShader(shaderID);
+            }};
+
+        return {shaderID, deleter};
+    }
+
+    Program getProgram(std::vector<Shader> const &shaders)
+    {
+        if (shaders.empty()) {
+            throw std::runtime_error("A shader was incorrectly initialized when loading the GL program.");
+        }
+
+        // Create the program
+        GLuint programID = glCreateProgram();
+
+        for (auto const &shader : shaders) {
+            glAttachShader(programID, *(shader.get()));
+        }
+
+        glLinkProgram(programID);
+
+        // glLinkProgram doc pages state that once the link step is done, programs can be
+        // detached, deleted, etc.
+        for (auto const &shader : shaders) {
+            glDetachShader(programID, *(shader.get()));
+        }
+
+        // Check the program
+        GLint Result = GL_TRUE;
+        glGetProgramiv(programID, GL_LINK_STATUS, &Result);
+
+        if (Result == GL_FALSE) {
+            GLint InfoLogLength = 0;
+            glGetProgramiv(programID, GL_INFO_LOG_LENGTH, &InfoLogLength);
+            if (InfoLogLength > 0) {
+                std::vector<char> ProgramErrorMessage(InfoLogLength + 1, 0);
+                glGetProgramInfoLog(programID, InfoLogLength, nullptr, ProgramErrorMessage.data());
+                glDeleteProgram(programID);
+                throw std::runtime_error(ProgramErrorMessage.data());
+            } else {
+                glDeleteProgram(programID);
+                throw std::runtime_error("glLinkProgram error.");
+            }
+        }
+
+        auto deleter = [](GLuint programID) -> void {
+            if (programID != 0) {
+                glDeleteProgram(programID);
+            }
+        };
+
+        return {programID, deleter};
+    }
+
     void RenderDetailsGL::drawVertices(
             GLuint programID,
             std::shared_ptr<levelDrawer::ModelDataGL> const &modelData,

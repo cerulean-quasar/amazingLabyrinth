@@ -157,7 +157,7 @@ namespace depthMap {
         char const *m_linearDepthVertShader3;
         char const *m_simpleFragShader;
         char const *m_simpleFragShader3;
-        std::shared_ptr<renderDetails::GLProgram> m_depthProgram;
+        renderDetails::Program m_depthProgram;
 
         static renderDetails::ReferenceGL createReference(
                 std::shared_ptr<renderDetails::RenderDetailsGL> rd,

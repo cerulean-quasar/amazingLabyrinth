@@ -36,12 +36,12 @@ namespace shadows {
             : renderDetails::RenderDetailsGL(inWidth, inHeight, usesIntSurface),
               m_renderDetailsName{name}
     {
-        auto vertexShader = std::make_shared<renderDetails::Shader>(
+        auto vertexShader = renderDetails::getShader(
                 inGameRequester, vertexShaderFile, GL_VERTEX_SHADER);
-        auto fragmentShader = std::make_shared<renderDetails::Shader>(
+        auto fragmentShader = renderDetails::getShader(
                 inGameRequester, fragmentShaderFile, GL_FRAGMENT_SHADER);
 
-        m_program = std::make_shared<renderDetails::GLProgram>(
+        m_program = renderDetails::getProgram(
                 std::vector{std::move(vertexShader), std::move(fragmentShader)});
     }
 
@@ -142,7 +142,7 @@ namespace shadows {
         }
 
         // set the shader to use
-        GLuint programID = m_program->programID();
+        GLuint programID = *m_program.get();
         glUseProgram(programID);
         checkGraphicsError();
         glCullFace(GL_FRONT);

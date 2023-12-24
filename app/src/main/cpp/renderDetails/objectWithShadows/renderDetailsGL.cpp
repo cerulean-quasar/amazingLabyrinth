@@ -128,8 +128,8 @@ namespace objectWithShadows {
 
         auto fb = cod->shadowsFramebuffer();
 
-        GLuint textureProgramID = m_textureProgram->programID();
-        GLuint colorProgramID = m_colorProgram->programID();
+        GLuint textureProgramID = *m_textureProgram.get();
+        GLuint colorProgramID = *m_colorProgram.get();
         GLuint programID = textureProgramID;
         GLint MatrixID = -1;
         GLint normalMatrixID = -1;
@@ -223,16 +223,16 @@ namespace objectWithShadows {
         m_textureProgram{},
         m_colorProgram{}
     {
-        auto vertexShader = std::make_shared<renderDetails::Shader>(
+        auto vertexShader = renderDetails::getShader(
                 inGameRequester, vertShaderFile, GL_VERTEX_SHADER);
-        auto textureFragShader = std::make_shared<renderDetails::Shader>(
+        auto textureFragShader = renderDetails::getShader(
                 inGameRequester, textureFragShaderFile, GL_FRAGMENT_SHADER);
-        auto colorFragShader = std::make_shared<renderDetails::Shader>(
+        auto colorFragShader = renderDetails::getShader(
                 inGameRequester, colorFragShaderFile, GL_FRAGMENT_SHADER);
 
-        m_textureProgram = std::make_shared<renderDetails::GLProgram>(
+        m_textureProgram = renderDetails::getProgram(
                 std::vector{vertexShader, textureFragShader});
-        m_colorProgram = std::make_shared<renderDetails::GLProgram>(
+        m_colorProgram = renderDetails::getProgram(
                 std::vector{vertexShader, colorFragShader});
     }
 

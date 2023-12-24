@@ -145,7 +145,7 @@ namespace normalMap {
         char const *m_normalShader3;
         char const *m_simpleFragShader;
         char const *m_simpleFragShader3;
-        std::shared_ptr<renderDetails::GLProgram> m_program;
+        renderDetails::Program m_program;
 
         static renderDetails::ReferenceGL createReference(
                 std::shared_ptr<renderDetails::RenderDetailsGL> rd,

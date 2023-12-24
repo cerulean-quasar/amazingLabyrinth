@@ -34,6 +34,9 @@
 
 class RenderLoaderGL;
 namespace renderDetails {
+    using Shader = ReferenceCountedInteger<GLuint>;
+    using Program = ReferenceCountedInteger<GLuint>;
+
     struct ParametersObjectWithShadowsGL : public ParametersPerspective {
         std::shared_ptr<graphicsGL::Framebuffer> shadowsFB;
 
@@ -79,150 +82,12 @@ namespace renderDetails {
         }
     };
 
-    class Shader {
-    public:
-        inline GLuint shaderID() const { return m_shaderID; }
+    Shader getShader(
+            std::shared_ptr<GameRequester> const &gameRequester,
+            std::string const &shaderFile,
+            GLenum shaderType);
 
-        Shader(Shader const &) = delete;
-
-        Shader(Shader &&other)
-                : m_shaderID{other.m_shaderID}
-        {
-            other.m_shaderID = 0;
-        }
-
-        Shader &operator=(Shader const &) = delete;
-
-        Shader &operator=(Shader &&other) {
-            if (this != &other) {
-                glDeleteShader(m_shaderID);
-                m_shaderID = 0;
-                std::swap(m_shaderID, other.m_shaderID);
-            }
-
-            return *this;
-        }
-
-        Shader(
-                std::shared_ptr<GameRequester> const &gameRequester,
-                std::string const &shaderFile,
-                GLenum shaderType)
-                : m_shaderID{0}
-        {
-            std::vector<char> shader = readFile(gameRequester, shaderFile);
-
-            // Create the shaders
-            m_shaderID = glCreateShader(shaderType);
-
-            // Compile the Shader
-            char const *sourcePointer = shader.data();
-            GLint shaderLength = shader.size();
-            glShaderSource(m_shaderID, 1, &sourcePointer, &shaderLength);
-            glCompileShader(m_shaderID);
-
-            // Check the Shader
-            GLint Result = GL_TRUE;
-            glGetShaderiv(m_shaderID, GL_COMPILE_STATUS, &Result);
-            if (Result == GL_FALSE) {
-                GLint InfoLogLength = 0;
-                glGetShaderiv(m_shaderID, GL_INFO_LOG_LENGTH, &InfoLogLength);
-                if (InfoLogLength > 0) {
-                    std::vector<char> shaderErrorMessage(InfoLogLength + 1);
-                    glGetShaderInfoLog(m_shaderID, InfoLogLength, &InfoLogLength,
-                                       shaderErrorMessage.data());
-                    glDeleteShader(m_shaderID);
-                    if (shaderErrorMessage[0] == '\0') {
-                        throw std::runtime_error("shader: " + shaderFile + " compile error.");
-                    } else {
-                        throw std::runtime_error(std::string("shader: ") + shaderFile + " compile error: " +
-                                                 shaderErrorMessage.data());
-                    }
-                } else {
-                    throw std::runtime_error("shader: " + shaderFile + " compile error.");
-                }
-            }
-        }
-
-        ~Shader() {
-            glDeleteShader(m_shaderID);
-        }
-    private:
-        GLuint m_shaderID;
-    };
-
-    class GLProgram {
-    public:
-        GLuint programID() { return m_programID; }
-
-        GLProgram(GLProgram const &) = delete;
-
-        GLProgram(GLProgram &&other)
-        : m_programID{other.m_programID}
-        {
-            other.m_programID = 0;
-        }
-
-        GLProgram &operator=(GLProgram const &) = delete;
-
-        GLProgram &operator=(GLProgram &&other) {
-            if (this != &other) {
-                glDeleteProgram(m_programID);
-                m_programID = 0;
-                std::swap(m_programID, other.m_programID);
-            }
-
-            return *this;
-        }
-
-        GLProgram(
-                std::vector<std::shared_ptr<Shader>> const &shaders)
-                : m_programID{0}
-        {
-            if (shaders.empty()) {
-                throw std::runtime_error("A shader was incorrectly initialized when loading the GL program.");
-            }
-
-            // Create the program
-            m_programID = glCreateProgram();
-
-            for (auto const &shader : shaders) {
-                glAttachShader(m_programID, shader->shaderID());
-            }
-
-            glLinkProgram(m_programID);
-
-            // glLinkProgram doc pages state that once the link step is done, programs can be
-            // detached, deleted, etc.
-            for (auto const &shader : shaders) {
-                glDetachShader(m_programID, shader->shaderID());
-            }
-
-            // Check the program
-            GLint Result = GL_TRUE;
-            glGetProgramiv(m_programID, GL_LINK_STATUS, &Result);
-
-            if (Result == GL_FALSE) {
-                GLint InfoLogLength = 0;
-                glGetProgramiv(m_programID, GL_INFO_LOG_LENGTH, &InfoLogLength);
-                if (InfoLogLength > 0) {
-                    std::vector<char> ProgramErrorMessage(InfoLogLength + 1, 0);
-                    glGetProgramInfoLog(m_programID, InfoLogLength, nullptr, ProgramErrorMessage.data());
-                    glDeleteProgram(m_programID);
-                    throw std::runtime_error(ProgramErrorMessage.data());
-                } else {
-                    glDeleteProgram(m_programID);
-                    throw std::runtime_error("glLinkProgram error.");
-                }
-            }
-        }
-
-        ~GLProgram() {
-            glDeleteProgram(m_programID);
-        }
-
-    private:
-        GLuint m_programID;
-    };
+    Program getProgram(std::vector<Shader> const &shaders);
 
     class RenderDetailsGL : public RenderDetails {
     public:

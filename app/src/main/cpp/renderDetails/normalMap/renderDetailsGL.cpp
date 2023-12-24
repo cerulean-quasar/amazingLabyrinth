@@ -44,20 +44,22 @@ namespace normalMap {
     }
 
     void RenderDetailsGL::loadPipeline(std::shared_ptr<GameRequester> const &inGameRequester) {
+        auto createGLProgram = [&inGameRequester](
+                std::string const &vertexFile,
+                std::string const &fragmentFile) -> renderDetails::Program
+        {
+            auto vertexShader = renderDetails::getShader(
+                    inGameRequester, vertexFile, GL_VERTEX_SHADER);
+            auto fragmentShader = renderDetails::getShader(
+                    inGameRequester, fragmentFile, GL_FRAGMENT_SHADER);
+            return renderDetails::getProgram(
+                    std::vector{std::move(vertexShader), std::move(fragmentShader)});
+        };
+
         if (m_usesIntSurface) {
-            auto vertexShader = std::make_shared<renderDetails::Shader>(
-                    inGameRequester, m_normalShader3, GL_VERTEX_SHADER);
-            auto fragmentShader = std::make_shared<renderDetails::Shader>(
-                    inGameRequester, m_simpleFragShader3, GL_FRAGMENT_SHADER);
-            m_program = std::make_shared<renderDetails::GLProgram>(
-                    std::vector{std::move(vertexShader), std::move(fragmentShader)});
+            m_program = createGLProgram(m_normalShader3, m_simpleFragShader3);
         } else {
-            auto vertexShader = std::make_shared<renderDetails::Shader>(
-                    inGameRequester, m_normalShader, GL_VERTEX_SHADER);
-            auto fragmentShader = std::make_shared<renderDetails::Shader>(
-                    inGameRequester, m_simpleFragShader, GL_FRAGMENT_SHADER);
-            m_program = std::make_shared<renderDetails::GLProgram>(
-                    std::vector{std::move(vertexShader), std::move(fragmentShader)});
+            m_program = createGLProgram(m_normalShader, m_simpleFragShader);
         }
     }
 
@@ -161,7 +163,7 @@ namespace normalMap {
         }
 
         // set the shader to use
-        GLuint programID = m_program->programID();
+        GLuint programID = *m_program.get();
         glUseProgram(programID);
         checkGraphicsError();
         glCullFace(GL_BACK);
