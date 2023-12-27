@@ -287,7 +287,8 @@ namespace levelDrawer {
                 auto itBegin = m_drawObjectTableList[table]->zValueReferences().begin();
                 auto itEnd = itBegin;
                 // find a continuous set of draw objects that use the same render details and call
-                // execute draw on them.  Also, draw back to front.
+                // execute draw on them.  Also, draw back to front so that objects with an alpha
+                // channel that is not 1 will partially show the objects beneath them.
                 while (true) {
                     if (itEnd == tableEnd) {
                         if (itBegin != itEnd) {

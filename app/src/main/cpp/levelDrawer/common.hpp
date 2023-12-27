@@ -224,6 +224,9 @@ namespace levelDrawer {
     using DrawObjectTableGL = DrawObjectTable<DrawObjectGLTraits>;
     using DrawObjectTableGList = std::array<std::shared_ptr<DrawObjectTableGL>, nbrDrawObjectTables>;
 
+    // Sort objects by Z value so that we draw them from back to front.  We do this to support
+    // objects with an alpha channel that is not 1.0.  This way these objects will partially show
+    // the objects below them.
     struct ZValueReference {
         static float constexpr errVal = 0.000001f;
         boost::optional<float> z;
