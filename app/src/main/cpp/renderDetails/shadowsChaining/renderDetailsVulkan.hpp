@@ -1,5 +1,5 @@
 /**
- * Copyright 2022 Cerulean Quasar. All Rights Reserved.
+ * Copyright 2024 Cerulean Quasar. All Rights Reserved.
  *
  *  This file is part of AmazingLabyrinth.
  *
@@ -41,16 +41,6 @@ namespace shadowsChaining {
         std::pair<glm::mat4, glm::mat4> getProjViewForLevel() {
             return m_objectWithShadowsCOD->getProjViewForLevel();
         }
-
-        /* todo: remove
-        glm::mat4 getViewLightSource() {
-            return m_shadowsCOD->view();
-        }
-
-        glm::vec3 getLightSource() {
-            return m_shadowsCOD->viewPoint();
-        }
-         */
 
         std::shared_ptr<objectWithShadows::CommonObjectDataVulkan> const &objectWithShadowsCOD() {
             return m_objectWithShadowsCOD;
@@ -131,10 +121,8 @@ namespace shadowsChaining {
 
     class RenderDetailsVulkan : public renderDetails::RenderDetailsVulkan {
     public:
-        std::string nameString() override { return m_renderDetailsName; }
-
         static renderDetails::ReferenceVulkan loadNew(
-            char const *name,
+            renderDetails::Description const &description,
             std::vector<char const *> const &shaders,
             std::shared_ptr<GameRequester> const &gameRequester,
             std::shared_ptr<RenderLoaderVulkan> const &renderLoader,
@@ -174,16 +162,15 @@ namespace shadowsChaining {
             std::shared_ptr<levelDrawer::DrawObjectTableVulkan> const &drawObjTable,
             std::set<levelDrawer::ZValueReference>::iterator beginZValRefs,
             std::set<levelDrawer::ZValueReference>::iterator endZValRefs,
-            std::string const &renderDetailsName) override;
+            renderDetails::Description const &description) override;
 
         std::shared_ptr<vulkan::Device> const &device() override { return m_objectWithShadowsRenderDetails->device(); }
 
         RenderDetailsVulkan(
-            char const *name,
+            renderDetails::Description description,
             std::shared_ptr<vulkan::Device> const &inDevice,
             std::shared_ptr<vulkan::SurfaceDetails> const &surfaceDetails)
-            : renderDetails::RenderDetailsVulkan{surfaceDetails->surfaceWidth, surfaceDetails->surfaceHeight},
-            m_renderDetailsName{name},
+            : renderDetails::RenderDetailsVulkan{description, surfaceDetails->surfaceWidth, surfaceDetails->surfaceHeight},
             m_device{inDevice}
         {
             createShadowResources(surfaceDetails);
@@ -195,7 +182,6 @@ namespace shadowsChaining {
         // use less precision for the shadow buffer
         static float constexpr shadowsSizeMultiplier = 0.5f;
 
-        char const *m_renderDetailsName;
         std::shared_ptr<vulkan::Device> m_device;
         std::shared_ptr<renderDetails::RenderDetailsVulkan> m_objectWithShadowsRenderDetails;
 

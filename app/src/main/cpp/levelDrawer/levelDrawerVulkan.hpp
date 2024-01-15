@@ -1,5 +1,5 @@
 /**
- * Copyright 2022 Cerulean Quasar. All Rights Reserved.
+ * Copyright 2024 Cerulean Quasar. All Rights Reserved.
  *
  *  This file is part of AmazingLabyrinth.
  *
@@ -81,7 +81,7 @@ namespace levelDrawer {
 
     template <>
     void LevelDrawerGraphics<LevelDrawerVulkanTraits>::drawToBuffer(
-            std::string const &renderDetailsName,
+            renderDetails::Query const &query,
             ModelsTextures const &modelsTextures,
             std::vector<glm::mat4> const &modelMatrix,
             float width,
@@ -95,7 +95,6 @@ namespace levelDrawer {
             LevelDrawerVulkanTraits::NeededForDrawingType neededForDrawing,
             std::shared_ptr<LevelDrawerVulkanTraits::SurfaceDetailsType> inSurfaceDetails,
             std::shared_ptr<LevelDrawerVulkanTraits::RenderLoaderType> inRenderLoader,
-            char const *defaultRenderDetailsName,
             std::shared_ptr<GameRequester> inGameRequester);
 }
 #endif // AMAZING_LABYRINTH_LEVEL_DRAWER_VULKAN_HPP

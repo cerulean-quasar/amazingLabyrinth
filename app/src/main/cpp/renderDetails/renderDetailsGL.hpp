@@ -1,5 +1,5 @@
 /**
- * Copyright 2023 Cerulean Quasar. All Rights Reserved.
+ * Copyright 2024 Cerulean Quasar. All Rights Reserved.
  *
  *  This file is part of AmazingLabyrinth.
  *
@@ -143,10 +143,11 @@ namespace renderDetails {
         }
 
         RenderDetailsGL(
+            renderDetails::Description description,
             uint32_t inWidth,
             uint32_t inHeight,
             bool usesIntSurface)
-            : RenderDetails{inWidth, inHeight},
+            : RenderDetails{std::move(description), inWidth, inHeight},
             m_usesIntSurface{usesIntSurface}
         {}
 

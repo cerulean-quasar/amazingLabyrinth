@@ -1,5 +1,5 @@
 /**
- * Copyright 2023 Cerulean Quasar. All Rights Reserved.
+ * Copyright 2024 Cerulean Quasar. All Rights Reserved.
  *
  *  This file is part of AmazingLabyrinth.
  *
@@ -22,7 +22,7 @@
 
 namespace shadowsChaining {
     renderDetails::ReferenceGL RenderDetailsGL::loadNew(
-            char const *name,
+            renderDetails::Description const &description,
             std::vector<char const *> const &shaders,
             std::shared_ptr<GameRequester> const &gameRequester,
             std::shared_ptr<RenderLoaderGL> const &renderLoader,
@@ -38,17 +38,28 @@ namespace shadowsChaining {
             throw std::runtime_error("Invalid number of shaders for render details.");
         }
 
-        auto rd = std::make_shared<RenderDetailsGL>(name,
+        auto rd = std::make_shared<RenderDetailsGL>(description,
                 surfaceDetails->useIntTexture, surfaceDetails->surfaceWidth, surfaceDetails->surfaceHeight);
 
         auto parametersShadows = std::make_shared<renderDetails::ParametersPerspective>(*parameters);
         parametersShadows->viewPoint = parametersShadows->lightingSources[0];
         auto refShadows = renderLoader->load(
-                gameRequester, shadowsRenderDetailsName, surfaceDetails, parametersShadows);
+                gameRequester,
+                {renderDetails::DrawingStyle::shadowMap,
+                    renderDetails::FeatureList(),
+                    renderDetails::FeatureList()},
+                 surfaceDetails,
+                 parametersShadows);
 
         auto parms = std::make_shared<renderDetails::ParametersObjectWithShadowsGL>(*parameters, rd->m_framebufferShadows);
+        auto features = description.features();
+        features.setFeature(renderDetails::Features::chaining, false);
         auto refObjectWithShadows = renderLoader->load(
-                gameRequester, objectWithShadowsRenderDetailsName, surfaceDetails,
+                gameRequester,
+                {renderDetails::DrawingStyle::standard,
+                    features,
+                    {}},
+                 surfaceDetails,
                 parms);
 
         rd->m_shadowsRenderDetails = refShadows.renderDetails;
@@ -87,11 +98,23 @@ namespace shadowsChaining {
         auto parametersShadows = std::make_shared<renderDetails::ParametersPerspective>(*parameters);
         parametersShadows->viewPoint = parametersShadows->lightingSources[0];
         auto refShadows = renderLoader->load(
-                gameRequester, shadowsRenderDetailsName, surfaceDetails, parametersShadows);
+                gameRequester,
+                {renderDetails::DrawingStyle::shadowMap,
+                 renderDetails::FeatureList(),
+                 renderDetails::FeatureList()},
+                surfaceDetails,
+                parametersShadows);
 
         auto parms = std::make_shared<renderDetails::ParametersObjectWithShadowsGL>(*parameters, rd->m_framebufferShadows);
+        auto features = rd->description().features();
+        features.setFeature(renderDetails::Features::chaining, false);
         auto refObjectWithShadows = renderLoader->load(
-                gameRequester, objectWithShadowsRenderDetailsName, surfaceDetails, parms);
+                gameRequester,
+                {renderDetails::DrawingStyle::standard,
+                 features,
+                 {}},
+                surfaceDetails,
+                parms);
 
         rd->m_shadowsRenderDetails = refShadows.renderDetails;
         rd->m_objectWithShadowsRenderDetails = refObjectWithShadows.renderDetails;
@@ -198,5 +221,10 @@ namespace shadowsChaining {
     }
 
     RegisterGL<renderDetails::RenderDetailsGL, RenderDetailsGL> registerGL(
-            shadowsChainingRenderDetailsName, std::vector<char const *>{});
+        {renderDetails::DrawingStyle::standard,
+        {renderDetails::Features::chaining,
+            renderDetails::Features::shadows,
+            renderDetails::Features::color,
+            renderDetails::Features::texture}},
+        std::vector<char const *>{});
 }

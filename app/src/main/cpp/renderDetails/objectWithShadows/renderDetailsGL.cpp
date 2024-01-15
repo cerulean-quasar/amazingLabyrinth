@@ -1,5 +1,5 @@
 /**
- * Copyright 2023 Cerulean Quasar. All Rights Reserved.
+ * Copyright 2024 Cerulean Quasar. All Rights Reserved.
  *
  *  This file is part of AmazingLabyrinth.
  *
@@ -28,7 +28,7 @@
 namespace objectWithShadows {
 
     renderDetails::ReferenceGL RenderDetailsGL::loadNew(
-            char const *name,
+            renderDetails::Description const &description,
             std::vector<char const *> const &shaders,
             std::shared_ptr<GameRequester> const &gameRequester,
             std::shared_ptr<RenderLoaderGL> const &,
@@ -46,7 +46,7 @@ namespace objectWithShadows {
         }
 
         auto rd = std::make_shared<RenderDetailsGL>(
-                name, shaders[0], shaders[1], shaders[2],
+                description, shaders[0], shaders[1], shaders[2],
                 gameRequester, surfaceDetails->surfaceWidth, surfaceDetails->surfaceHeight,
                 surfaceDetails->useIntTexture);
 
@@ -212,14 +212,13 @@ namespace objectWithShadows {
     }
 
     RenderDetailsGL::RenderDetailsGL(
-            char const *name,
+            renderDetails::Description description,
             char const *vertShaderFile,
             char const *textureFragShaderFile,
             char const *colorFragShaderFile,
             std::shared_ptr<GameRequester> const &inGameRequester,
             uint32_t inWidth, uint32_t inHeight, bool usesIntSurface)
-        : renderDetails::RenderDetailsGL(inWidth, inHeight, usesIntSurface),
-        m_renderDetailsName{name},
+        : renderDetails::RenderDetailsGL(std::move(description), inWidth, inHeight, usesIntSurface),
         m_textureProgram{},
         m_colorProgram{}
     {
@@ -240,6 +239,6 @@ namespace objectWithShadows {
     static char constexpr const *TEXTURE_SHADER_FRAG_GL_FILE = "shaders/shaderGL.frag";
     static char constexpr const *COLOR_SHADER_FRAG_GL_FILE = "shaders/colorGL.frag";
     RegisterGL<renderDetails::RenderDetailsGL, RenderDetailsGL> registerGL(
-            objectWithShadowsRenderDetailsName,
+            {renderDetails::DrawingStyle::standard, {renderDetails::Features::color, renderDetails::Features::texture, renderDetails::Features::shadows}},
             std::vector<char const *>{SHADER_VERT_GL_FILE, TEXTURE_SHADER_FRAG_GL_FILE, COLOR_SHADER_FRAG_GL_FILE});
 } // objectWithShadows

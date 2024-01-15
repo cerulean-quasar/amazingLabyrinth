@@ -1,5 +1,5 @@
 /**
- * Copyright 2023 Cerulean Quasar. All Rights Reserved.
+ * Copyright 2024 Cerulean Quasar. All Rights Reserved.
  *
  *  This file is part of AmazingLabyrinth.
  *
@@ -108,9 +108,8 @@ namespace darkObject {
 
     class RenderDetailsGL : public renderDetails::RenderDetailsGL {
     public:
-        std::string nameString() override { return m_renderDetailsName; }
         static renderDetails::ReferenceGL loadNew(
-                char const *name,
+                renderDetails::Description const &description,
                 std::vector<char const *> const &shaders,
                 std::shared_ptr<GameRequester> const &gameRequester,
                 std::shared_ptr<RenderLoaderGL> const &renderLoader,
@@ -132,7 +131,7 @@ namespace darkObject {
                 std::set<levelDrawer::ZValueReference>::iterator endZValRefs) override;
 
         RenderDetailsGL(
-                char const *name,
+                renderDetails::Description inDescription,
                 char const *vertexShader,
                 char const *textureFragShader,
                 char const *colorFragShader,
@@ -142,7 +141,6 @@ namespace darkObject {
         ~RenderDetailsGL() override = default;
 
     private:
-        char const *m_renderDetailsName;
         renderDetails::Program m_textureProgram;
         renderDetails::Program m_colorProgram;
 
@@ -151,6 +149,6 @@ namespace darkObject {
                 std::shared_ptr<CommonObjectDataGL> cod);
 
     };
-}
+} // namespace darkObject
 
 #endif // AMAZING_LABYRINTH_DARKOBJECT_RENDER_DETAILS_GL_HPP

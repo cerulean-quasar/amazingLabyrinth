@@ -1,5 +1,5 @@
 /**
- * Copyright 2023 Cerulean Quasar. All Rights Reserved.
+ * Copyright 2024 Cerulean Quasar. All Rights Reserved.
  *
  *  This file is part of AmazingLabyrinth.
  *
@@ -24,15 +24,14 @@
 
 namespace depthMap {
     RenderDetailsGL::RenderDetailsGL(
-            char const *name,
+            renderDetails::Description description,
             char const *linearDepthVertShader,
             char const *linearDepthVertShader3,
             char const *simpleFragShader,
             char const *simpleFragShader3,
             std::shared_ptr<GameRequester> const &inGameRequester,
             uint32_t inWidth, uint32_t inHeight, bool useIntSurface)
-            : renderDetails::RenderDetailsGL(inWidth, inHeight, useIntSurface),
-              m_renderDetailsName{name},
+            : renderDetails::RenderDetailsGL(std::move(description), inWidth, inHeight, useIntSurface),
               m_linearDepthVertShader{linearDepthVertShader},
               m_linearDepthVertShader3{linearDepthVertShader3},
               m_simpleFragShader{simpleFragShader},
@@ -61,7 +60,7 @@ namespace depthMap {
     }
 
     renderDetails::ReferenceGL RenderDetailsGL::loadNew(
-            char const *name,
+            renderDetails::Description const &description,
             std::vector<char const *> const &shaders,
             std::shared_ptr<GameRequester> const &gameRequester,
             std::shared_ptr<RenderLoaderGL> const &,
@@ -79,7 +78,7 @@ namespace depthMap {
         }
 
         auto rd = std::make_shared<RenderDetailsGL>(
-                name, shaders[0], shaders[1], shaders[2], shaders[3],
+                description, shaders[0], shaders[1], shaders[2], shaders[3],
                 gameRequester, surfaceDetails->surfaceWidth, surfaceDetails->surfaceHeight,
                 surfaceDetails->useIntTexture);
 
@@ -212,7 +211,7 @@ namespace depthMap {
     char constexpr const *SIMPLE_FRAG_GL_FILE = "shaders/simpleGL.frag";
     char constexpr const *SIMPLE3_FRAG_GL_FILE = "shaders/simpleGL3.frag";
     RegisterGL<renderDetails::RenderDetailsGL, RenderDetailsGL> registerGL(
-            depthMapRenderDetailsName,
+            {renderDetails::DrawingStyle::depthMap, {}},
             std::vector<char const *>{LINEAR_DEPTH_VERT_GL_FILE, LINEAR_DEPTH3_VERT_GL_FILE, SIMPLE_FRAG_GL_FILE, SIMPLE3_FRAG_GL_FILE});
 
 } // namespace depthMap

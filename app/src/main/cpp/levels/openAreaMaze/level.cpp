@@ -33,8 +33,8 @@ namespace openAreaMaze {
                 currentTime - prevTime).count();
         prevTime = currentTime;
 
-        m_ball.velocity = getUpdatedVelocity(m_ball.acceleration, timeDiff);
-        m_ball.position += m_ball.velocity * timeDiff;
+        m_ball.velocity = getUpdatedVelocity(timeDiff);
+        m_ball.position = getUpdatedPosition(timeDiff);
 
         size_t numberRows = m_mazeBoard.numberRows();
         size_t numberColumns = m_mazeBoard.numberColumns();

@@ -1,5 +1,5 @@
 /**
- * Copyright 2023 Cerulean Quasar. All Rights Reserved.
+ * Copyright 2024 Cerulean Quasar. All Rights Reserved.
  *
  *  This file is part of AmazingLabyrinth.
  *
@@ -221,12 +221,53 @@ namespace basic {
         }
 
         bool checkBallBorders(glm::vec3 &position, glm::vec3 &velocity);
+
     public:
+        struct Request {
+            virtual void defaultRD() {
+                renderDetails::Query query{
+                    renderDetails::DrawingStyle::standard,
+                    {renderDetails::Features::color,
+                        renderDetails::Features::texture},
+                    {}};
+
+                if (m_shadowsEnabled) {
+                    query.optionalFeatures.setFeature({renderDetails::Features::chaining, renderDetails::Features::shadows});
+                }
+
+                m_levelDrawer.requestRenderDetails(
+                    query, levelDrawer::DefaultConfig::getDefaultParameters());
+            }
+
+            Request(levelDrawer::Adaptor levelDrawer, bool shadowsEnabled)
+                : m_levelDrawer(std::move(levelDrawer)),
+                  m_shadowsEnabled(shadowsEnabled)
+            {}
+
+        protected:
+            levelDrawer::Adaptor m_levelDrawer;
+            bool m_shadowsEnabled;
+        };
+
         static float constexpr m_floatErrorAmount = 0.0001f;
 
-        void updateAcceleration(float x, float y, float z) {
+        virtual void updateAcceleration(float x, float y, float z) {
             m_ball.acceleration =
                     m_accelerationAdjustment * glm::vec3{-x, -y, m_ignoreZMovement ? 0 : -z};
+
+            if ((m_ball.acceleration.x < 0.0f && m_ball.velocity.x > 0.0f) ||
+                (m_ball.acceleration.x > 0.0f && m_ball.velocity.x < 0.0f)) {
+                m_ball.velocity.x = 0.0f;
+            }
+
+            if ((m_ball.acceleration.y < 0.0f && m_ball.velocity.y > 0.0f) ||
+                (m_ball.acceleration.y > 0.0f && m_ball.velocity.y < 0.0f)) {
+                m_ball.velocity.y = 0.0f;
+            }
+
+            /* z is a special case where we want to keep it going for now.  For the fixed maze
+             * mostly.
+             */
         }
 
         virtual bool updateData() = 0;
@@ -256,8 +297,7 @@ namespace basic {
                 std::shared_ptr<LevelConfigData> const &lcd,
                 float mazeFloorZ,
                 bool ignoreZMovement,
-                std::string const &renderDetailsName = "",
-                std::shared_ptr<renderDetails::Parameters> parameters = nullptr)
+                Request &request)
                 : m_levelDrawer{std::move(inLevelDrawer)},
                   m_finished(false),
                   m_mazeFloorZ{mazeFloorZ},
@@ -271,12 +311,7 @@ namespace basic {
 
             m_modelData = loadModels(lcd->models);
 
-            if (parameters == nullptr || renderDetailsName.length() == 0) {
-                m_levelDrawer.requestRenderDetails(m_levelDrawer.getDefaultRenderDetailsName(),
-                                                   levelDrawer::DefaultConfig::getDefaultParameters());
-            } else {
-                m_levelDrawer.requestRenderDetails(renderDetailsName, parameters);
-            }
+            request.defaultRD();
 
             auto projView = m_levelDrawer.getProjectionView();
             auto wh = getWidthHeight(mazeFloorZ, projView.first, projView.second);

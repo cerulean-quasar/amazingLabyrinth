@@ -48,7 +48,7 @@ namespace levelDrawer {
                 ObjectType type,
                 std::shared_ptr <ModelDescription> const &modelDescription,
                 std::shared_ptr <TextureDescription> const &textureDescription,
-                std::string const &renderDetailsName,
+                renderDetails::Query const &renderDetailsQuery,
                 std::shared_ptr<renderDetails::Parameters> const &parameters) = 0;
 
         virtual void removeObject(
@@ -82,13 +82,12 @@ namespace levelDrawer {
 
         virtual size_t numberObjectsDataForObject(ObjectType type, DrawObjReference drawObjReference) = 0;
 
-        virtual void requestRenderDetails(ObjectType type, std::string const &name, std::shared_ptr<renderDetails::Parameters> const &parameters) = 0;
+        virtual void requestRenderDetails(ObjectType type, renderDetails::Query const &query, std::shared_ptr<renderDetails::Parameters> const &parameters) = 0;
 
         virtual std::pair<glm::mat4, glm::mat4> getProjectionView(ObjectType type) = 0;
 
-        virtual char const *getDefaultRenderDetailsName() = 0;
         virtual void drawToBuffer(
-                std::string const &renderDetailsName,
+                renderDetails::Query const &query,
                 ModelsTextures const &modelsTextures,
                 std::vector<glm::mat4> const &modelMatrix,
                 float width,
@@ -134,9 +133,9 @@ namespace levelDrawer {
         DrawObjReference addObject(
                 std::shared_ptr <ModelDescription> const &modelDescription,
                 std::shared_ptr <TextureDescription> const &textureDescription,
-                std::string const &renderDetailsName,
+                renderDetails::Query const &renderDetailsQuery,
                 std::shared_ptr<renderDetails::Parameters> const &parameters) {
-            return m_levelDrawer->addObject(m_type, modelDescription, textureDescription, renderDetailsName, parameters);
+            return m_levelDrawer->addObject(m_type, modelDescription, textureDescription, renderDetailsQuery, parameters);
         }
 
         boost::optional<DrawObjDataReference> transferObject(
@@ -173,8 +172,8 @@ namespace levelDrawer {
 
         // request a global render details for this level.  Can be overridden by particular
         // objects.
-        void requestRenderDetails(std::string const &name, std::shared_ptr<renderDetails::Parameters> const &parameters) {
-            return m_levelDrawer->requestRenderDetails(m_type, name, parameters);
+        void requestRenderDetails(renderDetails::Query const &query, std::shared_ptr<renderDetails::Parameters> const &parameters) {
+            return m_levelDrawer->requestRenderDetails(m_type, query, parameters);
         }
 
         // get the projection and view matrices for the level global render details.
@@ -182,16 +181,8 @@ namespace levelDrawer {
             return m_levelDrawer->getProjectionView(m_type);
         }
 
-        /*
-         * returns either shadowsChaining or objectNoShadows depending on whether the user enabled
-         * shadows.  Both take ParametersPerspective initialize their CommonObjectData.
-         */
-        char const *getDefaultRenderDetailsName() {
-            return m_levelDrawer->getDefaultRenderDetailsName();
-        }
-
         void drawToBuffer(
-                std::string const &renderDetailsName,
+                renderDetails::Query const &query,
                 ModelsTextures const &modelsTextures,
                 std::vector<glm::mat4> const &modelMatrix,
                 float width,
@@ -200,7 +191,7 @@ namespace levelDrawer {
                 std::shared_ptr<renderDetails::Parameters> const &parameters,
                 std::vector<float> &results)
         {
-            m_levelDrawer->drawToBuffer(renderDetailsName, modelsTextures, modelMatrix, width, height,
+            m_levelDrawer->drawToBuffer(query, modelsTextures, modelMatrix, width, height,
                     nbrSamplesForWidth, parameters, results);
         }
 

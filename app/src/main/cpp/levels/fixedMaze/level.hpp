@@ -1,5 +1,5 @@
 /**
- * Copyright 2023 Cerulean Quasar. All Rights Reserved.
+ * Copyright 2024 Cerulean Quasar. All Rights Reserved.
  *
  *  This file is part of AmazingLabyrinth.
  *
@@ -41,6 +41,12 @@ namespace fixedMaze {
         static char constexpr const *m_name = "fixedMaze";
         static float constexpr MODEL_MAXZ = 1.0f;
 
+        struct Request : public basic::Level::Request {
+            Request(levelDrawer::Adaptor levelDrawer, bool shadowsEnabled)
+                    : basic::Level::Request(std::move(levelDrawer), shadowsEnabled)
+            {}
+        };
+
         bool updateData() override;
 
         bool updateDrawObjects() override;
@@ -54,10 +60,13 @@ namespace fixedMaze {
         std::vector<uint8_t> saveData(levelTracker::GameSaveData const &gsd,
                                       char const *saveLevelDataKey) override;
 
+        void updateAcceleration(float x, float y, float z) override;
+
         Level(levelDrawer::Adaptor inLevelDrawer,
                 std::shared_ptr<LevelConfigData> const &lcd,
                 std::shared_ptr<LevelSaveData> const &sd,
-                float maxZ);
+                float maxZ,
+                Request &request);
 
         void init();
 

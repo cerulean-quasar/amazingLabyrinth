@@ -1,5 +1,5 @@
 /**
- * Copyright 2023 Cerulean Quasar. All Rights Reserved.
+ * Copyright 2024 Cerulean Quasar. All Rights Reserved.
  *
  *  This file is part of AmazingLabyrinth.
  *
@@ -80,6 +80,12 @@ namespace avoidVortexOpenArea {
         void generateModelMatrices();
 
     public:
+        struct Request : public basic::Level::Request {
+            Request(levelDrawer::Adaptor levelDrawer, bool shadowsEnabled)
+                    : basic::Level::Request(std::move(levelDrawer), shadowsEnabled)
+            {}
+        };
+
         static char constexpr const *m_name = "avoidVortexOpenArea";
 
         bool updateData() override;
@@ -104,8 +110,9 @@ namespace avoidVortexOpenArea {
         Level(levelDrawer::Adaptor inLevelDrawer,
                 std::shared_ptr<LevelConfigData> const &lcd,
                 std::shared_ptr<LevelSaveData> const &sd,
-                float floorZ)
-                : basic::Level(std::move(inLevelDrawer), lcd, floorZ, true),
+                float floorZ,
+                Request &request)
+                : basic::Level(std::move(inLevelDrawer), lcd, floorZ, true, request),
                   maxX(m_width / 2),
                   maxY(m_height / 2),
                   prevTime(std::chrono::high_resolution_clock::now())

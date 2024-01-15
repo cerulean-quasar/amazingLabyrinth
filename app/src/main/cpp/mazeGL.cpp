@@ -27,7 +27,7 @@
 #include "mazeGL.hpp"
 #include "mathGraphics.hpp"
 
-void GraphicsGL::initPipeline(bool enableShadows, bool testFramebuffer) {
+void GraphicsGL::initPipeline(bool testFramebuffer) {
     glViewport(0, 0, m_surface->width(), m_surface->height());
 
     if (testFramebuffer) {
@@ -35,7 +35,6 @@ void GraphicsGL::initPipeline(bool enableShadows, bool testFramebuffer) {
             m_surfaceDetails->useIntTexture = false;
             m_levelDrawer = std::make_shared<levelDrawer::LevelDrawerGL>(
                     levelDrawer::NeededForDrawingGL{}, m_surfaceDetails, m_renderLoader,
-                    enableShadows ? shadowsChainingRenderDetailsName : objectNoShadowsRenderDetailsName,
                     m_gameRequester);
             if (!testDepthTexture(levelDrawer::Adaptor(levelDrawer::LEVEL, m_levelDrawer))) {
                 throw std::runtime_error(

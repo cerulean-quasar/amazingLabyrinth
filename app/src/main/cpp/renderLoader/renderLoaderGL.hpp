@@ -1,5 +1,5 @@
 /**
- * Copyright 2020 Cerulean Quasar. All Rights Reserved.
+ * Copyright 2024 Cerulean Quasar. All Rights Reserved.
  *
  *  This file is part of AmazingLabyrinth.
  *
@@ -36,8 +36,8 @@ struct RenderLoaderGLTraits {
     using RenderDetailsParameterType = renderDetails::ParametersGL;
     using RetrieveFcns = RenderDetailsGLRetrieveFcns;
     using SurfaceDetailsType = graphicsGL::SurfaceDetails;
-    static RenderDetailsGLRetrieveMap &getRenderDetailsMap() {
-        return getRenderDetailsGLMap();
+    static RenderDetailsGLRegistrar &getRenderDetailsRegistrar() {
+        return getRenderDetailsGLRegistrar();
     }
 };
 

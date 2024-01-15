@@ -1,5 +1,5 @@
 /**
- * Copyright 2022 Cerulean Quasar. All Rights Reserved.
+ * Copyright 2024 Cerulean Quasar. All Rights Reserved.
  *
  *  This file is part of AmazingLabyrinth.
  *
@@ -398,7 +398,7 @@ namespace darkObject {
             std::shared_ptr<levelDrawer::DrawObjectTableVulkan> const &drawObjTable,
             std::set<levelDrawer::ZValueReference>::iterator beginZValRefs,
             std::set<levelDrawer::ZValueReference>::iterator endZValRefs,
-            std::string const &)
+            renderDetails::Description const &)
     {
         initializeCommandBufferDrawObjects(
                 commandBuffer, descriptorSetID, m_pipelineColor,
@@ -434,6 +434,6 @@ namespace darkObject {
     char constexpr const *TEXTURE_SHADER_FRAG_VK_FILE = "shaders/darkTexture.frag.spv";
     char constexpr const *COLOR_SHADER_FRAG_VK_FILE = "shaders/darkColor.frag.spv";
     RegisterVulkan<renderDetails::RenderDetailsVulkan, RenderDetailsVulkan> registerVulkan(
-            darkObjectRenderDetailsName,
+            {renderDetails::DrawingStyle::dark, {renderDetails::Features::color, renderDetails::Features::texture}},
             std::vector<char const *> {SHADER_VERT_VK_FILE, TEXTURE_SHADER_FRAG_VK_FILE, COLOR_SHADER_FRAG_VK_FILE});
 } // namespace darkObject

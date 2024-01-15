@@ -1,5 +1,5 @@
 /**
- * Copyright 2022 Cerulean Quasar. All Rights Reserved.
+ * Copyright 2024 Cerulean Quasar. All Rights Reserved.
  *
  *  This file is part of AmazingLabyrinth.
  *
@@ -283,8 +283,8 @@ namespace levelDrawer {
                  !it2->second->hasOverridingRenderDetailsReference()) ||
                 (it1->second->hasOverridingRenderDetailsReference() &&
                  it2->second->hasOverridingRenderDetailsReference() &&
-                 it1->second->renderDetailsReference().renderDetails->nameString() ==
-                 it2->second->renderDetailsReference().renderDetails->nameString()))
+                 it1->second->renderDetailsReference().renderDetails->description() ==
+                 it2->second->renderDetailsReference().renderDetails->description()))
             {
                 // object is of the same render details, it is ok to move.
                 std::shared_ptr<typename traits::DrawObjectDataType> objData = it1->second->objData(objDataRef);

@@ -1,5 +1,5 @@
 /**
- * Copyright 2022 Cerulean Quasar. All Rights Reserved.
+ * Copyright 2024 Cerulean Quasar. All Rights Reserved.
  *
  *  This file is part of AmazingLabyrinth.
  *
@@ -120,11 +120,11 @@ namespace shadows {
             std::shared_ptr<levelDrawer::DrawObjectTableVulkan> const &drawObjTable,
             std::set<levelDrawer::ZValueReference>::iterator beginZValRefs,
             std::set<levelDrawer::ZValueReference>::iterator endZValRefs,
-            std::string const &renderDetailsName)
+            renderDetails::Description const &description)
     {
         initializeCommandBufferDrawObjects(
                 commandBuffer, descriptorSetID, m_pipeline, nullptr,
-                drawObjTable, beginZValRefs, endZValRefs, false, renderDetailsName);
+                drawObjTable, beginZValRefs, endZValRefs, false, description);
     }
 
     renderDetails::ReferenceVulkan RenderDetailsVulkan::createReference(
@@ -188,6 +188,6 @@ namespace shadows {
     char constexpr const *SHADOW_VERT_FILE = "shaders/depthShader.vert.spv";
     char constexpr const *SHADER_SIMPLE_FRAG_FILE = "shaders/simple.frag.spv";
     RegisterVulkan<renderDetails::RenderDetailsVulkan, RenderDetailsVulkan> registerVulkan(
-            shadowsRenderDetailsName,
+            {renderDetails::DrawingStyle::shadowMap, {}},
             std::vector<char const *>{SHADOW_VERT_FILE, SHADER_SIMPLE_FRAG_FILE});
 }

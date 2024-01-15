@@ -1,5 +1,5 @@
 /**
- * Copyright 2023 Cerulean Quasar. All Rights Reserved.
+ * Copyright 2024 Cerulean Quasar. All Rights Reserved.
  *
  *  This file is part of AmazingLabyrinth.
  *
@@ -41,6 +41,11 @@ namespace rotatablePassage {
     class Level : public basic::Level {
     public:
         static char constexpr const *m_name = "rotatablePassage";
+        struct Request : public basic::Level::Request {
+            Request(levelDrawer::Adaptor levelDrawer, bool shadowsEnabled)
+                    : basic::Level::Request(std::move(levelDrawer), shadowsEnabled)
+            {}
+        };
 
         bool tap(float x, float y) override {
             auto projView = m_levelDrawer.getProjectionView();
@@ -77,8 +82,9 @@ namespace rotatablePassage {
             levelDrawer::Adaptor inLevelDrawer,
             std::shared_ptr<LevelConfigData> const &lcd,
             std::shared_ptr<LevelSaveData> const &sd,
-            float maxZ)
-            : basic::Level(inLevelDrawer, lcd, maxZ, true),
+            float maxZ,
+            Request &request)
+            : basic::Level(inLevelDrawer, lcd, maxZ, true, request),
               m_gameBoard(),
               m_components{
                       std::make_shared<Component>(Component::ComponentType::straight),

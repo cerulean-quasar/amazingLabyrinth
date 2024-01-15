@@ -1,5 +1,5 @@
 /**
- * Copyright 2022 Cerulean Quasar. All Rights Reserved.
+ * Copyright 2024 Cerulean Quasar. All Rights Reserved.
  *
  *  This file is part of AmazingLabyrinth.
  *
@@ -99,41 +99,38 @@ namespace darkChaining {
 
     class RenderDetailsGL : public renderDetails::RenderDetailsGL {
     public:
-        std::string nameString() override { return renderDetailsName; }
-
         static renderDetails::ReferenceGL loadNew(
-                char const *name,
-                std::vector<char const *> const &shaders,
-                std::shared_ptr<GameRequester> const &gameRequester,
-                std::shared_ptr<RenderLoaderGL> const &renderLoader,
-                std::shared_ptr<graphicsGL::SurfaceDetails> const &surfaceDetails,
-                std::shared_ptr<renderDetails::Parameters> const &parameters);
+            renderDetails::Description const &description,
+            std::vector<char const *> const &shaders,
+            std::shared_ptr<GameRequester> const &gameRequester,
+            std::shared_ptr<RenderLoaderGL> const &renderLoader,
+            std::shared_ptr<graphicsGL::SurfaceDetails> const &surfaceDetails,
+            std::shared_ptr<renderDetails::Parameters> const &parameters);
 
         static renderDetails::ReferenceGL loadExisting(
-                std::shared_ptr<GameRequester> const &gameRequester,
-                std::shared_ptr<RenderLoaderGL> const &renderLoader,
-                std::shared_ptr<renderDetails::RenderDetailsGL> rdBase,
-                std::shared_ptr<graphicsGL::SurfaceDetails> const &surfaceDetails,
-                std::shared_ptr<renderDetails::Parameters> const &parameters);
+            std::shared_ptr<GameRequester> const &gameRequester,
+            std::shared_ptr<RenderLoaderGL> const &renderLoader,
+            std::shared_ptr<renderDetails::RenderDetailsGL> rdBase,
+            std::shared_ptr<graphicsGL::SurfaceDetails> const &surfaceDetails,
+            std::shared_ptr<renderDetails::Parameters> const &parameters);
 
         void preMainDraw(
-                uint32_t modelMatrixID,
-                levelDrawer::CommonObjectDataList const &commonObjectDataList,
-                levelDrawer::DrawObjectTableGList const &drawObjTableList,
-                std::set<levelDrawer::ZValueReference> const &starterZValues,
-                std::set<levelDrawer::ZValueReference> const &levelZValues,
-                std::set<levelDrawer::ZValueReference> const &finisherZValues) override;
+            uint32_t modelMatrixID,
+            levelDrawer::CommonObjectDataList const &commonObjectDataList,
+            levelDrawer::DrawObjectTableGList const &drawObjTableList,
+            std::set<levelDrawer::ZValueReference> const &starterZValues,
+            std::set<levelDrawer::ZValueReference> const &levelZValues,
+            std::set<levelDrawer::ZValueReference> const &finisherZValues) override;
 
         void draw(
-                uint32_t modelMatrixID,
-                std::shared_ptr<renderDetails::CommonObjectData> const &commonObjectData,
-                std::shared_ptr<levelDrawer::DrawObjectTableGL> const &drawObjTable,
-                std::set<levelDrawer::ZValueReference>::iterator beginZValRefs,
-                std::set<levelDrawer::ZValueReference>::iterator endZValRefs) override;
+            uint32_t modelMatrixID,
+            std::shared_ptr<renderDetails::CommonObjectData> const &commonObjectData,
+            std::shared_ptr<levelDrawer::DrawObjectTableGL> const &drawObjTable,
+            std::set<levelDrawer::ZValueReference>::iterator beginZValRefs,
+            std::set<levelDrawer::ZValueReference>::iterator endZValRefs) override;
 
-        RenderDetailsGL(char const *name, bool useIntSurface, uint32_t inWidth, uint32_t inHeight)
-                : renderDetails::RenderDetailsGL{inWidth, inHeight, useIntSurface},
-                renderDetailsName{name}
+        RenderDetailsGL(renderDetails::Description inDescription, bool useIntSurface, uint32_t inWidth, uint32_t inHeight)
+            : renderDetails::RenderDetailsGL{std::move(inDescription), inWidth, inHeight, useIntSurface}
         {
             createFramebuffers();
         }
@@ -143,23 +140,22 @@ namespace darkChaining {
     private:
         // use less precision for the shadow buffer
         static float constexpr shadowsSizeMultiplier = 0.25f;
-        char const *renderDetailsName;
         std::array<std::shared_ptr<graphicsGL::Framebuffer>, numberShadowMaps> m_framebuffersShadows;
         std::shared_ptr<renderDetails::RenderDetailsGL> m_shadowsRenderDetails;
         std::shared_ptr<renderDetails::RenderDetailsGL> m_darkObjectRenderDetails;
 
         static renderDetails::ReferenceGL createReference(
-                std::shared_ptr<renderDetails::RenderDetailsGL> rd,
-                renderDetails::ReferenceGL const &refObjectWithShadows,
-                renderDetails::ReferenceGL const &refShadows,
-                std::array<std::shared_ptr<renderDetails::CommonObjectData>, numberShadowMaps> shadowsCODs);
+            std::shared_ptr<renderDetails::RenderDetailsGL> rd,
+            renderDetails::ReferenceGL const &refObjectWithShadows,
+            renderDetails::ReferenceGL const &refShadows,
+            std::array<std::shared_ptr<renderDetails::CommonObjectData>, numberShadowMaps> shadowsCODs);
 
         static renderDetails::ReferenceGL loadHelper(
-                std::shared_ptr<GameRequester> const &gameRequester,
-                std::shared_ptr<RenderLoaderGL> const &renderLoader,
-                std::shared_ptr<RenderDetailsGL> rd,
-                std::shared_ptr<graphicsGL::SurfaceDetails> const &surfaceDetails,
-                std::shared_ptr<renderDetails::Parameters> const &parametersBase);
+            std::shared_ptr<GameRequester> const &gameRequester,
+            std::shared_ptr<RenderLoaderGL> const &renderLoader,
+            std::shared_ptr<RenderDetailsGL> rd,
+            std::shared_ptr<graphicsGL::SurfaceDetails> const &surfaceDetails,
+            std::shared_ptr<renderDetails::Parameters> const &parametersBase);
 
         static std::pair<uint32_t, uint32_t> getShadowsFramebufferDimensions(std::pair<uint32_t, uint32_t> const &dimensions) {
             uint32_t width = static_cast<uint32_t>(std::floor(dimensions.first * shadowsSizeMultiplier));

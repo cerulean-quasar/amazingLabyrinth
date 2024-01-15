@@ -1,5 +1,5 @@
 /**
- * Copyright 2023 Cerulean Quasar. All Rights Reserved.
+ * Copyright 2024 Cerulean Quasar. All Rights Reserved.
  *
  *  This file is part of AmazingLabyrinth.
  *
@@ -40,11 +40,17 @@ namespace collectMaze {
         static char constexpr const *m_name = "collectMaze";
         static char constexpr const *ModelNameCollectObject = "CollectObject";
 
+        struct Request : public openAreaMaze::Level::Request {
+            Request(levelDrawer::Adaptor levelDrawer, bool shadowsEnabled)
+                    : openAreaMaze::Level::Request(std::move(levelDrawer), shadowsEnabled) {}
+        };
+
         Level(levelDrawer::Adaptor inLevelDrawer,
                 std::shared_ptr<LevelConfigData> const &lcd,
                 std::shared_ptr<LevelSaveData> const &sd,
-                float floorZ)
-                : openAreaMaze::Level(std::move(inLevelDrawer), lcd, sd, floorZ),
+                float floorZ,
+                Request &request)
+                : openAreaMaze::Level(std::move(inLevelDrawer), lcd, sd, floorZ, request),
                   m_numberCollectObjects{lcd->numberCollectObjects},
                   collectBallScaleFactor{2.0f * m_scaleBall / 3.0f}
         {

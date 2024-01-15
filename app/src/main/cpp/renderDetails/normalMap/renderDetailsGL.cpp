@@ -1,5 +1,5 @@
 /**
- * Copyright 2023 Cerulean Quasar. All Rights Reserved.
+ * Copyright 2024 Cerulean Quasar. All Rights Reserved.
  *
  *  This file is part of AmazingLabyrinth.
  *
@@ -24,7 +24,7 @@
 
 namespace normalMap {
     RenderDetailsGL::RenderDetailsGL(
-            char const *name,
+            renderDetails::Description description,
             char const *normalShader,
             char const *normalShader3,
             char const *simpleFragShader,
@@ -32,8 +32,7 @@ namespace normalMap {
             std::shared_ptr<GameRequester> const &inGameRequester,
             uint32_t inWidth, uint32_t inHeight,
             bool isIntSurface)
-            : renderDetails::RenderDetailsGL(inWidth, inHeight, isIntSurface),
-              m_renderDetailsName{name},
+            : renderDetails::RenderDetailsGL(std::move(description), inWidth, inHeight, isIntSurface),
               m_normalShader{normalShader},
               m_normalShader3{normalShader3},
               m_simpleFragShader{simpleFragShader},
@@ -64,7 +63,7 @@ namespace normalMap {
     }
 
     renderDetails::ReferenceGL RenderDetailsGL::loadNew(
-            char const *name,
+            renderDetails::Description const &description,
             std::vector<char const *> const &shaders,
             std::shared_ptr<GameRequester> const &gameRequester,
             std::shared_ptr<RenderLoaderGL> const &,
@@ -82,7 +81,7 @@ namespace normalMap {
         }
 
         auto rd = std::make_shared<RenderDetailsGL>(
-                name, shaders[0], shaders[1], shaders[2], shaders[3],
+                std::move(description), shaders[0], shaders[1], shaders[2], shaders[3],
                 gameRequester, surfaceDetails->surfaceWidth,
                 surfaceDetails->surfaceHeight, surfaceDetails->useIntTexture);
 
@@ -214,7 +213,7 @@ namespace normalMap {
     char constexpr const *SIMPLE_FRAG_GL_FILE = "shaders/simpleGL.frag";
     char constexpr const *SIMPLE3_FRAG_GL_FILE = "shaders/simpleGL3.frag";
     RegisterGL<renderDetails::RenderDetailsGL, RenderDetailsGL> registerGL(
-            normalMapRenderDetailsName,
+            {renderDetails::DrawingStyle::normalMap, {}},
             std::vector<char const *>{NORMAL_VERT_GL_FILE, NORMAL3_VERT_GL_FILE, SIMPLE_FRAG_GL_FILE, SIMPLE3_FRAG_GL_FILE});
 
 } // namespace normalMap

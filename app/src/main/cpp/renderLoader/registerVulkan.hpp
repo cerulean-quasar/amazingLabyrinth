@@ -1,5 +1,5 @@
 /**
- * Copyright 2022 Cerulean Quasar. All Rights Reserved.
+ * Copyright 2024 Cerulean Quasar. All Rights Reserved.
  *
  *  This file is part of AmazingLabyrinth.
  *
@@ -50,10 +50,25 @@ struct RenderDetailsVulkanRetrieveFcns {
     RenderDetailsLoadExistingFcn renderDetailsLoadExistingFcn;
 };
 
-using RenderDetailsVulkanRetrieveMap =
-    std::map<std::string, std::function<RenderDetailsVulkanRetrieveFcns()>>;
+struct RenderDetailsVulkanEntry {
+    renderDetails::Description description;
+    std::function<RenderDetailsVulkanRetrieveFcns()> getFunctions;
+    std::shared_ptr<renderDetails::RenderDetailsVulkan> cacheEntry;
 
-RenderDetailsVulkanRetrieveMap &getRenderDetailsVulkanMap();
+    RenderDetailsVulkanEntry(
+            renderDetails::Description inDescription,
+            std::function<RenderDetailsVulkanRetrieveFcns()> fcns,
+            std::shared_ptr<renderDetails::RenderDetailsVulkan> inCacheEntry)
+    {
+        description = std::move(inDescription);
+        getFunctions = std::move(fcns);
+        cacheEntry = std::move(inCacheEntry);
+    }
+};
+
+using RenderDetailsVulkanRegistrar = std::vector<RenderDetailsVulkanEntry>;
+
+RenderDetailsVulkanRegistrar &getRenderDetailsVulkanRegistrar();
 
 class RenderLoaderVulkan;
 
@@ -61,21 +76,21 @@ template <typename RenderDetailsBaseType, typename RenderDetailsType>
 class RegisterVulkan {
 public:
     RegisterVulkan(
-            char const *name,
+            renderDetails::Description const &description,
             std::vector<char const*> shaders) {
-        getRenderDetailsVulkanMap().emplace(
-            name,
+        getRenderDetailsVulkanRegistrar().emplace_back(
+            description,
             std::function<RenderDetailsVulkanRetrieveFcns()> (
-                [name, shaders]() -> RenderDetailsVulkanRetrieveFcns {
+                [description, shaders]() -> RenderDetailsVulkanRetrieveFcns {
                     RenderDetailsVulkanRetrieveFcns fcns;
                     fcns.renderDetailsLoadNewFcn = RenderDetailsVulkanRetrieveFcns::RenderDetailsLoadNewFcn (
-                            [name, shaders] (std::shared_ptr<GameRequester> const &gameRequester,
+                            [description, shaders] (std::shared_ptr<GameRequester> const &gameRequester,
                                       std::shared_ptr<RenderLoaderVulkan> const &renderLoader,
                                       std::shared_ptr<vulkan::Device> const &inDevice,
                                       std::shared_ptr<vulkan::SurfaceDetails> const &surfaceDetails,
                                       std::shared_ptr<renderDetails::Parameters> const &parameters) -> RenderDetailsVulkanRetrieveFcns::RenderDetailsReferenceVulkan
                             {
-                                return RenderDetailsType::loadNew(name, shaders, gameRequester, renderLoader,
+                                return RenderDetailsType::loadNew(description, shaders, gameRequester, renderLoader,
                                         inDevice, surfaceDetails, parameters);
                             });
                     fcns.renderDetailsLoadExistingFcn = RenderDetailsVulkanRetrieveFcns::RenderDetailsLoadExistingFcn (
@@ -90,7 +105,8 @@ public:
                             });
                     return std::move(fcns);
                 }
-            )
+            ),
+            nullptr
         );
     }
 };

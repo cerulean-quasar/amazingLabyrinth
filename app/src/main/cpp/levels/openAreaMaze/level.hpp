@@ -1,5 +1,5 @@
 /**
- * Copyright 2023 Cerulean Quasar. All Rights Reserved.
+ * Copyright 2024 Cerulean Quasar. All Rights Reserved.
  *
  *  This file is part of AmazingLabyrinth.
  *
@@ -48,25 +48,19 @@ namespace openAreaMaze {
         }
 
     public:
+        struct Request : public generatedMaze::Level::Request{
+            Request(levelDrawer::Adaptor levelDrawer, bool shadowsEnabled)
+                    : generatedMaze::Level::Request(std::move(levelDrawer), shadowsEnabled)
+            {}
+        };
+
         Level(levelDrawer::Adaptor inLevelDrawer,
-              std::shared_ptr<generatedMaze::LevelConfigData> const &lcd,
-              std::shared_ptr<generatedMaze::LevelSaveData> const &sd,
-              float maxZ,
-              std::string const &renderDetailsName = "",
-              std::shared_ptr<renderDetails::Parameters> parameters = nullptr,
-              std::string const &renderDetailsNameBallOverride = "",
-              std::shared_ptr<renderDetails::Parameters> parametersBallOverride = nullptr,
-              std::string const &renderDetailsNameHoleOverride = "",
-              std::shared_ptr<renderDetails::Parameters> parametersHoleOverride = nullptr,
-              std::string const &renderDetailsNameFloorOverride = "",
-              std::shared_ptr<renderDetails::Parameters> parametersFloorOverride = nullptr)
+            std::shared_ptr<generatedMaze::LevelConfigData> const &lcd,
+            std::shared_ptr<generatedMaze::LevelSaveData> const &sd,
+            float maxZ,
+            Request &request)
                 : generatedMaze::Level(
-                        std::move(inLevelDrawer), lcd, sd, maxZ,
-                        renderDetailsName,
-                        parameters,
-                        renderDetailsNameBallOverride, parametersBallOverride,
-                        renderDetailsNameHoleOverride, parametersHoleOverride,
-                        renderDetailsNameFloorOverride, parametersFloorOverride,
+                        std::move(inLevelDrawer), lcd, sd, maxZ, request,
                         getMazeWallModelMatricesGenerator())
                 {}
 

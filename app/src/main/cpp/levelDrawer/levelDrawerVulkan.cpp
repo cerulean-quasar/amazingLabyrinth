@@ -1,5 +1,5 @@
 /**
- * Copyright 2022 Cerulean Quasar. All Rights Reserved.
+ * Copyright 2024 Cerulean Quasar. All Rights Reserved.
  *
  *  This file is part of AmazingLabyrinth.
  *
@@ -102,7 +102,7 @@ namespace levelDrawer {
 
     template <>
     void LevelDrawerGraphics<LevelDrawerVulkanTraits>::drawToBuffer(
-            std::string const &renderDetailsName,
+            renderDetails::Query const &query,
             ModelsTextures const &modelsTextures,
             std::vector<glm::mat4> const &modelMatrix,
             float width,
@@ -157,7 +157,7 @@ namespace levelDrawer {
 
         // load the render details
         auto ref = m_renderLoader->load(
-                m_gameRequester, renderDetailsName,
+                m_gameRequester, query,
                 std::make_shared<vulkan::SurfaceDetails>(surfaceDetails), parameters);
         drawObjTable->loadRenderDetails(ref);
 
@@ -241,7 +241,6 @@ namespace levelDrawer {
             LevelDrawerVulkanTraits::NeededForDrawingType neededForDrawing,
             std::shared_ptr<LevelDrawerVulkanTraits::SurfaceDetailsType> inSurfaceDetails,
             std::shared_ptr<LevelDrawerVulkanTraits::RenderLoaderType> inRenderLoader,
-            char const *defaultRenderDetailsName,
             std::shared_ptr<GameRequester> inGameRequester)
             : m_modelTable(neededForDrawing.device, neededForDrawing.commandPool),
             m_textureTable(neededForDrawing.device, neededForDrawing.commandPool),
@@ -253,7 +252,6 @@ namespace levelDrawer {
             m_gameRequester{std::move(inGameRequester)},
             m_neededForDrawing{std::move(neededForDrawing)},
             m_surfaceDetails{std::move(inSurfaceDetails)},
-            m_bgColor{0.0f, 0.0f, 0.0f, 1.0f},
-            m_defaultRenderDetailsName{defaultRenderDetailsName}
+            m_bgColor{0.0f, 0.0f, 0.0f, 1.0f}
     {}
 }

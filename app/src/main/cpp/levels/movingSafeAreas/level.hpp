@@ -1,5 +1,5 @@
 /**
- * Copyright 2023 Cerulean Quasar. All Rights Reserved.
+ * Copyright 2024 Cerulean Quasar. All Rights Reserved.
  *
  *  This file is part of AmazingLabyrinth.
  *
@@ -107,6 +107,12 @@ namespace movingSafeAreas {
     public:
         static char constexpr const *m_name = "movingSafeAreas";
 
+        struct Request : public basic::Level::Request {
+            Request(levelDrawer::Adaptor levelDrawer, bool shadowsEnabled)
+                    : basic::Level::Request(std::move(levelDrawer), shadowsEnabled)
+            {}
+        };
+
         bool updateData() override;
 
         bool updateDrawObjects() override;
@@ -129,8 +135,9 @@ namespace movingSafeAreas {
         Level(levelDrawer::Adaptor inLevelDrawer,
                 std::shared_ptr<basic::LevelConfigData> const &lcd,
                 std::shared_ptr<LevelSaveData> const &saveData,
-                float maxZ)
-            : basic::Level(std::move(inLevelDrawer), lcd, maxZ, true),
+                float maxZ,
+                Request &request)
+            : basic::Level(std::move(inLevelDrawer), lcd, maxZ, true, request),
               maxX(m_width / 2),
               maxY(m_height / 2),
               m_prevTime(std::chrono::high_resolution_clock::now()),

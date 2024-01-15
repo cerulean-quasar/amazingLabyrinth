@@ -1,5 +1,5 @@
 /**
- * Copyright 2022 Cerulean Quasar. All Rights Reserved.
+ * Copyright 2024 Cerulean Quasar. All Rights Reserved.
  *
  *  This file is part of AmazingLabyrinth.
  *
@@ -197,10 +197,8 @@ namespace depthMap {
 
     class RenderDetailsVulkan : public renderDetails::RenderDetailsVulkan {
     public:
-        std::string nameString() override { return m_renderDetailsName; }
-
         static renderDetails::ReferenceVulkan loadNew(
-                char const *name,
+                renderDetails::Description const &description,
                 std::vector<char const *> const &shaders,
                 std::shared_ptr<GameRequester> const &gameRequester,
                 std::shared_ptr<RenderLoaderVulkan> const &,
@@ -218,7 +216,7 @@ namespace depthMap {
                 throw std::runtime_error("Invalid number of shaders for the Depth Map Render Details.");
             }
 
-            auto rd = std::make_shared<RenderDetailsVulkan>(name, shaders[0], shaders[1],
+            auto rd = std::make_shared<RenderDetailsVulkan>(description, shaders[0], shaders[1],
                     gameRequester, inDevice, nullptr, surfaceDetails);
 
             auto cod = rd->createCommonObjectData(surfaceDetails->preTransform, parameters);
@@ -270,7 +268,7 @@ namespace depthMap {
                 std::shared_ptr<levelDrawer::DrawObjectTableVulkan> const &drawObjTable,
                 std::set<levelDrawer::ZValueReference>::iterator beginZValRefs,
                 std::set<levelDrawer::ZValueReference>::iterator endZValRefs,
-                std::string const &renderDetailsName) override;
+                renderDetails::Description const &description) override;
 
         bool structuralChangeNeeded(
                 std::shared_ptr<vulkan::SurfaceDetails> const &surfaceDetails) override
@@ -291,15 +289,14 @@ namespace depthMap {
         }
 
         RenderDetailsVulkan(
-                char const *name,
+                renderDetails::Description description,
                 char const *vertShader,
                 char const *fragShader,
                 std::shared_ptr<GameRequester> const &gameRequester,
                 std::shared_ptr<vulkan::Device> const &inDevice,
                 std::shared_ptr<vulkan::Pipeline> const &basePipeline,
                 std::shared_ptr<vulkan::SurfaceDetails> const &surfaceDetails)
-                : renderDetails::RenderDetailsVulkan{surfaceDetails->surfaceWidth, surfaceDetails->surfaceHeight},
-                  m_renderDetailsName{name},
+                : renderDetails::RenderDetailsVulkan{std::move(description), surfaceDetails->surfaceWidth, surfaceDetails->surfaceHeight},
                   m_vertShader{vertShader},
                   m_fragShader{fragShader},
                   m_device{inDevice},

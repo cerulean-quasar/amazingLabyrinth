@@ -1,5 +1,5 @@
 /**
- * Copyright 2022 Cerulean Quasar. All Rights Reserved.
+ * Copyright 2024 Cerulean Quasar. All Rights Reserved.
  *
  *  This file is part of AmazingLabyrinth.
  *
@@ -52,8 +52,12 @@ namespace finisher {
                   shouldUnveil(false),
                   finished(false)
         {
+            renderDetails::Query query{
+                renderDetails::DrawingStyle::standard,
+                {renderDetails::Features::color, renderDetails::Features::texture},
+                {}};
 
-            m_levelDrawer.requestRenderDetails(objectNoShadowsRenderDetailsName, levelDrawer::DefaultConfig::getDefaultParameters());
+            m_levelDrawer.requestRenderDetails(query, levelDrawer::DefaultConfig::getDefaultParameters());
 
             auto projView = m_levelDrawer.getProjectionView();
             auto wh = getWidthHeight(maxZ, projView.first, projView.second);

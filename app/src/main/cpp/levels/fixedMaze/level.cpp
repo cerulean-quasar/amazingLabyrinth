@@ -1,5 +1,5 @@
 /**
- * Copyright 2023 Cerulean Quasar. All Rights Reserved.
+ * Copyright 2024 Cerulean Quasar. All Rights Reserved.
  *
  *  This file is part of AmazingLabyrinth.
  *
@@ -167,18 +167,21 @@ namespace fixedMaze {
         return leastZNormal;
     }
 
-    glm::vec3 Level::getParallelAcceleration() {
-        glm::vec3 normal = getRawNormalAtPosition(m_ball.position.x, m_ball.position.y);
-        glm::vec3 normalGravityComponent = glm::dot(normal, m_ball.acceleration) * normal;
+    void Level::updateAcceleration(float x, float y, float z) {
+        glm::vec3 acceleration{-x, -y, -z};
+        acceleration *= m_accelerationAdjustment;
 
-        return m_ball.acceleration - normalGravityComponent;
+        glm::vec3 normal = getRawNormalAtPosition(m_ball.position.x, m_ball.position.y);
+        glm::vec3 normalGravityComponent = glm::dot(normal, acceleration) * normal;
+
+        m_ball.acceleration = acceleration - normalGravityComponent;
     }
 
     void Level::moveBall(float timeDiff) {
         checkBallBorders(m_ball.position, m_ball.velocity);
         glm::vec3 position = m_ball.position;
         glm::vec3 prevPosition = position;
-        glm::vec3 velocity = getUpdatedVelocity(getParallelAcceleration(), timeDiff);
+        glm::vec3 velocity = getUpdatedVelocity(timeDiff);
 
         auto adjustVelocity = [&](bool isX, float direction) -> void {
             float speed = glm::length(velocity);
@@ -449,8 +452,9 @@ namespace fixedMaze {
     Level::Level(levelDrawer::Adaptor inLevelDrawer,
             std::shared_ptr<LevelConfigData> const &lcd,
             std::shared_ptr<LevelSaveData> const &,
-            float mazeFloorZ)
-            : basic::Level{std::move(inLevelDrawer), lcd, mazeFloorZ, false},
+            float mazeFloorZ,
+            Request &request)
+            : basic::Level{std::move(inLevelDrawer), lcd, mazeFloorZ, false, request},
               m_rowWidth{}, // initialized by init()
               m_rowHeight{200},
               m_extraBounce{1.0f + lcd->extraBounce * m_diagonal},
@@ -549,7 +553,7 @@ namespace fixedMaze {
         depthParameters.farPlane = levelDrawer::DefaultConfig::farPlane;
 
         m_levelDrawer.drawToBuffer(
-                depthMapRenderDetailsName,
+                {renderDetails::DrawingStyle::depthMap},
                 levelDrawer::ModelsTextures{std::make_pair(floorDetails.models[0],
                         std::shared_ptr<levelDrawer::TextureDescription>())},
                 std::vector<glm::mat4>{floorModelMatrix},
@@ -567,7 +571,7 @@ namespace fixedMaze {
         normalParameters.farPlane = levelDrawer::DefaultConfig::farPlane;
         std::vector<float> normalMapFlat;
         m_levelDrawer.drawToBuffer(
-                normalMapRenderDetailsName,
+                {renderDetails::DrawingStyle::normalMap},
                 levelDrawer::ModelsTextures{std::make_pair(floorDetails.models[0],
                         std::shared_ptr<levelDrawer::TextureDescription>())},
                 std::vector<glm::mat4>{floorModelMatrix},

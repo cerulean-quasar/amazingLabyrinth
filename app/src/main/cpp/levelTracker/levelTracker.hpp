@@ -1,5 +1,5 @@
 /**
- * Copyright 2022 Cerulean Quasar. All Rights Reserved.
+ * Copyright 2024 Cerulean Quasar. All Rights Reserved.
  *
  *  This file is part of AmazingLabyrinth.
  *
@@ -106,12 +106,13 @@ namespace levelTracker {
 
         LevelGroup getLevelGroupFcns(uint32_t screenWidth, uint32_t screenHeight);
 
-        Loader(std::shared_ptr<GameRequester> inGameRequester);
+        Loader(std::shared_ptr<GameRequester> inGameRequester, bool shadowsEnabled);
 
     private:
         std::shared_ptr<GameRequester> m_gameRequester;
         std::vector<LevelTableEntry> m_levelTable;
         boost::optional<size_t> m_currentLevel;
+        bool m_shadowsEnabled;
 
         std::vector<uint8_t> getDataFromFile(std::string const &filename) {
             std::ifstream stream(filename, std::ifstream::binary);

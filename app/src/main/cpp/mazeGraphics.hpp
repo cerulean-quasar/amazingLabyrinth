@@ -1,5 +1,5 @@
 /**
- * Copyright 2023 Cerulean Quasar. All Rights Reserved.
+ * Copyright 2024 Cerulean Quasar. All Rights Reserved.
  *
  *  This file is part of AmazingLabyrinth.
  *
@@ -97,12 +97,13 @@ public:
             std::shared_ptr<GameRequester> inGameRequester,
             std::shared_ptr<levelDrawer::LevelDrawer> inLevelDrawer,
             uint32_t surfaceWidth,
-            uint32_t surfaceHeight)
+            uint32_t surfaceHeight,
+            bool shadowsEnabled)
             : m_surfaceWidth{surfaceWidth},
               m_surfaceHeight{surfaceHeight},
               m_gameRequester{std::move(inGameRequester)},
               m_levelDrawer{std::move(inLevelDrawer)},
-              m_levelTracker{std::make_shared<levelTracker::Loader>(m_gameRequester)},
+              m_levelTracker{std::make_shared<levelTracker::Loader>(m_gameRequester, shadowsEnabled)},
               m_levelGroupFcns{m_levelTracker->getLevelGroupFcns(m_surfaceWidth, m_surfaceHeight)},
               m_level{m_levelGroupFcns.getLevelFcn(levelDrawer::Adaptor(levelDrawer::LEVEL, m_levelDrawer))},
               m_levelFinisher{},

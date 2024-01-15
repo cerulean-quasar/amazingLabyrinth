@@ -1,5 +1,5 @@
 /**
- * Copyright 2023 Cerulean Quasar. All Rights Reserved.
+ * Copyright 2024 Cerulean Quasar. All Rights Reserved.
  *
  *  This file is part of AmazingLabyrinth.
  *
@@ -26,15 +26,14 @@
 namespace shadows {
 
     RenderDetailsGL::RenderDetailsGL(
-            char const *name,
+            renderDetails::Description description,
             char const *vertexShaderFile,
             char const *fragmentShaderFile,
             std::shared_ptr<GameRequester> const &inGameRequester,
             uint32_t inWidth,
             uint32_t inHeight,
             bool usesIntSurface)
-            : renderDetails::RenderDetailsGL(inWidth, inHeight, usesIntSurface),
-              m_renderDetailsName{name}
+            : renderDetails::RenderDetailsGL(std::move(description), inWidth, inHeight, usesIntSurface)
     {
         auto vertexShader = renderDetails::getShader(
                 inGameRequester, vertexShaderFile, GL_VERTEX_SHADER);
@@ -46,7 +45,7 @@ namespace shadows {
     }
 
     renderDetails::ReferenceGL RenderDetailsGL::loadNew(
-            char const *name,
+            renderDetails::Description const &description,
             std::vector<char const *> const &shaders,
             std::shared_ptr<GameRequester> const &gameRequester,
             std::shared_ptr<RenderLoaderGL> const &,
@@ -64,7 +63,7 @@ namespace shadows {
         }
 
         auto rd = std::make_shared<RenderDetailsGL>(
-                name, shaders[0], shaders[1],
+                description, shaders[0], shaders[1],
                 gameRequester, surfaceDetails->surfaceWidth, surfaceDetails->surfaceHeight,
                 surfaceDetails->useIntTexture);
 
@@ -179,7 +178,7 @@ namespace shadows {
     char constexpr const *DEPTH_VERT_FILE = "shaders/depthShaderGL.vert";
     char constexpr const *SIMPLE_FRAG_FILE = "shaders/simpleShadowsGL.frag";
     RegisterGL<renderDetails::RenderDetailsGL, RenderDetailsGL> registerGL(
-        shadowsRenderDetailsName,
+        {renderDetails::DrawingStyle::shadowMap, {}},
         std::vector<char const *>{DEPTH_VERT_FILE, SIMPLE_FRAG_FILE});
 
 } // namespace shadows

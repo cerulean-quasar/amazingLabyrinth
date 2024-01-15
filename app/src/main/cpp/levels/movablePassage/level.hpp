@@ -1,5 +1,5 @@
 /**
- * Copyright 2023 Cerulean Quasar. All Rights Reserved.
+ * Copyright 2024 Cerulean Quasar. All Rights Reserved.
  *
  *  This file is part of AmazingLabyrinth.
  *
@@ -42,6 +42,13 @@ namespace movablePassage {
     class Level : public basic::Level {
     public:
         static char constexpr const *m_name = "movablePassage";
+
+        struct Request : public basic::Level::Request {
+            Request(levelDrawer::Adaptor levelDrawer, bool shadowsEnabled)
+                    : basic::Level::Request(std::move(levelDrawer), shadowsEnabled)
+            {}
+        };
+
         bool drag(float startX, float startY, float distanceX, float distanceY) override;
 
         bool dragEnded(float x, float y) override;
@@ -78,8 +85,9 @@ namespace movablePassage {
             levelDrawer::Adaptor inLevelDrawer,
             std::shared_ptr<LevelConfigData> const &lcd,
             std::shared_ptr<LevelSaveData> const &sd,
-            float maxZ)
-            : basic::Level(std::move(inLevelDrawer), lcd, maxZ, true),
+            float maxZ,
+            Request &request)
+            : basic::Level(std::move(inLevelDrawer), lcd, maxZ, true, request),
               m_random{},
               m_zdrawTopsOfObjects{ m_mazeFloorZ },
               m_zMovingPlacement{ m_mazeFloorZ + m_scaleBall },

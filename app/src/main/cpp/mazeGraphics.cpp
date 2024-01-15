@@ -1,5 +1,5 @@
 /**
- * Copyright 2023 Cerulean Quasar. All Rights Reserved.
+ * Copyright 2024 Cerulean Quasar. All Rights Reserved.
  *
  *  This file is part of AmazingLabyrinth.
  *
@@ -215,7 +215,9 @@ bool Graphics::testDepthTexture(levelDrawer::Adaptor inLevelDrawer) {
     depthParameters.widthAtDepth = 2.0f;
     depthParameters.heightAtDepth = 2.0f;
     std::vector<float> depthMap;
-    inLevelDrawer.drawToBuffer(depthMapRenderDetailsName, modelsTextures, {modelMatrix},
+    inLevelDrawer.drawToBuffer(
+            {renderDetails::DrawingStyle::depthMap, renderDetails::FeatureList(), renderDetails::FeatureList()},
+            modelsTextures, {modelMatrix},
             2.0f, 2.0f, 200,
             std::make_shared<renderDetails::ParametersDepthMap>(depthParameters),
             depthMap);
@@ -234,10 +236,12 @@ bool Graphics::testDepthTexture(levelDrawer::Adaptor inLevelDrawer) {
     normalParameters.widthAtDepth = 2.0f;
     normalParameters.heightAtDepth = 2.0f;
     std::vector<float> rawNormalMap;
-    inLevelDrawer.drawToBuffer(normalMapRenderDetailsName, modelsTextures1, {modelMatrix},
-                               2.0f, 2.0f, 200,
-                               std::make_shared<renderDetails::ParametersNormalMap>(normalParameters),
-                               rawNormalMap);
+    inLevelDrawer.drawToBuffer(
+        {renderDetails::DrawingStyle::normalMap, renderDetails::FeatureList(), renderDetails::FeatureList()},
+        modelsTextures1, {modelMatrix},
+        2.0f, 2.0f, 200,
+        std::make_shared<renderDetails::ParametersNormalMap>(normalParameters),
+        rawNormalMap);
     std::vector<glm::vec3> normalMap;
     unFlattenMap(rawNormalMap, normalMap);
 

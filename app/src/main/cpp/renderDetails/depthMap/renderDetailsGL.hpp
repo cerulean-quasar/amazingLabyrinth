@@ -1,5 +1,5 @@
 /**
- * Copyright 2023 Cerulean Quasar. All Rights Reserved.
+ * Copyright 2024 Cerulean Quasar. All Rights Reserved.
  *
  *  This file is part of AmazingLabyrinth.
  *
@@ -101,10 +101,8 @@ namespace depthMap {
 
     class RenderDetailsGL : public renderDetails::RenderDetailsGL {
     public:
-        std::string nameString() override { return m_renderDetailsName; }
-
         static renderDetails::ReferenceGL loadNew(
-                char const *name,
+                renderDetails::Description const &description,
                 std::vector<char const *> const &shaders,
                 std::shared_ptr<GameRequester> const &gameRequester,
                 std::shared_ptr<RenderLoaderGL> const &renderLoader,
@@ -141,7 +139,7 @@ namespace depthMap {
         }
 
         RenderDetailsGL(
-                char const *name,
+                renderDetails::Description description,
                 char const *linearDepthVertShader,
                 char const *linearDepthVertShader3,
                 char const *simpleFragShader,
@@ -152,7 +150,6 @@ namespace depthMap {
         ~RenderDetailsGL() override = default;
 
     private:
-        char const *m_renderDetailsName;
         char const *m_linearDepthVertShader;
         char const *m_linearDepthVertShader3;
         char const *m_simpleFragShader;

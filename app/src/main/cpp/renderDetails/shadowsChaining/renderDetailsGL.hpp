@@ -1,5 +1,5 @@
 /**
- * Copyright 2022 Cerulean Quasar. All Rights Reserved.
+ * Copyright 2024 Cerulean Quasar. All Rights Reserved.
  *
  *  This file is part of AmazingLabyrinth.
  *
@@ -94,10 +94,8 @@ namespace shadowsChaining {
 
     class RenderDetailsGL : public renderDetails::RenderDetailsGL {
     public:
-        std::string nameString() override { return m_renderDetailsName; }
-
         static renderDetails::ReferenceGL loadNew(
-                char const *name,
+                renderDetails::Description const &description,
                 std::vector<char const *> const &shaders,
                 std::shared_ptr<GameRequester> const &gameRequester,
                 std::shared_ptr<RenderLoaderGL> const &renderLoader,
@@ -126,9 +124,8 @@ namespace shadowsChaining {
                 std::set<levelDrawer::ZValueReference>::iterator beginZValRefs,
                 std::set<levelDrawer::ZValueReference>::iterator endZValRefs) override;
 
-        RenderDetailsGL(char const *name, bool useIntSurface, uint32_t inWidth, uint32_t inHeight)
-                : renderDetails::RenderDetailsGL{inWidth, inHeight, useIntSurface},
-                m_renderDetailsName{name}
+        RenderDetailsGL(renderDetails::Description description, bool useIntSurface, uint32_t inWidth, uint32_t inHeight)
+                : renderDetails::RenderDetailsGL{std::move(description), inWidth, inHeight, useIntSurface}
         {
             createFramebuffer();
         }
@@ -136,7 +133,6 @@ namespace shadowsChaining {
         ~RenderDetailsGL() override = default;
 
     private:
-        char const *m_renderDetailsName;
         std::shared_ptr<graphicsGL::Framebuffer> m_framebufferShadows;
         std::shared_ptr<renderDetails::RenderDetailsGL> m_shadowsRenderDetails;
         std::shared_ptr<renderDetails::RenderDetailsGL> m_objectWithShadowsRenderDetails;

@@ -1,5 +1,5 @@
 /**
- * Copyright 2022 Cerulean Quasar. All Rights Reserved.
+ * Copyright 2024 Cerulean Quasar. All Rights Reserved.
  *
  *  This file is part of AmazingLabyrinth.
  *
@@ -85,11 +85,13 @@ namespace renderDetails {
             std::set<levelDrawer::ZValueReference>::iterator beginZValRefs,
             std::set<levelDrawer::ZValueReference>::iterator endZValRefs,
             bool useVertexNormals,
-            std::string const &renderDetailsName)
+            renderDetails::Description const &description)
     {
         if (!drawObjectTable || beginZValRefs == endZValRefs) {
             return;
         }
+
+        bool emptyDescription = description == renderDetails::Description::empty();
 
         VkDeviceSize offsets[1] = {0};
 
@@ -99,7 +101,7 @@ namespace renderDetails {
         for (auto it = beginZValRefs; it != endZValRefs; it++) {
             auto const &drawObj = drawObjectTable->drawObject(it->drawObjectReference);
             auto ref = drawObjectTable->renderDetailsReference(it->drawObjectReference);
-            if (!renderDetailsName.empty() && renderDetailsName != ref.renderDetails->nameString()) {
+            if (!emptyDescription && description != ref.renderDetails->description()) {
                 continue;
             }
             if (nbrIndices == 0 ||

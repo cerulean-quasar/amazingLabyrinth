@@ -1,5 +1,5 @@
 /**
- * Copyright 2023 Cerulean Quasar. All Rights Reserved.
+ * Copyright 2024 Cerulean Quasar. All Rights Reserved.
  *
  *  This file is part of AmazingLabyrinth.
  *
@@ -75,12 +75,18 @@ namespace openArea {
 
     public:
         static char constexpr const *m_name = "openArea";
+        struct Request :public basic::Level::Request {
+            Request(levelDrawer::Adaptor levelDrawer, bool shadowsEnabled)
+                    : basic::Level::Request(std::move(levelDrawer), shadowsEnabled)
+            {}
+        };
         Level(
                 levelDrawer::Adaptor inLevelDrawer,
                 std::shared_ptr<basic::LevelConfigData> const &lcd,
                 std::shared_ptr <LevelSaveData> const &levelRestoreData,
-                float maxZ)
-                : basic::Level(std::move(inLevelDrawer), lcd, maxZ, true),
+                float maxZ,
+                Request &request)
+                : basic::Level(std::move(inLevelDrawer), lcd, maxZ, true, request),
                   prevTime(std::chrono::high_resolution_clock::now())
         {
             if (levelRestoreData == nullptr) {

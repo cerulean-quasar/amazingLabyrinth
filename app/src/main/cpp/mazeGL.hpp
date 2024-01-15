@@ -1,5 +1,5 @@
 /**
- * Copyright 2022 Cerulean Quasar. All Rights Reserved.
+ * Copyright 2024 Cerulean Quasar. All Rights Reserved.
  *
  *  This file is part of AmazingLabyrinth.
  *
@@ -44,14 +44,13 @@ public:
               m_levelDrawer{std::make_shared<levelDrawer::LevelDrawerGL>(
                       levelDrawer::NeededForDrawingGL{},
                       m_surfaceDetails, m_renderLoader,
-                      shadowsEnabled ? shadowsChainingRenderDetailsName : objectNoShadowsRenderDetailsName,
                       m_gameRequester)}
     {
-        initPipeline(shadowsEnabled);
+        initPipeline();
 
         m_levelSequence = std::make_shared<LevelSequence>(
                 m_gameRequester, m_levelDrawer, static_cast<uint32_t>(m_surface->width()),
-                static_cast<uint32_t >(m_surface->height()));
+                static_cast<uint32_t >(m_surface->height()), shadowsEnabled);
     }
 
     void initThread() override { m_surface->initThread(); }
@@ -96,7 +95,7 @@ private:
     std::shared_ptr<RenderLoaderGL> m_renderLoader;
     std::shared_ptr<levelDrawer::LevelDrawerGL> m_levelDrawer;
 
-    void initPipeline(bool enableShadows, bool testFramebuffer = true);
+    void initPipeline(bool testFramebuffer = true);
 
     void destroyResources() {
         m_renderLoader->clearRenderDetails();

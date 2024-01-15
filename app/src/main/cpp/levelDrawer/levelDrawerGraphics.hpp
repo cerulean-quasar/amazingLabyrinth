@@ -87,7 +87,7 @@ namespace levelDrawer {
                 ObjectType type,
                 std::shared_ptr<ModelDescription> const &modelDescription,
                 std::shared_ptr<TextureDescription> const &textureDescription,
-                std::string const &renderDetailsName,
+                renderDetails::Query const &renderDetailsQuery,
                 std::shared_ptr<renderDetails::Parameters> const &parameters) override {
             std::shared_ptr<typename traits::ModelDataType> modelData = m_modelTable.addModel(
                     m_gameRequester, modelDescription);
@@ -98,7 +98,7 @@ namespace levelDrawer {
             }
 
             return m_drawObjectTableList[type]->addObject(
-                m_renderLoader->load(m_gameRequester, renderDetailsName, m_surfaceDetails, parameters),
+                m_renderLoader->load(m_gameRequester, renderDetailsQuery, m_surfaceDetails, parameters),
                 modelData,
                 textureData);
         }
@@ -149,9 +149,9 @@ namespace levelDrawer {
             return m_drawObjectTableList[type]->numberObjectsDataForObject(drawObjReference);
         }
 
-        void requestRenderDetails(ObjectType type, std::string const &name, std::shared_ptr<renderDetails::Parameters> const &parameters) override {
+        void requestRenderDetails(ObjectType type, renderDetails::Query const &query, std::shared_ptr<renderDetails::Parameters> const &parameters) override {
             m_drawObjectTableList[type]->loadRenderDetails(
-                    m_renderLoader->load(m_gameRequester, name, m_surfaceDetails, parameters));
+                    m_renderLoader->load(m_gameRequester, query, m_surfaceDetails, parameters));
         }
 
         std::pair<glm::mat4, glm::mat4> getProjectionView(ObjectType type) override {
@@ -180,10 +180,8 @@ namespace levelDrawer {
             ref.commonObjectData->update(parameters);
         }
 
-        char const *getDefaultRenderDetailsName() override { return m_defaultRenderDetailsName; }
-
         void drawToBuffer(
-            std::string const &renderDetailsName,
+            renderDetails::Query const &query,
             ModelsTextures const &modelsTextures,
             std::vector<glm::mat4> const &modelMatrix,
             float width,
@@ -195,7 +193,6 @@ namespace levelDrawer {
         LevelDrawerGraphics(typename traits::NeededForDrawingType neededForDrawing,
                             std::shared_ptr<typename traits::SurfaceDetailsType> inSurfaceDetails,
                             std::shared_ptr<typename traits::RenderLoaderType> inRenderLoader,
-                            char const *defaultRenderDetailsName,
                             std::shared_ptr<GameRequester> inGameRequester);
 
         ~LevelDrawerGraphics() override = default;
@@ -215,7 +212,6 @@ namespace levelDrawer {
         typename traits::NeededForDrawingType m_neededForDrawing;
         std::shared_ptr<typename traits::SurfaceDetailsType> m_surfaceDetails;
         glm::vec4 m_bgColor;
-        char const *m_defaultRenderDetailsName;
 
         DrawObjReference addModelMatrixToDrawObjTable(
                 std::shared_ptr<typename traits::DrawObjectTableType> const &drawObjTable,
@@ -247,14 +243,14 @@ namespace levelDrawer {
 
         auto getRenderDetailsAndCODList()
         {
-            std::unordered_map<std::string, std::pair<std::shared_ptr<typename traits::RenderDetailsType>, std::array<std::shared_ptr<renderDetails::CommonObjectData>, nbrDrawObjectTables>>> ret;
+            std::unordered_map<renderDetails::Description, std::pair<std::shared_ptr<typename traits::RenderDetailsType>, std::array<std::shared_ptr<renderDetails::CommonObjectData>, nbrDrawObjectTables>>> ret;
             std::pair<std::shared_ptr<typename traits::RenderDetailsType>, std::array<std::shared_ptr<renderDetails::CommonObjectData>, nbrDrawObjectTables>> value;
             for (size_t i = 0; i < nbrDrawObjectTables; i++) {
                 if (m_drawObjectTableList[i]->emptyOfDrawObjects()) {
                     continue;
                 }
                 auto &ref = m_drawObjectTableList[i]->renderDetailsReference();
-                auto result = ret.emplace(ref.renderDetails->nameString(), value);
+                auto result = ret.emplace(ref.renderDetails->description(), value);
                 if (result.second) {
                     result.first->second.first = ref.renderDetails;
                 }
@@ -262,7 +258,7 @@ namespace levelDrawer {
 
                 for (auto const &index : m_drawObjectTableList[i]->objsIndicesWithOverridingRenderDetails()) {
                     auto &ref2 = m_drawObjectTableList[i]->renderDetailsReference(index);
-                    auto result2 = ret.emplace(ref.renderDetails->nameString(), value);
+                    auto result2 = ret.emplace(ref.renderDetails->description(), value);
                     if (result2.second) {
                         result2.first->second.first = ref.renderDetails;
                     }
@@ -270,7 +266,7 @@ namespace levelDrawer {
                 }
             }
 
-            return ret;
+            return std::move(ret);
         }
 
         void performDraw(ExecuteDraw executeDraw)
@@ -281,7 +277,7 @@ namespace levelDrawer {
                 }
                 typename traits::RenderDetailsReferenceType currentRenderDetails =
                         m_drawObjectTableList[table]->renderDetailsReference();
-                std::string defaultRenderDetailsName = currentRenderDetails.renderDetails->nameString();
+                renderDetails::Description defaultRenderDetailsDescription = currentRenderDetails.renderDetails->description();
                 bool isDefaultRenderDetailsReference = true;
                 auto tableEnd = m_drawObjectTableList[table]->zValueReferences().end();
                 auto itBegin = m_drawObjectTableList[table]->zValueReferences().begin();
@@ -307,7 +303,7 @@ namespace levelDrawer {
                     }
 
                     auto renderDetailsRef = m_drawObjectTableList[table]->renderDetailsReference(itEnd->drawObjectReference);
-                    if (renderDetailsRef.renderDetails->nameString() == currentRenderDetails.renderDetails->nameString()) {
+                    if (renderDetailsRef.renderDetails->description() == currentRenderDetails.renderDetails->description()) {
                         itEnd++;
                         continue;
                     }
@@ -322,7 +318,7 @@ namespace levelDrawer {
                     if (isDefaultRenderDetailsReference) {
                         isDefaultRenderDetailsReference = false;
                     } else {
-                        isDefaultRenderDetailsReference = (renderDetailsRef.renderDetails->nameString() == defaultRenderDetailsName);
+                        isDefaultRenderDetailsReference = (renderDetailsRef.renderDetails->description() == defaultRenderDetailsDescription);
                     }
                     currentRenderDetails = renderDetailsRef;
                     itBegin = itEnd;

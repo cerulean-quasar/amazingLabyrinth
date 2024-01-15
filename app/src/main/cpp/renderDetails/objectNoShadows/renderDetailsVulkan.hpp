@@ -1,5 +1,5 @@
 /**
- * Copyright 2022 Cerulean Quasar. All Rights Reserved.
+ * Copyright 2024 Cerulean Quasar. All Rights Reserved.
  *
  *  This file is part of AmazingLabyrinth.
  *
@@ -298,10 +298,8 @@ namespace objectNoShadows {
 
     class RenderDetailsVulkan : public renderDetails::RenderDetailsVulkan {
     public:
-        std::string nameString() override { return m_renderDetailsName; }
-
         static renderDetails::ReferenceVulkan loadNew(
-                char const *name,
+                renderDetails::Description const &description,
                 std::vector<char const *> const &shaders,
                 std::shared_ptr<GameRequester> const &gameRequester,
                 std::shared_ptr<RenderLoaderVulkan> const &,
@@ -319,7 +317,7 @@ namespace objectNoShadows {
             }
 
             auto rd = std::make_shared<RenderDetailsVulkan>(
-                    name, shaders[0], shaders[1], shaders[2],
+                    description, shaders[0], shaders[1], shaders[2],
                     gameRequester, inDevice, nullptr, surfaceDetails);
 
             auto cod = rd->createCommonObjectData(surfaceDetails->preTransform, parameters);
@@ -360,7 +358,7 @@ namespace objectNoShadows {
                 std::shared_ptr<levelDrawer::DrawObjectTableVulkan> const &drawObjTable,
                 std::set<levelDrawer::ZValueReference>::iterator beginZValRefs,
                 std::set<levelDrawer::ZValueReference>::iterator endZValRefs,
-                std::string const &renderDetailsName) override;
+                renderDetails::Description const &description) override;
 
         bool structuralChangeNeeded(
                 std::shared_ptr<vulkan::SurfaceDetails> const &surfaceDetails) override
@@ -377,7 +375,7 @@ namespace objectNoShadows {
         std::shared_ptr<vulkan::Device> const &device() override { return m_device; }
 
         RenderDetailsVulkan(
-                char const *inName,
+                renderDetails::Description description,
                 char const *inVertexShader,
                 char const *inTextureFragShader,
                 char const *inColorFragShader,
@@ -385,11 +383,10 @@ namespace objectNoShadows {
                 std::shared_ptr<vulkan::Device> const &inDevice,
                 std::shared_ptr<vulkan::Pipeline> const &basePipeline,
                 std::shared_ptr<vulkan::SurfaceDetails> const &surfaceDetails)
-                : m_renderDetailsName{inName},
-                  m_vertexShader{inVertexShader},
+                : m_vertexShader{inVertexShader},
                   m_textureFragShader{inTextureFragShader},
                   m_colorFragShader{inColorFragShader},
-                  renderDetails::RenderDetailsVulkan{surfaceDetails->surfaceWidth, surfaceDetails->surfaceHeight},
+                  renderDetails::RenderDetailsVulkan{std::move(description), surfaceDetails->surfaceWidth, surfaceDetails->surfaceHeight},
                   m_device{inDevice},
                   m_descriptorSetLayoutTexture{std::make_shared<TextureDescriptorSetLayout>(m_device)},
                   m_descriptorPoolsTexture{std::make_shared<vulkan::DescriptorPools>(m_device, m_descriptorSetLayoutTexture)},
@@ -412,7 +409,6 @@ namespace objectNoShadows {
         ~RenderDetailsVulkan() override = default;
 
     private:
-        char const *m_renderDetailsName;
         char const *m_vertexShader;
         char const *m_textureFragShader;
         char const *m_colorFragShader;

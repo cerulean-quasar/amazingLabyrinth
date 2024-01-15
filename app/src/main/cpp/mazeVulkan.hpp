@@ -1,5 +1,5 @@
 /**
- * Copyright 2022 Cerulean Quasar. All Rights Reserved.
+ * Copyright 2024 Cerulean Quasar. All Rights Reserved.
  *
  *  This file is part of AmazingLabyrinth.
  *
@@ -47,7 +47,6 @@ public:
               m_renderLoader{std::make_shared<RenderLoaderVulkan>(m_device)},
               m_levelDrawer{std::make_shared<levelDrawer::LevelDrawerVulkan>(levelDrawer::NeededForDrawingVulkan{m_device, m_commandPool},
                       m_surfaceDetails, m_renderLoader,
-                      shadowsEnabled ? shadowsChainingRenderDetailsName : objectNoShadowsRenderDetailsName,
                       m_gameRequester)}
     {
         prepareDepthResources();
@@ -58,7 +57,9 @@ public:
         }
 
         m_levelSequence = std::make_shared<LevelSequence>(
-                m_gameRequester, m_levelDrawer, m_swapChain->extent().width, m_swapChain->extent().height);
+                m_gameRequester, m_levelDrawer,
+                m_swapChain->extent().width, m_swapChain->extent().height,
+                shadowsEnabled);
     }
 
     void initThread() override { }

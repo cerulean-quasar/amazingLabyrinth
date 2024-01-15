@@ -1,5 +1,5 @@
 /**
- * Copyright 2022 Cerulean Quasar. All Rights Reserved.
+ * Copyright 2024 Cerulean Quasar. All Rights Reserved.
  *
  *  This file is part of AmazingLabyrinth.
  *
@@ -166,10 +166,8 @@ namespace darkChaining {
 
     class RenderDetailsVulkan : public renderDetails::RenderDetailsVulkan {
     public:
-        std::string nameString() override { return m_renderDetailsName; }
-
         static renderDetails::ReferenceVulkan loadNew(
-            char const *name,
+            renderDetails::Description const &description,
             std::vector<char const *> const &shaders,
             std::shared_ptr<GameRequester> const &gameRequester,
             std::shared_ptr<RenderLoaderVulkan> const &renderLoader,
@@ -209,17 +207,16 @@ namespace darkChaining {
                 std::shared_ptr<levelDrawer::DrawObjectTableVulkan> const &drawObjTable,
                 std::set<levelDrawer::ZValueReference>::iterator beginZValRefs,
                 std::set<levelDrawer::ZValueReference>::iterator endZValRefs,
-                std::string const &renderDetailsName) override;
+                renderDetails::Description const &description) override;
 
         std::shared_ptr<vulkan::Device> const &device() override { return m_darkObjectRenderDetails->device(); }
 
         RenderDetailsVulkan(
-                char const *name,
+                renderDetails::Description const &description,
                 std::shared_ptr<vulkan::Device> const &inDevice,
                 std::shared_ptr<vulkan::SurfaceDetails> const &surfaceDetails)
-            : renderDetails::RenderDetailsVulkan{surfaceDetails->surfaceWidth, surfaceDetails->surfaceHeight},
-                m_renderDetailsName{name},
-                m_device{inDevice}
+            : renderDetails::RenderDetailsVulkan{description, surfaceDetails->surfaceWidth, surfaceDetails->surfaceHeight},
+              m_device{inDevice}
         {
             createShadowResources(surfaceDetails);
         }
@@ -230,7 +227,6 @@ namespace darkChaining {
         // use less precision for the shadow buffer
         static float constexpr shadowsSizeMultiplier = 0.25f;
 
-        char const *m_renderDetailsName;
         std::shared_ptr<vulkan::Device> m_device;
         std::shared_ptr<renderDetails::RenderDetailsVulkan> m_darkObjectRenderDetails;
 

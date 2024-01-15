@@ -1,5 +1,5 @@
 /**
- * Copyright 2022 Cerulean Quasar. All Rights Reserved.
+ * Copyright 2024 Cerulean Quasar. All Rights Reserved.
  *
  *  This file is part of AmazingLabyrinth.
  *
@@ -25,7 +25,7 @@
 namespace darkChaining {
 
     renderDetails::ReferenceVulkan RenderDetailsVulkan::loadNew(
-            char const *name,
+            renderDetails::Description const &description,
             std::vector<char const *> const &,
             std::shared_ptr<GameRequester> const &gameRequester,
             std::shared_ptr<RenderLoaderVulkan> const &renderLoader,
@@ -34,7 +34,7 @@ namespace darkChaining {
             std::shared_ptr<renderDetails::Parameters> const &parametersBase)
     {
         // initialize main render details
-        auto rd = std::make_shared<RenderDetailsVulkan>(name, inDevice, surfaceDetails);
+        auto rd = std::make_shared<RenderDetailsVulkan>(description, inDevice, surfaceDetails);
 
         return loadHelper(gameRequester, renderLoader, std::move(rd), surfaceDetails, parametersBase);
     }
@@ -76,6 +76,11 @@ namespace darkChaining {
         auto shadowsSurfaceDetails = rd->createShadowSurfaceDetails(surfaceDetails);
 
         // shadows render details
+        renderDetails::Query shadowsRenderDetailsQuery{
+                renderDetails::DrawingStyle::shadowMap,
+                std::vector<renderDetails::Features>{},
+                std::vector<renderDetails::Features>{}};
+
         for (size_t i = 0; i < numberShadowMaps; i++) {
             renderDetails::darkInitializeShadowMapParameters(*parametersShadows, *parameters, i, i==0);
 
@@ -84,7 +89,7 @@ namespace darkChaining {
             // the next times, it is just looked up in a list, not really any work is done other than
             // creating the COD.
             refShadows = renderLoader->load(
-                    gameRequester, shadowsRenderDetailsName, shadowsSurfaceDetails,
+                    gameRequester, shadowsRenderDetailsQuery, shadowsSurfaceDetails,
                     parametersShadows);
 
             shadowCODs[i] = std::dynamic_pointer_cast<shadows::CommonObjectDataVulkan>(refShadows.commonObjectData);
@@ -96,8 +101,15 @@ namespace darkChaining {
         auto parms = std::make_shared<renderDetails::ParametersDarkObjectVulkan>(*parameters, rd->m_samplersShadows);
 
         // main render details
+        auto const &description = rd->m_description;
+
+        renderDetails::FeatureList featuresDarkObject = description.features();
+        featuresDarkObject.setFeature(renderDetails::Features::chaining, false);
+
         auto refMain = renderLoader->load(
-                gameRequester, darkObjectRenderDetailsName,
+                gameRequester,
+                {description.drawingMethod(),
+                 featuresDarkObject, renderDetails::FeatureList()},
                 surfaceDetails, parms);
 
         rd->m_darkObjectRenderDetails = refMain.renderDetails;
@@ -163,7 +175,7 @@ namespace darkChaining {
                     commonObjectDataList[levelDrawer::ObjectType::LEVEL],
                     drawObjTableList[levelDrawer::ObjectType::LEVEL],
                     levelZValues.begin(), levelZValues.end(),
-                    nameString()); // only pay attention to dark chaining draw objects.
+                    m_description); // only pay attention to dark chaining draw objects.
 
             vkCmdEndRenderPass(commandBuffer);
         }
@@ -179,7 +191,7 @@ namespace darkChaining {
             std::shared_ptr<levelDrawer::DrawObjectTableVulkan> const &drawObjTable,
             std::set<levelDrawer::ZValueReference>::iterator beginZValRefs,
             std::set<levelDrawer::ZValueReference>::iterator endZValRefs,
-            std::string const &)
+            renderDetails::Description const &)
     {
         m_darkObjectRenderDetails->addDrawCmdsToCommandBuffer(
                 commandBuffer, renderDetails::MODEL_MATRIX_ID_MAIN /* main render details ID */,
@@ -298,5 +310,7 @@ namespace darkChaining {
     }
 
     RegisterVulkan<renderDetails::RenderDetailsVulkan, RenderDetailsVulkan> registerVulkan(
-            darkChainingRenderDetailsName, std::vector<char const *>{});
+    {renderDetails::DrawingStyle::dark,
+            {renderDetails::Features::chaining, renderDetails::Features::texture, renderDetails::Features::color}},
+        std::vector<char const *>{});
 } // namespace darkChaining

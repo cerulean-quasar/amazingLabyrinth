@@ -1,5 +1,5 @@
 /**
- * Copyright 2023 Cerulean Quasar. All Rights Reserved.
+ * Copyright 2024 Cerulean Quasar. All Rights Reserved.
  *
  *  This file is part of AmazingLabyrinth.
  *
@@ -27,6 +27,62 @@ namespace darkMaze {
     public:
         static char constexpr const *m_name = "darkMaze";
 
+        /** Use darkv2 as the default render details, and standard as the render details for the
+         * hole and ball.  The floor is using the default render details.
+         */
+        struct Request : public openAreaMaze::Level::Request {
+            Request(levelDrawer::Adaptor levelDrawer, bool shadowsEnabled)
+                    : openAreaMaze::Level::Request(std::move(levelDrawer), shadowsEnabled)
+            {}
+
+            void defaultRD() override {
+                renderDetails::Query query{
+                    renderDetails::DrawingStyle::darkV2,
+                    {renderDetails::Features::texture,
+                        renderDetails::Features::color},
+                    {}};
+
+                m_levelDrawer.requestRenderDetails(query, getParameters());
+            }
+
+            levelDrawer::DrawObjReference addBall(
+                std::shared_ptr<levelDrawer::ModelDescription> const &obj,
+                std::shared_ptr<levelDrawer::TextureDescription> const &tx) override
+            {
+                renderDetails::Query query{
+                        renderDetails::DrawingStyle::standard,
+                        {renderDetails::Features::texture,
+                         renderDetails::Features::color},
+                        {}};
+
+                return m_levelDrawer.addObject(
+                    obj, tx,
+                    query, levelDrawer::DefaultConfig::getDefaultParameters());
+            }
+
+            levelDrawer::DrawObjReference addHole(
+                std::shared_ptr<levelDrawer::ModelDescription> const &obj,
+                std::shared_ptr<levelDrawer::TextureDescription> const &tx) override
+            {
+                renderDetails::Query query{
+                        renderDetails::DrawingStyle::standard,
+                        {renderDetails::Features::texture,
+                         renderDetails::Features::color},
+                        {}};
+
+                return m_levelDrawer.addObject(
+                    obj, tx,
+                    query, levelDrawer::DefaultConfig::getDefaultParameters());
+            }
+
+            static std::shared_ptr<renderDetails::ParametersPerspective> getParameters() {
+                auto parameters = levelDrawer::DefaultConfig::getDefaultParameters();
+                parameters->lightingSources.push_back(glm::vec3{0.0, 0.0, 0.0});
+
+                return parameters;
+            }
+        };
+
         char const *name() override { return m_name; }
 
         bool updateDrawObjects() override;
@@ -36,18 +92,12 @@ namespace darkMaze {
         Level(levelDrawer::Adaptor inLevelDrawer,
                 std::shared_ptr<generatedMaze::LevelConfigData> const &lcd,
                 std::shared_ptr<generatedMaze::LevelSaveData> const &sd,
-                float maxZ)
+                float maxZ,
+                Request &request)
                 : openAreaMaze::Level(
-                        std::move(inLevelDrawer), lcd, sd, maxZ,
-                        darkV2ObjectRenderDetailsName,
-                        getParameters(),
-                        objectNoShadowsRenderDetailsName,
-                        levelDrawer::DefaultConfig::getDefaultParameters(),
-                        objectNoShadowsRenderDetailsName,
-                        levelDrawer::DefaultConfig::getDefaultParameters()
-                        /* use the default renderDetails and parameters for the floor */)
+                        std::move(inLevelDrawer), lcd, sd, maxZ, request)
         {
-            auto parameters = getParameters();
+            auto parameters = Request::getParameters();
             m_parameters = *parameters;
             m_parameters.lightingSources[0] = m_ball.position;
             m_parameters.lightingSources[1] = getCellCenterPosition(m_mazeBoard.rowEnd(), m_mazeBoard.colEnd());
@@ -58,13 +108,6 @@ namespace darkMaze {
         ~Level() override = default;
     private:
         renderDetails::ParametersPerspective m_parameters;
-
-        static std::shared_ptr<renderDetails::ParametersPerspective> getParameters() {
-            auto parameters = levelDrawer::DefaultConfig::getDefaultParameters();
-            parameters->lightingSources.push_back(glm::vec3{0.0, 0.0, 0.0});
-
-            return parameters;
-        }
     };
 } // namespace darkMaze
 #endif // AMAZING_LABYRINTH_DARK_MAZE_LEVEL_HPP

@@ -1,5 +1,5 @@
 /**
- * Copyright 2022 Cerulean Quasar. All Rights Reserved.
+ * Copyright 2024 Cerulean Quasar. All Rights Reserved.
  *
  *  This file is part of AmazingLabyrinth.
  *
@@ -24,7 +24,7 @@
 
 namespace shadowsChaining {
     renderDetails::ReferenceVulkan RenderDetailsVulkan::loadNew(
-            char const *name,
+            renderDetails::Description const &description,
             std::vector<char const *> const &shaders,
             std::shared_ptr<GameRequester> const &gameRequester,
             std::shared_ptr<RenderLoaderVulkan> const &renderLoader,
@@ -42,23 +42,27 @@ namespace shadowsChaining {
         }
 
         // initialize main render details
-        auto rd = std::make_shared<RenderDetailsVulkan>(name, inDevice, surfaceDetails);
+        auto rd = std::make_shared<RenderDetailsVulkan>(description, inDevice, surfaceDetails);
 
         auto shadowsSurfaceDetails = rd->createShadowSurfaceDetails(surfaceDetails);
 
         auto parametersShadows = std::make_shared<renderDetails::ParametersPerspective>(*parameters);
         parametersShadows->viewPoint = parameters->lightingSources[0];
 
+        renderDetails::Query queryShadows{renderDetails::DrawingStyle::shadowMap,
+                                          renderDetails::FeatureList(), renderDetails::FeatureList()};
         // shadows render details
         auto refShadows = renderLoader->load(
-                gameRequester, shadowsRenderDetailsName, shadowsSurfaceDetails, parametersShadows);
+                gameRequester, queryShadows, shadowsSurfaceDetails, parametersShadows);
 
         auto parms = std::make_shared<renderDetails::ParametersObjectWithShadowsVulkan>(*parameters, rd->m_samplerShadows);
 
         // main render details
+        renderDetails::FeatureList features = description.features();
+        features.setFeature(renderDetails::Features::chaining, false);
+        renderDetails::Query query(description.drawingMethod(), features, {});
         auto refMain = renderLoader->load(
-                gameRequester, objectWithShadowsRenderDetailsName,
-                surfaceDetails, parms);
+                gameRequester, query, surfaceDetails, parms);
 
         rd->m_objectWithShadowsRenderDetails = refMain.renderDetails;
         rd->m_shadowsRenderDetails = refShadows.renderDetails;
@@ -93,14 +97,20 @@ namespace shadowsChaining {
         parametersShadows->viewPoint = parameters->lightingSources[0];
 
         // shadows render details
+        renderDetails::Query queryShadows{renderDetails::DrawingStyle::shadowMap,
+                                          renderDetails::FeatureList(), renderDetails::FeatureList()};
         auto refShadows = renderLoader->load(
-            gameRequester, shadowsRenderDetailsName, shadowSurfaceDetails, parametersShadows);
+            gameRequester, queryShadows, shadowSurfaceDetails, parametersShadows);
 
         auto parms = std::make_shared<renderDetails::ParametersObjectWithShadowsVulkan>(*parameters, rd->m_samplerShadows);
 
         // object with shadows render details
+        auto const &description = rd->description();
+        renderDetails::FeatureList features = description.features();
+        features.setFeature(renderDetails::Features::chaining, false);
+        renderDetails::Query query(description.drawingMethod(), features, {});
         auto refObjectWithShadows = renderLoader->load(
-            gameRequester, objectWithShadowsRenderDetailsName, surfaceDetails,parms);
+            gameRequester, query, surfaceDetails, parms);
 
         rd->m_objectWithShadowsRenderDetails = refObjectWithShadows.renderDetails;
         rd->m_shadowsRenderDetails = refShadows.renderDetails;
@@ -151,7 +161,7 @@ namespace shadowsChaining {
                 renderDetails::MODEL_MATRIX_ID_SHADOWS /* shadows ID */,
                 commonObjectDataList[levelDrawer::ObjectType::LEVEL],
                 drawObjTableList[levelDrawer::ObjectType::LEVEL],
-                levelZValues.begin(), levelZValues.end(), nameString());
+                levelZValues.begin(), levelZValues.end(), description());
 
         vkCmdEndRenderPass(commandBuffer);
     }
@@ -163,7 +173,7 @@ namespace shadowsChaining {
             std::shared_ptr<levelDrawer::DrawObjectTableVulkan> const &drawObjTable,
             std::set<levelDrawer::ZValueReference>::iterator beginZValRefs,
             std::set<levelDrawer::ZValueReference>::iterator endZValRefs,
-            std::string const &)
+            renderDetails::Description const &)
     {
         m_objectWithShadowsRenderDetails->addDrawCmdsToCommandBuffer(
                 commandBuffer, renderDetails::MODEL_MATRIX_ID_MAIN /* main render details ID */,
@@ -269,6 +279,10 @@ namespace shadowsChaining {
     }
 
     RegisterVulkan<renderDetails::RenderDetailsVulkan, RenderDetailsVulkan> registerVulkan(
-            shadowsChainingRenderDetailsName,
+            {renderDetails::DrawingStyle::standard,
+                {renderDetails::Features::chaining,
+                    renderDetails::Features::shadows,
+                    renderDetails::Features::color,
+                    renderDetails::Features::texture}},
             std::vector<char const *>{});
 } // namespace shadowsChaining

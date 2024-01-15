@@ -1,5 +1,5 @@
 /**
- * Copyright 2023 Cerulean Quasar. All Rights Reserved.
+ * Copyright 2024 Cerulean Quasar. All Rights Reserved.
  *
  *  This file is part of AmazingLabyrinth.
  *
@@ -44,6 +44,12 @@ namespace avoidVortexMaze {
     public:
         static char constexpr const *m_name = "avoidVortexMaze";
 
+        struct Request : public openAreaMaze::Level::Request {
+            Request(levelDrawer::Adaptor levelDrawer, bool shadowsEnabled)
+                    : openAreaMaze::Level::Request(std::move(levelDrawer), shadowsEnabled)
+            {}
+        };
+
         std::vector<uint8_t> saveData(levelTracker::GameSaveData const &gsd, char const *saveLevelDataKey) override;
 
         char const *name() override { return m_name; }
@@ -52,8 +58,9 @@ namespace avoidVortexMaze {
         Level(levelDrawer::Adaptor inLevelDrawer,
                 std::shared_ptr<LevelConfigData> const &lcd,
                 std::shared_ptr<LevelSaveData> const &sd,
-                float maxZ)
-                : openAreaMaze::Level(std::move(inLevelDrawer), lcd, sd, maxZ)
+                float maxZ,
+                Request &request)
+                : openAreaMaze::Level(std::move(inLevelDrawer), lcd, sd, maxZ, request)
         {
             if (sd) {
                 m_mazeBoard.setStart(sd->startRowCol.x, sd->startRowCol.y);

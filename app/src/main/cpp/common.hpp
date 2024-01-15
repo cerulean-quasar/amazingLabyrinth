@@ -1,5 +1,5 @@
 /**
- * Copyright 2023 Cerulean Quasar. All Rights Reserved.
+ * Copyright 2024 Cerulean Quasar. All Rights Reserved.
  *
  *  This file is part of AmazingLabyrinth.
  *
@@ -21,6 +21,7 @@
 #define AMAZING_LABYRINTH_COMMON_HPP
 
 #include <vector>
+#include <array>
 #include <string>
 #include <memory>
 #include <streambuf>
@@ -28,16 +29,224 @@
 #include <atomic>
 #include <cassert>
 
-// TODO: switch from register/request with name to request with registration object.
-char constexpr const *shadowsChainingRenderDetailsName = "shadowsChaining";
-char constexpr const *shadowsRenderDetailsName = "shadows";
-char constexpr const *objectWithShadowsRenderDetailsName = "objectWithShadows";
-char constexpr const *depthMapRenderDetailsName = "depthMap";
-char constexpr const *normalMapRenderDetailsName = "normalMap";
-char constexpr const *objectNoShadowsRenderDetailsName = "objectNoShadows";
-char constexpr const *darkObjectRenderDetailsName = "darkObjectRenderDetailsName";
-char constexpr const *darkChainingRenderDetailsName = "darkChainingRenderDetailsName";
-char constexpr const *darkV2ObjectRenderDetailsName = "darkV2ObjectRenderDetailsName";
+namespace renderDetails {
+    enum Features {
+        shadows,
+        texture,
+        color,
+        chaining,
+        specular,
+        phosphorescentEdge,
+        numberFeatures // must be last
+    };
+
+    enum DrawingStyle {
+        shadowMap,
+        standard,
+        dark,
+        darkV2,
+        depthMap,
+        normalMap,
+        numberDrawingStyles
+    };
+
+    class FeatureList {
+        using RawFeatureList = std::vector<bool>;
+    public:
+        FeatureList()
+        : m_features(Features::numberFeatures, false) {}
+
+        FeatureList(std::vector<Features> const &features)
+        : m_features(Features::numberFeatures, false)
+        {
+            for (auto const &feature : features) {
+                m_features[feature] = true;
+            }
+        }
+
+        size_t getHash() const {
+            return std::hash<RawFeatureList>()(m_features);
+        }
+
+        void bitwiseAnd(FeatureList const &other) {
+            for (size_t i = 0; i < Features::numberFeatures; i++) {
+                m_features[i] = m_features[i] && other.m_features[i];
+            }
+        }
+
+        void bitwiseOr(FeatureList const &other) {
+            for (size_t i = 0; i < Features::numberFeatures; i++) {
+                m_features[i] = m_features[i] || other.m_features[i];
+            }
+        }
+
+        void setFeature(Features feature, bool value = true) {
+            m_features[feature] = value;
+        }
+
+        void setFeature(std::vector<Features> features, bool value = true) {
+            for (auto const &feature : features) {
+                m_features[feature] = value;
+            }
+        }
+
+        bool getFeatureValue(Features feature) const {
+            return m_features[feature];
+        }
+
+        bool operator==(FeatureList const &other) const {
+            return m_features == other.m_features;
+        }
+
+        bool operator!=(FeatureList const &other) const {
+            return m_features != other.m_features;
+        }
+
+        bool operator<(FeatureList const &other) const {
+            size_t selfScore = 0;
+            size_t i = 1;
+            for (auto const &feature : m_features) {
+                selfScore += i * feature;
+                i++;
+            }
+
+            size_t otherScore = 0;
+            i = 1;
+            for (auto const &feature : other.m_features) {
+                otherScore += i * feature;
+                i++;
+            }
+
+            return selfScore < otherScore;
+        }
+    private:
+        RawFeatureList m_features;
+    };
+
+    struct Query {
+    public:
+        Query(DrawingStyle inStyle)
+            :style(inStyle),
+            requiredFeatures(),
+            optionalFeatures() {}
+
+        Query(
+                DrawingStyle inStyle,
+                std::vector<Features> const &inRequiredFeatures,
+                std::vector<Features> const &inOptionalFeatures)
+                : style{inStyle},
+                  requiredFeatures(inRequiredFeatures),
+                  optionalFeatures(inOptionalFeatures) {}
+
+        Query(
+                DrawingStyle inStyle,
+                FeatureList inRequiredFeatures,
+                FeatureList inOptionalFeatures)
+                : style{inStyle},
+                  requiredFeatures(std::move(inRequiredFeatures)),
+                  optionalFeatures(std::move(inOptionalFeatures)) {}
+
+        DrawingStyle style;
+        FeatureList requiredFeatures;
+        FeatureList optionalFeatures;
+    };
+
+    class Description {
+    public:
+        static Description const &empty() {
+            static const Description emptyDescription{};
+            return emptyDescription;
+        }
+
+        Description()
+            : m_style(DrawingStyle::numberDrawingStyles),
+              m_features()
+        {}
+
+        Description(DrawingStyle style)
+            : m_style(style),
+              m_features() {}
+
+        Description(DrawingStyle style,
+                    std::vector<Features> const &inFeatures)
+                : m_style(style),
+                  m_features(inFeatures) {}
+
+        auto drawingMethod() const { return m_style; }
+
+        auto const &features() const { return m_features; }
+
+        unsigned int getMatchPotential(Query const &query) {
+            if (query.style != m_style) {
+                return 0;
+            }
+
+            unsigned int score = 1;
+            for (size_t i = 0; i < Features::numberFeatures; i++) {
+                if (m_features.getFeatureValue(static_cast<Features>(i)))
+                {
+                    if (query.requiredFeatures.getFeatureValue(static_cast<Features>(i))) {
+                        continue;
+                    } else if (query.optionalFeatures.getFeatureValue(static_cast<Features>(i))) {
+                        score++;
+                        continue;
+                    } else {
+                        return 0;
+                    }
+                } else if (query.requiredFeatures.getFeatureValue(static_cast<Features>(i))) {
+                    return 0;
+                }
+            }
+
+            return score;
+        }
+
+        bool operator==(Description const &other) const {
+            if (m_style != other.m_style) {
+                return false;
+            } else if (m_features != other.m_features) {
+                return false;
+            }
+
+            return true;
+        }
+
+        bool operator!=(Description const &other) const {
+            return !(*this == other);
+        }
+
+        bool operator<(Description const &other) const {
+            if (m_style < other.m_style) {
+                return true;
+            } else if (m_features < other.m_features) {
+                return true;
+            }
+
+            return false;
+        }
+
+    private:
+        DrawingStyle m_style;
+        FeatureList m_features;
+    };
+}
+
+namespace std {
+    template<>
+    struct hash<renderDetails::FeatureList> {
+        size_t operator()(renderDetails::FeatureList const &features) const {
+            return features.getHash();
+        }
+    };
+
+    template <>
+    struct hash<renderDetails::Description> {
+        size_t operator()(renderDetails::Description const &description) const {
+            return description.drawingMethod() ^
+                (std::hash<renderDetails::FeatureList>()(description.features()) << 1);
+        }
+    };
+}
 
 struct GraphicsDescription {
 public:

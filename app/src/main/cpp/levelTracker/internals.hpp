@@ -44,7 +44,7 @@ namespace levelTracker {
     }
 
     using GenerateLevelGeneratorFcn = std::function<GenerateLevelFcn(nlohmann::json const &,
-            nlohmann::json const *, float)>;
+            nlohmann::json const *, float, bool)>;
     using LevelMapEntry = std::pair<std::string, GenerateLevelGeneratorFcn>;
     using LevelMapTable = std::unordered_map<std::string, GenerateLevelGeneratorFcn>;
 
@@ -72,7 +72,7 @@ namespace levelTracker {
         Register() {
             levelTable().insert(std::make_pair(LevelType::m_name,
                  GenerateLevelGeneratorFcn(
-                     [](nlohmann::json const &lcdjson, nlohmann::json const *sdjson, float z) -> levelTracker::GenerateLevelFcn
+                     [](nlohmann::json const &lcdjson, nlohmann::json const *sdjson, float z, bool enableShadows) -> levelTracker::GenerateLevelFcn
                      {
                          auto lcd = std::make_shared<LevelConfigDataType>();
                          *lcd = lcdjson.get<LevelConfigDataType>();
@@ -82,10 +82,11 @@ namespace levelTracker {
                              *sd = sdjson->get<LevelSaveDataType>();
                          }
                          return GenerateLevelFcn(
-                             [lcd, sd, z](levelDrawer::Adaptor inLevelDrawer) -> std::shared_ptr<basic::Level>
+                             [lcd, sd, z, enableShadows](levelDrawer::Adaptor inLevelDrawer) -> std::shared_ptr<basic::Level>
                              {
+                                 typename LevelType::Request request(inLevelDrawer, enableShadows);
                                  return std::make_shared<LevelType>(
-                                         std::move(inLevelDrawer), lcd, sd, z);
+                                         std::move(inLevelDrawer), lcd, sd, z, request);
                              });
                      }))
             );
@@ -98,16 +99,17 @@ namespace levelTracker {
         Register() {
             starterTable().insert(std::make_pair(LevelType::m_name,
             GenerateLevelGeneratorFcn(
-            [](nlohmann::json const &lcdjson, nlohmann::json const *, float z) -> levelTracker::GenerateLevelFcn
+            [](nlohmann::json const &lcdjson, nlohmann::json const *, float z, bool enableShadows) -> levelTracker::GenerateLevelFcn
             {
                 auto lcd = std::make_shared<LevelConfigDataType>();
                 *lcd = lcdjson.get<LevelConfigDataType>();
                 return GenerateLevelFcn(
-                    [lcd, sd(std::shared_ptr<LevelSaveDataType>()), z](
+                    [lcd, sd(std::shared_ptr<LevelSaveDataType>()), z, enableShadows](
                             levelDrawer::Adaptor inLevelDrawer) -> std::shared_ptr<basic::Level>
                     {
+                        typename LevelType::Request request(inLevelDrawer, enableShadows);
                         return std::make_shared<LevelType>(
-                                std::move(inLevelDrawer), lcd, sd, z);
+                                std::move(inLevelDrawer), lcd, sd, z, request);
                     });
             }))
             );

@@ -1,5 +1,5 @@
 /**
- * Copyright 2022 Cerulean Quasar. All Rights Reserved.
+ * Copyright 2024 Cerulean Quasar. All Rights Reserved.
  *
  *  This file is part of AmazingLabyrinth.
  *
@@ -56,29 +56,44 @@ struct RenderDetailsGLRetrieveFcns {
     RenderDetailsLoadExistingFcn renderDetailsLoadExistingFcn;
 };
 
-using RenderDetailsGLRetrieveMap =
-    std::map<std::string, std::function<RenderDetailsGLRetrieveFcns()>>;
+struct RenderDetailsGLEntry {
+    renderDetails::Description description;
+    std::function<RenderDetailsGLRetrieveFcns()> getFunctions;
+    std::shared_ptr<renderDetails::RenderDetailsGL> cacheEntry;
 
-RenderDetailsGLRetrieveMap &getRenderDetailsGLMap();
+    RenderDetailsGLEntry(
+        renderDetails::Description inDescription,
+        std::function<RenderDetailsGLRetrieveFcns()> fcns,
+        std::shared_ptr<renderDetails::RenderDetailsGL> inCacheEntry)
+    {
+        description = std::move(inDescription);
+        getFunctions = std::move(fcns);
+        cacheEntry = std::move(inCacheEntry);
+    }
+};
+
+using RenderDetailsGLRegistrar = std::vector<RenderDetailsGLEntry>;
+
+RenderDetailsGLRegistrar &getRenderDetailsGLRegistrar();
 
 template <typename RenderDetailsBaseType, typename RenderDetailsType>
 class RegisterGL {
 public:
     RegisterGL(
-            char const *name,
+            renderDetails::Description const &description,
             std::vector<char const *> shaders) {
-        getRenderDetailsGLMap().emplace(
-            name,
+        getRenderDetailsGLRegistrar().emplace_back(
+            description,
             std::function<RenderDetailsGLRetrieveFcns()> (
-                [name, shaders]() -> RenderDetailsGLRetrieveFcns {
+                [description, shaders]() -> RenderDetailsGLRetrieveFcns {
                     RenderDetailsGLRetrieveFcns fcns;
                     fcns.renderDetailsLoadNewFcn = RenderDetailsGLRetrieveFcns::RenderDetailsLoadNewFcn (
-                            [name, shaders] (std::shared_ptr<GameRequester> const &gameRequester,
+                            [description, shaders] (std::shared_ptr<GameRequester> const &gameRequester,
                                     std::shared_ptr<RenderLoaderGL> const &renderLoader,
                                       std::shared_ptr<graphicsGL::SurfaceDetails> const &surfaceDetails,
                                       std::shared_ptr<renderDetails::Parameters> const &parameters) -> RenderDetailsGLRetrieveFcns::RenderDetailsReferenceGL
                             {
-                                return RenderDetailsType::loadNew(name, shaders,
+                                return RenderDetailsType::loadNew(description, shaders,
                                                                   gameRequester, renderLoader, surfaceDetails, parameters);
                             });
                     fcns.renderDetailsLoadExistingFcn = RenderDetailsGLRetrieveFcns::RenderDetailsLoadExistingFcn (
@@ -93,7 +108,8 @@ public:
                             });
                     return std::move(fcns);
                 }
-            )
+            ),
+            nullptr
         );
     }
 };

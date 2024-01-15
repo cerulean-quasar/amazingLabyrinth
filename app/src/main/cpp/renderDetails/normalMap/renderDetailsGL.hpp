@@ -1,5 +1,5 @@
 /**
- * Copyright 2023 Cerulean Quasar. All Rights Reserved.
+ * Copyright 2024 Cerulean Quasar. All Rights Reserved.
  *
  *  This file is part of AmazingLabyrinth.
  *
@@ -88,10 +88,8 @@ namespace normalMap {
 
     class RenderDetailsGL : public renderDetails::RenderDetailsGL {
     public:
-        std::string nameString() override { return m_renderDetailsName; }
-
         static renderDetails::ReferenceGL loadNew(
-                char const *name,
+                renderDetails::Description const &description,
                 std::vector<char const *> const &shaders,
                 std::shared_ptr<GameRequester> const &gameRequester,
                 std::shared_ptr<RenderLoaderGL> const &renderLoader,
@@ -129,7 +127,7 @@ namespace normalMap {
         void loadPipeline(std::shared_ptr<GameRequester> const &inGameRequester);
 
         RenderDetailsGL(
-                char const *name,
+                renderDetails::Description description,
                 char const *normalShader,
                 char const *normalShader3,
                 char const *simpleFragShader,
@@ -140,7 +138,6 @@ namespace normalMap {
         ~RenderDetailsGL() override = default;
 
     private:
-        char const *m_renderDetailsName;
         char const *m_normalShader;
         char const *m_normalShader3;
         char const *m_simpleFragShader;

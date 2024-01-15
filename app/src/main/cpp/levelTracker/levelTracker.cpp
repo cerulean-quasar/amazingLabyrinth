@@ -1,5 +1,5 @@
 /**
- * Copyright 2023 Cerulean Quasar. All Rights Reserved.
+ * Copyright 2024 Cerulean Quasar. All Rights Reserved.
  *
  *  This file is part of AmazingLabyrinth.
  *
@@ -227,10 +227,11 @@ namespace levelTracker {
         if (needsLevelStarter) {
             if (components.starter.extraCfgFile.empty()) {
                 group.getStarterFcn = starterIt->second(j[DataVariables::Starter], nullptr,
-                                                        m_maxZLevelStarter);
+                                                        m_maxZLevelStarter, m_shadowsEnabled);
             } else {
                 mergeJson(j[DataVariables::Starter], components.starter.extraCfgFile);
-                group.getStarterFcn = starterIt->second(j[DataVariables::Starter], nullptr, m_maxZLevelStarter);
+                group.getStarterFcn = starterIt->second(j[DataVariables::Starter], nullptr,
+                                                        m_maxZLevelStarter, m_shadowsEnabled);
             }
         } else {
             group.getStarterFcn = GenerateLevelFcn(
@@ -245,10 +246,10 @@ namespace levelTracker {
         }
 
         if (components.level.extraCfgFile.empty()) {
-            group.getLevelFcn = levelIt->second(j[DataVariables::Level], pjsdLevel, m_maxZLevel);
+            group.getLevelFcn = levelIt->second(j[DataVariables::Level], pjsdLevel, m_maxZLevel, m_shadowsEnabled);
         } else {
             mergeJson(j[DataVariables::Level], components.level.extraCfgFile);
-            group.getLevelFcn = levelIt->second(j[DataVariables::Level], pjsdLevel, m_maxZLevel);
+            group.getLevelFcn = levelIt->second(j[DataVariables::Level], pjsdLevel, m_maxZLevel, m_shadowsEnabled);
         }
 
         auto finisherIt = finisherTable().find(components.finisher.name);
@@ -267,9 +268,11 @@ namespace levelTracker {
     }
 
     Loader::Loader(
-        std::shared_ptr<GameRequester> inGameRequester)
+        std::shared_ptr<GameRequester> inGameRequester,
+        bool shadowsEnabled)
         : m_gameRequester{std::move(inGameRequester)},
-          m_currentLevel{boost::none}
+          m_currentLevel{boost::none},
+          m_shadowsEnabled{shadowsEnabled}
     {
         auto streambuf = m_gameRequester->getLevelTableAssetStream();
         std::istream stream(streambuf.get());

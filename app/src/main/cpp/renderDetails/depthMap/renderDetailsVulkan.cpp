@@ -1,5 +1,5 @@
 /**
- * Copyright 2022 Cerulean Quasar. All Rights Reserved.
+ * Copyright 2024 Cerulean Quasar. All Rights Reserved.
  *
  *  This file is part of AmazingLabyrinth.
  *
@@ -112,7 +112,7 @@ namespace depthMap {
             std::shared_ptr<levelDrawer::DrawObjectTableVulkan> const &drawObjTable,
             std::set<levelDrawer::ZValueReference>::iterator beginZValRefs,
             std::set<levelDrawer::ZValueReference>::iterator endZValRefs,
-            std::string const &)
+            renderDetails::Description const &)
     {
         initializeCommandBufferDrawObjects(
                 commandBuffer, descriptorSetID, m_pipeline, nullptr,
@@ -181,7 +181,7 @@ namespace depthMap {
     char constexpr const *SHADER_SIMPLE_FRAG_VK_FILE = "shaders/simple.frag.spv";
     char constexpr const *SHADER_LINEAR_DEPTH_VERT_VK_FILE ="shaders/linearDepth.vert.spv";
     RegisterVulkan<renderDetails::RenderDetailsVulkan, RenderDetailsVulkan> registerVulkan{
-        depthMapRenderDetailsName,
+        {renderDetails::DrawingStyle::depthMap, {}},
         std::vector<char const *>{SHADER_LINEAR_DEPTH_VERT_VK_FILE, SHADER_SIMPLE_FRAG_VK_FILE}};
 
 }

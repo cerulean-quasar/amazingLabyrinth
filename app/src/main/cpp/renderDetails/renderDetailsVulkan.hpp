@@ -1,5 +1,5 @@
 /**
- * Copyright 2022 Cerulean Quasar. All Rights Reserved.
+ * Copyright 2024 Cerulean Quasar. All Rights Reserved.
  *
  *  This file is part of AmazingLabyrinth.
  *
@@ -128,7 +128,7 @@ namespace renderDetails {
                 std::shared_ptr<levelDrawer::DrawObjectTableVulkan> const &drawObjTable,
                 std::set<levelDrawer::ZValueReference>::iterator beginZValRefs,
                 std::set<levelDrawer::ZValueReference>::iterator endZValRefs,
-                std::string const &renderDetailsName = "") = 0;
+                renderDetails::Description const &description = renderDetails::Description::empty()) = 0;
 
         /*
          * renderDetailsName is left empty for most cases.  It is used to cast out any objects
@@ -149,7 +149,7 @@ namespace renderDetails {
                 std::set<levelDrawer::ZValueReference>::iterator beginZValRefs,
                 std::set<levelDrawer::ZValueReference>::iterator endZValRefs,
                 bool useVertexNormals = false,
-                std::string const &renderDetailsName = "");
+                renderDetails::Description const &description = renderDetails::Description::empty());
 
         virtual bool overrideClearColor(glm::vec4 &) {
             return false;
@@ -176,8 +176,8 @@ namespace renderDetails {
 
         virtual std::shared_ptr<vulkan::Device> const &device() = 0;
 
-        RenderDetailsVulkan(uint32_t width, uint32_t height)
-                : RenderDetails(width, height)
+        RenderDetailsVulkan(renderDetails::Description description, uint32_t width, uint32_t height)
+                : RenderDetails(std::move(description), width, height)
         {}
 
         ~RenderDetailsVulkan() override  = default;

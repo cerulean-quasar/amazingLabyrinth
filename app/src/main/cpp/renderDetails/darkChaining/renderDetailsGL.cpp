@@ -1,5 +1,5 @@
 /**
- * Copyright 2022 Cerulean Quasar. All Rights Reserved.
+ * Copyright 2024 Cerulean Quasar. All Rights Reserved.
  *
  *  This file is part of AmazingLabyrinth.
  *
@@ -22,14 +22,14 @@
 
 namespace darkChaining {
     renderDetails::ReferenceGL RenderDetailsGL::loadNew(
-            char const *name,
+            renderDetails::Description const &description,
             std::vector<char const *> const &,
             std::shared_ptr<GameRequester> const &gameRequester,
             std::shared_ptr<RenderLoaderGL> const &renderLoader,
             std::shared_ptr<graphicsGL::SurfaceDetails> const &surfaceDetails,
-            std::shared_ptr<renderDetails::Parameters> const &parametersBase) {
-
-        auto rd = std::make_shared<RenderDetailsGL>(name,
+            std::shared_ptr<renderDetails::Parameters> const &parametersBase)
+    {
+        auto rd = std::make_shared<RenderDetailsGL>(description,
                 surfaceDetails->useIntTexture, surfaceDetails->surfaceWidth,
                 surfaceDetails->surfaceHeight);
 
@@ -79,6 +79,10 @@ namespace darkChaining {
 
         auto shadowSurfaceDetails = createShadowSurfaceDetails(surfaceDetails);
 
+        renderDetails::Query shadowsRenderDetailsQuery{
+            renderDetails::DrawingStyle::shadowMap,
+            std::vector<renderDetails::Features>{},
+            std::vector<renderDetails::Features>{}};
         for (size_t i = 0; i < numberShadowMaps; i++) {
             renderDetails::darkInitializeShadowMapParameters(*parametersShadows, *parameters, i, i==0);
             // We have to load the shadows render details multiple times to get the COD, but it is
@@ -86,7 +90,9 @@ namespace darkChaining {
             // the next times, it is just looked up in a list, not really any work is done other than
             // creating the COD.
             refShadows = renderLoader->load(
-                    gameRequester, shadowsRenderDetailsName, shadowSurfaceDetails,
+                    gameRequester,
+                    shadowsRenderDetailsQuery,
+                    shadowSurfaceDetails,
                     parametersShadows);
 
             shadowsCODs[i] = refShadows.commonObjectData;
@@ -94,8 +100,17 @@ namespace darkChaining {
 
         auto parms = std::make_shared<renderDetails::ParametersDarkObjectGL>(*parameters,
                                                                              rd->m_framebuffersShadows);
+
+        auto const &description = rd->description();
+
+        renderDetails::FeatureList featuresDarkObject = description.features();
+        featuresDarkObject.setFeature(renderDetails::Features::chaining, false);
+
         auto refDarkObject = renderLoader->load(
-                gameRequester, darkObjectRenderDetailsName, surfaceDetails,
+                gameRequester,
+                {description.drawingMethod(),
+                    featuresDarkObject, renderDetails::FeatureList()},
+                surfaceDetails,
                 parms);
 
         rd->m_darkObjectRenderDetails = refDarkObject.renderDetails;
@@ -207,5 +222,10 @@ namespace darkChaining {
                 cod->darkObject(), drawObjTable, beginZValRefs, endZValRefs);
     }
 
-    RegisterGL<renderDetails::RenderDetailsGL, RenderDetailsGL> registerGL(darkChainingRenderDetailsName, std::vector<char const *>{});
+    RegisterGL<renderDetails::RenderDetailsGL, RenderDetailsGL> registerTextureGL(
+            renderDetails::Description{renderDetails::DrawingStyle::dark,
+                                       {renderDetails::Features::chaining,
+                                                 renderDetails::Features::color,
+                                                 renderDetails::Features::texture}},
+            std::vector<char const *>{});
 }

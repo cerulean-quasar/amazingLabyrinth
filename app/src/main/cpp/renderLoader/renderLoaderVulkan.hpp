@@ -1,5 +1,5 @@
 /**
- * Copyright 2020 Cerulean Quasar. All Rights Reserved.
+ * Copyright 2024 Cerulean Quasar. All Rights Reserved.
  *
  *  This file is part of AmazingLabyrinth.
  *
@@ -36,8 +36,8 @@ struct RenderLoaderVulkanTraits {
     using RenderDetailsReferenceType = renderDetails::ReferenceVulkan;
     using RetrieveFcns = RenderDetailsVulkanRetrieveFcns;
     using SurfaceDetailsType = vulkan::SurfaceDetails;
-    static RenderDetailsVulkanRetrieveMap &getRenderDetailsMap() {
-        return getRenderDetailsVulkanMap();
+    static RenderDetailsVulkanRegistrar &getRenderDetailsRegistrar() {
+        return getRenderDetailsVulkanRegistrar();
     }
 };
 

@@ -1,5 +1,5 @@
 /**
- * Copyright 2023 Cerulean Quasar. All Rights Reserved.
+ * Copyright 2024 Cerulean Quasar. All Rights Reserved.
  *
  *  This file is part of AmazingLabyrinth.
  *
@@ -28,7 +28,7 @@
 namespace objectNoShadows {
 
     renderDetails::ReferenceGL RenderDetailsGL::loadNew(
-            char const *name,
+            renderDetails::Description const &description,
             std::vector<char const *> const &shaders,
             std::shared_ptr<GameRequester> const &gameRequester,
             std::shared_ptr<RenderLoaderGL> const &,
@@ -46,7 +46,7 @@ namespace objectNoShadows {
         }
 
         auto rd = std::make_shared<RenderDetailsGL>(
-                name, shaders[0], shaders[1], shaders[2],
+                description, shaders[0], shaders[1], shaders[2],
                 gameRequester, surfaceDetails->surfaceWidth, surfaceDetails->surfaceHeight,
                 surfaceDetails->useIntTexture);
 
@@ -195,14 +195,13 @@ namespace objectNoShadows {
     }
 
     RenderDetailsGL::RenderDetailsGL(
-            char const *name,
+            renderDetails::Description description,
             char const *vertexShaderFile,
             char const *textureFragShaderFile,
             char const *colorFragShaderFile,
             std::shared_ptr<GameRequester> const &inGameRequester,
             uint32_t inWidth, uint32_t inHeight, bool usesIntSurface)
-        : renderDetails::RenderDetailsGL(inWidth, inHeight, usesIntSurface),
-        m_renderDetailsName{name},
+        : renderDetails::RenderDetailsGL(std::move(description), inWidth, inHeight, usesIntSurface),
         m_textureProgram{},
         m_colorProgram{}
     {
@@ -225,9 +224,9 @@ namespace objectNoShadows {
     char constexpr const *TEXTURE_DARK_V2_FRAG_GL_FILE = "shaders/darkV2TextureGL.frag";
     char constexpr const *COLOR_DARK_V2_FRAG_GL_FILE = "shaders/darkV2ColorGL.frag";
     RegisterGL<renderDetails::RenderDetailsGL, RenderDetailsGL> registerGL(
-            objectNoShadowsRenderDetailsName,
+            {renderDetails::DrawingStyle::standard, {renderDetails::Features::color, renderDetails::Features::texture}},
             std::vector<char const *>{SHADER_VERT_GL_FILE, TEXTURE_SHADER_FRAG_GL_FILE, COLOR_SHADER_FRAG_GL_FILE});
     RegisterGL<renderDetails::RenderDetailsGL, RenderDetailsGL> registerDarkV2ObjectGL(
-            darkV2ObjectRenderDetailsName,
+            {renderDetails::DrawingStyle::darkV2, {renderDetails::Features::color, renderDetails::Features::texture}},
             std::vector<char const *>{SHADER_VERT_GL_FILE, TEXTURE_DARK_V2_FRAG_GL_FILE, COLOR_DARK_V2_FRAG_GL_FILE});
 } // objectNoWithShadows

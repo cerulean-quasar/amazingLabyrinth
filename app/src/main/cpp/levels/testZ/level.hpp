@@ -11,12 +11,18 @@ namespace testZ {
     public:
         static char constexpr const *m_name = "testz";
 
+    struct Request : public basic::Level::Request {
+            Request(levelDrawer::Adaptor levelDrawer, bool shadowsEnabled)
+                    : basic::Level::Request(std::move(levelDrawer), shadowsEnabled)
+            {}
+        };
         Level(
                 levelDrawer::Adaptor inLevelDrawer,
                 std::shared_ptr<basic::LevelConfigData> const &lcd,
                 std::shared_ptr<LevelSaveData> const &levelRestoreData,
-                float maxZ)
-                : basic::Level(std::move(inLevelDrawer), lcd, maxZ, true),
+                float maxZ,
+                Request &request)
+                : basic::Level(std::move(inLevelDrawer), lcd, maxZ, true, request),
                 m_refreshedAfterStarter{false},
                 m_ref1{},
                 m_ref1data{},

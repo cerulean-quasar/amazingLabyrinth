@@ -1,5 +1,5 @@
 /**
- * Copyright 2022 Cerulean Quasar. All Rights Reserved.
+ * Copyright 2024 Cerulean Quasar. All Rights Reserved.
  *
  *  This file is part of AmazingLabyrinth.
  *
@@ -332,7 +332,7 @@ namespace objectNoShadows {
             std::shared_ptr<levelDrawer::DrawObjectTableVulkan> const &drawObjTable,
             std::set<levelDrawer::ZValueReference>::iterator beginZValRefs,
             std::set<levelDrawer::ZValueReference>::iterator endZValRefs,
-            std::string const &)
+            renderDetails::Description const &)
     {
         initializeCommandBufferDrawObjects(
                 commandBuffer, descriptorSetID, m_pipelineColor,
@@ -370,9 +370,9 @@ namespace objectNoShadows {
     char constexpr const *TEXTURE_DARK_V2_FRAG_VK_FILE = "shaders/darkV2Texture.frag.spv";
     char constexpr const *COLOR_DARK_V2_FRAG_VK_FILE = "shaders/darkV2Color.frag.spv";
     RegisterVulkan<renderDetails::RenderDetailsVulkan, RenderDetailsVulkan> registerVulkan(
-            objectNoShadowsRenderDetailsName,
+            {renderDetails::DrawingStyle::standard, {renderDetails::Features::color, renderDetails::Features::texture}},
             std::vector<char const *>{SHADER_VERT_VK_FILE, TEXTURE_SHADER_FRAG_VK_FILE, COLOR_SHADER_FRAG_VK_FILE});
     RegisterVulkan<renderDetails::RenderDetailsVulkan, RenderDetailsVulkan> registerDarkV2ObjectVulkan(
-            darkV2ObjectRenderDetailsName,
+            {renderDetails::DrawingStyle::darkV2, {renderDetails::Features::color, renderDetails::Features::texture}},
             std::vector<char const *>{SHADER_VERT_VK_FILE, TEXTURE_DARK_V2_FRAG_VK_FILE, COLOR_DARK_V2_FRAG_VK_FILE});
 }

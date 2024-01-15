@@ -1,5 +1,5 @@
 /**
- * Copyright 2020 Cerulean Quasar. All Rights Reserved.
+ * Copyright 2024 Cerulean Quasar. All Rights Reserved.
  *
  *  This file is part of AmazingLabyrinth.
  *
@@ -19,9 +19,8 @@
  */
 #include "registerGL.hpp"
 
-RenderDetailsGLRetrieveMap &getRenderDetailsGLMap() {
-    static RenderDetailsGLRetrieveMap map{};
+RenderDetailsGLRegistrar &getRenderDetailsGLRegistrar() {
+    static RenderDetailsGLRegistrar registrar{};
 
-    return map;
+    return registrar;
 }
-

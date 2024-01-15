@@ -1,5 +1,5 @@
 /**
- * Copyright 2020 Cerulean Quasar. All Rights Reserved.
+ * Copyright 2024 Cerulean Quasar. All Rights Reserved.
  *
  *  This file is part of AmazingLabyrinth.
  *
@@ -19,8 +19,8 @@
  */
 #include "registerVulkan.hpp"
 
-RenderDetailsVulkanRetrieveMap &getRenderDetailsVulkanMap() {
-    static RenderDetailsVulkanRetrieveMap map{};
+RenderDetailsVulkanRegistrar &getRenderDetailsVulkanRegistrar() {
+    static RenderDetailsVulkanRegistrar registrar{};
 
-    return map;
+    return registrar;
 }

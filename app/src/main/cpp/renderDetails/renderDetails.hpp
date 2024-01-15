@@ -1,5 +1,5 @@
 /**
- * Copyright 2022 Cerulean Quasar. All Rights Reserved.
+ * Copyright 2024 Cerulean Quasar. All Rights Reserved.
  *
  *  This file is part of AmazingLabyrinth.
  *
@@ -255,19 +255,23 @@ namespace renderDetails {
 
     class RenderDetails {
     public:
-        RenderDetails(uint32_t inWidth, uint32_t inHeight)
-                : m_surfaceWidth{inWidth},
+        RenderDetails(Description inDescription, uint32_t inWidth, uint32_t inHeight)
+                : m_description{std::move(inDescription)},
+                  m_surfaceWidth{inWidth},
                   m_surfaceHeight{inHeight}
         {}
+
+        Description const &description() const {
+            return m_description;
+        }
 
         uint32_t width() { return m_surfaceWidth; }
         uint32_t height() { return m_surfaceHeight; }
 
-        virtual std::string nameString() = 0;
-
         virtual ~RenderDetails() = default;
 
     protected:
+        Description const m_description;
         uint32_t m_surfaceWidth;
         uint32_t m_surfaceHeight;
     };

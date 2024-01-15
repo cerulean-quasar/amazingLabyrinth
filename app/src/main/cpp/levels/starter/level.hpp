@@ -1,5 +1,5 @@
 /**
- * Copyright 2023 Cerulean Quasar. All Rights Reserved.
+ * Copyright 2024 Cerulean Quasar. All Rights Reserved.
  *
  *  This file is part of AmazingLabyrinth.
  *
@@ -67,12 +67,29 @@ namespace starter {
     public:
         static char constexpr const *m_name = "starter";
 
+        struct Request : public basic::Level::Request {
+            Request(levelDrawer::Adaptor levelDrawer, bool shadowsEnabled)
+                    : basic::Level::Request(std::move(levelDrawer), shadowsEnabled)
+            {}
+
+            void defaultRD() override {
+                renderDetails::Query query{
+                        renderDetails::DrawingStyle::standard,
+                        {renderDetails::Features::color,
+                         renderDetails::Features::texture},
+                        {}};
+
+                m_levelDrawer.requestRenderDetails(
+                        query, levelDrawer::DefaultConfig::getDefaultParameters());
+            }
+        };
+
         Level(levelDrawer::Adaptor inLevelDrawer,
                      std::shared_ptr<LevelConfigData> const &lcd,
                      std::shared_ptr<LevelSaveData> const & /*sd*/,
-                     float maxZ)
-                : basic::Level(std::move(inLevelDrawer), lcd, maxZ, true,
-                               objectNoShadowsRenderDetailsName, levelDrawer::DefaultConfig::getDefaultParameters()),
+                     float maxZ,
+                     Request &request)
+                : basic::Level(std::move(inLevelDrawer), lcd, maxZ, true, request),
                   maxPosX(m_width / 2 - ballRadius() -
                           m_wallThickness * ballDiameter() / m_modelSize),
                   maxPosY(m_height / 2 - ballRadius() -
