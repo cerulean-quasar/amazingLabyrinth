@@ -116,7 +116,7 @@ void GraphicsVulkan::initializeCommandBuffer(uint32_t cmdBufferIndex) {
     VkCommandBuffer commandBuffer = m_swapChainCommands->commandBuffer(cmdBufferIndex);
     VkFramebuffer framebuffer = m_swapChainCommands->frameBuffer(cmdBufferIndex);
 
-    levelDrawer::DrawArgumentVulkan info;
+    levelDrawer::DrawArgumentVulkan info{};
     info.cmdBuffer = commandBuffer;
     info.framebuffer = framebuffer;
     info.extent = m_swapChain->extent();

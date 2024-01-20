@@ -1,5 +1,5 @@
 /**
- * Copyright 2022 Cerulean Quasar. All Rights Reserved.
+ * Copyright 2024 Cerulean Quasar. All Rights Reserved.
  *
  *  This file is part of AmazingLabyrinth.
  *
@@ -733,7 +733,7 @@ namespace vulkan {
         return capabilities.currentExtent;
     }
 
-    void RenderPass::createRenderPass(std::shared_ptr<SwapChain> const &swapchain) {
+    void RenderPass::internalCreateRenderPass(std::shared_ptr<SwapChain> const &swapchain) {
         /* color buffer attachment descriptions: use a single attachment represented by
          * one of the images from the swap chain.
          */
@@ -855,7 +855,7 @@ namespace vulkan {
         m_renderPass.reset(createVkRenderPass_CQ(renderPassRaw), deleter);
     }
 
-    void RenderPass::createRenderPassDepthTexture(
+    void RenderPass::internalCreateRenderPassMultipleColorAttachments(
         std::vector<ImageAttachmentInfo> const &colorInfos,
         std::shared_ptr<ImageAttachmentInfo> const &depthInfo)
     {
@@ -930,7 +930,7 @@ namespace vulkan {
         /* specify a graphics subpass (as opposed to a compute subpass) */
         subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
         subpass.colorAttachmentCount = colorAttachmentRefs.size();
-        subpass.pColorAttachments = colorAttachmentRefs.data();
+        subpass.pColorAttachments = colorAttachmentRefs.empty() ? nullptr : colorAttachmentRefs.data();
         if (depthInfo) {
             subpass.pDepthStencilAttachment = &depthAttachmentRef;
         }
@@ -972,6 +972,97 @@ namespace vulkan {
         renderPassInfo.pSubpasses = &subpass;
         renderPassInfo.dependencyCount = 1;
         renderPassInfo.pDependencies = &dependency;
+
+        VkRenderPass renderPassRaw;
+        if (vkCreateRenderPass(m_device->logicalDevice().get(), &renderPassInfo, nullptr, &renderPassRaw) !=
+            VK_SUCCESS) {
+            throw std::runtime_error("failed to create render pass!");
+        }
+
+        auto const &capDevice = m_device;
+        auto deleter = [capDevice](VkRenderPass_CQ *renderPassCq) {
+            deleteVkRenderPass_CQ(capDevice, renderPassCq);
+        };
+
+        m_renderPass.reset(createVkRenderPass_CQ(renderPassRaw), deleter);
+    }
+
+    void RenderPass::internalCreateRenderPassDepthTexture(
+            std::shared_ptr<ImageAttachmentInfo> const &depthInfo)
+    {
+        if (!depthInfo) {
+            throw std::runtime_error("Must provide a depth attachment to the depth texture render pass.");
+        }
+
+        /* Only one attachment: the depth attachment */
+        VkAttachmentDescription depthAttachment = {};
+        VkAttachmentReference depthAttachmentRef = {};
+
+        depthAttachment.format = depthInfo->format;
+        depthAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
+        depthAttachment.loadOp = depthInfo->loadOp;
+
+        depthAttachment.storeOp = depthInfo->storeOp;
+
+        depthAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+        depthAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+
+        depthAttachment.initialLayout = depthInfo->initialLayout;
+        depthAttachment.finalLayout = depthInfo->finalLayout;
+
+        depthAttachmentRef.attachment = 0;
+        depthAttachmentRef.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+
+        m_hasDepthAttachment = true;
+        m_depthAttachmentFormat = depthAttachment.format;
+
+        /* render subpass */
+        VkSubpassDescription subpass = {};
+        /* specify a graphics subpass (as opposed to a compute subpass) */
+        subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
+        subpass.colorAttachmentCount = 0;
+        subpass.pColorAttachments = nullptr;
+        subpass.pDepthStencilAttachment = &depthAttachmentRef;
+
+        /* create a render subbass dependency because we need the render pass to wait for the
+         * VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT stage of the graphics pipeline
+         */
+        std::vector<VkSubpassDependency> dependencies(2, VkSubpassDependency{});
+
+        /* srcSubpass is the first subpass in the dependency or VK_SUBPASS_EXTERNAL, dstSubpass
+         * specifies the second subpass in the dependency or is set to VK_SUBPASS_EXTERNAL.
+         * If srcSubpass is set to VK_SUBPASS_EXTERNAL, then the synchronization scope includes
+         * commands happening before vkCmdBeginRenderPass in the command buffer.  If dstSubpass
+         * is set to VK_SUBPASS_EXTERNAL, then the synchronization scope includes commands
+         * happening after vkCmdEndRenderPass.  For all dependencies that have neither srcSubpass
+         * nor dstSubpass set to VK_SUBPASS_EXTERNAL, dstSubpass should always be greater than
+         * srcSubpass to avoid loops in the dependency graph.
+         */
+        dependencies[0].srcSubpass = VK_SUBPASS_EXTERNAL;
+        dependencies[0].dstSubpass = 0;
+        dependencies[0].srcStageMask = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
+        dependencies[0].dstStageMask = VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
+        dependencies[0].srcAccessMask = VK_ACCESS_SHADER_READ_BIT;
+        dependencies[0].dstAccessMask = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
+        dependencies[0].dependencyFlags = VK_DEPENDENCY_BY_REGION_BIT;
+
+        dependencies[1].srcSubpass = 0;
+        dependencies[1].dstSubpass = VK_SUBPASS_EXTERNAL;
+        dependencies[1].srcStageMask = VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT;
+        dependencies[1].dstStageMask = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
+        dependencies[1].srcAccessMask = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
+        dependencies[1].dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
+        dependencies[1].dependencyFlags = VK_DEPENDENCY_BY_REGION_BIT;
+
+        /* create the render pass */
+        VkRenderPassCreateInfo renderPassInfo = {};
+        renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
+        renderPassInfo.attachmentCount = 1;
+        renderPassInfo.pAttachments = &depthAttachment;
+        renderPassInfo.subpassCount = 1;
+        renderPassInfo.pSubpasses = &subpass;
+        renderPassInfo.dependencyCount = dependencies.size();
+        renderPassInfo.pDependencies = dependencies.data();
 
         VkRenderPass renderPassRaw;
         if (vkCreateRenderPass(m_device->logicalDevice().get(), &renderPassInfo, nullptr, &renderPassRaw) !=
@@ -1183,7 +1274,7 @@ namespace vulkan {
         colorBlending.logicOp = VK_LOGIC_OP_COPY; // Optional
 
         colorBlending.attachmentCount = colorBlendAttachments.size();
-        colorBlending.pAttachments = colorBlendAttachments.data();
+        colorBlending.pAttachments = colorBlendAttachments.empty() ? nullptr : colorBlendAttachments.data();
         colorBlending.blendConstants[0] = 0.0f; // Optional
         colorBlending.blendConstants[1] = 0.0f; // Optional
         colorBlending.blendConstants[2] = 0.0f; // Optional

@@ -141,7 +141,7 @@ namespace levelDrawer {
                 VK_ATTACHMENT_LOAD_OP_CLEAR, VK_ATTACHMENT_STORE_OP_DONT_CARE,
                 depthView->image()->format(),
                 VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL);
-        auto renderPass = vulkan::RenderPass::createDepthTextureRenderPass(
+        auto renderPass = vulkan::RenderPass::createRenderPassMultipleColorAttachments(
                 m_neededForDrawing.device, infos, depthInfo);
 
         std::vector<std::shared_ptr<vulkan::ImageView>> attachments = {colorImage, depthView};

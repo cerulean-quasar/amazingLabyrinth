@@ -186,7 +186,6 @@ namespace shadowsChaining {
         std::shared_ptr<renderDetails::RenderDetailsVulkan> m_objectWithShadowsRenderDetails;
 
         std::shared_ptr<vulkan::ImageView> m_depthImageViewShadows;
-        std::shared_ptr<vulkan::ImageView> m_shadowsColorAttachment;
         std::shared_ptr<vulkan::ImageSampler> m_samplerShadows;
         std::shared_ptr<vulkan::RenderPass> m_renderPassShadows;
         std::shared_ptr<renderDetails::RenderDetailsVulkan> m_shadowsRenderDetails;

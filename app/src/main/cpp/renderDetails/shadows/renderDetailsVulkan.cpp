@@ -90,7 +90,7 @@ namespace shadows {
 
         /* which one of these pointers needs to be used depends on which descriptorType we are
          * using.  pBufferInfo is for buffer based data, pImageInfo is used for image data, and
-         * pTexelBufferView is used for decriptors that refer to buffer views.
+         * pTexelBufferView is used for descriptors that refer to buffer views.
          */
         descriptorWrites[0].pBufferInfo = &bufferInfo;
         descriptorWrites[0].pImageInfo = nullptr; // Optional
@@ -179,15 +179,14 @@ namespace shadows {
         m_pipeline = std::make_shared<vulkan::Pipeline>(
                 gameRequester, m_device,
                 VkExtent2D{m_surfaceWidth, m_surfaceHeight},
-                surfaceDetails->renderPass, m_descriptorPools, getBindingDescription(),
-                getAttributeDescriptions(),
-                m_vertexShader, m_fragShader, nullptr,
+                surfaceDetails->renderPass, m_descriptorPools,
+                getBindingDescription(), getAttributeDescriptions(),
+                m_vertexShader, "", nullptr,
                 VK_CULL_MODE_FRONT_BIT);
     }
 
     char constexpr const *SHADOW_VERT_FILE = "shaders/depthShader.vert.spv";
-    char constexpr const *SHADER_SIMPLE_FRAG_FILE = "shaders/simple.frag.spv";
     RegisterVulkan<renderDetails::RenderDetailsVulkan, RenderDetailsVulkan> registerVulkan(
             {renderDetails::DrawingStyle::shadowMap, {}},
-            std::vector<char const *>{SHADOW_VERT_FILE, SHADER_SIMPLE_FRAG_FILE});
+            std::vector<char const *>{SHADOW_VERT_FILE});
 }

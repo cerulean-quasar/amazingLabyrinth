@@ -1,5 +1,5 @@
 /**
- * Copyright 2022 Cerulean Quasar. All Rights Reserved.
+ * Copyright 2024 Cerulean Quasar. All Rights Reserved.
  *
  *  This file is part of AmazingLabyrinth.
  *
@@ -325,6 +325,7 @@ namespace vulkan {
                   finalLayout{other.finalLayout}
             {}
         };
+
         inline std::shared_ptr<VkRenderPass_CQ> const &renderPass() { return m_renderPass; }
         inline size_t numberColorAttachments() { return m_colorAttachmentFormats.size(); }
 
@@ -334,14 +335,21 @@ namespace vulkan {
             return std::shared_ptr<RenderPass>{new RenderPass(inDevice, inSwapChain)};
         }
 
-        // for a render pass that only uses the depth attachment (to read the z-buffer for shadow
-        // mapping and to read the depth of an object.
-        static std::shared_ptr<RenderPass> createDepthTextureRenderPass(
+        static std::shared_ptr<RenderPass> createRenderPassMultipleColorAttachments(
                 std::shared_ptr<Device> const &inDevice,
-                std::vector<ImageAttachmentInfo> const &info,
+                std::vector<ImageAttachmentInfo> const &colorInfo,
                 std::shared_ptr<ImageAttachmentInfo> const &depthInfo)
         {
-            return std::shared_ptr<RenderPass>{new RenderPass(inDevice, info, depthInfo)};
+            return std::shared_ptr<RenderPass>{new RenderPass(inDevice, colorInfo, depthInfo)};
+        }
+
+        // for a render pass that only uses the depth attachment (to read the z-buffer for shadow
+        // mapping and to read the depth of an object.
+        static std::shared_ptr<RenderPass> createRenderPassDepthTexture(
+                std::shared_ptr<Device> const &inDevice,
+                std::shared_ptr<ImageAttachmentInfo> const &depthInfo)
+        {
+            return std::shared_ptr<RenderPass>{new RenderPass(inDevice, depthInfo)};
         }
 
         bool isCompatible(std::shared_ptr<RenderPass> const &other) {
@@ -372,17 +380,25 @@ namespace vulkan {
                 : m_device{inDevice},
                   m_renderPass{}
         {
-            createRenderPass(swapChain);
+            internalCreateRenderPass(swapChain);
+        }
+
+        RenderPass(std::shared_ptr<Device> const &inDevice,
+                   std::vector<ImageAttachmentInfo> const &colorAttachments,
+                   std::shared_ptr<ImageAttachmentInfo> const &depthInfo)
+                : m_device{inDevice},
+                  m_renderPass{}
+        {
+            internalCreateRenderPassMultipleColorAttachments(colorAttachments, depthInfo);
         }
 
         // for creating a render pass with only a depth attachment.
         RenderPass(std::shared_ptr<Device> const &inDevice,
-                std::vector<ImageAttachmentInfo> const &colorImageInfo,
                 std::shared_ptr<ImageAttachmentInfo> const &depthInfo)
                 : m_device{inDevice},
                   m_renderPass{}
         {
-            createRenderPassDepthTexture(colorImageInfo, depthInfo);
+            internalCreateRenderPassDepthTexture(depthInfo);
         }
 
         std::shared_ptr<Device> m_device;
@@ -392,9 +408,13 @@ namespace vulkan {
         VkFormat m_depthAttachmentFormat;
         bool m_hasDepthAttachment;
 
-        void createRenderPass(std::shared_ptr<SwapChain> const &swapChain);
-        void createRenderPassDepthTexture(std::vector<ImageAttachmentInfo> const &colorImageInfo,
+        // For a possible replacement for createRenderPass
+        void internalCreateRenderPassMultipleColorAttachments(
+                std::vector<ImageAttachmentInfo> const &colorInfos,
                 std::shared_ptr<ImageAttachmentInfo> const &depthInfo);
+
+        void internalCreateRenderPass(std::shared_ptr<SwapChain> const &swapChain);
+        void internalCreateRenderPassDepthTexture(std::shared_ptr<ImageAttachmentInfo> const &depthInfo);
     };
 
     class DescriptorPools;

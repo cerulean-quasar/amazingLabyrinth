@@ -197,12 +197,12 @@ namespace shadows {
                 throw std::runtime_error("Invalid render details parameter type.");
             }
 
-            if (shaders.size() != 2) {
+            if (shaders.size() != 1) {
                 throw std::runtime_error("Invalid number of shaders passed into Render Details.");
             }
 
             auto rd = std::make_shared<RenderDetailsVulkan>(
-                    description, shaders[0], shaders[1],
+                    description, shaders[0],
                     gameRequester, inDevice, nullptr, surfaceDetails);
 
             auto cod = rd->createCommonObjectData(surfaceDetails->preTransform, parameters);
@@ -263,14 +263,12 @@ namespace shadows {
         RenderDetailsVulkan(
                 renderDetails::Description description,
                 char const *vertexShader,
-                char const *fragmentShader,
                 std::shared_ptr<GameRequester> const &gameRequester,
                 std::shared_ptr<vulkan::Device> const &inDevice,
                 std::shared_ptr<vulkan::Pipeline> const &basePipeline,
                 std::shared_ptr<vulkan::SurfaceDetails> const &surfaceDetails)
                 : renderDetails::RenderDetailsVulkan{std::move(description), surfaceDetails->surfaceWidth, surfaceDetails->surfaceHeight},
                   m_vertexShader{vertexShader},
-                  m_fragShader{fragmentShader},
                   m_device{inDevice},
                   m_descriptorSetLayout{std::make_shared<DescriptorSetLayout>(m_device)},
                   m_descriptorPools{std::make_shared<vulkan::DescriptorPools>(m_device, m_descriptorSetLayout)},
@@ -278,19 +276,16 @@ namespace shadows {
         {
             VkExtent2D extent{m_surfaceWidth, m_surfaceHeight};
             m_pipeline = std::make_shared<vulkan::Pipeline>(
-                    gameRequester, m_device,
-                    extent,
-                    surfaceDetails->renderPass, m_descriptorPools, getBindingDescription(),
-                    getAttributeDescriptions(),
-                    m_vertexShader, m_fragShader,
+                    gameRequester, m_device, extent,
+                    surfaceDetails->renderPass, m_descriptorPools,
+                    getBindingDescription(), getAttributeDescriptions(),
+                    m_vertexShader, "",
                     basePipeline, VK_CULL_MODE_FRONT_BIT);
         }
 
         ~RenderDetailsVulkan() override = default;
     private:
-        char const *m_renderDetailsName;
         char const *m_vertexShader;
-        char const *m_fragShader;
 
         std::shared_ptr<vulkan::Device> m_device;
 
