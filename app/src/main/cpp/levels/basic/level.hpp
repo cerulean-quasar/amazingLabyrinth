@@ -236,7 +236,7 @@ namespace basic {
                 }
 
                 m_levelDrawer.requestRenderDetails(
-                    query, levelDrawer::DefaultConfig::getDefaultParameters());
+                    query, gameConstants::getPerspectiveParameters());
             }
 
             Request(levelDrawer::Adaptor levelDrawer, bool shadowsEnabled)

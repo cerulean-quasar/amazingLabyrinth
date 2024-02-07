@@ -57,7 +57,7 @@ namespace finisher {
                 {renderDetails::Features::color, renderDetails::Features::texture},
                 {}};
 
-            m_levelDrawer.requestRenderDetails(query, levelDrawer::DefaultConfig::getDefaultParameters());
+            m_levelDrawer.requestRenderDetails(query, gameConstants::getPerspectiveParameters());
 
             auto projView = m_levelDrawer.getProjectionView();
             auto wh = getWidthHeight(maxZ, projView.first, projView.second);

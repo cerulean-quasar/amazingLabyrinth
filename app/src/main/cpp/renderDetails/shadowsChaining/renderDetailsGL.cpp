@@ -41,15 +41,13 @@ namespace shadowsChaining {
         auto rd = std::make_shared<RenderDetailsGL>(description,
                 surfaceDetails->useIntTexture, surfaceDetails->surfaceWidth, surfaceDetails->surfaceHeight);
 
-        auto parametersShadows = std::make_shared<renderDetails::ParametersPerspective>(*parameters);
-        parametersShadows->viewPoint = parametersShadows->lightingSources[0];
         auto refShadows = renderLoader->load(
                 gameRequester,
                 {renderDetails::DrawingStyle::shadowMap,
                     renderDetails::FeatureList(),
                     renderDetails::FeatureList()},
                  surfaceDetails,
-                 parametersShadows);
+                 gameConstants::getShadowParameters(*parameters));
 
         auto parms = std::make_shared<renderDetails::ParametersObjectWithShadowsGL>(*parameters, rd->m_framebufferShadows);
         auto features = description.features();

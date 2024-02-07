@@ -57,7 +57,7 @@ namespace darkMaze {
 
                 return m_levelDrawer.addObject(
                     obj, tx,
-                    query, levelDrawer::DefaultConfig::getDefaultParameters());
+                    query, gameConstants::getPerspectiveParameters());
             }
 
             levelDrawer::DrawObjReference addHole(
@@ -72,11 +72,11 @@ namespace darkMaze {
 
                 return m_levelDrawer.addObject(
                     obj, tx,
-                    query, levelDrawer::DefaultConfig::getDefaultParameters());
+                    query, gameConstants::getPerspectiveParameters());
             }
 
             static std::shared_ptr<renderDetails::ParametersPerspective> getParameters() {
-                auto parameters = levelDrawer::DefaultConfig::getDefaultParameters();
+                auto parameters = gameConstants::getPerspectiveParameters();
                 parameters->lightingSources.push_back(glm::vec3{0.0, 0.0, 0.0});
 
                 return parameters;

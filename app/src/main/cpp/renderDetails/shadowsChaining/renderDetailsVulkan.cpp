@@ -53,7 +53,7 @@ namespace shadowsChaining {
                                           renderDetails::FeatureList(), renderDetails::FeatureList()};
         // shadows render details
         auto refShadows = renderLoader->load(
-                gameRequester, queryShadows, shadowsSurfaceDetails, parametersShadows);
+                gameRequester, queryShadows, shadowsSurfaceDetails, gameConstants::getShadowParameters(*parameters));
 
         auto parms = std::make_shared<renderDetails::ParametersObjectWithShadowsVulkan>(*parameters, rd->m_samplerShadows);
 

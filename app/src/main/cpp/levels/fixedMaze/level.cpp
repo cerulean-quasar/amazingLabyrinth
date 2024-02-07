@@ -546,11 +546,11 @@ namespace fixedMaze {
         depthParameters.farthestDepth = m_mazeFloorZ - MODEL_MAXZ;
         depthParameters.widthAtDepth = m_height;
         depthParameters.heightAtDepth = m_height;
-        depthParameters.lookAt = levelDrawer::DefaultConfig::lookAt;
-        depthParameters.up = levelDrawer::DefaultConfig::up;
-        depthParameters.viewPoint = levelDrawer::DefaultConfig::viewPoint;
-        depthParameters.nearPlane = levelDrawer::DefaultConfig::nearPlane;
-        depthParameters.farPlane = levelDrawer::DefaultConfig::farPlane;
+        depthParameters.lookAt = gameConstants::lookAt;
+        depthParameters.up = gameConstants::up;
+        depthParameters.viewPoint = gameConstants::viewPoint;
+        depthParameters.nearPlane = gameConstants::nearPlane;
+        depthParameters.farPlane = gameConstants::farPlane;
 
         m_levelDrawer.drawToBuffer(
                 {renderDetails::DrawingStyle::depthMap},
@@ -564,11 +564,11 @@ namespace fixedMaze {
         renderDetails::ParametersNormalMap normalParameters{};
         normalParameters.widthAtDepth = m_height;
         normalParameters.heightAtDepth = m_height;
-        normalParameters.lookAt = levelDrawer::DefaultConfig::lookAt;
-        normalParameters.up = levelDrawer::DefaultConfig::up;
-        normalParameters.viewPoint = levelDrawer::DefaultConfig::viewPoint;
-        normalParameters.nearPlane = levelDrawer::DefaultConfig::nearPlane;
-        normalParameters.farPlane = levelDrawer::DefaultConfig::farPlane;
+        normalParameters.lookAt = gameConstants::lookAt;
+        normalParameters.up = gameConstants::up;
+        normalParameters.viewPoint = gameConstants::viewPoint;
+        normalParameters.nearPlane = gameConstants::nearPlane;
+        normalParameters.farPlane = gameConstants::farPlane;
         std::vector<float> normalMapFlat;
         m_levelDrawer.drawToBuffer(
                 {renderDetails::DrawingStyle::normalMap},

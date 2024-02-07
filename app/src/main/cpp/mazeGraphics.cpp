@@ -205,11 +205,11 @@ bool Graphics::testDepthTexture(levelDrawer::Adaptor inLevelDrawer) {
     glm::mat4 modelMatrix = glm::mat4(1.0f);
 
     renderDetails::ParametersDepthMap depthParameters{};
-    depthParameters.lookAt = levelDrawer::DefaultConfig::lookAt;
-    depthParameters.up = levelDrawer::DefaultConfig::up;
-    depthParameters.viewPoint = levelDrawer::DefaultConfig::viewPoint;
-    depthParameters.nearPlane = levelDrawer::DefaultConfig::nearPlane;
-    depthParameters.farPlane = levelDrawer::DefaultConfig::farPlane;
+    depthParameters.lookAt = gameConstants::lookAt;
+    depthParameters.up = gameConstants::up;
+    depthParameters.viewPoint = gameConstants::viewPoint;
+    depthParameters.nearPlane = gameConstants::nearPlane;
+    depthParameters.farPlane = gameConstants::farPlane;
     depthParameters.nearestDepth = 1.0f;
     depthParameters.farthestDepth = -1.0f;
     depthParameters.widthAtDepth = 2.0f;
@@ -228,11 +228,11 @@ bool Graphics::testDepthTexture(levelDrawer::Adaptor inLevelDrawer) {
                     std::shared_ptr<levelDrawer::TextureDescription>())};
 
     renderDetails::ParametersNormalMap normalParameters{};
-    normalParameters.lookAt = levelDrawer::DefaultConfig::lookAt;
-    normalParameters.up = levelDrawer::DefaultConfig::up;
-    normalParameters.viewPoint = levelDrawer::DefaultConfig::viewPoint;
-    normalParameters.nearPlane = levelDrawer::DefaultConfig::nearPlane;
-    normalParameters.farPlane = levelDrawer::DefaultConfig::farPlane;
+    normalParameters.lookAt = gameConstants::lookAt;
+    normalParameters.up = gameConstants::up;
+    normalParameters.viewPoint = gameConstants::viewPoint;
+    normalParameters.nearPlane = gameConstants::nearPlane;
+    normalParameters.farPlane = gameConstants::farPlane;
     normalParameters.widthAtDepth = 2.0f;
     normalParameters.heightAtDepth = 2.0f;
     std::vector<float> rawNormalMap;

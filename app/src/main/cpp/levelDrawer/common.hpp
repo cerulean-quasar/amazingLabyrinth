@@ -1,5 +1,5 @@
 /**
- * Copyright 2022 Cerulean Quasar. All Rights Reserved.
+ * Copyright 2024 Cerulean Quasar. All Rights Reserved.
  *
  *  This file is part of AmazingLabyrinth.
  *
@@ -24,6 +24,7 @@
 #include <boost/optional.hpp>
 #include <boost/variant.hpp>
 #include <glm/glm.hpp>
+#include <glm/gtc/constants.hpp>
 
 #include "../common.hpp"
 
@@ -155,30 +156,35 @@ namespace renderDetails {
     using PostprocessingDataInputGL = boost::variant<std::vector<uint16_t>, std::vector<uint8_t>>;
 }
 
+namespace gameConstants {
+    static float constexpr const viewAngle = glm::pi<float>() / 4.0f;
+    static float constexpr const nearPlane = 0.5f;
+    static float constexpr const farPlane = 5.0f;
+    static glm::vec3 constexpr const viewPoint{0.0f, 0.0f, 1.0f};
+    static glm::vec3 constexpr const lightingSource{1.0f, 1.0f, 1.5f};
+    static glm::vec3 constexpr const lookAt{0.0f, 0.0f, levelTracker::m_maxZLevel};
+    static glm::vec3 constexpr const up{0.0f, 1.0f, 0.0f};
+
+    static std::shared_ptr<renderDetails::ParametersPerspective> getPerspectiveParameters() {
+        auto parameters = std::make_shared<renderDetails::ParametersPerspective>();
+        parameters->lookAt = lookAt;
+        parameters->up = up;
+        parameters->viewPoint = viewPoint;
+        parameters->viewAngle = viewAngle;
+        parameters->nearPlane = nearPlane;
+        parameters->farPlane = farPlane;
+        parameters->lightingSources = std::vector<glm::vec3>{lightingSource};
+        return parameters;
+    }
+
+    static std::shared_ptr<renderDetails::ParametersPerspective> getShadowParameters(renderDetails::ParametersPerspective const &srcParms) {
+        auto parameters = std::make_shared<renderDetails::ParametersPerspective>(srcParms);
+        parameters->viewPoint = parameters->lightingSources[0];
+        return parameters;
+    }
+} // namespace gameConstants
+
 namespace levelDrawer {
-    struct DefaultConfig {
-        static float constexpr const viewAngle = 3.1415926f/4.0f;
-        static float constexpr const nearPlane = 0.5f;
-        static float constexpr const farPlane = 5.0f;
-        static glm::vec3 constexpr const viewPoint{0.0f, 0.0f, 1.0f};
-        static glm::vec3 constexpr const lightingSource{1.0f, 1.0f, 1.5f};
-        static glm::vec3 constexpr const lookAt{0.0f, 0.0f, levelTracker::m_maxZLevel};
-        static glm::vec3 constexpr const up{0.0f, 1.0f, 0.0f};
-
-        static std::shared_ptr<renderDetails::ParametersPerspective> getDefaultParameters()  {
-            auto parametersDefault = std::make_shared<renderDetails::ParametersPerspective>();
-            parametersDefault->lookAt = DefaultConfig::lookAt;
-            parametersDefault->up = DefaultConfig::up;
-            parametersDefault->viewPoint = DefaultConfig::viewPoint;
-            parametersDefault->viewAngle = DefaultConfig::viewAngle;
-            parametersDefault->nearPlane = DefaultConfig::nearPlane;
-            parametersDefault->farPlane = DefaultConfig::farPlane;
-            parametersDefault->lightingSources = std::vector<glm::vec3>{DefaultConfig::lightingSource};
-            return parametersDefault;
-        }
-
-    };
-
     template<typename BaseClass>
     class BaseClassPtrLess {
     public:

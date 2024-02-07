@@ -80,7 +80,7 @@ namespace starter {
                         {}};
 
                 m_levelDrawer.requestRenderDetails(
-                        query, levelDrawer::DefaultConfig::getDefaultParameters());
+                        query, gameConstants::getPerspectiveParameters());
             }
         };
 
