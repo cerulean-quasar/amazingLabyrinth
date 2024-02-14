@@ -26,11 +26,12 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 
-#include "../../graphicsVulkan.hpp"
-#include "../../levelDrawer/drawObjectTable/drawObjectTable.hpp"
-#include "../renderDetails.hpp"
-#include "../shadows/renderDetailsVulkan.hpp"
-#include "../renderDetailsVulkan.hpp"
+#include "graphicsVulkan.hpp"
+#include "levelDrawer/drawObjectTable/drawObjectTable.hpp"
+#include "renderDetails/dark/renderDetailsVulkan.hpp"
+#include "renderDetails/renderDetails.hpp"
+#include "renderDetails/shadows/renderDetailsVulkan.hpp"
+#include "renderDetails/renderDetailsVulkan.hpp"
 
 namespace darkObject {
     size_t constexpr numberShadowMaps = renderDetails::numberOfShadowMapsDarkMaze;

@@ -49,17 +49,6 @@ namespace renderDetails {
         virtual ~ParametersObjectWithShadowsVulkan() = default;
     };
 
-    struct ParametersDarkObjectVulkan : public ParametersPerspective {
-        std::array<std::shared_ptr<vulkan::ImageSampler>, numberOfShadowMapsDarkMaze> darkSamplers;
-
-        ParametersDarkObjectVulkan(ParametersPerspective const &parameters,
-                                   std::array<std::shared_ptr<vulkan::ImageSampler>, numberOfShadowMapsDarkMaze> const &samplers)
-                : ParametersPerspective(parameters),
-                  darkSamplers{samplers} {
-        }
-        virtual ~ParametersDarkObjectVulkan() = default;
-    };
-
     class DrawObjectDataVulkan : public DrawObjectData {
     public:
         virtual bool hasTexture() = 0;

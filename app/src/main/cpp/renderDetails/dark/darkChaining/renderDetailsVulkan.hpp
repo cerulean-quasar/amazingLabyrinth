@@ -27,10 +27,12 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 
-#include "../darkObject//renderDetailsVulkan.hpp"
-#include "../renderDetailsVulkan.hpp"
-#include "../../levelDrawer/drawObjectTable/drawObjectTableVulkan.hpp"
-#include "../../levelDrawer/common.hpp"
+#include "renderDetails/dark/darkObject/renderDetailsVulkan.hpp"
+#include "renderDetails/dark/renderDetails.hpp"
+#include "renderDetails/shadows/renderDetailsVulkan.hpp"
+#include "renderDetails/renderDetailsVulkan.hpp"
+#include "levelDrawer/drawObjectTable/drawObjectTableVulkan.hpp"
+#include "levelDrawer/common.hpp"
 
 namespace darkChaining {
     size_t constexpr numberShadowMaps = renderDetails::numberOfShadowMapsDarkMaze;

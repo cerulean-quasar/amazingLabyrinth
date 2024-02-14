@@ -27,12 +27,13 @@
 
 #include <GLES3/gl3.h>
 
-#include "../renderDetailsGL.hpp"
-#include "../renderDetails.hpp"
-#include "../shadows/renderDetailsGL.hpp"
-#include "../darkObject/renderDetailsGL.hpp"
-#include "../../graphicsGL.hpp"
-#include "../../renderLoader/renderLoaderGL.hpp"
+#include "renderDetails/renderDetails.hpp"
+#include "renderDetails/renderDetailsGL.hpp"
+#include "renderDetails/renderDetails.hpp"
+#include "renderDetails/shadows/renderDetailsGL.hpp"
+#include "renderDetails/dark/darkObject/renderDetailsGL.hpp"
+#include "graphicsGL.hpp"
+#include "renderLoader/renderLoaderGL.hpp"
 
 namespace darkChaining {
     size_t constexpr numberShadowMaps = renderDetails::numberOfShadowMapsDarkMaze;

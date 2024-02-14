@@ -122,37 +122,6 @@ namespace renderDetails {
         ~ParametersNormalMap() override = default;
     };
 
-    size_t constexpr const numberOfLightSourcesDarkMaze = 2;
-    size_t constexpr const numberOfShadowMapsPerDarkObject = 4;
-    size_t constexpr const numberOfShadowMapsDarkMaze = numberOfShadowMapsPerDarkObject * numberOfLightSourcesDarkMaze;
-
-    inline void darkInitializeShadowMapParameters(ParametersPerspective &parametersShadows, ParametersPerspective const &parameters, size_t i, bool completeInitializationRequired) {
-        // shadows CODs
-        if (completeInitializationRequired) {
-            parametersShadows = parameters;
-            parametersShadows.lightingSources.resize(1);
-        }
-        parametersShadows.up = glm::vec3{0.0, 0.0, 1.0};
-
-        switch (i / parameters.lightingSources.size()) {
-            case 0:
-                parametersShadows.lookAt = glm::vec3{0.0, 1.0, 0.0};
-                break;
-            case 1:
-                parametersShadows.lookAt = glm::vec3{1.0, 0.0, 0.0};
-                break;
-            case 2:
-                parametersShadows.lookAt = glm::vec3{0.0, -1.0, 0.0};
-                break;
-            case 3:
-                parametersShadows.lookAt = glm::vec3{-1.0, 0.0, 0.0};
-        }
-
-        if (i == numberOfShadowMapsDarkMaze / parameters.lightingSources.size()) {
-            parametersShadows.lightingSources[0] = parameters.lightingSources[i/numberOfShadowMapsPerDarkObject];
-        }
-    }
-
     using PostprocessingDataInputGL = boost::variant<std::vector<uint16_t>, std::vector<uint8_t>>;
 }
 

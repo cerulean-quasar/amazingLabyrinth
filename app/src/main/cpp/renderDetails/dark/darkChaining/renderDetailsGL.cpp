@@ -19,6 +19,7 @@
  */
 
 #include "renderDetailsGL.hpp"
+#include "renderDetails/dark/renderDetails.hpp"
 
 namespace darkChaining {
     renderDetails::ReferenceGL RenderDetailsGL::loadNew(

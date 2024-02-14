@@ -1,7 +1,7 @@
 apply plugin: 'com.android.application'
 
 android {
-    compileSdkVersion 33
+    compileSdk 34
     ndkVersion "25.1.8937393"
     //ndkVersion "22.0.7026061"
     //ndkVersion "21.3.6528147"
@@ -13,7 +13,7 @@ android {
     defaultConfig {
         applicationId "com.quasar.cerulean.amazinglabyrinth"
         minSdkVersion 21
-        targetSdkVersion 33
+        targetSdkVersion 34
         versionCode 1
         versionName "1.0"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
@@ -37,7 +37,7 @@ android {
         cmake {
             path file('CMakeLists.txt')
             //version '3.10.2'
-            version '3.18.1'
+            version '3.22.1'
         }
     }
 
@@ -53,9 +53,21 @@ android {
         }
     }
     namespace 'com.quasar.cerulean.amazinglabyrinth'
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_1_8
+        targetCompatibility JavaVersion.VERSION_1_8
+    }
 }
 
 dependencies {
+    constraints {
+        implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk7:1.8.0") {
+            because("kotlin-stdlib-jdk7 is now a part of kotlin-stdlib")
+        }
+        implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk8:1.8.0") {
+            because("kotlin-stdlib-jdk8 is now a part of kotlin-stdlib")
+        }
+    }
     implementation fileTree(dir: 'libs', include: ['*.jar'])
     implementation 'androidx.appcompat:appcompat:1.4.1'
     implementation 'androidx.constraintlayout:constraintlayout:2.1.3'

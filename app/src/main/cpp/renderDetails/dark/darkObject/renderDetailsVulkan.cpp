@@ -19,9 +19,9 @@
  */
 #include <memory>
 
-#include "../../graphicsVulkan.hpp"
+#include "graphicsVulkan.hpp"
 #include "renderDetailsVulkan.hpp"
-#include "../../renderLoader/registerVulkan.hpp"
+#include "renderLoader/registerVulkan.hpp"
 
 namespace darkObject {
     /* descriptor set for the MVP matrix and texture samplers */
@@ -51,7 +51,7 @@ namespace darkObject {
 
         /* which one of these pointers needs to be used depends on which descriptorType we are
          * using.  pBufferInfo is for buffer based data, pImageInfo is used for image data, and
-         * pTexelBufferView is used for decriptors that refer to buffer views.
+         * pTexelBufferView is used for descriptors that refer to buffer views.
          */
         descriptorWrites[0].pBufferInfo = &bufferInfo;
         descriptorWrites[0].pImageInfo = nullptr; // Optional

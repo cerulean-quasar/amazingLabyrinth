@@ -20,7 +20,8 @@
 #include <memory>
 
 #include "renderDetailsVulkan.hpp"
-#include "../../renderLoader/renderLoaderVulkan.hpp"
+#include "renderLoader/renderLoaderVulkan.hpp"
+#include "renderDetails/dark/renderDetailsVulkan.hpp"
 
 namespace darkChaining {
 

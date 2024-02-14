@@ -26,11 +26,13 @@
 
 #include <GLES3/gl3.h>
 
-#include "../renderDetailsGL.hpp"
-#include "../renderDetails.hpp"
-#include "../../levelDrawer/textureTable/textureLoader.hpp"
-#include "../../graphicsGL.hpp"
-#include "../../renderLoader/renderLoaderGL.hpp"
+#include "renderDetails/dark/renderDetails.hpp"
+#include "renderDetails/dark/renderDetailsGL.hpp"
+#include "renderDetails/renderDetailsGL.hpp"
+#include "renderDetails/renderDetails.hpp"
+#include "levelDrawer/textureTable/textureLoader.hpp"
+#include "graphicsGL.hpp"
+#include "renderLoader/renderLoaderGL.hpp"
 
 namespace darkObject {
     size_t constexpr numberShadowMaps = renderDetails::numberOfShadowMapsDarkMaze;

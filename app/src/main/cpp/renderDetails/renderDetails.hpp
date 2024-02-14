@@ -159,6 +159,8 @@ namespace renderDetails {
             m_up = parameters.up;
         }
 
+        CommonObjectDataPerspective(CommonObjectDataPerspective &) = delete;
+
         CommonObjectDataPerspective(
             std::shared_ptr<ParametersPerspective> const &parameters,
             float aspectRatio)

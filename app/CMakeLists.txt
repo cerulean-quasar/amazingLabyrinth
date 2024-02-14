@@ -4,7 +4,7 @@
 # Sets the minimum version of CMake required to build the native library.
 
 #cmake_minimum_required(VERSION 3.10.2)
-cmake_minimum_required(VERSION 3.12)
+cmake_minimum_required(VERSION 3.22.1)
 
 # Declares and names the project.
 
@@ -38,10 +38,10 @@ add_library( # Sets the name of the library.
         src/main/cpp/commonGL.cpp
         src/main/cpp/renderDetails/renderDetailsGL.cpp
         src/main/cpp/renderDetails/renderDetailsVulkan.cpp
-        src/main/cpp/renderDetails/darkChaining/renderDetailsVulkan.cpp
-        src/main/cpp/renderDetails/darkChaining/renderDetailsGL.cpp
-        src/main/cpp/renderDetails/darkObject/renderDetailsVulkan.cpp
-        src/main/cpp/renderDetails/darkObject/renderDetailsGL.cpp
+        src/main/cpp/renderDetails/dark/darkChaining/renderDetailsVulkan.cpp
+        src/main/cpp/renderDetails/dark/darkChaining/renderDetailsGL.cpp
+        src/main/cpp/renderDetails/dark/darkObject/renderDetailsVulkan.cpp
+        src/main/cpp/renderDetails/dark/darkObject/renderDetailsGL.cpp
         src/main/cpp/renderDetails/depthMap/renderDetailsGL.cpp
         src/main/cpp/renderDetails/depthMap/renderDetailsVulkan.cpp
         src/main/cpp/renderDetails/normalMap/renderDetailsGL.cpp
@@ -110,6 +110,7 @@ find_library( # Sets the name of the path variable.
               log )
 
 #include_directories(${ANDROID_NDK}/sysroot/usr/include/android)
+include_directories(src/main/cpp)
 include_directories(${ANDROID_NDK}/sources/third_party/vulkan/src/libs)
 include_directories(${ANDROID_NDK}/sources/third_party/vulkan/src/common)
 include_directories(APP_GLUE_DIR ${ANDROID_NDK}/sources/android/native_app_glue)
@@ -118,7 +119,7 @@ include_directories(/opt/glm-0.9.9.5/glm)
 include_directories(/opt/tinyobjloader/include)
 include_directories(/opt/stb/include)
 include_directories(/opt/jsonforcpp)
-include_directories(/opt/boost_1_70_0)
+include_directories(/opt/boost_1_84_0)
 include_directories(/opt/VulkanMemoryAllocator)
 set(BOOST_ROOT "/opt/boost_1_70_0")
 

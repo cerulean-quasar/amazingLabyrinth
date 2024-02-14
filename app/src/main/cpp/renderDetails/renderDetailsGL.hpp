@@ -47,16 +47,6 @@ namespace renderDetails {
         ~ParametersObjectWithShadowsGL() override = default;
     };
 
-    struct ParametersDarkObjectGL : public ParametersPerspective {
-        std::array<std::shared_ptr<graphicsGL::Framebuffer>, renderDetails::numberOfShadowMapsDarkMaze> darkFramebuffers;
-
-        ParametersDarkObjectGL(ParametersPerspective const &parameters,
-                               std::array<std::shared_ptr<graphicsGL::Framebuffer>, renderDetails::numberOfShadowMapsDarkMaze> fbs)
-                : ParametersPerspective(parameters), darkFramebuffers(std::move(fbs)) {}
-
-        ~ParametersDarkObjectGL() override = default;
-    };
-
     class DrawObjectDataGL : public DrawObjectData {
     public:
         // no work is needed for this function in GL.  Just return true to indicate that it

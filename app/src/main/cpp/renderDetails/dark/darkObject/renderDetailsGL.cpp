@@ -20,10 +20,10 @@
 #include <memory>
 #include <vector>
 
-#include "../renderDetailsGL.hpp"
+#include "renderDetails/renderDetailsGL.hpp"
 #include "renderDetailsGL.hpp"
-#include "../shadows/renderDetailsGL.hpp"
-#include "../../graphicsGL.hpp"
+#include "renderDetails/shadows/renderDetailsGL.hpp"
+#include "graphicsGL.hpp"
 
 namespace darkObject {
 
