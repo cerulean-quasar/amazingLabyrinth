@@ -1,5 +1,5 @@
 /**
- * Copyright 2020 Cerulean Quasar. All Rights Reserved.
+ * Copyright 2024 Cerulean Quasar. All Rights Reserved.
  *
  *  This file is part of AmazingLabyrinth.
  *
@@ -26,7 +26,7 @@
 
 namespace renderDetails {
     class RenderDetailsGL;
-    class CommonObjectData;
+    class CommonObjectDataBase;
     struct ParametersGL;
     class DrawObjectDataGL;
 }
@@ -34,7 +34,7 @@ namespace levelDrawer {
     struct DrawObjectGLTraits {
         using RenderDetailsParametersType = renderDetails::ParametersGL;
         using RenderDetailsType = renderDetails::RenderDetailsGL;
-        using CommonObjectDataType = renderDetails::CommonObjectData;
+        using CommonObjectDataType = renderDetails::CommonObjectDataBase;
         using RenderDetailsReferenceType = renderDetails::Reference<renderDetails::RenderDetailsGL, levelDrawer::TextureDataGL, renderDetails::DrawObjectDataGL>;
         using ModelDataType = ModelDataGL;
         using TextureDataType = TextureDataGL;

@@ -1,5 +1,5 @@
 /**
- * Copyright 2022 Cerulean Quasar. All Rights Reserved.
+ * Copyright 2024 Cerulean Quasar. All Rights Reserved.
  *
  *  This file is part of AmazingLabyrinth.
  *
@@ -98,7 +98,7 @@ namespace levelDrawer {
 
         virtual void updateCommonObjectData(ObjectType type,
                                             DrawObjReference const &objRef,
-                                            renderDetails::Parameters const &parameters) = 0;
+                                            renderDetails::ParametersBase const &parameters) = 0;
 
         virtual ~LevelDrawer() = default;
     };
@@ -196,7 +196,7 @@ namespace levelDrawer {
         }
 
         void updateCommonObjectData(DrawObjReference const &drawObjRef,
-                                    renderDetails::Parameters const &parameters) {
+                                    renderDetails::ParametersBase const &parameters) {
             return m_levelDrawer->updateCommonObjectData(m_type, drawObjRef, parameters);
         }
 

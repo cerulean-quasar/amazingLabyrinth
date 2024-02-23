@@ -66,13 +66,12 @@ namespace darkChaining {
             std::shared_ptr<vulkan::SurfaceDetails> const &surfaceDetails,
             std::shared_ptr<renderDetails::Parameters> const &parametersBase) {
 
-        auto parameters = dynamic_cast<renderDetails::ParametersPerspective*>(parametersBase.get());
+        auto parameters = dynamic_cast<renderDetails::ParametersDark*>(parametersBase.get());
         if (parameters == nullptr) {
             throw std::runtime_error("Invalid render details parameter type.");
         }
 
         std::array<std::shared_ptr<shadows::CommonObjectDataVulkan>, numberShadowMaps> shadowCODs = { };
-        auto parametersShadows = std::make_shared<renderDetails::ParametersPerspective>();
         renderDetails::ReferenceVulkan refShadows;
         auto shadowsSurfaceDetails = rd->createShadowSurfaceDetails(surfaceDetails);
 
@@ -82,24 +81,29 @@ namespace darkChaining {
                 std::vector<renderDetails::Features>{},
                 std::vector<renderDetails::Features>{}};
 
-        for (size_t i = 0; i < numberShadowMaps; i++) {
-            renderDetails::darkInitializeShadowMapParameters(*parametersShadows, *parameters, i, i==0);
+        for (size_t viewPointNumber = 0; viewPointNumber < parameters->numberViewPoints(); viewPointNumber++) {
+            for (size_t direction = 0; direction < 4; direction++) {
+                // We have to load the shadows render details multiple times to get the COD, but it is
+                // not a performance problem, because after the render details is loaded the first time,
+                // the next times, it is just looked up in a list, not really any work is done other than
+                // creating the COD.
+                refShadows = renderLoader->load(
+                        gameRequester, shadowsRenderDetailsQuery, shadowsSurfaceDetails,
+                        parameters->toShadowsPerspective(direction, viewPointNumber));
 
-            // We have to load the shadows render details multiple times to get the COD, but it is
-            // not a performance problem, because after the render details is loaded the first time,
-            // the next times, it is just looked up in a list, not really any work is done other than
-            // creating the COD.
-            refShadows = renderLoader->load(
-                    gameRequester, shadowsRenderDetailsQuery, shadowsSurfaceDetails,
-                    parametersShadows);
-
-            shadowCODs[i] = std::dynamic_pointer_cast<shadows::CommonObjectDataVulkan>(refShadows.commonObjectData);
-            if (shadowCODs[i] == nullptr) {
-                throw std::runtime_error("Invalid common object data.");
+                // The shadows CODs are stored with the zeroth viewpoint first with the CODs stored
+                // in counterclockwise order starting with the camera pointed in the y direction.
+                // Next the first viewpoint's CODs (camera pointed in the -x direction) stored in
+                // the same manner.
+                shadowCODs[viewPointNumber * 4 + direction] =
+                        std::dynamic_pointer_cast<shadows::CommonObjectDataVulkan>(refShadows.commonObjectData);
+                if (shadowCODs[viewPointNumber * 4 + direction] == nullptr) {
+                    throw std::runtime_error("Invalid common object data.");
+                }
             }
         }
 
-        auto parms = std::make_shared<renderDetails::ParametersDarkObjectVulkan>(*parameters, rd->m_samplersShadows);
+        auto parms = std::make_shared<renderDetails::ParametersDarkObjectVulkan>(*parameters->toGamePerspective(), rd->m_samplersShadows);
 
         // main render details
         auto const &description = rd->m_description;
@@ -188,7 +192,7 @@ namespace darkChaining {
     void RenderDetailsVulkan::addDrawCmdsToCommandBuffer(
             VkCommandBuffer const &commandBuffer,
             size_t /* unused descriptor set ID */,
-            std::shared_ptr<renderDetails::CommonObjectData> const &commonObjectData,
+            std::shared_ptr<renderDetails::CommonObjectDataBase> const &commonObjectData,
             std::shared_ptr<levelDrawer::DrawObjectTableVulkan> const &drawObjTable,
             std::set<levelDrawer::ZValueReference>::iterator beginZValRefs,
             std::set<levelDrawer::ZValueReference>::iterator endZValRefs,

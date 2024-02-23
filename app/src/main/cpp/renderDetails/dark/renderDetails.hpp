@@ -32,32 +32,98 @@ namespace renderDetails {
     size_t constexpr const numberOfShadowMapsPerDarkObject = 4;
     size_t constexpr const numberOfShadowMapsDarkMaze = numberOfShadowMapsPerDarkObject * numberOfLightSourcesDarkMaze;
 
-    inline void darkInitializeShadowMapParameters(ParametersPerspective &parametersShadows, ParametersPerspective const &parameters, size_t i, bool completeInitializationRequired) {
-        // shadows CODs
-        if (completeInitializationRequired) {
-            parametersShadows = parameters;
-            parametersShadows.lightingSources.resize(1);
-        }
-        parametersShadows.up = glm::vec3{0.0, 0.0, 1.0};
-
-        switch (i / parameters.lightingSources.size()) {
-            case 0:
-                parametersShadows.lookAt = glm::vec3{0.0, 1.0, 0.0};
-                break;
-            case 1:
-                parametersShadows.lookAt = glm::vec3{1.0, 0.0, 0.0};
-                break;
-            case 2:
-                parametersShadows.lookAt = glm::vec3{0.0, -1.0, 0.0};
-                break;
-            case 3:
-                parametersShadows.lookAt = glm::vec3{-1.0, 0.0, 0.0};
+    struct ParametersDark : public ParametersBase {
+    public:
+        size_t pushBackViewPoint(float x, float y) {
+            glm::vec3 viewPoint{x, y, m_minLevelZ + m_ballRadius};
+            m_viewPoints.push_back(viewPoint);
+            return m_viewPoints.size() - 1;
         }
 
-        if (i == numberOfShadowMapsDarkMaze / parameters.lightingSources.size()) {
-            parametersShadows.lightingSources[0] = parameters.lightingSources[i/numberOfShadowMapsPerDarkObject];
+        size_t numberViewPoints() { return m_viewPoints.size(); }
+
+        void updateBallRadius(float inBallRadius) {
+            m_ballRadius = inBallRadius;
         }
-    }
-}
+
+        void updateViewPoint(size_t viewPointNumber, float x, float y) {
+            if (viewPointNumber >= m_viewPoints.size()) {
+                throw std::runtime_error("Viewpoint requested is out of range.");
+            }
+
+            m_viewPoints[viewPointNumber].x = x;
+            m_viewPoints[viewPointNumber].y = y;
+            m_viewPoints[viewPointNumber].z = m_minLevelZ + m_ballRadius;
+        }
+
+        std::shared_ptr<ParametersPerspective> toGamePerspective() {
+            return gameConstants::getPerspectiveParameters();
+        }
+
+        std::shared_ptr<ParametersPerspective> toShadowsPerspective(size_t direction, size_t viewPointNumber) {
+            ParametersPerspective parameters;
+            if (viewPointNumber >= m_viewPoints.size()) {
+                throw std::runtime_error("Viewpoint requested is out of range.");
+            }
+
+            parameters.viewAngle = m_viewAngleConstant;
+            parameters.viewPoint = m_viewPoints[viewPointNumber];
+            parameters.up = glm::vec3{0.0, 0.0, 1.0};
+            switch (direction) {
+                case 0:
+                    parameters.lookAt = glm::vec3{0.0, 1.0, m_minLevelZ + m_ballRadius};
+                    break;
+                case 1:
+                    parameters.lookAt = glm::vec3{1.0, 0.0, m_minLevelZ + m_ballRadius};
+                    break;
+                case 2:
+                    parameters.lookAt = glm::vec3{0.0, -1.0, m_minLevelZ + m_ballRadius};
+                    break;
+                case 3:
+                    parameters.lookAt = glm::vec3{-1.0, 0.0, m_minLevelZ + m_ballRadius};
+            }
+
+            parameters.nearPlane = m_ballRadius - m_errorConstant;
+            if (direction == 0 || direction == 2) {
+                parameters.farPlane = m_gameBoardHeight;
+            } else {
+                parameters.farPlane = m_gameBoardWidth;
+            }
+
+            return std::make_shared<ParametersPerspective>(parameters);
+        }
+
+        ParametersDark(float inBallRadius, float inGameBoardWidth, float inGameBoardHeight, float inMinLevelZ)
+        : ParametersBase(),
+          m_ballRadius{inBallRadius},
+          m_gameBoardWidth{inGameBoardWidth},
+          m_gameBoardHeight{inGameBoardHeight},
+          m_minLevelZ{inMinLevelZ},
+          m_viewPoints{}
+        {}
+
+        ~ParametersDark() override = default;
+
+    private:
+        static float const constexpr m_viewAngleConstant = glm::pi<float>()/2;
+        static float const constexpr m_errorConstant = 0.001;
+        float m_ballRadius;
+        float m_gameBoardWidth;
+        float m_gameBoardHeight;
+        float m_minLevelZ;
+        std::vector<glm::vec3> m_viewPoints;
+    };
+
+    class CommonObjectDataDark : public CommonObjectDataBase {
+        ParametersDark const &parameters() { return m_parameters; }
+
+        void update(ParametersBase const &parametersBase) override {
+            auto parameters = dynamic_cast<ParametersDark const &>(parametersBase);
+            m_parameters = parameters;
+        }
+    private:
+        ParametersDark m_parameters;
+    };
+} // renderDetails
 
 #endif // AMAZING_LABYRINTH_DARK_RENDER_DETAILS_HPP

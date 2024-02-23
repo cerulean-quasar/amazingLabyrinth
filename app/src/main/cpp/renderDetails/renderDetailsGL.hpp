@@ -52,7 +52,7 @@ namespace renderDetails {
         // no work is needed for this function in GL.  Just return true to indicate that it
         // succeeded
         virtual bool updateTextureData(
-                std::shared_ptr<CommonObjectData> const &,
+                std::shared_ptr<CommonObjectDataBase> const &,
                 std::shared_ptr<levelDrawer::TextureDataGL> const &)
         {
             return true;
@@ -86,7 +86,7 @@ namespace renderDetails {
         // render details don't need this.  Provide this default function which copies the
         // source into the destination (probably will never be called).
         virtual void postProcessImageBuffer(
-                std::shared_ptr<renderDetails::CommonObjectData> const &,
+                std::shared_ptr<renderDetails::CommonObjectDataBase> const &,
                 PostprocessingDataInputGL const &input,
                 std::vector<float> &results)
         {
@@ -123,7 +123,7 @@ namespace renderDetails {
 
         virtual void draw(
                 uint32_t modelMatrixID,
-                std::shared_ptr<renderDetails::CommonObjectData> const &commonObjectData,
+                std::shared_ptr<renderDetails::CommonObjectDataBase> const &commonObjectDataBase,
                 std::shared_ptr<levelDrawer::DrawObjectTableGL> const &drawObjTable,
                 std::set<levelDrawer::ZValueReference>::iterator beginZValRefs,
                 std::set<levelDrawer::ZValueReference>::iterator endZValRefs) = 0;

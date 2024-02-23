@@ -1,5 +1,5 @@
 /**
- * Copyright 2020 Cerulean Quasar. All Rights Reserved.
+ * Copyright 2024 Cerulean Quasar. All Rights Reserved.
  *
  *  This file is part of AmazingLabyrinth.
  *
@@ -27,7 +27,7 @@
 
 namespace renderDetails {
     class RenderDetailsVulkan;
-    class CommonObjectData;
+    class CommonObjectDataBase;
     struct ParametersVulkan;
     class DrawObjectDataVulkan;
 }
@@ -36,7 +36,7 @@ namespace levelDrawer {
     struct DrawObjectVulkanTraits {
         using RenderDetailsParametersType = renderDetails::ParametersVulkan;
         using RenderDetailsType = renderDetails::RenderDetailsVulkan;
-        using CommonObjectDataType = renderDetails::CommonObjectData;
+        using CommonObjectDataType = renderDetails::CommonObjectDataBase;
         using RenderDetailsReferenceType = renderDetails::Reference<renderDetails::RenderDetailsVulkan, levelDrawer::TextureDataVulkan, renderDetails::DrawObjectDataVulkan>;
         using ModelDataType = ModelDataVulkan;
         using TextureDataType = TextureDataVulkan;

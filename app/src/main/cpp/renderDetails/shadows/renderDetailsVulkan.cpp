@@ -116,7 +116,7 @@ namespace shadows {
     void RenderDetailsVulkan::addDrawCmdsToCommandBuffer(
             VkCommandBuffer const &commandBuffer,
             size_t descriptorSetID,
-            std::shared_ptr<renderDetails::CommonObjectData> const &,
+            std::shared_ptr<renderDetails::CommonObjectDataBase> const &,
             std::shared_ptr<levelDrawer::DrawObjectTableVulkan> const &drawObjTable,
             std::set<levelDrawer::ZValueReference>::iterator beginZValRefs,
             std::set<levelDrawer::ZValueReference>::iterator endZValRefs,

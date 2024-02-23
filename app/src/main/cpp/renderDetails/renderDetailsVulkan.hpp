@@ -54,7 +54,7 @@ namespace renderDetails {
         virtual bool hasTexture() = 0;
 
         virtual bool updateTextureData(
-                std::shared_ptr<CommonObjectData> const &,
+                std::shared_ptr<CommonObjectDataBase> const &,
                 std::shared_ptr<levelDrawer::TextureDataVulkan> const &)
         {
             // The default behavior for this function should be that it fails (returns false).
@@ -100,7 +100,7 @@ namespace renderDetails {
         // This function is for render details that produce results to be used by the CPU.  Most
         // render details don't need this.
         virtual void postProcessImageBuffer(
-                std::shared_ptr<renderDetails::CommonObjectData> const &,
+                std::shared_ptr<renderDetails::CommonObjectDataBase> const &,
                 std::vector<float> const &input,
                 std::vector<float> &results)
         {
@@ -113,7 +113,7 @@ namespace renderDetails {
         virtual void addDrawCmdsToCommandBuffer(
                 VkCommandBuffer const &commandBuffer,
                 size_t descriptorSetID,
-                std::shared_ptr<CommonObjectData> const &commonObjectData,
+                std::shared_ptr<CommonObjectDataBase> const &commonObjectData,
                 std::shared_ptr<levelDrawer::DrawObjectTableVulkan> const &drawObjTable,
                 std::set<levelDrawer::ZValueReference>::iterator beginZValRefs,
                 std::set<levelDrawer::ZValueReference>::iterator endZValRefs,

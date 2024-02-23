@@ -1,5 +1,5 @@
 /**
- * Copyright 2022 Cerulean Quasar. All Rights Reserved.
+ * Copyright 2024 Cerulean Quasar. All Rights Reserved.
  *
  *  This file is part of AmazingLabyrinth.
  *
@@ -175,7 +175,7 @@ namespace levelDrawer {
         // all of the objects that are passed in should be using the same COD and renderDetails
         void updateCommonObjectData(ObjectType type,
                                   DrawObjReference const &objRef,
-                                  renderDetails::Parameters const &parameters) override {
+                                  renderDetails::ParametersBase const &parameters) override {
             auto ref = m_drawObjectTableList[type]->renderDetailsReference(objRef);
             ref.commonObjectData->update(parameters);
         }
@@ -199,7 +199,7 @@ namespace levelDrawer {
     private:
         using ExecuteDraw = std::function<void(
                 std::shared_ptr<typename traits::RenderDetailsType> const &,
-                std::shared_ptr<renderDetails::CommonObjectData> const &,
+                std::shared_ptr<renderDetails::CommonObjectDataBase> const &,
                 std::shared_ptr<typename traits::DrawObjectTableType> const &,
                 std::set<ZValueReference>::iterator,
                 std::set<ZValueReference>::iterator)>;
@@ -243,8 +243,8 @@ namespace levelDrawer {
 
         auto getRenderDetailsAndCODList()
         {
-            std::unordered_map<renderDetails::Description, std::pair<std::shared_ptr<typename traits::RenderDetailsType>, std::array<std::shared_ptr<renderDetails::CommonObjectData>, nbrDrawObjectTables>>> ret;
-            std::pair<std::shared_ptr<typename traits::RenderDetailsType>, std::array<std::shared_ptr<renderDetails::CommonObjectData>, nbrDrawObjectTables>> value;
+            std::unordered_map<renderDetails::Description, std::pair<std::shared_ptr<typename traits::RenderDetailsType>, std::array<std::shared_ptr<renderDetails::CommonObjectDataBase>, nbrDrawObjectTables>>> ret;
+            std::pair<std::shared_ptr<typename traits::RenderDetailsType>, std::array<std::shared_ptr<renderDetails::CommonObjectDataBase>, nbrDrawObjectTables>> value;
             for (size_t i = 0; i < nbrDrawObjectTables; i++) {
                 if (m_drawObjectTableList[i]->emptyOfDrawObjects()) {
                     continue;

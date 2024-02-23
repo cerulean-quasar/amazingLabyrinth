@@ -33,7 +33,7 @@
 
 namespace renderDetails {
     class RenderDetailsVulkan;
-    class CommonObjectData;
+    class CommonObjectDataBase;
     class DrawObjectDataVulkan;
     class ParametersVulkan;
     using ReferenceVulkan = Reference<RenderDetailsVulkan, levelDrawer::TextureDataVulkan, DrawObjectDataVulkan>;
@@ -59,7 +59,7 @@ namespace levelDrawer {
         using DrawRuleType = DrawObjectTableVulkan::DrawRule;
         using RenderLoaderType = RenderLoaderVulkan;
         using RenderDetailsType = renderDetails::RenderDetailsVulkan;
-        using CommonObjectDataType = renderDetails::CommonObjectData;
+        using CommonObjectDataType = renderDetails::CommonObjectDataBase;
         using RenderDetailsReferenceType = renderDetails::ReferenceVulkan;
         using ModelDataType = ModelDataVulkan;
         using ModelTableType = ModelTableVulkan;

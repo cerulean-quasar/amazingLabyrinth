@@ -56,7 +56,7 @@ namespace levelDrawer {
         // execute the commands for the main draw.
         performDraw(ExecuteDraw{
             [] (std::shared_ptr<LevelDrawerGLTraits::RenderDetailsType> const &rd,
-                    std::shared_ptr<renderDetails::CommonObjectData> const &cod,
+                    std::shared_ptr<renderDetails::CommonObjectDataBase> const &cod,
                     std::shared_ptr<LevelDrawerGLTraits::DrawObjectTableType> const &drawObjTable,
                     std::set<ZValueReference>::iterator zValRefBegin,
                     std::set<ZValueReference>::iterator zValRefEnd) -> void {

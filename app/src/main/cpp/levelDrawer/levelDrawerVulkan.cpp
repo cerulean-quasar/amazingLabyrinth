@@ -82,7 +82,7 @@ namespace levelDrawer {
         performDraw(ExecuteDraw{
             [cmdBuffer(info.cmdBuffer)] (
                     std::shared_ptr<typename LevelDrawerVulkanTraits::RenderDetailsType> const &rd,
-                    std::shared_ptr<renderDetails::CommonObjectData> const &cod,
+                    std::shared_ptr<renderDetails::CommonObjectDataBase> const &cod,
                     std::shared_ptr<typename LevelDrawerVulkanTraits::DrawObjectTableType> const &drawObjTable,
                     std::set<ZValueReference>::iterator zValRefBegin,
                     std::set<ZValueReference>::iterator zValRefEnd) -> void {

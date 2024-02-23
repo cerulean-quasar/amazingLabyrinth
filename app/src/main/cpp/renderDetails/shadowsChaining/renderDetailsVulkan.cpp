@@ -167,7 +167,7 @@ namespace shadowsChaining {
     void RenderDetailsVulkan::addDrawCmdsToCommandBuffer(
             VkCommandBuffer const &commandBuffer,
             size_t /* unused descriptor set ID */,
-            std::shared_ptr<renderDetails::CommonObjectData> const &commonObjectData,
+            std::shared_ptr<renderDetails::CommonObjectDataBase> const &commonObjectData,
             std::shared_ptr<levelDrawer::DrawObjectTableVulkan> const &drawObjTable,
             std::set<levelDrawer::ZValueReference>::iterator beginZValRefs,
             std::set<levelDrawer::ZValueReference>::iterator endZValRefs,

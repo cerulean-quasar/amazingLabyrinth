@@ -24,7 +24,8 @@
 #include "renderDetails.hpp"
 
 namespace renderDetails {
-struct ParametersDarkObjectVulkan : public ParametersPerspective {
+    struct ParametersDarkObjectVulkan : public ParametersPerspective {
+    public:
         std::array<std::shared_ptr<vulkan::ImageSampler>, numberOfShadowMapsDarkMaze> darkSamplers;
 
         ParametersDarkObjectVulkan(ParametersPerspective const &parameters,

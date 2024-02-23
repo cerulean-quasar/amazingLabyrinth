@@ -38,22 +38,37 @@ namespace renderDetails {
         MODEL_MATRIX_ID_SHADOWS
     };
 
-    class CommonObjectData {
+    class CommonObjectDataBase {
+    public:
+        virtual void update(ParametersBase const &parameters) = 0;
+        CommonObjectDataBase(ParametersBase const &) { }
+        CommonObjectDataBase() = default;
+        virtual ~CommonObjectDataBase() = default;
+    };
+
+    class CommonObjectData : public CommonObjectDataBase {
     public:
         CommonObjectData(std::shared_ptr<Parameters> const &parameters)
-            : m_nearPlane{parameters->nearPlane},
+            : CommonObjectDataBase(),
+            m_nearPlane{parameters->nearPlane},
             m_farPlane{parameters->farPlane} {}
 
         CommonObjectData(Parameters const &parameters)
                 : m_nearPlane{parameters.nearPlane},
                   m_farPlane{parameters.farPlane} {}
 
-        virtual void update(renderDetails::Parameters const &parameters) {
+        void update(renderDetails::ParametersBase const &parametersBase) override {
+            auto parameters = dynamic_cast<renderDetails::Parameters const &>(parametersBase);
+
+            update(parameters);
+        }
+
+        void update(renderDetails::Parameters const &parameters) {
             m_nearPlane = parameters.nearPlane;
             m_farPlane = parameters.farPlane;
         }
 
-        virtual ~CommonObjectData() = default;
+        ~CommonObjectData() override = default;
 
     protected:
         float m_nearPlane;
@@ -63,14 +78,22 @@ namespace renderDetails {
     class CommonObjectDataLightSources : public CommonObjectData {
     public:
         glm::vec3 getLightSource(size_t i) {
+            if (i >= m_lightSources.size()) {
+                throw std::runtime_error("lighting source requested is out of range.");
+            }
+
             return m_lightSources[i];
         }
 
         glm::mat4 getViewLightSource(size_t i, glm::vec3 const &lookAt, glm::vec3 const &up) {
+            if (i >= m_lightSources.size()) {
+                throw std::runtime_error("lighting source requested is out of range.");
+            }
+
             return glm::lookAt(m_lightSources[i], lookAt, up);
         }
 
-        void update(renderDetails::Parameters const &parametersBase) override {
+        void update(renderDetails::ParametersBase const &parametersBase) override {
             auto const &parameters = dynamic_cast<renderDetails::ParametersLightSources const &>(parametersBase);
 
             update(parameters);
@@ -106,10 +129,14 @@ namespace renderDetails {
         }
 
         glm::mat4 getViewLightSource(size_t i) {
+            if (i > m_lightSources.size() - 1) {
+                throw std::runtime_error("lighting source requested is out of range.");
+            }
+
             return glm::lookAt(m_lightSources[i], m_lookAt, m_up);
         }
 
-        void update(renderDetails::Parameters const &parametersBase) override {
+        void update(renderDetails::ParametersBase const &parametersBase) override {
             auto const &parameters = dynamic_cast<renderDetails::ParametersView const &>(parametersBase);
 
             update(parameters);
@@ -147,7 +174,7 @@ namespace renderDetails {
     public:
         virtual std::pair<glm::mat4, glm::mat4> getProjViewForLevel() = 0;
 
-        void update(renderDetails::Parameters const &parametersBase) override {
+        void update(renderDetails::ParametersBase const &parametersBase) override {
             auto const &parameters = dynamic_cast<renderDetails::ParametersPerspective const &>(parametersBase);
 
             update(parameters);
@@ -190,7 +217,7 @@ namespace renderDetails {
 
         virtual std::pair<glm::mat4, glm::mat4> getProjViewForLevel() = 0;
 
-        void update(renderDetails::Parameters const &parametersBase) override {
+        void update(renderDetails::ParametersBase const &parametersBase) override {
             auto const &parameters = dynamic_cast<renderDetails::ParametersOrtho const &>(parametersBase);
 
             update(parameters);
@@ -238,7 +265,7 @@ namespace renderDetails {
                 glm::mat4 const &)>;
         using GetProjViewForLevel = std::function<std::pair<glm::mat4, glm::mat4>()>;
         std::shared_ptr<RenderDetailsType> renderDetails;
-        std::shared_ptr<CommonObjectData> commonObjectData;
+        std::shared_ptr<CommonObjectDataBase> commonObjectData;
         CreateDrawObjectData createDrawObjectData;
         GetProjViewForLevel getProjViewForLevel;
     };

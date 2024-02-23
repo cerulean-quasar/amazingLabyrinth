@@ -39,7 +39,7 @@ namespace darkChaining {
 
     class RenderDetailsVulkan;
 
-    class CommonObjectDataVulkan : public renderDetails::CommonObjectData {
+    class CommonObjectDataVulkan : public renderDetails::CommonObjectDataBase {
         friend RenderDetailsVulkan;
     public:
         std::pair<glm::mat4, glm::mat4> getProjViewForLevel() {
@@ -54,19 +54,21 @@ namespace darkChaining {
             return m_shadowsCODs[i];
         }
 
-        void update(renderDetails::Parameters const &parametersBase) override {
-            auto parameters = dynamic_cast<renderDetails::ParametersPerspective const &>(parametersBase);
+        void update(renderDetails::ParametersBase const &parametersBase) override {
+            auto parameters = dynamic_cast<renderDetails::ParametersDark const &>(parametersBase);
 
-            m_darkObject->update(parameters);
+            m_darkObject->update(*parameters.toGamePerspective());
 
             // shadows CODs
-            renderDetails::ParametersPerspective parametersShadows{};
-            renderDetails::ReferenceVulkan refShadows;
+            for (size_t viewPointNumber = 0; viewPointNumber < parameters.numberViewPoints(); viewPointNumber++) {
+                for (size_t direction = 0; direction < 4; direction++) {
+                    auto parametersShadows = parameters.toShadowsPerspective(direction, viewPointNumber);
 
-            for (size_t i = 0; i < numberShadowMaps; i++) {
-                renderDetails::darkInitializeShadowMapParameters(parametersShadows, parameters, i, i==0);
-
-                m_shadowsCODs[i]->update(parametersShadows);
+                    // The shadows CODs are stored with the zeroth viewpoint first with the CODs stored
+                    // in counterclockwise order starting with the camera pointed in the y direction.
+                    // Next the first viewpoint's CODs stored in the same manner.
+                    m_shadowsCODs[4 * viewPointNumber + direction]->update(*parametersShadows);
+                }
             }
 
             m_shadowMapsNeedRender = true;
@@ -75,7 +77,7 @@ namespace darkChaining {
         CommonObjectDataVulkan(std::shared_ptr<darkObject::CommonObjectDataVulkan> darkObjectCOD,
                                std::array<std::shared_ptr<shadows::CommonObjectDataVulkan>, numberShadowMaps> shadowsCODs)
         // The near plane and far plane are unused for Shadows Chaining
-                : renderDetails::CommonObjectData(renderDetails::Parameters{}),
+                : renderDetails::CommonObjectDataBase(renderDetails::Parameters{}),
                   m_darkObject(std::move(darkObjectCOD)),
                   m_shadowsCODs(std::move(shadowsCODs)),
                   m_shadowMapsNeedRender(false),
@@ -120,7 +122,7 @@ namespace darkChaining {
         }
 
         bool updateTextureData(
-                std::shared_ptr<renderDetails::CommonObjectData> const &commonObjectData,
+                std::shared_ptr<renderDetails::CommonObjectDataBase> const &commonObjectData,
                 std::shared_ptr<levelDrawer::TextureDataVulkan> const &textureData) override
         {
             auto cod = dynamic_cast<CommonObjectDataVulkan*>(commonObjectData.get());
@@ -148,7 +150,7 @@ namespace darkChaining {
                 case 0:
                     return m_mainDrawObjectData->descriptorSet(id);
                 default:
-                    return m_shadowsDrawObjectsData[id-1]->descriptorSet(id > 0 ? 1 : 0);
+                    return m_shadowsDrawObjectsData[id-1]->descriptorSet(1);
             }
         }
 
@@ -205,7 +207,7 @@ namespace darkChaining {
         void addDrawCmdsToCommandBuffer(
                 VkCommandBuffer const &commandBuffer,
                 size_t descriptorSetID,
-                std::shared_ptr<renderDetails::CommonObjectData> const &commonObjectData,
+                std::shared_ptr<renderDetails::CommonObjectDataBase> const &commonObjectData,
                 std::shared_ptr<levelDrawer::DrawObjectTableVulkan> const &drawObjTable,
                 std::set<levelDrawer::ZValueReference>::iterator beginZValRefs,
                 std::set<levelDrawer::ZValueReference>::iterator endZValRefs,

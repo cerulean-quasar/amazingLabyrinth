@@ -28,7 +28,7 @@ namespace darkChaining {
             std::shared_ptr<GameRequester> const &gameRequester,
             std::shared_ptr<RenderLoaderGL> const &renderLoader,
             std::shared_ptr<graphicsGL::SurfaceDetails> const &surfaceDetails,
-            std::shared_ptr<renderDetails::Parameters> const &parametersBase)
+            std::shared_ptr<renderDetails::ParametersBase> const &parametersBase)
     {
         auto rd = std::make_shared<RenderDetailsGL>(description,
                 surfaceDetails->useIntTexture, surfaceDetails->surfaceWidth,
@@ -42,7 +42,7 @@ namespace darkChaining {
             std::shared_ptr<RenderLoaderGL> const &renderLoader,
             std::shared_ptr<renderDetails::RenderDetailsGL> rdBase,
             std::shared_ptr<graphicsGL::SurfaceDetails> const &surfaceDetails,
-            std::shared_ptr<renderDetails::Parameters> const &parametersBase)
+            std::shared_ptr<renderDetails::ParametersBase> const &parametersBase)
     {
         auto rd = std::dynamic_pointer_cast<RenderDetailsGL>(rdBase);
         if (rd == nullptr) {
@@ -67,15 +67,15 @@ namespace darkChaining {
             std::shared_ptr<RenderLoaderGL> const &renderLoader,
             std::shared_ptr<RenderDetailsGL> rd,
             std::shared_ptr<graphicsGL::SurfaceDetails> const &surfaceDetails,
-            std::shared_ptr<renderDetails::Parameters> const &parametersBase)
+            std::shared_ptr<renderDetails::ParametersBase> const &parametersBase)
     {
-        auto parameters = dynamic_cast<renderDetails::ParametersPerspective*>(parametersBase.get());
+        auto parameters = dynamic_cast<renderDetails::ParametersDark*>(parametersBase.get());
         if (parameters == nullptr) {
             throw std::runtime_error("Invalid render details parameter type.");
         }
 
         renderDetails::ReferenceGL refShadows;
-        std::array<std::shared_ptr<renderDetails::CommonObjectData>, numberShadowMaps> shadowsCODs = {};
+        std::array<std::shared_ptr<renderDetails::CommonObjectDataBase>, numberShadowMaps> shadowCODs = {};
         auto parametersShadows = std::make_shared<renderDetails::ParametersPerspective>();
 
         auto shadowSurfaceDetails = createShadowSurfaceDetails(surfaceDetails);
@@ -84,22 +84,29 @@ namespace darkChaining {
             renderDetails::DrawingStyle::shadowMap,
             std::vector<renderDetails::Features>{},
             std::vector<renderDetails::Features>{}};
-        for (size_t i = 0; i < numberShadowMaps; i++) {
-            renderDetails::darkInitializeShadowMapParameters(*parametersShadows, *parameters, i, i==0);
-            // We have to load the shadows render details multiple times to get the COD, but it is
-            // not a performance problem, because after the render details is loaded the first time,
-            // the next times, it is just looked up in a list, not really any work is done other than
-            // creating the COD.
-            refShadows = renderLoader->load(
-                    gameRequester,
-                    shadowsRenderDetailsQuery,
-                    shadowSurfaceDetails,
-                    parametersShadows);
+        for (size_t viewPointNumber = 0; viewPointNumber < parameters->numberViewPoints(); viewPointNumber++) {
+            for (size_t direction = 0; direction < 4; direction++) {
+                // We have to load the shadows render details multiple times to get the COD, but it is
+                // not a performance problem, because after the render details is loaded the first time,
+                // the next times, it is just looked up in a list, not really any work is done other than
+                // creating the COD.
+                refShadows = renderLoader->load(
+                        gameRequester, shadowsRenderDetailsQuery, shadowSurfaceDetails,
+                        parameters->toShadowsPerspective(direction, viewPointNumber));
 
-            shadowsCODs[i] = refShadows.commonObjectData;
+                // The shadows CODs are stored with the zeroth viewpoint first with the CODs stored
+                // in counterclockwise order starting with the camera pointed in the y direction.
+                // Next the first viewpoint's CODs (camera pointed in the -x direction) stored in
+                // the same manner.
+                shadowCODs[viewPointNumber * 4 + direction] =
+                        std::dynamic_pointer_cast<shadows::CommonObjectDataGL>(refShadows.commonObjectData);
+                if (shadowCODs[viewPointNumber * 4 + direction] == nullptr) {
+                    throw std::runtime_error("Invalid common object data.");
+                }
+            }
         }
 
-        auto parms = std::make_shared<renderDetails::ParametersDarkObjectGL>(*parameters,
+        auto parms = std::make_shared<renderDetails::ParametersDarkObjectGL>(*parameters->toGamePerspective(),
                                                                              rd->m_framebuffersShadows);
 
         auto const &description = rd->description();
@@ -117,7 +124,7 @@ namespace darkChaining {
         rd->m_darkObjectRenderDetails = refDarkObject.renderDetails;
         rd->m_shadowsRenderDetails = refShadows.renderDetails;
 
-        return createReference(std::move(rd), refDarkObject, refShadows, shadowsCODs);
+        return createReference(std::move(rd), refDarkObject, refShadows, shadowCODs);
     }
 
     void RenderDetailsGL::createFramebuffers()
@@ -140,7 +147,7 @@ namespace darkChaining {
             std::shared_ptr<renderDetails::RenderDetailsGL> rd,
             renderDetails::ReferenceGL const &refDarkObject,
             renderDetails::ReferenceGL const &refShadows,
-            std::array<std::shared_ptr<renderDetails::CommonObjectData>, numberShadowMaps> shadowsCODs)
+            std::array<std::shared_ptr<renderDetails::CommonObjectDataBase>, numberShadowMaps> shadowsCODs)
     {
         renderDetails::ReferenceGL ref = {};
         auto cod = std::make_shared<CommonObjectDataGL>(refDarkObject.commonObjectData,
@@ -208,7 +215,7 @@ namespace darkChaining {
 
     void RenderDetailsGL::draw(
             uint32_t /* unused model matrix ID */,
-            std::shared_ptr<renderDetails::CommonObjectData> const &commonObjectData,
+            std::shared_ptr<renderDetails::CommonObjectDataBase> const &commonObjectData,
             std::shared_ptr<levelDrawer::DrawObjectTableGL> const &drawObjTable,
             std::set<levelDrawer::ZValueReference>::iterator beginZValRefs,
             std::set<levelDrawer::ZValueReference>::iterator endZValRefs)

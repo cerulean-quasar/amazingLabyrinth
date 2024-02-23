@@ -31,7 +31,7 @@
 
 namespace renderDetails {
     class RenderDetailsGL;
-    class CommonObjectData;
+    class CommonObjectDataBase;
     class DrawObjectDataGL;
     class ParametersGL;
     using ReferenceGL = Reference<RenderDetailsGL, levelDrawer::TextureDataGL, DrawObjectDataGL>;
@@ -54,7 +54,7 @@ namespace levelDrawer {
         using DrawRuleType = DrawObjectTableGL::DrawRule;
         using RenderLoaderType = RenderLoaderGL;
         using RenderDetailsType = renderDetails::RenderDetailsGL;
-        using CommonObjectDataType = renderDetails::CommonObjectData;
+        using CommonObjectDataType = renderDetails::CommonObjectDataBase;
         using RenderDetailsReferenceType = renderDetails::ReferenceGL;
         using ModelDataType = ModelDataGL;
         using ModelTableType = ModelTableGL;

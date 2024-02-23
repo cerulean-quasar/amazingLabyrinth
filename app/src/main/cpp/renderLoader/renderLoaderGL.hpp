@@ -21,7 +21,6 @@
 #define AMAZING_LABYRINTH_RENDER_LOADER_GL_HPP
 
 #include <memory>
-#include <string>
 
 #include "../renderDetails/renderDetails.hpp"
 #include "renderLoader.hpp"
@@ -31,7 +30,7 @@
 struct RenderLoaderGLTraits {
     using RenderDetailsParametersType = renderDetails::ParametersGL;
     using RenderDetailsType = renderDetails::RenderDetailsGL;
-    using CommonObjectDataType = renderDetails::CommonObjectData;
+    using CommonObjectDataType = renderDetails::CommonObjectDataBase;
     using RenderDetailsReferenceType = renderDetails::ReferenceGL;
     using RenderDetailsParameterType = renderDetails::ParametersGL;
     using RetrieveFcns = RenderDetailsGLRetrieveFcns;

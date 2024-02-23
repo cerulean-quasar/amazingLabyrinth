@@ -121,7 +121,7 @@ include_directories(/opt/stb/include)
 include_directories(/opt/jsonforcpp)
 include_directories(/opt/boost_1_84_0)
 include_directories(/opt/VulkanMemoryAllocator)
-set(BOOST_ROOT "/opt/boost_1_70_0")
+set(BOOST_ROOT "/opt/boost_1_84_0")
 
 set(CQ_COMPILE_FLAGS)
 if (${CMAKE_BUILD_TYPE} STREQUAL Debug)

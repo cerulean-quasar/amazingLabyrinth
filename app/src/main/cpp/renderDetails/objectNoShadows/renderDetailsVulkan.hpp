@@ -53,7 +53,7 @@ namespace objectNoShadows {
                     view());
         }
 
-        void update(renderDetails::Parameters const &parametersBase) override {
+        void update(renderDetails::ParametersBase const &parametersBase) override {
             auto parameters = dynamic_cast<renderDetails::ParametersPerspective const &>(parametersBase);
 
             renderDetails::CommonObjectDataPerspective::update(parameters);
@@ -222,7 +222,7 @@ namespace objectNoShadows {
         }
 
         bool updateTextureData(
-                std::shared_ptr<renderDetails::CommonObjectData> const &commonObjectData,
+                std::shared_ptr<renderDetails::CommonObjectDataBase> const &commonObjectData,
                 std::shared_ptr<levelDrawer::TextureDataVulkan> const &textureData) override
         {
             if (m_hasTexture && textureData) {
@@ -354,7 +354,7 @@ namespace objectNoShadows {
         void addDrawCmdsToCommandBuffer(
                 VkCommandBuffer const &commandBuffer,
                 size_t descriptorSetID,
-                std::shared_ptr<renderDetails::CommonObjectData> const &commonObjectData,
+                std::shared_ptr<renderDetails::CommonObjectDataBase> const &commonObjectData,
                 std::shared_ptr<levelDrawer::DrawObjectTableVulkan> const &drawObjTable,
                 std::set<levelDrawer::ZValueReference>::iterator beginZValRefs,
                 std::set<levelDrawer::ZValueReference>::iterator endZValRefs,

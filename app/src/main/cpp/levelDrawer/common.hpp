@@ -35,15 +35,19 @@ namespace levelTracker {
 }
 
 namespace renderDetails {
-    class CommonObjectData;
+    class CommonObjectDataBase;
 
     // extra Parameters for render details.  Only some render details require these and the
     // requester of the render details (i.e. the level) needs to know what these are and what
     // to put in them.
-    struct Parameters {
+    struct ParametersBase {
+        virtual ~ParametersBase() = default;
+    };
+
+    struct Parameters : public ParametersBase {
         float nearPlane;
         float farPlane;
-        virtual ~Parameters() = default;
+        ~Parameters() override = default;
     };
 
     struct ParametersLightSources : public Parameters {
@@ -187,7 +191,7 @@ namespace levelDrawer {
 
     static size_t constexpr const nbrDrawObjectTables = 3;
 
-    using CommonObjectDataList = std::array<std::shared_ptr<renderDetails::CommonObjectData>, nbrDrawObjectTables>;
+    using CommonObjectDataList = std::array<std::shared_ptr<renderDetails::CommonObjectDataBase>, nbrDrawObjectTables>;
 
     template <typename traits> class DrawObjectTable;
 

@@ -49,8 +49,8 @@ namespace shadowsChaining {
         std::shared_ptr<shadows::CommonObjectDataGL> const &shadowsCOD() { return m_shadowsCOD; }
 
         CommonObjectDataGL(
-                std::shared_ptr<renderDetails::CommonObjectData> inObjectWithShadowsCOD,
-                std::shared_ptr<renderDetails::CommonObjectData> inShadowsCOD)
+                std::shared_ptr<renderDetails::CommonObjectDataBase> inObjectWithShadowsCOD,
+                std::shared_ptr<renderDetails::CommonObjectDataBase> inShadowsCOD)
                 // nearPlane and farPlane are unused in shadowsChaining COD
                 : CommonObjectData(renderDetails::Parameters{}),
                   m_objectWithShadowsCOD(std::dynamic_pointer_cast<objectWithShadows::CommonObjectDataGL>(inObjectWithShadowsCOD)),
@@ -119,7 +119,7 @@ namespace shadowsChaining {
 
         void draw(
                 uint32_t modelMatrixID,
-                std::shared_ptr<renderDetails::CommonObjectData> const &commonObjectData,
+                std::shared_ptr<renderDetails::CommonObjectDataBase> const &commonObjectData,
                 std::shared_ptr<levelDrawer::DrawObjectTableGL> const &drawObjTable,
                 std::set<levelDrawer::ZValueReference>::iterator beginZValRefs,
                 std::set<levelDrawer::ZValueReference>::iterator endZValRefs) override;
