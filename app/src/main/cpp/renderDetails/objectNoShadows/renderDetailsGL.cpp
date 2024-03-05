@@ -33,7 +33,7 @@ namespace objectNoShadows {
             std::shared_ptr<GameRequester> const &gameRequester,
             std::shared_ptr<RenderLoaderGL> const &,
             std::shared_ptr<graphicsGL::SurfaceDetails> const &surfaceDetails,
-            std::shared_ptr<renderDetails::Parameters> const &parametersBase)
+            std::shared_ptr<renderDetails::ParametersBase> const &parametersBase)
     {
         auto parameters =
                 dynamic_cast<renderDetails::ParametersPerspective*>(parametersBase.get());
@@ -61,7 +61,7 @@ namespace objectNoShadows {
             std::shared_ptr<RenderLoaderGL> const &,
             std::shared_ptr<renderDetails::RenderDetailsGL> rdBase,
             std::shared_ptr<graphicsGL::SurfaceDetails> const &surfaceDetails,
-            std::shared_ptr<renderDetails::Parameters> const &parametersBase)
+            std::shared_ptr<renderDetails::ParametersBase> const &parametersBase)
     {
         auto rd = dynamic_cast<RenderDetailsGL*>(rdBase.get());
         if (rd == nullptr) {
@@ -224,9 +224,9 @@ namespace objectNoShadows {
     char constexpr const *TEXTURE_DARK_V2_FRAG_GL_FILE = "shaders/darkV2TextureGL.frag";
     char constexpr const *COLOR_DARK_V2_FRAG_GL_FILE = "shaders/darkV2ColorGL.frag";
     RegisterGL<renderDetails::RenderDetailsGL, RenderDetailsGL> registerGL(
-            {renderDetails::DrawingStyle::standard, {renderDetails::Features::color, renderDetails::Features::texture}},
+            {renderDetails::DrawingStyle::standard, {renderDetails::FeatureType::color, renderDetails::FeatureType::texture}},
             std::vector<char const *>{SHADER_VERT_GL_FILE, TEXTURE_SHADER_FRAG_GL_FILE, COLOR_SHADER_FRAG_GL_FILE});
     RegisterGL<renderDetails::RenderDetailsGL, RenderDetailsGL> registerDarkV2ObjectGL(
-            {renderDetails::DrawingStyle::darkV2, {renderDetails::Features::color, renderDetails::Features::texture}},
+            {renderDetails::DrawingStyle::darkV2, {renderDetails::FeatureType::color, renderDetails::FeatureType::texture}},
             std::vector<char const *>{SHADER_VERT_GL_FILE, TEXTURE_DARK_V2_FRAG_GL_FILE, COLOR_DARK_V2_FRAG_GL_FILE});
 } // objectNoWithShadows

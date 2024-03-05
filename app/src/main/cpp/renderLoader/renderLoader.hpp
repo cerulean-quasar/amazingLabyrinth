@@ -35,7 +35,7 @@ public:
             std::shared_ptr<GameRequester> const &gameRequester,
             renderDetails::Query const &query,
             std::shared_ptr<typename traits::SurfaceDetailsType> const &surfaceDetails,
-            std::shared_ptr<renderDetails::Parameters> const &parameters)
+            std::shared_ptr<renderDetails::ParametersBase> const &parameters)
     {
         auto &registrar = traits::getRenderDetailsRegistrar();
         unsigned int score = 0;
@@ -110,7 +110,7 @@ protected:
             typename traits::RetrieveFcns const &fcns,
             std::shared_ptr<GameRequester> const &gameRequester,
             std::shared_ptr<typename traits::SurfaceDetailsType> const &surfaceDetails,
-            std::shared_ptr<renderDetails::Parameters> const &parameters) = 0;
+            std::shared_ptr<renderDetails::ParametersBase> const &parameters) = 0;
     virtual bool structuralChangeNeeded(
             std::shared_ptr<typename traits::RenderDetailsType> const &renderDetails,
             std::shared_ptr<typename traits::SurfaceDetailsType> const &surfaceDetails) = 0;
@@ -119,7 +119,7 @@ protected:
             std::shared_ptr<GameRequester> const &gameRequester,
             std::shared_ptr<typename traits::RenderDetailsType> const &renderDetails,
             std::shared_ptr<typename traits::SurfaceDetailsType> const &surfaceDetails,
-            std::shared_ptr<renderDetails::Parameters> const &parameters) = 0;
+            std::shared_ptr<renderDetails::ParametersBase> const &parameters) = 0;
 private:
     typename traits::RetrieveFcns getFcns(renderDetails::Description const &desc) {
         auto loaderFcnIt = traits::getRenderDetailsMap().find(desc);

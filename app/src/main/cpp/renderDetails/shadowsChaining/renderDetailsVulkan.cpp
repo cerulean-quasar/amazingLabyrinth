@@ -30,7 +30,7 @@ namespace shadowsChaining {
             std::shared_ptr<RenderLoaderVulkan> const &renderLoader,
             std::shared_ptr<vulkan::Device> const &inDevice,
             std::shared_ptr<vulkan::SurfaceDetails> const &surfaceDetails,
-            std::shared_ptr<renderDetails::Parameters> const &parametersBase)
+            std::shared_ptr<renderDetails::ParametersBase> const &parametersBase)
     {
         auto parameters = dynamic_cast<renderDetails::ParametersPerspective*>(parametersBase.get());
         if (parameters == nullptr) {
@@ -59,7 +59,7 @@ namespace shadowsChaining {
 
         // main render details
         renderDetails::FeatureList features = description.features();
-        features.setFeature(renderDetails::Features::chaining, false);
+        features.unsetFeature(renderDetails::FeatureType::chaining);
         renderDetails::Query query(description.drawingMethod(), features, {});
         auto refMain = renderLoader->load(
                 gameRequester, query, surfaceDetails, parms);
@@ -75,7 +75,7 @@ namespace shadowsChaining {
             std::shared_ptr<RenderLoaderVulkan> const &renderLoader,
             std::shared_ptr<renderDetails::RenderDetailsVulkan> rdBase,
             std::shared_ptr<vulkan::SurfaceDetails> const &surfaceDetails,
-            std::shared_ptr<renderDetails::Parameters> const &parametersBase)
+            std::shared_ptr<renderDetails::ParametersBase> const &parametersBase)
     {
         auto parameters = dynamic_cast<renderDetails::ParametersPerspective*>(parametersBase.get());
         if (parameters == nullptr) {
@@ -107,7 +107,7 @@ namespace shadowsChaining {
         // object with shadows render details
         auto const &description = rd->description();
         renderDetails::FeatureList features = description.features();
-        features.setFeature(renderDetails::Features::chaining, false);
+        features.unsetFeature(renderDetails::FeatureType::chaining);
         renderDetails::Query query(description.drawingMethod(), features, {});
         auto refObjectWithShadows = renderLoader->load(
             gameRequester, query, surfaceDetails, parms);
@@ -260,9 +260,9 @@ namespace shadowsChaining {
 
     RegisterVulkan<renderDetails::RenderDetailsVulkan, RenderDetailsVulkan> registerVulkan(
             {renderDetails::DrawingStyle::standard,
-                {renderDetails::Features::chaining,
-                    renderDetails::Features::shadows,
-                    renderDetails::Features::color,
-                    renderDetails::Features::texture}},
+                {renderDetails::FeatureType::chaining,
+                    renderDetails::FeatureType::shadows,
+                    renderDetails::FeatureType::color,
+                    renderDetails::FeatureType::texture}},
             std::vector<char const *>{});
 } // namespace shadowsChaining

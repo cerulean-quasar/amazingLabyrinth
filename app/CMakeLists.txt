@@ -115,7 +115,7 @@ include_directories(${ANDROID_NDK}/sources/third_party/vulkan/src/libs)
 include_directories(${ANDROID_NDK}/sources/third_party/vulkan/src/common)
 include_directories(APP_GLUE_DIR ${ANDROID_NDK}/sources/android/native_app_glue)
 include_directories(/opt/Vulkan-Tools/common)
-include_directories(/opt/glm-0.9.9.5/glm)
+include_directories(/opt/glm-1.0.1)
 include_directories(/opt/tinyobjloader/include)
 include_directories(/opt/stb/include)
 include_directories(/opt/jsonforcpp)
@@ -133,7 +133,7 @@ endif(${CMAKE_BUILD_TYPE} STREQUAL Debug)
 #endif(NOT(${CMAKE_ANDROID_ARCH_ABI} STREQUAL x86) AND (NOT(${CMAKE_ANDROID_ARCH_ABI} STREQUAL armeabi-v7a)))
 list(JOIN CQ_COMPILE_FLAGS " " CQ_CPP_STRING)
 
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Werror -Wno-unused-parameter -W -std=c++17 ${CQ_CPP_STRING}")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Werror -Wno-unused-parameter -W -std=c++20 ${CQ_CPP_STRING}")
 
 # GLM #defines:
 # (1) GLM_FORCE_DEPTH_ZERO_TO_ONE: tell GLM to use 0 to 1 for the depth.  We will translate to OpenGL's

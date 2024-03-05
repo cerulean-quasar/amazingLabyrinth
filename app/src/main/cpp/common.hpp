@@ -21,6 +21,7 @@
 #define AMAZING_LABYRINTH_COMMON_HPP
 
 #include <vector>
+#include <set>
 #include <array>
 #include <string>
 #include <memory>
@@ -28,9 +29,12 @@
 #include <functional>
 #include <atomic>
 #include <cassert>
+#include <variant>
+
+using FeatureValue = std::variant<void*, size_t>;
 
 namespace renderDetails {
-    enum Features {
+    enum FeatureType {
         shadows,
         texture,
         color,
@@ -51,76 +55,108 @@ namespace renderDetails {
     };
 
     class FeatureList {
-        using RawFeatureList = std::vector<bool>;
     public:
-        FeatureList()
-        : m_features(Features::numberFeatures, false) {}
+        using FeatureListInternal = std::set<std::pair<std::size_t, FeatureValue>>;
 
-        FeatureList(std::vector<Features> const &features)
-        : m_features(Features::numberFeatures, false)
+        FeatureList() : m_features() {}
+
+        FeatureList(std::vector<FeatureType> const &types)
+                : m_features()
         {
-            for (auto const &feature : features) {
-                m_features[feature] = true;
+            setFeature(types, {});
+        }
+
+        FeatureList(std::vector<FeatureType> const &types, std::vector<FeatureValue> const &values)
+            : m_features()
+        {
+            setFeature(types, values);
+        }
+
+        void setFeature(FeatureType type, FeatureValue const &value = nullptr) {
+            m_features.insert(std::make_pair(type, value));
+        }
+
+        void setFeature(std::vector<FeatureType> const &types) {
+            setFeature(types, {});
+        }
+
+        void setFeature(std::vector<FeatureType> const &types, std::vector<FeatureValue> const &values) {
+            size_t valuesSize = values.size();
+            if (valuesSize != 0 && valuesSize != types.size()) {
+                throw std::runtime_error("There is a mismatch in the number of Feature Types and corresponding values");
+            }
+
+            for (size_t i = 0; i < types.size(); i++) {
+                if (valuesSize == 0) {
+                    auto it = m_features.insert(std::make_pair(types[i], nullptr));
+                } else {
+                    m_features.insert(std::make_pair(types[i], values[i]));
+                }
             }
         }
 
-        size_t getHash() const {
-            return std::hash<RawFeatureList>()(m_features);
-        }
+        void unsetFeature(std::vector<FeatureType> const &types, std::vector<FeatureValue> const &values) {
+            size_t valuesSize = values.size();
+            if (valuesSize != 0 && valuesSize != types.size()) {
+                throw std::runtime_error("There is a mismatch in the number of Feature Types and corresponding values");
+            }
 
-        void bitwiseAnd(FeatureList const &other) {
-            for (size_t i = 0; i < Features::numberFeatures; i++) {
-                m_features[i] = m_features[i] && other.m_features[i];
+            for (size_t i = 0; i < types.size(); i++) {
+                if (valuesSize == 0) {
+                    m_features.erase(std::make_pair(types[i], nullptr));
+                } else {
+                    m_features.erase(std::make_pair(types[i], values[i]));
+                }
             }
         }
 
-        void bitwiseOr(FeatureList const &other) {
-            for (size_t i = 0; i < Features::numberFeatures; i++) {
-                m_features[i] = m_features[i] || other.m_features[i];
+        void unsetFeature(FeatureType type) {
+            unsetFeature(type, nullptr);
+        }
+
+        void unsetFeature(FeatureType type, FeatureValue const &value) {
+            m_features.erase(std::make_pair(type, value));
+        }
+
+        bool isFeaturePresent(FeatureType const &type) const {
+            return isFeaturePresent(type, nullptr);
+        }
+
+        bool isFeaturePresent(FeatureType const &type, FeatureValue const &value) const {
+            auto it = m_features.find(std::make_pair(type, value));
+            return it != m_features.end();
+        }
+
+        FeatureListInternal const &features() const { return m_features; }
+
+        bool operator==(FeatureList const &f) const {
+            return m_features == f.m_features;
+        }
+
+        bool operator!=(FeatureList const &f) const {
+            return (*this == f);
+        }
+
+        bool operator<(FeatureList const &f) const {
+            if (m_features.size() != f.m_features.size()) {
+                return m_features.size() < f.m_features.size();
+            } else {
+                auto it = m_features.begin();
+                auto itOther = f.m_features.begin();
+                for (;
+                     it != m_features.end() && itOther != f.m_features.end();
+                     it++, itOther++)
+                {
+                    if (*it != *itOther) {
+                        return *it < *itOther;
+                    }
+                }
+
+                return false;
             }
-        }
-
-        void setFeature(Features feature, bool value = true) {
-            m_features[feature] = value;
-        }
-
-        void setFeature(std::vector<Features> features, bool value = true) {
-            for (auto const &feature : features) {
-                m_features[feature] = value;
-            }
-        }
-
-        bool getFeatureValue(Features feature) const {
-            return m_features[feature];
-        }
-
-        bool operator==(FeatureList const &other) const {
-            return m_features == other.m_features;
-        }
-
-        bool operator!=(FeatureList const &other) const {
-            return m_features != other.m_features;
-        }
-
-        bool operator<(FeatureList const &other) const {
-            size_t selfScore = 0;
-            size_t i = 1;
-            for (auto const &feature : m_features) {
-                selfScore += i * feature;
-                i++;
-            }
-
-            size_t otherScore = 0;
-            i = 1;
-            for (auto const &feature : other.m_features) {
-                otherScore += i * feature;
-                i++;
-            }
-
-            return selfScore < otherScore;
         }
     private:
-        RawFeatureList m_features;
+        FeatureListInternal m_features;
     };
 
     struct Query {
@@ -132,8 +168,8 @@ namespace renderDetails {
 
         Query(
                 DrawingStyle inStyle,
-                std::vector<Features> const &inRequiredFeatures,
-                std::vector<Features> const &inOptionalFeatures)
+                std::vector<FeatureType> const &inRequiredFeatures,
+                std::vector<FeatureType> const &inOptionalFeatures)
                 : style{inStyle},
                   requiredFeatures(inRequiredFeatures),
                   optionalFeatures(inOptionalFeatures) {}
@@ -146,33 +182,14 @@ namespace renderDetails {
                   requiredFeatures(std::move(inRequiredFeatures)),
                   optionalFeatures(std::move(inOptionalFeatures)) {}
 
-        DrawingStyle style;
+        std::size_t style;
         FeatureList requiredFeatures;
         FeatureList optionalFeatures;
     };
 
     class Description {
     public:
-        static Description const &empty() {
-            static const Description emptyDescription{};
-            return emptyDescription;
-        }
-
-        Description()
-            : m_style(DrawingStyle::numberDrawingStyles),
-              m_features()
-        {}
-
-        Description(DrawingStyle style)
-            : m_style(style),
-              m_features() {}
-
-        Description(DrawingStyle style,
-                    std::vector<Features> const &inFeatures)
-                : m_style(style),
-                  m_features(inFeatures) {}
-
-        auto drawingMethod() const { return m_style; }
+        auto drawingMethod() const { return static_cast<DrawingStyle>(m_style); }
 
         auto const &features() const { return m_features; }
 
@@ -182,18 +199,23 @@ namespace renderDetails {
             }
 
             unsigned int score = 1;
-            for (size_t i = 0; i < Features::numberFeatures; i++) {
-                if (m_features.getFeatureValue(static_cast<Features>(i)))
-                {
-                    if (query.requiredFeatures.getFeatureValue(static_cast<Features>(i))) {
-                        continue;
-                    } else if (query.optionalFeatures.getFeatureValue(static_cast<Features>(i))) {
-                        score++;
-                        continue;
-                    } else {
-                        return 0;
-                    }
-                } else if (query.requiredFeatures.getFeatureValue(static_cast<Features>(i))) {
+            auto const &features = m_features.features();
+            for (auto const &featureQ : query.requiredFeatures.features()) {
+                if (!features.contains(featureQ)) {
+                    return 0;
+                }
+            }
+
+            for (auto const &featureQ : query.optionalFeatures.features()) {
+                if (features.contains(featureQ)) {
+                    score++;
+                }
+            }
+
+            auto const &featuresQO = query.optionalFeatures.features();
+            auto const &featuresQR = query.requiredFeatures.features();
+            for (auto const &feature : features) {
+                if (!featuresQO.contains(feature) && !featuresQR.contains(feature)) {
                     return 0;
                 }
             }
@@ -201,52 +223,71 @@ namespace renderDetails {
             return score;
         }
 
-        bool operator==(Description const &other) const {
-            if (m_style != other.m_style) {
-                return false;
-            } else if (m_features != other.m_features) {
-                return false;
+        bool empty() const {
+            FeatureValue value;
+            value.emplace<void*>(nullptr);
+            std::hash<FeatureValue>()(value);
+            return m_style == DrawingStyle::numberDrawingStyles && m_features.features().empty();
+        }
+
+        bool operator==(Description const &d) const {
+            return m_style == d.m_style && m_features == d.m_features;
+        }
+
+        bool operator!=(Description const &d) const {
+            return !(*this == d);
+        }
+
+        bool operator<(Description const &d) const {
+            if (m_style != d.m_style) {
+                return m_style < d.m_style;
+            } else {
+                return m_features < d.m_features;
             }
-
-            return true;
         }
 
-        bool operator!=(Description const &other) const {
-            return !(*this == other);
-        }
+        Description()
+                : m_style(DrawingStyle::numberDrawingStyles),
+                  m_features()
+        {}
 
-        bool operator<(Description const &other) const {
-            if (m_style < other.m_style) {
-                return true;
-            } else if (m_features < other.m_features) {
-                return true;
-            }
+        Description(DrawingStyle style)
+                : m_style(style),
+                  m_features() {}
 
-            return false;
-        }
+        Description(DrawingStyle style,
+                    std::vector<FeatureType> const &inFeatures)
+                : m_style(style),
+                  m_features(inFeatures) {}
 
     private:
-        DrawingStyle m_style;
+        std::size_t m_style;
         FeatureList m_features;
     };
 }
 
-namespace std {
-    template<>
-    struct hash<renderDetails::FeatureList> {
-        size_t operator()(renderDetails::FeatureList const &features) const {
-            return features.getHash();
-        }
-    };
+/*
+struct HashFeatureValue : public boost::static_visitor<size_t> {
+    size_t operator()(size_t value) {
+        return std::hash<size_t>()(value);
+    }
 
+    size_t operator()(void *value) {
+        return std::hash<void *>()(value);
+    }
+
+    HashFeatureValue() = default;
+};
+namespace std {
     template <>
-    struct hash<renderDetails::Description> {
-        size_t operator()(renderDetails::Description const &description) const {
-            return description.drawingMethod() ^
-                (std::hash<renderDetails::FeatureList>()(description.features()) << 1);
+    struct hash<renderDetails::FeatureList> {
+        size_t operator()(renderDetails::FeatureList const &feature) const {
+            return std::hash<renderDetails::FeatureList::FeatureListInternal>()(feature.features());
         }
     };
 }
+ */
+
 
 struct GraphicsDescription {
 public:

@@ -117,7 +117,7 @@ namespace renderDetails {
                 std::shared_ptr<levelDrawer::DrawObjectTableVulkan> const &drawObjTable,
                 std::set<levelDrawer::ZValueReference>::iterator beginZValRefs,
                 std::set<levelDrawer::ZValueReference>::iterator endZValRefs,
-                renderDetails::Description const &description = renderDetails::Description::empty()) = 0;
+                renderDetails::Description const &description = renderDetails::Description()) = 0;
 
         /*
          * renderDetailsName is left empty for most cases.  It is used to cast out any objects
@@ -138,7 +138,7 @@ namespace renderDetails {
                 std::set<levelDrawer::ZValueReference>::iterator beginZValRefs,
                 std::set<levelDrawer::ZValueReference>::iterator endZValRefs,
                 bool useVertexNormals = false,
-                renderDetails::Description const &description = renderDetails::Description::empty());
+                renderDetails::Description const &description = renderDetails::Description());
 
         virtual bool overrideClearColor(glm::vec4 &) {
             return false;

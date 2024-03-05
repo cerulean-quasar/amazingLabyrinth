@@ -2,8 +2,9 @@
 #define AMAZING_LABYRINTH_TESTZ_LEVEL_HPP
 #include <chrono>
 #include <boost/math/constants/constants.hpp>
-#include "../basic/level.hpp"
-#include "../../levelDrawer/modelTable/modelLoader.hpp"
+#include "levels/basic/level.hpp"
+#include "levelDrawer/modelTable/modelLoader.hpp"
+#include "renderDetails/dark/renderDetails.hpp"
 #include "loadData.hpp"
 
 namespace testZ {
@@ -11,11 +12,23 @@ namespace testZ {
     public:
         static char constexpr const *m_name = "testz";
 
-    struct Request : public basic::Level::Request {
-            Request(levelDrawer::Adaptor levelDrawer, bool shadowsEnabled)
-                    : basic::Level::Request(std::move(levelDrawer), shadowsEnabled)
+        struct Request : public basic::Level::Request {
+            virtual void defaultRD() {
+                renderDetails::Query query{
+                        renderDetails::DrawingStyle::dark,
+                        {renderDetails::FeatureType::color,
+                         renderDetails::FeatureType::texture},
+                        {renderDetails::FeatureType::chaining}};
+
+                auto parameters = std::make_shared<renderDetails::ParametersDark>(1);
+                m_levelDrawer.requestRenderDetails(query, parameters);
+            }
+
+            Request(levelDrawer::Adaptor levelDrawer, bool)
+                    : basic::Level::Request(std::move(levelDrawer), false)
             {}
         };
+
         Level(
                 levelDrawer::Adaptor inLevelDrawer,
                 std::shared_ptr<basic::LevelConfigData> const &lcd,
@@ -37,40 +50,42 @@ namespace testZ {
                 m_levelDrawer.setClearColor(glm::vec4{0.7f, 0.7f, 1.0f, 1.0f});
             }
 
-            auto const &quad1Data = findModelsAndTextures("Quad1");
-            m_ref1 = m_levelDrawer.addObject(quad1Data.models[0], getFirstTexture(quad1Data));
+            m_scaleBall = m_width/5;
+            glm::vec3 lightPos{0.75f, 0.75f, maxZ + m_scaleBall/2};
 
-            m_m1 = glm::scale(glm::mat4(1.0f), glm::vec3{m_width/2, m_height/2, 1.0f});
-            m_m1 = glm::rotate(glm::mat4(1.0f), boost::math::constants::pi<float>()/4.0f, glm::vec3{0.0f, 1.0f, 0.0f}) * m_m1;
-            m_m1 = glm::translate(glm::mat4(1.0f), glm::vec3{0.0f, 0.0f, maxZ+0.2f}) * m_m1;
+            auto const &quad1Data = findModelsAndTextures("Quad1");
+
+            m_ref1 = m_levelDrawer.addObject(quad1Data.models[0],
+                                             getFirstTexture(quad1Data));
+            m_m1 = glm::scale(glm::mat4(1.0f), glm::vec3{m_width/2, m_width/2, 1.0f});
+            //m_m1 = glm::rotate(glm::mat4(1.0f), boost::math::constants::pi<float>()/4.0f, glm::vec3{0.0f, 1.0f, 0.0f}) * m_m1;
+            m_m1 = glm::translate(glm::mat4(1.0f), glm::vec3{0.0f, 0.0f, maxZ}) * m_m1;
             m_ref1data = m_levelDrawer.addModelMatrixForObject(m_ref1, m_m1);
 
-            auto const &quad2Data = findModelsAndTextures("Quad2");
+            auto const &quad2Data = findModelsAndTextures("Wall1");
             m_ref2 = m_levelDrawer.addObject(quad2Data.models[0], getFirstTexture(quad2Data));
 
-            m_m2 = glm::scale(glm::mat4(1.0f), glm::vec3{m_width, m_height, 1.0f});
-            m_m2 = glm::rotate(glm::mat4(1.0f), -boost::math::constants::pi<float>()/4.0f, glm::vec3{0.0f, 1.0f, 0.0f}) * m_m2;
-            m_m2 = glm::translate(glm::mat4(1.0f), glm::vec3{0.0f, 0.0f, maxZ+0.2}) * m_m2;
+            m_m2 = glm::scale(glm::mat4(1.0f), glm::vec3{m_width/4, m_height/20, m_height/20});
+            //m_m2 = glm::rotate(glm::mat4(1.0f), -boost::math::constants::pi<float>()/4.0f, glm::vec3{0.0f, 1.0f, 0.0f}) * m_m2;
+            m_m2 = glm::translate(glm::mat4(1.0f), glm::vec3{m_width/4, m_height/4, maxZ+m_height/40}) * m_m2;
             m_ref2data = m_levelDrawer.addModelMatrixForObject(m_ref2, m_m2);
 
-
-            /*
-            auto const &quad3Data = findModelsAndTextures("Quad3");
-            levelDrawer::DrawObjReference refq3 = m_levelDrawer.addObject(quad2Data.models[0], getFirstTexture(quad3Data));
-             */
-
-            glm::mat4 mq3 = glm::scale(glm::mat4(1.0f), glm::vec3{m_width/4, m_height/4, 0.2f});
-            //mq3 = glm::rotate(glm::mat4(1.0f), -boost::math::constants::pi<float>()/4.0f, glm::vec3{0.0f, 1.0f, 0.0f}) * mq3;
-            mq3 = glm::translate(glm::mat4(1.0f), glm::vec3{0.0f, 0.0f, maxZ+0.5f}) * mq3;
-            //levelDrawer::DrawObjReference refq3data = m_levelDrawer.addModelMatrixForObject(refq3, mq3);
+            renderDetails::ParametersDark parameters(
+                    std::vector<glm::vec3>{lightPos},
+                    m_scaleBall/2, m_width,
+                    m_height,
+                    m_mazeFloorZ);
+            m_levelDrawer.updateCommonObjectData(m_ref2, parameters);
 
             auto const &ballData = findModelsAndTextures(ModelNameBall);
-            levelDrawer::DrawObjReference ref3 = m_levelDrawer.addObject(ballData.models[0],
-                                                                         getFirstTexture(ballData));
             glm::mat4 m3 = glm::scale(glm::mat4(1.0f), glm::vec3{m_height/20, m_height/20, m_height/20});
-            m3 = glm::translate(glm::mat4(1.0f), glm::vec3{0.0f, 0.0f, maxZ + 0.8f}) * m3;
+            m3 = glm::translate(glm::mat4(1.0f), glm::vec3{0.25f, 0.0f, maxZ + m_height/40}) * m3;
+            auto ref3 = m_levelDrawer.addObject(
+                    ballData.models[0],
+                    getFirstTexture(ballData),
+                    renderDetails::Query{renderDetails::DrawingStyle::standard, {renderDetails::FeatureType::color}, {}},
+                    gameConstants::getPerspectiveParameters());
             m_levelDrawer.addModelMatrixForObject(ref3, m3);
-            m_levelDrawer.addModelMatrixForObject(ref3, mq3);
         }
 
         bool updateData() override {

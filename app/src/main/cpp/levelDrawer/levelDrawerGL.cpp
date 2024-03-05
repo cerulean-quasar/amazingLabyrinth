@@ -73,7 +73,7 @@ namespace levelDrawer {
             float width,
             float height,
             uint32_t nbrSamplesForWidth,
-            std::shared_ptr<renderDetails::Parameters> const &parameters,
+            std::shared_ptr<renderDetails::ParametersBase> const &parameters,
             std::vector<float> &results)
     {
         if (modelsTextures.size() != modelMatrix.size()) {

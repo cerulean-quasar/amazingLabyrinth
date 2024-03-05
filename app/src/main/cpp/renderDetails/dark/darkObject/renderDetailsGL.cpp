@@ -33,7 +33,7 @@ namespace darkObject {
             std::shared_ptr<GameRequester> const &gameRequester,
             std::shared_ptr<RenderLoaderGL> const &,
             std::shared_ptr<graphicsGL::SurfaceDetails> const &surfaceDetails,
-            std::shared_ptr<renderDetails::Parameters> const &parametersBase)
+            std::shared_ptr<renderDetails::ParametersBase> const &parametersBase)
     {
         auto parameters =
                 dynamic_cast<renderDetails::ParametersDarkObjectGL*>(parametersBase.get());
@@ -64,7 +64,7 @@ namespace darkObject {
             std::shared_ptr<RenderLoaderGL> const &,
             std::shared_ptr<renderDetails::RenderDetailsGL> rdBase,
             std::shared_ptr<graphicsGL::SurfaceDetails> const &surfaceDetails,
-            std::shared_ptr<renderDetails::Parameters> const &parametersBase)
+            std::shared_ptr<renderDetails::ParametersBase> const &parametersBase)
     {
         auto rd = dynamic_cast<RenderDetailsGL*>(rdBase.get());
         if (rd == nullptr) {
@@ -303,6 +303,6 @@ namespace darkObject {
     char constexpr const *TEXTURE_SHADER_FRAG_GL_FILE = "shaders/darkTextureGL.frag";
     char constexpr const *COLOR_SHADER_FRAG_GL_FILE = "shaders/darkColorGL.frag";
     RegisterGL<renderDetails::RenderDetailsGL, RenderDetailsGL> registerGL(
-            {renderDetails::DrawingStyle::dark, {renderDetails::Features::color, renderDetails::Features::texture}},
+            {renderDetails::DrawingStyle::dark, {renderDetails::FeatureType::color, renderDetails::FeatureType::texture}},
             std::vector<char const *>{SHADER_VERT_GL_FILE, TEXTURE_SHADER_FRAG_GL_FILE, COLOR_SHADER_FRAG_GL_FILE});
 } // darkObject

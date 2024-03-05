@@ -26,6 +26,7 @@
 #include <array>
 
 #include "levelDrawer/common.hpp"
+#include "renderDetails/renderDetails.hpp"
 
 namespace renderDetails {
     size_t constexpr const numberOfLightSourcesDarkMaze = 2;
@@ -62,6 +63,16 @@ namespace renderDetails {
 
         std::shared_ptr<ParametersPerspective> toShadowsPerspective(size_t direction, size_t viewPointNumber) {
             ParametersPerspective parameters;
+            if (!m_initializingConstructorCalled) {
+                if (viewPointNumber >= m_nbrViewPoints) {
+                    throw std::runtime_error("Viewpoint requested is out of range.");
+                }
+
+                // not all of the information required to construct the shadows parameters
+                // is known yet, so just give the caller the game parameters as a place holder
+                return gameConstants::getPerspectiveParameters();
+            }
+
             if (viewPointNumber >= m_viewPoints.size()) {
                 throw std::runtime_error("Viewpoint requested is out of range.");
             }
@@ -93,13 +104,26 @@ namespace renderDetails {
             return std::make_shared<ParametersPerspective>(parameters);
         }
 
-        ParametersDark(float inBallRadius, float inGameBoardWidth, float inGameBoardHeight, float inMinLevelZ)
-        : ParametersBase(),
-          m_ballRadius{inBallRadius},
-          m_gameBoardWidth{inGameBoardWidth},
-          m_gameBoardHeight{inGameBoardHeight},
-          m_minLevelZ{inMinLevelZ},
-          m_viewPoints{}
+        ParametersDark(size_t nbrViewPoints)
+                : ParametersBase(),
+                  m_ballRadius{},
+                  m_gameBoardWidth{},
+                  m_gameBoardHeight{},
+                  m_minLevelZ{},
+                  m_nbrViewPoints{nbrViewPoints},
+                  m_viewPoints{},
+                  m_initializingConstructorCalled{false}
+        {}
+
+        ParametersDark(std::vector<glm::vec3> viewPoints, float inBallRadius, float inGameBoardWidth, float inGameBoardHeight, float inMinLevelZ)
+            : ParametersBase(),
+              m_ballRadius{inBallRadius},
+              m_gameBoardWidth{inGameBoardWidth},
+              m_gameBoardHeight{inGameBoardHeight},
+              m_minLevelZ{inMinLevelZ},
+              m_nbrViewPoints{viewPoints.size()},
+              m_viewPoints{std::move(viewPoints)},
+              m_initializingConstructorCalled{true}
         {}
 
         ~ParametersDark() override = default;
@@ -111,7 +135,10 @@ namespace renderDetails {
         float m_gameBoardWidth;
         float m_gameBoardHeight;
         float m_minLevelZ;
+        size_t m_nbrViewPoints;
         std::vector<glm::vec3> m_viewPoints;
+
+        bool m_initializingConstructorCalled;
     };
 
     class CommonObjectDataDark : public CommonObjectDataBase {

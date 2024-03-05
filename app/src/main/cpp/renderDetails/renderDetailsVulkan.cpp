@@ -91,7 +91,7 @@ namespace renderDetails {
             return;
         }
 
-        bool emptyDescription = description == renderDetails::Description::empty();
+        bool emptyDescription = description.empty();
 
         VkDeviceSize offsets[1] = {0};
 

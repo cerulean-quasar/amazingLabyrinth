@@ -38,8 +38,8 @@ namespace darkMaze {
             void defaultRD() override {
                 renderDetails::Query query{
                     renderDetails::DrawingStyle::darkV2,
-                    {renderDetails::Features::texture,
-                        renderDetails::Features::color},
+                    {renderDetails::FeatureType::texture,
+                        renderDetails::FeatureType::color},
                     {}};
 
                 m_levelDrawer.requestRenderDetails(query, getParameters());
@@ -51,8 +51,8 @@ namespace darkMaze {
             {
                 renderDetails::Query query{
                         renderDetails::DrawingStyle::standard,
-                        {renderDetails::Features::texture,
-                         renderDetails::Features::color},
+                        {renderDetails::FeatureType::texture,
+                         renderDetails::FeatureType::color},
                         {}};
 
                 return m_levelDrawer.addObject(
@@ -66,8 +66,8 @@ namespace darkMaze {
             {
                 renderDetails::Query query{
                         renderDetails::DrawingStyle::standard,
-                        {renderDetails::Features::texture,
-                         renderDetails::Features::color},
+                        {renderDetails::FeatureType::texture,
+                         renderDetails::FeatureType::color},
                         {}};
 
                 return m_levelDrawer.addObject(

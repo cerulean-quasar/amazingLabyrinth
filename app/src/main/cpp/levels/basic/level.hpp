@@ -227,12 +227,12 @@ namespace basic {
             virtual void defaultRD() {
                 renderDetails::Query query{
                     renderDetails::DrawingStyle::standard,
-                    {renderDetails::Features::color,
-                        renderDetails::Features::texture},
+                    {renderDetails::FeatureType::color,
+                        renderDetails::FeatureType::texture},
                     {}};
 
                 if (m_shadowsEnabled) {
-                    query.optionalFeatures.setFeature({renderDetails::Features::chaining, renderDetails::Features::shadows});
+                    query.optionalFeatures.setFeature({renderDetails::FeatureType::chaining, renderDetails::FeatureType::shadows});
                 }
 
                 m_levelDrawer.requestRenderDetails(

@@ -88,7 +88,7 @@ namespace levelDrawer {
                 std::shared_ptr<ModelDescription> const &modelDescription,
                 std::shared_ptr<TextureDescription> const &textureDescription,
                 renderDetails::Query const &renderDetailsQuery,
-                std::shared_ptr<renderDetails::Parameters> const &parameters) override {
+                std::shared_ptr<renderDetails::ParametersBase> const &parameters) override {
             std::shared_ptr<typename traits::ModelDataType> modelData = m_modelTable.addModel(
                     m_gameRequester, modelDescription);
             std::shared_ptr<typename traits::TextureDataType> textureData{};
@@ -149,7 +149,7 @@ namespace levelDrawer {
             return m_drawObjectTableList[type]->numberObjectsDataForObject(drawObjReference);
         }
 
-        void requestRenderDetails(ObjectType type, renderDetails::Query const &query, std::shared_ptr<renderDetails::Parameters> const &parameters) override {
+        void requestRenderDetails(ObjectType type, renderDetails::Query const &query, std::shared_ptr<renderDetails::ParametersBase> const &parameters) override {
             m_drawObjectTableList[type]->loadRenderDetails(
                     m_renderLoader->load(m_gameRequester, query, m_surfaceDetails, parameters));
         }
@@ -187,7 +187,7 @@ namespace levelDrawer {
             float width,
             float height,
             uint32_t nbrSamplesForWidth,
-            std::shared_ptr<renderDetails::Parameters> const &parameters,
+            std::shared_ptr<renderDetails::ParametersBase> const &parameters,
             std::vector<float> &results) override;
 
         LevelDrawerGraphics(typename traits::NeededForDrawingType neededForDrawing,
@@ -243,7 +243,7 @@ namespace levelDrawer {
 
         auto getRenderDetailsAndCODList()
         {
-            std::unordered_map<renderDetails::Description, std::pair<std::shared_ptr<typename traits::RenderDetailsType>, std::array<std::shared_ptr<renderDetails::CommonObjectDataBase>, nbrDrawObjectTables>>> ret;
+            std::map<renderDetails::Description, std::pair<std::shared_ptr<typename traits::RenderDetailsType>, std::array<std::shared_ptr<renderDetails::CommonObjectDataBase>, nbrDrawObjectTables>>> ret;
             std::pair<std::shared_ptr<typename traits::RenderDetailsType>, std::array<std::shared_ptr<renderDetails::CommonObjectDataBase>, nbrDrawObjectTables>> value;
             for (size_t i = 0; i < nbrDrawObjectTables; i++) {
                 if (m_drawObjectTableList[i]->emptyOfDrawObjects()) {

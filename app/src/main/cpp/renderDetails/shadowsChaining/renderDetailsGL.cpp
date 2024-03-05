@@ -27,7 +27,7 @@ namespace shadowsChaining {
             std::shared_ptr<GameRequester> const &gameRequester,
             std::shared_ptr<RenderLoaderGL> const &renderLoader,
             std::shared_ptr<graphicsGL::SurfaceDetails> const &surfaceDetails,
-            std::shared_ptr<renderDetails::Parameters> const &parametersBase)
+            std::shared_ptr<renderDetails::ParametersBase> const &parametersBase)
     {
         auto parameters = dynamic_cast<renderDetails::ParametersPerspective*>(parametersBase.get());
         if (parameters == nullptr) {
@@ -51,7 +51,7 @@ namespace shadowsChaining {
 
         auto parms = std::make_shared<renderDetails::ParametersObjectWithShadowsGL>(*parameters, rd->m_framebufferShadows);
         auto features = description.features();
-        features.setFeature(renderDetails::Features::chaining, false);
+        features.unsetFeature(renderDetails::FeatureType::chaining);
         auto refObjectWithShadows = renderLoader->load(
                 gameRequester,
                 {renderDetails::DrawingStyle::standard,
@@ -71,7 +71,7 @@ namespace shadowsChaining {
             std::shared_ptr<RenderLoaderGL> const &renderLoader,
             std::shared_ptr<renderDetails::RenderDetailsGL> rdBase,
             std::shared_ptr<graphicsGL::SurfaceDetails> const &surfaceDetails,
-            std::shared_ptr<renderDetails::Parameters> const &parametersBase)
+            std::shared_ptr<renderDetails::ParametersBase> const &parametersBase)
     {
         auto rd = dynamic_cast<RenderDetailsGL*>(rdBase.get());
         if (rd == nullptr) {
@@ -105,7 +105,7 @@ namespace shadowsChaining {
 
         auto parms = std::make_shared<renderDetails::ParametersObjectWithShadowsGL>(*parameters, rd->m_framebufferShadows);
         auto features = rd->description().features();
-        features.setFeature(renderDetails::Features::chaining, false);
+        features.unsetFeature(renderDetails::FeatureType::chaining);
         auto refObjectWithShadows = renderLoader->load(
                 gameRequester,
                 {renderDetails::DrawingStyle::standard,
@@ -220,9 +220,9 @@ namespace shadowsChaining {
 
     RegisterGL<renderDetails::RenderDetailsGL, RenderDetailsGL> registerGL(
         {renderDetails::DrawingStyle::standard,
-        {renderDetails::Features::chaining,
-            renderDetails::Features::shadows,
-            renderDetails::Features::color,
-            renderDetails::Features::texture}},
+        {renderDetails::FeatureType::chaining,
+            renderDetails::FeatureType::shadows,
+            renderDetails::FeatureType::color,
+            renderDetails::FeatureType::texture}},
         std::vector<char const *>{});
 }

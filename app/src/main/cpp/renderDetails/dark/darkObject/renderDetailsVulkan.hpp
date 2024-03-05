@@ -137,7 +137,7 @@ namespace darkObject {
         std::shared_ptr<vulkan::Buffer> m_cameraBuffer;
         std::shared_ptr<vulkan::Buffer> m_lightingSourceBuffer;
         float m_aspectRatio;
-        std::array<std::shared_ptr<vulkan::ImageSampler>, numberShadowMaps> m_darkSamplers;
+        std::vector<std::shared_ptr<vulkan::ImageSampler>> m_darkSamplers;
     };
 
     class TextureDescriptorSetLayout : public vulkan::DescriptorSetLayout {
@@ -355,7 +355,7 @@ namespace darkObject {
                 std::shared_ptr<RenderLoaderVulkan> const &,
                 std::shared_ptr<vulkan::Device> const &inDevice,
                 std::shared_ptr<vulkan::SurfaceDetails> const &surfaceDetails,
-                std::shared_ptr<renderDetails::Parameters> const &parametersBase)
+                std::shared_ptr<renderDetails::ParametersBase> const &parametersBase)
         {
             auto parameters = dynamic_cast<renderDetails::ParametersDarkObjectVulkan*>(parametersBase.get());
             if (parameters == nullptr) {
@@ -380,7 +380,7 @@ namespace darkObject {
                 std::shared_ptr<RenderLoaderVulkan> const &,
                 std::shared_ptr<renderDetails::RenderDetailsVulkan> rdBase,
                 std::shared_ptr<vulkan::SurfaceDetails> const &surfaceDetails,
-                std::shared_ptr<renderDetails::Parameters> const &parametersBase)
+                std::shared_ptr<renderDetails::ParametersBase> const &parametersBase)
         {
             auto parameters = dynamic_cast<renderDetails::ParametersDarkObjectVulkan*>(parametersBase.get());
             if (parameters == nullptr) {

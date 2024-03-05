@@ -54,7 +54,7 @@ namespace finisher {
         {
             renderDetails::Query query{
                 renderDetails::DrawingStyle::standard,
-                {renderDetails::Features::color, renderDetails::Features::texture},
+                {renderDetails::FeatureType::color, renderDetails::FeatureType::texture},
                 {}};
 
             m_levelDrawer.requestRenderDetails(query, gameConstants::getPerspectiveParameters());

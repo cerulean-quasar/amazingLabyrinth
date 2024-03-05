@@ -82,10 +82,10 @@ namespace darkChaining {
 
         renderDetails::Query shadowsRenderDetailsQuery{
             renderDetails::DrawingStyle::shadowMap,
-            std::vector<renderDetails::Features>{},
-            std::vector<renderDetails::Features>{}};
+            std::vector<renderDetails::FeatureType>{},
+            std::vector<renderDetails::FeatureType>{}};
         for (size_t viewPointNumber = 0; viewPointNumber < parameters->numberViewPoints(); viewPointNumber++) {
-            for (size_t direction = 0; direction < 4; direction++) {
+            for (size_t direction = 0; direction < numberShadowMapsPerLight; direction++) {
                 // We have to load the shadows render details multiple times to get the COD, but it is
                 // not a performance problem, because after the render details is loaded the first time,
                 // the next times, it is just looked up in a list, not really any work is done other than
@@ -98,9 +98,9 @@ namespace darkChaining {
                 // in counterclockwise order starting with the camera pointed in the y direction.
                 // Next the first viewpoint's CODs (camera pointed in the -x direction) stored in
                 // the same manner.
-                shadowCODs[viewPointNumber * 4 + direction] =
+                shadowCODs[viewPointNumber * numberShadowMapsPerLight + direction] =
                         std::dynamic_pointer_cast<shadows::CommonObjectDataGL>(refShadows.commonObjectData);
-                if (shadowCODs[viewPointNumber * 4 + direction] == nullptr) {
+                if (shadowCODs[viewPointNumber * numberShadowMapsPerLight + direction] == nullptr) {
                     throw std::runtime_error("Invalid common object data.");
                 }
             }
@@ -112,7 +112,7 @@ namespace darkChaining {
         auto const &description = rd->description();
 
         renderDetails::FeatureList featuresDarkObject = description.features();
-        featuresDarkObject.setFeature(renderDetails::Features::chaining, false);
+        featuresDarkObject.unsetFeature(renderDetails::FeatureType::chaining);
 
         auto refDarkObject = renderLoader->load(
                 gameRequester,
@@ -232,8 +232,8 @@ namespace darkChaining {
 
     RegisterGL<renderDetails::RenderDetailsGL, RenderDetailsGL> registerTextureGL(
             renderDetails::Description{renderDetails::DrawingStyle::dark,
-                                       {renderDetails::Features::chaining,
-                                                 renderDetails::Features::color,
-                                                 renderDetails::Features::texture}},
+                                       {renderDetails::FeatureType::chaining,
+                                                 renderDetails::FeatureType::color,
+                                                 renderDetails::FeatureType::texture}},
             std::vector<char const *>{});
 }

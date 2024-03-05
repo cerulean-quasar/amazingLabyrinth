@@ -305,7 +305,7 @@ namespace objectNoShadows {
                 std::shared_ptr<RenderLoaderVulkan> const &,
                 std::shared_ptr<vulkan::Device> const &inDevice,
                 std::shared_ptr<vulkan::SurfaceDetails> const &surfaceDetails,
-                std::shared_ptr<renderDetails::Parameters> const &parametersBase)
+                std::shared_ptr<renderDetails::ParametersBase> const &parametersBase)
         {
             auto parameters = dynamic_cast<renderDetails::ParametersPerspective*>(parametersBase.get());
             if (parameters == nullptr) {
@@ -330,7 +330,7 @@ namespace objectNoShadows {
                 std::shared_ptr<RenderLoaderVulkan> const &,
                 std::shared_ptr<renderDetails::RenderDetailsVulkan> rdBase,
                 std::shared_ptr<vulkan::SurfaceDetails> const &surfaceDetails,
-                std::shared_ptr<renderDetails::Parameters> const &parametersBase)
+                std::shared_ptr<renderDetails::ParametersBase> const &parametersBase)
         {
             auto parameters = dynamic_cast<renderDetails::ParametersPerspective*>(parametersBase.get());
             if (parameters == nullptr) {

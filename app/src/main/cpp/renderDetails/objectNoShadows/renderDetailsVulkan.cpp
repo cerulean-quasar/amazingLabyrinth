@@ -370,9 +370,9 @@ namespace objectNoShadows {
     char constexpr const *TEXTURE_DARK_V2_FRAG_VK_FILE = "shaders/darkV2Texture.frag.spv";
     char constexpr const *COLOR_DARK_V2_FRAG_VK_FILE = "shaders/darkV2Color.frag.spv";
     RegisterVulkan<renderDetails::RenderDetailsVulkan, RenderDetailsVulkan> registerVulkan(
-            {renderDetails::DrawingStyle::standard, {renderDetails::Features::color, renderDetails::Features::texture}},
+            {renderDetails::DrawingStyle::standard, {renderDetails::FeatureType::color, renderDetails::FeatureType::texture}},
             std::vector<char const *>{SHADER_VERT_VK_FILE, TEXTURE_SHADER_FRAG_VK_FILE, COLOR_SHADER_FRAG_VK_FILE});
     RegisterVulkan<renderDetails::RenderDetailsVulkan, RenderDetailsVulkan> registerDarkV2ObjectVulkan(
-            {renderDetails::DrawingStyle::darkV2, {renderDetails::Features::color, renderDetails::Features::texture}},
+            {renderDetails::DrawingStyle::darkV2, {renderDetails::FeatureType::color, renderDetails::FeatureType::texture}},
             std::vector<char const *>{SHADER_VERT_VK_FILE, TEXTURE_DARK_V2_FRAG_VK_FILE, COLOR_DARK_V2_FRAG_VK_FILE});
 }

@@ -26,10 +26,10 @@
 namespace renderDetails {
     struct ParametersDarkObjectVulkan : public ParametersPerspective {
     public:
-        std::array<std::shared_ptr<vulkan::ImageSampler>, numberOfShadowMapsDarkMaze> darkSamplers;
+        std::vector<std::shared_ptr<vulkan::ImageSampler>> darkSamplers;
 
         ParametersDarkObjectVulkan(ParametersPerspective const &parameters,
-                                   std::array<std::shared_ptr<vulkan::ImageSampler>, numberOfShadowMapsDarkMaze> const &samplers)
+                                   std::vector<std::shared_ptr<vulkan::ImageSampler>> const &samplers)
                 : ParametersPerspective(parameters),
                   darkSamplers{samplers} {
         }

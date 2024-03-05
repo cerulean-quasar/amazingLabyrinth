@@ -53,7 +53,7 @@ protected:
             RenderLoaderGLTraits::RetrieveFcns const &fcns,
             std::shared_ptr<GameRequester> const &gameRequester,
             std::shared_ptr<RenderLoaderGLTraits::SurfaceDetailsType> const &surfaceDetails,
-            std::shared_ptr<renderDetails::Parameters> const &parameters) override
+            std::shared_ptr<renderDetails::ParametersBase> const &parameters) override
     {
         return fcns.renderDetailsLoadNewFcn(gameRequester, shared_from_this(), surfaceDetails, parameters);
     }
@@ -70,7 +70,7 @@ protected:
             std::shared_ptr<GameRequester> const &gameRequester,
             std::shared_ptr<RenderLoaderGLTraits::RenderDetailsType> const &renderDetails,
             std::shared_ptr<RenderLoaderGLTraits::SurfaceDetailsType> const &surfaceDetails,
-            std::shared_ptr<renderDetails::Parameters> const &parameters) override
+            std::shared_ptr<renderDetails::ParametersBase> const &parameters) override
     {
         return fcns.renderDetailsLoadExistingFcn(gameRequester, shared_from_this(), renderDetails,
                 surfaceDetails, parameters);

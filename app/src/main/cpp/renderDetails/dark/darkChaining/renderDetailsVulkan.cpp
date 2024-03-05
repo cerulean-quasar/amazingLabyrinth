@@ -32,12 +32,16 @@ namespace darkChaining {
             std::shared_ptr<RenderLoaderVulkan> const &renderLoader,
             std::shared_ptr<vulkan::Device> const &inDevice,
             std::shared_ptr<vulkan::SurfaceDetails> const &surfaceDetails,
-            std::shared_ptr<renderDetails::Parameters> const &parametersBase)
+            std::shared_ptr<renderDetails::ParametersBase> const &parametersBase)
     {
-        // initialize main render details
-        auto rd = std::make_shared<RenderDetailsVulkan>(description, inDevice, surfaceDetails);
+        auto parameters = std::dynamic_pointer_cast<renderDetails::ParametersDark>(parametersBase);
+        if (parameters == nullptr) {
+            throw std::runtime_error("Invalid render details parameter type.");
+        }
 
-        return loadHelper(gameRequester, renderLoader, std::move(rd), surfaceDetails, parametersBase);
+        auto rd = std::make_shared<RenderDetailsVulkan>(description, inDevice, parameters->numberViewPoints(), surfaceDetails);
+
+        return loadHelper(gameRequester, renderLoader, rd, surfaceDetails, parameters);
     }
 
     renderDetails::ReferenceVulkan RenderDetailsVulkan::loadExisting(
@@ -45,18 +49,23 @@ namespace darkChaining {
             std::shared_ptr<RenderLoaderVulkan> const &renderLoader,
             std::shared_ptr<renderDetails::RenderDetailsVulkan> rdBase,
             std::shared_ptr<vulkan::SurfaceDetails> const &surfaceDetails,
-            std::shared_ptr<renderDetails::Parameters> const &parametersBase)
+            std::shared_ptr<renderDetails::ParametersBase> const &parametersBase)
     {
         auto rd = std::dynamic_pointer_cast<RenderDetailsVulkan>(rdBase);
         if (rd == nullptr) {
             throw std::runtime_error("Invalid render details type.");
         }
 
-        if (rd->structuralChangeNeeded(surfaceDetails)) {
+        auto parameters = std::dynamic_pointer_cast<renderDetails::ParametersDark>(parametersBase);
+        if (parameters == nullptr) {
+            throw std::runtime_error("Invalid render details parameter type.");
+        }
+
+        if (rd->structuralChangeNeeded(surfaceDetails) || parameters->numberViewPoints() != rd->m_numberLightSources) {
             rd->createShadowResources(surfaceDetails);
         }
 
-        return loadHelper(gameRequester, renderLoader, std::move(rd), surfaceDetails, parametersBase);
+        return loadHelper(gameRequester, renderLoader, std::move(rd), surfaceDetails, parameters);
     }
 
     renderDetails::ReferenceVulkan RenderDetailsVulkan::loadHelper(
@@ -64,25 +73,20 @@ namespace darkChaining {
             std::shared_ptr<RenderLoaderVulkan> const &renderLoader,
             std::shared_ptr<RenderDetailsVulkan> rd,
             std::shared_ptr<vulkan::SurfaceDetails> const &surfaceDetails,
-            std::shared_ptr<renderDetails::Parameters> const &parametersBase) {
+            std::shared_ptr<renderDetails::ParametersDark> const &parameters) {
 
-        auto parameters = dynamic_cast<renderDetails::ParametersDark*>(parametersBase.get());
-        if (parameters == nullptr) {
-            throw std::runtime_error("Invalid render details parameter type.");
-        }
-
-        std::array<std::shared_ptr<shadows::CommonObjectDataVulkan>, numberShadowMaps> shadowCODs = { };
+        std::vector<std::shared_ptr<shadows::CommonObjectDataVulkan>> shadowCODs = { };
         renderDetails::ReferenceVulkan refShadows;
         auto shadowsSurfaceDetails = rd->createShadowSurfaceDetails(surfaceDetails);
 
         // shadows render details
         renderDetails::Query shadowsRenderDetailsQuery{
                 renderDetails::DrawingStyle::shadowMap,
-                std::vector<renderDetails::Features>{},
-                std::vector<renderDetails::Features>{}};
+                std::vector<renderDetails::FeatureType>{},
+                std::vector<renderDetails::FeatureType>{}};
 
         for (size_t viewPointNumber = 0; viewPointNumber < parameters->numberViewPoints(); viewPointNumber++) {
-            for (size_t direction = 0; direction < 4; direction++) {
+            for (size_t direction = 0; direction < numberShadowMapsPerLight; direction++) {
                 // We have to load the shadows render details multiple times to get the COD, but it is
                 // not a performance problem, because after the render details is loaded the first time,
                 // the next times, it is just looked up in a list, not really any work is done other than
@@ -95,9 +99,9 @@ namespace darkChaining {
                 // in counterclockwise order starting with the camera pointed in the y direction.
                 // Next the first viewpoint's CODs (camera pointed in the -x direction) stored in
                 // the same manner.
-                shadowCODs[viewPointNumber * 4 + direction] =
+                shadowCODs[viewPointNumber * numberShadowMapsPerLight + direction] =
                         std::dynamic_pointer_cast<shadows::CommonObjectDataVulkan>(refShadows.commonObjectData);
-                if (shadowCODs[viewPointNumber * 4 + direction] == nullptr) {
+                if (shadowCODs[viewPointNumber * numberShadowMapsPerLight + direction] == nullptr) {
                     throw std::runtime_error("Invalid common object data.");
                 }
             }
@@ -109,7 +113,7 @@ namespace darkChaining {
         auto const &description = rd->m_description;
 
         renderDetails::FeatureList featuresDarkObject = description.features();
-        featuresDarkObject.setFeature(renderDetails::Features::chaining, false);
+        featuresDarkObject.unsetFeature(renderDetails::FeatureType::chaining);
 
         auto refMain = renderLoader->load(
                 gameRequester,
@@ -207,7 +211,7 @@ namespace darkChaining {
             std::shared_ptr<RenderDetailsVulkan> rd,
             renderDetails::ReferenceVulkan const &refShadows,
             renderDetails::ReferenceVulkan const &refDarkObject,
-            std::array<std::shared_ptr<shadows::CommonObjectDataVulkan>, numberShadowMaps> shadowsCODs)
+            std::vector<std::shared_ptr<shadows::CommonObjectDataVulkan>> shadowsCODs)
     {
         auto darkObject = std::dynamic_pointer_cast<darkObject::CommonObjectDataVulkan>(refDarkObject.commonObjectData);
         if (darkObject == nullptr) {
@@ -228,7 +232,7 @@ namespace darkChaining {
                         std::shared_ptr<renderDetails::DrawObjectDataVulkan>
                 {
                     auto dodMain = createDODDarkObject(sharingDOD, textureData, modelMatrix);
-                    std::array<std::shared_ptr<renderDetails::DrawObjectDataVulkan>, numberShadowMaps> dodsShadows = {};
+                    std::vector<std::shared_ptr<renderDetails::DrawObjectDataVulkan>> dodsShadows = {};
                     for (auto &dodShadows : dodsShadows) {
                         dodShadows = createDODShadows(
                                 dodMain, std::shared_ptr<levelDrawer::TextureDataVulkan>(),
@@ -249,73 +253,44 @@ namespace darkChaining {
     }
 
     void RenderDetailsVulkan::createShadowResources(std::shared_ptr<vulkan::SurfaceDetails> const &surfaceDetails) {
-        for (auto &framebuffer : m_framebuffersShadows) {
-            framebuffer.reset();
-        }
-        for (auto &renderPass : m_renderPassesShadows) {
-            renderPass.reset();
-        }
-        for (auto &samplerShadows : m_samplersShadows) {
-            samplerShadows.reset();
-        }
-        for (auto &shadowsColorAttachment : m_shadowsColorAttachments) {
-            shadowsColorAttachment.reset();
-        }
-        m_depthImageViewShadows.reset();
+        m_framebuffersShadows.resize(0);
+        m_renderPassesShadows.reserve(0);
+        m_samplersShadows.resize(0);
+        m_depthImageViewShadows.resize(0);
 
         auto wh = getShadowsFramebufferDimensions(std::make_pair(surfaceDetails->surfaceWidth, surfaceDetails->surfaceHeight));
 
         // shadow resources
-        m_depthImageViewShadows = std::make_shared<vulkan::ImageView>(
-                vulkan::ImageFactory::createDepthImage(
-                        m_device, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT, wh.first, wh.second),
-                VK_IMAGE_ASPECT_DEPTH_BIT);
+        for (size_t i = 0; i < m_numberLightSources * numberShadowMapsPerLight; i++) {
+            m_depthImageViewShadows.push_back(std::make_shared<vulkan::ImageView>(
+                    vulkan::ImageFactory::createDepthImage(
+                            m_device, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT, wh.first, wh.second),
+                    VK_IMAGE_ASPECT_DEPTH_BIT));
 
-        size_t i = 0;
-        for (auto &shadowsColorAttachment : m_shadowsColorAttachments) {
-            shadowsColorAttachment = vulkan::ImageView::createImageViewAndImage(
-                    m_device,
-                    wh.first,
-                    wh.second,
-                    VK_FORMAT_R32G32B32A32_SFLOAT,
-                    VK_IMAGE_TILING_OPTIMAL,
-                    VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
-                    VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
-                    VK_IMAGE_ASPECT_COLOR_BIT);
-
-            m_samplersShadows[i] = std::make_shared<vulkan::ImageSampler>(
-                    m_device, shadowsColorAttachment,
+            m_samplersShadows.push_back(std::make_shared<vulkan::ImageSampler>(
+                    m_device, m_depthImageViewShadows[i],
                     VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER,
-                    VK_BORDER_COLOR_FLOAT_OPAQUE_WHITE);
-            auto colorImageInfo =
-                    std::vector<vulkan::RenderPass::ImageAttachmentInfo>{
-                            vulkan::RenderPass::ImageAttachmentInfo{
-                                    VK_ATTACHMENT_LOAD_OP_CLEAR, VK_ATTACHMENT_STORE_OP_STORE,
-                                    shadowsColorAttachment->image()->format(),
-                                    VK_IMAGE_LAYOUT_UNDEFINED,
-                                    VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL}};
+                    VK_BORDER_COLOR_FLOAT_OPAQUE_WHITE));
             auto depthImageInfo =
                     std::make_shared<vulkan::RenderPass::ImageAttachmentInfo>(
                             VK_ATTACHMENT_LOAD_OP_CLEAR, VK_ATTACHMENT_STORE_OP_STORE,
-                            m_depthImageViewShadows->image()->format(),
+                            m_depthImageViewShadows[i]->image()->format(),
                             VK_IMAGE_LAYOUT_UNDEFINED,
-                            VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL);
-            m_renderPassesShadows[i] = vulkan::RenderPass::createRenderPassMultipleColorAttachments(
-                    m_device, colorImageInfo, depthImageInfo);
+                            VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL);
+            m_renderPassesShadows.push_back(vulkan::RenderPass::createRenderPassDepthTexture(
+                    m_device, depthImageInfo));
 
             // shadows framebuffer
-            m_framebuffersShadows[i] = std::make_shared<vulkan::Framebuffer>(
+            m_framebuffersShadows.push_back(std::make_shared<vulkan::Framebuffer>(
                     m_device, m_renderPassesShadows[i],
-                    std::vector<std::shared_ptr<vulkan::ImageView>>{shadowsColorAttachment,
-                                                                    m_depthImageViewShadows},
-                    wh.first, wh.second);
+                    std::vector<std::shared_ptr<vulkan::ImageView>>{m_depthImageViewShadows},
+                    wh.first, wh.second));
             i++;
         }
-
     }
 
     RegisterVulkan<renderDetails::RenderDetailsVulkan, RenderDetailsVulkan> registerVulkan(
     {renderDetails::DrawingStyle::dark,
-            {renderDetails::Features::chaining, renderDetails::Features::texture, renderDetails::Features::color}},
+            {renderDetails::FeatureType::chaining, renderDetails::FeatureType::texture, renderDetails::FeatureType::color}},
         std::vector<char const *>{});
 } // namespace darkChaining

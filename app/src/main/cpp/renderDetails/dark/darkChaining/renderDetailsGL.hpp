@@ -159,6 +159,8 @@ namespace darkChaining {
     private:
         // use less precision for the shadow buffer
         static float constexpr shadowsSizeMultiplier = 0.25f;
+        static size_t const constexpr numberShadowMapsPerLight = 4;
+
         std::array<std::shared_ptr<graphicsGL::Framebuffer>, numberShadowMaps> m_framebuffersShadows;
         std::shared_ptr<renderDetails::RenderDetailsGL> m_shadowsRenderDetails;
         std::shared_ptr<renderDetails::RenderDetailsGL> m_darkObjectRenderDetails;
