@@ -43,7 +43,8 @@ namespace renderDetails {
     enum DrawingStyle {
         shadowMap,
         standard,
-        dark,
+        dark1light,
+        dark2lights,
         darkV2,
         depthMap,
         normalMap,

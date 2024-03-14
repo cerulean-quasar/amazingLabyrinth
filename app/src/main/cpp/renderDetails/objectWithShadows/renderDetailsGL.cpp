@@ -33,7 +33,7 @@ namespace objectWithShadows {
             std::shared_ptr<GameRequester> const &gameRequester,
             std::shared_ptr<RenderLoaderGL> const &,
             std::shared_ptr<graphicsGL::SurfaceDetails> const &surfaceDetails,
-            std::shared_ptr<renderDetails::Parameters> const &parametersBase)
+            std::shared_ptr<renderDetails::ParametersBase> const &parametersBase)
     {
         auto parameters =
                 dynamic_cast<renderDetails::ParametersObjectWithShadowsGL*>(parametersBase.get());
@@ -61,7 +61,7 @@ namespace objectWithShadows {
             std::shared_ptr<RenderLoaderGL> const &,
             std::shared_ptr<renderDetails::RenderDetailsGL> rdBase,
             std::shared_ptr<graphicsGL::SurfaceDetails> const &surfaceDetails,
-            std::shared_ptr<renderDetails::Parameters> const &parametersBase)
+            std::shared_ptr<renderDetails::ParametersBase> const &parametersBase)
     {
         auto rd = dynamic_cast<RenderDetailsGL*>(rdBase.get());
         if (rd == nullptr) {

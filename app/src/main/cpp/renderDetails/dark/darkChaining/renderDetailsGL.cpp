@@ -75,7 +75,8 @@ namespace darkChaining {
         }
 
         renderDetails::ReferenceGL refShadows;
-        std::array<std::shared_ptr<renderDetails::CommonObjectDataBase>, numberShadowMaps> shadowCODs = {};
+        std::vector<std::shared_ptr<renderDetails::CommonObjectDataBase>> shadowCODs;
+        std::vector<glm::mat4> projViewLights;
         auto parametersShadows = std::make_shared<renderDetails::ParametersPerspective>();
 
         auto shadowSurfaceDetails = createShadowSurfaceDetails(surfaceDetails);
@@ -84,7 +85,7 @@ namespace darkChaining {
             renderDetails::DrawingStyle::shadowMap,
             std::vector<renderDetails::Features>{},
             std::vector<renderDetails::Features>{}};
-        for (size_t viewPointNumber = 0; viewPointNumber < parameters->numberViewPoints(); viewPointNumber++) {
+        for (size_t lightSourceNumber = 0; lightSourceNumber < parameters->numberLightSources(); lightSourceNumber++) {
             for (size_t direction = 0; direction < 4; direction++) {
                 // We have to load the shadows render details multiple times to get the COD, but it is
                 // not a performance problem, because after the render details is loaded the first time,
@@ -92,22 +93,26 @@ namespace darkChaining {
                 // creating the COD.
                 refShadows = renderLoader->load(
                         gameRequester, shadowsRenderDetailsQuery, shadowSurfaceDetails,
-                        parameters->toShadowsPerspective(direction, viewPointNumber));
+                        parameters->toShadowsParametersPerspectivePtr(lightSourceNumber, direction));
 
                 // The shadows CODs are stored with the zeroth viewpoint first with the CODs stored
-                // in counterclockwise order starting with the camera pointed in the y direction.
-                // Next the first viewpoint's CODs (camera pointed in the -x direction) stored in
-                // the same manner.
-                shadowCODs[viewPointNumber * 4 + direction] =
-                        std::dynamic_pointer_cast<shadows::CommonObjectDataGL>(refShadows.commonObjectData);
-                if (shadowCODs[viewPointNumber * 4 + direction] == nullptr) {
+                // in counterclockwise order starting with the camera pointed in the positive y
+                // direction. Next the first viewpoint's CODs are stored in the same manner, and so forth.
+                auto shadowCOD = std::dynamic_pointer_cast<shadows::CommonObjectDataGL>(refShadows.commonObjectData);
+                if (shadowCOD == nullptr) {
                     throw std::runtime_error("Invalid common object data.");
                 }
+
+                shadowCODs.push_back(shadowCOD);
+
+                glm::mat4 projViewLight = parameters->getLightProjView(lightSourceNumber, direction, false, false);
+                projViewLights.push_back(projViewLight);
             }
         }
 
         auto parms = std::make_shared<renderDetails::ParametersDarkObjectGL>(*parameters->toGamePerspective(),
-                                                                             rd->m_framebuffersShadows);
+                                                                             rd->m_framebuffersShadows,
+                                                                             projViewLights);
 
         auto const &description = rd->description();
 
@@ -147,7 +152,7 @@ namespace darkChaining {
             std::shared_ptr<renderDetails::RenderDetailsGL> rd,
             renderDetails::ReferenceGL const &refDarkObject,
             renderDetails::ReferenceGL const &refShadows,
-            std::array<std::shared_ptr<renderDetails::CommonObjectDataBase>, numberShadowMaps> shadowsCODs)
+            std::vector<std::shared_ptr<renderDetails::CommonObjectDataBase>> shadowsCODs)
     {
         renderDetails::ReferenceGL ref = {};
         auto cod = std::make_shared<CommonObjectDataGL>(refDarkObject.commonObjectData,
@@ -192,7 +197,7 @@ namespace darkChaining {
         auto codLevel = dynamic_cast<CommonObjectDataGL*>(
                 commonObjectDataList[levelDrawer::ObjectType::LEVEL].get());
 
-        for (size_t i = 0; i < numberShadowMaps; i++) {
+        for (size_t i = 0; i < m_framebuffersShadows.size(); i++) {
             glBindFramebuffer(GL_FRAMEBUFFER, m_framebuffersShadows[i]->fbo());
             checkGraphicsError();
 
@@ -230,10 +235,16 @@ namespace darkChaining {
                 cod->darkObject(), drawObjTable, beginZValRefs, endZValRefs);
     }
 
-    RegisterGL<renderDetails::RenderDetailsGL, RenderDetailsGL> registerTextureGL(
-            renderDetails::Description{renderDetails::DrawingStyle::dark,
+    RegisterGL<renderDetails::RenderDetailsGL, RenderDetailsGL> registerTextureGL1(
+            renderDetails::Description{renderDetails::DrawingStyle::dark1light,
                                        {renderDetails::Features::chaining,
                                                  renderDetails::Features::color,
                                                  renderDetails::Features::texture}},
+            std::vector<char const *>{});
+    RegisterGL<renderDetails::RenderDetailsGL, RenderDetailsGL> registerTextureGL2(
+            renderDetails::Description{renderDetails::DrawingStyle::dark2lights,
+                                       {renderDetails::Features::chaining,
+                                        renderDetails::Features::color,
+                                        renderDetails::Features::texture}},
             std::vector<char const *>{});
 }

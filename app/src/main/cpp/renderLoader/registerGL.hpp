@@ -43,14 +43,14 @@ struct RenderDetailsGLRetrieveFcns {
         std::shared_ptr<GameRequester> const &,
         std::shared_ptr<RenderLoaderGL> const &renderLoader,
         std::shared_ptr<graphicsGL::SurfaceDetails> const &surfaceDetails,
-        std::shared_ptr<renderDetails::Parameters> const &)>;
+        std::shared_ptr<renderDetails::ParametersBase> const &)>;
 
     using RenderDetailsLoadExistingFcn = std::function<renderDetails::ReferenceGL(
         std::shared_ptr<GameRequester> const &,
         std::shared_ptr<RenderLoaderGL> const &renderLoader,
         std::shared_ptr<renderDetails::RenderDetailsGL> const &,
         std::shared_ptr<graphicsGL::SurfaceDetails> const &surfaceDetails,
-        std::shared_ptr<renderDetails::Parameters> const &)>;
+        std::shared_ptr<renderDetails::ParametersBase> const &)>;
 
     RenderDetailsLoadNewFcn renderDetailsLoadNewFcn;
     RenderDetailsLoadExistingFcn renderDetailsLoadExistingFcn;
@@ -91,7 +91,7 @@ public:
                             [description, shaders] (std::shared_ptr<GameRequester> const &gameRequester,
                                     std::shared_ptr<RenderLoaderGL> const &renderLoader,
                                       std::shared_ptr<graphicsGL::SurfaceDetails> const &surfaceDetails,
-                                      std::shared_ptr<renderDetails::Parameters> const &parameters) -> RenderDetailsGLRetrieveFcns::RenderDetailsReferenceGL
+                                      std::shared_ptr<renderDetails::ParametersBase> const &parameters) -> RenderDetailsGLRetrieveFcns::RenderDetailsReferenceGL
                             {
                                 return RenderDetailsType::loadNew(description, shaders,
                                                                   gameRequester, renderLoader, surfaceDetails, parameters);
@@ -101,7 +101,7 @@ public:
                                       std::shared_ptr<RenderLoaderGL> const &renderLoader,
                                       std::shared_ptr<RenderDetailsBaseType> const &rd,
                                       std::shared_ptr<graphicsGL::SurfaceDetails> const &surfaceDetails,
-                                      std::shared_ptr<renderDetails::Parameters> const &parameters) -> RenderDetailsGLRetrieveFcns::RenderDetailsReferenceGL
+                                      std::shared_ptr<renderDetails::ParametersBase> const &parameters) -> RenderDetailsGLRetrieveFcns::RenderDetailsReferenceGL
                             {
                                 return RenderDetailsType::loadExisting(gameRequester, renderLoader,
                                         rd, surfaceDetails, parameters);

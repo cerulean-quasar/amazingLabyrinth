@@ -26,13 +26,27 @@
 namespace renderDetails {
     struct ParametersDarkObjectVulkan : public ParametersPerspective {
     public:
-        std::array<std::shared_ptr<vulkan::ImageSampler>, numberOfShadowMapsDarkMaze> darkSamplers;
+        bool darkSamplersValid;
+        std::vector<std::shared_ptr<vulkan::ImageSampler>> darkSamplers;
+        std::vector<glm::mat4> projViewsLights;
 
         ParametersDarkObjectVulkan(ParametersPerspective const &parameters,
-                                   std::array<std::shared_ptr<vulkan::ImageSampler>, numberOfShadowMapsDarkMaze> const &samplers)
+                                   std::vector<std::shared_ptr<vulkan::ImageSampler>> inDarkSamplers,
+                                   std::vector<glm::mat4> inProjViewsLights)
                 : ParametersPerspective(parameters),
-                  darkSamplers{samplers} {
+                  darkSamplersValid(true),
+                  darkSamplers{std::move(inDarkSamplers)},
+                  projViewsLights{std::move(inProjViewsLights)} {
         }
+
+        ParametersDarkObjectVulkan(ParametersPerspective const &parameters,
+                                   std::vector<glm::mat4> inProjViewsLights)
+                : ParametersPerspective(parameters),
+                  darkSamplersValid(false),
+                  darkSamplers{},
+                  projViewsLights{std::move(inProjViewsLights)} {
+        }
+
         virtual ~ParametersDarkObjectVulkan() = default;
     };
 }

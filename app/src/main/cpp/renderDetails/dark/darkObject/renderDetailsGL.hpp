@@ -35,16 +35,11 @@
 #include "renderLoader/renderLoaderGL.hpp"
 
 namespace darkObject {
-    size_t constexpr numberShadowMaps = renderDetails::numberOfShadowMapsDarkMaze;
-
     class CommonObjectDataGL : public renderDetails::CommonObjectDataPerspective {
     public:
-        enum ViewType {
-            up,
-            right,
-            down,
-            left
-        };
+        std::vector<glm::mat4> const &getProjViewLights() {
+            return m_projViewLights;
+        }
 
         std::pair<glm::mat4, glm::mat4> getProjViewForLevel() override {
             /* perspective matrix: takes the perspective projection, the aspect ratio, near and far
@@ -56,35 +51,30 @@ namespace darkObject {
                     view());
         }
 
-        glm::mat4 getViewLightSource(size_t i, ViewType lookType) {
-            glm::vec3 lookAt;
-            switch (lookType) {
-                case up:
-                    lookAt = glm::vec3{0.0, 1.0, 0.0};
-                    break;
-                case right:
-                    lookAt = glm::vec3{1.0, 0.0, 0.0};
-                    break;
-                case down:
-                    lookAt = glm::vec3{0.0, -1.0, 0.0};
-                    break;
-                case left:
-                    lookAt = glm::vec3{-1.0, 0.0, 0.0};
-            }
+        void update(renderDetails::ParametersBase const &parametersBase) override {
+            auto parameters = dynamic_cast<renderDetails::ParametersDarkObjectGL const &>(parametersBase);
 
-            return glm::lookAt(m_lightSources[i], lookAt, glm::vec3{0.0, 0.0, 1.0});
+            update(parameters);
+        }
+
+        void update(renderDetails::ParametersDarkObjectGL const &parameters) {
+            renderDetails::CommonObjectDataPerspective::update(parameters);
+
+            m_projViewLights = parameters.projViewsLights;
         }
 
         std::shared_ptr<graphicsGL::Framebuffer> const &darkFramebuffer(size_t i) const {return m_darkFrameBuffers[i];}
 
         CommonObjectDataGL(renderDetails::ParametersDarkObjectGL const &parameters, float aspectRatio)
                 : renderDetails::CommonObjectDataPerspective(parameters, aspectRatio),
-                  m_darkFrameBuffers{parameters.darkFramebuffers}
+                  m_darkFrameBuffers{parameters.darkFramebuffers},
+                  m_projViewLights{}
         {}
 
         ~CommonObjectDataGL() override = default;
     private:
-        std::array<std::shared_ptr<graphicsGL::Framebuffer>, numberShadowMaps> m_darkFrameBuffers;
+        std::vector<std::shared_ptr<graphicsGL::Framebuffer>> m_darkFrameBuffers;
+        std::vector<glm::mat4> m_projViewLights;
     };
 
     class DrawObjectDataGL : public renderDetails::DrawObjectDataGL {
@@ -116,14 +106,14 @@ namespace darkObject {
                 std::shared_ptr<GameRequester> const &gameRequester,
                 std::shared_ptr<RenderLoaderGL> const &renderLoader,
                 std::shared_ptr<graphicsGL::SurfaceDetails> const &surfaceDetails,
-                std::shared_ptr<renderDetails::Parameters> const &parameters);
+                std::shared_ptr<renderDetails::ParametersBase> const &parameters);
 
         static renderDetails::ReferenceGL loadExisting(
                 std::shared_ptr<GameRequester> const &gameRequester,
                 std::shared_ptr<RenderLoaderGL> const &renderLoader,
                 std::shared_ptr<renderDetails::RenderDetailsGL> rdBase,
                 std::shared_ptr<graphicsGL::SurfaceDetails> const &surfaceDetails,
-                std::shared_ptr<renderDetails::Parameters> const &parameters);
+                std::shared_ptr<renderDetails::ParametersBase> const &parameters);
 
         void draw(
                 uint32_t modelMatrixID,
@@ -143,13 +133,20 @@ namespace darkObject {
         ~RenderDetailsGL() override = default;
 
     private:
+        struct ShaderVariables {
+            std::string projViewVariableName;
+            GLenum texture;
+            std::string textureVariableName;
+        };
+
         renderDetails::Program m_textureProgram;
         renderDetails::Program m_colorProgram;
+        std::vector<ShaderVariables> m_shaderVariablesLightSources;
+        std::vector<std::string> m_lightSourcePosVars;
 
         static renderDetails::ReferenceGL createReference(
                 std::shared_ptr<renderDetails::RenderDetailsGL> rd,
                 std::shared_ptr<CommonObjectDataGL> cod);
-
     };
 } // namespace darkObject
 

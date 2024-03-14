@@ -34,7 +34,8 @@ namespace darkObject {
         bufferInfo.offset = 0;
         bufferInfo.range = sizeof (PerObjectUBO);
 
-        std::array<VkWriteDescriptorSet, 11> descriptorWrites = {};
+        std::vector<VkWriteDescriptorSet> descriptorWrites = {};
+        descriptorWrites.resize(3 + cod->numberDarkSamplers(), {});
         descriptorWrites[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
         descriptorWrites[0].dstSet = getVkType<>(m_descriptorSet->descriptorSet().get());
 
@@ -83,7 +84,8 @@ namespace darkObject {
         descriptorWrites[2].descriptorCount = 1;
         descriptorWrites[2].pBufferInfo = &bufferLightingSource;
 
-        std::array<VkDescriptorImageInfo, 8> darkInfo = {};
+        std::vector<VkDescriptorImageInfo> darkInfo;
+        darkInfo.resize(cod->numberDarkSamplers(), {});
         for (size_t i = 0; i < darkInfo.size(); i++) {
             darkInfo[i].imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
             darkInfo[i].imageView = getVkType<>(
@@ -115,7 +117,8 @@ namespace darkObject {
         bufferInfo.offset = 0;
         bufferInfo.range = sizeof (PerObjectUBO);
 
-        std::array<VkWriteDescriptorSet, 12> descriptorWrites = {};
+        std::vector<VkWriteDescriptorSet> descriptorWrites;
+        descriptorWrites.resize(4 + cod->numberDarkSamplers(), {});
         descriptorWrites[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
         descriptorWrites[0].dstSet = getVkType<>(m_descriptorSet->descriptorSet().get());
 
@@ -177,8 +180,9 @@ namespace darkObject {
         descriptorWrites[3].descriptorCount = 1;
         descriptorWrites[3].pBufferInfo = &bufferLightingSource;
 
-        std::array<VkDescriptorImageInfo, numberShadowMaps> darkInfo = {};
-        for (size_t i = 0; i < darkInfo.size(); i++) {
+        std::vector<VkDescriptorImageInfo> darkInfo;
+        darkInfo.resize(cod->numberDarkSamplers(), {});
+        for (size_t i = 0; i < cod->numberDarkSamplers(); i++) {
             darkInfo[i].imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
             darkInfo[i].imageView = getVkType<>(
                     cod->darkSampler(i)->imageView()->imageView().get());
@@ -199,7 +203,9 @@ namespace darkObject {
     }
 
     /* for accessing data other than the vertices from the shaders */
-    void TextureDescriptorSetLayout::createDescriptorSetLayout() {
+    void TextureDescriptorSetLayout::createDescriptorSetLayout(
+            size_t numberLightSources)
+    {
         /* model matrix - different for each object */
         VkDescriptorSetLayoutBinding modelMatrixBinding = {};
         modelMatrixBinding.binding = 0;
@@ -233,27 +239,21 @@ namespace darkObject {
         lightingSourceBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
         lightingSourceBinding.pImmutableSamplers = nullptr;
 
-        std::array<VkDescriptorSetLayoutBinding, numberShadowMaps> darkSamplerBindings = {};
-        for (size_t i = 0; i < darkSamplerBindings.size(); i++) {
-            darkSamplerBindings[i].binding = i + 4;
-            darkSamplerBindings[i].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-            darkSamplerBindings[i].descriptorCount = 1;
-            darkSamplerBindings[i].stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
-            darkSamplerBindings[i].pImmutableSamplers = nullptr;
-        }
+        std::vector<VkDescriptorSetLayoutBinding> bindings = {modelMatrixBinding,
+                                                              commonDataBinding,
+                                                              samplerLayoutBinding,
+                                                              lightingSourceBinding};
 
-        std::array<VkDescriptorSetLayoutBinding, 12> bindings = {modelMatrixBinding,
-                                                                commonDataBinding,
-                                                                samplerLayoutBinding,
-                                                                lightingSourceBinding,
-                                                                darkSamplerBindings[0],
-                                                                darkSamplerBindings[1],
-                                                                darkSamplerBindings[2],
-                                                                darkSamplerBindings[3],
-                                                                darkSamplerBindings[4],
-                                                                darkSamplerBindings[5],
-                                                                darkSamplerBindings[6],
-                                                                darkSamplerBindings[7]};
+        for (size_t i = 0; i < numberLightSources * renderDetails::numberDirections; i++) {
+            VkDescriptorSetLayoutBinding darkSamplerBinding = {};
+            darkSamplerBinding.binding = i + 4;
+            darkSamplerBinding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+            darkSamplerBinding.descriptorCount = 1;
+            darkSamplerBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+            darkSamplerBinding.pImmutableSamplers = nullptr;
+
+            bindings.push_back(darkSamplerBinding);
+        }
 
         VkDescriptorSetLayoutCreateInfo layoutInfo = {};
         layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
@@ -275,7 +275,9 @@ namespace darkObject {
     }
 
     /* for accessing data other than the vertices from the shaders */
-    void ColorDescriptorSetLayout::createDescriptorSetLayout() {
+    void ColorDescriptorSetLayout::createDescriptorSetLayout(
+            size_t numberLightSources)
+    {
         /* model matrix - different for each object */
         VkDescriptorSetLayoutBinding modelMatrixBinding = {};
         modelMatrixBinding.binding = 0;
@@ -301,26 +303,19 @@ namespace darkObject {
         lightingSourceBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
         lightingSourceBinding.pImmutableSamplers = nullptr;
 
-        std::array<VkDescriptorSetLayoutBinding, 8> darkSamplerBindings = {};
-        for (size_t i = 0; i < darkSamplerBindings.size(); i++) {
-            darkSamplerBindings[i].binding = i + 3;
-            darkSamplerBindings[i].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-            darkSamplerBindings[i].descriptorCount = 1;
-            darkSamplerBindings[i].stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
-            darkSamplerBindings[i].pImmutableSamplers = nullptr;
-        }
+        std::vector<VkDescriptorSetLayoutBinding> bindings = {modelMatrixBinding,
+                                                             commonDataBinding,
+                                                             lightingSourceBinding};
 
-        std::array<VkDescriptorSetLayoutBinding, 11> bindings = {modelMatrixBinding,
-                                                                commonDataBinding,
-                                                                lightingSourceBinding,
-                                                                darkSamplerBindings[0],
-                                                                darkSamplerBindings[1],
-                                                                darkSamplerBindings[2],
-                                                                darkSamplerBindings[3],
-                                                                darkSamplerBindings[4],
-                                                                darkSamplerBindings[5],
-                                                                darkSamplerBindings[6],
-                                                                darkSamplerBindings[7]};
+        for (size_t i = 0; i < numberLightSources * renderDetails::numberDirections; i++) {
+            VkDescriptorSetLayoutBinding darkSamplerBinding = {};
+            darkSamplerBinding.binding = i + 3;
+            darkSamplerBinding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+            darkSamplerBinding.descriptorCount = 1;
+            darkSamplerBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+            darkSamplerBinding.pImmutableSamplers = nullptr;
+            bindings.push_back(darkSamplerBinding);
+        }
 
         VkDescriptorSetLayoutCreateInfo layoutInfo = {};
         layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
@@ -434,6 +429,6 @@ namespace darkObject {
     char constexpr const *TEXTURE_SHADER_FRAG_VK_FILE = "shaders/darkTexture.frag.spv";
     char constexpr const *COLOR_SHADER_FRAG_VK_FILE = "shaders/darkColor.frag.spv";
     RegisterVulkan<renderDetails::RenderDetailsVulkan, RenderDetailsVulkan> registerVulkan(
-            {renderDetails::DrawingStyle::dark, {renderDetails::Features::color, renderDetails::Features::texture}},
+            {renderDetails::DrawingStyle::dark1light, {renderDetails::Features::color, renderDetails::Features::texture}},
             std::vector<char const *> {SHADER_VERT_VK_FILE, TEXTURE_SHADER_FRAG_VK_FILE, COLOR_SHADER_FRAG_VK_FILE});
 } // namespace darkObject

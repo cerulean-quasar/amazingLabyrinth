@@ -29,14 +29,9 @@
                 "DefaultColor": [ 0.0, 1.0, 0.5, 1.0 ]
             },
             {
-                "Name": "Quad2",
-                "Type": 1,
+                "Name": "Cube1",
+                "Type": 2,
                 "DefaultColor": [ 0.0, 0.0, 1.0, 1.0 ]
-            },
-            {
-                "Name": "Quad3",
-                "Type": 1,
-                "DefaultColor": [ 0.0, 1.0, 0.0, 1.0 ]
             }
         ],
         "BounceEnabled": true,

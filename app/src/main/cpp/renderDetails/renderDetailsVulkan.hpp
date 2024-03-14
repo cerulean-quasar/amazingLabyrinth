@@ -65,13 +65,6 @@ namespace renderDetails {
             return false;
         }
 
-        virtual void updateCommonObjectData(
-                std::shared_ptr<renderDetails::CommonObjectData> const &) {
-            // most render details do nothing for this function.  This function is only if you
-            // want to update the COD (data that gets passed to the shaders that is not the vertices
-            // or indices.
-        }
-
         // used to update the model matrix but not the buffer.  This function will be used if
         // the buffer is shared with another DrawObjectData (as in objectWithShadows and shadows).
         virtual void updateModelMatrixNoBufferUpdate(glm::mat4 const &modelMatrix) = 0;

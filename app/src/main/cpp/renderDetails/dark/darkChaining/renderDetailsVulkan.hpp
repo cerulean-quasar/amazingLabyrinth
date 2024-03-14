@@ -35,8 +35,6 @@
 #include "levelDrawer/common.hpp"
 
 namespace darkChaining {
-    size_t constexpr numberShadowMaps = renderDetails::numberOfShadowMapsDarkMaze;
-
     class RenderDetailsVulkan;
 
     class CommonObjectDataVulkan : public renderDetails::CommonObjectDataBase {
@@ -50,38 +48,66 @@ namespace darkChaining {
             return m_darkObject;
         }
 
-        std::shared_ptr<shadows::CommonObjectDataVulkan> const &shadowsCOD(size_t i) {
-            return m_shadowsCODs[i];
+        std::shared_ptr<shadows::CommonObjectDataVulkan> const &shadowsCOD(size_t shadowMapNumber) {
+            if (shadowMapNumber <= m_shadowMapsNeedRender.size()) {
+                throw std::runtime_error("Shadow map number out of bounds.");
+            }
+
+            return m_shadowsCODs[shadowMapNumber];
         }
+
+        bool shadowMapNeedsRender(size_t shadowMapNumber) const {
+            if (shadowMapNumber <= m_shadowMapsNeedRender.size()) {
+                throw std::runtime_error("Shadow map number out of bounds.");
+            }
+
+            return m_shadowMapsNeedRender[shadowMapNumber];
+        }
+
+        size_t numberShadowMaps() const { return m_shadowMapsNeedRender.size(); }
 
         void update(renderDetails::ParametersBase const &parametersBase) override {
             auto parameters = dynamic_cast<renderDetails::ParametersDark const &>(parametersBase);
 
-            m_darkObject->update(*parameters.toGamePerspective());
+            update(parameters);
+        }
 
+        void update(renderDetails::ParametersDark const &parameters) {
             // shadows CODs
-            for (size_t viewPointNumber = 0; viewPointNumber < parameters.numberViewPoints(); viewPointNumber++) {
-                for (size_t direction = 0; direction < 4; direction++) {
-                    auto parametersShadows = parameters.toShadowsPerspective(direction, viewPointNumber);
+            std::vector<glm::mat4> shadowsProjViews;
+            std::vector<glm::vec3> lightSources;
+            for (size_t lightNumber = 0; lightNumber < parameters.numberLightSources(); lightNumber++) {
+                for (size_t direction = 0; direction < renderDetails::numberDirections; direction++) {
+                    auto parametersShadows = parameters.toShadowsParametersPerspectivePtr(lightNumber, direction);
 
                     // The shadows CODs are stored with the zeroth viewpoint first with the CODs stored
                     // in counterclockwise order starting with the camera pointed in the y direction.
                     // Next the first viewpoint's CODs stored in the same manner.
-                    m_shadowsCODs[4 * viewPointNumber + direction]->update(*parametersShadows);
+                    m_shadowsCODs[4 * lightNumber + direction]->update(*parametersShadows);
+
+                    glm::mat4 shadowsProjView = parameters.getLightProjView(lightNumber, direction, true, true);
+
+                    shadowsProjViews.push_back(shadowsProjView);
                 }
             }
 
-            m_shadowMapsNeedRender = true;
+            // darkSamplers left empty since they are not required for updates.
+            renderDetails::ParametersDarkObjectVulkan parametersDark(
+                    *parameters.toGamePerspective(),
+                    shadowsProjViews);
+
+            m_darkObject->update(parametersDark);
+
+            m_shadowMapsNeedRender = parameters.lightSourceMoved();
         }
 
         CommonObjectDataVulkan(std::shared_ptr<darkObject::CommonObjectDataVulkan> darkObjectCOD,
-                               std::array<std::shared_ptr<shadows::CommonObjectDataVulkan>, numberShadowMaps> shadowsCODs)
-        // The near plane and far plane are unused for Shadows Chaining
-                : renderDetails::CommonObjectDataBase(renderDetails::Parameters{}),
+                               std::vector<std::shared_ptr<shadows::CommonObjectDataVulkan>> shadowsCODs)
+        // The near plane and far plane are unused for Dark Chaining
+                : renderDetails::CommonObjectDataBase(),
                   m_darkObject(std::move(darkObjectCOD)),
                   m_shadowsCODs(std::move(shadowsCODs)),
-                  m_shadowMapsNeedRender(false),
-                  m_holeShadowMapsNeedRender(true)
+                  m_shadowMapsNeedRender(m_shadowsCODs.size(), true)
         {}
 
         ~CommonObjectDataVulkan() override = default;
@@ -92,17 +118,14 @@ namespace darkChaining {
         /* CODs for the shadow maps for the ball, first one is for the up direction, then circle around
          * clockwise assigning numbers.  Then the hole follows in the same manor.
          */
-        std::array<std::shared_ptr<shadows::CommonObjectDataVulkan>, numberShadowMaps> m_shadowsCODs;
+        std::vector<std::shared_ptr<shadows::CommonObjectDataVulkan>> m_shadowsCODs;
 
-        /* set to true each time an update occurs. Then in addPreRenderPassCmdsToCommandBuffer,
-         * set to false before rendering shadow maps.
+        /* For each light source, the corresponding entry should be set to true on update if the
+         * light source moved.  Then in addPreRenderPassCmdsToCommandBuffer, set to false before
+         * rendering shadow maps.  For stagnant light sources, this value starts out true when
+         * the render details is created, but then is changed to false and it stays that way.
          */
-        bool m_shadowMapsNeedRender;
-
-        /* the hole shadow maps only need to be rendered once.  Start out set to true, then
-         * once the hole shadow maps are rendered, set it to false.
-         */
-        bool m_holeShadowMapsNeedRender;
+        std::vector<bool> m_shadowMapsNeedRender;
     };
 
     class DrawObjectDataVulkan : public renderDetails::DrawObjectDataVulkan {
@@ -156,7 +179,7 @@ namespace darkChaining {
 
         DrawObjectDataVulkan(
                 std::shared_ptr<renderDetails::DrawObjectDataVulkan> inMainDrawObjectData,
-                std::array<std::shared_ptr<renderDetails::DrawObjectDataVulkan>, numberShadowMaps> inShadowsDrawObjectsData)
+                std::vector<std::shared_ptr<renderDetails::DrawObjectDataVulkan>> inShadowsDrawObjectsData)
                 : renderDetails::DrawObjectDataVulkan(),
                 m_mainDrawObjectData{std::move(inMainDrawObjectData)},
                 m_shadowsDrawObjectsData{std::move(inShadowsDrawObjectsData)}
@@ -165,7 +188,7 @@ namespace darkChaining {
         ~DrawObjectDataVulkan() override = default;
     private:
         std::shared_ptr<renderDetails::DrawObjectDataVulkan> m_mainDrawObjectData;
-        std::array<std::shared_ptr<renderDetails::DrawObjectDataVulkan>, numberShadowMaps> m_shadowsDrawObjectsData;
+        std::vector<std::shared_ptr<renderDetails::DrawObjectDataVulkan>> m_shadowsDrawObjectsData;
     };
 
     class RenderDetailsVulkan : public renderDetails::RenderDetailsVulkan {
@@ -177,14 +200,14 @@ namespace darkChaining {
             std::shared_ptr<RenderLoaderVulkan> const &renderLoader,
             std::shared_ptr<vulkan::Device> const &inDevice,
             std::shared_ptr<vulkan::SurfaceDetails> const &surfaceDetails,
-            std::shared_ptr<renderDetails::Parameters> const &parameters);
+            std::shared_ptr<renderDetails::ParametersBase> const &parameters);
 
         static renderDetails::ReferenceVulkan loadExisting(
             std::shared_ptr<GameRequester> const &gameRequester,
             std::shared_ptr<RenderLoaderVulkan> const &renderLoader,
             std::shared_ptr<renderDetails::RenderDetailsVulkan> rdBase,
             std::shared_ptr<vulkan::SurfaceDetails> const &surfaceDetails,
-            std::shared_ptr<renderDetails::Parameters> const &parameters);
+            std::shared_ptr<renderDetails::ParametersBase> const &parameters);
 
         bool structuralChangeNeeded(std::shared_ptr<vulkan::SurfaceDetails> const &surfaceDetails) override
         {
@@ -218,9 +241,17 @@ namespace darkChaining {
         RenderDetailsVulkan(
                 renderDetails::Description const &description,
                 std::shared_ptr<vulkan::Device> const &inDevice,
-                std::shared_ptr<vulkan::SurfaceDetails> const &surfaceDetails)
+                std::shared_ptr<vulkan::SurfaceDetails> const &surfaceDetails,
+                renderDetails::ParametersDark const &parameters)
             : renderDetails::RenderDetailsVulkan{description, surfaceDetails->surfaceWidth, surfaceDetails->surfaceHeight},
-              m_device{inDevice}
+              m_device{inDevice},
+              m_darkObjectRenderDetails(),
+              m_depthImageViewsShadows(),
+              m_samplersShadows(),
+              m_renderPassesShadows(),
+              m_shadowsRenderDetails(),
+              m_framebuffersShadows(),
+              m_numberLightSources{parameters.numberLightSources()}
         {
             createShadowResources(surfaceDetails);
         }
@@ -234,12 +265,12 @@ namespace darkChaining {
         std::shared_ptr<vulkan::Device> m_device;
         std::shared_ptr<renderDetails::RenderDetailsVulkan> m_darkObjectRenderDetails;
 
-        std::shared_ptr<vulkan::ImageView> m_depthImageViewShadows;
-        std::array<std::shared_ptr<vulkan::ImageView>, numberShadowMaps> m_shadowsColorAttachments;
-        std::array<std::shared_ptr<vulkan::ImageSampler>, numberShadowMaps> m_samplersShadows;
-        std::array<std::shared_ptr<vulkan::RenderPass>, numberShadowMaps> m_renderPassesShadows;
+        std::vector<std::shared_ptr<vulkan::ImageView>> m_depthImageViewsShadows;
+        std::vector<std::shared_ptr<vulkan::ImageSampler>> m_samplersShadows;
+        std::vector<std::shared_ptr<vulkan::RenderPass>> m_renderPassesShadows;
         std::shared_ptr<renderDetails::RenderDetailsVulkan> m_shadowsRenderDetails;
-        std::array<std::shared_ptr<vulkan::Framebuffer>, numberShadowMaps> m_framebuffersShadows;
+        std::vector<std::shared_ptr<vulkan::Framebuffer>> m_framebuffersShadows;
+        size_t m_numberLightSources;
 
         static std::pair<uint32_t, uint32_t> getShadowsFramebufferDimensions(std::pair<uint32_t, uint32_t> const &dimensions) {
             uint32_t width = static_cast<uint32_t>(std::floor(dimensions.first * shadowsSizeMultiplier));
@@ -255,7 +286,26 @@ namespace darkChaining {
                 std::shared_ptr<RenderDetailsVulkan> rd,
                 renderDetails::ReferenceVulkan const &refShadows,
                 renderDetails::ReferenceVulkan const &refObjectWithShadows,
-                std::array<std::shared_ptr<shadows::CommonObjectDataVulkan>, numberShadowMaps> shadowCODs);
+                std::vector<std::shared_ptr<shadows::CommonObjectDataVulkan>> shadowCODs);
+
+        static renderDetails::ReferenceVulkan loadHelper(
+                std::shared_ptr<GameRequester> const &gameRequester,
+                std::shared_ptr<RenderLoaderVulkan> const &renderLoader,
+                std::shared_ptr<RenderDetailsVulkan> rd,
+                std::shared_ptr<vulkan::SurfaceDetails> const &surfaceDetails,
+                renderDetails::ParametersDark const *parameters);
+
+        static bool areParametersDescriptionCompatible(
+                renderDetails::Description const &description,
+                renderDetails::ParametersDark const *parameters)
+        {
+            switch (description.drawingMethod()) {
+                case renderDetails::DrawingStyle::dark1light:
+                    return parameters->numberLightSources() == 1;
+                default:
+                    return false;
+            }
+        }
 
         std::shared_ptr<vulkan::SurfaceDetails> createShadowSurfaceDetails(
                 std::shared_ptr<vulkan::SurfaceDetails> const &surfaceDetails)
@@ -264,7 +314,12 @@ namespace darkChaining {
             auto wh = getShadowsFramebufferDimensions(std::make_pair(surfaceDetails->surfaceWidth, surfaceDetails->surfaceHeight));
             shadowSurface.surfaceWidth = wh.first;
             shadowSurface.surfaceHeight = wh.second;
-            shadowSurface.preTransform = surfaceDetails->preTransform;
+
+            /* We are drawing in a framebuffer, so it does not matter what we make the pre-transform
+             * so long as the object (main draw) render details uses the same pre-transform when
+             * computing whether the object is in shadows.
+             */
+            shadowSurface.preTransform = glm::mat4(1);
 
             /* vulkan requires that the pipeline be used with a **compatible** render pass to the
              * render pass it was created with.  All of the render passes for the shadow maps are
@@ -275,13 +330,6 @@ namespace darkChaining {
             shadowSurface.renderPass = m_renderPassesShadows[0];
             return std::make_shared<vulkan::SurfaceDetails>(std::move(shadowSurface));
         }
-
-        static renderDetails::ReferenceVulkan loadHelper(
-                std::shared_ptr<GameRequester> const &gameRequester,
-                std::shared_ptr<RenderLoaderVulkan> const &renderLoader,
-                std::shared_ptr<RenderDetailsVulkan> rd,
-                std::shared_ptr<vulkan::SurfaceDetails> const &surfaceDetails,
-                std::shared_ptr<renderDetails::Parameters> const &parameters);
 
         void createShadowResources(std::shared_ptr<vulkan::SurfaceDetails> const &surfaceDetails);
     };

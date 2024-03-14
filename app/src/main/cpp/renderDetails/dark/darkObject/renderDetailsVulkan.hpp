@@ -34,7 +34,6 @@
 #include "renderDetails/renderDetailsVulkan.hpp"
 
 namespace darkObject {
-    size_t constexpr numberShadowMaps = renderDetails::numberOfShadowMapsDarkMaze;
     class RenderDetailsVulkan;
 
     class CommonObjectDataVulkan : public renderDetails::CommonObjectDataPerspective {
@@ -44,6 +43,7 @@ namespace darkObject {
         uint32_t cameraBufferSize() { return sizeof (CommonVertexUBO); }
         std::shared_ptr<vulkan::Buffer> const &lightingBuffer() { return m_lightingSourceBuffer; }
         uint32_t lightingBufferSize() { return sizeof (CommonFragmentUBO); }
+        size_t numberDarkSamplers() { return m_darkSamplers.size(); }
         std::shared_ptr<vulkan::ImageSampler> const &darkSampler(size_t i) { return m_darkSamplers[i]; }
 
         std::pair<glm::mat4, glm::mat4> getProjViewForLevel() override {
@@ -69,26 +69,20 @@ namespace darkObject {
                   m_aspectRatio{aspectRatio},
                   m_darkSamplers{parameters.darkSamplers}
         {
-            if (m_lightSources.size() != renderDetails::numberOfLightSourcesDarkMaze) {
-                throw std::runtime_error("Invalid number of light sources");
-            }
-
-            update();
+            update(parameters);
         }
-        void update(renderDetails::ParametersBase const &parametersBase) override {
-            auto const &parameters = dynamic_cast<renderDetails::ParametersPerspective const &>(parametersBase);
 
-            renderDetails::CommonObjectDataPerspective::update(parameters);
-            update();
+        void update(renderDetails::ParametersBase const &parametersBase) override {
+            auto const &parameters = dynamic_cast<renderDetails::ParametersDarkObjectVulkan const &>(parametersBase);
+
+            update(parameters);
         }
 
         void update (renderDetails::ParametersDarkObjectVulkan const &parameters) {
             renderDetails::CommonObjectDataPerspective::update(parameters);
 
-            update();
-        }
+            /* ignore parameters.darkSamplers here.  They are not valid. */
 
-        void update() {
             CommonVertexUBO commonUbo;
             glm::mat4 proj = m_preTransform *
                              getPerspectiveMatrix(m_viewAngle, m_aspectRatio, m_nearPlane, m_farPlane, true, true);
@@ -96,21 +90,12 @@ namespace darkObject {
             // eye at the m_viewPoint, looking at the m_lookAt position, pointing up is m_up.
             commonUbo.projView = proj * glm::lookAt(m_viewPoint, m_lookAt, m_up);
 
-            glm::vec3 up{0.0, 0.0, 1.0};
-            commonUbo.projViewLightBallUp = proj * glm::lookAt(m_lightSources[0], glm::vec3{0.0, 1.0, 0.0}, up);
-            commonUbo.projViewLightBallRight = proj * glm::lookAt(m_lightSources[0], glm::vec3{1.0, 0.0, 0.0}, up);
-            commonUbo.projViewLightBallDown = proj * glm::lookAt(m_lightSources[0], glm::vec3{0.0, -1.0, 0.0}, up);
-            commonUbo.projViewLightBallLeft = proj * glm::lookAt(m_lightSources[0], glm::vec3{-1.0, 0.0, 0.0}, up);
-            commonUbo.projViewLightHoleUp = proj * glm::lookAt(m_lightSources[1], glm::vec3{0.0, 1.0, 0.0}, up);
-            commonUbo.projViewLightHoleRight = proj * glm::lookAt(m_lightSources[1], glm::vec3{1.0, 0.0, 0.0}, up);
-            commonUbo.projViewLightHoleDown = proj * glm::lookAt(m_lightSources[1], glm::vec3{0.0, -1.0, 0.0}, up);
-            commonUbo.projViewLightHoleLeft = proj * glm::lookAt(m_lightSources[1], glm::vec3{-1.0, 0.0, 0.0}, up);
+            commonUbo.projViewLights = parameters.projViewsLights;
 
             m_cameraBuffer->copyRawTo(&commonUbo, sizeof(commonUbo));
 
             CommonFragmentUBO commonFragmentUbo;
-            commonFragmentUbo.lightingSourceBall = m_lightSources[0];
-            commonFragmentUbo.lightingSourceHole = m_lightSources[1];
+            commonFragmentUbo.lightSources = parameters.lightingSources;
             m_lightingSourceBuffer->copyRawTo(&commonFragmentUbo, sizeof(commonFragmentUbo));
         }
 
@@ -118,26 +103,18 @@ namespace darkObject {
     private:
         struct CommonVertexUBO {
             glm::mat4 projView;
-            glm::mat4 projViewLightBallUp;
-            glm::mat4 projViewLightBallRight;
-            glm::mat4 projViewLightBallDown;
-            glm::mat4 projViewLightBallLeft;
-            glm::mat4 projViewLightHoleUp;
-            glm::mat4 projViewLightHoleRight;
-            glm::mat4 projViewLightHoleDown;
-            glm::mat4 projViewLightHoleLeft;
+            std::vector<glm::mat4> projViewLights;
         };
 
         struct CommonFragmentUBO {
-            glm::vec3 lightingSourceBall;
-            glm::vec3 lightingSourceHole;
+            std::vector<glm::vec3> lightSources;
         };
 
         glm::mat4 m_preTransform;
         std::shared_ptr<vulkan::Buffer> m_cameraBuffer;
         std::shared_ptr<vulkan::Buffer> m_lightingSourceBuffer;
         float m_aspectRatio;
-        std::array<std::shared_ptr<vulkan::ImageSampler>, numberShadowMaps> m_darkSamplers;
+        std::vector<std::shared_ptr<vulkan::ImageSampler>> m_darkSamplers;
     };
 
     class TextureDescriptorSetLayout : public vulkan::DescriptorSetLayout {
@@ -152,32 +129,20 @@ namespace darkObject {
             return m_poolInfo;
         }
 
-        TextureDescriptorSetLayout(std::shared_ptr<vulkan::Device> inDevice)
-                : m_device(inDevice) {
+        TextureDescriptorSetLayout(
+                std::shared_ptr<vulkan::Device> inDevice,
+                size_t numberLightSources)
+                : m_device(std::move(inDevice)) {
             m_poolSizes[0].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-            m_poolSizes[0].descriptorCount = m_numberOfDescriptorSetsInPool;
+            m_poolSizes[0].descriptorCount = 1;
             m_poolSizes[1].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-            m_poolSizes[1].descriptorCount = m_numberOfDescriptorSetsInPool;
+            m_poolSizes[1].descriptorCount = 1;
             m_poolSizes[2].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-            m_poolSizes[2].descriptorCount = m_numberOfDescriptorSetsInPool;
+            m_poolSizes[2].descriptorCount = 1;
             m_poolSizes[3].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-            m_poolSizes[3].descriptorCount = m_numberOfDescriptorSetsInPool;
+            m_poolSizes[3].descriptorCount = 1;
             m_poolSizes[4].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-            m_poolSizes[4].descriptorCount = m_numberOfDescriptorSetsInPool;
-            m_poolSizes[5].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-            m_poolSizes[5].descriptorCount = m_numberOfDescriptorSetsInPool;
-            m_poolSizes[6].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-            m_poolSizes[6].descriptorCount = m_numberOfDescriptorSetsInPool;
-            m_poolSizes[7].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-            m_poolSizes[7].descriptorCount = m_numberOfDescriptorSetsInPool;
-            m_poolSizes[8].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-            m_poolSizes[8].descriptorCount = m_numberOfDescriptorSetsInPool;
-            m_poolSizes[9].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-            m_poolSizes[9].descriptorCount = m_numberOfDescriptorSetsInPool;
-            m_poolSizes[10].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-            m_poolSizes[10].descriptorCount = m_numberOfDescriptorSetsInPool;
-            m_poolSizes[11].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-            m_poolSizes[11].descriptorCount = m_numberOfDescriptorSetsInPool;
+            m_poolSizes[4].descriptorCount = renderDetails::numberDirections * numberLightSources;
 
             m_poolInfo = {};
             m_poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
@@ -186,7 +151,7 @@ namespace darkObject {
             m_poolInfo.maxSets = m_numberOfDescriptorSetsInPool;
             m_poolInfo.pNext = nullptr;
 
-            createDescriptorSetLayout();
+            createDescriptorSetLayout(numberLightSources);
         }
 
         ~TextureDescriptorSetLayout() override = default;
@@ -197,9 +162,9 @@ namespace darkObject {
         std::shared_ptr<vulkan::Device> m_device;
         std::shared_ptr<VkDescriptorSetLayout_CQ> m_descriptorSetLayout;
         VkDescriptorPoolCreateInfo m_poolInfo;
-        std::array<VkDescriptorPoolSize, 12> m_poolSizes;
+        std::array<VkDescriptorPoolSize, 5> m_poolSizes;
 
-        void createDescriptorSetLayout();
+        void createDescriptorSetLayout(size_t numberLightSources);
     };
 
     class ColorDescriptorSetLayout : public vulkan::DescriptorSetLayout {
@@ -214,30 +179,19 @@ namespace darkObject {
             return m_poolInfo;
         }
 
-        ColorDescriptorSetLayout(std::shared_ptr<vulkan::Device> inDevice)
-                : m_device(inDevice) {
+        ColorDescriptorSetLayout(
+                std::shared_ptr<vulkan::Device> inDevice,
+                size_t numberLightSources)
+                : m_device(std::move(inDevice)) {
             m_poolSizes[0].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-            m_poolSizes[0].descriptorCount = m_numberOfDescriptorSetsInPool;
+            m_poolSizes[0].descriptorCount = 1;
             m_poolSizes[1].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-            m_poolSizes[1].descriptorCount = m_numberOfDescriptorSetsInPool;
+            m_poolSizes[1].descriptorCount = 1;
             m_poolSizes[2].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-            m_poolSizes[2].descriptorCount = m_numberOfDescriptorSetsInPool;
+            m_poolSizes[2].descriptorCount = 1;
             m_poolSizes[3].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-            m_poolSizes[3].descriptorCount = m_numberOfDescriptorSetsInPool;
-            m_poolSizes[4].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-            m_poolSizes[4].descriptorCount = m_numberOfDescriptorSetsInPool;
-            m_poolSizes[5].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-            m_poolSizes[5].descriptorCount = m_numberOfDescriptorSetsInPool;
-            m_poolSizes[6].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-            m_poolSizes[6].descriptorCount = m_numberOfDescriptorSetsInPool;
-            m_poolSizes[7].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-            m_poolSizes[7].descriptorCount = m_numberOfDescriptorSetsInPool;
-            m_poolSizes[8].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-            m_poolSizes[8].descriptorCount = m_numberOfDescriptorSetsInPool;
-            m_poolSizes[9].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-            m_poolSizes[9].descriptorCount = m_numberOfDescriptorSetsInPool;
-            m_poolSizes[10].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-            m_poolSizes[10].descriptorCount = m_numberOfDescriptorSetsInPool;
+            m_poolSizes[3].descriptorCount = renderDetails::numberDirections * numberLightSources;
+
             m_poolInfo = {};
             m_poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
             m_poolInfo.poolSizeCount = static_cast<uint32_t>(m_poolSizes.size());
@@ -245,7 +199,7 @@ namespace darkObject {
             m_poolInfo.maxSets = m_numberOfDescriptorSetsInPool;
             m_poolInfo.pNext = nullptr;
 
-            createDescriptorSetLayout();
+            createDescriptorSetLayout(numberLightSources);
         }
 
         ~ColorDescriptorSetLayout() override = default;
@@ -258,7 +212,7 @@ namespace darkObject {
         VkDescriptorPoolCreateInfo m_poolInfo;
         std::array<VkDescriptorPoolSize, 11> m_poolSizes;
 
-        void createDescriptorSetLayout();
+        void createDescriptorSetLayout(size_t numberLightSources);
     };
 
     /* for passing data other than the vertex data to the vertex shader */
@@ -355,7 +309,7 @@ namespace darkObject {
                 std::shared_ptr<RenderLoaderVulkan> const &,
                 std::shared_ptr<vulkan::Device> const &inDevice,
                 std::shared_ptr<vulkan::SurfaceDetails> const &surfaceDetails,
-                std::shared_ptr<renderDetails::Parameters> const &parametersBase)
+                std::shared_ptr<renderDetails::ParametersBase> const &parametersBase)
         {
             auto parameters = dynamic_cast<renderDetails::ParametersDarkObjectVulkan*>(parametersBase.get());
             if (parameters == nullptr) {
@@ -366,9 +320,19 @@ namespace darkObject {
                 throw std::runtime_error("Invalid number of shaders received in load attempt of Dark Object Render details.");
             }
 
+            switch (description.drawingMethod()) {
+                case renderDetails::DrawingStyle::dark1light:
+                    if (parameters->lightingSources.size() != 1) {
+                        throw std::runtime_error("Incorrect number of lighting sources for render details.");
+                    }
+                    break;
+                default:
+                    throw std::runtime_error("Invalid render details type.");
+            }
+
             auto rd = std::make_shared<RenderDetailsVulkan>(
                     description, shaders[0], shaders[1], shaders[2],
-                    gameRequester, inDevice, nullptr, surfaceDetails);
+                    gameRequester, inDevice, nullptr, surfaceDetails, parameters->lightingSources.size());
 
             auto cod = rd->createCommonObjectData(surfaceDetails->preTransform, parameters);
 
@@ -380,7 +344,7 @@ namespace darkObject {
                 std::shared_ptr<RenderLoaderVulkan> const &,
                 std::shared_ptr<renderDetails::RenderDetailsVulkan> rdBase,
                 std::shared_ptr<vulkan::SurfaceDetails> const &surfaceDetails,
-                std::shared_ptr<renderDetails::Parameters> const &parametersBase)
+                std::shared_ptr<renderDetails::ParametersBase> const &parametersBase)
         {
             auto parameters = dynamic_cast<renderDetails::ParametersDarkObjectVulkan*>(parametersBase.get());
             if (parameters == nullptr) {
@@ -390,6 +354,16 @@ namespace darkObject {
             auto rd = std::dynamic_pointer_cast<RenderDetailsVulkan>(rdBase);
             if (rd == nullptr) {
                 throw std::runtime_error("Invalid render details type.");
+            }
+
+            switch (rd->m_description.drawingMethod()) {
+                case renderDetails::DrawingStyle::dark1light:
+                    if (parameters->lightingSources.size() != 1) {
+                        throw std::runtime_error("Incorrect number of lighting sources for render details.");
+                    }
+                    break;
+                default:
+                    throw std::runtime_error("Invalid render details type.");
             }
 
             if (rd->structuralChangeNeeded(surfaceDetails)) {
@@ -432,13 +406,14 @@ namespace darkObject {
                 std::shared_ptr<GameRequester> const &gameRequester,
                 std::shared_ptr<vulkan::Device> const &inDevice,
                 std::shared_ptr<vulkan::Pipeline> const &basePipeline,
-                std::shared_ptr<vulkan::SurfaceDetails> const &surfaceDetails)
+                std::shared_ptr<vulkan::SurfaceDetails> const &surfaceDetails,
+                size_t numberLightSources)
                 : renderDetails::RenderDetailsVulkan{description, surfaceDetails->surfaceWidth, surfaceDetails->surfaceHeight},
                   m_vertexShader{vertexShader},
                   m_textureFragShader{textureFragShader},
                   m_colorFragShader{colorFragShader},
                   m_device{inDevice},
-                  m_descriptorSetLayoutTexture{std::make_shared<TextureDescriptorSetLayout>(m_device)},
+                  m_descriptorSetLayoutTexture{std::make_shared<TextureDescriptorSetLayout>(m_device, numberLightSources)},
                   m_descriptorPoolsTexture{std::make_shared<vulkan::DescriptorPools>(m_device, m_descriptorSetLayoutTexture)},
                   m_pipelineTexture{std::make_shared<vulkan::Pipeline>(
                           gameRequester, m_device, VkExtent2D{m_surfaceWidth, m_surfaceHeight},
@@ -446,7 +421,7 @@ namespace darkObject {
                           getBindingDescription(),
                           getAttributeDescriptions(),
                           vertexShader, textureFragShader, basePipeline)},
-                  m_descriptorSetLayoutColor{std::make_shared<ColorDescriptorSetLayout>(m_device)},
+                  m_descriptorSetLayoutColor{std::make_shared<ColorDescriptorSetLayout>(m_device, numberLightSources)},
                   m_descriptorPoolsColor{std::make_shared<vulkan::DescriptorPools>(m_device, m_descriptorSetLayoutColor)},
                   m_pipelineColor{std::make_shared<vulkan::Pipeline>(
                           gameRequester, m_device, VkExtent2D{m_surfaceWidth, m_surfaceHeight},

@@ -36,8 +36,6 @@
 #include "renderLoader/renderLoaderGL.hpp"
 
 namespace darkChaining {
-    size_t constexpr numberShadowMaps = renderDetails::numberOfShadowMapsDarkMaze;
-
     class CommonObjectDataGL : public renderDetails::CommonObjectDataBase {
     public:
         std::pair<glm::mat4, glm::mat4> getProjViewForLevel() {
@@ -54,37 +52,43 @@ namespace darkChaining {
         void update(renderDetails::ParametersBase const &parametersBase) override {
             auto parameters = dynamic_cast<renderDetails::ParametersDark const &>(parametersBase);
 
-            m_darkObject->update(*parameters.toGamePerspective());
-
             // shadows CODs
-            for (size_t viewPointNumber = 0; viewPointNumber < parameters.numberViewPoints(); viewPointNumber++) {
+            std::vector<glm::mat4> shadowsProjViews;
+            for (size_t lightNumber = 0; lightNumber < parameters.numberLightSources(); lightNumber++) {
                 for (size_t direction = 0; direction < 4; direction++) {
-                    auto parametersShadows = parameters.toShadowsPerspective(direction, viewPointNumber);
+                    auto parametersShadows = parameters.toShadowsParametersPerspective(
+                            lightNumber, direction);
 
                     // The shadows CODs are stored with the zeroth viewpoint first with the CODs stored
                     // in counterclockwise order starting with the camera pointed in the y direction.
                     // Next the first viewpoint's CODs stored in the same manner.
-                    m_shadowsCODs[4 * viewPointNumber + direction]->update(*parametersShadows);
+                    m_shadowsCODs[4 * lightNumber + direction]->update(parametersShadows);
+
+                    glm::mat4 shadowsProjView = parameters.getLightProjView(lightNumber, direction, false, false);
+                    shadowsProjViews.push_back(shadowsProjView);
                 }
             }
+
+            renderDetails::ParametersDarkObjectGL parametersGame(*parameters.toGamePerspective(), shadowsProjViews);
+            m_darkObject->update(parametersGame);
         }
 
         CommonObjectDataGL(
                 std::shared_ptr<renderDetails::CommonObjectDataBase> inDarkObject,
-                std::array<std::shared_ptr<renderDetails::CommonObjectDataBase>, numberShadowMaps> inShadowsCODs)
+                std::vector<std::shared_ptr<renderDetails::CommonObjectDataBase>> inShadowsCODs)
                 : CommonObjectDataBase(), // Base COD
                   m_darkObject(std::dynamic_pointer_cast<darkObject::CommonObjectDataGL>(inDarkObject)),
                   m_shadowsCODs{}
         {
-            for (size_t i = 0; i < numberShadowMaps; i++) {
-                m_shadowsCODs[i] = std::dynamic_pointer_cast<shadows::CommonObjectDataGL>(inShadowsCODs[i]);
+            for (auto const &shadowsCOD : inShadowsCODs) {
+                m_shadowsCODs.push_back(std::dynamic_pointer_cast<shadows::CommonObjectDataGL>(shadowsCOD));
             }
         }
 
         ~CommonObjectDataGL() override = default;
     private:
         std::shared_ptr<darkObject::CommonObjectDataGL> m_darkObject;
-        std::array<std::shared_ptr<shadows::CommonObjectDataGL>, numberShadowMaps> m_shadowsCODs;
+        std::vector<std::shared_ptr<shadows::CommonObjectDataGL>> m_shadowsCODs;
     };
 
     class DrawObjectDataGL : public renderDetails::DrawObjectDataGL {
@@ -159,7 +163,7 @@ namespace darkChaining {
     private:
         // use less precision for the shadow buffer
         static float constexpr shadowsSizeMultiplier = 0.25f;
-        std::array<std::shared_ptr<graphicsGL::Framebuffer>, numberShadowMaps> m_framebuffersShadows;
+        std::vector<std::shared_ptr<graphicsGL::Framebuffer>> m_framebuffersShadows;
         std::shared_ptr<renderDetails::RenderDetailsGL> m_shadowsRenderDetails;
         std::shared_ptr<renderDetails::RenderDetailsGL> m_darkObjectRenderDetails;
 
@@ -167,7 +171,7 @@ namespace darkChaining {
             std::shared_ptr<renderDetails::RenderDetailsGL> rd,
             renderDetails::ReferenceGL const &refObjectWithShadows,
             renderDetails::ReferenceGL const &refShadows,
-            std::array<std::shared_ptr<renderDetails::CommonObjectDataBase>, numberShadowMaps> shadowsCODs);
+            std::vector<std::shared_ptr<renderDetails::CommonObjectDataBase>> shadowsCODs);
 
         static renderDetails::ReferenceGL loadHelper(
             std::shared_ptr<GameRequester> const &gameRequester,

@@ -27,11 +27,24 @@
 
 namespace renderDetails {
     struct ParametersDarkObjectGL : public ParametersPerspective {
-        std::array <std::shared_ptr<graphicsGL::Framebuffer>, renderDetails::numberOfShadowMapsDarkMaze> darkFramebuffers;
+        std::vector<std::shared_ptr<graphicsGL::Framebuffer>> darkFramebuffers;
+        bool frameBuffersValid;
+        std::vector<glm::mat4> projViewsLights;
 
         ParametersDarkObjectGL(ParametersPerspective const &parameters,
-                               std::array <std::shared_ptr<graphicsGL::Framebuffer>, renderDetails::numberOfShadowMapsDarkMaze> fbs)
-                : ParametersPerspective(parameters), darkFramebuffers(std::move(fbs)) {}
+                               std::vector<std::shared_ptr<graphicsGL::Framebuffer>> fbs,
+                               std::vector<glm::mat4> inProjViewLights)
+                : ParametersPerspective(parameters),
+                  darkFramebuffers(std::move(fbs)),
+                  frameBuffersValid(true),
+                  projViewsLights(std::move(inProjViewLights)) {}
+
+        ParametersDarkObjectGL(ParametersPerspective const &parameters,
+                               std::vector<glm::mat4> inProjViewLights)
+                : ParametersPerspective(parameters),
+                  darkFramebuffers{},
+                  frameBuffersValid(false),
+                  projViewsLights(std::move(inProjViewLights)) {}
 
         ~ParametersDarkObjectGL() override = default;
     };

@@ -100,6 +100,7 @@ namespace renderDetails {
         }
 
         void update(renderDetails::ParametersLightSources const &parameters)  {
+            CommonObjectData::update(parameters);
             m_lightSources = parameters.lightingSources;
         }
 

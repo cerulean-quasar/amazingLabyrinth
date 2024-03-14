@@ -33,7 +33,7 @@ namespace darkObject {
             std::shared_ptr<GameRequester> const &gameRequester,
             std::shared_ptr<RenderLoaderGL> const &,
             std::shared_ptr<graphicsGL::SurfaceDetails> const &surfaceDetails,
-            std::shared_ptr<renderDetails::Parameters> const &parametersBase)
+            std::shared_ptr<renderDetails::ParametersBase> const &parametersBase)
     {
         auto parameters =
                 dynamic_cast<renderDetails::ParametersDarkObjectGL*>(parametersBase.get());
@@ -64,7 +64,7 @@ namespace darkObject {
             std::shared_ptr<RenderLoaderGL> const &,
             std::shared_ptr<renderDetails::RenderDetailsGL> rdBase,
             std::shared_ptr<graphicsGL::SurfaceDetails> const &surfaceDetails,
-            std::shared_ptr<renderDetails::Parameters> const &parametersBase)
+            std::shared_ptr<renderDetails::ParametersBase> const &parametersBase)
     {
         auto rd = dynamic_cast<RenderDetailsGL*>(rdBase.get());
         if (rd == nullptr) {
@@ -168,77 +168,26 @@ namespace darkObject {
                 glUniformMatrix4fv(MatrixID, 1, GL_FALSE, &projTimesView[0][0]);
                 checkGraphicsError();
 
-                // the projection matrix * the view matrix from the light source point of view (Ball)
-                auto projViewLightBall = projView.first * cod->getViewLightSource(0, CommonObjectDataGL::up);
-                MatrixID = glGetUniformLocation(programID, "projViewLightBallUp");
-                checkGraphicsError();
-                glUniformMatrix4fv(MatrixID, 1, GL_FALSE, &projViewLightBall[0][0]);
-                checkGraphicsError();
+                auto const &projViewLights = cod->getProjViewLights();
 
-                projViewLightBall = projView.first * cod->getViewLightSource(0, CommonObjectDataGL::right);
-                MatrixID = glGetUniformLocation(programID, "projViewLightBallRight");
-                checkGraphicsError();
-                glUniformMatrix4fv(MatrixID, 1, GL_FALSE, &projViewLightBall[0][0]);
-                checkGraphicsError();
+                // projection matrix * view matrix for each light source
+                for (size_t i = 0; i < m_shaderVariablesLightSources.size(); i++) {
+                    MatrixID = glGetUniformLocation(
+                            programID,
+                            m_shaderVariablesLightSources[i].projViewVariableName.c_str());
+                    checkGraphicsError();
+                    glUniformMatrix4fv(MatrixID, 1, GL_FALSE, &projViewLights[i][0][0]);
+                    checkGraphicsError();
+                }
 
-                projViewLightBall = projView.first * cod->getViewLightSource(0, CommonObjectDataGL::down);
-                MatrixID = glGetUniformLocation(programID, "projViewLightBallDown");
-                checkGraphicsError();
-                glUniformMatrix4fv(MatrixID, 1, GL_FALSE, &projViewLightBall[0][0]);
-                checkGraphicsError();
-
-                projViewLightBall = projView.first * cod->getViewLightSource(0, CommonObjectDataGL::left);
-                MatrixID = glGetUniformLocation(programID, "projViewLightBallLeft");
-                checkGraphicsError();
-                glUniformMatrix4fv(MatrixID, 1, GL_FALSE, &projViewLightBall[0][0]);
-                checkGraphicsError();
-
-                GLint lightBallPosID = glGetUniformLocation(programID, "lightPosBall");
-                checkGraphicsError();
-                glm::vec3 lightBallPos = cod->getLightSource(0);
-                glUniform3fv(lightBallPosID, 1, &lightBallPos[0]);
-                checkGraphicsError();
-
-                // the projection matrix * the view matrix from the light source point of view (Hole)
-                auto projViewLight = projView.first * cod->getViewLightSource(1, CommonObjectDataGL::up);
-                MatrixID = glGetUniformLocation(programID, "projViewLightHoleUp");
-                checkGraphicsError();
-                glUniformMatrix4fv(MatrixID, 1, GL_FALSE, &projViewLight[0][0]);
-                checkGraphicsError();
-
-                projViewLight = projView.first * cod->getViewLightSource(1, CommonObjectDataGL::right);
-                MatrixID = glGetUniformLocation(programID, "projViewLightHoleRight");
-                checkGraphicsError();
-                glUniformMatrix4fv(MatrixID, 1, GL_FALSE, &projViewLight[0][0]);
-                checkGraphicsError();
-
-                projViewLight = projView.first * cod->getViewLightSource(1, CommonObjectDataGL::down);
-                MatrixID = glGetUniformLocation(programID, "projViewLightHoleDown");
-                checkGraphicsError();
-                glUniformMatrix4fv(MatrixID, 1, GL_FALSE, &projViewLight[0][0]);
-                checkGraphicsError();
-
-                projViewLight = projView.first * cod->getViewLightSource(1, CommonObjectDataGL::left);
-                MatrixID = glGetUniformLocation(programID, "projViewLightHoleLeft");
-                checkGraphicsError();
-                glUniformMatrix4fv(MatrixID, 1, GL_FALSE, &projViewLight[0][0]);
-                checkGraphicsError();
-
-                GLint lightPosID = glGetUniformLocation(programID, "lightPosHole");
-                checkGraphicsError();
-                glm::vec3 lightPos = cod->getLightSource(1);
-                glUniform3fv(lightPosID, 1, &lightPos[0]);
-                checkGraphicsError();
-
-                // Dark maps
-                loadTexture(cod, programID, GL_TEXTURE0, "texDarkMap0", 0);
-                loadTexture(cod, programID, GL_TEXTURE1, "texDarkMap1", 1);
-                loadTexture(cod, programID, GL_TEXTURE2, "texDarkMap2", 2);
-                loadTexture(cod, programID, GL_TEXTURE3, "texDarkMap3", 3);
-                loadTexture(cod, programID, GL_TEXTURE4, "texDarkMap4", 4);
-                loadTexture(cod, programID, GL_TEXTURE5, "texDarkMap5", 5);
-                loadTexture(cod, programID, GL_TEXTURE6, "texDarkMap6", 6);
-                loadTexture(cod, programID, GL_TEXTURE7, "texDarkMap7", 7);
+                // the light source positions
+                for (size_t i = 0; i < m_lightSourcePosVars.size(); i++) {
+                    GLint lightPosID = glGetUniformLocation(programID, m_lightSourcePosVars[i].c_str());
+                    checkGraphicsError();
+                    glm::vec3 lightPos = cod->getLightSource(i);
+                    glUniform3fv(lightPosID, 1, &lightPos[0]);
+                    checkGraphicsError();
+                }
 
                 MatrixID = glGetUniformLocation(programID, "model");
                 checkGraphicsError();
@@ -253,7 +202,7 @@ namespace darkObject {
             }
 
             if (textureData) {
-                glActiveTexture(GL_TEXTURE4);
+                glActiveTexture(GL_TEXTURE0);
                 checkGraphicsError();
                 glBindTexture(GL_TEXTURE_2D, textureData->handle());
                 checkGraphicsError();
@@ -270,6 +219,12 @@ namespace darkObject {
             glm::mat4 normalMatrix = glm::transpose(glm::inverse(modelMatrix));
             glUniformMatrix4fv(normalMatrixID, 1, GL_FALSE, &normalMatrix[0][0]);
             checkGraphicsError();
+
+            // Dark maps
+            for (size_t i = 0; i < m_shaderVariablesLightSources.size(); i++) {
+                loadTexture(cod, programID, m_shaderVariablesLightSources[i].texture,
+                            m_shaderVariablesLightSources[i].textureVariableName.c_str(), i);
+            }
 
             drawVertices(programID, modelData);
         }
@@ -297,12 +252,44 @@ namespace darkObject {
                 std::vector{vertexShader, std::move(textureShader)});
         m_colorProgram = renderDetails::getProgram(
                 std::vector{vertexShader, std::move(colorShader)});
+
+        if (m_description.drawingMethod() != renderDetails::DrawingStyle::dark1light &&
+            m_description.drawingMethod() != renderDetails::DrawingStyle::dark2lights) {
+            throw std::runtime_error("Drawing method not supported by render details");
+        }
+
+        m_shaderVariablesLightSources.push_back(
+            {"projViewLightBallUp", GL_TEXTURE1, "texDarkMap0"});
+        m_shaderVariablesLightSources.push_back(
+                {"projViewLightBallLeft", GL_TEXTURE2, "texDarkMap1"});
+        m_shaderVariablesLightSources.push_back(
+                {"projViewLightBallDown", GL_TEXTURE3, "texDarkMap2"});
+        m_shaderVariablesLightSources.push_back(
+                {"projViewLightBallRight", GL_TEXTURE4, "texDarkMap3"});
+
+        m_lightSourcePosVars.push_back("lightPosBall");
+
+        if (m_description.drawingMethod() == renderDetails::DrawingStyle::dark2lights) {
+            m_shaderVariablesLightSources.push_back(
+                    {"projViewLightHoleUp", GL_TEXTURE5, "texDarkMap4"});
+            m_shaderVariablesLightSources.push_back(
+                    {"projViewLightHoleLeft", GL_TEXTURE6, "texDarkMap5"});
+            m_shaderVariablesLightSources.push_back(
+                    {"projViewLightHoleDown", GL_TEXTURE7, "texDarkMap6"});
+            m_shaderVariablesLightSources.push_back(
+                    {"projViewLightHoleRight", GL_TEXTURE8, "texDarkMap7"});
+
+            m_lightSourcePosVars.push_back("lightPosHole");
+        }
     }
 
     char constexpr const *SHADER_VERT_GL_FILE = "shaders/darkShaderGL.vert";
     char constexpr const *TEXTURE_SHADER_FRAG_GL_FILE = "shaders/darkTextureGL.frag";
     char constexpr const *COLOR_SHADER_FRAG_GL_FILE = "shaders/darkColorGL.frag";
-    RegisterGL<renderDetails::RenderDetailsGL, RenderDetailsGL> registerGL(
-            {renderDetails::DrawingStyle::dark, {renderDetails::Features::color, renderDetails::Features::texture}},
+    RegisterGL<renderDetails::RenderDetailsGL, RenderDetailsGL> registerGL1(
+            {renderDetails::DrawingStyle::dark1light, {renderDetails::Features::color, renderDetails::Features::texture}},
+            std::vector<char const *>{SHADER_VERT_GL_FILE, TEXTURE_SHADER_FRAG_GL_FILE, COLOR_SHADER_FRAG_GL_FILE});
+    RegisterGL<renderDetails::RenderDetailsGL, RenderDetailsGL> registerGL2(
+            {renderDetails::DrawingStyle::dark2lights, {renderDetails::Features::color, renderDetails::Features::texture}},
             std::vector<char const *>{SHADER_VERT_GL_FILE, TEXTURE_SHADER_FRAG_GL_FILE, COLOR_SHADER_FRAG_GL_FILE});
 } // darkObject

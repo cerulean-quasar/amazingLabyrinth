@@ -54,7 +54,7 @@ protected:
         RenderLoaderVulkanTraits::RetrieveFcns const &fcns,
         std::shared_ptr<GameRequester> const &gameRequester,
         std::shared_ptr<RenderLoaderVulkanTraits::SurfaceDetailsType> const &surfaceDetails,
-        std::shared_ptr<renderDetails::Parameters> const &parameters) override
+        std::shared_ptr<renderDetails::ParametersBase> const &parameters) override
     {
         return fcns.renderDetailsLoadNewFcn(gameRequester, shared_from_this(), m_device, surfaceDetails, parameters);
     }
@@ -71,7 +71,7 @@ protected:
         std::shared_ptr<GameRequester> const &gameRequester,
         std::shared_ptr<RenderLoaderVulkanTraits::RenderDetailsType> const &renderDetails,
         std::shared_ptr<RenderLoaderVulkanTraits::SurfaceDetailsType> const &surfaceDetails,
-        std::shared_ptr<renderDetails::Parameters> const &parameters) override
+        std::shared_ptr<renderDetails::ParametersBase> const &parameters) override
     {
         return fcns.renderDetailsLoadExistingFcn(gameRequester, shared_from_this(), renderDetails,
                 surfaceDetails, parameters);

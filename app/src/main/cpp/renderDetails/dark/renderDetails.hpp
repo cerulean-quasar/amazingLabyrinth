@@ -28,46 +28,71 @@
 #include "levelDrawer/common.hpp"
 
 namespace renderDetails {
-    size_t constexpr const numberOfLightSourcesDarkMaze = 2;
-    size_t constexpr const numberOfShadowMapsPerDarkObject = 4;
-    size_t constexpr const numberOfShadowMapsDarkMaze = numberOfShadowMapsPerDarkObject * numberOfLightSourcesDarkMaze;
+    size_t constexpr const numberDirections = 4;
 
     struct ParametersDark : public ParametersBase {
     public:
-        size_t pushBackViewPoint(float x, float y) {
-            glm::vec3 viewPoint{x, y, m_minLevelZ + m_ballRadius};
-            m_viewPoints.push_back(viewPoint);
-            return m_viewPoints.size() - 1;
+        size_t numberLightSources() const { return m_lightSources.size(); }
+        float viewAngleShadows() const { return m_viewAngleConstant; }
+        float errorConstant() const { return m_errorConstant; }
+        float ballRadius() const { return m_ballRadius; }
+        float gameBoardWidth() const { return m_gameBoardWidth; }
+        float gameBoardHeight() const { return m_gameBoardHeight; }
+        float minLevelZ() const { return m_minLevelZ; }
+        bool isLightSourceMobile(size_t lightSourceNumber) const { return m_lightSourceMoved[lightSourceNumber]; }
+        std::vector<bool> const &lightSourceMoved() const { return m_lightSourceMoved; }
+        float aspectRatio() const { return m_minLevelZ / m_gameBoardWidth; }
+
+        glm::mat4 getLightProjView(size_t lightNumber, size_t direction, bool invertY, bool invertZ) const {
+            ParametersPerspective parameters = toShadowsParametersPerspective(lightNumber, direction);
+            return getPerspectiveMatrix(
+                        parameters.viewAngle,
+                        aspectRatio(),
+                        parameters.nearPlane,
+                        parameters.farPlane,
+                        invertY, invertZ) *
+                glm::lookAt(parameters.viewPoint, parameters.lookAt, parameters.up);
+
         }
 
-        size_t numberViewPoints() { return m_viewPoints.size(); }
+        size_t pushBackLightSource(float x, float y, bool isMobile) {
+            glm::vec3 lightSource{x, y, m_minLevelZ + m_ballRadius};
+            m_lightSources.push_back(lightSource);
+            m_lightSourceMoved.push_back(isMobile);
+            return m_lightSources.size() - 1;
+        }
 
         void updateBallRadius(float inBallRadius) {
             m_ballRadius = inBallRadius;
         }
 
-        void updateViewPoint(size_t viewPointNumber, float x, float y) {
-            if (viewPointNumber >= m_viewPoints.size()) {
+        void updateLightSource(size_t lightSourceNumber, float x, float y) {
+            if (lightSourceNumber >= m_lightSources.size()) {
                 throw std::runtime_error("Viewpoint requested is out of range.");
             }
 
-            m_viewPoints[viewPointNumber].x = x;
-            m_viewPoints[viewPointNumber].y = y;
-            m_viewPoints[viewPointNumber].z = m_minLevelZ + m_ballRadius;
+            m_lightSources[lightSourceNumber].x = x;
+            m_lightSources[lightSourceNumber].y = y;
+            m_lightSources[lightSourceNumber].z = m_minLevelZ + m_ballRadius;
         }
 
-        std::shared_ptr<ParametersPerspective> toGamePerspective() {
+        std::shared_ptr<ParametersPerspective> toGamePerspective() const {
             return gameConstants::getPerspectiveParameters();
         }
 
-        std::shared_ptr<ParametersPerspective> toShadowsPerspective(size_t direction, size_t viewPointNumber) {
+        std::shared_ptr<ParametersPerspective> toShadowsParametersPerspectivePtr(size_t lightNumber, size_t direction) const {
+            ParametersPerspective parameters = toShadowsParametersPerspective(lightNumber, direction);
+            return std::make_shared<ParametersPerspective>(parameters);
+        }
+
+        ParametersPerspective toShadowsParametersPerspective(size_t lightNumber, size_t direction) const {
             ParametersPerspective parameters;
-            if (viewPointNumber >= m_viewPoints.size()) {
+            if (lightNumber >= m_lightSources.size()) {
                 throw std::runtime_error("Viewpoint requested is out of range.");
             }
 
             parameters.viewAngle = m_viewAngleConstant;
-            parameters.viewPoint = m_viewPoints[viewPointNumber];
+            parameters.viewPoint = m_lightSources[lightNumber];
             parameters.up = glm::vec3{0.0, 0.0, 1.0};
             switch (direction) {
                 case 0:
@@ -90,8 +115,17 @@ namespace renderDetails {
                 parameters.farPlane = m_gameBoardWidth;
             }
 
-            return std::make_shared<ParametersPerspective>(parameters);
+            return parameters;
         }
+
+        ParametersDark()
+          : ParametersBase(),
+            m_ballRadius{},
+            m_gameBoardWidth{},
+            m_gameBoardHeight{},
+            m_minLevelZ{},
+            m_lightSources{}
+          {}
 
         ParametersDark(float inBallRadius, float inGameBoardWidth, float inGameBoardHeight, float inMinLevelZ)
         : ParametersBase(),
@@ -99,7 +133,7 @@ namespace renderDetails {
           m_gameBoardWidth{inGameBoardWidth},
           m_gameBoardHeight{inGameBoardHeight},
           m_minLevelZ{inMinLevelZ},
-          m_viewPoints{}
+          m_lightSources{}
         {}
 
         ~ParametersDark() override = default;
@@ -111,18 +145,12 @@ namespace renderDetails {
         float m_gameBoardWidth;
         float m_gameBoardHeight;
         float m_minLevelZ;
-        std::vector<glm::vec3> m_viewPoints;
-    };
 
-    class CommonObjectDataDark : public CommonObjectDataBase {
-        ParametersDark const &parameters() { return m_parameters; }
+        // The first member of the pair is the position of the light source, the second member
+        // indicates whether it is static or not.
+        std::vector<glm::vec3> m_lightSources;
 
-        void update(ParametersBase const &parametersBase) override {
-            auto parameters = dynamic_cast<ParametersDark const &>(parametersBase);
-            m_parameters = parameters;
-        }
-    private:
-        ParametersDark m_parameters;
+        std::vector<bool> m_lightSourceMoved;
     };
 } // renderDetails
 
