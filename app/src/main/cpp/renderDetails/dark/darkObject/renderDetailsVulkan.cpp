@@ -428,7 +428,10 @@ namespace darkObject {
     char constexpr const *SHADER_VERT_VK_FILE = "shaders/darkShader.vert.spv";
     char constexpr const *TEXTURE_SHADER_FRAG_VK_FILE = "shaders/darkTexture.frag.spv";
     char constexpr const *COLOR_SHADER_FRAG_VK_FILE = "shaders/darkColor.frag.spv";
-    RegisterVulkan<renderDetails::RenderDetailsVulkan, RenderDetailsVulkan> registerVulkan(
+    RegisterVulkan<renderDetails::RenderDetailsVulkan, RenderDetailsVulkan> registerVulkan1(
             {renderDetails::DrawingStyle::dark1light, {renderDetails::Features::color, renderDetails::Features::texture}},
+            std::vector<char const *> {SHADER_VERT_VK_FILE, TEXTURE_SHADER_FRAG_VK_FILE, COLOR_SHADER_FRAG_VK_FILE});
+    RegisterVulkan<renderDetails::RenderDetailsVulkan, RenderDetailsVulkan> registerVulkan2(
+            {renderDetails::DrawingStyle::dark2lights, {renderDetails::Features::color, renderDetails::Features::texture}},
             std::vector<char const *> {SHADER_VERT_VK_FILE, TEXTURE_SHADER_FRAG_VK_FILE, COLOR_SHADER_FRAG_VK_FILE});
 } // namespace darkObject

@@ -316,8 +316,12 @@ namespace darkChaining {
         }
     }
 
-    RegisterVulkan<renderDetails::RenderDetailsVulkan, RenderDetailsVulkan> registerVulkan(
-    {renderDetails::DrawingStyle::dark1light,
+    RegisterVulkan<renderDetails::RenderDetailsVulkan, RenderDetailsVulkan> registerVulkan1(
+            {renderDetails::DrawingStyle::dark1light,
+             {renderDetails::Features::chaining, renderDetails::Features::texture, renderDetails::Features::color}},
+            std::vector<char const *>{});
+    RegisterVulkan<renderDetails::RenderDetailsVulkan, RenderDetailsVulkan> registerVulkan2(
+    {renderDetails::DrawingStyle::dark2lights,
             {renderDetails::Features::chaining, renderDetails::Features::texture, renderDetails::Features::color}},
         std::vector<char const *>{});
 } // namespace darkChaining
