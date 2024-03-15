@@ -283,9 +283,9 @@ namespace darkObject {
         }
     }
 
-    char constexpr const *SHADER_VERT_GL_FILE = "shaders/darkShaderGL.vert";
-    char constexpr const *TEXTURE_SHADER_FRAG_GL_FILE = "shaders/darkTextureGL.frag";
-    char constexpr const *COLOR_SHADER_FRAG_GL_FILE = "shaders/darkColorGL.frag";
+    char constexpr const *SHADER_VERT_GL_FILE = "shaders/dark2lightsGL.vert";
+    char constexpr const *TEXTURE_SHADER_FRAG_GL_FILE = "shaders/dark2lightsTextureGL.frag";
+    char constexpr const *COLOR_SHADER_FRAG_GL_FILE = "shaders/dark2lightsColorGL.frag";
     RegisterGL<renderDetails::RenderDetailsGL, RenderDetailsGL> registerGL1(
             {renderDetails::DrawingStyle::dark1light, {renderDetails::Features::color, renderDetails::Features::texture}},
             std::vector<char const *>{SHADER_VERT_GL_FILE, TEXTURE_SHADER_FRAG_GL_FILE, COLOR_SHADER_FRAG_GL_FILE});

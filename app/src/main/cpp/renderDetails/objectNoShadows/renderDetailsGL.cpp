@@ -218,9 +218,9 @@ namespace objectNoShadows {
                 std::vector{vertexShader, std::move(colorFragShader)});
     }
 
-    char constexpr const *SHADER_VERT_GL_FILE = "shaders/shaderNoShadowsGL.vert";
-    char constexpr const *TEXTURE_SHADER_FRAG_GL_FILE = "shaders/shaderNoShadowsGL.frag";
-    char constexpr const *COLOR_SHADER_FRAG_GL_FILE = "shaders/colorNoShadowsGL.frag";
+    char constexpr const *SHADER_VERT_GL_FILE = "shaders/standardGL.vert";
+    char constexpr const *TEXTURE_SHADER_FRAG_GL_FILE = "shaders/standardTextureGL.frag";
+    char constexpr const *COLOR_SHADER_FRAG_GL_FILE = "shaders/standardColorGL.frag";
     char constexpr const *TEXTURE_DARK_V2_FRAG_GL_FILE = "shaders/darkV2TextureGL.frag";
     char constexpr const *COLOR_DARK_V2_FRAG_GL_FILE = "shaders/darkV2ColorGL.frag";
     RegisterGL<renderDetails::RenderDetailsGL, RenderDetailsGL> registerGL(

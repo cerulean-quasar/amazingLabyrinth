@@ -175,8 +175,8 @@ namespace shadows {
         }
     }
 
-    char constexpr const *DEPTH_VERT_FILE = "shaders/depthShaderGL.vert";
-    char constexpr const *SIMPLE_FRAG_FILE = "shaders/simpleShadowsGL.frag";
+    char constexpr const *DEPTH_VERT_FILE = "shaders/shadowsGL.vert";
+    char constexpr const *SIMPLE_FRAG_FILE = "shaders/shadowsGL.frag";
     RegisterGL<renderDetails::RenderDetailsGL, RenderDetailsGL> registerGL(
         {renderDetails::DrawingStyle::shadowMap, {}},
         std::vector<char const *>{DEPTH_VERT_FILE, SIMPLE_FRAG_FILE});

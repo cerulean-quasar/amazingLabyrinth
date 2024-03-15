@@ -206,8 +206,8 @@ namespace depthMap {
         }
     }
 
-    char constexpr const *LINEAR_DEPTH_VERT_GL_FILE = "shaders/linearDepthGL.vert";
-    char constexpr const *LINEAR_DEPTH3_VERT_GL_FILE = "shaders/linearDepthGL3.vert";
+    char constexpr const *LINEAR_DEPTH_VERT_GL_FILE = "shaders/depthMapGL.vert";
+    char constexpr const *LINEAR_DEPTH3_VERT_GL_FILE = "shaders/depthMapGL3.vert";
     char constexpr const *SIMPLE_FRAG_GL_FILE = "shaders/simpleGL.frag";
     char constexpr const *SIMPLE3_FRAG_GL_FILE = "shaders/simpleGL3.frag";
     RegisterGL<renderDetails::RenderDetailsGL, RenderDetailsGL> registerGL(

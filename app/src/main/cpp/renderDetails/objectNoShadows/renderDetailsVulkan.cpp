@@ -364,9 +364,9 @@ namespace objectNoShadows {
                 m_vertexShader, m_colorFragShader, m_pipelineTexture);
     }
 
-    char constexpr const *SHADER_VERT_VK_FILE = "shaders/shaderNoShadows.vert.spv";
-    char constexpr const *TEXTURE_SHADER_FRAG_VK_FILE = "shaders/shaderNoShadows.frag.spv";
-    char constexpr const *COLOR_SHADER_FRAG_VK_FILE = "shaders/colorShaderNoShadows.frag.spv";
+    char constexpr const *SHADER_VERT_VK_FILE = "shaders/standard.vert.spv";
+    char constexpr const *TEXTURE_SHADER_FRAG_VK_FILE = "shaders/standardTexture.frag.spv";
+    char constexpr const *COLOR_SHADER_FRAG_VK_FILE = "shaders/standardColor.frag.spv";
     char constexpr const *TEXTURE_DARK_V2_FRAG_VK_FILE = "shaders/darkV2Texture.frag.spv";
     char constexpr const *COLOR_DARK_V2_FRAG_VK_FILE = "shaders/darkV2Color.frag.spv";
     RegisterVulkan<renderDetails::RenderDetailsVulkan, RenderDetailsVulkan> registerVulkan(

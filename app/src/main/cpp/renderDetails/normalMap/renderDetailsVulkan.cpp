@@ -177,7 +177,7 @@ namespace normalMap {
                 m_normalShader, m_simpleFragShader, nullptr);
     }
 
-    char constexpr const *SHADER_NORMAL_VERT_VK_FILE ="shaders/normal.vert.spv";
+    char constexpr const *SHADER_NORMAL_VERT_VK_FILE ="shaders/normalMap.vert.spv";
     char constexpr const *SHADER_SIMPLE_FRAG_VK_FILE = "shaders/simple.frag.spv";
     RegisterVulkan<renderDetails::RenderDetailsVulkan, RenderDetailsVulkan> registerVulkan(
             {renderDetails::DrawingStyle::normalMap, {}},

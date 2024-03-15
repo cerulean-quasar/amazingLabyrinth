@@ -185,7 +185,7 @@ namespace shadows {
                 VK_CULL_MODE_FRONT_BIT);
     }
 
-    char constexpr const *SHADOW_VERT_FILE = "shaders/depthShader.vert.spv";
+    char constexpr const *SHADOW_VERT_FILE = "shaders/shadows.vert.spv";
     RegisterVulkan<renderDetails::RenderDetailsVulkan, RenderDetailsVulkan> registerVulkan(
             {renderDetails::DrawingStyle::shadowMap, {}},
             std::vector<char const *>{SHADOW_VERT_FILE});

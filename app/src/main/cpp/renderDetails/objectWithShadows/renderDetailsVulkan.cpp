@@ -406,9 +406,9 @@ namespace objectWithShadows {
                 m_vertexShader, m_colorShader, m_pipelineTexture);
     }
 
-    char constexpr const *SHADER_VERT_VK_FILE = "shaders/shader.vert.spv";
-    char constexpr const *TEXTURE_SHADER_FRAG_VK_FILE = "shaders/shader.frag.spv";
-    char constexpr const *COLOR_SHADER_FRAG_VK_FILE = "shaders/colorShader.frag.spv";
+    char constexpr const *SHADER_VERT_VK_FILE = "shaders/standardWithShadows.vert.spv";
+    char constexpr const *TEXTURE_SHADER_FRAG_VK_FILE = "shaders/standardWithShadowsTexture.frag.spv";
+    char constexpr const *COLOR_SHADER_FRAG_VK_FILE = "shaders/standardWithShadowsColor.frag.spv";
     RegisterVulkan<renderDetails::RenderDetailsVulkan, RenderDetailsVulkan> registerVulkan(
             {renderDetails::DrawingStyle::standard, {renderDetails::Features::color, renderDetails::Features::texture, renderDetails::Features::shadows}},
             std::vector<char const *>{SHADER_VERT_VK_FILE, TEXTURE_SHADER_FRAG_VK_FILE, COLOR_SHADER_FRAG_VK_FILE});

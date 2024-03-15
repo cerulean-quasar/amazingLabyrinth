@@ -208,8 +208,8 @@ namespace normalMap {
         }
     }
 
-    char constexpr const *NORMAL_VERT_GL_FILE ="shaders/normalGL.vert";
-    char constexpr const *NORMAL3_VERT_GL_FILE ="shaders/normalGL3.vert";
+    char constexpr const *NORMAL_VERT_GL_FILE ="shaders/normalMapGL.vert";
+    char constexpr const *NORMAL3_VERT_GL_FILE ="shaders/normalMapGL3.vert";
     char constexpr const *SIMPLE_FRAG_GL_FILE = "shaders/simpleGL.frag";
     char constexpr const *SIMPLE3_FRAG_GL_FILE = "shaders/simpleGL3.frag";
     RegisterGL<renderDetails::RenderDetailsGL, RenderDetailsGL> registerGL(

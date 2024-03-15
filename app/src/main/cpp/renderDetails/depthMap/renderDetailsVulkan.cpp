@@ -179,7 +179,7 @@ namespace depthMap {
     }
 
     char constexpr const *SHADER_SIMPLE_FRAG_VK_FILE = "shaders/simple.frag.spv";
-    char constexpr const *SHADER_LINEAR_DEPTH_VERT_VK_FILE ="shaders/linearDepth.vert.spv";
+    char constexpr const *SHADER_LINEAR_DEPTH_VERT_VK_FILE ="shaders/depthMap.vert.spv";
     RegisterVulkan<renderDetails::RenderDetailsVulkan, RenderDetailsVulkan> registerVulkan{
         {renderDetails::DrawingStyle::depthMap, {}},
         std::vector<char const *>{SHADER_LINEAR_DEPTH_VERT_VK_FILE, SHADER_SIMPLE_FRAG_VK_FILE}};
