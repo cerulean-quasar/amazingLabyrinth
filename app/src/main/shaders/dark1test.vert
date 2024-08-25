@@ -30,10 +30,6 @@ layout(set = 0, binding = 1) uniform CommonUBO {
     mat4 projViewLight1Left;
     mat4 projViewLight1Down;
     mat4 projViewLight1Right;
-    mat4 projViewLight2Up;
-    mat4 projViewLight2Left;
-    mat4 projViewLight2Down;
-    mat4 projViewLight2Right;
 } cubo;
 
 layout(location = 0) in vec3 inPosition;
@@ -49,10 +45,6 @@ layout(location = 4) out vec4 fragPosLightSpace1Up;
 layout(location = 5) out vec4 fragPosLightSpace1Left;
 layout(location = 6) out vec4 fragPosLightSpace1Down;
 layout(location = 7) out vec4 fragPosLightSpace1Right;
-layout(location = 8) out vec4 fragPosLightSpace2Up;
-layout(location = 9) out vec4 fragPosLightSpace2Left;
-layout(location = 10) out vec4 fragPosLightSpace2Down;
-layout(location = 11) out vec4 fragPosLightSpace2Right;
 
 out gl_PerVertex {
     vec4 gl_Position;
@@ -68,10 +60,6 @@ void main() {
     fragPosLightSpace1Left = cubo.projViewLight1Left * fragPos;
     fragPosLightSpace1Down = cubo.projViewLight1Down * fragPos;
     fragPosLightSpace1Right = cubo.projViewLight1Right * fragPos;
-    fragPosLightSpace2Up = cubo.projViewLight2Up * fragPos;
-    fragPosLightSpace2Left = cubo.projViewLight2Left * fragPos;
-    fragPosLightSpace2Down = cubo.projViewLight2Down * fragPos;
-    fragPosLightSpace2Right = cubo.projViewLight2Right * fragPos;
 
     gl_Position = cubo.projView * fragPos;
 }

@@ -28,15 +28,10 @@ layout(location = 4) in vec4 fragPosLightSpace1Up;
 layout(location = 5) in vec4 fragPosLightSpace1Left;
 layout(location = 6) in vec4 fragPosLightSpace1Down;
 layout(location = 7) in vec4 fragPosLightSpace1Right;
-layout(location = 8) in vec4 fragPosLightSpace2Up;
-layout(location = 9) in vec4 fragPosLightSpace2Left;
-layout(location = 10) in vec4 fragPosLightSpace2Down;
-layout(location = 11) in vec4 fragPosLightSpace2Right;
 
 layout(binding = 2) uniform sampler2D texSampler;
 layout(set = 0, binding = 3) uniform UniformBufferObject {
     vec3 pos1;
-    vec3 pos2;
 } light;
 
 /* shadow maps for the first light, first one is for the up direction, then circle around
@@ -46,12 +41,6 @@ layout(binding = 4) uniform sampler2D texDark1Up;
 layout(binding = 5) uniform sampler2D texDark1Left;
 layout(binding = 6) uniform sampler2D texDark1Down;
 layout(binding = 7) uniform sampler2D texDark1Right;
-
-/* shadow maps for the second light */
-layout(binding = 8) uniform sampler2D texDark2Up;
-layout(binding = 9) uniform sampler2D texDark2Left;
-layout(binding = 10) uniform sampler2D texDark2Down;
-layout(binding = 11) uniform sampler2D texDark2Right;
 
 layout(location = 0) out vec4 outColor;
 
@@ -118,9 +107,5 @@ void main() {
         fragPosLightSpace1Down, fragPosLightSpace1Right,
         texDark1Up, texDark1Left, texDark1Down, texDark1Right);
 
-    vec3 diffuse2 = diffuse(light.pos2, fragPosLightSpace2Up, fragPosLightSpace2Left,
-        fragPosLightSpace2Down, fragPosLightSpace2Right,
-        texDark2Up, texDark2Left, texDark2Down, texDark2Right);
-
-    outColor = vec4(diffuse1 + diffuse2, 1.0) * texture(texSampler, fragTexCoord);
+    outColor = vec4(diffuse1, 1.0) * texture(texSampler, fragTexCoord);
 }

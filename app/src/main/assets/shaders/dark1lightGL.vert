@@ -28,10 +28,6 @@ uniform mat4 projViewLight1Up;
 uniform mat4 projViewLight1Left;
 uniform mat4 projViewLight1Down;
 uniform mat4 projViewLight1Right;
-uniform mat4 projViewLight2Up;
-uniform mat4 projViewLight2Left;
-uniform mat4 projViewLight2Down;
-uniform mat4 projViewLight2Right;
 
 attribute vec3 inPosition;
 attribute vec3 inColor;
@@ -46,10 +42,6 @@ varying vec4 fragPosLightSpace1Up;
 varying vec4 fragPosLightSpace1Left;
 varying vec4 fragPosLightSpace1Down;
 varying vec4 fragPosLightSpace1Right;
-varying vec4 fragPosLightSpace2Up;
-varying vec4 fragPosLightSpace2Left;
-varying vec4 fragPosLightSpace2Down;
-varying vec4 fragPosLightSpace2Right;
 
 void main() {
     fragColor = inColor;
@@ -65,9 +57,5 @@ void main() {
     fragPosLightSpace1Left = projViewLight1Left * fragPos;
     fragPosLightSpace1Down = projViewLight1Down * fragPos;
     fragPosLightSpace1Right = projViewLight1Right * fragPos;
-    fragPosLightSpace2Up = projViewLight2Up * fragPos;
-    fragPosLightSpace2Left = projViewLight2Left * fragPos;
-    fragPosLightSpace2Down = projViewLight2Down * fragPos;
-    fragPosLightSpace2Right = projViewLight2Right * fragPos;
     gl_Position = projView * fragPos;
 }

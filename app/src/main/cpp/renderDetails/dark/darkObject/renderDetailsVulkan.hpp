@@ -39,10 +39,16 @@ namespace darkObject {
     class CommonObjectDataVulkan : public renderDetails::CommonObjectDataPerspective {
         friend RenderDetailsVulkan;
     public:
+        static size_t lightingBufferSize(size_t numberLightSources) {
+            return numberLightSources * sizeof (glm::vec3);
+        }
+        static size_t cameraBufferSize(size_t numberLightSources) {
+            return CommonVertexUBO::size(numberLightSources);
+        }
         std::shared_ptr<vulkan::Buffer> const &cameraBuffer() { return m_cameraBuffer; }
-        uint32_t cameraBufferSize() { return sizeof (CommonVertexUBO); }
+        uint32_t cameraBufferSize() { return cameraBufferSize(m_numberLightSources); }
         std::shared_ptr<vulkan::Buffer> const &lightingBuffer() { return m_lightingSourceBuffer; }
-        uint32_t lightingBufferSize() { return sizeof (CommonFragmentUBO); }
+        uint32_t lightingBufferSize() { return lightingBufferSize(m_numberLightSources); }
         size_t numberDarkSamplers() { return m_darkSamplers.size(); }
         std::shared_ptr<vulkan::ImageSampler> const &darkSampler(size_t i) { return m_darkSamplers[i]; }
 
@@ -67,7 +73,8 @@ namespace darkObject {
                   m_cameraBuffer{std::move(cameraBuffer)},
                   m_lightingSourceBuffer{std::move(lightingSourceBuffer)},
                   m_aspectRatio{aspectRatio},
-                  m_darkSamplers{parameters.darkSamplers}
+                  m_darkSamplers{parameters.darkSamplers},
+                  m_numberLightSources(parameters.lightingSources.size())
         {
             update(parameters);
         }
@@ -79,35 +86,53 @@ namespace darkObject {
         }
 
         void update (renderDetails::ParametersDarkObjectVulkan const &parameters) {
+            if (parameters.lightingSources.size() != m_numberLightSources) {
+                throw std::runtime_error("Improper number of light sources in dark object COD update.");
+            }
+
             renderDetails::CommonObjectDataPerspective::update(parameters);
 
             /* ignore parameters.darkSamplers here.  They are not valid. */
 
-            CommonVertexUBO commonUbo;
             glm::mat4 proj = m_preTransform *
                              getPerspectiveMatrix(m_viewAngle, m_aspectRatio, m_nearPlane, m_farPlane, true, true);
 
             // eye at the m_viewPoint, looking at the m_lookAt position, pointing up is m_up.
-            commonUbo.projView = proj * glm::lookAt(m_viewPoint, m_lookAt, m_up);
+            glm::mat4 projView = proj * glm::lookAt(m_viewPoint, m_lookAt, m_up);
 
-            commonUbo.projViewLights = parameters.projViewsLights;
+            CommonVertexUBO commonUbo(projView, parameters.projViewsLights);
 
-            m_cameraBuffer->copyRawTo(&commonUbo, sizeof(commonUbo));
+            m_cameraBuffer->copyRawTo(commonUbo.encodedBytes(), commonUbo.size());
 
-            CommonFragmentUBO commonFragmentUbo;
-            commonFragmentUbo.lightSources = parameters.lightingSources;
-            m_lightingSourceBuffer->copyRawTo(&commonFragmentUbo, sizeof(commonFragmentUbo));
+            m_lightingSourceBuffer->copyRawTo(
+                    parameters.lightingSources.data(), lightingBufferSize());
         }
 
         ~CommonObjectDataVulkan() override = default;
     private:
         struct CommonVertexUBO {
-            glm::mat4 projView;
-            std::vector<glm::mat4> projViewLights;
-        };
+            static size_t size(size_t nbrLightingSources) {
+                return sizeof (glm::mat4) + sizeof (glm::mat4) * nbrLightingSources * 4;
+            }
 
-        struct CommonFragmentUBO {
-            std::vector<glm::vec3> lightSources;
+            size_t size() const {
+                return _encodedBytes.size();
+            }
+
+            uint8_t const *encodedBytes() const {
+                return _encodedBytes.data();
+            }
+
+            CommonVertexUBO(glm::mat4 const &projView, std::vector<glm::mat4> const &projViewLights)
+                : _encodedBytes()
+            {
+                _encodedBytes.resize(sizeof (glm::mat4) + projViewLights.size() * sizeof (glm::mat4));
+                memcpy(_encodedBytes.data(), &projView, sizeof (glm::mat4));
+                memcpy(_encodedBytes.data() + sizeof (glm::mat4), projViewLights.data(), projViewLights.size() * sizeof (glm::mat4));
+            }
+
+        private:
+            std::vector<uint8_t> _encodedBytes;
         };
 
         glm::mat4 m_preTransform;
@@ -115,6 +140,7 @@ namespace darkObject {
         std::shared_ptr<vulkan::Buffer> m_lightingSourceBuffer;
         float m_aspectRatio;
         std::vector<std::shared_ptr<vulkan::ImageSampler>> m_darkSamplers;
+        size_t m_numberLightSources;
     };
 
     class TextureDescriptorSetLayout : public vulkan::DescriptorSetLayout {
@@ -326,6 +352,11 @@ namespace darkObject {
                         throw std::runtime_error("Incorrect number of lighting sources for render details.");
                     }
                     break;
+                case renderDetails::DrawingStyle::dark2lights:
+                    if (parameters->lightingSources.size() != 2) {
+                        throw std::runtime_error("Incorrect number of lighting sources for render details.");
+                    }
+                    break;
                 default:
                     throw std::runtime_error("Invalid render details type.");
             }
@@ -453,10 +484,11 @@ namespace darkObject {
                 glm::mat4 const &preTransform,
                 renderDetails::ParametersDarkObjectVulkan const *parameters)
         {
+            size_t numberLightSources = parameters->lightingSources.size();
             auto vertexUbo = renderDetails::createUniformBuffer(
-                    m_device, sizeof (CommonObjectDataVulkan::CommonVertexUBO));
+                    m_device, CommonObjectDataVulkan::cameraBufferSize(numberLightSources));
             auto fragUbo = renderDetails::createUniformBuffer(
-                    m_device, sizeof (CommonObjectDataVulkan::CommonFragmentUBO));
+                    m_device, CommonObjectDataVulkan::lightingBufferSize(numberLightSources));
 
             return std::make_shared<CommonObjectDataVulkan>(
                     vertexUbo, fragUbo, preTransform,

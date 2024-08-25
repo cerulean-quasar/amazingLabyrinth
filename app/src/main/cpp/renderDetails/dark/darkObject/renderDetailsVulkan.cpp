@@ -428,9 +428,13 @@ namespace darkObject {
     char constexpr const *SHADER_VERT_VK_FILE = "shaders/dark2lights.vert.spv";
     char constexpr const *TEXTURE_SHADER_FRAG_VK_FILE = "shaders/dark2lightsTexture.frag.spv";
     char constexpr const *COLOR_SHADER_FRAG_VK_FILE = "shaders/dark2lightsColor.frag.spv";
+
+    char constexpr const *DARK1LIGHT_VERT_VK_FILE = "shaders/dark1light.vert.spv";
+    char constexpr const *DARK1LIGHT_TEXTURE_FRAG_VK_FILE = "shaders/dark1lightTexture.frag.spv";
+    char constexpr const *DARK1LIGHT_COLOR_FRAG_VK_FILE = "shaders/dark1lightColor.frag.spv";
     RegisterVulkan<renderDetails::RenderDetailsVulkan, RenderDetailsVulkan> registerVulkan1(
             {renderDetails::DrawingStyle::dark1light, {renderDetails::Features::color, renderDetails::Features::texture}},
-            std::vector<char const *> {SHADER_VERT_VK_FILE, TEXTURE_SHADER_FRAG_VK_FILE, COLOR_SHADER_FRAG_VK_FILE});
+            std::vector<char const *> {DARK1LIGHT_VERT_VK_FILE, DARK1LIGHT_TEXTURE_FRAG_VK_FILE, DARK1LIGHT_COLOR_FRAG_VK_FILE});
     RegisterVulkan<renderDetails::RenderDetailsVulkan, RenderDetailsVulkan> registerVulkan2(
             {renderDetails::DrawingStyle::dark2lights, {renderDetails::Features::color, renderDetails::Features::texture}},
             std::vector<char const *> {SHADER_VERT_VK_FILE, TEXTURE_SHADER_FRAG_VK_FILE, COLOR_SHADER_FRAG_VK_FILE});

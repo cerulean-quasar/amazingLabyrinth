@@ -1,5 +1,5 @@
 /**
- * Copyright 2022 Cerulean Quasar. All Rights Reserved.
+ * Copyright 2024 Cerulean Quasar. All Rights Reserved.
  *
  *  This file is part of AmazingLabyrinth.
  *
@@ -24,33 +24,33 @@ layout(location = 0) in vec3 fragColor;
 layout(location = 1) in vec2 fragTexCoord;
 layout(location = 2) in vec3 fragNormal;
 layout(location = 3) in vec3 fragPosition;
-layout(location = 4) in vec4 fragPosBallLightSpaceUp;
-layout(location = 5) in vec4 fragPosBallLightSpaceRight;
-layout(location = 6) in vec4 fragPosBallLightSpaceDown;
-layout(location = 7) in vec4 fragPosBallLightSpaceLeft;
-layout(location = 8) in vec4 fragPosHoleLightSpaceUp;
-layout(location = 9) in vec4 fragPosHoleLightSpaceDown;
-layout(location = 10) in vec4 fragPosHoleLightSpaceRight;
-layout(location = 11) in vec4 fragPosHoleLightSpaceLeft;
+layout(location = 4) in vec4 fragPosLightSpace1Up;
+layout(location = 5) in vec4 fragPosLightSpace1Left;
+layout(location = 6) in vec4 fragPosLightSpace1Down;
+layout(location = 7) in vec4 fragPosLightSpace1Right;
+layout(location = 8) in vec4 fragPosLightSpace2Up;
+layout(location = 9) in vec4 fragPosLightSpace2Left;
+layout(location = 10) in vec4 fragPosLightSpace2Down;
+layout(location = 11) in vec4 fragPosLightSpace2Right;
 
 layout(set = 0, binding = 2) uniform UniformBufferObject {
-    vec3 posBall;
-    vec3 posHole;
+    vec3 pos1;
+    vec3 pos2;
 } light;
 
-/* shadow maps for the ball, first one is for the up direction, then circle around
- * clockwise assigning numbers
+/* shadow maps for the first light, first sampler is for the up direction, then circle around
+ * counter clockwise assigning numbers
  */
-layout(binding = 3) uniform sampler2D texDarkBallUp;
-layout(binding = 4) uniform sampler2D texDarkBallRight;
-layout(binding = 5) uniform sampler2D texDarkBallDown;
-layout(binding = 6) uniform sampler2D texDarkBallLeft;
+layout(binding = 3) uniform sampler2D texDark1Up;
+layout(binding = 4) uniform sampler2D texDark1Left;
+layout(binding = 5) uniform sampler2D texDark1Down;
+layout(binding = 6) uniform sampler2D texDark1Right;
 
-/* shadow maps for the hole */
-layout(binding = 7) uniform sampler2D texDarkHoleUp;
-layout(binding = 8) uniform sampler2D texDarkHoleRight;
-layout(binding = 9) uniform sampler2D texDarkHoleDown;
-layout(binding = 10) uniform sampler2D texDarkHoleLeft;
+/* shadow maps for the second light */
+layout(binding = 7) uniform sampler2D texDark2Up;
+layout(binding = 8) uniform sampler2D texDark2Left;
+layout(binding = 9) uniform sampler2D texDark2Down;
+layout(binding = 10) uniform sampler2D texDark2Right;
 
 layout(location = 0) out vec4 outColor;
 
@@ -68,35 +68,38 @@ int ShadowCalculation(vec4 pos, sampler2D texSampler) {
 }
 
 vec3 diffuse(vec3 lightPos,
-            vec4 fragPosLightSpaceUp, vec4 fragPosLightSpaceRight, vec4 fragPosLightSpaceDown, vec4 fragPosLightSpaceLeft,
-            sampler2D texDarkUp, sampler2D texDarkRight, sampler2D texDarkDown, sampler2D texDarkLeft) {
+            vec4 fragPosLightSpaceUp, vec4 fragPosLightSpaceLeft, vec4 fragPosLightSpaceDown, vec4 fragPosLightSpaceRight,
+            sampler2D texDarkUp, sampler2D texDarkLeft, sampler2D texDarkDown, sampler2D texDarkRight) {
     float smallValue = 0.01;
 
-    /* Check to see if light will hit the fragment from the ball light source */
+    /* Check to see if light will hit the fragment from the 1st light source */
     /* first select which shadow map to use for this operation */
     vec3 lightToFrag = fragPosition - lightPos;
     vec3 lightDirection = normalize(lightToFrag);
     int inLight = 0;
     vec3 diffuse = vec3(0.0, 0.0, 0.0);
+
     if ((lightDirection.x >= 0.0 && lightDirection.y >= 0.0 && lightDirection.x <= lightDirection.y) ||
         (lightDirection.x <= 0.0 && lightDirection.y >= 0.0 && -lightDirection.x <= lightDirection.y)) {
         /* up shadow map */
         inLight = ShadowCalculation(fragPosLightSpaceUp, texDarkUp);
-    } else if ((lightDirection.x >= 0.0 && lightDirection.y >= 0.0 && lightDirection.x >= lightDirection.y) ||
-                (lightDirection.x >= 0.0 && lightDirection.y <= 0.0 && lightDirection.x >= -lightDirection.y)) {
-        /* right shadow map */
-        inLight = ShadowCalculation(fragPosLightSpaceRight, texDarkRight);
+    } else if ((lightDirection.x <= 0.0 && lightDirection.y <= 0.0 && lightDirection.x <= lightDirection.y) ||
+             (lightDirection.x <= 0.0 && lightDirection.y >= 0.0 && -lightDirection.x >= lightDirection.y)) {
+        /* left shadow map */
+        inLight = ShadowCalculation(fragPosLightSpaceLeft, texDarkLeft);
     } else if ((lightDirection.x >= 0.0 && lightDirection.y <= 0.0 && lightDirection.x <= -lightDirection.y) ||
                (lightDirection.x <= 0.0 && lightDirection.y <= 0.0 && lightDirection.x >= lightDirection.y)) {
         /* down shadow map */
         inLight = ShadowCalculation(fragPosLightSpaceDown, texDarkDown);
     } else {
-        /* ((lightDirection.x <= 0.0 && lightDirection.y <= 0.0 && lightDirection.x <= lightDirection.y) ||
-             (lightDirection.x <= 0.0 && lightDirection.y >= 0.0 && -lightDirection.x >= lightDirection.y))
-        */
-        /* left shadow map */
-        inLight = ShadowCalculation(fragPosLightSpaceLeft, texDarkLeft);
+        /*
+         * ((lightDirection.x >= 0.0 && lightDirection.y >= 0.0 && lightDirection.x >= lightDirection.y) ||
+         *  (lightDirection.x >= 0.0 && lightDirection.y <= 0.0 && lightDirection.x >= -lightDirection.y))
+         */
+        /* right shadow map */
+        inLight = ShadowCalculation(fragPosLightSpaceRight, texDarkRight);
     }
+
     if (inLight == 1) {
         float diff = max(dot(fragNormal, lightDirection), 0.0);
         float rSquared = lightToFrag.x*lightToFrag.x + lightToFrag.y*lightToFrag.y + lightToFrag.z*lightToFrag.z;
@@ -111,13 +114,13 @@ vec3 diffuse(vec3 lightPos,
 }
 
 void main() {
-    vec3 diffuseBall = diffuse(light.posBall, fragPosBallLightSpaceUp, fragPosBallLightSpaceRight,
-        fragPosBallLightSpaceDown, fragPosBallLightSpaceLeft,
-        texDarkBallUp, texDarkBallRight, texDarkBallDown, texDarkBallLeft);
+    vec3 diffuse1 = diffuse(light.pos1, fragPosLightSpace1Up, fragPosLightSpace1Left,
+        fragPosLightSpace1Down, fragPosLightSpace1Right,
+        texDark1Up, texDark1Left, texDark1Down, texDark1Right);
 
-    vec3 diffuseHole = diffuse(light.posHole, fragPosHoleLightSpaceUp, fragPosHoleLightSpaceRight,
-        fragPosHoleLightSpaceDown, fragPosHoleLightSpaceLeft,
-        texDarkHoleUp, texDarkHoleRight, texDarkHoleDown, texDarkHoleLeft);
+    vec3 diffuse2 = diffuse(light.pos2, fragPosLightSpace2Up, fragPosLightSpace2Left,
+        fragPosLightSpace2Down, fragPosLightSpace2Right,
+        texDark2Up, texDark2Left, texDark2Down, texDark2Right);
 
-    outColor = vec4(diffuseBall + diffuseHole, 1.0) * vec4(fragColor, 1.0);
+    outColor = vec4(diffuse1 + diffuse2, 1.0) * vec4(fragColor, 1.0);
 }

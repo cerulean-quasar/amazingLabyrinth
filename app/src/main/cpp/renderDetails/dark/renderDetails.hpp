@@ -33,7 +33,7 @@ namespace renderDetails {
     struct ParametersDark : public ParametersBase {
     public:
         size_t numberLightSources() const { return m_lightSources.size(); }
-        float viewAngleShadows() const { return m_viewAngleConstant; }
+        float viewAngleShadows() const { return m_shadowMapViewAngleConstant; }
         float errorConstant() const { return m_errorConstant; }
         float ballRadius() const { return m_ballRadius; }
         float gameBoardWidth() const { return m_gameBoardWidth; }
@@ -41,25 +41,25 @@ namespace renderDetails {
         float minLevelZ() const { return m_minLevelZ; }
         bool isLightSourceMobile(size_t lightSourceNumber) const { return m_lightSourceMoved[lightSourceNumber]; }
         std::vector<bool> const &lightSourceMoved() const { return m_lightSourceMoved; }
-        float aspectRatio() const { return m_minLevelZ / m_gameBoardWidth; }
 
-        glm::mat4 getLightProjView(size_t lightNumber, size_t direction, bool invertY, bool invertZ) const {
+        glm::mat4 getLightProjView(size_t lightNumber, size_t direction, float aspectRatio, bool invertY, bool depth0to1) const {
             ParametersPerspective parameters = toShadowsParametersPerspective(lightNumber, direction);
             return getPerspectiveMatrix(
                         parameters.viewAngle,
-                        aspectRatio(),
+                        aspectRatio,
                         parameters.nearPlane,
                         parameters.farPlane,
-                        invertY, invertZ) *
+                        invertY, depth0to1) *
                 glm::lookAt(parameters.viewPoint, parameters.lookAt, parameters.up);
 
         }
 
         size_t pushBackLightSource(float x, float y, bool isMobile) {
             glm::vec3 lightSource{x, y, m_minLevelZ + m_ballRadius};
+            //glm::vec3 lightSource{x, y, m_minLevelZ + 2 * m_ballRadius};
             m_lightSources.push_back(lightSource);
             m_lightSourceMoved.push_back(isMobile);
-            return m_lightSources.size() - 1;
+            return m_lightSources.size();
         }
 
         void updateBallRadius(float inBallRadius) {
@@ -77,7 +77,10 @@ namespace renderDetails {
         }
 
         std::shared_ptr<ParametersPerspective> toGamePerspective() const {
-            return gameConstants::getPerspectiveParameters();
+            std::shared_ptr<ParametersPerspective> parameters = gameConstants::getPerspectiveParameters();
+            parameters->lightingSources = m_lightSources;
+
+            return parameters;
         }
 
         std::shared_ptr<ParametersPerspective> toShadowsParametersPerspectivePtr(size_t lightNumber, size_t direction) const {
@@ -91,24 +94,27 @@ namespace renderDetails {
                 throw std::runtime_error("Viewpoint requested is out of range.");
             }
 
-            parameters.viewAngle = m_viewAngleConstant;
+            parameters.viewAngle = m_shadowMapViewAngleConstant;
             parameters.viewPoint = m_lightSources[lightNumber];
             parameters.up = glm::vec3{0.0, 0.0, 1.0};
             switch (direction) {
-                case 0:
-                    parameters.lookAt = glm::vec3{0.0, 1.0, m_minLevelZ + m_ballRadius};
-                    break;
-                case 1:
-                    parameters.lookAt = glm::vec3{1.0, 0.0, m_minLevelZ + m_ballRadius};
-                    break;
-                case 2:
-                    parameters.lookAt = glm::vec3{0.0, -1.0, m_minLevelZ + m_ballRadius};
-                    break;
-                case 3:
-                    parameters.lookAt = glm::vec3{-1.0, 0.0, m_minLevelZ + m_ballRadius};
+            case 0:
+                parameters.lookAt = glm::vec3{0.0, 1.0, m_minLevelZ + m_ballRadius};
+                break;
+            case 1:
+                parameters.lookAt = glm::vec3{-1.0, 0.0, m_minLevelZ + m_ballRadius};
+                break;
+            case 2:
+                parameters.lookAt = glm::vec3{0.0, -1.0, m_minLevelZ + m_ballRadius};
+                break;
+            case 3:
+                parameters.lookAt = glm::vec3{1.0, 0.0, m_minLevelZ + m_ballRadius};
+                break;
+            default:
+                throw std::runtime_error("Invalid direction in dark shadows perspective");
             }
 
-            parameters.nearPlane = m_ballRadius - m_errorConstant;
+            parameters.nearPlane = m_ballRadius;
             if (direction == 0 || direction == 2) {
                 parameters.farPlane = m_gameBoardHeight;
             } else {
@@ -118,28 +124,32 @@ namespace renderDetails {
             return parameters;
         }
 
-        ParametersDark()
-          : ParametersBase(),
-            m_ballRadius{},
-            m_gameBoardWidth{},
-            m_gameBoardHeight{},
-            m_minLevelZ{},
+        ParametersDark(size_t numberLightSources)
+            : ParametersBase(),
+            m_ballRadius{1.0f/20.0f},
+            m_gameBoardWidth{1.0f},
+            m_gameBoardHeight{1.0f},
+            m_minLevelZ{-1.0f},
             m_lightSources{}
-          {}
+        {
+            for (size_t i = 0; i < numberLightSources; i++) {
+                m_lightSources.push_back(glm::vec3{0.0f, 0.0f, m_minLevelZ + m_ballRadius});
+            }
+        }
 
         ParametersDark(float inBallRadius, float inGameBoardWidth, float inGameBoardHeight, float inMinLevelZ)
-        : ParametersBase(),
-          m_ballRadius{inBallRadius},
-          m_gameBoardWidth{inGameBoardWidth},
-          m_gameBoardHeight{inGameBoardHeight},
-          m_minLevelZ{inMinLevelZ},
-          m_lightSources{}
+            : ParametersBase(),
+            m_ballRadius{inBallRadius},
+            m_gameBoardWidth{inGameBoardWidth},
+            m_gameBoardHeight{inGameBoardHeight},
+            m_minLevelZ{inMinLevelZ},
+            m_lightSources{}
         {}
 
         ~ParametersDark() override = default;
 
     private:
-        static float const constexpr m_viewAngleConstant = glm::pi<float>()/2;
+        static float const constexpr m_shadowMapViewAngleConstant = glm::pi<float>()/2;
         static float const constexpr m_errorConstant = 0.001;
         float m_ballRadius;
         float m_gameBoardWidth;

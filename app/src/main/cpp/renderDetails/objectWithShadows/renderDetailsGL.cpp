@@ -236,8 +236,8 @@ namespace objectWithShadows {
     }
 
     static char constexpr const *SHADER_VERT_GL_FILE = "shaders/standardWithShadowsGL.vert";
-    static char constexpr const *TEXTURE_SHADER_FRAG_GL_FILE = "shaders/standardWithShadowsTexture.frag";
-    static char constexpr const *COLOR_SHADER_FRAG_GL_FILE = "shaders/standardWithShadowsColor.frag";
+    static char constexpr const *TEXTURE_SHADER_FRAG_GL_FILE = "shaders/standardWithShadowsTextureGL.frag";
+    static char constexpr const *COLOR_SHADER_FRAG_GL_FILE = "shaders/standardWithShadowsColorGL.frag";
     RegisterGL<renderDetails::RenderDetailsGL, RenderDetailsGL> registerGL(
             {renderDetails::DrawingStyle::standard, {renderDetails::Features::color, renderDetails::Features::texture, renderDetails::Features::shadows}},
             std::vector<char const *>{SHADER_VERT_GL_FILE, TEXTURE_SHADER_FRAG_GL_FILE, COLOR_SHADER_FRAG_GL_FILE});

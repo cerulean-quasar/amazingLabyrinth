@@ -115,7 +115,10 @@ namespace darkChaining {
                     throw std::runtime_error("Invalid common object data.");
                 }
 
-                glm::mat4 projViewShadows = parameters->getLightProjView(lightSourceNumber, direction, true, true);
+                glm::mat4 projViewShadows = parameters->getLightProjView(
+                        lightSourceNumber, direction, rd->m_shadowMapAspectRatio,
+                        true, true);
+
                 projViewsShadows.push_back(projViewShadows);
 
                 shadowCODs.push_back(shadowCOD);
@@ -159,53 +162,56 @@ namespace darkChaining {
         }
 
         // The shadows rendering needs to occur before the main render pass.
-        size_t numberShadowMaps = cod->numberShadowMaps();
-        for (size_t i = 0; i < numberShadowMaps; i++) {
-            if (!cod->shadowMapNeedsRender(i)) {
+        size_t numberLightSources = cod->numberLightSources();
+        for (size_t i = 0; i < numberLightSources; i++) {
+            if (!cod->shadowMapsForLightNeedsRender(i)) {
                 continue;
             }
 
-            /* begin the shadows render pass */
-            VkRenderPassBeginInfo renderPassInfo = {};
-            renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-            renderPassInfo.renderPass = getVkType<>(m_renderPassesShadows[i]->renderPass().get());
-            renderPassInfo.framebuffer = getVkType<>(m_framebuffersShadows[i]->framebuffer().get());
-            /* size of the render area */
-            renderPassInfo.renderArea.offset = {0, 0};
-            auto wh = getShadowsFramebufferDimensions(std::make_pair(m_surfaceWidth, m_surfaceHeight));
-            renderPassInfo.renderArea.extent = VkExtent2D{
-                    wh.first,
-                    wh.second};
+            for (size_t j = 0; j < renderDetails::numberDirections; j++) {
+                /* begin the shadows render pass */
+                VkRenderPassBeginInfo renderPassInfo = {};
+                renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
+                renderPassInfo.renderPass = getVkType<>(
+                        m_renderPassesShadows[i * renderDetails::numberDirections + j]->renderPass().get());  // todo: KAT_TEST maybe only need one render pass?
+                renderPassInfo.framebuffer = getVkType<>(
+                        m_framebuffersShadows[i * renderDetails::numberDirections + j]->framebuffer().get());
+                /* size of the render area */
+                renderPassInfo.renderArea.offset = {0, 0};
+                auto wh = getShadowsFramebufferDimensions(
+                        std::make_pair(m_surfaceWidth, m_surfaceHeight));
+                renderPassInfo.renderArea.extent = VkExtent2D{
+                        wh.first,
+                        wh.second};
 
-            /* the color value to use when clearing the image with VK_ATTACHMENT_LOAD_OP_CLEAR,
-             * using black with 0% opacity
-             */
-            std::vector<VkClearValue> clearValues{};
-            clearValues.resize(2);
-            clearValues[0].color = {1.0f, 0.0f, 0.0f, 1.0f};
-            clearValues[1].depthStencil = {1.0, 0};
-            renderPassInfo.clearValueCount = static_cast<uint32_t>(clearValues.size());
-            renderPassInfo.pClearValues = clearValues.data();
+                /* the color value to use when clearing the image with VK_ATTACHMENT_LOAD_OP_CLEAR,
+                 * using black with 0% opacity
+                 */
+                VkClearValue clearValues{};
+                clearValues.depthStencil = {1.0f /* 1.0f todo: KAT_TEST */, 0};
+                renderPassInfo.clearValueCount = 1;
+                renderPassInfo.pClearValues = &clearValues;
 
-            /* begin recording commands - start by beginning the render pass.
-             * none of these functions returns an error (they return void).  There will be no error
-             * handling until recording is done.
-             */
-            vkCmdBeginRenderPass(commandBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
+                /* begin recording commands - start by beginning the render pass.
+                 * none of these functions returns an error (they return void).  There will be no error
+                 * handling until recording is done.
+                 */
+                vkCmdBeginRenderPass(commandBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
 
-            // only do shadows for the level itself
-            m_shadowsRenderDetails->addDrawCmdsToCommandBuffer(
-                    commandBuffer,
-                    i + renderDetails::MODEL_MATRIX_ID_SHADOWS /* shadows ID */,
-                    commonObjectDataList[levelDrawer::ObjectType::LEVEL],
-                    drawObjTableList[levelDrawer::ObjectType::LEVEL],
-                    levelZValues.begin(), levelZValues.end(),
-                    m_description); // only pay attention to dark chaining draw objects.
+                // only do shadows for the level itself
+                m_shadowsRenderDetails->addDrawCmdsToCommandBuffer(
+                        commandBuffer,
+                        i * renderDetails::numberDirections + j + renderDetails::MODEL_MATRIX_ID_SHADOWS /* shadows ID */,
+                        commonObjectDataList[levelDrawer::ObjectType::LEVEL],
+                        drawObjTableList[levelDrawer::ObjectType::LEVEL],
+                        levelZValues.begin(), levelZValues.end(),
+                        m_description); // only pay attention to dark chaining draw objects.
 
-            vkCmdEndRenderPass(commandBuffer);
+                vkCmdEndRenderPass(commandBuffer);
+            }
         }
 
-        cod->m_shadowMapsNeedRender.assign(numberShadowMaps, false);
+        cod->setShadowMapsForLightsNeedsRender(false);
     }
 
     void RenderDetailsVulkan::addDrawCmdsToCommandBuffer(
@@ -233,7 +239,9 @@ namespace darkChaining {
             throw std::runtime_error("Invalid common object data.");
         }
 
-        auto cod = std::make_shared<CommonObjectDataVulkan>(darkObject, std::move(shadowsCODs));
+        auto cod = std::make_shared<CommonObjectDataVulkan>(
+                darkObject, std::move(shadowsCODs),
+                rd->m_shadowMapAspectRatio);
 
         size_t nbrLightSources = rd->m_numberLightSources;
 
@@ -282,7 +290,7 @@ namespace darkChaining {
         for (size_t i = 0; i < m_numberLightSources * renderDetails::numberDirections; i++) {
             auto depthImageView = std::make_shared<vulkan::ImageView>(
                     vulkan::ImageFactory::createDepthImage(
-                            m_device, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT, wh.first, wh.second),
+                            m_device, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, wh.first, wh.second),
                     VK_IMAGE_ASPECT_DEPTH_BIT);
 
             m_depthImageViewsShadows.push_back(depthImageView);
@@ -301,6 +309,7 @@ namespace darkChaining {
                             VK_IMAGE_LAYOUT_UNDEFINED,
                             VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL);
 
+            // todo: only need one renderpass?
             auto renderPass = vulkan::RenderPass::createRenderPassDepthTexture(
                     m_device, depthImageInfo);
 

@@ -115,7 +115,7 @@ namespace darkObject {
     }
 
     void loadTexture(CommonObjectDataGL const *cod, GLuint programID, int activeTexture, char const *textureVarName, int imageID) {
-        auto &fb = cod->darkFramebuffer(imageID);
+        auto &fb = cod->darkFramebuffer(imageID - 1);
         auto textureID = glGetUniformLocation(programID, textureVarName);
         checkGraphicsError();
         glActiveTexture(activeTexture);
@@ -206,7 +206,7 @@ namespace darkObject {
                 checkGraphicsError();
                 glBindTexture(GL_TEXTURE_2D, textureData->handle());
                 checkGraphicsError();
-                glUniform1i(textureID, 4);
+                glUniform1i(textureID, 0);
                 checkGraphicsError();
             }
 
@@ -223,7 +223,7 @@ namespace darkObject {
             // Dark maps
             for (size_t i = 0; i < m_shaderVariablesLightSources.size(); i++) {
                 loadTexture(cod, programID, m_shaderVariablesLightSources[i].texture,
-                            m_shaderVariablesLightSources[i].textureVariableName.c_str(), i);
+                            m_shaderVariablesLightSources[i].textureVariableName.c_str(), i+1);
             }
 
             drawVertices(programID, modelData);
@@ -259,36 +259,41 @@ namespace darkObject {
         }
 
         m_shaderVariablesLightSources.push_back(
-            {"projViewLightBallUp", GL_TEXTURE1, "texDarkMap0"});
+            {"projViewLight1Up", GL_TEXTURE1, "texDarkMap0"});
         m_shaderVariablesLightSources.push_back(
-                {"projViewLightBallLeft", GL_TEXTURE2, "texDarkMap1"});
+                {"projViewLight1Left", GL_TEXTURE2, "texDarkMap1"});
         m_shaderVariablesLightSources.push_back(
-                {"projViewLightBallDown", GL_TEXTURE3, "texDarkMap2"});
+                {"projViewLight1Down", GL_TEXTURE3, "texDarkMap2"});
         m_shaderVariablesLightSources.push_back(
-                {"projViewLightBallRight", GL_TEXTURE4, "texDarkMap3"});
+                {"projViewLight1Right", GL_TEXTURE4, "texDarkMap3"});
 
-        m_lightSourcePosVars.push_back("lightPosBall");
+        m_lightSourcePosVars.push_back("lightPos1");
 
         if (m_description.drawingMethod() == renderDetails::DrawingStyle::dark2lights) {
             m_shaderVariablesLightSources.push_back(
-                    {"projViewLightHoleUp", GL_TEXTURE5, "texDarkMap4"});
+                    {"projViewLight2Up", GL_TEXTURE5, "texDarkMap4"});
             m_shaderVariablesLightSources.push_back(
-                    {"projViewLightHoleLeft", GL_TEXTURE6, "texDarkMap5"});
+                    {"projViewLight2Left", GL_TEXTURE6, "texDarkMap5"});
             m_shaderVariablesLightSources.push_back(
-                    {"projViewLightHoleDown", GL_TEXTURE7, "texDarkMap6"});
+                    {"projViewLight2Down", GL_TEXTURE7, "texDarkMap6"});
             m_shaderVariablesLightSources.push_back(
-                    {"projViewLightHoleRight", GL_TEXTURE8, "texDarkMap7"});
+                    {"projViewLight2Right", GL_TEXTURE8, "texDarkMap7"});
 
-            m_lightSourcePosVars.push_back("lightPosHole");
+            m_lightSourcePosVars.push_back("lightPos2");
         }
     }
 
     char constexpr const *SHADER_VERT_GL_FILE = "shaders/dark2lightsGL.vert";
     char constexpr const *TEXTURE_SHADER_FRAG_GL_FILE = "shaders/dark2lightsTextureGL.frag";
     char constexpr const *COLOR_SHADER_FRAG_GL_FILE = "shaders/dark2lightsColorGL.frag";
+
+    char constexpr const *DARK1LIGHT_VERT_GL_FILE = "shaders/dark1lightGL.vert";
+    char constexpr const *DARK1LIGHT_TEXTURE_FRAG_GL_FILE = "shaders/dark1lightTextureGL.frag";
+    char constexpr const *DARK1LIGHT_COLOR_FRAG_GL_FILE = "shaders/dark1lightColorGL.frag";
+
     RegisterGL<renderDetails::RenderDetailsGL, RenderDetailsGL> registerGL1(
             {renderDetails::DrawingStyle::dark1light, {renderDetails::Features::color, renderDetails::Features::texture}},
-            std::vector<char const *>{SHADER_VERT_GL_FILE, TEXTURE_SHADER_FRAG_GL_FILE, COLOR_SHADER_FRAG_GL_FILE});
+            std::vector<char const *>{DARK1LIGHT_VERT_GL_FILE, DARK1LIGHT_TEXTURE_FRAG_GL_FILE, DARK1LIGHT_COLOR_FRAG_GL_FILE});
     RegisterGL<renderDetails::RenderDetailsGL, RenderDetailsGL> registerGL2(
             {renderDetails::DrawingStyle::dark2lights, {renderDetails::Features::color, renderDetails::Features::texture}},
             std::vector<char const *>{SHADER_VERT_GL_FILE, TEXTURE_SHADER_FRAG_GL_FILE, COLOR_SHADER_FRAG_GL_FILE});

@@ -48,23 +48,27 @@ namespace darkChaining {
             return m_darkObject;
         }
 
-        std::shared_ptr<shadows::CommonObjectDataVulkan> const &shadowsCOD(size_t shadowMapNumber) {
-            if (shadowMapNumber <= m_shadowMapsNeedRender.size()) {
+        std::shared_ptr<shadows::CommonObjectDataVulkan> const &shadowsCOD(size_t lightNumber, size_t shadowMapNumber) {
+            if (lightNumber * renderDetails::numberDirections + shadowMapNumber >= m_shadowsCODs.size()) {
                 throw std::runtime_error("Shadow map number out of bounds.");
             }
 
-            return m_shadowsCODs[shadowMapNumber];
+            return m_shadowsCODs[lightNumber * renderDetails::numberDirections + shadowMapNumber];
         }
 
-        bool shadowMapNeedsRender(size_t shadowMapNumber) const {
-            if (shadowMapNumber <= m_shadowMapsNeedRender.size()) {
+        bool shadowMapsForLightNeedsRender(size_t lightSourceNumber) const {
+            if (lightSourceNumber >= m_shadowMapsForLightNeedRender.size()) {
                 throw std::runtime_error("Shadow map number out of bounds.");
             }
 
-            return m_shadowMapsNeedRender[shadowMapNumber];
+            return m_shadowMapsForLightNeedRender[lightSourceNumber];
         }
 
-        size_t numberShadowMaps() const { return m_shadowMapsNeedRender.size(); }
+        void setShadowMapsForLightsNeedsRender(bool value) {
+            m_shadowMapsForLightNeedRender.assign(m_shadowMapsForLightNeedRender.size(), value);
+        }
+
+        size_t numberLightSources() const { return m_shadowMapsForLightNeedRender.size(); }
 
         void update(renderDetails::ParametersBase const &parametersBase) override {
             auto parameters = dynamic_cast<renderDetails::ParametersDark const &>(parametersBase);
@@ -83,9 +87,9 @@ namespace darkChaining {
                     // The shadows CODs are stored with the zeroth viewpoint first with the CODs stored
                     // in counterclockwise order starting with the camera pointed in the y direction.
                     // Next the first viewpoint's CODs stored in the same manner.
-                    m_shadowsCODs[4 * lightNumber + direction]->update(*parametersShadows);
+                    m_shadowsCODs[renderDetails::numberDirections * lightNumber + direction]->update(*parametersShadows);
 
-                    glm::mat4 shadowsProjView = parameters.getLightProjView(lightNumber, direction, true, true);
+                    glm::mat4 shadowsProjView = parameters.getLightProjView(lightNumber, direction, m_shadowMapAspectRatio, true, true);
 
                     shadowsProjViews.push_back(shadowsProjView);
                 }
@@ -98,16 +102,18 @@ namespace darkChaining {
 
             m_darkObject->update(parametersDark);
 
-            m_shadowMapsNeedRender = parameters.lightSourceMoved();
+            m_shadowMapsForLightNeedRender = parameters.lightSourceMoved();
         }
 
         CommonObjectDataVulkan(std::shared_ptr<darkObject::CommonObjectDataVulkan> darkObjectCOD,
-                               std::vector<std::shared_ptr<shadows::CommonObjectDataVulkan>> shadowsCODs)
+                               std::vector<std::shared_ptr<shadows::CommonObjectDataVulkan>> shadowsCODs,
+                               float shadowMapAspectRatio)
         // The near plane and far plane are unused for Dark Chaining
                 : renderDetails::CommonObjectDataBase(),
                   m_darkObject(std::move(darkObjectCOD)),
                   m_shadowsCODs(std::move(shadowsCODs)),
-                  m_shadowMapsNeedRender(m_shadowsCODs.size(), true)
+                  m_shadowMapsForLightNeedRender(),
+                  m_shadowMapAspectRatio(shadowMapAspectRatio)
         {}
 
         ~CommonObjectDataVulkan() override = default;
@@ -125,7 +131,10 @@ namespace darkChaining {
          * rendering shadow maps.  For stagnant light sources, this value starts out true when
          * the render details is created, but then is changed to false and it stays that way.
          */
-        std::vector<bool> m_shadowMapsNeedRender;
+        std::vector<bool> m_shadowMapsForLightNeedRender;
+
+        /* aspect ratio for the shadow maps */
+        float m_shadowMapAspectRatio;
     };
 
     class DrawObjectDataVulkan : public renderDetails::DrawObjectDataVulkan {
@@ -251,8 +260,12 @@ namespace darkChaining {
               m_renderPassesShadows(),
               m_shadowsRenderDetails(),
               m_framebuffersShadows(),
-              m_numberLightSources{parameters.numberLightSources()}
+              m_numberLightSources{parameters.numberLightSources()},
+              m_shadowMapAspectRatio{1.0f}
         {
+            auto wh = getShadowsFramebufferDimensions(std::make_pair(surfaceDetails->surfaceWidth, surfaceDetails->surfaceHeight));
+            m_shadowMapAspectRatio = static_cast<float>(wh.first)/wh.second;
+
             createShadowResources(surfaceDetails);
         }
 
@@ -271,6 +284,7 @@ namespace darkChaining {
         std::shared_ptr<renderDetails::RenderDetailsVulkan> m_shadowsRenderDetails;
         std::vector<std::shared_ptr<vulkan::Framebuffer>> m_framebuffersShadows;
         size_t m_numberLightSources;
+        float m_shadowMapAspectRatio;
 
         static std::pair<uint32_t, uint32_t> getShadowsFramebufferDimensions(std::pair<uint32_t, uint32_t> const &dimensions) {
             uint32_t width = static_cast<uint32_t>(std::floor(dimensions.first * shadowsSizeMultiplier));
@@ -278,7 +292,7 @@ namespace darkChaining {
             // use width to make the height of the shadow map image because we do not need something really tall
             // and for most devices the height is much bigger than the width.  Also, multiply by the shadow size multiplier
             // twice so that it is even smaller...
-            uint32_t height = static_cast<uint32_t>(std::floor(dimensions.first * shadowsSizeMultiplier * shadowsSizeMultiplier));
+            uint32_t height = static_cast<uint32_t>(std::floor(dimensions.first * shadowsSizeMultiplier));
             return std::make_pair(width, height);
         }
 
@@ -302,6 +316,8 @@ namespace darkChaining {
             switch (description.drawingMethod()) {
                 case renderDetails::DrawingStyle::dark1light:
                     return parameters->numberLightSources() == 1;
+                case renderDetails::DrawingStyle::dark2lights:
+                    return parameters->numberLightSources() == 2;
                 default:
                     return false;
             }
@@ -311,7 +327,9 @@ namespace darkChaining {
                 std::shared_ptr<vulkan::SurfaceDetails> const &surfaceDetails)
         {
             vulkan::SurfaceDetails shadowSurface{};
+
             auto wh = getShadowsFramebufferDimensions(std::make_pair(surfaceDetails->surfaceWidth, surfaceDetails->surfaceHeight));
+
             shadowSurface.surfaceWidth = wh.first;
             shadowSurface.surfaceHeight = wh.second;
 
@@ -325,7 +343,7 @@ namespace darkChaining {
              * render pass it was created with.  All of the render passes for the shadow maps are
              * essentially the same except the have a different color attachment (of the same size).
              * So it is ok to use just the first shadow map render pass to create the surface details
-             * (which are eventually used to create the pipeline.
+             * (which are eventually used to create the pipeline).
              */
             shadowSurface.renderPass = m_renderPassesShadows[0];
             return std::make_shared<vulkan::SurfaceDetails>(std::move(shadowSurface));

@@ -64,7 +64,7 @@ namespace darkChaining {
                     // Next the first viewpoint's CODs stored in the same manner.
                     m_shadowsCODs[4 * lightNumber + direction]->update(parametersShadows);
 
-                    glm::mat4 shadowsProjView = parameters.getLightProjView(lightNumber, direction, false, false);
+                    glm::mat4 shadowsProjView = parameters.getLightProjView(lightNumber, direction, m_shadowMapAspectRatio, false, false);
                     shadowsProjViews.push_back(shadowsProjView);
                 }
             }
@@ -75,10 +75,12 @@ namespace darkChaining {
 
         CommonObjectDataGL(
                 std::shared_ptr<renderDetails::CommonObjectDataBase> inDarkObject,
-                std::vector<std::shared_ptr<renderDetails::CommonObjectDataBase>> inShadowsCODs)
+                std::vector<std::shared_ptr<renderDetails::CommonObjectDataBase>> inShadowsCODs,
+                float shadowMapAspectRatio)
                 : CommonObjectDataBase(), // Base COD
                   m_darkObject(std::dynamic_pointer_cast<darkObject::CommonObjectDataGL>(inDarkObject)),
-                  m_shadowsCODs{}
+                  m_shadowsCODs{},
+                  m_shadowMapAspectRatio(shadowMapAspectRatio)
         {
             for (auto const &shadowsCOD : inShadowsCODs) {
                 m_shadowsCODs.push_back(std::dynamic_pointer_cast<shadows::CommonObjectDataGL>(shadowsCOD));
@@ -89,6 +91,7 @@ namespace darkChaining {
     private:
         std::shared_ptr<darkObject::CommonObjectDataGL> m_darkObject;
         std::vector<std::shared_ptr<shadows::CommonObjectDataGL>> m_shadowsCODs;
+        float m_shadowMapAspectRatio;
     };
 
     class DrawObjectDataGL : public renderDetails::DrawObjectDataGL {
@@ -166,9 +169,10 @@ namespace darkChaining {
         std::vector<std::shared_ptr<graphicsGL::Framebuffer>> m_framebuffersShadows;
         std::shared_ptr<renderDetails::RenderDetailsGL> m_shadowsRenderDetails;
         std::shared_ptr<renderDetails::RenderDetailsGL> m_darkObjectRenderDetails;
+        float m_shadowMapAspectRatio;
 
         static renderDetails::ReferenceGL createReference(
-            std::shared_ptr<renderDetails::RenderDetailsGL> rd,
+            std::shared_ptr<RenderDetailsGL> rd,
             renderDetails::ReferenceGL const &refObjectWithShadows,
             renderDetails::ReferenceGL const &refShadows,
             std::vector<std::shared_ptr<renderDetails::CommonObjectDataBase>> shadowsCODs);
@@ -180,13 +184,19 @@ namespace darkChaining {
             std::shared_ptr<graphicsGL::SurfaceDetails> const &surfaceDetails,
             std::shared_ptr<renderDetails::ParametersBase> const &parametersBase);
 
+        float shadowMapAspectRatio() {
+            auto dimensions = std::make_pair(m_surfaceWidth, m_surfaceHeight);
+            auto wh = getShadowsFramebufferDimensions(dimensions);
+            return static_cast<float>(wh.first)/wh.second;
+        }
+
         static std::pair<uint32_t, uint32_t> getShadowsFramebufferDimensions(std::pair<uint32_t, uint32_t> const &dimensions) {
             uint32_t width = static_cast<uint32_t>(std::floor(dimensions.first * shadowsSizeMultiplier));
 
             // use width to make the height of the shadow map image because we do not need something really tall
             // and for most devices the height is much bigger than the width.  Also, multiply by the shadow size multiplier
             // twice so that it is even smaller...
-            uint32_t height = static_cast<uint32_t>(std::floor(dimensions.first * shadowsSizeMultiplier * shadowsSizeMultiplier));
+            uint32_t height = static_cast<uint32_t>(std::floor(dimensions.first * shadowsSizeMultiplier));
             return std::make_pair(width, height);
         }
 

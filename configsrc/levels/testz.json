@@ -21,17 +21,19 @@
             {
                 "Name": "Ball",
                 "Models": [ "models/ball.modelcbor" ],
-                "DefaultColor": [ 0.0, 1.0, 1.0, 1.0 ]
+                "DefaultColor": [ 1.0, 0.3, 0.3, 1.0 ],
+                "LoadVertexNormals": true,
+                "LoadFaceNormals": false
             },
             {
                 "Name": "Quad1",
                 "Type": 1,
-                "DefaultColor": [ 0.0, 1.0, 0.5, 1.0 ]
+                "DefaultColor": [ 0.5, 0.8, 0.5, 1.0 ]
             },
             {
                 "Name": "Cube1",
                 "Type": 2,
-                "DefaultColor": [ 0.0, 0.0, 1.0, 1.0 ]
+                "DefaultColor": [ 1.0, 0.0, 1.0, 1.0 ]
             }
         ],
         "BounceEnabled": true,

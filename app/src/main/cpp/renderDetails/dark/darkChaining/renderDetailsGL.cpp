@@ -34,6 +34,8 @@ namespace darkChaining {
                 surfaceDetails->useIntTexture, surfaceDetails->surfaceWidth,
                 surfaceDetails->surfaceHeight);
 
+        rd->createFramebuffers();
+
         return loadHelper(gameRequester, renderLoader, rd, surfaceDetails, parametersBase);
     }
 
@@ -77,8 +79,6 @@ namespace darkChaining {
         renderDetails::ReferenceGL refShadows;
         std::vector<std::shared_ptr<renderDetails::CommonObjectDataBase>> shadowCODs;
         std::vector<glm::mat4> projViewLights;
-        auto parametersShadows = std::make_shared<renderDetails::ParametersPerspective>();
-
         auto shadowSurfaceDetails = createShadowSurfaceDetails(surfaceDetails);
 
         renderDetails::Query shadowsRenderDetailsQuery{
@@ -105,7 +105,7 @@ namespace darkChaining {
 
                 shadowCODs.push_back(shadowCOD);
 
-                glm::mat4 projViewLight = parameters->getLightProjView(lightSourceNumber, direction, false, false);
+                glm::mat4 projViewLight = parameters->getLightProjView(lightSourceNumber, direction, rd->shadowMapAspectRatio(), false, false);
                 projViewLights.push_back(projViewLight);
             }
         }
@@ -134,6 +134,8 @@ namespace darkChaining {
 
     void RenderDetailsGL::createFramebuffers()
     {
+        m_framebuffersShadows.clear();
+
         std::vector<graphicsGL::Framebuffer::ColorImageFormat> colorImageFormats;
 
         if (m_usesIntSurface) {
@@ -142,21 +144,32 @@ namespace darkChaining {
             colorImageFormats.emplace_back(GL_RGBA8, GL_RGBA, GL_UNSIGNED_BYTE);
         }
 
-        for (auto &framebuffer : m_framebuffersShadows) {
-            framebuffer = std::make_shared<graphicsGL::Framebuffer>(
-                    m_surfaceWidth, m_surfaceHeight, colorImageFormats);
+        size_t numberFramebuffers = 0;
+        if (m_description.drawingMethod() == renderDetails::DrawingStyle::dark1light) {
+            numberFramebuffers = 4;
+        } else if (m_description.drawingMethod() == renderDetails::DrawingStyle::dark2lights) {
+            numberFramebuffers = 8;
+        }
+
+        auto wh = getShadowsFramebufferDimensions(std::make_pair(m_surfaceWidth, m_surfaceHeight));
+
+        for (size_t i = 0; i < numberFramebuffers; i++) {
+            m_framebuffersShadows.push_back(std::make_shared<graphicsGL::Framebuffer>(
+                    wh.first, wh.second, colorImageFormats));
+
         }
     }
 
     renderDetails::ReferenceGL RenderDetailsGL::createReference(
-            std::shared_ptr<renderDetails::RenderDetailsGL> rd,
+            std::shared_ptr<RenderDetailsGL> rd,
             renderDetails::ReferenceGL const &refDarkObject,
             renderDetails::ReferenceGL const &refShadows,
             std::vector<std::shared_ptr<renderDetails::CommonObjectDataBase>> shadowsCODs)
     {
         renderDetails::ReferenceGL ref = {};
         auto cod = std::make_shared<CommonObjectDataGL>(refDarkObject.commonObjectData,
-                                                        shadowsCODs);
+                                                        shadowsCODs,
+                                                        rd->shadowMapAspectRatio());
         ref.renderDetails = std::move(rd);
         ref.createDrawObjectData = renderDetails::ReferenceGL::CreateDrawObjectData{
                 [createDODDarkObject(refDarkObject.createDrawObjectData),
