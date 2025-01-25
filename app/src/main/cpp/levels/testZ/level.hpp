@@ -73,9 +73,9 @@ namespace testZ {
             auto const &quad2Data = findModelsAndTextures("Cube1");
             m_ref2 = m_levelDrawer.addObject(quad2Data.models[0], getFirstTexture(quad2Data));
 
-            m_m2 = glm::scale(glm::mat4(1.0f), glm::vec3{m_width/60.0f, m_height/60.0f, m_height/5.0f});
+            m_m2 = glm::scale(glm::mat4(1.0f), glm::vec3{m_width/60.0f, m_height/60.0f, m_height/10.0f});
             //m_m2 = glm::rotate(glm::mat4(1.0f), glm::pi<float>()/4.0f, glm::vec3(0.0f, 0.0f, 1.0f)) * m_m2;
-            m_m2 = glm::translate(glm::mat4(1.0f), glm::vec3{-m_width/8, /*-m_height/2.0f + m_height/2.5f*/ 0.0f, maxZ + m_height/10.0f}) * m_m2;
+            m_m2 = glm::translate(glm::mat4(1.0f), glm::vec3{-m_width/8, /*-m_height/2.0f + m_height/2.5f*/ 0.0f, maxZ + m_height/30.0f}) * m_m2;
             m_ref2data = m_levelDrawer.addModelMatrixForObject(m_ref2, m_m2);
 
             /*
@@ -104,7 +104,7 @@ namespace testZ {
 
             // todo: KAT_TEST
             renderDetails::ParametersDark parameters(
-                    m_height/80.0f, m_width, m_height, maxZ);
+                    m_height/80, m_width, m_height, maxZ);
 
             parameters.pushBackLightSource(0.0f, 0.0f, true);
 

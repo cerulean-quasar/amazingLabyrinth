@@ -48,18 +48,17 @@ int ShadowCalculation(vec4 pos, sampler2D texSampler) {
     vec3 projCoords = pos.xyz/pos.w;
 
     /* the depth buffer is using coordinates in the range: [0, 1] */
-    projCoords = vec3(projCoords.x * 0.5 + 0.5, 0.5 + projCoords.y * 0.5, projCoords.z);
+    projCoords = vec3(projCoords.x * 0.5 + 0.5, projCoords.y * 0.5 + 0.5 , projCoords.z);
     float closestDepth = texture(texSampler, projCoords.xy).r;
 
     float currentDepth = projCoords.z;
     float bias = 0.001;
-    return currentDepth < closestDepth ? 1 : 0;
+    return currentDepth - bias < closestDepth ? 1 : 0;
 }
 
 vec3 diffuse(vec3 lightPos,
             vec4 fragPosLightSpaceUp, vec4 fragPosLightSpaceLeft, vec4 fragPosLightSpaceDown, vec4 fragPosLightSpaceRight,
             sampler2D texDarkUp, sampler2D texDarkLeft, sampler2D texDarkDown, sampler2D texDarkRight) {
-    float smallValue = 0.001;
 
     /* Check to see if light will hit the fragment from the 1st light source */
     /* first select which shadow map to use for this operation */
@@ -93,9 +92,9 @@ vec3 diffuse(vec3 lightPos,
         diff = max(dot(fragNormal, -lightDirection), 0.0);
     }
 
-    float rSquared = max(dot(fragPosLightSpaceUp, fragPosLightSpaceUp), smallValue);
-    rSquared = rSquared * 16.0f;
-    vec3 diffuse = diff/rSquared * vec3(0.6, 0.6, 0.6);
+    float smallValue = 0.00001;
+    float rSquared = max(dot(lightToFrag, lightToFrag), smallValue);
+    vec3 diffuse = vec3(diff/(80.0 * rSquared));
 
     return diffuse;
 }
