@@ -1,5 +1,5 @@
 /**
- * Copyright 2024 Cerulean Quasar. All Rights Reserved.
+ * Copyright 2025 Cerulean Quasar. All Rights Reserved.
  *
  *  This file is part of AmazingLabyrinth.
  *
@@ -92,15 +92,16 @@ vec3 diffuse(vec3 lightPos,
         diff = max(dot(fragNormal, -lightDirection), 0.0);
     }
 
+    float rSquaredMultiplier = 80.0;
     float smallValue = 0.00001;
+
     float rSquared = max(dot(lightToFrag, lightToFrag), smallValue);
-    vec3 diffuse = vec3(diff/(80.0 * rSquared));
+    vec3 diffuse = vec3(diff/(rSquaredMultiplier * rSquared));
 
     return diffuse;
 }
 
 void main() {
-
     vec3 diffuse1 = diffuse(light.pos1, fragPosLightSpace1Up, fragPosLightSpace1Left,
         fragPosLightSpace1Down, fragPosLightSpace1Right,
         texDark1Up, texDark1Left, texDark1Down, texDark1Right);

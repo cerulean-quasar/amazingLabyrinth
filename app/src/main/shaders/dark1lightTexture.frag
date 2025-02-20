@@ -1,5 +1,5 @@
 /**
- * Copyright 2024 Cerulean Quasar. All Rights Reserved.
+ * Copyright 2025 Cerulean Quasar. All Rights Reserved.
  *
  *  This file is part of AmazingLabyrinth.
  *
@@ -37,10 +37,10 @@ layout(set = 0, binding = 3) uniform UniformBufferObject {
 /* shadow maps for the first light, first one is for the up direction, then circle around
  * counterclockwise assigning numbers
  */
-layout(binding = 4) uniform sampler2D texDark1Up;
-layout(binding = 5) uniform sampler2D texDark1Left;
-layout(binding = 6) uniform sampler2D texDark1Down;
-layout(binding = 7) uniform sampler2D texDark1Right;
+layout(set = 0, binding = 4) uniform sampler2D texDark1Up;
+layout(set = 0, binding = 5) uniform sampler2D texDark1Left;
+layout(set = 0, binding = 6) uniform sampler2D texDark1Down;
+layout(set = 0, binding = 7) uniform sampler2D texDark1Right;
 
 layout(location = 0) out vec4 outColor;
 
@@ -49,7 +49,7 @@ int ShadowCalculation(vec4 pos, sampler2D texSamplerShadows) {
     vec3 projCoords = pos.xyz/pos.w;
 
     /* the depth buffer is using coordinates in the range: [0, 1] */
-    projCoords = vec3(projCoords.x * 0.5 + 0.5, 0.5 + projCoords.y * 0.5, projCoords.z);
+    projCoords = vec3(projCoords.x * 0.5 + 0.5, projCoords.y * 0.5 + 0.5, projCoords.z);
     float closestDepth = texture(texSamplerShadows, projCoords.xy).r;
 
     float currentDepth = projCoords.z;
@@ -60,20 +60,19 @@ int ShadowCalculation(vec4 pos, sampler2D texSamplerShadows) {
 vec3 diffuse(vec3 lightPos,
             vec4 fragPosLightSpaceUp, vec4 fragPosLightSpaceLeft, vec4 fragPosLightSpaceDown, vec4 fragPosLightSpaceRight,
             sampler2D texDarkUp, sampler2D texDarkLeft, sampler2D texDarkDown, sampler2D texDarkRight) {
-    float smallValue = 0.01;
 
-    /* Check to see if light will hit the fragment from the ball light source */
+    /* Check to see if light will hit the fragment from the 1st light source */
     /* first select which shadow map to use for this operation */
     vec3 lightToFrag = fragPosition - lightPos;
     vec3 lightDirection = normalize(lightToFrag);
     int inLight = 0;
-    vec3 diffuse = vec3(0.0, 0.0, 0.0);
+
     if ((lightDirection.x >= 0.0 && lightDirection.y >= 0.0 && lightDirection.x <= lightDirection.y) ||
         (lightDirection.x <= 0.0 && lightDirection.y >= 0.0 && -lightDirection.x <= lightDirection.y)) {
         /* up shadow map */
         inLight = ShadowCalculation(fragPosLightSpaceUp, texDarkUp);
     } else if ((lightDirection.x <= 0.0 && lightDirection.y <= 0.0 && lightDirection.x <= lightDirection.y) ||
-             (lightDirection.x <= 0.0 && lightDirection.y >= 0.0 && -lightDirection.x >= lightDirection.y)) {
+               (lightDirection.x <= 0.0 && lightDirection.y >= 0.0 && -lightDirection.x >= lightDirection.y)) {
         /* left shadow map */
         inLight = ShadowCalculation(fragPosLightSpaceLeft, texDarkLeft);
     } else if ((lightDirection.x >= 0.0 && lightDirection.y <= 0.0 && lightDirection.x <= -lightDirection.y) ||
@@ -81,23 +80,24 @@ vec3 diffuse(vec3 lightPos,
         /* down shadow map */
         inLight = ShadowCalculation(fragPosLightSpaceDown, texDarkDown);
     } else {
-        /* ((lightDirection.x >= 0.0 && lightDirection.y >= 0.0 && lightDirection.x >= lightDirection.y) ||
-            (lightDirection.x >= 0.0 && lightDirection.y <= 0.0 && lightDirection.x >= -lightDirection.y))
-        */
+        /*
+         * ((lightDirection.x >= 0.0 && lightDirection.y >= 0.0 && lightDirection.x >= lightDirection.y) ||
+         *  (lightDirection.x >= 0.0 && lightDirection.y <= 0.0 && lightDirection.x >= -lightDirection.y))
+         */
         /* right shadow map */
         inLight = ShadowCalculation(fragPosLightSpaceRight, texDarkRight);
     }
 
+    float diff = 0.02f;
     if (inLight == 1) {
-        float diff = max(dot(fragNormal, lightDirection), 0.0);
-        float rSquared = lightToFrag.x*lightToFrag.x + lightToFrag.y*lightToFrag.y + lightToFrag.z*lightToFrag.z;
-        //float rSquared = lightToFrag.x + lightToFrag.y + lightToFrag.z;
-        rSquared = rSquared * 100.0;
-        if (rSquared < smallValue) {
-            rSquared = smallValue;
-        }
-        diffuse = diff/rSquared * vec3(1.0, 1.0, 1.0);
+        diff = max(dot(fragNormal, -lightDirection), 0.0);
     }
+
+    float rSquaredMultiplier = 80.0;
+    float smallValue = 0.00001;
+
+    float rSquared = max(dot(lightToFrag, lightToFrag), smallValue);
+    vec3 diffuse = vec3(diff/(rSquaredMultiplier * rSquared));
 
     return diffuse;
 }

@@ -55,14 +55,13 @@ int ShadowCalculation(vec4 pos, sampler2D texSamplerShadows) {
 vec3 diffuse(vec3 lightPos,
             vec4 fragPosLightSpaceUp, vec4 fragPosLightSpaceLeft, vec4 fragPosLightSpaceDown, vec4 fragPosLightSpaceRight,
             sampler2D texDarkUp, sampler2D texDarkLeft, sampler2D texDarkDown, sampler2D texDarkRight) {
-    float smallValue = 0.01;
 
     /* Check to see if light will hit the fragment from the ball light source */
     /* first select which shadow map to use for this operation */
     vec3 lightToFrag = fragPosition - lightPos;
     vec3 lightDirection = normalize(lightToFrag);
     int inLight = 0;
-    vec3 diffuse = vec3(0.0, 0.0, 0.0);
+
     if ((lightDirection.x >= 0.0 && lightDirection.y >= 0.0 && lightDirection.x <= lightDirection.y) ||
         (lightDirection.x <= 0.0 && lightDirection.y >= 0.0 && -lightDirection.x <= lightDirection.y)) {
         /* up shadow map */
@@ -76,20 +75,24 @@ vec3 diffuse(vec3 lightPos,
         /* down shadow map */
         inLight = ShadowCalculation(fragPosLightSpaceDown, texDarkDown);
     } else {
-        /* ((lightDirection.x >= 0.0 && lightDirection.y >= 0.0 && lightDirection.x >= lightDirection.y) ||
-                (lightDirection.x >= 0.0 && lightDirection.y <= 0.0 && lightDirection.x >= -lightDirection.y)) */
+        /*
+         * ((lightDirection.x >= 0.0 && lightDirection.y >= 0.0 && lightDirection.x >= lightDirection.y) ||
+         *  (lightDirection.x >= 0.0 && lightDirection.y <= 0.0 && lightDirection.x >= -lightDirection.y))
+         */
         /* right shadow map */
         inLight = ShadowCalculation(fragPosLightSpaceRight, texDarkRight);
     }
+
+    float diff = 0.02f;
     if (inLight == 1) {
-        float diff = max(dot(fragNormal, lightDirection), 0.0);
-        float rSquared = lightToFrag.x*lightToFrag.x + lightToFrag.y*lightToFrag.y + lightToFrag.z*lightToFrag.z;
-        rSquared = rSquared * 100.0;
-        if (rSquared < smallValue) {
-            rSquared = smallValue;
-        }
-        diffuse = diff/rSquared * vec3(1.0, 1.0, 1.0);
+        diff = max(dot(fragNormal, -lightDirection), 0.0);
     }
+
+    float rSquaredMultiplier = 80.0;
+    float smallValue = 0.00001;
+
+    float rSquared = max(dot(lightToFrag, lightToFrag), smallValue);
+    vec3 diffuse = vec3(diff/(rSquaredMultiplier * rSquared));
 
     return diffuse;
 }

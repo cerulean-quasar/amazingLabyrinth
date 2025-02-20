@@ -84,9 +84,11 @@ vec3 diffuse(vec3 lightPos,
         diff = max(dot(fragNormal, -lightDirection), 0.0);
     }
 
+    float rSquaredMultiplier = 4.0;
     float smallValue = 0.00001;
+
     float rSquared = max(dot(lightToFrag, lightToFrag), smallValue);
-    vec3 diffuse = vec3(diff/(4.0 * rSquared));
+    vec3 diffuse = vec3(diff/(rSquaredMultiplier * rSquared));
 
     return diffuse;
 }

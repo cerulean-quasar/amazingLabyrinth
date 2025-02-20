@@ -33,7 +33,7 @@
             {
                 "Name": "Cube1",
                 "Type": 2,
-                "DefaultColor": [ 1.0, 0.0, 1.0, 1.0 ]
+                "Textures": [ "textures/rollerBee/wallFlower1.png" ]
             }
         ],
         "BounceEnabled": true,
