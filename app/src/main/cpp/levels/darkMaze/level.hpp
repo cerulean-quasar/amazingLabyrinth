@@ -1,5 +1,5 @@
 /**
- * Copyright 2024 Cerulean Quasar. All Rights Reserved.
+ * Copyright 2025 Cerulean Quasar. All Rights Reserved.
  *
  *  This file is part of AmazingLabyrinth.
  *
@@ -21,13 +21,14 @@
 #define AMAZING_LABYRINTH_DARK_MAZE_LEVEL_HPP
 
 #include "../openAreaMaze/level.hpp"
+#include "renderDetails/dark/renderDetails.hpp"
 
 namespace darkMaze {
     class Level : public openAreaMaze::Level {
     public:
         static char constexpr const *m_name = "darkMaze";
 
-        /** Use darkv2 as the default render details, and standard as the render details for the
+        /** Use dark1light as the default render details, and standard as the render details for the
          * hole and ball.  The floor is using the default render details.
          */
         struct Request : public openAreaMaze::Level::Request {
@@ -37,8 +38,8 @@ namespace darkMaze {
 
             void defaultRD() override {
                 renderDetails::Query query{
-                    renderDetails::DrawingStyle::darkV2,
-                    {renderDetails::Features::texture,
+                    renderDetails::DrawingStyle::dark1light,
+                    {renderDetails::chaining, renderDetails::Features::texture,
                         renderDetails::Features::color},
                     {}};
 
@@ -55,9 +56,8 @@ namespace darkMaze {
                          renderDetails::Features::color},
                         {}};
 
-                return m_levelDrawer.addObject(
-                    obj, tx,
-                    query, gameConstants::getPerspectiveParameters());
+                return m_levelDrawer.addObject(obj, tx, query,
+                                               gameConstants::getPerspectiveParameters());
             }
 
             levelDrawer::DrawObjReference addHole(
@@ -75,9 +75,8 @@ namespace darkMaze {
                     query, gameConstants::getPerspectiveParameters());
             }
 
-            static std::shared_ptr<renderDetails::ParametersPerspective> getParameters() {
-                auto parameters = gameConstants::getPerspectiveParameters();
-                parameters->lightingSources.push_back(glm::vec3{0.0, 0.0, 0.0});
+            static std::shared_ptr<renderDetails::ParametersDark> getParameters() {
+                auto parameters = std::make_shared<renderDetails::ParametersDark>(1);
 
                 return parameters;
             }
@@ -95,19 +94,19 @@ namespace darkMaze {
                 float maxZ,
                 Request &request)
                 : openAreaMaze::Level(
-                        std::move(inLevelDrawer), lcd, sd, maxZ, request)
+                        std::move(inLevelDrawer), lcd, sd, maxZ, request),
+                  m_parameters(*Request::getParameters())
         {
-            auto parameters = Request::getParameters();
-            m_parameters = *parameters;
-            m_parameters.lightingSources[0] = m_ball.position;
-            m_parameters.lightingSources[1] = getCellCenterPosition(m_mazeBoard.rowEnd(), m_mazeBoard.colEnd());
-            m_parameters.lightingSources[1].z = m_parameters.lightingSources[0].z;
+            //m_parameters = *Request::getParameters();
+            m_parameters.updateLightSource(0, m_ball.position.x, m_ball.position.y);
+            //m_parameters.lightingSources[1] = getCellCenterPosition(m_mazeBoard.rowEnd(), m_mazeBoard.colEnd());
+            //m_parameters.lightingSources[1].z = m_parameters.lightingSources[0].z;
             m_levelDrawer.updateCommonObjectData(m_objRefsWalls[0], m_parameters);
         }
 
         ~Level() override = default;
     private:
-        renderDetails::ParametersPerspective m_parameters;
+        renderDetails::ParametersDark m_parameters;
     };
 } // namespace darkMaze
 #endif // AMAZING_LABYRINTH_DARK_MAZE_LEVEL_HPP

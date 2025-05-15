@@ -1,5 +1,5 @@
 /**
- * Copyright 2022 Cerulean Quasar. All Rights Reserved.
+ * Copyright 2025 Cerulean Quasar. All Rights Reserved.
  *
  *  This file is part of AmazingLabyrinth.
  *
@@ -23,7 +23,7 @@
 
 namespace darkMaze {
     bool Level::updateDrawObjects() {
-        m_parameters.lightingSources[0] = m_ball.position;
+        m_parameters.updateLightSource(0, m_ball.position.x, m_ball.position.y);
         m_levelDrawer.updateCommonObjectData(m_objRefsWalls[0], m_parameters);
         return openAreaMaze::Level::updateDrawObjects();
     }

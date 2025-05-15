@@ -160,15 +160,15 @@ namespace darkObject {
                 size_t numberLightSources)
                 : m_device(std::move(inDevice)) {
             m_poolSizes[0].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-            m_poolSizes[0].descriptorCount = 1;
+            m_poolSizes[0].descriptorCount = m_numberOfDescriptorSetsInPool;
             m_poolSizes[1].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-            m_poolSizes[1].descriptorCount = 1;
+            m_poolSizes[1].descriptorCount = m_numberOfDescriptorSetsInPool;
             m_poolSizes[2].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-            m_poolSizes[2].descriptorCount = 1;
+            m_poolSizes[2].descriptorCount = m_numberOfDescriptorSetsInPool;
             m_poolSizes[3].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-            m_poolSizes[3].descriptorCount = 1;
+            m_poolSizes[3].descriptorCount = m_numberOfDescriptorSetsInPool;
             m_poolSizes[4].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-            m_poolSizes[4].descriptorCount = renderDetails::numberDirections * numberLightSources;
+            m_poolSizes[4].descriptorCount = m_numberOfDescriptorSetsInPool * renderDetails::numberDirections * numberLightSources;
 
             m_poolInfo = {};
             m_poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
@@ -183,6 +183,7 @@ namespace darkObject {
         ~TextureDescriptorSetLayout() override = default;
 
     private:
+        //static uint32_t constexpr m_numberOfDescriptorSetsInPool = 1024;
         static uint32_t constexpr m_numberOfDescriptorSetsInPool = 1024;
 
         std::shared_ptr<vulkan::Device> m_device;
@@ -210,13 +211,13 @@ namespace darkObject {
                 size_t numberLightSources)
                 : m_device(std::move(inDevice)) {
             m_poolSizes[0].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-            m_poolSizes[0].descriptorCount = 1;
+            m_poolSizes[0].descriptorCount = m_numberOfDescriptorSetsInPool;
             m_poolSizes[1].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-            m_poolSizes[1].descriptorCount = 1;
+            m_poolSizes[1].descriptorCount = m_numberOfDescriptorSetsInPool;
             m_poolSizes[2].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-            m_poolSizes[2].descriptorCount = 1;
+            m_poolSizes[2].descriptorCount = m_numberOfDescriptorSetsInPool;
             m_poolSizes[3].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-            m_poolSizes[3].descriptorCount = renderDetails::numberDirections * numberLightSources;
+            m_poolSizes[3].descriptorCount = renderDetails::numberDirections * numberLightSources * m_numberOfDescriptorSetsInPool;
 
             m_poolInfo = {};
             m_poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;

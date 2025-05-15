@@ -1,5 +1,5 @@
 /**
- * Copyright 2024 Cerulean Quasar. All Rights Reserved.
+ * Copyright 2025 Cerulean Quasar. All Rights Reserved.
  *
  *  This file is part of AmazingLabyrinth.
  *
@@ -567,12 +567,11 @@ namespace vulkan {
                     }
                 }
 
-
                 DescriptorPool newDescriptorPool(m_device, m_descriptorSetLayout->numberOfDescriptors(),
                     m_descriptorSetLayout->poolCreateInfo());
-                m_descriptorPools.push_back(newDescriptorPool);
                 VkDescriptorSet_CQ *descriptorSet = newDescriptorPool.allocateDescriptor(
                         m_descriptorSetLayout);
+                m_descriptorPools.push_back(newDescriptorPool);
                 return std::shared_ptr<DescriptorSet>(new DescriptorSet(shared_from_this(),
                         std::shared_ptr<VkDescriptorSet_CQ>(descriptorSet, deleter)));
             }

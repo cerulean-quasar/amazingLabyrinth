@@ -158,9 +158,9 @@ namespace depthMap {
                 : m_device(inDevice)
         {
             m_poolSizes[0].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-            m_poolSizes[0].descriptorCount = 1;
+            m_poolSizes[0].descriptorCount = m_numberOfDescriptorSetsInPool;
             m_poolSizes[1].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-            m_poolSizes[1].descriptorCount = 1;
+            m_poolSizes[1].descriptorCount = m_numberOfDescriptorSetsInPool;
 
             m_poolInfo = {};
             m_poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
