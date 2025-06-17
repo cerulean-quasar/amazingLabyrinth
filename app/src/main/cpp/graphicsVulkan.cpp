@@ -1611,7 +1611,7 @@ namespace vulkan {
 
         /* copy the data to an image object because it will be easier and faster to access the
          * image from the shader.  One advantage of using an image object is that using one will
-         * allowy us to use 2D coordinates.  Pixels in an image object are known as texels.
+         * allow us to use 2D coordinates.  Pixels in an image object are known as texels.
          */
         VkImageCreateInfo imageInfo = {};
         imageInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
@@ -1625,7 +1625,7 @@ namespace vulkan {
         /* must be the same format as the pixels in the buffer otherwise the copy will fail */
         imageInfo.format = format;
 
-        /* texels are layed out in an implementation defined order for optimal access.  If we
+        /* texels are laid out in an implementation defined order for optimal access.  If we
          * wanted it to be in a row-major order, then we should use VK_IMAGE_TILING_LINEAR
          */
         imageInfo.tiling = tiling;
@@ -1634,7 +1634,7 @@ namespace vulkan {
         imageInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
 
         /* the image will be used as the destination for the image copy from the buffer, so use
-         * VK_IMAGE_USAGE_TRANSFER_DST_BIT. The image also needs to be accessable from the shader
+         * VK_IMAGE_USAGE_TRANSFER_DST_BIT. The image also needs to be accessible from the shader
          * to color the mesh, so use VK_IMAGE_USAGE_SAMPLED_BIT.
          */
         imageInfo.usage = usage;
