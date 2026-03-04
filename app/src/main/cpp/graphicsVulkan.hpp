@@ -785,6 +785,12 @@ namespace vulkan {
         void transitionImageLayout(VkImageLayout oldLayout,
                                    VkImageLayout newLayout, std::shared_ptr<CommandPool> const &pool);
 
+        void transitionImageLayout(VkImageLayout oldLayout,
+                                   VkImageLayout newLayout, std::shared_ptr<CommandBuffer> const &cmds);
+
+        void transitionImageLayout(VkImageLayout oldLayout,
+                                   VkImageLayout newLayout, VkCommandBuffer const &cmds);
+
         virtual ~Image() {
             if (m_needsFree) {
                 vmaDestroyImage(m_device->allocator().get(), m_image, m_allocation);

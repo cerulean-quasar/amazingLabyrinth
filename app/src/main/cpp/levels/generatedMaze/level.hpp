@@ -1,5 +1,5 @@
 /**
- * Copyright 2024 Cerulean Quasar. All Rights Reserved.
+ * Copyright 2025 Cerulean Quasar. All Rights Reserved.
  *
  *  This file is part of AmazingLabyrinth.
  *
@@ -46,7 +46,7 @@ namespace generatedMaze {
                 unsigned int nbrCols,
                 unsigned int nbrRows,
                 float scaleWallZ)>;
-        static constexpr float m_originalWallHeight = 3.0f;
+        static constexpr float m_originalWallHeight = 2.0f;
         static constexpr unsigned int numberBlocksPerCell = 2;
         Random random;
         std::chrono::high_resolution_clock::time_point prevTime;

@@ -97,10 +97,9 @@ namespace darkMaze {
                         std::move(inLevelDrawer), lcd, sd, maxZ, request),
                   m_parameters(*Request::getParameters())
         {
-            //m_parameters = *Request::getParameters();
+            m_parameters.updateBallZ(ballDiameter()/2.0f);
+            m_parameters.updateBallRadius(ballDiameter()/2.0f);
             m_parameters.updateLightSource(0, m_ball.position.x, m_ball.position.y);
-            //m_parameters.lightingSources[1] = getCellCenterPosition(m_mazeBoard.rowEnd(), m_mazeBoard.colEnd());
-            //m_parameters.lightingSources[1].z = m_parameters.lightingSources[0].z;
             m_levelDrawer.updateCommonObjectData(m_objRefsWalls[0], m_parameters);
         }
 

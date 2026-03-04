@@ -169,11 +169,13 @@ namespace darkChaining {
             }
 
             for (size_t j = 0; j < renderDetails::numberDirections; j++) {
+                m_depthImageViewsShadows[j]->image()->transitionImageLayout(VK_IMAGE_LAYOUT_UNDEFINED,
+                                                                            VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL, commandBuffer);
                 /* begin the shadows render pass */
                 VkRenderPassBeginInfo renderPassInfo = {};
                 renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
                 renderPassInfo.renderPass = getVkType<>(
-                        m_renderPassesShadows[i * renderDetails::numberDirections + j]->renderPass().get());  // todo: KAT_TEST maybe only need one render pass?
+                        m_renderPassesShadows[i * renderDetails::numberDirections + j]->renderPass().get());
                 renderPassInfo.framebuffer = getVkType<>(
                         m_framebuffersShadows[i * renderDetails::numberDirections + j]->framebuffer().get());
                 /* size of the render area */
@@ -188,7 +190,7 @@ namespace darkChaining {
                  * using black with 0% opacity
                  */
                 VkClearValue clearValues{};
-                clearValues.depthStencil = {1.0f /* 1.0f todo: KAT_TEST */, 0};
+                clearValues.depthStencil = {1.0f, 0};
                 renderPassInfo.clearValueCount = 1;
                 renderPassInfo.pClearValues = &clearValues;
 
@@ -208,6 +210,9 @@ namespace darkChaining {
                         m_description); // only pay attention to dark chaining draw objects.
 
                 vkCmdEndRenderPass(commandBuffer);
+
+                m_depthImageViewsShadows[j]->image()->transitionImageLayout(VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL,
+                                                                            VK_IMAGE_LAYOUT_READ_ONLY_OPTIMAL, commandBuffer);
             }
         }
 

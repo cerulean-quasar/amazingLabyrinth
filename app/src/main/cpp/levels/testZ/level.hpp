@@ -99,12 +99,11 @@ namespace testZ {
                     gameConstants::getPerspectiveParameters());
 
             glm::mat4 m3 = glm::scale(glm::mat4(1.0f), glm::vec3{m_height/40, m_height/40, m_height/40});
-            m3 = glm::translate(glm::mat4(1.0f), glm::vec3{0.0f, 0.0f, maxZ + m_height/80}) * m3;
+            m3 = glm::translate(glm::mat4(1.0f), glm::vec3{0.0f, 0.0f, maxZ + m_height/40.0f}) * m3;
             m_levelDrawer.addModelMatrixForObject(ref3, m3);
 
             // todo: KAT_TEST
-            renderDetails::ParametersDark parameters(
-                    m_height/80, m_width, m_height, maxZ);
+            renderDetails::ParametersDark parameters(maxZ + m_height/40.0f, m_width, m_height, m_height/40.0f);
 
             parameters.pushBackLightSource(0.0f, 0.0f, true);
 

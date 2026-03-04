@@ -35,10 +35,8 @@ namespace renderDetails {
         size_t numberLightSources() const { return m_lightSources.size(); }
         float viewAngleShadows() const { return m_shadowMapViewAngleConstant; }
         float errorConstant() const { return m_errorConstant; }
-        float ballRadius() const { return m_ballRadius; }
         float gameBoardWidth() const { return m_gameBoardWidth; }
         float gameBoardHeight() const { return m_gameBoardHeight; }
-        float minLevelZ() const { return m_minLevelZ; }
         bool isLightSourceMobile(size_t lightSourceNumber) const { return m_lightSourceMoved[lightSourceNumber]; }
         std::vector<bool> const &lightSourceMoved() const { return m_lightSourceMoved; }
 
@@ -55,15 +53,18 @@ namespace renderDetails {
         }
 
         size_t pushBackLightSource(float x, float y, bool isMobile) {
-            glm::vec3 lightSource{x, y, m_minLevelZ + m_ballRadius};
-            //glm::vec3 lightSource{x, y, m_minLevelZ + 2 * m_ballRadius};
+            glm::vec3 lightSource{x, y, m_ballZ};
             m_lightSources.push_back(lightSource);
             m_lightSourceMoved.push_back(isMobile);
             return m_lightSources.size();
         }
 
-        void updateBallRadius(float inBallRadius) {
-            m_ballRadius = inBallRadius;
+        void updateBallZ(float z) {
+            m_ballZ = z;
+        }
+
+        void updateBallRadius(float r) {
+            m_ballRadius = r;
         }
 
         void updateLightSource(size_t lightSourceNumber, float x, float y) {
@@ -73,7 +74,7 @@ namespace renderDetails {
 
             m_lightSources[lightSourceNumber].x = x;
             m_lightSources[lightSourceNumber].y = y;
-            m_lightSources[lightSourceNumber].z = m_minLevelZ + m_ballRadius;
+            m_lightSources[lightSourceNumber].z = m_ballZ;
         }
 
         std::shared_ptr<ParametersPerspective> toGamePerspective() const {
@@ -99,16 +100,16 @@ namespace renderDetails {
             parameters.up = glm::vec3{0.0, 0.0, 1.0};
             switch (direction) {
             case 0:
-                parameters.lookAt = glm::vec3{0.0, 1.0, m_minLevelZ + m_ballRadius};
+                parameters.lookAt = glm::vec3{0.0, 1.0, m_ballZ};
                 break;
             case 1:
-                parameters.lookAt = glm::vec3{-1.0, 0.0, m_minLevelZ + m_ballRadius};
+                parameters.lookAt = glm::vec3{-1.0, 0.0, m_ballZ};
                 break;
             case 2:
-                parameters.lookAt = glm::vec3{0.0, -1.0, m_minLevelZ + m_ballRadius};
+                parameters.lookAt = glm::vec3{0.0, -1.0, m_ballZ};
                 break;
             case 3:
-                parameters.lookAt = glm::vec3{1.0, 0.0, m_minLevelZ + m_ballRadius};
+                parameters.lookAt = glm::vec3{1.0, 0.0, m_ballZ};
                 break;
             default:
                 throw std::runtime_error("Invalid direction in dark shadows perspective");
@@ -126,24 +127,25 @@ namespace renderDetails {
 
         ParametersDark(size_t numberLightSources)
             : ParametersBase(),
-            m_ballRadius{1.0f/20.0f},
             m_gameBoardWidth{1.0f},
             m_gameBoardHeight{1.0f},
-            m_minLevelZ{-1.0f},
+            m_ballRadius{1.0f/20.0f},
+            m_ballZ{-1.0f},
             m_lightSources{}
         {
             for (size_t i = 0; i < numberLightSources; i++) {
-                m_lightSources.push_back(glm::vec3{0.0f, 0.0f, m_minLevelZ + m_ballRadius});
+                m_lightSources.push_back(glm::vec3{0.0f, 0.0f, m_ballZ});
+                m_lightSourceMoved.push_back(true);
             }
         }
 
-        ParametersDark(float inBallRadius, float inGameBoardWidth, float inGameBoardHeight, float inMinLevelZ)
+        ParametersDark(float inBallZ, float inGameBoardWidth, float inGameBoardHeight, float inBallRadius)
             : ParametersBase(),
-            m_ballRadius{inBallRadius},
+            m_ballZ{inBallZ},
             m_gameBoardWidth{inGameBoardWidth},
             m_gameBoardHeight{inGameBoardHeight},
-            m_minLevelZ{inMinLevelZ},
-            m_lightSources{}
+            m_lightSources{},
+            m_ballRadius{inBallRadius}
         {}
 
         ~ParametersDark() override = default;
@@ -151,10 +153,10 @@ namespace renderDetails {
     private:
         static float const constexpr m_shadowMapViewAngleConstant = glm::pi<float>()/2;
         static float const constexpr m_errorConstant = 0.001;
-        float m_ballRadius;
         float m_gameBoardWidth;
         float m_gameBoardHeight;
-        float m_minLevelZ;
+        float m_ballZ;
+        float m_ballRadius;
 
         // The first member of the pair is the position of the light source, the second member
         // indicates whether it is static or not.
