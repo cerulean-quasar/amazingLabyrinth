@@ -34,7 +34,8 @@ import android.view.MenuItem;
 import android.view.View;
 import android.widget.Button;
 
-import com.quasar.cerulean.amazinglabyrinth.databinding.ActivitySettingsBinding;
+import com.quasar.cerulean.R;
+import com.quasar.cerulean.databinding.ActivitySettingsBinding;
 
 public class SettingsActivity extends AppCompatActivity {
     private Settings m_settings;

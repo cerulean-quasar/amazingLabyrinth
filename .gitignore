@@ -12,3 +12,4 @@
 /modelobj2cbor/cbor2json
 /modelobj2cbor/json2cbor
 .externalNativeBuild
+/gradle/gradle-daemon-jvm.properties

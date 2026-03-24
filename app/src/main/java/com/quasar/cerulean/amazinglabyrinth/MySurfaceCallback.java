@@ -26,6 +26,8 @@ import android.os.Message;
 import android.view.Surface;
 import android.view.SurfaceHolder;
 
+import com.quasar.cerulean.R;
+
 import java.util.ArrayList;
 import java.util.Locale;
 

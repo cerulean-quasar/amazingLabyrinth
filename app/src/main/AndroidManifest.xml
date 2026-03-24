@@ -1,6 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
-<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
 
+    <!-- android:dataExtractionRules="@xml/data_extraction_rules" -->
+    <!--         android:fullBackupContent="@xml/backup_rules" -->
     <application
         android:allowBackup="true"
         android:icon="@mipmap/ic_launcher"
@@ -9,17 +12,15 @@
         android:supportsRtl="true"
         android:theme="@style/AppThemeGui">
         <activity
-            android:name=".SettingsActivity"
+            android:name=".amazinglabyrinth.SettingsActivity"
             android:exported="false" />
-        <activity android:name=".ChooseLevelActivity" />
-        <activity android:name=".LicenseViewerActivity" />
-        <activity android:name=".AboutActivity" />
+        <activity android:name=".amazinglabyrinth.ChooseLevelActivity" />
+        <activity android:name=".amazinglabyrinth.LicenseViewerActivity" />
+        <activity android:name=".amazinglabyrinth.AboutActivity" />
+
         <activity
-            android:name=".MainActivity"
-            android:configChanges="screenSize|orientation|smallestScreenSize|screenLayout"
-            android:exported="true"
-            android:screenOrientation="portrait"
-            android:theme="@style/AppTheme">
+            android:name=".amazinglabyrinth.MainActivity"
+            android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
 

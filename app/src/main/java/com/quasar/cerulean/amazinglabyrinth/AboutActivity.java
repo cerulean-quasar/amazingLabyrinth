@@ -34,6 +34,8 @@ import android.view.View;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 
+import com.quasar.cerulean.R;
+
 import java.util.ArrayList;
 
 public class AboutActivity extends AppCompatActivity {

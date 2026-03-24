@@ -34,6 +34,8 @@ import java.io.InputStream;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
+import com.quasar.cerulean.R;
+
 public class LicenseViewerActivity extends AppCompatActivity {
     RecyclerView m_recycler;
     RecyclerView.LayoutManager m_layoutManager;

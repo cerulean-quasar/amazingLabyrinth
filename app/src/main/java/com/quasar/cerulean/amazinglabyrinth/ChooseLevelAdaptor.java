@@ -32,6 +32,8 @@ import androidx.annotation.NonNull;
 import androidx.core.content.res.ResourcesCompat;
 import androidx.recyclerview.widget.RecyclerView;
 
+import com.quasar.cerulean.R;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;

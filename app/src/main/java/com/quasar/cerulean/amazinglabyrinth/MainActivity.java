@@ -46,6 +46,8 @@ import android.widget.Button;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 
+import com.quasar.cerulean.R;
+
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
