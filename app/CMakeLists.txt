@@ -21,7 +21,6 @@ add_library( # Sets the name of the library.
         SHARED
 
         # Provides a relative path to your source file(s).
-        /opt/Vulkan-Tools/common/vulkan_wrapper.cpp
         src/main/cpp/graphicsVulkan.cpp
         src/main/cpp/mazeVulkan.cpp
         src/main/cpp/vk_mem_alloc.cpp
@@ -109,10 +108,12 @@ find_library( # Sets the name of the path variable.
               # you want CMake to locate.
               log )
 
+find_library( # name of path variable
+              vulkan-lib
+              vulkan )
+
 #include_directories(${ANDROID_NDK}/sysroot/usr/include/android)
 include_directories(src/main/cpp)
-include_directories(${ANDROID_NDK}/sources/third_party/vulkan/src/libs)
-include_directories(${ANDROID_NDK}/sources/third_party/vulkan/src/common)
 include_directories(APP_GLUE_DIR ${ANDROID_NDK}/sources/android/native_app_glue)
 include_directories(/opt/Vulkan-Tools/common)
 include_directories(/opt/glm-0.9.9.5/glm)
@@ -120,7 +121,7 @@ include_directories(/opt/tinyobjloader/include)
 include_directories(/opt/stb/include)
 include_directories(/opt/jsonforcpp)
 include_directories(/opt/boost_1_84_0)
-include_directories(/opt/VulkanMemoryAllocator)
+include_directories(/opt/VulkanMemoryAllocator-3.3.0/include)
 set(BOOST_ROOT "/opt/boost_1_84_0")
 
 set(CQ_COMPILE_FLAGS)
@@ -151,6 +152,7 @@ target_link_libraries( # Specifies the target library.
                        # Links the target library to the log library
                        # included in the NDK.
                        ${log-lib}
+                       ${vulkan-lib}
                        EGL
                        GLESv3
                        android)

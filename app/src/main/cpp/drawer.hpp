@@ -186,8 +186,7 @@ public:
 
     evtype type() override { return saveLevelData; }
 
-    SaveLevelDataEvent() {
-    }
+    SaveLevelDataEvent() = default;
 
     ~SaveLevelDataEvent() override = default;
 };

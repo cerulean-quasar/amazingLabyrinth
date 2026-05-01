@@ -1,5 +1,5 @@
 /**
- * Copyright 2025 Cerulean Quasar. All Rights Reserved.
+ * Copyright 2026 Cerulean Quasar. All Rights Reserved.
  *
  *  This file is part of AmazingLabyrinth.
  *
@@ -19,9 +19,7 @@
  */
 #ifndef AMAZING_LABYRINTH_GRAPHICS_VULKAN_HPP
 #define AMAZING_LABYRINTH_GRAPHICS_VULKAN_HPP
-// vulkan_wrapper.h must come before vk_mem_alloc.h because vk_mem_alloc.h includes vulkan/vulkan.h
-// and I don't want the prototypes from there, I want the ones from vulkan_wrapper.h.
-#include <vulkan_wrapper.h>
+#include "vulkan/vulkan.h"
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wnullability-completeness"
 #pragma clang diagnostic ignored "-Wmissing-field-initializers"
@@ -70,20 +68,10 @@ namespace vulkan {
             "VK_LAYER_KHRONOS_validation"
     };
 
-    class VulkanLibrary {
-    public:
-        VulkanLibrary() {
-            if (!InitVulkan()) {
-                throw std::runtime_error("Could not find vulkan library.");
-            }
-        }
-    };
-
     class Instance {
     public:
         Instance(std::shared_ptr<WindowType> inWindow)
-                : m_loader{},
-                  m_window{std::move(inWindow)},
+                  : m_window{std::move(inWindow)},
                   m_instance{},
                   m_callback{},
                   m_surface{} {
@@ -99,7 +87,6 @@ namespace vulkan {
         inline std::shared_ptr<VkDebugReportCallbackEXT_CQ> const &callback() { return m_callback; }
 
     private:
-        VulkanLibrary m_loader;
         std::shared_ptr<WindowType> m_window;
         std::shared_ptr<VkInstance_T> m_instance;
         std::shared_ptr<VkDebugReportCallbackEXT_CQ> m_callback;

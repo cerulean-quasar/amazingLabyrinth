@@ -1,5 +1,5 @@
 /**
- * Copyright 2020 Cerulean Quasar. All Rights Reserved.
+ * Copyright 2026 Cerulean Quasar. All Rights Reserved.
  *
  *  This file is part of AmazingLabyrinth.
  *
@@ -32,6 +32,8 @@
 
 #include "common.hpp"
 
+static char constexpr const * packageName = "com.quasar.cerulean.amazingLabyrinth";
+
 typedef ANativeWindow WindowType;
 
 class Sensors {
@@ -48,7 +50,7 @@ public:
 
     static std::bitset<3> hasWhichSensors() {
         std::bitset<3> result{};
-        ASensorManager *sensorManager = ASensorManager_getInstance();
+        ASensorManager *sensorManager = ASensorManager_getInstanceForPackage(packageName);
         ASensor const *sensor = ASensorManager_getDefaultSensor(sensorManager, ASENSOR_TYPE_LINEAR_ACCELERATION);
         if (sensor != nullptr) {
             result.set(LINEAR_ACCELERATION_SENSOR);

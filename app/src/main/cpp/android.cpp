@@ -1,5 +1,5 @@
 /**
- * Copyright 2020 Cerulean Quasar. All Rights Reserved.
+ * Copyright 2026 Cerulean Quasar. All Rights Reserved.
  *
  *  This file is part of AmazingLabyrinth.
  *
@@ -28,7 +28,7 @@
 constexpr int Sensors::MAX_EVENT_REPORT_TIME;
 
 void Sensors::initSensors(std::bitset<3> inWhichSensors) {
-    m_sensorManager = ASensorManager_getInstance();
+    m_sensorManager = ASensorManager_getInstanceForPackage(packageName);
     if (inWhichSensors.test(LINEAR_ACCELERATION_SENSOR)) {
         m_sensorLinearAcceleration = ASensorManager_getDefaultSensor(m_sensorManager,
                                                                      ASENSOR_TYPE_LINEAR_ACCELERATION);
