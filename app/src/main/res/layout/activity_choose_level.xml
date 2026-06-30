@@ -5,6 +5,7 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:layout_gravity="center_horizontal"
-    tools:context=".ChooseLevelActivity"
-    android:id="@+id/recycler">
+    tools:context=".amazinglabyrinth.ChooseLevelActivity"
+    android:id="@+id/recycler"
+    android:fitsSystemWindows="true">
 </androidx.recyclerview.widget.RecyclerView>

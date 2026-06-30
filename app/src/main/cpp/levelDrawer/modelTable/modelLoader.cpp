@@ -139,6 +139,11 @@ namespace levelDrawer {
             return true;
         }
 
+        /* The format does not contain any binary flag fields, just return true (succeeded) */
+        bool binary(typename nlohmann::json::binary_t &) {
+            return true;
+        }
+
         // called when a signed or unsigned integer number is parsed; value is passed
         bool number_integer(nlohmann::json::number_integer_t val) {
             // if the integer is less than 0, that is an unexpected value and we don't know what

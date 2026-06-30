@@ -4,7 +4,8 @@
     android:id="@+id/mainLayout"
     android:orientation="vertical"
     android:layout_width="match_parent"
-    android:layout_height="match_parent">
+    android:layout_height="match_parent"
+    android:fitsSystemWindows="true">
     <com.quasar.cerulean.amazinglabyrinth.AmazingLabyrinthSurfaceView
         android:id="@+id/mainDrawingSurface"
         android:layout_width="match_parent"

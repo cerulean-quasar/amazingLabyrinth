@@ -5,7 +5,15 @@ plugins {
 android {
     namespace = "com.quasar.cerulean"
     compileSdk = 36.1
-    ndkVersion = "27.3.13750724"
+    ndkVersion = "29.0.14206865"
+
+    sourceSets {
+        debug {
+            jniLibs {
+                sourceSets { "/opt/android-vulkan-validation-layers-1.4.350.0" }
+            }
+        }
+    }
 
     defaultConfig {
         applicationId = "com.quasar.cerulean.amazingLabyrinth"

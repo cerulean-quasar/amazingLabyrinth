@@ -134,7 +134,7 @@ endif(${CMAKE_BUILD_TYPE} STREQUAL Debug)
 #endif(NOT(${CMAKE_ANDROID_ARCH_ABI} STREQUAL x86) AND (NOT(${CMAKE_ANDROID_ARCH_ABI} STREQUAL armeabi-v7a)))
 list(JOIN CQ_COMPILE_FLAGS " " CQ_CPP_STRING)
 
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Werror -Wno-unused-parameter -W -std=c++17 ${CQ_CPP_STRING}")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Werror -Wno-unused-parameter -W -std=c++20 ${CQ_CPP_STRING}")
 
 # GLM #defines:
 # (1) GLM_FORCE_DEPTH_ZERO_TO_ONE: tell GLM to use 0 to 1 for the depth.  We will translate to OpenGL's
