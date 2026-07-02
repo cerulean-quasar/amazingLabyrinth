@@ -9,9 +9,7 @@ android {
 
     sourceSets {
         debug {
-            jniLibs {
-                sourceSets { "/opt/android-vulkan-validation-layers-1.4.350.0" }
-            }
+            jniLibs.srcDirs = [ '/opt/android-vulkan-validation-layers-1.4.350.0' ]
         }
     }
 

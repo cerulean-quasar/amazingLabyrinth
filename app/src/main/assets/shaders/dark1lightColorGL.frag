@@ -79,7 +79,7 @@ vec3 diffuse(vec3 lightPos,
         inLight = ShadowCalculation(fragPosLightSpaceRight, texDarkRight);
     }
 
-    float diff = 0.02f;
+    float diff = 0.02;
     if (inLight == 1) {
         diff = max(dot(fragNormal, -lightDirection), 0.0);
     }
