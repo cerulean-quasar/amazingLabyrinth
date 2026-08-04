@@ -36,7 +36,6 @@ namespace testZ {
                                 {});
 
                 auto parameters = gameConstants::getPerspectiveParameters();
-
                 */
                 m_levelDrawer.requestRenderDetails(query, parameters);
             }
@@ -70,6 +69,12 @@ namespace testZ {
             m_m1 = glm::translate(glm::mat4(1.0f), glm::vec3{0.0f, 0.0f, maxZ}) * m_m1;
             m_ref1data = m_levelDrawer.addModelMatrixForObject(m_ref1, m_m1);
 
+            /*
+            glm::mat4 mtemp = glm::scale(glm::mat4(1.0f), glm::vec3{m_width/2, m_height/2, 1.0f});
+            mtemp = glm::translate(glm::mat4(1.0f), glm::vec3{0.0f, 0.0f, maxZ+m_height/60.0}) * mtemp;
+            m_ref1data = m_levelDrawer.addModelMatrixForObject(m_ref1, mtemp);
+             */
+
             auto const &quad2Data = findModelsAndTextures("Cube1");
             m_ref2 = m_levelDrawer.addObject(quad2Data.models[0], getFirstTexture(quad2Data));
 
@@ -78,6 +83,10 @@ namespace testZ {
             m_m2 = glm::translate(glm::mat4(1.0f), glm::vec3{-m_width/8, /*-m_height/2.0f + m_height/2.5f*/ 0.0f, maxZ + m_height/30.0f}) * m_m2;
             m_ref2data = m_levelDrawer.addModelMatrixForObject(m_ref2, m_m2);
 
+            m_m2 = glm::scale(glm::mat4(1.0f), glm::vec3{m_width/60.0f, m_height/20.0f, m_height/10.0f});
+            //m_m2 = glm::rotate(glm::mat4(1.0f), glm::pi<float>()/4.0f, glm::vec3(0.0f, 0.0f, 1.0f)) * m_m2;
+            m_m2 = glm::translate(glm::mat4(1.0f), glm::vec3{-m_width/5.5, /*-m_height/2.0f + m_height/2.5f*/ 0.0f, maxZ + m_height/30.0f}) * m_m2;
+            m_ref2data = m_levelDrawer.addModelMatrixForObject(m_ref2, m_m2);
             /*
             auto const &quad3Data = findModelsAndTextures("Quad3");
             levelDrawer::DrawObjReference refq3 = m_levelDrawer.addObject(quad2Data.models[0], getFirstTexture(quad3Data));
@@ -88,6 +97,7 @@ namespace testZ {
             //mq3 = glm::translate(glm::mat4(1.0f), glm::vec3{0.0f, 0.0f, maxZ+0.5f}) * mq3;
             //levelDrawer::DrawObjReference refq3data = m_levelDrawer.addModelMatrixForObject(refq3, mq3);
 
+            /*
             renderDetails::Query standardQuery(renderDetails::DrawingStyle::standard,
                                                {renderDetails::Features::texture, renderDetails::Features::color},
                                                {});
@@ -100,10 +110,9 @@ namespace testZ {
 
             glm::mat4 m3 = glm::scale(glm::mat4(1.0f), glm::vec3{m_height/40, m_height/40, m_height/40});
             m3 = glm::translate(glm::mat4(1.0f), glm::vec3{0.0f, 0.0f, maxZ + m_height/40.0f}) * m3;
-            m_levelDrawer.addModelMatrixForObject(ref3, m3);
+            m_levelDrawer.addModelMatrixForObject(ref3, m3);*/
 
-            // todo: KAT_TEST
-            renderDetails::ParametersDark parameters(maxZ + m_height/40.0f, m_width, m_height, m_height/40.0f);
+            renderDetails::ParametersDark parameters(maxZ + m_height/40.0f, m_width, m_height, m_height/80.0f);
 
             parameters.pushBackLightSource(0.0f, 0.0f, true);
 

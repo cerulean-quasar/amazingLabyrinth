@@ -117,9 +117,9 @@ namespace renderDetails {
 
             parameters.nearPlane = m_ballRadius;
             if (direction == 0 || direction == 2) {
-                parameters.farPlane = m_gameBoardHeight;
+                parameters.farPlane = m_gameBoardHeight/2.0f;
             } else {
-                parameters.farPlane = m_gameBoardWidth;
+                parameters.farPlane = m_gameBoardWidth/2.0f;
             }
 
             return parameters;
