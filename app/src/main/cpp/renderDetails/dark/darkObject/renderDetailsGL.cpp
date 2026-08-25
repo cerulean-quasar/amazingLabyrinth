@@ -1,5 +1,5 @@
 /**
- * Copyright 2024 Cerulean Quasar. All Rights Reserved.
+ * Copyright 2026 Cerulean Quasar. All Rights Reserved.
  *
  *  This file is part of AmazingLabyrinth.
  *
@@ -259,25 +259,25 @@ namespace darkObject {
         }
 
         m_shaderVariablesLightSources.push_back(
-            {"projViewLight1Up", GL_TEXTURE1, "texDarkMap0"});
+            {"projViewLight1Up", GL_TEXTURE1, "texDark1Up"});
         m_shaderVariablesLightSources.push_back(
-                {"projViewLight1Left", GL_TEXTURE2, "texDarkMap1"});
+                {"projViewLight1Left", GL_TEXTURE2, "texDark1Left"});
         m_shaderVariablesLightSources.push_back(
-                {"projViewLight1Down", GL_TEXTURE3, "texDarkMap2"});
+                {"projViewLight1Down", GL_TEXTURE3, "texDark1Down"});
         m_shaderVariablesLightSources.push_back(
-                {"projViewLight1Right", GL_TEXTURE4, "texDarkMap3"});
+                {"projViewLight1Right", GL_TEXTURE4, "texDark1Right"});
 
         m_lightSourcePosVars.push_back("lightPos1");
 
         if (m_description.drawingMethod() == renderDetails::DrawingStyle::dark2lights) {
             m_shaderVariablesLightSources.push_back(
-                    {"projViewLight2Up", GL_TEXTURE5, "texDarkMap4"});
+                    {"projViewLight2Up", GL_TEXTURE5, "texDark2Up"});
             m_shaderVariablesLightSources.push_back(
-                    {"projViewLight2Left", GL_TEXTURE6, "texDarkMap5"});
+                    {"projViewLight2Left", GL_TEXTURE6, "texDark2Left"});
             m_shaderVariablesLightSources.push_back(
-                    {"projViewLight2Down", GL_TEXTURE7, "texDarkMap6"});
+                    {"projViewLight2Down", GL_TEXTURE7, "texDark2Down"});
             m_shaderVariablesLightSources.push_back(
-                    {"projViewLight2Right", GL_TEXTURE8, "texDarkMap7"});
+                    {"projViewLight2Right", GL_TEXTURE8, "texDark2Right"});
 
             m_lightSourcePosVars.push_back("lightPos2");
         }

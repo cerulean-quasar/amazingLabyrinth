@@ -1,5 +1,5 @@
 /**
- * Copyright 2023 Cerulean Quasar. All Rights Reserved.
+ * Copyright 2026 Cerulean Quasar. All Rights Reserved.
  *
  *  This file is part of AmazingLabyrinth.
  *
@@ -51,10 +51,10 @@ glm::mat4 getPerspectiveMatrix(
     }
 
     if (invertY) {
-        proj[1][0] *= -1.0f;
+        proj[0][1] *= -1.0f;
         proj[1][1] *= -1.0f;
-        proj[1][2] *= -1.0f;
-        proj[1][3] *= -1.0f;
+        proj[2][1] *= -1.0f;
+        proj[3][1] *= -1.0f;
     }
 
     return proj;

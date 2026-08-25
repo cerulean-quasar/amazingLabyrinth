@@ -1,5 +1,5 @@
 /**
- * Copyright 2024 Cerulean Quasar. All Rights Reserved.
+ * Copyright 2026 Cerulean Quasar. All Rights Reserved.
  *
  *  This file is part of AmazingLabyrinth.
  *
@@ -53,14 +53,14 @@ namespace renderDetails {
         }
 
         size_t pushBackLightSource(float x, float y, bool isMobile) {
-            glm::vec3 lightSource{x, y, m_ballZ};
+            glm::vec3 lightSource{x, y, m_floorZ + m_ballRadius};
             m_lightSources.push_back(lightSource);
             m_lightSourceMoved.push_back(isMobile);
             return m_lightSources.size();
         }
 
-        void updateBallZ(float z) {
-            m_ballZ = z;
+        void updateFloorZ(float z) {
+            m_floorZ = z;
         }
 
         void updateBallRadius(float r) {
@@ -74,7 +74,7 @@ namespace renderDetails {
 
             m_lightSources[lightSourceNumber].x = x;
             m_lightSources[lightSourceNumber].y = y;
-            m_lightSources[lightSourceNumber].z = m_ballZ;
+            m_lightSources[lightSourceNumber].z = m_floorZ + m_ballRadius;
         }
 
         std::shared_ptr<ParametersPerspective> toGamePerspective() const {
@@ -96,30 +96,34 @@ namespace renderDetails {
             }
 
             parameters.viewAngle = m_shadowMapViewAngleConstant;
-            parameters.viewPoint = m_lightSources[lightNumber];
-            parameters.up = glm::vec3{0.0, 0.0, 1.0};
+            parameters.up = glm::vec3{0.0f, 0.0f, 1.0f};
+            parameters.lookAt = glm::vec3{m_lightSources[lightNumber].x, m_lightSources[lightNumber].y,  m_floorZ + m_ballRadius};
+            float distanceViewPointNearPlane = m_gameBoardHeight;
             switch (direction) {
             case 0:
-                parameters.lookAt = glm::vec3{0.0, 1.0, m_ballZ};
+                parameters.viewPoint = glm::vec3{ m_lightSources[lightNumber].x, m_lightSources[lightNumber].y - distanceViewPointNearPlane, m_floorZ + m_ballRadius };
+                parameters.farPlane = m_gameBoardHeight/2 - m_lightSources[lightNumber].y;
                 break;
             case 1:
-                parameters.lookAt = glm::vec3{-1.0, 0.0, m_ballZ};
+                parameters.viewPoint = glm::vec3{m_lightSources[lightNumber].x + distanceViewPointNearPlane, m_lightSources[lightNumber].y, m_floorZ + m_ballRadius};
+                parameters.farPlane = -m_gameBoardWidth/2 - m_lightSources[lightNumber].x;
                 break;
             case 2:
-                parameters.lookAt = glm::vec3{0.0, -1.0, m_ballZ};
+                parameters.viewPoint = glm::vec3{m_lightSources[lightNumber].x, m_lightSources[lightNumber].y + distanceViewPointNearPlane, m_floorZ + m_ballRadius};
+                parameters.farPlane = -m_gameBoardHeight/2 - m_lightSources[lightNumber].y;
                 break;
             case 3:
-                parameters.lookAt = glm::vec3{1.0, 0.0, m_ballZ};
+                parameters.viewPoint = glm::vec3{m_lightSources[lightNumber].x - distanceViewPointNearPlane, m_lightSources[lightNumber].y, m_floorZ + m_ballRadius};
+                parameters.farPlane = m_gameBoardWidth/2 - m_lightSources[lightNumber].x;
                 break;
             default:
                 throw std::runtime_error("Invalid direction in dark shadows perspective");
             }
 
-            parameters.nearPlane = m_ballRadius;
             if (direction == 0 || direction == 2) {
-                parameters.farPlane = m_gameBoardHeight/2.0f;
+                parameters.nearPlane = m_lightSources[lightNumber].y;
             } else {
-                parameters.farPlane = m_gameBoardWidth/2.0f;
+                parameters.nearPlane = m_lightSources[lightNumber].x;
             }
 
             return parameters;
@@ -130,18 +134,18 @@ namespace renderDetails {
             m_gameBoardWidth{1.0f},
             m_gameBoardHeight{1.0f},
             m_ballRadius{1.0f/20.0f},
-            m_ballZ{-1.0f},
+            m_floorZ{levelTracker::m_maxZLevel},
             m_lightSources{}
         {
             for (size_t i = 0; i < numberLightSources; i++) {
-                m_lightSources.push_back(glm::vec3{0.0f, 0.0f, m_ballZ});
+                m_lightSources.push_back(glm::vec3{0.0f, 0.0f, m_floorZ + m_ballRadius});
                 m_lightSourceMoved.push_back(true);
             }
         }
 
-        ParametersDark(float inBallZ, float inGameBoardWidth, float inGameBoardHeight, float inBallRadius)
+        ParametersDark(float inFloorZ, float inGameBoardWidth, float inGameBoardHeight, float inBallRadius)
             : ParametersBase(),
-            m_ballZ{inBallZ},
+            m_floorZ{inFloorZ},
             m_gameBoardWidth{inGameBoardWidth},
             m_gameBoardHeight{inGameBoardHeight},
             m_lightSources{},
@@ -153,9 +157,9 @@ namespace renderDetails {
     private:
         static float const constexpr m_shadowMapViewAngleConstant = glm::pi<float>()/2;
         static float const constexpr m_errorConstant = 0.001;
-        float m_gameBoardWidth;
-        float m_gameBoardHeight;
-        float m_ballZ;
+        float const m_gameBoardWidth;
+        float const m_gameBoardHeight;
+        float m_floorZ;
         float m_ballRadius;
 
         // The first member of the pair is the position of the light source, the second member

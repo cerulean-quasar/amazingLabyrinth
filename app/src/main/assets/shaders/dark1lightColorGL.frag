@@ -2,7 +2,7 @@
 precision mediump float;
 
 /**
- * Copyright 2025 Cerulean Quasar. All Rights Reserved.
+ * Copyright 2026 Cerulean Quasar. All Rights Reserved.
  *
  *  This file is part of AmazingLabyrinth.
  *
@@ -43,8 +43,12 @@ int ShadowCalculation(vec4 pos, sampler2D texSamplerShadows) {
 
     /* the depth buffer is using coordinates in the range: [0, 1] */
     projCoords = projCoords * 0.5 + 0.5;
-    float closestDepth = texture2D(texSamplerShadows, projCoords.xy).r;
 
+    if (projCoords.x > 1.0 || projCoords.x < 0.0 || projCoords.y > 1.0 || projCoords.y < 0.0 || projCoords.z > 1.0 || projCoords.z < 0.0) {
+        return 1;
+    }
+
+    float closestDepth = texture2D(texSamplerShadows, projCoords.xy).r;
     float currentDepth = projCoords.z;
     float bias = 0.001;
     return currentDepth - bias < closestDepth ? 1 : 0;
@@ -79,24 +83,29 @@ vec3 diffuse(vec3 lightPos,
         inLight = ShadowCalculation(fragPosLightSpaceRight, texDarkRight);
     }
 
-    float diff = 0.02;
+    float diff = 0.2;
+
     if (inLight == 1) {
-        diff = max(dot(fragNormal, -lightDirection), 0.0);
+        float rSquaredMultiplier = 1.0;
+        float smallValue = 1.0;
+
+        diff =  max(dot(fragNormal, -lightDirection), 0.0);
+        // float rSquared = max(dot(lightToFrag, lightToFrag), smallValue);
+        // diff = diff/(rSquaredMultiplier * rSquared);
     }
 
-    float rSquaredMultiplier = 4.0;
-    float smallValue = 0.00001;
+    vec3 diffuseValue = vec3(diff);
 
-    float rSquared = max(dot(lightToFrag, lightToFrag), smallValue);
-    vec3 diffuse = vec3(diff/(rSquaredMultiplier * rSquared));
-
-    return diffuse;
+    return diffuseValue;
 }
 
 void main() {
+//    gl_FragColor = vec4(0.0);
+
     vec3 diffuse1 = diffuse(lightPos1, fragPosLightSpace1Up, fragPosLightSpace1Left,
         fragPosLightSpace1Down, fragPosLightSpace1Right,
         texDark1Up, texDark1Left, texDark1Down, texDark1Right);
 
     gl_FragColor = vec4(diffuse1, 1.0) * vec4(fragColor, 1.0);
+
 }

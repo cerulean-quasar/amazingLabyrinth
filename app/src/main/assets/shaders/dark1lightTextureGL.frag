@@ -2,7 +2,7 @@
 precision mediump float;
 
 /**
- * Copyright 2024 Cerulean Quasar. All Rights Reserved.
+ * Copyright 2026 Cerulean Quasar. All Rights Reserved.
  *
  *  This file is part of AmazingLabyrinth.
  *
@@ -83,21 +83,28 @@ vec3 diffuse(vec3 lightPos,
         inLight = ShadowCalculation(fragPosLightSpaceRight, texDarkRight);
     }
 
-    float diff = 0.02;
+    float diff = 0.2;
+
     if (inLight == 1) {
-        diff = max(dot(fragNormal, -lightDirection), 0.0);
+        float rSquaredMultiplier = 1.0;
+        float smallValue = 1.0;
+
+        diff =  max(dot(fragNormal, -lightDirection), 0.0);
+        // float rSquared = max(dot(lightToFrag, lightToFrag), smallValue);
+        // diff = diff/(rSquaredMultiplier * rSquared);
     }
 
-    float rSquaredMultiplier = 80.0;
-    float smallValue = 0.00001;
+    vec3 diffuseValue = vec3(diff);
 
-    float rSquared = max(dot(lightToFrag, lightToFrag), smallValue);
-    vec3 diffuse = vec3(diff/(rSquaredMultiplier * rSquared));
-
-    return diffuse;
+    return diffuseValue;
 }
 
 void main() {
+/*
+    gl_FragColor = texture2D(texDark1Up, fragTexCoord);
+    return;
+    */
+
     vec3 diffuse1 = diffuse(lightPos1, fragPosLightSpace1Up, fragPosLightSpace1Left,
         fragPosLightSpace1Down, fragPosLightSpace1Right,
         texDark1Up, texDark1Left, texDark1Down, texDark1Right);

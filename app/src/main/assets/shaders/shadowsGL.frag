@@ -2,7 +2,7 @@
 precision mediump float;
 
 /**
- * Copyright 2023 Cerulean Quasar. All Rights Reserved.
+ * Copyright 2026 Cerulean Quasar. All Rights Reserved.
  *
  *  This file is part of AmazingLabyrinth.
  *
@@ -24,6 +24,9 @@ precision mediump float;
  /* A fragment shader that does absolutely nothing.  This shader is required for the shadow map
   * render details on some systems because their OpenGL implementation will not let us have a
   * vertex shader by itself.
+  *
+  * KAT_TEST - try removing the color buffer from the frame buffer and see if that will work
+  * on the older phones...
   */
 
 void main() {

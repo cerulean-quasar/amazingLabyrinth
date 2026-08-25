@@ -1,5 +1,5 @@
 /**
- * Copyright 2024 Cerulean Quasar. All Rights Reserved.
+ * Copyright 2026 Cerulean Quasar. All Rights Reserved.
  *
  *  This file is part of AmazingLabyrinth.
  *
@@ -30,13 +30,16 @@ namespace darkChaining {
             std::shared_ptr<graphicsGL::SurfaceDetails> const &surfaceDetails,
             std::shared_ptr<renderDetails::ParametersBase> const &parametersBase)
     {
+        auto parameters = dynamic_cast<renderDetails::ParametersDark*>(parametersBase.get());
+        if (parameters == nullptr) {
+            throw std::runtime_error("Invalid render details parameter type.");
+        }
+
         auto rd = std::make_shared<RenderDetailsGL>(description,
                 surfaceDetails->useIntTexture, surfaceDetails->surfaceWidth,
-                surfaceDetails->surfaceHeight);
+                surfaceDetails->surfaceHeight, parameters->gameBoardHeight());
 
-        rd->createFramebuffers();
-
-        return loadHelper(gameRequester, renderLoader, rd, surfaceDetails, parametersBase);
+        return loadHelper(gameRequester, renderLoader, rd, surfaceDetails, parameters);
     }
 
     renderDetails::ReferenceGL RenderDetailsGL::loadExisting(
@@ -51,6 +54,11 @@ namespace darkChaining {
             throw std::runtime_error("Invalid render details type.");
         }
 
+        auto parameters = dynamic_cast<renderDetails::ParametersDark*>(parametersBase.get());
+        if (parameters == nullptr) {
+            throw std::runtime_error("Invalid render details parameter type.");
+        }
+
         if (surfaceDetails->useIntTexture != rd->m_usesIntSurface ||
             rd->m_surfaceWidth != surfaceDetails->surfaceWidth ||
             rd->m_surfaceHeight != surfaceDetails->surfaceHeight)
@@ -58,10 +66,9 @@ namespace darkChaining {
             rd->m_surfaceWidth = surfaceDetails->surfaceWidth;
             rd->m_surfaceHeight = surfaceDetails->surfaceHeight;
             rd->m_usesIntSurface = surfaceDetails->useIntTexture;
-            rd->createFramebuffers();
         }
 
-        return loadHelper(gameRequester, renderLoader, rd, surfaceDetails, parametersBase);
+        return loadHelper(gameRequester, renderLoader, rd, surfaceDetails, parameters);
     }
 
     renderDetails::ReferenceGL RenderDetailsGL::loadHelper(
@@ -69,17 +76,14 @@ namespace darkChaining {
             std::shared_ptr<RenderLoaderGL> const &renderLoader,
             std::shared_ptr<RenderDetailsGL> rd,
             std::shared_ptr<graphicsGL::SurfaceDetails> const &surfaceDetails,
-            std::shared_ptr<renderDetails::ParametersBase> const &parametersBase)
+            renderDetails::ParametersDark const *parameters)
     {
-        auto parameters = dynamic_cast<renderDetails::ParametersDark*>(parametersBase.get());
-        if (parameters == nullptr) {
-            throw std::runtime_error("Invalid render details parameter type.");
-        }
-
+        rd->createFramebuffers();
         renderDetails::ReferenceGL refShadows;
         std::vector<std::shared_ptr<renderDetails::CommonObjectDataBase>> shadowCODs;
         std::vector<glm::mat4> projViewLights;
-        auto shadowSurfaceDetails = createShadowSurfaceDetails(surfaceDetails);
+        auto shadowSurfaceDetails =
+                std::make_shared<graphicsGL::SurfaceDetails>(rd->m_shadowMapFramebufferDimensions.first, rd->m_shadowMapFramebufferDimensions.second);
 
         renderDetails::Query shadowsRenderDetailsQuery{
             renderDetails::DrawingStyle::shadowMap,
@@ -92,8 +96,8 @@ namespace darkChaining {
                 // the next times, it is just looked up in a list, not really any work is done other than
                 // creating the COD.
                 refShadows = renderLoader->load(
-                        gameRequester, shadowsRenderDetailsQuery, shadowSurfaceDetails,
-                        parameters->toShadowsParametersPerspectivePtr(lightSourceNumber, direction));
+                    gameRequester, shadowsRenderDetailsQuery, shadowSurfaceDetails,
+                    parameters->toShadowsParametersPerspectivePtr(lightSourceNumber, direction));
 
                 // The shadows CODs are stored with the zeroth viewpoint first with the CODs stored
                 // in counterclockwise order starting with the camera pointed in the positive y
@@ -105,8 +109,9 @@ namespace darkChaining {
 
                 shadowCODs.push_back(shadowCOD);
 
-                glm::mat4 projViewLight = parameters->getLightProjView(lightSourceNumber, direction, rd->shadowMapAspectRatio(), false, false);
-                projViewLights.push_back(projViewLight);
+                auto projViewLight = shadowCOD->getProjViewForLevel();
+
+                projViewLights.push_back(projViewLight.first * projViewLight.second);
             }
         }
 
@@ -151,11 +156,9 @@ namespace darkChaining {
             numberFramebuffers = 8;
         }
 
-        auto wh = getShadowsFramebufferDimensions(std::make_pair(m_surfaceWidth, m_surfaceHeight));
-
         for (size_t i = 0; i < numberFramebuffers; i++) {
             m_framebuffersShadows.push_back(std::make_shared<graphicsGL::Framebuffer>(
-                    wh.first, wh.second, colorImageFormats));
+                    m_shadowMapFramebufferDimensions.first, m_shadowMapFramebufferDimensions.second, colorImageFormats));
 
         }
     }
@@ -168,8 +171,7 @@ namespace darkChaining {
     {
         renderDetails::ReferenceGL ref = {};
         auto cod = std::make_shared<CommonObjectDataGL>(refDarkObject.commonObjectData,
-                                                        shadowsCODs,
-                                                        rd->shadowMapAspectRatio());
+                                                        shadowsCODs);
         ref.renderDetails = std::move(rd);
         ref.createDrawObjectData = renderDetails::ReferenceGL::CreateDrawObjectData{
                 [createDODDarkObject(refDarkObject.createDrawObjectData),

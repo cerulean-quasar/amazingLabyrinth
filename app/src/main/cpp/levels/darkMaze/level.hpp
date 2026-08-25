@@ -1,5 +1,5 @@
 /**
- * Copyright 2025 Cerulean Quasar. All Rights Reserved.
+ * Copyright 2026 Cerulean Quasar. All Rights Reserved.
  *
  *  This file is part of AmazingLabyrinth.
  *
@@ -97,7 +97,7 @@ namespace darkMaze {
                         std::move(inLevelDrawer), lcd, sd, maxZ, request),
                   m_parameters(*Request::getParameters())
         {
-            m_parameters.updateBallZ(ballDiameter()/2.0f);
+            m_parameters.updateFloorZ(m_mazeFloorZ);
             m_parameters.updateBallRadius(ballDiameter()/2.0f);
             m_parameters.updateLightSource(0, m_ball.position.x, m_ball.position.y);
             m_levelDrawer.updateCommonObjectData(m_objRefsWalls[0], m_parameters);

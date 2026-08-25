@@ -78,15 +78,22 @@ namespace testZ {
             auto const &quad2Data = findModelsAndTextures("Cube1");
             m_ref2 = m_levelDrawer.addObject(quad2Data.models[0], getFirstTexture(quad2Data));
 
-            m_m2 = glm::scale(glm::mat4(1.0f), glm::vec3{m_width/60.0f, m_height/60.0f, m_height/10.0f});
-            //m_m2 = glm::rotate(glm::mat4(1.0f), glm::pi<float>()/4.0f, glm::vec3(0.0f, 0.0f, 1.0f)) * m_m2;
-            m_m2 = glm::translate(glm::mat4(1.0f), glm::vec3{-m_width/8, /*-m_height/2.0f + m_height/2.5f*/ 0.0f, maxZ + m_height/30.0f}) * m_m2;
+            m_m2 = glm::scale(glm::mat4(1.0f), glm::vec3{m_height/100.0f, m_height/20.0f, (-m_mazeFloorZ)/2});
+            m_m2 = glm::translate(glm::mat4(1.0f), glm::vec3{m_width/6, 0.0f, maxZ}) * m_m2;
             m_ref2data = m_levelDrawer.addModelMatrixForObject(m_ref2, m_m2);
 
-            m_m2 = glm::scale(glm::mat4(1.0f), glm::vec3{m_width/60.0f, m_height/20.0f, m_height/10.0f});
-            //m_m2 = glm::rotate(glm::mat4(1.0f), glm::pi<float>()/4.0f, glm::vec3(0.0f, 0.0f, 1.0f)) * m_m2;
-            m_m2 = glm::translate(glm::mat4(1.0f), glm::vec3{-m_width/5.5, /*-m_height/2.0f + m_height/2.5f*/ 0.0f, maxZ + m_height/30.0f}) * m_m2;
+            m_m2 = glm::scale(glm::mat4(1.0f), glm::vec3{m_height/20.0f, m_height/100.0f, (-m_mazeFloorZ)/2});
+            m_m2 = glm::translate(glm::mat4(1.0f), glm::vec3{0.0f, m_width/6, maxZ}) * m_m2;
             m_ref2data = m_levelDrawer.addModelMatrixForObject(m_ref2, m_m2);
+
+            m_m2 = glm::scale(glm::mat4(1.0f), glm::vec3{m_height/100.0f, m_height/20.0f, (-m_mazeFloorZ)/2});
+            m_m2 = glm::translate(glm::mat4(1.0f), glm::vec3{-m_width/6, 0.0f, maxZ}) * m_m2;
+            m_ref2data = m_levelDrawer.addModelMatrixForObject(m_ref2, m_m2);
+
+            m_m2 = glm::scale(glm::mat4(1.0f), glm::vec3{m_height/20.0f, m_height/100.0f, (-m_mazeFloorZ)/2});
+            m_m2 = glm::translate(glm::mat4(1.0f), glm::vec3{0.0f, -m_width/6, maxZ}) * m_m2;
+            m_ref2data = m_levelDrawer.addModelMatrixForObject(m_ref2, m_m2);
+
             /*
             auto const &quad3Data = findModelsAndTextures("Quad3");
             levelDrawer::DrawObjReference refq3 = m_levelDrawer.addObject(quad2Data.models[0], getFirstTexture(quad3Data));
@@ -112,7 +119,7 @@ namespace testZ {
             m3 = glm::translate(glm::mat4(1.0f), glm::vec3{0.0f, 0.0f, maxZ + m_height/40.0f}) * m3;
             m_levelDrawer.addModelMatrixForObject(ref3, m3);*/
 
-            renderDetails::ParametersDark parameters(maxZ + m_height/40.0f, m_width, m_height, m_height/80.0f);
+            renderDetails::ParametersDark parameters(m_mazeFloorZ, m_width, m_height, m_height/16.0f);
 
             parameters.pushBackLightSource(0.0f, 0.0f, true);
 
