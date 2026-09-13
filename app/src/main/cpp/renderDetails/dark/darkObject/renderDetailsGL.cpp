@@ -115,7 +115,7 @@ namespace darkObject {
     }
 
     void loadTexture(CommonObjectDataGL const *cod, GLuint programID, int activeTexture, char const *textureVarName, int imageID) {
-        auto &fb = cod->darkFramebuffer(imageID - 1);
+        auto &fb = cod->darkFramebuffer(imageID);
         auto textureID = glGetUniformLocation(programID, textureVarName);
         checkGraphicsError();
         glActiveTexture(activeTexture);
@@ -202,11 +202,17 @@ namespace darkObject {
             }
 
             if (textureData) {
-                glActiveTexture(GL_TEXTURE0);
+                if (m_shaderVariablesLightSources.size() == 4) {
+                    glActiveTexture(GL_TEXTURE4);
+                } else if (m_shaderVariablesLightSources.size() == 8) {
+                    glActiveTexture(GL_TEXTURE8);
+                } else {
+                    throw (std::runtime_error("Invalid shadow maps for dark object shader"));
+                }
                 checkGraphicsError();
                 glBindTexture(GL_TEXTURE_2D, textureData->handle());
                 checkGraphicsError();
-                glUniform1i(textureID, 0);
+                glUniform1i(textureID, m_shaderVariablesLightSources.size());
                 checkGraphicsError();
             }
 
@@ -223,7 +229,7 @@ namespace darkObject {
             // Dark maps
             for (size_t i = 0; i < m_shaderVariablesLightSources.size(); i++) {
                 loadTexture(cod, programID, m_shaderVariablesLightSources[i].texture,
-                            m_shaderVariablesLightSources[i].textureVariableName.c_str(), i+1);
+                            m_shaderVariablesLightSources[i].textureVariableName.c_str(), i);
             }
 
             drawVertices(programID, modelData);
@@ -259,25 +265,25 @@ namespace darkObject {
         }
 
         m_shaderVariablesLightSources.push_back(
-            {"projViewLight1Up", GL_TEXTURE1, "texDark1Up"});
+            {"projViewLight1Up", GL_TEXTURE0, "texDark1Up"});
         m_shaderVariablesLightSources.push_back(
-                {"projViewLight1Left", GL_TEXTURE2, "texDark1Left"});
+                {"projViewLight1Left", GL_TEXTURE1, "texDark1Left"});
         m_shaderVariablesLightSources.push_back(
-                {"projViewLight1Down", GL_TEXTURE3, "texDark1Down"});
+                {"projViewLight1Down", GL_TEXTURE2, "texDark1Down"});
         m_shaderVariablesLightSources.push_back(
-                {"projViewLight1Right", GL_TEXTURE4, "texDark1Right"});
+                {"projViewLight1Right", GL_TEXTURE3, "texDark1Right"});
 
         m_lightSourcePosVars.push_back("lightPos1");
 
         if (m_description.drawingMethod() == renderDetails::DrawingStyle::dark2lights) {
             m_shaderVariablesLightSources.push_back(
-                    {"projViewLight2Up", GL_TEXTURE5, "texDark2Up"});
+                    {"projViewLight2Up", GL_TEXTURE4, "texDark2Up"});
             m_shaderVariablesLightSources.push_back(
-                    {"projViewLight2Left", GL_TEXTURE6, "texDark2Left"});
+                    {"projViewLight2Left", GL_TEXTURE5, "texDark2Left"});
             m_shaderVariablesLightSources.push_back(
-                    {"projViewLight2Down", GL_TEXTURE7, "texDark2Down"});
+                    {"projViewLight2Down", GL_TEXTURE6, "texDark2Down"});
             m_shaderVariablesLightSources.push_back(
-                    {"projViewLight2Right", GL_TEXTURE8, "texDark2Right"});
+                    {"projViewLight2Right", GL_TEXTURE7, "texDark2Right"});
 
             m_lightSourcePosVars.push_back("lightPos2");
         }

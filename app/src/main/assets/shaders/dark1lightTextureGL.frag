@@ -30,12 +30,12 @@ varying vec4 fragPosLightSpace1Left;
 varying vec4 fragPosLightSpace1Down;
 varying vec4 fragPosLightSpace1Right;
 
-uniform sampler2D texSampler;
-
 uniform sampler2D texDark1Up;
 uniform sampler2D texDark1Left;
 uniform sampler2D texDark1Down;
 uniform sampler2D texDark1Right;
+
+uniform sampler2D texSampler;
 
 uniform vec3 lightPos1;
 
@@ -101,7 +101,7 @@ vec3 diffuse(vec3 lightPos,
 
 void main() {
 /*
-    gl_FragColor = texture2D(texDark1Up, fragTexCoord);
+    gl_FragColor = texture2D(texDark1Right, fragTexCoord);
     return;
     */
 
