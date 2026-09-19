@@ -1,5 +1,5 @@
 /**
- * Copyright 2024 Cerulean Quasar. All Rights Reserved.
+ * Copyright 2026 Cerulean Quasar. All Rights Reserved.
  *
  *  This file is part of AmazingLabyrinth.
  *
@@ -239,14 +239,39 @@ namespace basic {
                     query, gameConstants::getPerspectiveParameters());
             }
 
-            Request(levelDrawer::Adaptor levelDrawer, bool shadowsEnabled)
+            Request(levelDrawer::Adaptor levelDrawer, float maxCoverageZ, bool shadowsEnabled)
                 : m_levelDrawer(std::move(levelDrawer)),
-                  m_shadowsEnabled(shadowsEnabled)
-            {}
+                  m_shadowsEnabled(shadowsEnabled),
+                  m_maxCoverageZ{maxCoverageZ},
+                  m_proj{},
+                  m_view{},
+                  m_maxCoverageX{},
+                  m_maxCoverageY{}
+            {
+                auto pixWH = m_levelDrawer.getSurfaceWidthHeight();
+
+                /* perspective matrix: takes the perspective projection, the aspect ratio, near and far
+                 * view planes.
+                 */
+                m_proj = getPerspectiveMatrix(gameConstants::viewAngle, static_cast<float>(pixWH.first)/pixWH.second,
+                                                 gameConstants::nearPlane, gameConstants::farPlane,
+                                                 m_levelDrawer.invertY(), m_levelDrawer.depth0to1());
+
+                m_view = glm::lookAt(gameConstants::viewPoint, gameConstants::lookAt, gameConstants::up);
+
+                auto wh = getWidthHeight(m_maxCoverageZ, m_proj, m_view);
+                m_maxCoverageX = wh.first;
+                m_maxCoverageY = wh.second;
+            }
 
         protected:
             levelDrawer::Adaptor m_levelDrawer;
             bool m_shadowsEnabled;
+            float m_maxCoverageZ;
+            glm::mat4 m_proj;
+            glm::mat4 m_view;
+            float m_maxCoverageX;
+            float m_maxCoverageY;
         };
 
         static float constexpr m_floatErrorAmount = 0.0001f;

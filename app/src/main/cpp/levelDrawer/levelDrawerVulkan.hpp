@@ -1,5 +1,5 @@
 /**
- * Copyright 2024 Cerulean Quasar. All Rights Reserved.
+ * Copyright 2026 Cerulean Quasar. All Rights Reserved.
  *
  *  This file is part of AmazingLabyrinth.
  *
@@ -74,6 +74,9 @@ namespace levelDrawer {
     };
 
     using LevelDrawerVulkan = LevelDrawerGraphics<LevelDrawerVulkanTraits>;
+
+    template <> bool LevelDrawerVulkan::invertY();
+    template <> bool LevelDrawerVulkan::depth0to1();
 
     template <>
     void LevelDrawerGraphics<LevelDrawerVulkanTraits>::draw(

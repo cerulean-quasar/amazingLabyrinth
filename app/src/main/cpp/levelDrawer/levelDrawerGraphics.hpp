@@ -1,5 +1,5 @@
 /**
- * Copyright 2024 Cerulean Quasar. All Rights Reserved.
+ * Copyright 2026 Cerulean Quasar. All Rights Reserved.
  *
  *  This file is part of AmazingLabyrinth.
  *
@@ -53,6 +53,14 @@ namespace levelDrawer {
         size_t numberObjects(ObjectType type) override {
             return m_drawObjectTableList[type]->numberObjects();
         }
+
+        std::pair<uint32_t, uint32_t> getSurfaceWidthHeight() override {
+            return std::make_pair(m_surfaceDetails->surfaceWidth, m_surfaceDetails->surfaceHeight);
+        }
+
+        bool invertY() override;
+
+        bool depth0to1() override;
 
         void clearDrawObjectTable(ObjectType type) override {
             m_drawObjectTableList[type]->clear();

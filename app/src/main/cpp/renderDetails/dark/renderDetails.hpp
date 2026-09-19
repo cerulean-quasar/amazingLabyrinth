@@ -143,13 +143,24 @@ namespace renderDetails {
             }
         }
 
+        ParametersDark(float inFloorZ, float inGameBoardWidth, float inGameBoardHeight, float inBallRadius, std::vector<glm::vec3> lightSources)
+                : ParametersBase(),
+                  m_floorZ{inFloorZ},
+                  m_gameBoardWidth{inGameBoardWidth},
+                  m_gameBoardHeight{inGameBoardHeight},
+                  m_lightSources{std::move(lightSources)},
+                  m_ballRadius{inBallRadius},
+                  m_lightSourceMoved(m_lightSources.size(), true)
+        {}
+
         ParametersDark(float inFloorZ, float inGameBoardWidth, float inGameBoardHeight, float inBallRadius)
             : ParametersBase(),
             m_floorZ{inFloorZ},
             m_gameBoardWidth{inGameBoardWidth},
             m_gameBoardHeight{inGameBoardHeight},
             m_lightSources{},
-            m_ballRadius{inBallRadius}
+            m_ballRadius{inBallRadius},
+            m_lightSourceMoved(m_lightSources.size(), true)
         {}
 
         ~ParametersDark() override = default;
@@ -166,6 +177,7 @@ namespace renderDetails {
         // indicates whether it is static or not.
         std::vector<glm::vec3> m_lightSources;
 
+        // todo: make m_lightSources and m_lightSourceMoved a vector of pairs
         std::vector<bool> m_lightSourceMoved;
     };
 } // renderDetails

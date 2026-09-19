@@ -1,5 +1,5 @@
 /**
- * Copyright 2024 Cerulean Quasar. All Rights Reserved.
+ * Copyright 2026 Cerulean Quasar. All Rights Reserved.
  *
  *  This file is part of AmazingLabyrinth.
  *
@@ -42,8 +42,8 @@ namespace rotatablePassage {
     public:
         static char constexpr const *m_name = "rotatablePassage";
         struct Request : public basic::Level::Request {
-            Request(levelDrawer::Adaptor levelDrawer, bool shadowsEnabled)
-                    : basic::Level::Request(std::move(levelDrawer), shadowsEnabled)
+            Request(levelDrawer::Adaptor levelDrawer, float maxCoverageZ, bool shadowsEnabled)
+                    : basic::Level::Request(std::move(levelDrawer), maxCoverageZ, shadowsEnabled)
             {}
         };
 

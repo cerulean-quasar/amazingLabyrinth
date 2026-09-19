@@ -1,5 +1,5 @@
 /**
- * Copyright 2024 Cerulean Quasar. All Rights Reserved.
+ * Copyright 2026 Cerulean Quasar. All Rights Reserved.
  *
  *  This file is part of AmazingLabyrinth.
  *
@@ -36,6 +36,12 @@ namespace levelDrawer {
         virtual size_t numberObjects(ObjectType type) = 0;
 
         virtual void clearDrawObjectTable(ObjectType type) = 0;
+
+        virtual std::pair<uint32_t, uint32_t> getSurfaceWidthHeight() = 0;
+
+        virtual bool depth0to1() = 0;
+
+        virtual bool invertY() = 0;
 
         // returns index of new object
         virtual DrawObjReference addObject(
@@ -120,6 +126,18 @@ namespace levelDrawer {
 
         size_t numberObjects() {
             return m_levelDrawer->numberObjects(m_type);
+        }
+
+        std::pair<uint32_t, uint32_t> getSurfaceWidthHeight() {
+            return m_levelDrawer->getSurfaceWidthHeight();
+        }
+
+        bool depth0to1() {
+            return m_levelDrawer->depth0to1();
+        }
+
+        bool invertY() {
+            return m_levelDrawer->invertY();
         }
 
         // returns index of new object

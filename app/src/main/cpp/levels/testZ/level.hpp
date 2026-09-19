@@ -12,9 +12,12 @@ namespace testZ {
     public:
         static char constexpr const *m_name = "testz";
 
+        // todo: provide a standard way for calculating ball radius.  Right now it is done by basic::level and here...
+        static float ballRadiusEstimate(float maxCoverageX, float maxCoverageY) { return (maxCoverageX + maxCoverageY)/16.0f; }
+
         struct Request : public basic::Level::Request {
-            Request(levelDrawer::Adaptor levelDrawer, bool shadowsEnabled)
-                    : basic::Level::Request(std::move(levelDrawer), shadowsEnabled)
+            Request(levelDrawer::Adaptor levelDrawer, float maxCoverageZ, bool shadowsEnabled)
+                    : basic::Level::Request(std::move(levelDrawer), maxCoverageZ, shadowsEnabled)
             {}
 
             void defaultRD() override {
@@ -26,7 +29,13 @@ namespace testZ {
                                  renderDetails::Features::texture}),
                                 {});
 
-                auto parameters = std::make_shared<renderDetails::ParametersDark>(1);
+                float inBallRadius = ballRadiusEstimate(m_maxCoverageX, m_maxCoverageY);
+                std::vector<glm::vec3> lightSources{glm::vec3(0.0f, 0.0f, m_maxCoverageZ + inBallRadius)};
+                auto parameters = std::make_shared<renderDetails::ParametersDark>(
+                        m_maxCoverageZ, m_maxCoverageX, m_maxCoverageY,
+                        inBallRadius,
+                        lightSources);
+
                 /*
                 renderDetails::Query query(
                         renderDetails::DrawingStyle::standard,
@@ -119,7 +128,8 @@ namespace testZ {
             m3 = glm::translate(glm::mat4(1.0f), glm::vec3{0.0f, 0.0f, maxZ + m_height/40.0f}) * m3;
             m_levelDrawer.addModelMatrixForObject(ref3, m3);*/
 
-            renderDetails::ParametersDark parameters(m_mazeFloorZ, m_width, m_height, m_height/16.0f);
+            renderDetails::ParametersDark parameters(m_mazeFloorZ, m_width, m_height,
+                                                     ballRadiusEstimate(m_width, m_height));
 
             parameters.pushBackLightSource(0.0f, 0.0f, true);
 
@@ -159,6 +169,7 @@ namespace testZ {
         }
 
     private:
+        static float ballRadius(float diagonal) { return diagonal/40.0f; }
         std::chrono::high_resolution_clock::time_point prevTime;
 
         uint32_t m_refreshedAfterStarter;

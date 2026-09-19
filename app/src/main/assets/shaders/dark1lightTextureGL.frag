@@ -52,7 +52,7 @@ int ShadowCalculation(vec4 pos, sampler2D texSamplerShadows) {
     return currentDepth - bias < closestDepth ? 1 : 0;
 }
 
-vec3 diffuse(vec3 lightPos,
+float diffuse(vec3 lightPos,
             vec4 fragPosLightSpaceUp, vec4 fragPosLightSpaceLeft, vec4 fragPosLightSpaceDown, vec4 fragPosLightSpaceRight,
             sampler2D texDarkUp, sampler2D texDarkLeft, sampler2D texDarkDown, sampler2D texDarkRight) {
 
@@ -90,24 +90,22 @@ vec3 diffuse(vec3 lightPos,
         float smallValue = 1.0;
 
         diff =  max(dot(fragNormal, -lightDirection), 0.0);
-        // float rSquared = max(dot(lightToFrag, lightToFrag), smallValue);
-        // diff = diff/(rSquaredMultiplier * rSquared);
+        float rSquared = max(dot(lightToFrag, lightToFrag), smallValue);
+        diff = diff/(rSquaredMultiplier * rSquared);
     }
 
-    vec3 diffuseValue = vec3(diff);
-
-    return diffuseValue;
+    return diff;
 }
 
 void main() {
 /*
     gl_FragColor = texture2D(texDark1Right, fragTexCoord);
     return;
-    */
+   */
 
-    vec3 diffuse1 = diffuse(lightPos1, fragPosLightSpace1Up, fragPosLightSpace1Left,
+    float diff = diffuse(lightPos1, fragPosLightSpace1Up, fragPosLightSpace1Left,
         fragPosLightSpace1Down, fragPosLightSpace1Right,
         texDark1Up, texDark1Left, texDark1Down, texDark1Right);
 
-    gl_FragColor = vec4(diffuse1, 1.0) * texture2D(texSampler, fragTexCoord);
+    gl_FragColor = vec4(diff, diff, diff, 1.0) * texture2D(texSampler, fragTexCoord);
 }

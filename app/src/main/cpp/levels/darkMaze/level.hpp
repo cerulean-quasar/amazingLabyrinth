@@ -32,9 +32,21 @@ namespace darkMaze {
          * hole and ball.  The floor is using the default render details.
          */
         struct Request : public openAreaMaze::Level::Request {
-            Request(levelDrawer::Adaptor levelDrawer, bool shadowsEnabled)
-                    : openAreaMaze::Level::Request(std::move(levelDrawer), shadowsEnabled)
+            Request(levelDrawer::Adaptor levelDrawer, float maxCoverageZ, bool shadowsEnabled)
+                    : openAreaMaze::Level::Request(std::move(levelDrawer), maxCoverageZ, shadowsEnabled)
             {}
+
+            std::shared_ptr<renderDetails::ParametersDark> getParameters() {
+                // todo: calculate the ball radius right here, don't just estimate
+                float inBallRadius = (m_maxCoverageX + m_maxCoverageY)/2.0/40.0;
+                std::vector<glm::vec3> lightSources{glm::vec3(0.0f, 0.0f, m_maxCoverageZ + inBallRadius)};
+                auto parameters = std::make_shared<renderDetails::ParametersDark>(
+                        m_maxCoverageZ, m_maxCoverageX, m_maxCoverageY,
+                        inBallRadius,
+                        lightSources);
+
+                return parameters;
+            }
 
             void defaultRD() override {
                 renderDetails::Query query{
@@ -75,11 +87,13 @@ namespace darkMaze {
                     query, gameConstants::getPerspectiveParameters());
             }
 
+            /*
             static std::shared_ptr<renderDetails::ParametersDark> getParameters() {
                 auto parameters = std::make_shared<renderDetails::ParametersDark>(1);
 
                 return parameters;
             }
+             */
         };
 
         char const *name() override { return m_name; }
@@ -95,7 +109,7 @@ namespace darkMaze {
                 Request &request)
                 : openAreaMaze::Level(
                         std::move(inLevelDrawer), lcd, sd, maxZ, request),
-                  m_parameters(*Request::getParameters())
+                  m_parameters(*request.getParameters())
         {
             m_parameters.updateFloorZ(m_mazeFloorZ);
             m_parameters.updateBallRadius(ballDiameter()/2.0f);

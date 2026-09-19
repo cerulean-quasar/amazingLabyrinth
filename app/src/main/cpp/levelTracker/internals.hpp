@@ -1,5 +1,5 @@
 /**
- * Copyright 2020 Cerulean Quasar. All Rights Reserved.
+ * Copyright 2026 Cerulean Quasar. All Rights Reserved.
  *
  *  This file is part of AmazingLabyrinth.
  *
@@ -84,7 +84,7 @@ namespace levelTracker {
                          return GenerateLevelFcn(
                              [lcd, sd, z, enableShadows](levelDrawer::Adaptor inLevelDrawer) -> std::shared_ptr<basic::Level>
                              {
-                                 typename LevelType::Request request(inLevelDrawer, enableShadows);
+                                 typename LevelType::Request request(inLevelDrawer, z, enableShadows);
                                  return std::make_shared<LevelType>(
                                          std::move(inLevelDrawer), lcd, sd, z, request);
                              });
@@ -107,7 +107,7 @@ namespace levelTracker {
                     [lcd, sd(std::shared_ptr<LevelSaveDataType>()), z, enableShadows](
                             levelDrawer::Adaptor inLevelDrawer) -> std::shared_ptr<basic::Level>
                     {
-                        typename LevelType::Request request(inLevelDrawer, enableShadows);
+                        typename LevelType::Request request(inLevelDrawer, z, enableShadows);
                         return std::make_shared<LevelType>(
                                 std::move(inLevelDrawer), lcd, sd, z, request);
                     });

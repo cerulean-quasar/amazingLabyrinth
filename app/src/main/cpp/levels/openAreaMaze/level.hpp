@@ -1,5 +1,5 @@
 /**
- * Copyright 2024 Cerulean Quasar. All Rights Reserved.
+ * Copyright 2026 Cerulean Quasar. All Rights Reserved.
  *
  *  This file is part of AmazingLabyrinth.
  *
@@ -49,8 +49,8 @@ namespace openAreaMaze {
 
     public:
         struct Request : public generatedMaze::Level::Request{
-            Request(levelDrawer::Adaptor levelDrawer, bool shadowsEnabled)
-                    : generatedMaze::Level::Request(std::move(levelDrawer), shadowsEnabled)
+            Request(levelDrawer::Adaptor levelDrawer, float maxCoverageZ, bool shadowsEnabled)
+                    : generatedMaze::Level::Request(std::move(levelDrawer), maxCoverageZ, shadowsEnabled)
             {}
         };
 

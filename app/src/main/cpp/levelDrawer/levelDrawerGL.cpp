@@ -24,6 +24,9 @@
 #include "../renderDetails/renderDetailsGL.hpp"
 
 namespace levelDrawer {
+    template <> bool LevelDrawerGraphics<LevelDrawerGLTraits>::invertY() { return false; }
+    template <> bool LevelDrawerGraphics<LevelDrawerGLTraits>::depth0to1() { return false; }
+
     template <>
     void LevelDrawerGraphics<LevelDrawerGLTraits>::draw(
             LevelDrawerGLTraits::DrawArgumentType const &info)
