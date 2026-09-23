@@ -95,9 +95,10 @@ namespace darkChaining {
                 // not a performance problem, because after the render details is loaded the first time,
                 // the next times, it is just looked up in a list, not really any work is done other than
                 // creating the COD.
+                auto shadowsParameters = parameters->toShadowsParametersPerspectivePtr(lightSourceNumber, direction);
                 refShadows = renderLoader->load(
                     gameRequester, shadowsRenderDetailsQuery, shadowSurfaceDetails,
-                    parameters->toShadowsParametersPerspectivePtr(lightSourceNumber, direction));
+                    shadowsParameters);
 
                 // The shadows CODs are stored with the zeroth viewpoint first with the CODs stored
                 // in counterclockwise order starting with the camera pointed in the positive y

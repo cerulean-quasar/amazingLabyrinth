@@ -68,7 +68,7 @@ namespace darkObject {
         CommonObjectDataGL(renderDetails::ParametersDarkObjectGL const &parameters, float aspectRatio)
                 : renderDetails::CommonObjectDataPerspective(parameters, aspectRatio),
                   m_darkFrameBuffers{parameters.darkFramebuffers},
-                  m_projViewLights{}
+                  m_projViewLights{parameters.projViewsLights}
         {}
 
         ~CommonObjectDataGL() override = default;

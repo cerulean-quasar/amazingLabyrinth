@@ -98,32 +98,24 @@ namespace renderDetails {
             parameters.viewAngle = m_shadowMapViewAngleConstant;
             parameters.up = glm::vec3{0.0f, 0.0f, 1.0f};
             parameters.lookAt = glm::vec3{m_lightSources[lightNumber].x, m_lightSources[lightNumber].y,  m_floorZ + m_ballRadius};
-            float distanceViewPointNearPlane = m_gameBoardHeight;
+            float deltaNearFar = m_gameBoardHeight;
+            parameters.nearPlane = m_gameBoardHeight/10.0f;
+            parameters.farPlane = parameters.nearPlane + deltaNearFar;
             switch (direction) {
             case 0:
-                parameters.viewPoint = glm::vec3{ m_lightSources[lightNumber].x, m_lightSources[lightNumber].y - distanceViewPointNearPlane, m_floorZ + m_ballRadius };
-                parameters.farPlane = m_gameBoardHeight/2 - m_lightSources[lightNumber].y;
+                parameters.viewPoint = glm::vec3{ m_lightSources[lightNumber].x, m_lightSources[lightNumber].y - parameters.nearPlane, m_floorZ + m_ballRadius };
                 break;
             case 1:
-                parameters.viewPoint = glm::vec3{m_lightSources[lightNumber].x + distanceViewPointNearPlane, m_lightSources[lightNumber].y, m_floorZ + m_ballRadius};
-                parameters.farPlane = -m_gameBoardWidth/2 - m_lightSources[lightNumber].x;
+                parameters.viewPoint = glm::vec3{m_lightSources[lightNumber].x + parameters.nearPlane, m_lightSources[lightNumber].y, m_floorZ + m_ballRadius};
                 break;
             case 2:
-                parameters.viewPoint = glm::vec3{m_lightSources[lightNumber].x, m_lightSources[lightNumber].y + distanceViewPointNearPlane, m_floorZ + m_ballRadius};
-                parameters.farPlane = -m_gameBoardHeight/2 - m_lightSources[lightNumber].y;
+                parameters.viewPoint = glm::vec3{m_lightSources[lightNumber].x, m_lightSources[lightNumber].y + parameters.nearPlane, m_floorZ + m_ballRadius};
                 break;
             case 3:
-                parameters.viewPoint = glm::vec3{m_lightSources[lightNumber].x - distanceViewPointNearPlane, m_lightSources[lightNumber].y, m_floorZ + m_ballRadius};
-                parameters.farPlane = m_gameBoardWidth/2 - m_lightSources[lightNumber].x;
+                parameters.viewPoint = glm::vec3{m_lightSources[lightNumber].x - parameters.nearPlane, m_lightSources[lightNumber].y, m_floorZ + m_ballRadius};
                 break;
             default:
                 throw std::runtime_error("Invalid direction in dark shadows perspective");
-            }
-
-            if (direction == 0 || direction == 2) {
-                parameters.nearPlane = m_lightSources[lightNumber].y;
-            } else {
-                parameters.nearPlane = m_lightSources[lightNumber].x;
             }
 
             return parameters;
