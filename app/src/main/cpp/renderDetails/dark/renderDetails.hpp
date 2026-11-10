@@ -95,11 +95,12 @@ namespace renderDetails {
                 throw std::runtime_error("Viewpoint requested is out of range.");
             }
 
+            /* test: view point far away to stop floating point errors */
             parameters.viewAngle = m_shadowMapViewAngleConstant;
             parameters.up = glm::vec3{0.0f, 0.0f, 1.0f};
             parameters.lookAt = glm::vec3{m_lightSources[lightNumber].x, m_lightSources[lightNumber].y,  m_floorZ + m_ballRadius};
             float deltaNearFar = m_gameBoardHeight;
-            parameters.nearPlane = m_gameBoardHeight/10.0f;
+            parameters.nearPlane = m_gameBoardHeight/2.0f;
             parameters.farPlane = parameters.nearPlane + deltaNearFar;
             switch (direction) {
             case 0:
@@ -117,6 +118,32 @@ namespace renderDetails {
             default:
                 throw std::runtime_error("Invalid direction in dark shadows perspective");
             }
+
+        /* basic implementation - doesn't work, could it be due to floating point errors */
+/*
+            parameters.viewAngle = m_shadowMapViewAngleConstant;
+            parameters.up = glm::vec3{0.0f, 0.0f, 1.0f};
+            switch (direction) {
+            case 0: // looking at +y
+                parameters.lookAt = glm::vec3{m_lightSources[lightNumber].x, m_gameBoardHeight/2.0f - m_lightSources[lightNumber].y,  m_floorZ + m_ballRadius};
+                break;
+            case 1: // looking at -x
+                parameters.lookAt = glm::vec3{-m_gameBoardWidth/2.0f - m_lightSources[lightNumber].x, m_lightSources[lightNumber].y,  m_floorZ + m_ballRadius};
+                break;
+            case 2: // looking at -y
+                parameters.lookAt = glm::vec3{m_lightSources[lightNumber].x, -m_gameBoardHeight/2.0f + m_lightSources[lightNumber].y,  m_floorZ + m_ballRadius};
+                break;
+            case 3: // looking at +x
+                parameters.lookAt = glm::vec3{m_gameBoardWidth/2.0f - m_lightSources[lightNumber].x, m_lightSources[lightNumber].y,  m_floorZ + m_ballRadius};
+                break;
+            default:
+                throw std::runtime_error("Invalid direction in dark shadows perspective");
+            }
+            float deltaNearFar = m_gameBoardHeight;
+            parameters.nearPlane = m_ballRadius;
+            parameters.farPlane = parameters.nearPlane + deltaNearFar;
+            parameters.viewPoint = m_lightSources[lightNumber];
+             */
 
             return parameters;
         }

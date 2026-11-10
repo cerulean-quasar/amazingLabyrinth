@@ -21,6 +21,7 @@ precision mediump float;
  *
  */
 
+// todo check on weather we are passing in the args from the vertex shader.  The vertex shader has more variables (only for the color shader)
 varying vec3 fragColor;
 varying vec3 fragNormal;
 varying vec3 fragPosition;
